@@ -1,0 +1,105 @@
+
+"use client";
+
+import { useState, useMemo } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { Player } from '@/lib/player-service';
+import { TeamSelector } from './TeamSelector';
+import { TierRow } from './TierRow';
+import { Tiers, TIERS } from '@/lib/constants';
+
+interface BattleGridProps {
+  players: Player[];
+  universities: string[];
+  initialTeamA?: string;
+  initialTeamB?: string;
+}
+
+export function BattleGrid({ players, universities, initialTeamA, initialTeamB }: BattleGridProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  const [teamA, setTeamA] = useState<string | null>(initialTeamA || null);
+  const [teamB, setTeamB] = useState<string | null>(initialTeamB || null);
+  const [hideEmptyTiers, setHideEmptyTiers] = useState(true);
+
+  const handleTeamChange = (team: 'A' | 'B', univ: string | null) => {
+    const currentParams = new URLSearchParams();
+    const newTeamA = team === 'A' ? univ : teamA;
+    const newTeamB = team === 'B' ? univ : teamB;
+    
+    if (newTeamA) currentParams.set('teamA', newTeamA);
+    if (newTeamB) currentParams.set('teamB', newTeamB);
+
+    router.push(`${pathname}?${currentParams.toString()}`);
+    
+    if (team === 'A') setTeamA(univ);
+    if (team === 'B') setTeamB(univ);
+  };
+
+  const playersByTier = useMemo(() => {
+    const grouped: Record<string, { teamA: Player[], teamB: Player[] }> = {};
+
+    for (const tier of TIERS) {
+      grouped[tier] = { teamA: [], teamB: [] };
+    }
+
+    players.forEach(p => {
+      if (!p.tier || !p.university) return;
+
+      if (!grouped[p.tier]) {
+        grouped[p.tier] = { teamA: [], teamB: [] };
+      }
+
+      if (p.university === teamA) {
+        grouped[p.tier].teamA.push(p);
+      }
+      if (p.university === teamB) {
+        grouped[p.tier].teamB.push(p);
+      }
+    });
+
+    return grouped;
+  }, [players, teamA, teamB]);
+
+  return (
+    <div className="w-full">
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <TeamSelector universities={universities} selectedTeam={teamA} onSelect={(univ) => handleTeamChange('A', univ)} title="좌측 팀 선택" />
+        <TeamSelector universities={universities} selectedTeam={teamB} onSelect={(univ) => handleTeamChange('B', univ)} title="우측 팀 선택" />
+      </div>
+      
+      <div className="flex justify-end mb-4">
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input 
+            type="checkbox" 
+            checked={hideEmptyTiers}
+            onChange={(e) => setHideEmptyTiers(e.target.checked)}
+            className="form-checkbox h-4 w-4 rounded bg-card text-nzu-green border-border focus:ring-nzu-green/50"
+          />
+          없는 티어 라인 숨기기
+        </label>
+      </div>
+
+      <div className="space-y-2">
+        {TIERS.map(tier => {
+          const tierData = playersByTier[tier];
+          if (!tierData) return null;
+
+          if (hideEmptyTiers && tierData.teamA.length === 0 && tierData.teamB.length === 0) {
+            return null;
+          }
+          
+          return (
+            <TierRow 
+              key={tier}
+              tier={tier}
+              teamAPlayers={tierData.teamA}
+              teamBPlayers={tierData.teamB}
+            />
+          )
+        })}
+      </div>
+    </div>
+  );
+}

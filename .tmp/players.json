@@ -1,0 +1,122 @@
+[
+  {
+    "name": "시조새",
+    "tier": "3",
+    "race": "Protoss",
+    "university": "N/A"
+  },
+  {
+    "name": "조기석",
+    "tier": "갓",
+    "race": "Terran",
+    "university": "JSA"
+  },
+  {
+    "name": "임홍규",
+    "tier": "갓",
+    "race": "Zerg",
+    "university": "JSA"
+  },
+  {
+    "name": "배병우",
+    "tier": "잭",
+    "race": "Zerg",
+    "university": "N/A"
+  },
+  {
+    "name": "김병수",
+    "tier": "잭",
+    "race": "Zerg",
+    "university": "N/A"
+  },
+  {
+    "name": "김영진",
+    "tier": "잭",
+    "race": "Terran",
+    "university": "N/A"
+  },
+  {
+    "name": "윤준석",
+    "tier": "조커",
+    "race": "Protoss",
+    "university": "N/A"
+  },
+  {
+    "name": "김민우",
+    "tier": "조커",
+    "race": "Protoss",
+    "university": "N/A"
+  },
+  {
+    "name": "하블리",
+    "tier": "2",
+    "race": "Zerg",
+    "university": "JSA"
+  },
+  {
+    "name": "라미",
+    "tier": "3",
+    "race": "Zerg",
+    "university": "JSA"
+  },
+  {
+    "name": "나린",
+    "tier": "4",
+    "race": "Zerg",
+    "university": "JSA"
+  },
+  {
+    "name": "려원님",
+    "tier": "6",
+    "race": "Terran",
+    "university": "JSA"
+  },
+  {
+    "name": "김태향",
+    "tier": "6",
+    "race": "Zerg",
+    "university": "JSA"
+  },
+  {
+    "name": "밥새",
+    "tier": "7",
+    "race": "Terran",
+    "university": "JSA"
+  },
+  {
+    "name": "쟈닌",
+    "tier": "7",
+    "race": "Zerg",
+    "university": "JSA"
+  },
+  {
+    "name": "모비",
+    "tier": "8",
+    "race": "Protoss",
+    "university": "JSA"
+  },
+  {
+    "name": "돌애정",
+    "tier": "8",
+    "race": "Terran",
+    "university": "JSA"
+  },
+  {
+    "name": "백원이야",
+    "tier": "8",
+    "race": "Zerg",
+    "university": "JSA"
+  },
+  {
+    "name": "옥수수",
+    "tier": "9",
+    "race": "Protoss",
+    "university": "N/A"
+  },
+  {
+    "name": "미진이",
+    "tier": "9",
+    "race": "Terran",
+    "university": "N/A"
+  }
+]
