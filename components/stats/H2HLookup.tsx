@@ -6,10 +6,17 @@ import { RaceTag, TierBadge } from '@/components/ui/nzu-badges'
 import { getInstantH2H } from '@/lib/h2h-service'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Search, Trophy, Map as MapIcon, History, X, ChevronRight, User, MousePointer2, Plus, ArrowRightLeft, Swords } from 'lucide-react'
+import { Search, Trophy, Map as MapIcon, History, X, ChevronRight, User, MousePointer2, Plus, ArrowRightLeft, Swords, Trash2, RotateCcw, AlertCircle, CheckCircle2, Save } from 'lucide-react'
 import { UNIVERSITY_MAP, getUniversityInfo } from '@/lib/university-config'
 import { REAL_NAME_MAP } from '@/lib/constants'
 import Image from 'next/image'
+
+interface Match {
+  id: string;
+  p1: Player;
+  p2: Player;
+  h2h?: any;
+}
 
 interface H2HLookupProps {
   players?: Player[]
@@ -32,6 +39,10 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
   const [players1, setPlayers1] = useState<Player[]>([])
   const [players2, setPlayers2] = useState<Player[]>([])
   const [hideEmptyTiers, setHideEmptyTiers] = useState(true)
+  const [isCaptureMode, setIsCaptureMode] = useState(false)
+  
+  // Match List State
+  const [matches, setMatches] = useState<Match[]>([])
 
   // Load Players for Side 1
   useEffect(() => {
@@ -139,6 +150,48 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
     });
   }, [groups1, groups2, hideEmptyTiers]);
 
+  const sameTierMatchAll = () => {
+    if (!u1 || !u2) {
+      alert('양 팀의 대학을 먼저 선택해주세요.');
+      return;
+    }
+    
+    const newMatches: Match[] = [];
+    arenaTiers.forEach(tier => {
+      const g1 = groups1.find(g => g.tier === tier);
+      const g2 = groups2.find(g => g.tier === tier);
+      
+      if (g1 && g2 && g1.players.length > 0 && g2.players.length > 0) {
+        // Pairs every player of the same tier (SSUSTAR style)
+        g1.players.forEach(pA => {
+          g2.players.forEach(pB => {
+            if (!matches.some(m => (m.p1.id === pA.id && m.p2.id === pB.id))) {
+              newMatches.push({
+                id: `m_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${pA.id}_${pB.id}`,
+                p1: pA,
+                p2: pB
+              });
+            }
+          });
+        });
+      }
+    });
+
+    if (newMatches.length === 0) {
+      alert('동일 티어에 매칭할 선수가 없습니다.');
+      return;
+    }
+
+    setMatches(prev => [...prev, ...newMatches]);
+    newMatches.forEach(m => {
+      const n1 = REAL_NAME_MAP[m.p1.name] || m.p1.name;
+      const n2 = REAL_NAME_MAP[m.p2.name] || m.p2.name;
+      getInstantH2H(n1, n2).then(data => {
+        setMatches(prev => prev.map(old => old.id === m.id ? { ...old, h2h: data } : old));
+      });
+    });
+  };
+
   const handleSearch = async () => {
     if (!p1 || !p2) return
     setLoading(true)
@@ -151,6 +204,88 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
     setResults(h2h)
     setLoading(false)
   }
+
+  // --- New SSUSTAR Inspired Functions ---
+
+  const addMatch = async (player1: Player, player2: Player) => {
+    // Check for duplicates
+    const isDuplicate = matches.some(m => 
+      (m.p1.id === player1.id && m.p2.id === player2.id) ||
+      (m.p1.id === player2.id && m.p2.id === player1.id)
+    );
+    if (isDuplicate) return;
+
+    const newMatch: Match = {
+      id: `m_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      p1: player1,
+      p2: player2
+    };
+
+    setMatches(prev => [...prev, newMatch]);
+
+    // Background fetch H2H for this match
+    const n1 = REAL_NAME_MAP[player1.name] || player1.name;
+    const n2 = REAL_NAME_MAP[player2.name] || player2.name;
+    getInstantH2H(n1, n2).then(data => {
+      setMatches(prev => prev.map(m => m.id === newMatch.id ? { ...m, h2h: data } : m));
+    });
+  };
+
+  const removeMatch = (id: string) => {
+    setMatches(prev => prev.filter(m => m.id !== id));
+  };
+
+  const clearMatches = () => {
+    if (confirm('모든 경기 내용을 초기화하시겠습니까?')) {
+      setMatches([]);
+    }
+  };
+
+  const autoMatch = () => {
+    if (!u1 || !u2) {
+      alert('양 팀의 대학을 먼저 선택해주세요.');
+      return;
+    }
+    
+    const newMatches: Match[] = [];
+    arenaTiers.forEach(tier => {
+      const g1 = groups1.find(g => g.tier === tier);
+      const g2 = groups2.find(g => g.tier === tier);
+      
+      if (g1 && g2 && g1.players.length > 0 && g2.players.length > 0) {
+        // Simple 1:1 match for available players in this tier
+        const minLen = Math.min(g1.players.length, g2.players.length);
+        for (let i = 0; i < minLen; i++) {
+          const pA = g1.players[i];
+          const pB = g2.players[i];
+          
+          if (!matches.some(m => (m.p1.id === pA.id && m.p2.id === pB.id))) {
+            newMatches.push({
+              id: `m_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${i}`,
+              p1: pA,
+              p2: pB
+            });
+          }
+        }
+      }
+    });
+
+    if (newMatches.length === 0) {
+      alert('자동 매칭 가능한 선수가 없습니다.');
+      return;
+    }
+
+    setMatches(prev => [...prev, ...newMatches]);
+    
+    // Background H2H load for new matches
+    newMatches.forEach(m => {
+      const n1 = REAL_NAME_MAP[m.p1.name] || m.p1.name;
+      const n2 = REAL_NAME_MAP[m.p2.name] || m.p2.name;
+      getInstantH2H(n1, n2).then(data => {
+        setMatches(prev => prev.map(old => old.id === m.id ? { ...old, h2h: data } : old));
+      });
+    });
+  };
 
   return (
     <div className="w-full space-y-12">
@@ -189,17 +324,42 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                 <Swords className="w-8 h-8 text-nzu-green animate-pulse" />
                 <span className="text-sm font-black text-white/80 uppercase tracking-[0.5em]">Battle Arena</span>
               </div>
-            <button 
-                onClick={() => setHideEmptyTiers(!hideEmptyTiers)}
-                className={cn(
-                  "px-8 py-3 rounded-full text-xs font-black border-2 transition-all uppercase tracking-widest whitespace-nowrap shadow-xl",
-                  hideEmptyTiers 
-                    ? "bg-nzu-green border-nzu-green text-black hover:bg-nzu-green/90 shadow-[0_0_30px_rgba(46,213,115,0.3)]" 
-                    : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
-                )}
-              >
-                {hideEmptyTiers ? "매칭 있는 티어만 보기" : "전체 로스터 보기"}
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setHideEmptyTiers(!hideEmptyTiers)}
+                  className={cn(
+                    "px-4 py-3 rounded-xl text-[10px] font-black border transition-all uppercase tracking-widest whitespace-nowrap",
+                    hideEmptyTiers 
+                      ? "bg-nzu-green border-nzu-green text-black hover:bg-nzu-green/90 shadow-[0_0_20px_rgba(46,213,115,0.2)]" 
+                      : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+                  )}
+                >
+                  {hideEmptyTiers ? "매칭 모드" : "전체 모드"}
+                </button>
+                <button 
+                  onClick={autoMatch}
+                  className="px-4 py-3 rounded-xl text-[10px] font-black border border-white/10 bg-white/5 text-white/80 hover:bg-nzu-green hover:text-black hover:border-nzu-green transition-all uppercase tracking-widest whitespace-nowrap shadow-xl flex items-center gap-2"
+                  title="일대일 자동 매칭"
+                >
+                  <Plus className="w-3 h-3" />
+                  자동 매칭
+                </button>
+                <button 
+                  onClick={sameTierMatchAll}
+                  className="px-4 py-3 rounded-xl text-[10px] font-black border border-white/10 bg-white/5 text-white/80 hover:bg-nzu-green hover:text-black hover:border-nzu-green transition-all uppercase tracking-widest whitespace-nowrap shadow-xl flex items-center gap-2"
+                  title="동일 티어 전원 매칭"
+                >
+                  <ArrowRightLeft className="w-3 h-3" />
+                  동일 티어 전체
+                </button>
+                <button 
+                  onClick={clearMatches}
+                  className="px-4 py-3 rounded-xl text-[10px] font-black border border-white/10 bg-white/5 text-white/40 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-xl flex items-center justify-center p-3"
+                  title="초기화"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </button>
+              </div>
             </div>
 
             {/* Side 2 Select */}
@@ -261,17 +421,20 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                   <div key={tier} className="grid grid-cols-[1fr_80px_1fr] md:grid-cols-[1fr_160px_1fr] items-stretch min-h-[80px] border-b border-white/[0.03] hover:bg-white/[0.03] transition-colors group">
                     {/* Left Players */}
                     <div className="flex flex-wrap items-center justify-end gap-3 p-4 pr-16 md:pr-20">
-                       {g1?.players.map(p => (
-                         <button 
-                           key={p.id} 
-                           onClick={() => { setP1(p); setResults(null); }}
-                           className={cn(
-                             "flex items-center gap-4 pl-5 pr-4 py-3 rounded-2xl border-2 transition-all min-w-[140px] justify-between shadow-md",
-                             p1?.id === p.id 
-                               ? "bg-nzu-green border-nzu-green text-black scale-110 z-20" 
-                               : "bg-white/[0.03] border-white/5 text-white/70 hover:bg-white/[0.1] hover:text-white hover:border-white/30"
-                           )}
-                         >
+                        {g1?.players.map(p => (
+                          <button 
+                            key={p.id} 
+                            onClick={() => { 
+                              if (p2) { addMatch(p, p2); setP2(null); setP1(null); }
+                              else { setP1(p); setResults(null); }
+                            }}
+                            className={cn(
+                              "flex items-center gap-4 pl-5 pr-4 py-3 rounded-2xl border-2 transition-all min-w-[140px] justify-between shadow-md group/btn",
+                              p1?.id === p.id 
+                                ? "bg-nzu-green border-nzu-green text-black scale-105 z-20" 
+                                : "bg-white/[0.03] border-white/5 text-white/70 hover:bg-white/[0.1] hover:text-white hover:border-white/30"
+                            )}
+                          >
                             <span className="text-lg font-black tracking-tight">{p.name}</span>
                             <span className={cn(
                                "text-[11px] font-black w-6 h-6 rounded-lg flex items-center justify-center bg-black/30",
@@ -301,17 +464,20 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
 
                     {/* Right Players */}
                     <div className="flex flex-wrap items-center justify-start gap-3 p-4 pl-16 md:pl-20">
-                       {g2?.players.map(p => (
-                         <button 
-                           key={p.id} 
-                           onClick={() => { setP2(p); setResults(null); }}
-                           className={cn(
-                             "flex items-center gap-4 pl-5 pr-4 py-3 rounded-2xl border-2 transition-all min-w-[140px] justify-between shadow-md",
-                             p2?.id === p.id 
-                               ? "bg-nzu-green border-nzu-green text-black scale-110 z-20" 
-                               : "bg-white/[0.03] border-white/5 text-white/70 hover:bg-white/[0.1] hover:text-white hover:border-white/30"
-                           )}
-                         >
+                        {g2?.players.map(p => (
+                          <button 
+                            key={p.id} 
+                            onClick={() => { 
+                              if (p1) { addMatch(p1, p); setP1(null); setP2(null); }
+                              else { setP2(p); setResults(null); }
+                            }}
+                            className={cn(
+                              "flex items-center gap-4 pl-5 pr-4 py-3 rounded-2xl border-2 transition-all min-w-[140px] justify-between shadow-md group/btn",
+                              p2?.id === p.id 
+                                ? "bg-nzu-green border-nzu-green text-black scale-105 z-20" 
+                                : "bg-white/[0.03] border-white/5 text-white/70 hover:bg-white/[0.1] hover:text-white hover:border-white/30"
+                            )}
+                          >
                             <span className="text-lg font-black tracking-tight">{p.name}</span>
                             <span className={cn(
                                "text-[11px] font-black w-6 h-6 rounded-lg flex items-center justify-center bg-black/30",
@@ -329,8 +495,8 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
           </div>
         </div>
 
-        {/* Selected Matchup Display (Compact Center) */}
-        <div className="xl:col-span-12 mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4 px-2">
+        {/* Selected Matchup Display (Compact Center) - Hide in capture mode */}
+        <div className={cn("xl:col-span-12 mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4 px-2", isCaptureMode && "hidden")}>
             {/* Player 1 Slot */}
             <div className={cn(
               "p-6 rounded-[2.5rem] border flex items-center gap-8 transition-all duration-500",
@@ -380,10 +546,10 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
             </div>
         </div>
 
-      {/* 3. Result Section (Premium Dashboard) */}
+      {/* 3. Result Section (Premium Dashboard) - Hide in capture mode */}
       <div className={cn(
         "bg-[#030504] border border-white/10 rounded-[2.5rem] transition-all duration-700 overflow-hidden shadow-2xl",
-        results ? "min-h-[500px] mt-12" : "h-0 border-0 opacity-0"
+        results && !isCaptureMode ? "min-h-[500px] mt-12" : "h-0 border-0 opacity-0"
       )}>
         {results && (
           <div className="p-8 md:p-12 space-y-16 fade-in">
@@ -505,6 +671,133 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
         )}
       </div>
 
+      {/* 4. Match List Section (The SSUSTAR Lineup) */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between px-2">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-10 bg-nzu-green rounded-full shadow-[0_0_15px_#2ed573]" />
+              <h3 className="text-2xl font-black text-white uppercase tracking-widest">Team Entry Lineup <span className="text-nzu-green/40 ml-2">({matches.length})</span></h3>
+            </div>
+            <div className="flex gap-4">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className={cn(
+                  "rounded-2xl border-white/10 text-xs font-black tracking-widest uppercase transition-all",
+                  isCaptureMode ? "bg-nzu-green text-black border-nzu-green" : "bg-white/5 text-white/60 hover:bg-white/10"
+                )} 
+                onClick={() => setIsCaptureMode(!isCaptureMode)}
+              >
+                {isCaptureMode ? <X className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                {isCaptureMode ? "편집 모드로 돌아가기" : "캡처 모드 활성화"}
+              </Button>
+            </div>
+        </div>
+
+        <div className={cn(
+          "grid grid-cols-1 gap-4 transition-all duration-700",
+          isCaptureMode ? "max-w-4xl mx-auto" : "w-full"
+        )}>
+           {matches.length === 0 ? (
+             <div className="py-24 bg-white/[0.01] border-2 border-dashed border-white/5 rounded-[3rem] flex flex-col items-center justify-center text-white/10 gap-6">
+                <Swords className="w-16 h-16 opacity-5" />
+                <div className="text-center space-y-2">
+                  <p className="text-lg font-black uppercase tracking-[0.5em]">Battle Arena is Ready</p>
+                  <p className="text-xs font-bold text-white/20 uppercase tracking-[0.3em]">선수를 클릭하여 대진표를 구성하세요</p>
+                </div>
+             </div>
+           ) : (
+             matches.map((match, idx) => (
+                <div key={match.id} className={cn(
+                  "group relative overflow-hidden bg-gradient-to-r from-black/80 to-[#0a0f0d] border border-white/5 rounded-[2rem] px-10 py-8 flex items-center justify-between transition-all duration-300",
+                  !isCaptureMode && "hover:border-nzu-green/30 hover:shadow-[0_0_50px_rgba(46,213,115,0.05)]"
+                )}>
+                    {/* Decorative accent */}
+                    <div className="absolute left-0 top-0 bottom-0 w-2 bg-nzu-green opacity-40" />
+                    
+                    <div className="flex items-center gap-10 flex-1">
+                        <span className="text-white/10 font-black text-3xl italic w-12 tracking-tighter">#{String(idx + 1).padStart(2, '0')}</span>
+                        
+                        {/* Player 1 */}
+                        <div className="flex items-center gap-6 w-64">
+                            <div className={cn(
+                              "w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shadow-2xl relative overflow-hidden",
+                              match.p1.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p1.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss"
+                            )}>
+                              <div className="absolute inset-0 bg-current opacity-5" />
+                              {match.p1.race?.charAt(0)}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-white font-black text-2xl tracking-tight">{match.p1.name}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">{match.p1.tier}</span>
+                                {match.p1.university && <span className="text-[10px] text-nzu-green/40 font-black truncate max-w-[80px]">{match.p1.university}</span>}
+                              </div>
+                            </div>
+                        </div>
+
+                        {/* VS Divider */}
+                        <div className="flex flex-col items-center px-12 relative">
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-nzu-green/5 blur-3xl rounded-full" />
+                            <span className="text-[11px] font-black text-white/20 uppercase tracking-[0.8em] mb-2 z-10">VS</span>
+                            {match.h2h ? (
+                              <div className="flex gap-4 items-center z-10">
+                                <span className={cn("text-3xl font-black tabular-nums", match.h2h.summary.wins > match.h2h.summary.losses ? "text-nzu-green drop-shadow-[0_0_15px_rgba(46,213,115,0.5)]" : "text-white/40")}>
+                                  {match.h2h.summary.wins}
+                                </span>
+                                <span className="text-xl font-black text-white/5">:</span>
+                                <span className={cn("text-3xl font-black tabular-nums", match.h2h.summary.losses > match.h2h.summary.wins ? "text-nzu-green drop-shadow-[0_0_15px_rgba(46,213,115,0.5)]" : "text-white/40")}>
+                                  {match.h2h.summary.losses}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="w-16 h-1 bg-white/5 rounded-full animate-pulse z-10" />
+                            )}
+                        </div>
+
+                        {/* Player 2 */}
+                        <div className="flex items-center gap-6 w-64 justify-end">
+                            <div className="flex flex-col text-right">
+                              <span className="text-white font-black text-2xl tracking-tight">{match.p2.name}</span>
+                              <div className="flex items-center justify-end gap-2">
+                                {match.p2.university && <span className="text-[10px] text-nzu-green/40 font-black truncate max-w-[80px]">{match.p2.university}</span>}
+                                <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">{match.p2.tier}</span>
+                              </div>
+                            </div>
+                            <div className={cn(
+                              "w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shadow-2xl relative overflow-hidden",
+                              match.p2.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p2.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss"
+                            )}>
+                              <div className="absolute inset-0 bg-current opacity-5" />
+                              {match.p2.race?.charAt(0)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-10">
+                        {match.h2h && (
+                          <div className="hidden lg:flex flex-col items-end min-w-[100px]">
+                             <span className="text-[10px] font-black text-nzu-green uppercase tracking-widest mb-1">{match.h2h.summary.winRate}% WIN</span>
+                             <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/10">
+                                <div className="h-full bg-nzu-green shadow-[0_0_10px_rgba(46,213,115,0.5)]" style={{ width: `${match.h2h.summary.winRate}%` }} />
+                             </div>
+                          </div>
+                        )}
+                        
+                        {!isCaptureMode && (
+                          <button 
+                            onClick={() => removeMatch(match.id)}
+                            className="p-4 rounded-2xl bg-white/5 border border-white/5 text-white/20 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all active:scale-95"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
+                    </div>
+                </div>
+             ))
+           )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -8,48 +8,60 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const RACE_MAP = { 'P': 'P', 'T': 'T', 'Z': 'Z', 'R': 'R' };
+const NAME_MAPPING = {
+  '구라미스': '김성민',
+  // Add more mappings here if discovered
+};
 
-async function finalMasterSync() {
-    console.log('🚀 Starting Master Sync (SSUSTAR + ELOBOARD)...');
+async function syncAllSsustar() {
+    console.log('🚀 Starting Full SSUSTAR 1vs1 Sync...');
 
     try {
         // 1. Fetch SSUSTAR Data
-        console.log('Step 1: Extracting SSUSTAR active rosters...');
+        console.log('Step 1: Extracting SSUSTAR active rosters & pool...');
         const battleRes = await axios.get('https://ssustar.iwinv.net/university_battle.php');
         const rosterMatch = battleRes.data.match(/const collegeRosters = (\{.*?\});/s);
         const rosters = rosterMatch ? JSON.parse(rosterMatch[1]) : {};
 
         const vsRes = await axios.get('https://ssustar.iwinv.net/1vs1.php');
-        const activePool = {}; // Name -> { race }
+        const activePool = {}; // SSUSTAR_Name -> { race, originalKey }
         const pRegex = /\{"key":"(.*?)"\}/g;
         let pMatch;
         while ((pMatch = pRegex.exec(vsRes.data)) !== null) {
             const parts = pMatch[1].split('_');
             if (parts.length >= 2) {
-                activePool[parts[0]] = { race: RACE_MAP[parts[1].toUpperCase()] || 'R' };
+                const sName = parts[0];
+                const mappedName = NAME_MAPPING[sName] || sName;
+                activePool[mappedName] = { 
+                  race: RACE_MAP[parts[1].toUpperCase()] || 'R',
+                  ssustarName: sName
+                };
             }
         }
 
-        // 2. Identify University Assignments
-        const playersToSync = [];
+        // 2. Map University from Rosters
+        const playerToUniv = {};
         for (const [univName, members] of Object.entries(rosters)) {
             members.forEach(name => {
-                if (activePool[name]) {
-                    playersToSync.push({
-                        name,
-                        university: univName,
-                        race: activePool[name].race,
-                        tier: '미정'
-                    });
-                }
+                const mappedName = NAME_MAPPING[name] || name;
+                playerToUniv[mappedName] = univName;
             });
         }
-        console.log(`Initial Pool: ${playersToSync.length} players from SSUSTAR.`);
 
-        // 3. Fetch Tiers from Eloboard
-        console.log('Step 3: Fetching tiers from Eloboard...');
+        // 3. Assemble all players from 1vs1 pool
+        const allPlayers = Object.keys(activePool).map(name => ({
+            name,
+            race: activePool[name].race,
+            university: playerToUniv[name] || '무소속',
+            tier: '미정'
+        }));
+
+        console.log(`Total 1vs1 players identified: ${allPlayers.length}`);
+
+        // 4. Fetch Tiers from Eloboard
+        console.log('Step 4: Fetching tiers from Eloboard (Large scan)...');
         const playerTiers = {};
-        for (let page = 1; page <= 35; page++) {
+        for (let page = 1; page <= 50; page++) { // Scanning more pages to cover 700+ players
             if (page % 10 === 0) console.log(`Scanning Eloboard Page ${page}...`);
             try {
                 const res = await axios.post('https://eloboard.com/univ/bbs/p_month_list.php', `sear_=s9&b_id=eloboard&page=${page}`, {
@@ -69,33 +81,34 @@ async function finalMasterSync() {
             }
         }
 
-        // 4. Final Data Assembly
-        const finalData = playersToSync.map(p => {
+        // 5. Final Data assembly & adjustment
+        const finalData = allPlayers.map(p => {
             let tier = playerTiers[p.name] || '미정';
-            // Adjust tier names to match our internal system
-            if (tier === '9') tier = '베이비'; // Logic: 9 tier on Eloboard might be Baby in this context
+            if (tier === '9') tier = '베이비';
             if (tier === '갓') tier = 'GOD';
             if (tier === '킹') tier = 'KING';
             if (tier === '잭') tier = 'JACK';
             
             return {
                 ...p,
-                tier,
                 last_synced_at: new Date().toISOString()
             };
         });
 
-        // 5. Update Database
-        console.log('Step 5: Updating Supabase...');
-        // We don't wipe everything, but we update these specific players
-        const { error: upsertError } = await supabase.from('players').upsert(finalData, { onConflict: 'name' });
-        if (upsertError) throw upsertError;
+        // 6. Push to Supabase
+        console.log('Step 6: Updating Supabase records...');
+        const chunkSize = 100;
+        for (let i = 0; i < finalData.length; i += chunkSize) {
+            const chunk = finalData.slice(i, i + chunkSize);
+            const { error: upsertError } = await supabase.from('players').upsert(chunk, { onConflict: 'name' });
+            if (upsertError) console.error(`Batch ${i} error:`, upsertError.message);
+        }
 
-        console.log('✅ COMPLETE! University rosters synched with SSUSTAR/ELOBOARD.');
+        console.log('✅ Sync Complete! Total players processed: ' + finalData.length);
 
     } catch (err) {
-        console.error('❌ SYNC ERROR:', err.message);
+        console.error('❌ FATAL ERROR:', err.message);
     }
 }
 
-finalMasterSync();
+syncAllSsustar();
