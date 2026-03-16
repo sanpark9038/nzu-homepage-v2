@@ -24,6 +24,15 @@ export const TIER_COLORS: Record<string, string> = {
   "8": "from-slate-600 to-slate-400",
 };
 
-export const TIERS = ["GOD", "KING", "JACK", "QUEEN", "1", "2", "3", "4", "5", "6", "7", "8", "9", "NEWBIE", "팬"] as const;
+export const REAL_NAME_MAP: Record<string, string> = {
+  '구라미스': '김성민',
+  '기뉴다': '박현재',
+  '샤이니': '김재현',
+  '미동미동': '박준영',
+  '액션구드론': '김동민',
+  '초난강': '우규민'
+};
+
+export const TIERS = ["GOD", "KING", "JACK", "QUEEN", "JOKER", "스페이드", "0", "1", "2", "3", "4", "5", "6", "7", "8", "BABY", "NEWBIE", "팬"] as const;
 
 export type Tiers = typeof TIERS[number];

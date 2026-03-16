@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Search, Trophy, Map as MapIcon, History, X, ChevronRight, User, MousePointer2, Plus, ArrowRightLeft, Swords } from 'lucide-react'
 import { UNIVERSITY_MAP, getUniversityInfo } from '@/lib/university-config'
+import { REAL_NAME_MAP } from '@/lib/constants'
 import Image from 'next/image'
 
 interface H2HLookupProps {
@@ -72,8 +73,9 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
 
   // Grouping logic
   const tierWeights: Record<string, number> = {
-    'GOD': 0, '갓': 1, '스페이드': 1.5, 'KING': 2, '킹': 3, 'JACK': 4, '잭': 5, '잭티어': 5.5, 'JOKER': 6, '조커': 7, 
-    '0': 9, '1': 10, '2': 11, '3': 12, '4': 13, '5': 14, '6': 15, '7': 16, '8': 17, '9': 18, 
+    'GOD': 0, '갓': 1, 'KING': 10, '킹': 11, 'JACK': 20, '잭': 21, '잭티어': 22, 'JOKER': 30, '조커': 31, '스페이드': 40,
+    '0': 50, '1': 51, '2': 52, '3': 53, '4': 54, '5': 55, '6': 56, '7': 57, '8': 58, 
+    '베이비': 60, 'BABY': 61,
     'N/A': 98, '미정': 99
   };
 
@@ -120,7 +122,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
       ...groups1.map(g => g.tier),
       ...groups2.map(g => g.tier),
       ...Object.keys(tierWeights)
-    ])).filter(t => t !== 'N/A' && t !== '미정');
+    ]));
 
     const sortedTiers = allUniqueTiers.sort((a, b) => (tierWeights[a] ?? 50) - (tierWeights[b] ?? 50));
 
@@ -140,7 +142,12 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
   const handleSearch = async () => {
     if (!p1 || !p2) return
     setLoading(true)
-    const h2h = await getInstantH2H(p1.name, p2.name)
+    
+    // Get real names for Eloboard lookup if they exist in the map
+    const name1 = REAL_NAME_MAP[p1.name] || p1.name
+    const name2 = REAL_NAME_MAP[p2.name] || p2.name
+    
+    const h2h = await getInstantH2H(name1, name2)
     setResults(h2h)
     setLoading(false)
   }
@@ -278,17 +285,18 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
 
                     {/* Central Tier Badge */}
                     <div className="flex flex-col items-center justify-center px-2 py-6 bg-black/60 z-10 relative">
-                       <div className={cn(
-                         "px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-[0.2em] border-2 text-center min-w-[100px] shadow-2xl transition-transform group-hover:scale-105",
-                         tier === '조커' || tier === 'JOKER' ? "bg-purple-600/30 border-purple-500/50 text-purple-200" :
-                         tier === '잭' || tier === 'JACK' || tier === '잭티어' ? "bg-blue-600/30 border-blue-500/50 text-blue-200" :
-                         tier.includes('갓') || tier === 'GOD' || tier === '스페이드' || tier === '킹' || tier === 'KING' ? "bg-amber-400/30 border-amber-400/60 text-amber-100" :
-                         tier === '0' || tier === '1' ? "bg-cyan-400/30 border-cyan-400/60 text-cyan-100" :
-                         tier === '2' ? "bg-rose-400/30 border-rose-400/60 text-rose-100" :
-                         "bg-white/10 border-white/20 text-white"
-                       )}>
-                         {tier}
-                       </div>
+                        <div className={cn(
+                          "px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-[0.2em] border-2 text-center min-w-[100px] shadow-2xl transition-transform group-hover:scale-105",
+                          tier === '조커' || tier === 'JOKER' ? "bg-purple-600/30 border-purple-500/50 text-purple-200" :
+                          tier === '잭' || tier === 'JACK' || tier === '잭티어' ? "bg-blue-600/30 border-blue-500/50 text-blue-200" :
+                          tier.includes('갓') || tier === 'GOD' || tier === '스페이드' || tier === '킹' || tier === 'KING' ? "bg-amber-400/30 border-amber-400/60 text-amber-100" :
+                          tier === '0' || tier === '1' ? "bg-cyan-400/30 border-cyan-400/60 text-cyan-100" :
+                          tier === '2' ? "bg-rose-400/30 border-rose-400/60 text-rose-100" :
+                          tier === '베이비' || tier === 'BABY' ? "bg-green-600/20 border-green-500/30 text-green-200" :
+                          "bg-white/10 border-white/20 text-white"
+                        )}>
+                          {tier}
+                        </div>
                     </div>
 
                     {/* Right Players */}
