@@ -53,10 +53,10 @@ export async function getInstantH2H(
   for (const m of rawMatches) {
     if (!m.result_text || !m.player_name || !m.opponent_name || !m.match_date || !m.map) continue;
     
-    // Deduplication Key
+    // Deduplication Key (Include note to distinguish multiple matches on same day/map)
     const scoreVal = m.result_text.replace(/[+-]/g, '').trim();
     const sortedPlayers = [m.player_name, m.opponent_name].sort();
-    const key = `${m.match_date}|${m.map}|${sortedPlayers.join('-')}|${scoreVal}`;
+    const key = `${m.match_date}|${m.map}|${sortedPlayers.join('-')}|${scoreVal}|${m.note || ''}`;
     
     if (seen.has(key)) continue;
     seen.add(key);

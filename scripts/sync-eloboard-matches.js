@@ -154,7 +154,7 @@ async function scrapeMatches() {
 
             console.log(`  ➕ Found ${uniqueMatches.length / 2} unique matches. Upserting...`);
             const { error: upsertError } = await supabase.from('eloboard_matches').upsert(uniqueMatches, {
-              onConflict: 'player_name, opponent_name, match_date, map, result_text'
+              onConflict: 'player_name, opponent_name, match_date, map, result_text, note'
             });
             if (upsertError) console.error(`  ❌ Error: ${upsertError.message}`);
             else totalNewMatches += uniqueMatches.length / 2;
