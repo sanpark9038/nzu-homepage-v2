@@ -26,6 +26,7 @@ export type Database = {
           opponent_race: string | null
           player_name: string
           result_text: string | null
+          gender: string | null
         }
         Insert: {
           created_at?: string | null
@@ -38,6 +39,7 @@ export type Database = {
           opponent_race?: string | null
           player_name: string
           result_text?: string | null
+          gender?: string | null
         }
         Update: {
           created_at?: string | null
@@ -50,6 +52,7 @@ export type Database = {
           opponent_race?: string | null
           player_name?: string
           result_text?: string | null
+          gender?: string | null
         }
         Relationships: []
       }
@@ -134,6 +137,7 @@ export type Database = {
           total_wins: number | null
           university: string | null
           win_rate: number | null
+          gender: string | null
         }
         Insert: {
           broadcast_title?: string | null
@@ -157,6 +161,7 @@ export type Database = {
           total_wins?: number | null
           university?: string | null
           win_rate?: number | null
+          gender?: string | null
         }
         Update: {
           broadcast_title?: string | null
@@ -180,6 +185,7 @@ export type Database = {
           total_wins?: number | null
           university?: string | null
           win_rate?: number | null
+          gender?: string | null
         }
         Relationships: []
       }

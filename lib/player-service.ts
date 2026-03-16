@@ -71,6 +71,19 @@ export const playerService = {
     return data || [];
   },
 
+  /** 최근 Eloboard 매치 기록 가져오기 (전역) */
+  async getRecentEloMatches(limit = 20) {
+    const { data, error } = await supabase
+      .from("eloboard_matches")
+      .select("*")
+      .order("match_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    
+    if (error) throw error;
+    return data || [];
+  },
+
   /** 모든 선수 검색 (이름 기준) */
   async searchPlayers(query: string) {
     const { data, error } = await supabase

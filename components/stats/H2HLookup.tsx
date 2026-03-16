@@ -10,6 +10,8 @@ import { Search, Trophy, Map as MapIcon, History, X, ChevronRight, User, MousePo
 import { UNIVERSITY_MAP, getUniversityInfo } from '@/lib/university-config'
 import { REAL_NAME_MAP } from '@/lib/constants'
 import Image from 'next/image'
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
+import { GripVertical } from 'lucide-react'
 
 interface Match {
   id: string;
@@ -248,30 +250,30 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
     }
     
     const newMatches: Match[] = [];
-    arenaTiers.forEach(tier => {
+    const tiersToMatch = arenaTiers; 
+
+    tiersToMatch.forEach(tier => {
       const g1 = groups1.find(g => g.tier === tier);
       const g2 = groups2.find(g => g.tier === tier);
       
       if (g1 && g2 && g1.players.length > 0 && g2.players.length > 0) {
-        // Simple 1:1 match for available players in this tier
-        const minLen = Math.min(g1.players.length, g2.players.length);
-        for (let i = 0; i < minLen; i++) {
-          const pA = g1.players[i];
-          const pB = g2.players[i];
-          
-          if (!matches.some(m => (m.p1.id === pA.id && m.p2.id === pB.id))) {
-            newMatches.push({
-              id: `m_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${i}`,
-              p1: pA,
-              p2: pB
-            });
-          }
-        }
+        // N:M combinations: Everything in the same tier
+        g1.players.forEach(pA => {
+          g2.players.forEach(pB => {
+            if (!matches.some(m => (m.p1.id === pA.id && m.p2.id === pB.id))) {
+              newMatches.push({
+                id: `m_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${pA.id}_${pB.id}`,
+                p1: pA,
+                p2: pB
+              });
+            }
+          });
+        });
       }
     });
 
     if (newMatches.length === 0) {
-      alert('자동 매칭 가능한 선수가 없습니다.');
+      alert('자동 매칭 가능한 새로운 대전이 없습니다.');
       return;
     }
 
@@ -281,11 +283,34 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
     newMatches.forEach(m => {
       const n1 = REAL_NAME_MAP[m.p1.name] || m.p1.name;
       const n2 = REAL_NAME_MAP[m.p2.name] || m.p2.name;
-      getInstantH2H(n1, n2).then(data => {
+      const gender = (m.p1 as any).gender === (m.p2 as any).gender ? (m.p1 as any).gender : undefined;
+      getInstantH2H(n1, n2, gender || undefined).then(data => {
         setMatches(prev => prev.map(old => old.id === m.id ? { ...old, h2h: data } : old));
       });
     });
   };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const items = Array.from(matches);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    setMatches(items);
+  };
+
+  // Grouping consecutive matches by Player 1
+  const groupedMatches = useMemo(() => {
+    const groups: { p1Id: string; matches: Match[] }[] = [];
+    matches.forEach((m) => {
+      const lastGroup = groups[groups.length - 1];
+      if (lastGroup && lastGroup.p1Id === m.p1.id) {
+        lastGroup.matches.push(m);
+      } else {
+        groups.push({ p1Id: m.p1.id, matches: [m] });
+      }
+    });
+    return groups;
+  }, [matches]);
 
   return (
     <div className="w-full space-y-12">
@@ -632,12 +657,17 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                    <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-4">
                       {results.recentMatches.map((m: any, i: number) => (
                         <div key={i} className="flex items-center justify-between p-5 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-white/[0.05] transition-all group">
-                           <div className="flex flex-col gap-1">
-                              <span className="text-sm font-bold text-white/80 group-hover:text-nzu-green truncate">{m.map}</span>
-                              <span className="text-xs font-medium text-white/20">{m.match_date}</span>
+                           <div className="flex flex-col gap-1 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-black text-white/80 group-hover:text-nzu-green truncate">{m.map}</span>
+                                <span className="text-[10px] font-bold text-white/20">{m.match_date}</span>
+                              </div>
+                              {m.note && (
+                                <span className="text-[11px] font-medium text-white/40 line-clamp-1">{m.note}</span>
+                              )}
                            </div>
                            <div className={cn(
-                             "text-[10px] font-black uppercase px-4 py-2 rounded-lg tracking-wider",
+                             "text-[10px] font-black uppercase px-4 py-2 rounded-lg tracking-wider ml-4",
                              m.is_win ? "text-nzu-green bg-nzu-green/10 border border-nzu-green/20" : "text-white/20 bg-white/5 border border-white/5"
                            )}>
                               {m.is_win ? 'VICTORY' : 'DEFEAT'}
@@ -695,11 +725,11 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
         </div>
 
         <div className={cn(
-          "grid grid-cols-1 gap-4 transition-all duration-700",
-          isCaptureMode ? "max-w-4xl mx-auto" : "w-full"
+          "w-full transition-all duration-700",
+          isCaptureMode ? "max-w-5xl mx-auto" : "w-full"
         )}>
            {matches.length === 0 ? (
-             <div className="py-24 bg-white/[0.01] border-2 border-dashed border-white/5 rounded-[3rem] flex flex-col items-center justify-center text-white/10 gap-6">
+             <div className="py-24 bg-white/[0.01] border-2 border-dashed border-white/5 rounded-[3rem] flex flex-col items-center justify-center text-white/10 gap-6 shadow-inner">
                 <Swords className="w-16 h-16 opacity-5" />
                 <div className="text-center space-y-2">
                   <p className="text-lg font-black uppercase tracking-[0.5em]">Battle Arena is Ready</p>
@@ -707,94 +737,147 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                 </div>
              </div>
            ) : (
-             matches.map((match, idx) => (
-                <div key={match.id} className={cn(
-                  "group relative overflow-hidden bg-gradient-to-r from-black/80 to-[#0a0f0d] border border-white/5 rounded-[2rem] px-10 py-8 flex items-center justify-between transition-all duration-300",
-                  !isCaptureMode && "hover:border-nzu-green/30 hover:shadow-[0_0_50px_rgba(46,213,115,0.05)]"
-                )}>
-                    {/* Decorative accent */}
-                    <div className="absolute left-0 top-0 bottom-0 w-2 bg-nzu-green opacity-40" />
-                    
-                    <div className="flex items-center gap-10 flex-1">
-                        <span className="text-white/10 font-black text-3xl italic w-12 tracking-tighter">#{String(idx + 1).padStart(2, '0')}</span>
-                        
-                        {/* Player 1 */}
-                        <div className="flex items-center gap-6 w-64">
-                            <div className={cn(
-                              "w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shadow-2xl relative overflow-hidden",
-                              match.p1.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p1.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss"
-                            )}>
-                              <div className="absolute inset-0 bg-current opacity-5" />
-                              {match.p1.race?.charAt(0)}
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-white font-black text-2xl tracking-tight">{match.p1.name}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">{match.p1.tier}</span>
-                                {match.p1.university && <span className="text-[10px] text-nzu-green/40 font-black truncate max-w-[80px]">{match.p1.university}</span>}
-                              </div>
-                            </div>
-                        </div>
+             <DragDropContext onDragEnd={handleDragEnd}>
+               <Droppable droppableId="matches">
+                 {(provided) => (
+                   <div 
+                    {...provided.droppableProps} 
+                    ref={provided.innerRef}
+                    className="space-y-3"
+                   >
+                     {groupedMatches.map((group, groupIdx) => {
+                       // Find overall tier for the group to set border color
+                       const tier = group.matches[0].p1.tier;
+                       const accentColor = 
+                          tier === 'GOD' ? "border-amber-400" :
+                          tier === '0' || tier === '1' ? "border-cyan-400" :
+                          tier === '2' ? "border-rose-400" :
+                          "border-blue-500/50";
 
-                        {/* VS Divider */}
-                        <div className="flex flex-col items-center px-12 relative">
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-nzu-green/5 blur-3xl rounded-full" />
-                            <span className="text-[11px] font-black text-white/20 uppercase tracking-[0.8em] mb-2 z-10">VS</span>
-                            {match.h2h ? (
-                              <div className="flex gap-4 items-center z-10">
-                                <span className={cn("text-3xl font-black tabular-nums", match.h2h.summary.wins > match.h2h.summary.losses ? "text-nzu-green drop-shadow-[0_0_15px_rgba(46,213,115,0.5)]" : "text-white/40")}>
-                                  {match.h2h.summary.wins}
-                                </span>
-                                <span className="text-xl font-black text-white/5">:</span>
-                                <span className={cn("text-3xl font-black tabular-nums", match.h2h.summary.losses > match.h2h.summary.wins ? "text-nzu-green drop-shadow-[0_0_15px_rgba(46,213,115,0.5)]" : "text-white/40")}>
-                                  {match.h2h.summary.losses}
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="w-16 h-1 bg-white/5 rounded-full animate-pulse z-10" />
-                            )}
-                        </div>
+                       return (
+                         <div 
+                          key={group.p1Id} 
+                          className={cn(
+                            "rounded-2xl overflow-hidden border-2 border-white/5 bg-white/[0.02] backdrop-blur-md shadow-xl transition-all",
+                            accentColor.replace('border-', 'border-l-') // Apply as solid left border
+                          )}
+                          style={{ borderLeftWidth: '6px' }}
+                         >
+                            {group.matches.map((match, matchIdx) => {
+                              // Find actual index in global matches list for DND
+                              const globalIdx = matches.findIndex(m => m.id === match.id);
+                              
+                              return (
+                                <Draggable key={match.id} draggableId={match.id} index={globalIdx}>
+                                  {(provided, snapshot) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      className={cn(
+                                        "grid grid-cols-[40px_60px_1fr_160px_1fr_60px] md:grid-cols-[50px_80px_1fr_200px_1fr_80px] items-center px-4 py-2 hover:bg-white/[0.04] transition-all relative group",
+                                        matchIdx !== group.matches.length - 1 && "border-b border-white/[0.03]",
+                                        snapshot.isDragging && "bg-white/[0.1] shadow-2xl z-50 rounded-xl"
+                                      )}
+                                    >
+                                        {/* Drag Handle */}
+                                        <div {...provided.dragHandleProps} className="flex justify-center cursor-grab active:cursor-grabbing">
+                                          <GripVertical className="w-4 h-4 text-white/10 group-hover:text-white/40 transition-colors" />
+                                        </div>
 
-                        {/* Player 2 */}
-                        <div className="flex items-center gap-6 w-64 justify-end">
-                            <div className="flex flex-col text-right">
-                              <span className="text-white font-black text-2xl tracking-tight">{match.p2.name}</span>
-                              <div className="flex items-center justify-end gap-2">
-                                {match.p2.university && <span className="text-[10px] text-nzu-green/40 font-black truncate max-w-[80px]">{match.p2.university}</span>}
-                                <span className="text-[10px] text-white/40 uppercase font-black tracking-widest">{match.p2.tier}</span>
-                              </div>
-                            </div>
-                            <div className={cn(
-                              "w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shadow-2xl relative overflow-hidden",
-                              match.p2.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p2.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss"
-                            )}>
-                              <div className="absolute inset-0 bg-current opacity-5" />
-                              {match.p2.race?.charAt(0)}
-                            </div>
-                        </div>
-                    </div>
+                                        {/* Tier (Only show in first row or maybe consistent in SSU style) */}
+                                        <div className="flex justify-center">
+                                          <div className={cn(
+                                            "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tight min-w-[45px] text-center border",
+                                            match.p1.tier === 'GOD' ? "bg-amber-400/10 border-amber-400/20 text-amber-300" :
+                                            match.p1.tier === '0' || match.p1.tier === '1' ? "bg-cyan-400/10 border-cyan-400/20 text-cyan-300" :
+                                            "bg-white/5 border-white/10 text-white/40"
+                                          )}>
+                                            {match.p1.tier}
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Player 1 */}
+                                        <div className="flex items-center gap-3 pl-4">
+                                            <span className={cn(
+                                              "w-5 h-5 rounded flex items-center justify-center text-[9px] font-black",
+                                              match.p1.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p1.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss"
+                                            )}>
+                                              {match.p1.race?.charAt(0)}
+                                            </span>
+                                            <span className="text-base font-black text-white/90 group-hover:text-nzu-green transition-colors truncate">
+                                              {matchIdx === 0 ? match.p1.name : <span className="text-white/20">{match.p1.name}</span>}
+                                            </span>
+                                        </div>
 
-                    <div className="flex items-center gap-10">
-                        {match.h2h && (
-                          <div className="hidden lg:flex flex-col items-end min-w-[100px]">
-                             <span className="text-[10px] font-black text-nzu-green uppercase tracking-widest mb-1">{match.h2h.summary.winRate}% WIN</span>
-                             <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/10">
-                                <div className="h-full bg-nzu-green shadow-[0_0_10px_rgba(46,213,115,0.5)]" style={{ width: `${match.h2h.summary.winRate}%` }} />
-                             </div>
-                          </div>
-                        )}
-                        
-                        {!isCaptureMode && (
-                          <button 
-                            onClick={() => removeMatch(match.id)}
-                            className="p-4 rounded-2xl bg-white/5 border border-white/5 text-white/20 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all active:scale-95"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        )}
-                    </div>
-                </div>
-             ))
+                                        {/* H2H Score: Overall (Recent) */}
+                                        <div className="flex flex-col items-center justify-center">
+                                          {match.h2h ? (
+                                            <div className="flex flex-col items-center gap-0.5">
+                                              <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-2">
+                                                   <span className={cn("text-xl font-black tabular-nums", match.h2h.summary.wins > match.h2h.summary.losses ? "text-nzu-green" : "text-white/30")}>
+                                                      {match.h2h.summary.wins}
+                                                   </span>
+                                                   <span className="text-[10px] font-black text-white/5">:</span>
+                                                   <span className={cn("text-xl font-black tabular-nums", match.h2h.summary.losses > match.h2h.summary.wins ? "text-nzu-green" : "text-white/30")}>
+                                                      {match.h2h.summary.losses}
+                                                   </span>
+                                                </div>
+                                                <div className="text-[10px] font-bold text-white/10 flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-full">
+                                                  <span className={match.h2h.summary.momentum90.wins > match.h2h.summary.momentum90.losses ? "text-nzu-green/80" : ""}>
+                                                    {match.h2h.summary.momentum90.wins}
+                                                  </span>
+                                                  <span className="opacity-30">:</span>
+                                                  <span className={match.h2h.summary.momentum90.losses > match.h2h.summary.momentum90.wins ? "text-nzu-green/80" : ""}>
+                                                    {match.h2h.summary.momentum90.losses}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-[9px] font-black text-white/20 uppercase tracking-tighter">Win Rate {match.h2h.summary.winRate}%</span>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div className="w-16 h-1 bg-white/5 rounded-full animate-pulse" />
+                                          )}
+                                        </div>
+
+                                        {/* Player 2 */}
+                                        <div className="flex items-center justify-end gap-3 pr-4">
+                                            <span className="text-base font-black text-white/90 group-hover:text-nzu-green transition-colors truncate">{match.p2.name}</span>
+                                            <span className={cn(
+                                              "w-5 h-5 rounded flex items-center justify-center text-[9px] font-black",
+                                              match.p2.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p2.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss"
+                                            )}>
+                                              {match.p2.race?.charAt(0)}
+                                            </span>
+                                        </div>
+
+                                        {/* Actions */}
+                                        <div className="flex justify-center items-center gap-2">
+                                          {!isCaptureMode && (
+                                            <button 
+                                              onClick={() => removeMatch(match.id)}
+                                              className="p-1.5 rounded-lg text-white/10 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                              title="매칭 취소"
+                                            >
+                                              <X className="w-4 h-4" />
+                                            </button>
+                                          )}
+                                        </div>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              );
+                            })}
+                         </div>
+                       );
+                     })}
+                     {provided.placeholder}
+                   </div>
+                 )}
+               </Droppable>
+             </DragDropContext>
            )}
         </div>
       </div>

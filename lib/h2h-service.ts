@@ -1,48 +1,103 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from './supabase'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export interface H2HStats {
+  summary: {
+    total: number
+    wins: number
+    losses: number
+    winRate: string
+    momentum90: {
+      total: number
+      wins: number
+      losses: number
+      winRate: string
+    }
+  }
+  mapStats: Record<string, { w: number, l: number }>
+  recentMatches: any[]
+}
 
 /**
  * 인스턴트 상대전적 조회 함수 (Pre-synced Eloboard Data 기반)
  * @param p1PlayerName 메인 플레이어 이름
  * @param p2OpponentName 상대 플레이어 이름
+ * @param gender 성별 (옵션, 명시할 경우 해당 성별 데이터 내에서만 조회)
  */
-export async function getInstantH2H(p1PlayerName: string, p2OpponentName: string) {
-  // 1. P1 기준 P2와 붙은 모든 전적 (eloboard_matches 테이블 활용)
-  const { data: matches, error } = await supabase
+export async function getInstantH2H(
+  p1PlayerName: string, 
+  p2OpponentName: string,
+  gender?: string
+): Promise<H2HStats | null> {
+  // 1. Both directions with optional gender filter
+  let query = supabase
     .from('eloboard_matches')
     .select('*')
-    .eq('player_name', p1PlayerName)
-    .eq('opponent_name', p2OpponentName)
-    .order('match_date', { ascending: false })
+    .or(`and(player_name.eq."${p1PlayerName}",opponent_name.eq."${p2OpponentName}"),and(player_name.eq."${p2OpponentName}",opponent_name.eq."${p1PlayerName}")`)
+
+  if (gender) {
+    query = query.eq('gender', gender)
+  }
+
+  const { data: rawMatches, error } = await query.order('match_date', { ascending: false })
 
   if (error) {
     console.error('H2H Lookup Error:', error)
     return null
   }
 
-  // 2. 통계 계산
-  const wins = matches.filter(m => m.is_win).length
-  const losses = matches.filter(m => !m.is_win).length
-  const total = matches.length
+  // 2. Filter & Deduplicate
+  const seen = new Set();
+  const allMatchesAfter2025 = [];
+  const startOf2025 = new Date('2025-01-01');
+
+  for (const m of rawMatches) {
+    if (!m.result_text || !m.player_name || !m.opponent_name || !m.match_date || !m.map) continue;
+    
+    // Deduplication Key
+    const scoreVal = m.result_text.replace(/[+-]/g, '').trim();
+    const sortedPlayers = [m.player_name, m.opponent_name].sort();
+    const key = `${m.match_date}|${m.map}|${sortedPlayers.join('-')}|${scoreVal}`;
+    
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const mDate = new Date(m.match_date as string);
+    if (mDate < startOf2025) continue;
+
+    // Normalize: always relative to P1
+    if (m.player_name === p1PlayerName) {
+      allMatchesAfter2025.push(m);
+    } else {
+      allMatchesAfter2025.push({
+        ...m,
+        is_win: !m.is_win,
+        result_text: m.result_text.startsWith('+') ? m.result_text.replace('+', '-') : 
+                     m.result_text.startsWith('-') ? m.result_text.replace('-', '+') : m.result_text
+      });
+    }
+  }
+
+  // 3. 통계 계산 (Since 2025-01-01)
+  const total = allMatchesAfter2025.length
+  const wins = allMatchesAfter2025.filter(m => m.is_win).length
+  const losses = allMatchesAfter2025.filter(m => !m.is_win).length
   const winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : '0.0'
 
-  // 3. 맵별 승률 분석
-  const mapStats: Record<string, { w: number, l: number }> = {}
-  matches.forEach(m => {
-    if (!mapStats[m.map]) mapStats[m.map] = { w: 0, l: 0 }
-    if (m.is_win) mapStats[m.map].w++
-    else mapStats[m.map].l++
-  })
+  // 4. 최근 폼 (90일 이내)
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const recent90Matches = allMatchesAfter2025.filter(m => new Date(m.match_date as string) >= ninetyDaysAgo);
+  const r90Wins = recent90Matches.filter(m => m.is_win).length;
+  const r90Losses = recent90Matches.filter(m => !m.is_win).length;
 
-  // 4. 최근 폼 (기세) 분석 (30일 이내)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const recent30Matches = matches.filter(m => new Date(m.match_date) >= thirtyDaysAgo);
-  const r30Wins = recent30Matches.filter(m => m.is_win).length;
-  const r30Losses = recent30Matches.filter(m => !m.is_win).length;
+  // 5. 맵별 승률 (2025년 이후 전체 기반)
+  const mapStats: Record<string, { w: number, l: number }> = {}
+  allMatchesAfter2025.forEach(m => {
+    const mapName = m.map || 'Unknown Map';
+    if (!mapStats[mapName]) mapStats[mapName] = { w: 0, l: 0 }
+    if (m.is_win) mapStats[mapName].w++
+    else mapStats[mapName].l++
+  })
 
   return {
     summary: {
@@ -50,14 +105,14 @@ export async function getInstantH2H(p1PlayerName: string, p2OpponentName: string
       wins,
       losses,
       winRate,
-      momentum: {
-        total: recent30Matches.length,
-        wins: r30Wins,
-        losses: r30Losses,
-        winRate: recent30Matches.length > 0 ? ((r30Wins / recent30Matches.length) * 100).toFixed(1) : '0.0'
+      momentum90: {
+        total: recent90Matches.length,
+        wins: r90Wins,
+        losses: r90Losses,
+        winRate: recent90Matches.length > 0 ? ((r90Wins / recent90Matches.length) * 100).toFixed(1) : '0.0'
       }
     },
     mapStats,
-    recentMatches: matches.slice(0, 10)
+    recentMatches: allMatchesAfter2025.slice(0, 10)
   }
 }

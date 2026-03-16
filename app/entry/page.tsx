@@ -5,6 +5,8 @@ import { format } from "date-fns";
 import H2HLookup from "@/components/stats/H2HLookup";
 import { cn } from "@/lib/utils";
 
+import RecentEloMatches from "@/components/stats/RecentEloMatches";
+
 export const revalidate = 60;
 
 export const metadata = {
@@ -12,8 +14,9 @@ export const metadata = {
 };
 
 export default async function EntryPage() {
-  const [matches, players] = await Promise.all([
+  const [matches, eloMatches, players] = await Promise.all([
     playerService.getRecentMatches(24),
+    playerService.getRecentEloMatches(12),
     playerService.getAllPlayers()
   ]);
 
@@ -33,8 +36,12 @@ export default async function EntryPage() {
         </header>
 
         {/* Dashboard Section */}
-        <div className="space-y-12">
-          <section className="relative">
+        <div className="space-y-16">
+          <section>
+             <RecentEloMatches matches={eloMatches} />
+          </section>
+
+          <section className="relative pt-8 border-t border-white/5">
              <H2HLookup players={players} recentMatches={matches} />
           </section>
         </div>
