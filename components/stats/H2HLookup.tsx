@@ -338,40 +338,53 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                              style={{ borderLeft: `6px solid ${isGrouped ? '#2ed573' : tInfo.color}` }}>
                               {group.matches.map((match, idx) => {
                                  const globalIdx = matches.findIndex(m => m.id === match.id);
-                                 return (
-                                   <Draggable key={match.id} draggableId={match.id} index={globalIdx}>
-                                     {(dProv, snapshot) => (
-                                       <div ref={dProv.innerRef} {...dProv.draggableProps} className={cn("grid grid-cols-[20px_1fr_95px_1fr_20px] items-center p-3 hover:bg-white/[0.04] group", idx !== 0 && "border-t border-white/[0.03]", snapshot.isDragging && "bg-white/[0.1] shadow-2xl z-50")}>
-                                          <div {...dProv.dragHandleProps} className="opacity-0 group-hover:opacity-100 transition-opacity flex justify-center cursor-grab"><GripVertical className="w-4 h-4 text-white/20" /></div>
-                                          
-                                          <div className="flex items-center gap-2 px-1 truncate">
-                                             <span className={cn("text-[10px] w-4 h-4 flex items-center justify-center rounded-sm font-black shadow-inner", idx !== 0 ? "opacity-20" : "", match.p1.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p1.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss")}>{match.p1.race?.charAt(0)}</span>
-                                             <span className={cn("text-[14px] font-black truncate block", idx === 0 ? "text-white" : "text-white/20")}>{match.p1.name}</span>
-                                          </div>
+                                   return (
+                                     <Draggable key={match.id} draggableId={match.id} index={globalIdx}>
+                                       {(dProv, snapshot) => (
+                                         <div ref={dProv.innerRef} {...dProv.draggableProps} {...dProv.dragHandleProps}
+                                           className={cn(
+                                             "grid grid-cols-[32px_1fr_95px_1fr_24px] items-center p-3 hover:bg-white/[0.04] group cursor-grab active:cursor-grabbing relative", 
+                                             idx !== 0 && "border-t border-white/[0.03]",
+                                             snapshot.isDragging && "bg-white/[0.1] shadow-2xl z-50 rounded-lg ring-1 ring-nzu-green/30"
+                                           )}>
+                                            {/* Tier Indicator replaced Drag Handle */}
+                                            <div className="flex justify-center">
+                                               <div className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-black text-white/40 border border-white/10 bg-white/5" style={{ color: tInfo.color, borderColor: `${tInfo.color}33` }}>
+                                                  {match.p1.tier.includes('GOD') || match.p1.tier.includes('갓') ? 'G' : 
+                                                   match.p1.tier.includes('KING') || match.p1.tier.includes('킹') ? 'K' : 
+                                                   match.p1.tier.includes('JACK') || match.p1.tier.includes('잭') ? 'J' : 
+                                                   match.p1.tier}
+                                               </div>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-2 px-1 truncate">
+                                               <span className={cn("text-[10px] w-4 h-4 flex items-center justify-center rounded-sm font-black shadow-inner", idx !== 0 ? "opacity-20" : "", match.p1.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p1.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss")}>{match.p1.race?.charAt(0)}</span>
+                                               <span className={cn("text-[14px] font-black truncate block", idx === 0 ? "text-white" : "text-white/20")}>{match.p1.name}</span>
+                                            </div>
 
-                                          <div className="flex justify-center items-center gap-1.5">
-                                             {match.h2h ? (
-                                                <div className="flex gap-1 scale-90">
-                                                   <div className="flex flex-col items-center">
-                                                     <span className="text-[6px] font-black text-white/30 uppercase">전체</span>
-                                                     <div className="px-1.5 py-0.5 bg-black/80 rounded-[4px] text-[11px] font-black text-white/80 border border-white/5">{match.h2h.summary.wins}:{match.h2h.summary.losses}</div>
-                                                   </div>
-                                                   <div className="flex flex-col items-center">
-                                                     <span className="text-[6px] font-black text-nzu-green/50 uppercase">90일</span>
-                                                     <div className="px-1.5 py-0.5 bg-nzu-green/10 rounded-[4px] text-[11px] font-black text-nzu-green border border-nzu-green/20">{match.h2h.summary.momentum90?.wins ?? 0}:{match.h2h.summary.momentum90?.losses ?? 0}</div>
-                                                   </div>
-                                                </div>
-                                             ) : <div className="h-4 w-12 bg-white/5 animate-pulse rounded-full" />}
-                                          </div>
+                                            <div className="flex justify-center items-center gap-1.5">
+                                               {match.h2h ? (
+                                                  <div className="flex gap-1 scale-90">
+                                                     <div className="flex flex-col items-center">
+                                                       <span className="text-[6px] font-black text-white/30 uppercase">전체</span>
+                                                       <div className="px-1.5 py-0.5 bg-black/80 rounded-[4px] text-[11px] font-black text-white/80 border border-white/5">{match.h2h.summary.wins}:{match.h2h.summary.losses}</div>
+                                                     </div>
+                                                     <div className="flex flex-col items-center">
+                                                       <span className="text-[6px] font-black text-nzu-green/50 uppercase">90일</span>
+                                                       <div className="px-1.5 py-0.5 bg-nzu-green/10 rounded-[4px] text-[11px] font-black text-nzu-green border border-nzu-green/20">{match.h2h.summary.momentum90?.wins ?? 0}:{match.h2h.summary.momentum90?.losses ?? 0}</div>
+                                                     </div>
+                                                  </div>
+                                               ) : <div className="h-4 w-12 bg-white/5 animate-pulse rounded-full" />}
+                                            </div>
 
-                                          <div className="flex items-center justify-end gap-2 px-1 truncate">
-                                             <span className="text-[14px] font-black text-white/90 group-hover:text-nzu-green truncate">{match.p2.name}</span>
-                                             <span className={cn("text-[9px] w-4 h-4 rounded-sm flex items-center justify-center font-black shadow-inner", match.p2.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p2.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss")}>{match.p2.race?.charAt(0)}</span>
-                                          </div>
-                                          <button onClick={() => removeMatch(match.id)} className="opacity-0 group-hover:opacity-100 p-1 text-white/20 hover:text-red-500 transition-all flex justify-center"><X className="w-4 h-4" /></button>
-                                       </div>
-                                     )}
-                                   </Draggable>
+                                            <div className="flex items-center justify-end gap-2 px-1 truncate">
+                                               <span className="text-[14px] font-black text-white/90 group-hover:text-nzu-green truncate">{match.p2.name}</span>
+                                               <span className={cn("text-[9px] w-4 h-4 rounded-sm flex items-center justify-center font-black shadow-inner", match.p2.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p2.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss")}>{match.p2.race?.charAt(0)}</span>
+                                            </div>
+                                            <button onClick={(e) => { e.stopPropagation(); removeMatch(match.id); }} className="opacity-0 group-hover:opacity-100 p-1.5 text-white/20 hover:text-red-500 transition-all flex justify-center z-10"><X className="w-4 h-4" /></button>
+                                         </div>
+                                       )}
+                                     </Draggable>
                                  )
                               })}
                            </div>
