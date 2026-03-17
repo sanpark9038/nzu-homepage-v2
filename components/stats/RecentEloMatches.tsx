@@ -2,9 +2,12 @@
 
 import { cn } from '@/lib/utils'
 import { History, Swords, Trophy } from 'lucide-react'
+import type { Database } from '@/lib/database.types'
+
+type EloMatch = Database['public']['Tables']['eloboard_matches']['Row']
 
 interface RecentEloMatchesProps {
-  matches: any[]
+  matches: EloMatch[]
 }
 
 export default function RecentEloMatches({ matches = [] }: RecentEloMatchesProps) {

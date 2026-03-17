@@ -8,6 +8,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 
 export const revalidate = 60;
+type RecentMatch = Awaited<ReturnType<typeof playerService.getRecentMatches>>[number];
 
 export default async function HomePage() {
   const players = await playerService.getAllPlayers();
@@ -135,7 +136,7 @@ export default async function HomePage() {
                   {recentMatches.length === 0 ? (
                     <p className="text-xs text-muted-foreground text-center py-12 italic">No recent matches recorded.</p>
                   ) : (
-                    recentMatches.map((match: any) => (
+                    recentMatches.map((match: RecentMatch) => (
                       <div key={match.id} className="space-y-3">
                          <div className="flex items-center justify-between text-[8px] font-black text-muted-foreground uppercase opacity-60">
                             <span>{match.event_name}</span>

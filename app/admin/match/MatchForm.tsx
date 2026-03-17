@@ -4,8 +4,9 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import type { Player } from "@/lib/player-service";
 
-export function MatchForm({ players }: { players: any[] }) {
+export function MatchForm({ players }: { players: Player[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -41,8 +42,9 @@ export function MatchForm({ players }: { players: any[] }) {
         map_name: ""
       });
       router.refresh();
-    } catch (err: any) {
-      alert("전적 등록 중 오류 발생: " + err.message);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      alert("전적 등록 중 오류 발생: " + message);
     } finally {
       setLoading(false);
     }

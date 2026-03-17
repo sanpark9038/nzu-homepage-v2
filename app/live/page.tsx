@@ -6,6 +6,14 @@ import { NZU_CONFIG } from "@/lib/constants";
 
 export const revalidate = 60;
 
+function getMockViewerCount(playerId: string): number {
+  let hash = 0;
+  for (let i = 0; i < playerId.length; i += 1) {
+    hash = (hash * 31 + playerId.charCodeAt(i)) % 500;
+  }
+  return hash + 100;
+}
+
 export default async function LivePage() {
   // 현재는 API가 없으므로 DB의 is_live 선수들을 기반으로 Mock 데이터를 구성
   // 추후 SOOP API 연동 시 이 부분을 교체 예정
@@ -17,7 +25,7 @@ export default async function LivePage() {
     streamer_name: p.name,
     photo_url: p.photo_url || "",
     stream_title: `${p.name} - 숲 스타크래프트 NZU 대학대전 연습중`,
-    viewer_count: Math.floor(Math.random() * 500) + 100, // Mock viewers
+    viewer_count: getMockViewerCount(p.id),
     category: "Starcraft",
     race: p.race || "T",
     soop_url: p.broadcast_url || `https://ch.sooplive.co.kr`,

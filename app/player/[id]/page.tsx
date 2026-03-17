@@ -7,6 +7,7 @@ import Link from "next/link";
 import { LiveBadge, RaceTag, type Race } from "@/components/ui/nzu-badges";
 
 export const revalidate = 60;
+type PlayerMatch = Awaited<ReturnType<typeof playerService.getPlayerMatches>>[number];
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const { id } = await params;
@@ -106,7 +107,7 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
                   <p className="text-sm text-muted-foreground">이 선수의 매치 기록이 아직 없습니다.</p>
                </div>
             ) : (
-              matches.map((match: any) => {
+              matches.map((match: PlayerMatch) => {
                 const isWinner = match.winner_id === id;
                 const opponent = match.player1_id === id ? match.player2 : match.player1;
                 

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { playerService, Player } from '@/lib/player-service'
 import { TierBadge } from '@/components/ui/nzu-badges'
-import { getInstantH2H } from '@/lib/h2h-service'
+import { getInstantH2H, type H2HStats } from '@/lib/h2h-service'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Search, Trophy, Map as MapIcon, X, Swords, Plus, RotateCcw, GripVertical, ShieldCheck } from 'lucide-react'
@@ -12,23 +12,50 @@ import { REAL_NAME_MAP } from '@/lib/constants'
 import Image from 'next/image'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 
+const TIER_CONFIG: Record<string, { weight: number; color: string }> = {
+  GOD: { weight: 0, color: '#eab308' },
+  갓: { weight: 1, color: '#eab308' },
+  KING: { weight: 2, color: '#06b6d4' },
+  킹: { weight: 3, color: '#06b6d4' },
+  JACK: { weight: 4, color: '#3b82f6' },
+  잭: { weight: 5, color: '#3b82f6' },
+  JOKER: { weight: 6, color: '#8b5cf6' },
+  조커: { weight: 7, color: '#8b5cf6' },
+  SPADE: { weight: 8, color: '#a855f7' },
+  스페이드: { weight: 9, color: '#a855f7' },
+  '0': { weight: 10, color: '#14b8a6' },
+  '1': { weight: 11, color: '#10b981' },
+  '2': { weight: 12, color: '#f43f5e' },
+  '3': { weight: 13, color: '#ec4899' },
+  '4': { weight: 14, color: '#f97316' },
+  '5': { weight: 15, color: '#d97706' },
+  '6': { weight: 16, color: '#6366f1' },
+  '7': { weight: 17, color: '#64748b' },
+  '8': { weight: 18, color: '#71717a' },
+  BABY: { weight: 19, color: '#94a3b8' },
+  베이비: { weight: 20, color: '#94a3b8' },
+  미정: { weight: 99, color: '#475569' },
+};
+
+const EXCLUDED_TIERS = ['JACK', '잭', 'JOKER', '조커', 'SPADE', '스페이드'];
+
 interface Match {
   id: string;
   p1: Player;
   p2: Player;
-  h2h?: any;
+  h2h?: H2HStats;
 }
 
 interface H2HLookupProps {
   players?: Player[]
-  recentMatches?: any[]
+  recentMatches?: unknown[]
 }
 
 export default function H2HLookup({ players = [], recentMatches = [] }: H2HLookupProps) {
   // Selection State
   const [p1, setP1] = useState<Player | null>(null)
   const [p2, setP2] = useState<Player | null>(null)
-  const [results, setResults] = useState<any>(null)
+  const [results, setResults] = useState<H2HStats | null>(null)
   const [loading, setLoading] = useState(false)
 
   // Side Selection States
@@ -45,6 +72,12 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
   
   // Match List State
   const [matches, setMatches] = useState<Match[]>([])
+  const matchIdCounter = useRef(0)
+
+  const nextMatchId = () => {
+    matchIdCounter.current += 1;
+    return `m_${matchIdCounter.current}`;
+  }
 
   // Load Players for Side 1
   useEffect(() => {
@@ -76,36 +109,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
     load()
   }, [u2, q2])
 
-  // All Tiers with Unique Desaturated Colors
-  const TIER_CONFIG: Record<string, { weight: number, color: string }> = {
-    'GOD': { weight: 0, color: '#eab308' },
-    '갓': { weight: 1, color: '#eab308' },
-    'KING': { weight: 2, color: '#06b6d4' },
-    '킹': { weight: 3, color: '#06b6d4' },
-    'JACK': { weight: 4, color: '#3b82f6' },
-    '잭': { weight: 5, color: '#3b82f6' },
-    'JOKER': { weight: 6, color: '#8b5cf6' },
-    '조커': { weight: 7, color: '#8b5cf6' },
-    'SPADE': { weight: 8, color: '#a855f7' },
-    '스페이드': { weight: 9, color: '#a855f7' },
-    '0': { weight: 10, color: '#14b8a6' },
-    '1': { weight: 11, color: '#10b981' },
-    '2': { weight: 12, color: '#f43f5e' },
-    '3': { weight: 13, color: '#ec4899' },
-    '4': { weight: 14, color: '#f97316' },
-    '5': { weight: 15, color: '#d97706' },
-    '6': { weight: 16, color: '#6366f1' },
-    '7': { weight: 17, color: '#64748b' },
-    '8': { weight: 18, color: '#71717a' },
-    'BABY': { weight: 19, color: '#94a3b8' },
-    '베이비': { weight: 20, color: '#94a3b8' },
-    '미정': { weight: 99, color: '#475569' }
-  };
-
-  // List of tiers to exclude when filter is ON
-  const EXCLUDED_TIERS = ['JACK', '잭', 'JOKER', '조커', 'SPADE', '스페이드'];
-
-  const groupPlayers = (players: Player[]) => {
+  const groupPlayers = useCallback((players: Player[]) => {
     const groups: Record<string, Player[]> = {};
     players.forEach(p => {
       const tier = p.tier || '미정';
@@ -119,7 +123,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
         const tierPlayers = [...groups[tier]].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
         return { tier, players: tierPlayers };
       });
-  };
+  }, []);
 
   const sortedUniversities = useMemo(() => {
     return Object.keys(UNIVERSITY_MAP).sort((a, b) => {
@@ -128,8 +132,8 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
     });
   }, []);
 
-  const groups1 = useMemo(() => groupPlayers(players1), [players1]);
-  const groups2 = useMemo(() => groupPlayers(players2), [players2]);
+  const groups1 = useMemo(() => groupPlayers(players1), [groupPlayers, players1]);
+  const groups2 = useMemo(() => groupPlayers(players2), [groupPlayers, players2]);
 
   const arenaTiers = useMemo(() => {
     const allUniqueTiers = Array.from(new Set([...groups1.map(g => g.tier), ...groups2.map(g => g.tier)]));
@@ -157,11 +161,11 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
       // 필터가 OFF이거나 한쪽 팀만 선택된 경우, 선수가 있기만 하면 표시
       return true;
     });
-  }, [groups1, groups2, hideEmptyTiers]);
+  }, [groups1, groups2, hideEmptyTiers, u1, u2]);
 
   const addMatch = async (player1: Player, player2: Player) => {
     if (matches.some(m => m.p1.id === player1.id && m.p2.id === player2.id)) return;
-    const newMatch: Match = { id: `m_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, p1: player1, p2: player2 };
+    const newMatch: Match = { id: nextMatchId(), p1: player1, p2: player2 };
     setMatches(prev => [...prev, newMatch]);
     getInstantH2H(REAL_NAME_MAP[player1.name] || player1.name, REAL_NAME_MAP[player2.name] || player2.name).then(data => setMatches(prev => prev.map(m => m.id === newMatch.id ? { ...m, h2h: data } : m)));
   };
@@ -176,7 +180,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
       if (g1 && g2) {
         g1.players.forEach(pA => g2.players.forEach(pB => {
           if (!matches.some(m => m.p1.id === pA.id && m.p2.id === pB.id)) {
-            newMatches.push({ id: `m_${Date.now()}_${pA.id}_${pB.id}`, p1: pA, p2: pB });
+            newMatches.push({ id: nextMatchId(), p1: pA, p2: pB });
           }
         }));
       }

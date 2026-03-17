@@ -1,4 +1,7 @@
 import { supabase } from './supabase'
+import type { Database } from './database.types'
+
+type EloMatch = Database['public']['Tables']['eloboard_matches']['Row']
 
 export interface H2HStats {
   summary: {
@@ -14,7 +17,7 @@ export interface H2HStats {
     }
   }
   mapStats: Record<string, { w: number, l: number }>
-  recentMatches: any[]
+  recentMatches: EloMatch[]
 }
 
 /**
@@ -50,7 +53,7 @@ export async function getInstantH2H(
   const allMatchesAfter2025 = [];
   const startOf2025 = new Date('2025-01-01');
 
-  for (const m of rawMatches) {
+  for (const m of rawMatches ?? []) {
     if (!m.result_text || !m.player_name || !m.opponent_name || !m.match_date || !m.map) continue;
     
     // Deduplication Key (Include note to distinguish multiple matches on same day/map)
