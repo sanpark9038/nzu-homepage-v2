@@ -1,24 +1,5 @@
 import { supabase } from './supabase'
-import type { Database } from './database.types'
-
-type EloMatch = Database['public']['Tables']['eloboard_matches']['Row']
-
-export interface H2HStats {
-  summary: {
-    total: number
-    wins: number
-    losses: number
-    winRate: string
-    momentum90: {
-      total: number
-      wins: number
-      losses: number
-      winRate: string
-    }
-  }
-  mapStats: Record<string, { w: number, l: number }>
-  recentMatches: EloMatch[]
-}
+import { type EloMatch, type H2HStats } from '../types'
 
 /**
  * 인스턴트 상대전적 조회 함수 (Pre-synced Eloboard Data 기반)
@@ -50,13 +31,13 @@ export async function getInstantH2H(
 
   // 2. Filter & Deduplicate
   const seen = new Set();
-  const allMatchesAfter2025 = [];
+  const allMatchesAfter2025: EloMatch[] = [];
   const startOf2025 = new Date('2025-01-01');
 
   for (const m of rawMatches ?? []) {
     if (!m.result_text || !m.player_name || !m.opponent_name || !m.match_date || !m.map) continue;
     
-    // Deduplication Key (Include note to distinguish multiple matches on same day/map)
+    // Deduplication Key
     const scoreVal = m.result_text.replace(/[+-]/g, '').trim();
     const sortedPlayers = [m.player_name, m.opponent_name].sort();
     const key = `${m.match_date}|${m.map}|${sortedPlayers.join('-')}|${scoreVal}|${m.note || ''}`;

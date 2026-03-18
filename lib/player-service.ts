@@ -1,8 +1,6 @@
 
 import { supabase } from "./supabase";
-import { Database } from "./database.types";
-
-export type Player = Database['public']['Tables']['players']['Row'];
+import { type Player } from "../types";
 
 export const playerService = {
   /** 전적(ELO) 순으로 모든 선수 가져오기 */
