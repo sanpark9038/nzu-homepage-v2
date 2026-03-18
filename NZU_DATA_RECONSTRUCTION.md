@@ -25,9 +25,10 @@ Eloboard 데이터를 기반으로 한 가장 정확하고 신뢰할 수 있는 
     - **여자**: `https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=[추출된_ID]`
     - **남자**: `https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=[추출된_ID]`
 - **추출 요소**: 
-    - 전체 승/패/승률
+    - 전체 승/패/승률 (여성밀리 기준)
     - 종족별 상세 전적 (vs P, vs T, vs Z)
     - 최근 경기 기록 (맵, 상대방, 결과)
+    - **[중요] 혼성밀리전적 제외**: 모든 통계 및 경기 기록에서 '혼성밀리전적' 섹션의 데이터는 수집 대상으로 하지 않으며, 오직 '여성밀리전적' 데이터만 추출한다.
 
 ### 3. 데이터 무결성 및 중복 방지 (Integrity)
 - **Unique Key**: `player_name` + `eloboard_id`.

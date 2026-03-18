@@ -14,8 +14,7 @@ def parse_stats():
 
     soup = BeautifulSoup(html, 'html.parser')
     
-    # Locate the main list-board (여성밀리전적)
-    # The first div with class list-board is the main one.
+    # '여성밀리전적' 섹션의 첫 번째 list-board만 찾음 (혼성밀리 제외)
     list_board = soup.find('div', class_='list-board')
     if not list_board:
         print("Could not find list-board")
