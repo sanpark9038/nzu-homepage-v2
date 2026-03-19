@@ -1,0 +1,263 @@
+{
+  "source_path": "C:\\Users\\NZU\\Desktop\\nzu-homepage\\scripts\\player_metadata.json",
+  "generated_at": "2026-03-19T08:17:46.309Z",
+  "totals": {
+    "rows": 295,
+    "unique_wr_ids": 290,
+    "duplicate_wr_id_count": 5,
+    "suspicious_name_count": 0,
+    "invalid_row_count": 0,
+    "wr_id_gender_conflict_count": 5,
+    "wr_id_name_conflict_count": 2,
+    "name_to_wr_id_conflict_count": 1,
+    "canonical_preview_count": 290
+  },
+  "invalid_rows": [],
+  "duplicate_wr_ids": [
+    {
+      "wr_id": 44,
+      "count": 2,
+      "entries": [
+        {
+          "name": "박준오",
+          "gender": "male",
+          "index": 4
+        },
+        {
+          "name": "파이",
+          "gender": "female",
+          "index": 287
+        }
+      ]
+    },
+    {
+      "wr_id": 57,
+      "count": 2,
+      "entries": [
+        {
+          "name": "김건욱",
+          "gender": "male",
+          "index": 5
+        },
+        {
+          "name": "슬아",
+          "gender": "female",
+          "index": 292
+        }
+      ]
+    },
+    {
+      "wr_id": 150,
+      "count": 2,
+      "entries": [
+        {
+          "name": "인치호",
+          "gender": "male",
+          "index": 24
+        },
+        {
+          "name": "인치호",
+          "gender": "female",
+          "index": 288
+        }
+      ]
+    },
+    {
+      "wr_id": 208,
+      "count": 2,
+      "entries": [
+        {
+          "name": "서기수",
+          "gender": "male",
+          "index": 44
+        },
+        {
+          "name": "서기수",
+          "gender": "female",
+          "index": 291
+        }
+      ]
+    },
+    {
+      "wr_id": 207,
+      "count": 2,
+      "entries": [
+        {
+          "name": "김성제",
+          "gender": "male",
+          "index": 64
+        },
+        {
+          "name": "김성제",
+          "gender": "female",
+          "index": 290
+        }
+      ]
+    }
+  ],
+  "wr_id_gender_conflicts": [
+    {
+      "wr_id": 44,
+      "genders": [
+        "male",
+        "female"
+      ],
+      "entries": [
+        {
+          "name": "박준오",
+          "gender": "male",
+          "index": 4
+        },
+        {
+          "name": "파이",
+          "gender": "female",
+          "index": 287
+        }
+      ]
+    },
+    {
+      "wr_id": 57,
+      "genders": [
+        "male",
+        "female"
+      ],
+      "entries": [
+        {
+          "name": "김건욱",
+          "gender": "male",
+          "index": 5
+        },
+        {
+          "name": "슬아",
+          "gender": "female",
+          "index": 292
+        }
+      ]
+    },
+    {
+      "wr_id": 150,
+      "genders": [
+        "male",
+        "female"
+      ],
+      "entries": [
+        {
+          "name": "인치호",
+          "gender": "male",
+          "index": 24
+        },
+        {
+          "name": "인치호",
+          "gender": "female",
+          "index": 288
+        }
+      ]
+    },
+    {
+      "wr_id": 208,
+      "genders": [
+        "male",
+        "female"
+      ],
+      "entries": [
+        {
+          "name": "서기수",
+          "gender": "male",
+          "index": 44
+        },
+        {
+          "name": "서기수",
+          "gender": "female",
+          "index": 291
+        }
+      ]
+    },
+    {
+      "wr_id": 207,
+      "genders": [
+        "male",
+        "female"
+      ],
+      "entries": [
+        {
+          "name": "김성제",
+          "gender": "male",
+          "index": 64
+        },
+        {
+          "name": "김성제",
+          "gender": "female",
+          "index": 290
+        }
+      ]
+    }
+  ],
+  "wr_id_name_conflicts": [
+    {
+      "wr_id": 44,
+      "names": [
+        "박준오",
+        "파이"
+      ],
+      "entries": [
+        {
+          "name": "박준오",
+          "gender": "male",
+          "index": 4
+        },
+        {
+          "name": "파이",
+          "gender": "female",
+          "index": 287
+        }
+      ]
+    },
+    {
+      "wr_id": 57,
+      "names": [
+        "김건욱",
+        "슬아"
+      ],
+      "entries": [
+        {
+          "name": "김건욱",
+          "gender": "male",
+          "index": 5
+        },
+        {
+          "name": "슬아",
+          "gender": "female",
+          "index": 292
+        }
+      ]
+    }
+  ],
+  "name_to_wr_id_conflicts": [
+    {
+      "name": "예실",
+      "wr_ids": [
+        977,
+        846
+      ],
+      "entries": [
+        {
+          "wr_id": 977,
+          "gender": "female",
+          "index": 176
+        },
+        {
+          "wr_id": 846,
+          "gender": "female",
+          "index": 293
+        }
+      ]
+    }
+  ],
+  "suspicious_entries": [],
+  "recommendations": [
+    "Use canonical preview to deduplicate by wr_id before sync.",
+    "Manually verify wr_id rows with gender conflicts.",
+    "Drop mojibake/suspicious name variants once canonical names are confirmed.",
+    "Block future inserts when name quality score is suspicious unless explicitly approved."
+  ]
+}

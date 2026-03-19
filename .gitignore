@@ -49,3 +49,8 @@ build_error.txt
 
 # temp
 .tmp/
+/tmp/*
+!/tmp/final_clean.json
+!/tmp/player_metadata_integrity_report.json
+!/tmp/player_metadata_canonical_preview.json
+!/tmp/player_metadata.cleaned.json

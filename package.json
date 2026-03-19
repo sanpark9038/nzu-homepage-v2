@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "verify:env": "node scripts/tools/verify-env-encoding.js",
+    "report:nzu:2025": "node scripts/tools/report-nzu-2025-records.js",
+    "export:nzu:meta": "node scripts/tools/export-nzu-roster-metadata.js",
     "sync:id": "node scripts/enhance-players-with-id.js",
     "sync:matches": "node scripts/sync-bj-matches.js"
   },
