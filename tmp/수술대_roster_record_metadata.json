@@ -1,0 +1,972 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "%ec%88%98%ec%88%a0%eb%8c%80-roster-records-2025-current",
+  "team_name_ko": "수술대",
+  "source": {
+    "provider": "eloboard",
+    "roster_url": "https://eloboard.com/univ/bbs/board.php?bo_table=all_bj_list&univ_name=%EC%88%98%EC%88%A0%EB%8C%80"
+  },
+  "period": {
+    "from": "2025-01-01",
+    "to": "2026-03-19"
+  },
+  "generated_at": "2026-03-19T12:05:03.016Z",
+  "validation_failed_count": 0,
+  "total_players": 22,
+  "players": [
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:670",
+      "player_name_ko": "정중만",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 670,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=670",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "정중만"
+      },
+      "record": {
+        "total": 18,
+        "wins": 5,
+        "losses": 13,
+        "win_rate_percent": 27.78,
+        "min_match_date": "2025-05-03",
+        "max_match_date": "2026-03-19"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:정중만",
+        "wr_id:670"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:male:102",
+      "player_name_ko": "신상문",
+      "team_name_ko": "수술대",
+      "gender": "male",
+      "wr_id": 102,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=102",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "신상문"
+      },
+      "record": {
+        "total": 197,
+        "wins": 102,
+        "losses": 95,
+        "win_rate_percent": 51.78,
+        "min_match_date": "2025-01-05",
+        "max_match_date": "2026-03-17"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:신상문",
+        "wr_id:102"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:male:22",
+      "player_name_ko": "박상현",
+      "team_name_ko": "수술대",
+      "gender": "male",
+      "wr_id": 22,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=22",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "박상현"
+      },
+      "record": {
+        "total": 1169,
+        "wins": 668,
+        "losses": 501,
+        "win_rate_percent": 57.14,
+        "min_match_date": "2025-06-26",
+        "max_match_date": "2026-03-19"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:박상현",
+        "wr_id:22"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:male:16",
+      "player_name_ko": "송병구",
+      "team_name_ko": "수술대",
+      "gender": "male",
+      "wr_id": 16,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=16",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "송병구"
+      },
+      "record": {
+        "total": 1007,
+        "wins": 493,
+        "losses": 514,
+        "win_rate_percent": 48.96,
+        "min_match_date": "2025-02-21",
+        "max_match_date": "2026-03-17"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:송병구",
+        "wr_id:16"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:male:74",
+      "player_name_ko": "서문지훈",
+      "team_name_ko": "수술대",
+      "gender": "male",
+      "wr_id": 74,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=74",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "서문지훈"
+      },
+      "record": {
+        "total": 16,
+        "wins": 6,
+        "losses": 10,
+        "win_rate_percent": 37.5,
+        "min_match_date": "2025-10-23",
+        "max_match_date": "2026-03-02"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:서문지훈",
+        "wr_id:74"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:male:194",
+      "player_name_ko": "선우도현",
+      "team_name_ko": "수술대",
+      "gender": "male",
+      "wr_id": 194,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=194",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "선우도현"
+      },
+      "record": {
+        "total": 27,
+        "wins": 12,
+        "losses": 15,
+        "win_rate_percent": 44.44,
+        "min_match_date": "2025-11-25",
+        "max_match_date": "2026-03-02"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:선우도현",
+        "wr_id:194"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:male:203",
+      "player_name_ko": "손찬웅",
+      "team_name_ko": "수술대",
+      "gender": "male",
+      "wr_id": 203,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=203",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "손찬웅"
+      },
+      "record": {
+        "total": 7,
+        "wins": 2,
+        "losses": 5,
+        "win_rate_percent": 28.57,
+        "min_match_date": "2026-01-31",
+        "max_match_date": "2026-03-12"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:손찬웅",
+        "wr_id:203"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:male:79",
+      "player_name_ko": "박성용",
+      "team_name_ko": "수술대",
+      "gender": "male",
+      "wr_id": 79,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=79",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "박성용"
+      },
+      "record": {
+        "total": 0,
+        "wins": 0,
+        "losses": 0,
+        "win_rate_percent": 0,
+        "min_match_date": null,
+        "max_match_date": null
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:박성용",
+        "wr_id:79"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:143",
+      "player_name_ko": "멍이",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 143,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=143",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "멍이"
+      },
+      "record": {
+        "total": 32,
+        "wins": 22,
+        "losses": 10,
+        "win_rate_percent": 68.75,
+        "min_match_date": "2025-02-09",
+        "max_match_date": "2026-01-08"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:멍이",
+        "wr_id:143"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:28",
+      "player_name_ko": "다린",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 28,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=28",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "다린"
+      },
+      "record": {
+        "total": 223,
+        "wins": 146,
+        "losses": 77,
+        "win_rate_percent": 65.47,
+        "min_match_date": "2025-01-04",
+        "max_match_date": "2026-03-11"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:다린",
+        "wr_id:28"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:35",
+      "player_name_ko": "남덕선",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 35,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=35",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "남덕선"
+      },
+      "record": {
+        "total": 315,
+        "wins": 166,
+        "losses": 149,
+        "win_rate_percent": 52.7,
+        "min_match_date": "2025-01-28",
+        "max_match_date": "2026-03-02"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:남덕선",
+        "wr_id:35"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:177",
+      "player_name_ko": "나예리",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 177,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=177",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "나예리"
+      },
+      "record": {
+        "total": 692,
+        "wins": 277,
+        "losses": 415,
+        "win_rate_percent": 40.03,
+        "min_match_date": "2025-01-01",
+        "max_match_date": "2026-03-13"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:나예리",
+        "wr_id:177"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:119",
+      "player_name_ko": "파찌",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 119,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=119",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "파찌"
+      },
+      "record": {
+        "total": 317,
+        "wins": 179,
+        "losses": 138,
+        "win_rate_percent": 56.47,
+        "min_match_date": "2025-01-02",
+        "max_match_date": "2026-03-08"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:파찌",
+        "wr_id:119"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:617",
+      "player_name_ko": "공다츠",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 617,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=617",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "공다츠"
+      },
+      "record": {
+        "total": 768,
+        "wins": 450,
+        "losses": 318,
+        "win_rate_percent": 58.59,
+        "min_match_date": "2025-01-01",
+        "max_match_date": "2026-03-12"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:공다츠",
+        "wr_id:617"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:373",
+      "player_name_ko": "연애인",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 373,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=373",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "연애인"
+      },
+      "record": {
+        "total": 1023,
+        "wins": 455,
+        "losses": 568,
+        "win_rate_percent": 44.48,
+        "min_match_date": "2025-01-01",
+        "max_match_date": "2026-02-28"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:연애인",
+        "wr_id:373"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:566",
+      "player_name_ko": "주서리",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 566,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=566",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "주서리"
+      },
+      "record": {
+        "total": 722,
+        "wins": 312,
+        "losses": 410,
+        "win_rate_percent": 43.21,
+        "min_match_date": "2025-01-06",
+        "max_match_date": "2026-03-12"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:주서리",
+        "wr_id:566"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:713",
+      "player_name_ko": "깨림이",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 713,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=713",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "깨림이"
+      },
+      "record": {
+        "total": 485,
+        "wins": 237,
+        "losses": 248,
+        "win_rate_percent": 48.87,
+        "min_match_date": "2025-01-03",
+        "max_match_date": "2026-03-19"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:깨림이",
+        "wr_id:713"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:784",
+      "player_name_ko": "귀요민정",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 784,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=784",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "귀요민정"
+      },
+      "record": {
+        "total": 711,
+        "wins": 297,
+        "losses": 414,
+        "win_rate_percent": 41.77,
+        "min_match_date": "2025-01-07",
+        "max_match_date": "2026-03-19"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:귀요민정",
+        "wr_id:784"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:781",
+      "player_name_ko": "밍가",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 781,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=781",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "밍가"
+      },
+      "record": {
+        "total": 587,
+        "wins": 331,
+        "losses": 256,
+        "win_rate_percent": 56.39,
+        "min_match_date": "2025-01-03",
+        "max_match_date": "2026-03-08"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:밍가",
+        "wr_id:781"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:860",
+      "player_name_ko": "2라니",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 860,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=860",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "2라니"
+      },
+      "record": {
+        "total": 751,
+        "wins": 386,
+        "losses": 365,
+        "win_rate_percent": 51.4,
+        "min_match_date": "2025-01-01",
+        "max_match_date": "2026-03-16"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:2라니",
+        "wr_id:860"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:895",
+      "player_name_ko": "핑핑",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 895,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=895",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "핑핑"
+      },
+      "record": {
+        "total": 511,
+        "wins": 296,
+        "losses": 215,
+        "win_rate_percent": 57.93,
+        "min_match_date": "2025-01-03",
+        "max_match_date": "2026-03-08"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:핑핑",
+        "wr_id:895"
+      ]
+    },
+    {
+      "player_id": "%ec%88%98%ec%88%a0%eb%8c%80:female:976",
+      "player_name_ko": "헤요이",
+      "team_name_ko": "수술대",
+      "gender": "female",
+      "wr_id": 976,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=976",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T12:05:03.016Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "헤요이"
+      },
+      "record": {
+        "total": 460,
+        "wins": 239,
+        "losses": 221,
+        "win_rate_percent": 51.96,
+        "min_match_date": "2025-09-03",
+        "max_match_date": "2026-03-19"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "수술대",
+        "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+        "수술대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:수술대",
+        "player:헤요이",
+        "wr_id:976"
+      ]
+    }
+  ],
+  "meta_tags": [
+    "dataset:%ec%88%98%ec%88%a0%eb%8c%80-roster-records",
+    "team_key:%ec%88%98%ec%88%a0%eb%8c%80",
+    "team:수술대",
+    "type:competitive-record",
+    "reuse:homepage",
+    "reuse:multi-site"
+  ]
+}

@@ -1,0 +1,499 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "%ec%99%80%ed%94%8c%eb%8c%80-roster-records-2025-current",
+  "team_name_ko": "와플대",
+  "source": {
+    "provider": "eloboard",
+    "roster_url": "https://eloboard.com/univ/bbs/board.php?bo_table=all_bj_list&univ_name=%EC%99%80%ED%94%8C%EB%8C%80"
+  },
+  "period": {
+    "from": "2025-01-01",
+    "to": "2026-03-19"
+  },
+  "generated_at": "2026-03-19T10:37:38.137Z",
+  "validation_failed_count": 0,
+  "total_players": 11,
+  "players": [
+    {
+      "player_id": "%ec%99%80%ed%94%8c%eb%8c%80:female:1055",
+      "player_name_ko": "와이퍼",
+      "team_name_ko": "와플대",
+      "gender": "female",
+      "wr_id": 1055,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=1055",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T10:37:38.137Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "와이퍼"
+      },
+      "record": {
+        "total": 258,
+        "wins": 104,
+        "losses": 154,
+        "win_rate_percent": 40.31,
+        "min_match_date": "2025-03-07",
+        "max_match_date": "2026-03-12"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "와플대",
+        "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+        "와플대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:와플대",
+        "player:와이퍼",
+        "wr_id:1055"
+      ]
+    },
+    {
+      "player_id": "%ec%99%80%ed%94%8c%eb%8c%80:male:211",
+      "player_name_ko": "박성준",
+      "team_name_ko": "와플대",
+      "gender": "male",
+      "wr_id": 211,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=211",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T10:37:38.137Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "박성준"
+      },
+      "record": {
+        "total": 0,
+        "wins": 0,
+        "losses": 0,
+        "win_rate_percent": 0,
+        "min_match_date": null,
+        "max_match_date": null
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "와플대",
+        "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+        "와플대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:와플대",
+        "player:박성준",
+        "wr_id:211"
+      ]
+    },
+    {
+      "player_id": "%ec%99%80%ed%94%8c%eb%8c%80:male:91",
+      "player_name_ko": "허유진",
+      "team_name_ko": "와플대",
+      "gender": "male",
+      "wr_id": 91,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=91",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T10:37:38.137Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "허유진"
+      },
+      "record": {
+        "total": 7,
+        "wins": 2,
+        "losses": 5,
+        "win_rate_percent": 28.57,
+        "min_match_date": "2026-02-21",
+        "max_match_date": "2026-02-23"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "와플대",
+        "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+        "와플대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:와플대",
+        "player:허유진",
+        "wr_id:91"
+      ]
+    },
+    {
+      "player_id": "%ec%99%80%ed%94%8c%eb%8c%80:male:93",
+      "player_name_ko": "이광용",
+      "team_name_ko": "와플대",
+      "gender": "male",
+      "wr_id": 93,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=93",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T10:37:38.137Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "이광용"
+      },
+      "record": {
+        "total": 0,
+        "wins": 0,
+        "losses": 0,
+        "win_rate_percent": 0,
+        "min_match_date": null,
+        "max_match_date": null
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "와플대",
+        "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+        "와플대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:와플대",
+        "player:이광용",
+        "wr_id:93"
+      ]
+    },
+    {
+      "player_id": "%ec%99%80%ed%94%8c%eb%8c%80:male:59",
+      "player_name_ko": "김대한",
+      "team_name_ko": "와플대",
+      "gender": "male",
+      "wr_id": 59,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=59",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T10:37:38.137Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "김대한"
+      },
+      "record": {
+        "total": 0,
+        "wins": 0,
+        "losses": 0,
+        "win_rate_percent": 0,
+        "min_match_date": null,
+        "max_match_date": null
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "와플대",
+        "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+        "와플대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:와플대",
+        "player:김대한",
+        "wr_id:59"
+      ]
+    },
+    {
+      "player_id": "%ec%99%80%ed%94%8c%eb%8c%80:male:52",
+      "player_name_ko": "전상욱",
+      "team_name_ko": "와플대",
+      "gender": "male",
+      "wr_id": 52,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=52",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T10:37:38.137Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "전상욱"
+      },
+      "record": {
+        "total": 0,
+        "wins": 0,
+        "losses": 0,
+        "win_rate_percent": 0,
+        "min_match_date": null,
+        "max_match_date": null
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "와플대",
+        "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+        "와플대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:와플대",
+        "player:전상욱",
+        "wr_id:52"
+      ]
+    },
+    {
+      "player_id": "%ec%99%80%ed%94%8c%eb%8c%80:female:27",
+      "player_name_ko": "꼬니부깅",
+      "team_name_ko": "와플대",
+      "gender": "female",
+      "wr_id": 27,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=27",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T10:37:38.137Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "꼬니부깅"
+      },
+      "record": {
+        "total": 290,
+        "wins": 152,
+        "losses": 138,
+        "win_rate_percent": 52.41,
+        "min_match_date": "2025-02-10",
+        "max_match_date": "2026-03-02"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "와플대",
+        "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+        "와플대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:와플대",
+        "player:꼬니부깅",
+        "wr_id:27"
+      ]
+    },
+    {
+      "player_id": "%ec%99%80%ed%94%8c%eb%8c%80:female:690",
+      "player_name_ko": "몽순",
+      "team_name_ko": "와플대",
+      "gender": "female",
+      "wr_id": 690,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=690",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T10:37:38.137Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "몽순"
+      },
+      "record": {
+        "total": 617,
+        "wins": 331,
+        "losses": 286,
+        "win_rate_percent": 53.65,
+        "min_match_date": "2025-01-02",
+        "max_match_date": "2026-03-08"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "와플대",
+        "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+        "와플대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:와플대",
+        "player:몽순",
+        "wr_id:690"
+      ]
+    },
+    {
+      "player_id": "%ec%99%80%ed%94%8c%eb%8c%80:female:772",
+      "player_name_ko": "비재희",
+      "team_name_ko": "와플대",
+      "gender": "female",
+      "wr_id": 772,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=772",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T10:37:38.137Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "비재희"
+      },
+      "record": {
+        "total": 871,
+        "wins": 444,
+        "losses": 427,
+        "win_rate_percent": 50.98,
+        "min_match_date": "2025-01-01",
+        "max_match_date": "2026-03-13"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "와플대",
+        "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+        "와플대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:와플대",
+        "player:비재희",
+        "wr_id:772"
+      ]
+    },
+    {
+      "player_id": "%ec%99%80%ed%94%8c%eb%8c%80:female:911",
+      "player_name_ko": "구키",
+      "team_name_ko": "와플대",
+      "gender": "female",
+      "wr_id": 911,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=911",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T10:37:38.137Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "구키"
+      },
+      "record": {
+        "total": 483,
+        "wins": 211,
+        "losses": 272,
+        "win_rate_percent": 43.69,
+        "min_match_date": "2025-01-06",
+        "max_match_date": "2026-03-01"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "와플대",
+        "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+        "와플대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:와플대",
+        "player:구키",
+        "wr_id:911"
+      ]
+    },
+    {
+      "player_id": "%ec%99%80%ed%94%8c%eb%8c%80:female:991",
+      "player_name_ko": "있찌",
+      "team_name_ko": "와플대",
+      "gender": "female",
+      "wr_id": 991,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=991",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T10:37:38.137Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "있찌"
+      },
+      "record": {
+        "total": 162,
+        "wins": 65,
+        "losses": 97,
+        "win_rate_percent": 40.12,
+        "min_match_date": "2025-10-08",
+        "max_match_date": "2026-03-19"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "와플대",
+        "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+        "와플대-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:와플대",
+        "player:있찌",
+        "wr_id:991"
+      ]
+    }
+  ],
+  "meta_tags": [
+    "dataset:%ec%99%80%ed%94%8c%eb%8c%80-roster-records",
+    "team_key:%ec%99%80%ed%94%8c%eb%8c%80",
+    "team:와플대",
+    "type:competitive-record",
+    "reuse:homepage",
+    "reuse:multi-site"
+  ]
+}

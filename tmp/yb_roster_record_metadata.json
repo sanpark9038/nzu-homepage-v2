@@ -1,0 +1,757 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "yb-roster-records-2025-current",
+  "team_name_ko": "YB",
+  "source": {
+    "provider": "eloboard",
+    "roster_url": "https://eloboard.com/univ/bbs/board.php?bo_table=all_bj_list&univ_name=YB"
+  },
+  "period": {
+    "from": "2025-01-01",
+    "to": "2026-03-19"
+  },
+  "generated_at": "2026-03-19T11:55:41.374Z",
+  "validation_failed_count": 0,
+  "total_players": 17,
+  "players": [
+    {
+      "player_id": "yb:male:45",
+      "player_name_ko": "염보성",
+      "team_name_ko": "YB",
+      "gender": "male",
+      "wr_id": 45,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=45",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "염보성"
+      },
+      "record": {
+        "total": 0,
+        "wins": 0,
+        "losses": 0,
+        "win_rate_percent": 0,
+        "min_match_date": null,
+        "max_match_date": null
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:염보성",
+        "wr_id:45"
+      ]
+    },
+    {
+      "player_id": "yb:male:28",
+      "player_name_ko": "유승곤",
+      "team_name_ko": "YB",
+      "gender": "male",
+      "wr_id": 28,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=28",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "유승곤"
+      },
+      "record": {
+        "total": 430,
+        "wins": 249,
+        "losses": 181,
+        "win_rate_percent": 57.91,
+        "min_match_date": "2025-01-08",
+        "max_match_date": "2026-02-23"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:유승곤",
+        "wr_id:28"
+      ]
+    },
+    {
+      "player_id": "yb:male:21",
+      "player_name_ko": "김태영",
+      "team_name_ko": "YB",
+      "gender": "male",
+      "wr_id": 21,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=21",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "김태영"
+      },
+      "record": {
+        "total": 444,
+        "wins": 245,
+        "losses": 199,
+        "win_rate_percent": 55.18,
+        "min_match_date": "2025-01-09",
+        "max_match_date": "2026-03-15"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:김태영",
+        "wr_id:21"
+      ]
+    },
+    {
+      "player_id": "yb:male:48",
+      "player_name_ko": "김승현",
+      "team_name_ko": "YB",
+      "gender": "male",
+      "wr_id": 48,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=48",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "김승현"
+      },
+      "record": {
+        "total": 0,
+        "wins": 0,
+        "losses": 0,
+        "win_rate_percent": 0,
+        "min_match_date": null,
+        "max_match_date": null
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:김승현",
+        "wr_id:48"
+      ]
+    },
+    {
+      "player_id": "yb:male:76",
+      "player_name_ko": "전제민",
+      "team_name_ko": "YB",
+      "gender": "male",
+      "wr_id": 76,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=76",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "전제민"
+      },
+      "record": {
+        "total": 14,
+        "wins": 5,
+        "losses": 9,
+        "win_rate_percent": 35.71,
+        "min_match_date": "2025-12-08",
+        "max_match_date": "2026-02-15"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:전제민",
+        "wr_id:76"
+      ]
+    },
+    {
+      "player_id": "yb:male:199",
+      "player_name_ko": "박단원",
+      "team_name_ko": "YB",
+      "gender": "male",
+      "wr_id": 199,
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=199",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "박단원"
+      },
+      "record": {
+        "total": 25,
+        "wins": 12,
+        "losses": 13,
+        "win_rate_percent": 48,
+        "min_match_date": "2025-06-28",
+        "max_match_date": "2026-02-15"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:박단원",
+        "wr_id:199"
+      ]
+    },
+    {
+      "player_id": "yb:female:159",
+      "player_name_ko": "저라뎃",
+      "team_name_ko": "YB",
+      "gender": "female",
+      "wr_id": 159,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=159",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "저라뎃"
+      },
+      "record": {
+        "total": 15,
+        "wins": 6,
+        "losses": 9,
+        "win_rate_percent": 40,
+        "min_match_date": "2025-03-04",
+        "max_match_date": "2025-09-26"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:저라뎃",
+        "wr_id:159"
+      ]
+    },
+    {
+      "player_id": "yb:female:631",
+      "player_name_ko": "우리밍",
+      "team_name_ko": "YB",
+      "gender": "female",
+      "wr_id": 631,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=631",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "우리밍"
+      },
+      "record": {
+        "total": 409,
+        "wins": 241,
+        "losses": 168,
+        "win_rate_percent": 58.92,
+        "min_match_date": "2025-01-01",
+        "max_match_date": "2026-02-22"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:우리밍",
+        "wr_id:631"
+      ]
+    },
+    {
+      "player_id": "yb:female:653",
+      "player_name_ko": "태영",
+      "team_name_ko": "YB",
+      "gender": "female",
+      "wr_id": 653,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=653",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "태영"
+      },
+      "record": {
+        "total": 673,
+        "wins": 415,
+        "losses": 258,
+        "win_rate_percent": 61.66,
+        "min_match_date": "2025-01-01",
+        "max_match_date": "2026-01-15"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:태영",
+        "wr_id:653"
+      ]
+    },
+    {
+      "player_id": "yb:female:730",
+      "player_name_ko": "임밍지",
+      "team_name_ko": "YB",
+      "gender": "female",
+      "wr_id": 730,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=730",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "임밍지"
+      },
+      "record": {
+        "total": 530,
+        "wins": 285,
+        "losses": 245,
+        "win_rate_percent": 53.77,
+        "min_match_date": "2025-01-06",
+        "max_match_date": "2026-02-22"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:임밍지",
+        "wr_id:730"
+      ]
+    },
+    {
+      "player_id": "yb:female:820",
+      "player_name_ko": "으냉이",
+      "team_name_ko": "YB",
+      "gender": "female",
+      "wr_id": 820,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=820",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "으냉이"
+      },
+      "record": {
+        "total": 593,
+        "wins": 346,
+        "losses": 247,
+        "win_rate_percent": 58.35,
+        "min_match_date": "2025-01-02",
+        "max_match_date": "2026-02-21"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:으냉이",
+        "wr_id:820"
+      ]
+    },
+    {
+      "player_id": "yb:female:742",
+      "player_name_ko": "하랑",
+      "team_name_ko": "YB",
+      "gender": "female",
+      "wr_id": 742,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=742",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "하랑"
+      },
+      "record": {
+        "total": 813,
+        "wins": 422,
+        "losses": 391,
+        "win_rate_percent": 51.91,
+        "min_match_date": "2025-01-04",
+        "max_match_date": "2026-01-26"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:하랑",
+        "wr_id:742"
+      ]
+    },
+    {
+      "player_id": "yb:female:646",
+      "player_name_ko": "빵지니",
+      "team_name_ko": "YB",
+      "gender": "female",
+      "wr_id": 646,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=646",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "빵지니"
+      },
+      "record": {
+        "total": 594,
+        "wins": 256,
+        "losses": 338,
+        "win_rate_percent": 43.1,
+        "min_match_date": "2025-01-01",
+        "max_match_date": "2026-01-23"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:빵지니",
+        "wr_id:646"
+      ]
+    },
+    {
+      "player_id": "yb:female:891",
+      "player_name_ko": "한쪼니",
+      "team_name_ko": "YB",
+      "gender": "female",
+      "wr_id": 891,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=891",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "한쪼니"
+      },
+      "record": {
+        "total": 687,
+        "wins": 264,
+        "losses": 423,
+        "win_rate_percent": 38.43,
+        "min_match_date": "2025-01-01",
+        "max_match_date": "2026-02-21"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:한쪼니",
+        "wr_id:891"
+      ]
+    },
+    {
+      "player_id": "yb:female:898",
+      "player_name_ko": "하루묭",
+      "team_name_ko": "YB",
+      "gender": "female",
+      "wr_id": 898,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=898",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "하루묭"
+      },
+      "record": {
+        "total": 771,
+        "wins": 420,
+        "losses": 351,
+        "win_rate_percent": 54.47,
+        "min_match_date": "2025-01-01",
+        "max_match_date": "2026-02-21"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:하루묭",
+        "wr_id:898"
+      ]
+    },
+    {
+      "player_id": "yb:female:889",
+      "player_name_ko": "히요코",
+      "team_name_ko": "YB",
+      "gender": "female",
+      "wr_id": 889,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=889",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "히요코"
+      },
+      "record": {
+        "total": 611,
+        "wins": 260,
+        "losses": 351,
+        "win_rate_percent": 42.55,
+        "min_match_date": "2025-01-02",
+        "max_match_date": "2026-02-05"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:히요코",
+        "wr_id:889"
+      ]
+    },
+    {
+      "player_id": "yb:female:997",
+      "player_name_ko": "윤하랑",
+      "team_name_ko": "YB",
+      "gender": "female",
+      "wr_id": 997,
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=997",
+      "collection": {
+        "period_from": "2025-01-01",
+        "period_to": "2026-03-19",
+        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "mode": "female_or_default",
+        "endpoint": "view_list.php",
+        "p_name": "윤하랑"
+      },
+      "record": {
+        "total": 67,
+        "wins": 24,
+        "losses": 43,
+        "win_rate_percent": 35.82,
+        "min_match_date": "2025-11-26",
+        "max_match_date": "2026-03-12"
+      },
+      "validation": {
+        "pass": true,
+        "unknown_outcome_rows": 0,
+        "no_unknown_outcome": true,
+        "no_out_of_range": true,
+        "wins_losses_match_total": true
+      },
+      "meta_tags": [
+        "yb",
+        "team_key:yb",
+        "yb-roster",
+        "record",
+        "women-league",
+        "eloboard",
+        "season:2025-01-01_to_2026-03-19",
+        "team:YB",
+        "player:윤하랑",
+        "wr_id:997"
+      ]
+    }
+  ],
+  "meta_tags": [
+    "dataset:yb-roster-records",
+    "team_key:yb",
+    "team:YB",
+    "type:competitive-record",
+    "reuse:homepage",
+    "reuse:multi-site"
+  ]
+}

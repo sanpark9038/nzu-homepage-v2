@@ -2,6 +2,8 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 const iconv = require("iconv-lite");
 const qs = require("querystring");
+const fs = require("fs");
+const path = require("path");
 
 const START_DATE = "2025-01-01";
 const END_DATE = new Date().toISOString().slice(0, 10);
@@ -9,12 +11,21 @@ const JSON_ONLY = process.argv.includes("--json-only");
 const argv = process.argv.slice(2);
 const univArgIndex = argv.indexOf("--univ");
 const playerArgIndex = argv.indexOf("--player");
+const concurrencyArgIndex = argv.indexOf("--concurrency");
 const TEAM_NAME = univArgIndex >= 0 && argv[univArgIndex + 1] ? argv[univArgIndex + 1] : "\uB2AA\uC9C0\uB300";
 const PLAYER_NAME = playerArgIndex >= 0 && argv[playerArgIndex + 1] ? argv[playerArgIndex + 1] : null;
 const INCLUDE_MATCHES = process.argv.includes("--include-matches");
+const NO_CACHE = process.argv.includes("--no-cache");
+const CONCURRENCY =
+  concurrencyArgIndex >= 0 && Number(argv[concurrencyArgIndex + 1]) > 0
+    ? Number(argv[concurrencyArgIndex + 1])
+    : 4;
 const ROSTER_URL = `https://eloboard.com/univ/bbs/board.php?bo_table=all_bj_list&univ_name=${encodeURIComponent(
   TEAM_NAME
 )}`;
+const CACHE_PATH = path.join(process.cwd(), "tmp", ".cache", "roster_report_cache.json");
+const MAX_RETRIES = 3;
+const RETRY_BASE_MS = 500;
 
 const K_WIN = "\uC2B9";
 const K_LOSS = "\uD328";
@@ -26,6 +37,74 @@ const SPECIAL_PROFILE_URL = {
     "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=671",
 };
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function playerCacheKey(player) {
+  return `${player.name}|${player.wr_id}|${player.profile_url}`;
+}
+
+function rowKey(r) {
+  return `${r.date}|${r.opponent}|${r.map}|${r.result_text}|${r.set_score}|${r.note}`;
+}
+
+function loadCache() {
+  if (NO_CACHE) return { version: 1, teams: {} };
+  try {
+    if (!fs.existsSync(CACHE_PATH)) return { version: 1, teams: {} };
+    const raw = fs.readFileSync(CACHE_PATH, "utf8").replace(/^\uFEFF/, "");
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return { version: 1, teams: {} };
+    if (!parsed.teams || typeof parsed.teams !== "object") parsed.teams = {};
+    return parsed;
+  } catch {
+    return { version: 1, teams: {} };
+  }
+}
+
+function saveCache(cache) {
+  if (NO_CACHE) return;
+  fs.mkdirSync(path.dirname(CACHE_PATH), { recursive: true });
+  fs.writeFileSync(CACHE_PATH, JSON.stringify(cache, null, 2), "utf8");
+}
+
+async function withRetry(fn, label) {
+  let lastError = null;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt >= MAX_RETRIES) break;
+      const waitMs = RETRY_BASE_MS * 2 ** attempt;
+      if (!JSON_ONLY) {
+        console.log(`[RETRY] ${label} attempt=${attempt + 1} wait=${waitMs}ms`);
+      }
+      await sleep(waitMs);
+    }
+  }
+  throw lastError;
+}
+
+async function mapWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const width = Math.max(1, Math.min(limit, items.length || 1));
+
+  async function run() {
+    while (true) {
+      const idx = nextIndex;
+      nextIndex += 1;
+      if (idx >= items.length) return;
+      results[idx] = await worker(items[idx], idx);
+    }
+  }
+
+  await Promise.all(Array.from({ length: width }, () => run()));
+  return results;
+}
+
 function decodeHtml(buffer) {
   const utf8 = Buffer.from(buffer).toString("utf8");
   const eucKr = iconv.decode(Buffer.from(buffer), "euc-kr");
@@ -35,14 +114,18 @@ function decodeHtml(buffer) {
 }
 
 async function fetchBinary(url, options = {}) {
-  const res = await axios.get(url, {
-    responseType: "arraybuffer",
-    headers: {
-      "User-Agent": "Mozilla/5.0",
-      ...(options.headers || {}),
-    },
-    timeout: 30000,
-  });
+  const res = await withRetry(
+    () =>
+      axios.get(url, {
+        responseType: "arraybuffer",
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+          ...(options.headers || {}),
+        },
+        timeout: 30000,
+      }),
+    `GET ${url}`
+  );
   return res.data;
 }
 
@@ -274,16 +357,20 @@ async function fetchPageRows(player, mode, pName, lastId) {
   const url = `${base}/${mode.endpoint}`;
   const body = qs.stringify({ p_name: pName, last_id: lastId });
 
-  const res = await axios.post(url, body, {
-    responseType: "arraybuffer",
-    headers: {
-      "User-Agent": "Mozilla/5.0",
-      "X-Requested-With": "XMLHttpRequest",
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      Referer: player.profile_url,
-    },
-    timeout: 30000,
-  });
+  const res = await withRetry(
+    () =>
+      axios.post(url, body, {
+        responseType: "arraybuffer",
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+          "X-Requested-With": "XMLHttpRequest",
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          Referer: player.profile_url,
+        },
+        timeout: 30000,
+      }),
+    `POST ${url} p_name=${pName} last_id=${lastId}`
+  );
 
   const html = decodeHtml(res.data);
   const $ = cheerio.load(html);
@@ -306,8 +393,9 @@ async function fetchPageRows(player, mode, pName, lastId) {
   };
 }
 
-function appendRows(bucket, seen, rows) {
+function appendRows(bucket, seen, rows, anchorKey = null) {
   let unknownOutcomeRows = 0;
+  let hitAnchor = false;
   for (const r of rows) {
     if (!inRange(r.date)) continue;
     const isWin = parseOutcome(r.result_text, r.style0, r.row_text);
@@ -315,12 +403,13 @@ function appendRows(bucket, seen, rows) {
       unknownOutcomeRows += 1;
       continue;
     }
-    const key = `${r.date}|${r.opponent}|${r.map}|${r.result_text}|${r.set_score}|${r.note}`;
+    const key = rowKey(r);
+    if (anchorKey && key === anchorKey) hitAnchor = true;
     if (seen.has(key)) continue;
     seen.add(key);
     bucket.push({ ...r, is_win: isWin });
   }
-  return unknownOutcomeRows;
+  return { unknownOutcomeRows, hitAnchor };
 }
 
 function compareMatchDesc(a, b) {
@@ -337,7 +426,7 @@ function compareMatchDesc(a, b) {
   return 0;
 }
 
-async function collectPlayer(player) {
+async function collectPlayer(player, cacheEntry = null) {
   const profileHtml = decodeHtml(await fetchBinary(player.profile_url));
   const mode = selectMode(player);
   const displayStats = parseDisplayStats(profileHtml);
@@ -347,7 +436,11 @@ async function collectPlayer(player) {
   const seen = new Set();
   const matches = [];
   let unknownOutcomeRows = 0;
-  unknownOutcomeRows += appendRows(matches, seen, initial.rows);
+  const anchorKey = cacheEntry && cacheEntry.latest_key ? cacheEntry.latest_key : null;
+  let hitAnchor = false;
+  const initAppend = appendRows(matches, seen, initial.rows, anchorKey);
+  unknownOutcomeRows += initAppend.unknownOutcomeRows;
+  hitAnchor = hitAnchor || initAppend.hitAnchor;
 
   let pagesScanned = 0;
   let lastId = initial.initialLastId;
@@ -359,6 +452,7 @@ async function collectPlayer(player) {
   let emptyHops = 0;
 
   for (let i = 0; i < 200 && lastId > 0; i += 1) {
+    if (hitAnchor) break;
     const page = await fetchPageRows(player, mode, pName, lastId);
     if (!page.rows.length) {
       emptyHops += 1;
@@ -374,7 +468,9 @@ async function collectPlayer(player) {
     }
     emptyHops = 0;
     pagesScanned += 1;
-    unknownOutcomeRows += appendRows(matches, seen, page.rows);
+    const pageAppend = appendRows(matches, seen, page.rows, anchorKey);
+    unknownOutcomeRows += pageAppend.unknownOutcomeRows;
+    hitAnchor = hitAnchor || pageAppend.hitAnchor;
     const pageDates = page.rows.map((r) => r.date).filter(Boolean).sort();
     if (pageDates.length && pageDates[0] < START_DATE) {
       reachedOlderThanStart = true;
@@ -391,6 +487,17 @@ async function collectPlayer(player) {
       break;
     }
     lastId = page.nextLastId;
+  }
+
+  let usedIncrementalCache = false;
+  if (hitAnchor && cacheEntry && Array.isArray(cacheEntry.matches) && cacheEntry.matches.length) {
+    usedIncrementalCache = true;
+    for (const old of cacheEntry.matches) {
+      const key = rowKey(old);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      matches.push(old);
+    }
   }
 
   const wins = matches.filter((m) => m.is_win).length;
@@ -425,7 +532,15 @@ async function collectPlayer(player) {
     validation,
     validation_pass: validationPass,
     display_stats: displayStats,
+    scan_strategy: usedIncrementalCache ? "incremental_cache_merge" : "full_scan",
     matches: INCLUDE_MATCHES ? matches : undefined,
+    _cache_payload: {
+      latest_key: matches[0] ? rowKey(matches[0]) : null,
+      matches,
+      updated_at: new Date().toISOString(),
+      period_from: START_DATE,
+      period_to: END_DATE,
+    },
   };
 }
 
@@ -448,36 +563,55 @@ function printSummaryTable(rows) {
 }
 
 async function main() {
+  const cache = loadCache();
+  if (!cache.teams[TEAM_NAME]) cache.teams[TEAM_NAME] = {};
+
   const rosterHtml = decodeHtml(await fetchBinary(ROSTER_URL));
   let roster = parseRoster(rosterHtml);
   if (PLAYER_NAME) {
     roster = roster.filter((p) => p.name === PLAYER_NAME);
   }
-  const results = [];
+  if (!JSON_ONLY) {
+    console.log(`[INFO] team=${TEAM_NAME} players=${roster.length} concurrency=${CONCURRENCY} cache=${NO_CACHE ? "off" : "on"}`);
+  }
 
-  for (const player of roster) {
+  const results = await mapWithConcurrency(roster, CONCURRENCY, async (player) => {
     try {
-      const rec = await collectPlayer(player);
-      results.push(rec);
+      const key = playerCacheKey(player);
+      const cached = cache.teams[TEAM_NAME][key] || null;
+      const rec = await collectPlayer(player, cached);
+      if (rec && rec._cache_payload) {
+        cache.teams[TEAM_NAME][key] = rec._cache_payload;
+      }
       if (!JSON_ONLY) {
         console.log(
-          `[OK] ${rec.name} ${rec.period_total} (${rec.period_wins}/${rec.period_losses}) ${rec.period_min_date || "-"}~${rec.period_max_date || "-"} validation=${rec.validation_pass ? "PASS" : "FAIL"}`
+          `[OK] ${rec.name} ${rec.period_total} (${rec.period_wins}/${rec.period_losses}) ${rec.period_min_date || "-"}~${rec.period_max_date || "-"} validation=${rec.validation_pass ? "PASS" : "FAIL"} strategy=${rec.scan_strategy}`
         );
       }
+      return rec;
     } catch (error) {
-      results.push({
-        ...player,
-        error: error.message,
-      });
       if (!JSON_ONLY) {
         console.log(`[FAIL] ${player.name} ${error.message}`);
       }
+      return {
+        ...player,
+        error: error.message,
+      };
     }
-  }
+  });
 
-  const failedValidations = results.filter((r) => r.validation_pass === false);
+  saveCache(cache);
+
+  const outputPlayers = results.map((r) => {
+    const out = { ...r };
+    delete out._cache_payload;
+    if (!INCLUDE_MATCHES) delete out.matches;
+    return out;
+  });
+
+  const failedValidations = outputPlayers.filter((r) => r.validation_pass === false);
   if (!JSON_ONLY) {
-    printSummaryTable(results);
+    printSummaryTable(outputPlayers);
   }
   console.log(
     JSON.stringify(
@@ -485,9 +619,9 @@ async function main() {
         team_name: TEAM_NAME,
         roster_url: ROSTER_URL,
         period: { from: START_DATE, to: END_DATE },
-        count: results.length,
+        count: outputPlayers.length,
         validation_failed_count: failedValidations.length,
-        players: results,
+        players: outputPlayers,
       },
       null,
       2
