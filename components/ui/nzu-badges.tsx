@@ -23,7 +23,7 @@ export function RaceTag({ race, size = "sm" }: { race: Race; size?: "xs" | "sm" 
         ${sizeClasses[size]}
       `}
     >
-      {race}
+      {cfg.label}
     </span>
   );
 }

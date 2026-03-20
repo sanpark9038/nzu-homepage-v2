@@ -14,26 +14,62 @@ interface PlayerCardProps {
   layout?: 'default' | 'compact'
 }
 
+
 export function PlayerCard({ player, layout = 'default' }: PlayerCardProps) {
   const isCompact = layout === 'compact';
+  const race = (player.race || "T") as Race;
+
+
+  // 종족별 테마 스타일 정의 (프리미엄 소프트 그라디언트 적용)
+  const raceStyles = {
+    T: {
+      border: "hover:border-terran/30",
+      text: "group-hover:text-terran",
+      accent: "bg-terran",
+      glow: "rgba(74, 158, 255, 0.12)",
+      line: "bg-gradient-to-r from-transparent via-terran/80 to-transparent",
+    },
+    Z: {
+      border: "hover:border-zerg/30",
+      text: "group-hover:text-zerg",
+      accent: "bg-zerg",
+      glow: "rgba(168, 85, 247, 0.12)",
+      line: "bg-gradient-to-r from-transparent via-zerg/80 to-transparent",
+    },
+    P: {
+      border: "hover:border-protoss/30",
+      text: "group-hover:text-protoss",
+      accent: "bg-protoss",
+      glow: "rgba(255, 215, 0, 0.12)",
+      line: "bg-gradient-to-r from-transparent via-protoss/80 to-transparent",
+    },
+  }[race];
 
   return (
     <Link href={`/player/${player.id}`} className={cn("block group cursor-pointer", isCompact ? "w-full" : "")}>
       <div className={cn(
-        "relative flex rounded-[2rem] border transition-all duration-500 overflow-hidden shadow-2xl",
+        "relative flex rounded-[2rem] border transition-all duration-700 overflow-hidden shadow-2xl group",
         isCompact 
-          ? "bg-[#0A100D]/80 backdrop-blur-md border-white/5 hover:border-nzu-green/40 p-3 items-center gap-4 flex-row h-24" 
-          : "bg-[#0F1412] flex-col border-white/5 hover:border-nzu-green/40 hover:bg-[#141A17] hover:-translate-y-2"
+          ? `bg-[#0A100D]/80 backdrop-blur-md border-white/5 ${raceStyles.border} p-3 items-center gap-4 flex-row h-24` 
+          : `bg-[#0F1412] flex-col border-white/5 ${raceStyles.border} hover:bg-[#121815] hover:-translate-y-2`
       )}>
-        {/* Race Color Accent */}
+        {/* === Premium Soft Glow Layer === */}
+        <div 
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"
+          style={{ 
+            background: `radial-gradient(circle at 50% 0%, ${raceStyles.glow} 0%, transparent 70%)` 
+          }} 
+        />
+
+        {/* Race Color Accent (Soft Fading Line) */}
         <div className={cn(
-          "absolute top-0 left-0 bg-nzu-green transition-all duration-700 opacity-0 group-hover:opacity-100",
-          isCompact ? "bottom-0 w-1 h-full" : "w-full h-1"
+          "absolute top-0 left-0 w-full h-[2px] transition-all duration-700 opacity-0 group-hover:opacity-100 z-20",
+          raceStyles.line
         )} />
 
         {/* Profile Image Area */}
         <div className={cn(
-          "relative bg-[#050706] overflow-hidden rounded-[1.5rem]",
+          "relative bg-[#050706] overflow-hidden rounded-[1.5rem] z-10",
           isCompact ? "w-16 h-16 shrink-0 aspect-square" : "aspect-[4/5] w-full"
         )}>
           {player.photo_url ? (
@@ -67,9 +103,10 @@ export function PlayerCard({ player, layout = 'default' }: PlayerCardProps) {
           <div className="flex items-center justify-between">
             <span className={cn(
               "font-black text-white transition-colors leading-tight",
-              isCompact ? "text-base group-hover:text-nzu-green" : "text-2xl group-hover:text-nzu-green"
+              raceStyles.text,
+              isCompact ? "text-base" : "text-2xl"
             )}>{player.name}</span>
-            <RaceTag race={player.race as Race} size={isCompact ? "xs" : "sm"} />
+            <RaceTag race={race} size={isCompact ? "xs" : "sm"} />
           </div>
 
           <div className={cn(
@@ -82,7 +119,7 @@ export function PlayerCard({ player, layout = 'default' }: PlayerCardProps) {
                 "font-black text-nzu-gold tabular-nums",
                 isCompact ? "text-[11px]" : "text-base"
               )}>
-                {player.elo_point.toLocaleString()} <span className="text-[10px] opacity-40 ml-0.5 tracking-tighter">LP</span>
+                {player.elo_point.toLocaleString()} <span className="text-[10px] opacity-40 ml-0.5 tracking-tighter">점</span>
               </span>
             )}
           </div>
@@ -101,3 +138,4 @@ export function PlayerCard({ player, layout = 'default' }: PlayerCardProps) {
     </Link>
   );
 }
+

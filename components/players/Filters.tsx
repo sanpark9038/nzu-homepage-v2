@@ -25,15 +25,16 @@ export function PlayerSearch() {
   return (
     <div className="relative w-full max-w-sm">
       <input
+
         type="text"
         placeholder="어떤 선수를 찾으시나요? (이름 입력)"
         onChange={(e) => handleSearch(e.target.value)}
         defaultValue={searchParams.get("search") || ""}
-        className="w-full bg-[#1A221F] border border-white/10 rounded-xl px-5 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-nzu-green focus:bg-[#212B27] transition-all shadow-inner"
+        className="w-full bg-[#1A221F] border border-white/10 rounded-xl px-6 py-4 text-base text-white placeholder:text-white/30 focus:outline-none focus:border-nzu-green focus:bg-[#212B27] transition-all shadow-inner"
       />
       {isPending && (
-        <div className="absolute right-4 top-3.5">
-           <div className="w-4 h-4 border-2 border-nzu-green/20 border-t-nzu-green rounded-full animate-spin" />
+        <div className="absolute right-5 top-4.5">
+           <div className="w-5 h-5 border-2 border-nzu-green/20 border-t-nzu-green rounded-full animate-spin" />
         </div>
       )}
     </div>
@@ -63,7 +64,7 @@ export function RaceFilter() {
   ];
 
   return (
-    <div className="flex items-center gap-2 bg-[#1A221F] p-1.5 rounded-xl border border-white/5 flex-nowrap min-w-max">
+    <div className="flex items-center gap-3 bg-[#1A221F] p-2 rounded-xl border border-white/5 flex-nowrap min-w-max">
       {races.map((r) => {
         const isActive = currentRace === r.id;
         let activeClass = "bg-nzu-green text-white shadow-lg shadow-nzu-green/20";
@@ -79,7 +80,7 @@ export function RaceFilter() {
             key={r.id}
             onClick={() => handleRace(r.id)}
             className={`
-              px-6 py-2 rounded-lg text-sm font-black transition-all duration-200
+              px-8 py-3 rounded-lg text-base font-black transition-all duration-200
               ${isActive 
                 ? activeClass 
                 : "text-white/40 hover:text-white hover:bg-white/5"

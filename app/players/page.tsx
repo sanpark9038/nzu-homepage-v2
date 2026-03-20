@@ -44,8 +44,8 @@ export default async function PlayersPage({
              </div>
              <div className="hidden xl:flex items-center gap-10">
                 <div className="flex flex-col md:items-end">
-                   <span className="text-[11px] font-black text-white/20 uppercase tracking-[0.3em]">등록 현황</span>
-                   <span className="text-sm font-black text-nzu-green uppercase tracking-[0.2em]">활성 인원 {players.length}명</span>
+                   <span className="text-[13px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">등록 현황</span>
+                   <span className="text-lg font-black text-nzu-green uppercase tracking-[0.2em]">활성 인원 {players.length}명</span>
                 </div>
              </div>
           </div>
@@ -54,9 +54,9 @@ export default async function PlayersPage({
         {!hasResults ? (
           <div className="py-32 text-center bg-white/[0.02] rounded-3xl border border-dashed border-white/10">
              <div className="text-4xl mb-6 opacity-30">📂</div>
-             <h2 className="text-xl font-bold mb-2 text-white">선수 정보를 찾을 수 없습니다</h2>
-             <p className="text-sm text-white/40 mb-8">다른 이름으로 검색해 보시겠습니까?</p>
-             <Link href="/players" className="px-10 py-4 bg-nzu-green text-black rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-nzu-green/20">목록 전체 보기</Link>
+             <h2 className="text-2xl font-bold mb-3 text-white">선수 정보를 찾을 수 없습니다</h2>
+             <p className="text-base text-white/40 mb-10">다른 이름으로 검색해 보시겠습니까?</p>
+             <Link href="/players" className="px-12 py-5 bg-nzu-green text-black rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-nzu-green/20">목록 전체 보기</Link>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-6 md:gap-8">
@@ -69,12 +69,12 @@ export default async function PlayersPage({
 
       <footer className="border-t border-white/5 py-16 bg-black/40 backdrop-blur-md mt-24">
           <div className="max-w-[1400px] mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-12">
-              <div className="flex items-center gap-3 text-xs text-white/40 font-bold tracking-tighter uppercase">
-                <span className="w-2 h-2 rounded-full bg-nzu-green shadow-[0_0_10px_#2ed573]" />
-                늪지대 정식 멤버 명표
+              <div className="flex items-center gap-4 text-sm text-white/40 font-bold tracking-tighter uppercase">
+                <span className="w-2.5 h-2.5 rounded-full bg-nzu-green shadow-[0_0_12px_#2ed573]" />
+                늪지대 정식 멤버 명표 아카이브 시스템
               </div>
-              <div className="text-[10px] text-white/20 text-center md:text-right font-black uppercase tracking-widest">
-                © 2025 NZU · 늪지대 유니버시티 아카이브 시스템<br/>
+              <div className="text-[12px] text-white/20 text-center md:text-right font-black uppercase tracking-widest leading-relaxed">
+                © 2025 NZU · 늪지대 유니버시티 공식 아카이브<br/>
                 <span className="text-nzu-green/40">산박 대표님의 부장, 엘레이드박 설계</span>
               </div>
           </div>

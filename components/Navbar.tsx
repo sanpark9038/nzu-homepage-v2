@@ -36,29 +36,31 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-[100] w-full border-b border-white/5 bg-[#050706]/80 backdrop-blur-xl">
-      <div className="w-full px-12 h-20 flex items-center justify-between">
 
-        {/* 로고: N.Z.U (대표님 안목 반영) */}
-        <Link href="/" className="flex items-center gap-4 group">
+    <header className="sticky top-0 z-[100] w-full border-b border-white/5 bg-[#050706]/90 backdrop-blur-2xl">
+      <div className="w-full px-16 h-24 flex items-center justify-between">
+
+        {/* 로고: N.Z.U (대표님 안목 반영 - 훨씬 더 웅장하게) */}
+        <Link href="/" className="flex items-center gap-6 group">
           <div className="relative">
-            <div className="w-10 h-10 rounded-xl bg-nzu-green flex items-center justify-center text-[15px] font-black text-white shadow-[0_0_20px_rgba(46,213,115,0.2)] group-hover:shadow-[0_0_30px_rgba(46,213,115,0.5)] group-hover:scale-110 transition-all duration-500">
+            <div className="w-14 h-14 rounded-2xl bg-nzu-green flex items-center justify-center text-[22px] font-black text-white shadow-[0_0_25px_rgba(46,213,115,0.3)] group-hover:shadow-[0_0_40px_rgba(46,213,115,0.6)] group-hover:scale-110 transition-all duration-500">
               N
             </div>
-            <div className="absolute -inset-1 bg-nzu-green/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="absolute -inset-2 bg-nzu-green/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           </div>
-          <div className="flex flex-col">
-            <span className="font-black text-xl tracking-tighter text-white leading-none">
+
+          <div className="flex flex-col gap-0.5">
+            <span className="font-black text-3xl tracking-tighter text-white leading-tight">
               N.Z.U
             </span>
-            <span className="text-[11px] font-bold text-nzu-green/70 tracking-[0.25em] uppercase mt-1">
+            <span className="text-[14px] font-black text-nzu-green tracking-[0.2em] uppercase opacity-80">
               늪지대 유니버시티
             </span>
           </div>
         </Link>
 
-        {/* 네비게이션 */}
-        <nav className="flex items-center gap-2">
+        {/* 네비게이션: 시원시원하고 큼직하게 */}
+        <nav className="flex items-center gap-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const isLive = item.href === '/live';
@@ -67,20 +69,20 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative px-6 py-2.5 rounded-2xl text-[11px] font-black transition-all duration-300 tracking-widest uppercase flex items-center gap-2",
+                  "relative px-8 py-3.5 rounded-2xl text-[17px] font-black transition-all duration-300 tracking-wider uppercase flex items-center gap-2",
                   isActive
-                    ? "text-nzu-green bg-nzu-green/10 shadow-[inset_0_0_20px_rgba(46,213,115,0.05)] border border-nzu-green/20"
-                    : "text-white/40 hover:text-white hover:bg-white/[0.03]"
+                    ? "text-nzu-green bg-nzu-green/10 shadow-[inset_0_0_30px_rgba(46,213,115,0.08)] border border-nzu-green/30 px-10 ring-1 ring-nzu-green/10"
+                    : "text-white/50 hover:text-white hover:bg-white/[0.05]"
                 )}
               >
                 {item.label}
                 {isLive && liveCount > 0 && (
                   <div className="flex items-center gap-1.5 ml-1">
-                     <span className="relative flex h-2 w-2">
+                     <span className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-nzu-live opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-nzu-live"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-nzu-live"></span>
                      </span>
-                     <span className="text-[9px] text-nzu-live tabular-nums">{liveCount}</span>
+                     <span className="text-[12px] text-nzu-live tabular-nums font-bold">{liveCount}</span>
                   </div>
                 )}
               </Link>
