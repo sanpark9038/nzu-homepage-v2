@@ -12,8 +12,17 @@ const argv = process.argv.slice(2);
 const univArgIndex = argv.indexOf("--univ");
 const playerArgIndex = argv.indexOf("--player");
 const concurrencyArgIndex = argv.indexOf("--concurrency");
+const profileUrlArgIndex = argv.indexOf("--profile-url");
+const wrIdArgIndex = argv.indexOf("--wr-id");
+const genderArgIndex = argv.indexOf("--gender");
+const tierArgIndex = argv.indexOf("--tier");
 const TEAM_NAME = univArgIndex >= 0 && argv[univArgIndex + 1] ? argv[univArgIndex + 1] : "\uB2AA\uC9C0\uB300";
 const PLAYER_NAME = playerArgIndex >= 0 && argv[playerArgIndex + 1] ? argv[playerArgIndex + 1] : null;
+const PROFILE_URL_ARG =
+  profileUrlArgIndex >= 0 && argv[profileUrlArgIndex + 1] ? argv[profileUrlArgIndex + 1] : null;
+const WR_ID_ARG = wrIdArgIndex >= 0 && argv[wrIdArgIndex + 1] ? Number(argv[wrIdArgIndex + 1]) : null;
+const GENDER_ARG = genderArgIndex >= 0 && argv[genderArgIndex + 1] ? argv[genderArgIndex + 1] : null;
+const TIER_ARG = tierArgIndex >= 0 && argv[tierArgIndex + 1] ? argv[tierArgIndex + 1] : "";
 const INCLUDE_MATCHES = process.argv.includes("--include-matches");
 const NO_CACHE = process.argv.includes("--no-cache");
 const CONCURRENCY =
@@ -31,10 +40,13 @@ const K_WIN = "\uC2B9";
 const K_LOSS = "\uD328";
 const K_FEMALE_SECTION = "\uC5EC\uC131\uBC00\uB9AC\uC804\uC801";
 const K_SSANGDI = "\uC30D\uB514";
+const K_PPAKJAE_TV = "\uBE61\uC7ACTV";
 
 const SPECIAL_PROFILE_URL = {
   [K_SSANGDI]:
     "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=671",
+  [K_PPAKJAE_TV]:
+    "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=913",
 };
 
 function sleep(ms) {
@@ -234,8 +246,10 @@ function parseDisplayStats(html) {
 }
 
 function selectMode(player) {
-  const isSsangdi = player.name === K_SSANGDI;
-  if (isSsangdi) {
+  const usesMixEndpoint =
+    player.name === K_SSANGDI ||
+    /bo_table=bj_m_list/i.test(String(player.profile_url || ""));
+  if (usesMixEndpoint) {
     return {
       mode: "special_mix",
       endpoint: "mix_view_list.php",
@@ -247,6 +261,22 @@ function selectMode(player) {
     endpoint: "view_list.php",
     sectionMarker: K_FEMALE_SECTION,
   };
+}
+
+function isMissingPostErrorPage(html) {
+  const text = String(html || "");
+  return (
+    text.includes("\uC624\uB958\uC548\uB0B4 \uD398\uC774\uC9C0") &&
+    text.includes("\uAE00\uC774 \uC874\uC7AC\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4")
+  );
+}
+
+function toMixBoardProfileUrl(url) {
+  const text = String(url || "");
+  if (!text) return null;
+  if (/bo_table=bj_m_list/i.test(text)) return text;
+  if (/bo_table=bj_list/i.test(text)) return text.replace(/bo_table=bj_list/i, "bo_table=bj_m_list");
+  return null;
 }
 
 function parsePNameFromProfile(profileHtml, endpoint, fallbackName) {
@@ -427,10 +457,25 @@ function compareMatchDesc(a, b) {
 }
 
 async function collectPlayer(player, cacheEntry = null) {
-  const profileHtml = decodeHtml(await fetchBinary(player.profile_url));
-  const mode = selectMode(player);
+  let resolvedPlayer = { ...player };
+  let profileHtml = decodeHtml(await fetchBinary(resolvedPlayer.profile_url));
+  if (isMissingPostErrorPage(profileHtml)) {
+    const fallbackProfileUrl = toMixBoardProfileUrl(resolvedPlayer.profile_url);
+    if (fallbackProfileUrl && fallbackProfileUrl !== resolvedPlayer.profile_url) {
+      const fallbackHtml = decodeHtml(await fetchBinary(fallbackProfileUrl));
+      if (!isMissingPostErrorPage(fallbackHtml)) {
+        resolvedPlayer = {
+          ...resolvedPlayer,
+          profile_url: fallbackProfileUrl,
+        };
+        profileHtml = fallbackHtml;
+      }
+    }
+  }
+
+  const mode = selectMode(resolvedPlayer);
   const displayStats = parseDisplayStats(profileHtml);
-  const pName = parsePNameFromProfile(profileHtml, mode.endpoint, player.name);
+  const pName = parsePNameFromProfile(profileHtml, mode.endpoint, resolvedPlayer.name);
   const initial = extractInitialRows(profileHtml, mode);
 
   const seen = new Set();
@@ -444,7 +489,7 @@ async function collectPlayer(player, cacheEntry = null) {
 
   let pagesScanned = 0;
   let lastId = initial.initialLastId;
-  const isMenBoard = player.profile_url.includes("/men/");
+  const isMenBoard = resolvedPlayer.profile_url.includes("/men/");
   if (lastId <= 0 && isMenBoard && mode.endpoint === "view_list.php") {
     lastId = 1;
   }
@@ -453,7 +498,7 @@ async function collectPlayer(player, cacheEntry = null) {
 
   for (let i = 0; i < 200 && lastId > 0; i += 1) {
     if (hitAnchor) break;
-    const page = await fetchPageRows(player, mode, pName, lastId);
+    const page = await fetchPageRows(resolvedPlayer, mode, pName, lastId);
     if (!page.rows.length) {
       emptyHops += 1;
       if (
@@ -517,7 +562,7 @@ async function collectPlayer(player, cacheEntry = null) {
     validation.wins_losses_match_total;
 
   return {
-    ...player,
+    ...resolvedPlayer,
     mode: mode.mode,
     endpoint: mode.endpoint,
     p_name: pName,
@@ -566,10 +611,29 @@ async function main() {
   const cache = loadCache();
   if (!cache.teams[TEAM_NAME]) cache.teams[TEAM_NAME] = {};
 
-  const rosterHtml = decodeHtml(await fetchBinary(ROSTER_URL));
-  let roster = parseRoster(rosterHtml);
-  if (PLAYER_NAME) {
-    roster = roster.filter((p) => p.name === PLAYER_NAME);
+  let roster = [];
+  if (PROFILE_URL_ARG) {
+    const profileUrl = String(PROFILE_URL_ARG).replace(/^http:\/\//i, "https://");
+    const wrMatch = profileUrl.match(/wr_id=(\d+)/);
+    const wrId = Number.isFinite(WR_ID_ARG) ? WR_ID_ARG : wrMatch ? Number(wrMatch[1]) : null;
+    const name =
+      PLAYER_NAME ||
+      (wrId !== null ? `wr_${wrId}` : "unknown_player");
+    roster = [
+      {
+        name,
+        tier: TIER_ARG || "",
+        wr_id: wrId,
+        gender: GENDER_ARG || "",
+        profile_url: profileUrl,
+      },
+    ];
+  } else {
+    const rosterHtml = decodeHtml(await fetchBinary(ROSTER_URL));
+    roster = parseRoster(rosterHtml);
+    if (PLAYER_NAME) {
+      roster = roster.filter((p) => p.name === PLAYER_NAME);
+    }
   }
   if (!JSON_ONLY) {
     console.log(`[INFO] team=${TEAM_NAME} players=${roster.length} concurrency=${CONCURRENCY} cache=${NO_CACHE ? "off" : "on"}`);

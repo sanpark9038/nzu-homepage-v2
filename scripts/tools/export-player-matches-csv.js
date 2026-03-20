@@ -34,6 +34,48 @@ function csvEscape(v) {
   return s;
 }
 
+function sleepMs(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function writeFileWithRetry(filePath, content, encoding = "utf8") {
+  const maxAttempts = 5;
+  let lastErr = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      fs.writeFileSync(filePath, content, encoding);
+      return;
+    } catch (err) {
+      const code = String(err && err.code ? err.code : "");
+      const retriable = code === "EBUSY" || code === "EPERM" || code === "EACCES";
+      lastErr = err;
+      if (!retriable || attempt >= maxAttempts) break;
+      sleepMs(150 * attempt);
+    }
+  }
+  throw lastErr;
+}
+
+function safeFallbackCsvPath(filePath) {
+  const ext = path.extname(filePath) || ".csv";
+  const base = filePath.slice(0, -ext.length);
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  return `${base}_retry_${stamp}${ext}`;
+}
+
+function writeCsvWithFallback(filePath, content) {
+  try {
+    writeFileWithRetry(filePath, content, "utf8");
+    return filePath;
+  } catch (err) {
+    const code = String(err && err.code ? err.code : "");
+    if (code !== "EBUSY" && code !== "EPERM" && code !== "EACCES") throw err;
+    const altPath = safeFallbackCsvPath(filePath);
+    writeFileWithRetry(altPath, content, "utf8");
+    return altPath;
+  }
+}
+
 function main() {
   if (!fs.existsSync(reportPath)) {
     console.error(`Missing source JSON: ${reportPath}`);
@@ -42,9 +84,14 @@ function main() {
   const raw = fs.readFileSync(reportPath, "utf8").replace(/^\uFEFF/, "");
   const json = JSON.parse(raw);
   const p = (json.players || [])[0];
+  const header = ["날짜", "상대명", "상대종족", "맵", "경기결과(승/패)", "메모"];
+  const lines = [header.join(",")];
   if (!p || !Array.isArray(p.matches)) {
-    console.error("No matches found in source JSON.");
-    process.exit(1);
+    // Keep pipeline stable: write an empty CSV (header only) for 0-match players.
+    const bom = "\uFEFF";
+    const finalPath = writeCsvWithFallback(csvPath, bom + lines.join("\n"));
+    console.log(finalPath);
+    return;
   }
 
   const rows = p.matches.slice().sort((a, b) => {
@@ -54,9 +101,6 @@ function main() {
     if (ao !== bo) return ao > bo ? 1 : -1;
     return 0;
   });
-
-  const header = ["날짜", "상대명", "상대종족", "맵", "경기결과(승/패)", "메모"];
-  const lines = [header.join(",")];
 
   for (const r of rows) {
     const opp = splitOpponent(r.opponent);
@@ -73,8 +117,8 @@ function main() {
 
   // UTF-8 BOM for Excel compatibility on Windows
   const bom = "\uFEFF";
-  fs.writeFileSync(csvPath, bom + lines.join("\n"), "utf8");
-  console.log(csvPath);
+  const finalPath = writeCsvWithFallback(csvPath, bom + lines.join("\n"));
+  console.log(finalPath);
 }
 
 main();
