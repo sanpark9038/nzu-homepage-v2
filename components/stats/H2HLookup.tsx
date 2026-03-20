@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { playerService, Player } from '@/lib/player-service'
+import { playerService } from '@/lib/player-service'
+import type { Player } from '@/types'
 import { TierBadge } from '@/components/ui/nzu-badges'
-import { getInstantH2H, type H2HStats } from '@/lib/h2h-service'
+import { getInstantH2H } from '@/lib/h2h-service'
+import type { H2HStats } from '@/types'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Search, Trophy, Map as MapIcon, X, Swords, Plus, RotateCcw, GripVertical, ShieldCheck } from 'lucide-react'
+import { Search, Trophy, Map as MapIcon, X, Swords, Plus, RotateCcw, GripVertical, ShieldCheck, ChevronLeft, ChevronRight, Activity, Zap } from 'lucide-react'
 import { UNIVERSITY_MAP } from '@/lib/university-config'
 import { REAL_NAME_MAP } from '@/lib/constants'
 import Image from 'next/image'
@@ -43,7 +45,7 @@ interface Match {
   id: string;
   p1: Player;
   p2: Player;
-  h2h?: H2HStats;
+  h2h?: H2HStats | null;
 }
 
 interface H2HLookupProps {
@@ -52,7 +54,7 @@ interface H2HLookupProps {
 }
 
 export default function H2HLookup({ players = [], recentMatches = [] }: H2HLookupProps) {
-  // Selection State
+  // Selection State (Historical)
   const [p1, setP1] = useState<Player | null>(null)
   const [p2, setP2] = useState<Player | null>(null)
   const [results, setResults] = useState<H2HStats | null>(null)
@@ -70,6 +72,47 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
   // Filter logic: Default to ON (true)
   const [hideEmptyTiers, setHideEmptyTiers] = useState(true)
   
+   // Resizable Logic
+   const [sidebarWidth, setSidebarWidth] = useState(500)
+   const [isResizing, setIsResizing] = useState(false)
+   const [isDesktop, setIsDesktop] = useState(true)
+   const containerRef = useRef<HTMLDivElement>(null)
+ 
+   // Responsive Check
+   useEffect(() => {
+     const checkSize = () => {
+       setIsDesktop(window.innerWidth >= 1024)
+     }
+     checkSize()
+     window.addEventListener('resize', checkSize)
+     return () => window.removeEventListener('resize', checkSize)
+   }, [])
+ 
+   const startResizing = useCallback(() => setIsResizing(true), [])
+   const stopResizing = useCallback(() => setIsResizing(false), [])
+   const resize = useCallback((e: MouseEvent) => {
+     if (isResizing && containerRef.current && isDesktop) {
+       const containerWidth = containerRef.current.offsetWidth
+       const containerLeft = containerRef.current.getBoundingClientRect().left
+       const newWidth = containerWidth - (e.clientX - containerLeft)
+       // Constraints: 350px to 900px
+       if (newWidth >= 350 && newWidth <= 900) {
+         setSidebarWidth(newWidth)
+       }
+     }
+   }, [isResizing, isDesktop])
+ 
+   useEffect(() => {
+     if (isResizing && isDesktop) {
+       window.addEventListener('mousemove', resize)
+       window.addEventListener('mouseup', stopResizing)
+     }
+     return () => {
+       window.removeEventListener('mousemove', resize)
+       window.removeEventListener('mouseup', stopResizing)
+     }
+   }, [isResizing, resize, stopResizing, isDesktop])
+
   // Match List State
   const [matches, setMatches] = useState<Match[]>([])
   const matchIdCounter = useRef(0)
@@ -109,6 +152,19 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
     load()
   }, [u2, q2])
 
+  // Detailed Analysis for Manual Selection
+  useEffect(() => {
+    if (p1 && p2) {
+      setLoading(true)
+      getInstantH2H(REAL_NAME_MAP[p1.name] || p1.name, REAL_NAME_MAP[p2.name] || p2.name)
+        .then(data => setResults(data))
+        .catch(err => console.error(err))
+        .finally(() => setLoading(false))
+    } else {
+      setResults(null)
+    }
+  }, [p1, p2])
+
   const groupPlayers = useCallback((players: Player[]) => {
     const groups: Record<string, Player[]> = {};
     players.forEach(p => {
@@ -145,20 +201,14 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
       
       if (!hasPlayers) return false;
 
-      // 필터(hideEmptyTiers)가 ON인 경우:
       if (hideEmptyTiers) {
-        // 1. 잭, 조커, 스페이드 티어는 무조건 제외
         const isExcludedTier = EXCLUDED_TIERS.includes(tier);
         if (isExcludedTier) return false;
-
-        // 2. 양쪽 팀이 모두 선택된 경우, 양쪽 모두 선수가 있는 티어만 표시
         if (u1 && u2) {
           const bothSidesHavePlayers = (g1?.players.length || 0) > 0 && (g2?.players.length || 0) > 0;
           return bothSidesHavePlayers;
         }
       }
-
-      // 필터가 OFF이거나 한쪽 팀만 선택된 경우, 선수가 있기만 하면 표시
       return true;
     });
   }, [groups1, groups2, hideEmptyTiers, u1, u2]);
@@ -173,8 +223,6 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
   const autoMatch = () => {
     if (!u1 || !u2) { alert('양 팀의 대학을 먼저 선택해주세요.'); return; }
     const newMatches: Match[] = [];
-    
-    // Auto matching only happens for tiers visible in arenaTiers
     arenaTiers.forEach(tier => {
       const g1 = groups1.find(g => g.tier === tier), g2 = groups2.find(g => g.tier === tier);
       if (g1 && g2) {
@@ -200,14 +248,6 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
     setMatches(items);
   };
 
-  const handleSearch = async () => {
-    if (!p1 || !p2) return;
-    setLoading(true);
-    const h2h = await getInstantH2H(REAL_NAME_MAP[p1.name] || p1.name, REAL_NAME_MAP[p2.name] || p2.name);
-    setResults(h2h);
-    setLoading(false);
-  };
-
   const removeMatch = (id: string) => setMatches(prev => prev.filter(m => m.id !== id));
 
   const groupedMatches = useMemo(() => {
@@ -225,89 +265,148 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
   }, [matches, TIER_CONFIG]);
 
   return (
-    <div className="w-full space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6 items-start">
-        
-        {/* 아레나 섹션 */}
-        <div className="space-y-4">
-           <div className="bg-white/[0.03] border border-white/10 rounded-[1.5rem] p-4 backdrop-blur-md shadow-xl">
-              <div className="flex flex-col md:flex-row items-center gap-4">
-                 <div className="flex-1 w-full flex items-center gap-2">
-                    <select value={u1} onChange={(e) => setU1(e.target.value)}
-                      className="bg-black/95 border-2 border-nzu-green/30 rounded-xl px-4 py-2 text-sm font-black text-white focus:border-nzu-green transition-all flex-1">
-                      <option value="">좌측 대학 선택</option>
-                      {sortedUniversities.map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
-                    <div className="relative flex-1 hidden xl:block">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                      <input type="text" placeholder="선수 검색..." value={q1} onChange={(e) => setQ1(e.target.value)}
-                        className="w-full bg-black/50 border-2 border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm font-black focus:border-nzu-green/50 outline-none transition-all" />
+    <div className="w-full space-y-20">
+      <div 
+        ref={containerRef}
+        className="flex flex-col lg:flex-row gap-0 items-start relative"
+      >
+        {/* 아레나 섹션 (좌측) */}
+        <div 
+          className="flex-1 space-y-6 w-full lg:pr-6"
+          style={{ width: isDesktop ? `calc(100% - ${sidebarWidth}px)` : '100%' }}
+        >
+           {/* 상단 컨트롤 바 */}
+           <div className="bg-[#0A100D] border border-white/5 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-nzu-green/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+              <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+                 <div className="flex-1 w-full flex items-center gap-3">
+                    <div className="relative flex-1">
+                      <select value={u1} onChange={(e) => setU1(e.target.value)}
+                        className="w-full bg-black border-2 border-nzu-green/20 rounded-2xl px-5 py-3 text-sm font-black text-white focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10 transition-all outline-none appearance-none cursor-pointer">
+                        <option value="">좌측 대학 선택</option>
+                        {sortedUniversities.map(u => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-nzu-green/40">▼</div>
                     </div>
                  </div>
-                 <div className="flex gap-2">
-                    <button onClick={() => setHideEmptyTiers(!hideEmptyTiers)} className={cn("px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all", hideEmptyTiers ? "bg-nzu-green text-black" : "bg-white/5 border border-white/10 text-white/40")}>
+
+                 <div className="flex gap-3 shrink-0">
+                    <button onClick={() => setHideEmptyTiers(!hideEmptyTiers)} 
+                      className={cn("px-5 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95", 
+                        hideEmptyTiers ? "bg-nzu-green text-black hover:brightness-110" : "bg-white/5 border border-white/10 text-white/40 hover:bg-white/10")}>
                       필터 {hideEmptyTiers ? 'ON' : 'OFF'}
                     </button>
-                    <button onClick={autoMatch} className="px-5 py-2 bg-nzu-green text-black rounded-xl text-[10px] font-black uppercase flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all"><Plus className="w-4 h-4" />자동매칭</button>
-                    <button onClick={() => setMatches([])} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-white/40 hover:text-red-500 transition-all"><RotateCcw className="w-4 h-4" /></button>
+                    <button onClick={autoMatch} 
+                      className="px-6 py-3 bg-white text-black rounded-2xl text-[11px] font-black uppercase flex items-center gap-2 hover:bg-nzu-green hover:text-black transition-all shadow-xl active:scale-95">
+                      <Plus className="w-4 h-4" />자동매칭
+                    </button>
+                    <button onClick={() => setMatches([])} 
+                      className="p-3 bg-white/5 border border-white/10 rounded-2xl text-white/20 hover:text-red-500 hover:bg-red-500/10 transition-all shadow-lg">
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
                  </div>
-                 <div className="flex-1 w-full flex items-center gap-2">
-                    <div className="relative flex-1 hidden xl:block">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                      <input type="text" placeholder="선수 검색..." value={q2} onChange={(e) => setQ2(e.target.value)}
-                        className="w-full bg-black/50 border-2 border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm font-black text-right focus:border-nzu-green/50 outline-none transition-all" />
+
+                 <div className="flex-1 w-full flex items-center gap-3">
+                    <div className="relative flex-1">
+                      <select value={u2} onChange={(e) => setU2(e.target.value)}
+                        className="w-full bg-black border-2 border-nzu-green/20 rounded-2xl px-5 py-3 text-sm font-black text-white focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10 transition-all outline-none appearance-none text-right cursor-pointer">
+                        <option value="">우측 대학 선택</option>
+                        {sortedUniversities.map(u => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-nzu-green/40">▲</div>
                     </div>
-                    <select value={u2} onChange={(e) => setU2(e.target.value)}
-                      className="bg-black/95 border-2 border-nzu-green/30 rounded-xl px-4 py-2 text-sm font-black text-white focus:border-nzu-green transition-all flex-1 text-right">
-                      <option value="">우측 대학 선택</option>
-                      {sortedUniversities.map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
                  </div>
               </div>
            </div>
 
-           <div className="bg-white/[0.01] border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl">
-              <div className="grid grid-cols-[1fr_100px_1fr] bg-white/[0.04] border-b border-white/10 px-6 py-3 items-center">
-                 <span className="text-[11px] font-black text-white/40 uppercase truncate">{u1 || "첫 번째 팀"}</span>
-                 <div className="text-center text-[9px] font-black text-white/10 uppercase tracking-widest">배틀 아레나</div>
-                 <span className="text-[11px] font-black text-white/40 uppercase truncate text-right">{u2 || "두 번째 팀"}</span>
+           {/* 중앙 아레나 보드 */}
+           <div className="bg-[#050706] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border-t-nzu-green/20 border-t-2">
+              <div className="grid grid-cols-[1fr_120px_1fr] bg-white/[0.02] border-b border-white/5 px-10 py-5 items-center text-left">
+                 <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-nzu-green/40 uppercase tracking-[0.4em] mb-1">TEAM BLUE</span>
+                    <span className="text-lg font-black text-white/90 uppercase truncate tracking-tight">{u1 || "첫 번째 팀"}</span>
+                 </div>
+                 <div className="text-center font-black text-white/10 text-[10px] uppercase tracking-[0.6em]">VERSUS</div>
+                 <div className="flex flex-col text-right">
+                    <span className="text-[10px] font-black text-nzu-green/40 uppercase tracking-[0.4em] mb-1">TEAM RED</span>
+                    <span className="text-lg font-black text-white/90 uppercase truncate tracking-tight text-right">{u2 || "두 번째 팀"}</span>
+                 </div>
               </div>
-              <div className="h-[650px] overflow-y-auto custom-scrollbar p-1">
+
+              <div className="h-[700px] overflow-y-auto custom-scrollbar p-2">
                  {(arenaTiers.length === 0 && (u1 || u2)) ? (
-                    <div className="h-full flex flex-col items-center justify-center text-white/5 gap-6">
-                      <Swords className="w-16 h-16 opacity-10" />
-                      <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/20">표시할 수 있는 매칭 가능한 티어가 없습니다</p>
+                    <div className="h-full flex flex-col items-center justify-center text-white/5 gap-8">
+                      <div className="w-20 h-20 rounded-full border-2 border-white/5 flex items-center justify-center animate-pulse">
+                        <Swords className="w-8 h-8 opacity-20" />
+                      </div>
+                      <p className="text-xs font-black uppercase tracking-[0.6em] text-white/20">NO AVAILABLE MATCHES IN TIERS</p>
                     </div>
                  ) : arenaTiers.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-white/5 gap-6">
-                      <Swords className="w-16 h-16 opacity-10 animate-pulse" />
-                      <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/20">대학을 선택하면 소속 선수가 나타납니다</p>
+                    <div className="h-full flex flex-col items-center justify-center text-white/5 gap-8 border-dashed border-2 border-white/5 m-4 rounded-[2rem]">
+                      <div className="relative">
+                        <Swords className="w-24 h-24 opacity-5 animate-pulse" />
+                        <div className="absolute inset-0 bg-nzu-green/5 blur-3xl rounded-full" />
+                      </div>
+                      <div className="flex flex-col items-center gap-2">
+                        <p className="text-sm font-black uppercase tracking-[0.8em] text-white/20 leading-none">AWAITING SELECTION</p>
+                        <p className="text-[10px] font-bold text-white/10 tracking-widest leading-none">대학을 선택하면 아레나가 활성화됩니다</p>
+                      </div>
                     </div>
                  ) : arenaTiers.map(tier => {
                     const g1 = groups1.find(g => g.tier === tier), g2 = groups2.find(g => g.tier === tier);
                     const tCol = TIER_CONFIG[tier]?.color || '#475569';
                     return (
-                      <div key={tier} className="grid grid-cols-[1fr_100px_1fr] border-b border-white/[0.02] hover:bg-white/[0.02] transition-colors min-h-[70px]">
-                         <div className="flex flex-wrap items-center justify-end gap-2 p-3 pr-4">
-                            {g1?.players.map(p => (
-                              <button key={p.id} onClick={() => p2 ? (addMatch(p, p2), setP2(null), setP1(null)) : setP1(p)}
-                                className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 transition-all text-[13px] font-black shadow-lg", p1?.id === p.id ? "bg-nzu-green border-nzu-green text-black" : "bg-white/[0.03] border-white/5 text-white/70 hover:border-white/30")}>
-                                <span>{p.name}</span>
-                                <span className={cn("text-[9px] w-4 h-4 flex items-center justify-center rounded font-black", p.race?.startsWith('T') ? "text-terran" : p.race?.startsWith('Z') ? "text-zerg" : "text-protoss")}>{p.race?.charAt(0)}</span>
-                              </button>
-                            ))}
+                      <div key={tier} className="grid grid-cols-[1fr_120px_1fr] border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors min-h-[90px] group/row">
+                         <div className="flex flex-wrap items-center justify-end gap-3 p-4 pr-6">
+                            {g1?.players.map(p => {
+                              const isTerran = p.race?.startsWith('T');
+                              const isZerg = p.race?.startsWith('Z');
+                              const isProtoss = p.race?.startsWith('P');
+                              return (
+                                <button key={p.id} onClick={() => p1?.id === p.id ? setP1(null) : setP1(p)}
+                                  className={cn(
+                                    "flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all duration-300 text-sm font-black shadow-lg relative group/btn",
+                                    p1?.id === p.id 
+                                      ? "bg-nzu-green border-nzu-green text-black scale-105 z-10" 
+                                      : "bg-[#0D1210] border-white/5 text-white/40 hover:text-white hover:border-white/20"
+                                  )}>
+                                  <span className="relative z-10">{p.name}</span>
+                                  <span className={cn(
+                                    "text-[10px] font-black relative z-10",
+                                    isTerran ? "text-terran" : isZerg ? "text-zerg" : "text-protoss"
+                                  )}>{p.race?.charAt(0)}</span>
+                                </button>
+                              );
+                            })}
                          </div>
-                         <div className="flex items-center justify-center bg-black/40 border-x border-white/[0.02]">
-                            <div className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase text-white/80 border border-white/10 shadow-lg" style={{ backgroundColor: `${tCol}22`, borderColor: `${tCol}44`, color: tCol }}>{tier}</div>
+                         <div className="flex items-center justify-center bg-black/40 border-x border-white/[0.03] relative">
+                            <div className="absolute w-px h-full bg-gradient-to-b from-transparent via-white/5 to-transparent" />
+                            <div className="px-4 py-2 rounded-xl text-[11px] font-black uppercase text-white border-2 shadow-2xl relative z-10 transition-transform group-hover/row:scale-110" 
+                                 style={{ backgroundColor: `${tCol}11`, borderColor: `${tCol}44`, color: tCol, boxShadow: `0 0 20px ${tCol}22` }}>
+                              {tier}
+                            </div>
                          </div>
-                         <div className="flex flex-wrap items-center justify-start gap-2 p-3 pl-4">
-                            {g2?.players.map(p => (
-                              <button key={p.id} onClick={() => p1 ? (addMatch(p1, p), setP1(null), setP2(null)) : setP2(p)}
-                                className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 transition-all text-[13px] font-black shadow-lg", p2?.id === p.id ? "bg-nzu-green border-nzu-green text-black" : "bg-white/[0.03] border-white/5 text-white/70 hover:border-white/30")}>
-                                <span>{p.name}</span>
-                                <span className={cn("text-[9px] w-4 h-4 flex items-center justify-center rounded font-black", p.race?.startsWith('T') ? "text-terran" : p.race?.startsWith('Z') ? "text-zerg" : "text-protoss")}>{p.race?.charAt(0)}</span>
-                              </button>
-                            ))}
+                         <div className="flex flex-wrap items-center justify-start gap-3 p-4 pl-6">
+                            {g2?.players.map(p => {
+                               const isTerran = p.race?.startsWith('T');
+                               const isZerg = p.race?.startsWith('Z');
+                               const isProtoss = p.race?.startsWith('P');
+                               return (
+                                <button key={p.id} onClick={() => p2?.id === p.id ? setP2(null) : setP2(p)}
+                                  className={cn(
+                                    "flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all duration-300 text-sm font-black shadow-lg relative group/btn",
+                                    p2?.id === p.id 
+                                      ? "bg-nzu-green border-nzu-green text-black scale-105 z-10" 
+                                      : "bg-[#0D1210] border-white/5 text-white/40 hover:text-white hover:border-white/20"
+                                  )}>
+                                  <span className="relative z-10">{p.name}</span>
+                                  <span className={cn(
+                                    "text-[10px] font-black relative z-10",
+                                    isTerran ? "text-terran" : isZerg ? "text-zerg" : "text-protoss"
+                                  )}>{p.race?.charAt(0)}</span>
+                                </button>
+                               );
+                            })}
                          </div>
                       </div>
                     )
@@ -316,30 +415,77 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
            </div>
         </div>
 
-        {/* 대진표 섹션 */}
-        <div className="lg:sticky lg:top-4 bg-[#0a0c0b] border border-white/10 rounded-[2rem] flex flex-col h-[820px] shadow-2xl overflow-hidden backdrop-blur-xl">
-           <div className="p-5 bg-white/[0.02] border-b border-white/5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                 <Trophy className="w-5 h-5 text-nzu-green" />
-                 <h2 className="text-sm font-black text-white italic tracking-widest uppercase">배틀 엔트리</h2>
+        {/* 수직 리사이즈 핸들 (Premium Divider) */}
+        <div 
+          className={cn(
+            "hidden lg:flex flex-col items-center justify-center w-12 h-[750px] mt-24 mb-24 cursor-col-resize group z-[100] transition-all duration-300 relative",
+            isResizing ? "bg-nzu-green/[0.08]" : "hover:bg-nzu-green/5"
+          )}
+          onMouseDown={(e) => { e.preventDefault(); startResizing(); }}
+        >
+          <div className={cn(
+            "w-[4px] h-full rounded-full transition-all duration-500",
+            isResizing ? "bg-nzu-green shadow-[0_0_35px_#2ed573] h-[100%]" : "bg-white/10 group-hover:bg-nzu-green/70 group-hover:h-[95%]"
+          )} />
+          
+          <div className={cn(
+            "absolute top-1/2 -translate-y-1/2 w-14 h-24 flex flex-col items-center justify-center transition-all duration-300",
+            isResizing ? "scale-110" : "group-hover:scale-110"
+          )}>
+            <div className={cn(
+              "p-3 rounded-2xl border-2 bg-[#0A100D] shadow-[0_0_40px_rgba(0,0,0,0.6)] flex items-center gap-2 transition-all duration-300",
+              isResizing ? "border-nzu-green ring-8 ring-nzu-green/20" : "border-white/20 group-hover:border-nzu-green shadow-nzu-green/5"
+            )}>
+              <ChevronLeft className={cn("w-5 h-5 transition-colors", isResizing ? "text-nzu-green" : "text-white/40 group-hover:text-nzu-green")} />
+              <ChevronRight className={cn("w-5 h-5 transition-colors", isResizing ? "text-nzu-green" : "text-white/40 group-hover:text-nzu-green")} />
+            </div>
+            
+            <div className={cn(
+              "absolute top-24 flex flex-col items-center transition-all duration-300",
+              isResizing ? "opacity-100 translate-y-2" : "opacity-0 group-hover:opacity-100"
+            )}>
+               <span className="text-[9px] font-black text-white uppercase tracking-[0.4em] whitespace-nowrap bg-nzu-green px-3 py-1.5 rounded-lg shadow-2xl">Board Resize</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 우측 엔트리 대진표 */}
+        <div 
+          className="bg-[#020403] border border-white/10 rounded-[2.5rem] flex flex-col h-[600px] lg:h-[850px] shadow-[0_0_60px_rgba(0,0,0,0.8)] overflow-hidden lg:sticky lg:top-8 mt-12 lg:mt-0"
+          style={{ width: isDesktop ? `${sidebarWidth}px` : '100%' }}
+        >
+           <div className="p-7 bg-white/[0.02] border-b border-white/5 flex items-center justify-between">
+              <div className="flex items-center gap-4 text-left">
+                 <div className="w-10 h-10 rounded-xl bg-nzu-gold/10 flex items-center justify-center border border-nzu-gold/20">
+                    <Trophy className="w-5 h-5 text-nzu-gold" />
+                 </div>
+                 <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-0.5">Arena Lineup</span>
+                    <h2 className="text-xl font-black text-white italic uppercase tracking-tighter">배틀 엔트리</h2>
+                 </div>
               </div>
-              <div className="px-3 py-1 bg-nzu-green/10 border border-nzu-green/20 rounded-full">
-                 <span className="text-[11px] font-black text-nzu-green tabular-nums">{matches.length} 매치</span>
+              <div className="px-5 py-2 bg-nzu-green/10 border border-nzu-green/20 rounded-xl">
+                 <span className="text-sm font-black text-nzu-green tabular-nums">{matches.length} <span className="text-[10px] opacity-60">MATCHES</span></span>
               </div>
            </div>
 
-           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pr-2">
+           <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
               <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="entry-list">
                   {(provided) => (
-                    <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
+                    <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
                       {groupedMatches.map((group) => {
                          const isGrouped = group.matches.length > 1;
                          const tInfo = TIER_CONFIG[group.matches[0].p1.tier] || { color: '#6366f1' };
                          return (
                            <div key={group.p1Id} 
-                             className={cn("rounded-xl border transition-all overflow-hidden", isGrouped ? "bg-nzu-green/[0.05] border-nzu-green/40 shadow-xl ring-2 ring-nzu-green/10" : "bg-white/[0.03] border-white/5")} 
-                             style={{ borderLeft: `6px solid ${isGrouped ? '#2ed573' : tInfo.color}` }}>
+                             className={cn(
+                               "rounded-2xl border transition-all overflow-hidden", 
+                               isGrouped 
+                               ? "bg-nzu-green/[0.03] border-nzu-green/30 shadow-[0_0_30px_rgba(46,213,115,0.05)]" 
+                               : "bg-white/[0.02] border-white/5 shadow-xl"
+                             )} 
+                             style={{ borderLeft: `8px solid ${isGrouped ? '#2ed573' : tInfo.color}` }}>
                               {group.matches.map((match, idx) => {
                                  const globalIdx = matches.findIndex(m => m.id === match.id);
                                    return (
@@ -347,49 +493,53 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                                        {(dProv, snapshot) => (
                                          <div ref={dProv.innerRef} {...dProv.draggableProps} {...dProv.dragHandleProps}
                                            className={cn(
-                                             "grid grid-cols-[32px_1fr_95px_1fr_24px] items-center p-3 hover:bg-white/[0.04] group cursor-grab active:cursor-grabbing relative", 
-                                             idx !== 0 && "border-t border-white/[0.03]",
-                                             snapshot.isDragging && "bg-white/[0.1] shadow-2xl z-50 rounded-lg ring-1 ring-nzu-green/30"
+                                             "grid grid-cols-[40px_1fr_100px_1fr_30px] items-center p-4 hover:bg-white/[0.05] group cursor-grab active:cursor-grabbing relative", 
+                                             idx !== 0 && "border-t border-white/[0.02]",
+                                             snapshot.isDragging && "bg-[#1A221F] shadow-4xl z-50 rounded-2xl ring-2 ring-nzu-green/50 scale-105"
                                            )}>
-                                            {/* Tier Indicator replaced Drag Handle */}
                                             <div className="flex justify-center">
-                                               <div className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-black text-white/40 border border-white/10 bg-white/5" style={{ color: tInfo.color, borderColor: `${tInfo.color}33` }}>
+                                               <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black border border-white/10 bg-black shadow-inner" 
+                                                    style={{ color: tInfo.color, borderColor: `${tInfo.color}33` }}>
                                                   {match.p1.tier.includes('GOD') || match.p1.tier.includes('갓') ? 'G' : 
                                                    match.p1.tier.includes('KING') || match.p1.tier.includes('킹') ? 'K' : 
-                                                   match.p1.tier.includes('JACK') || match.p1.tier.includes('잭') ? 'J' : 
-                                                   match.p1.tier}
+                                                   match.p1.tier.charAt(0).toUpperCase()}
                                                </div>
                                             </div>
                                             
-                                            <div className="flex items-center gap-2 px-1 truncate">
-                                               <span className={cn("text-[10px] w-4 h-4 flex items-center justify-center rounded-sm font-black shadow-inner", idx !== 0 ? "opacity-20" : "", match.p1.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p1.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss")}>{match.p1.race?.charAt(0)}</span>
-                                               <span className={cn("text-[14px] font-black truncate block", idx === 0 ? "text-white" : "text-white/20")}>{match.p1.name}</span>
+                                            <div className="flex items-center gap-3 px-2 truncate text-left">
+                                               <span className={cn(
+                                                 "text-base font-black truncate block transition-colors", 
+                                                 idx === 0 ? "text-white" : "text-white/30"
+                                               )}>{match.p1.name}</span>
                                             </div>
 
-                                            <div className="flex justify-center items-center gap-1.5">
+                                            <div className="flex justify-center items-center">
                                                {match.h2h ? (
-                                                  <div className="flex gap-1 scale-90">
-                                                     <div className="flex flex-col items-center">
-                                                       <span className="text-[6px] font-black text-white/30 uppercase">전체</span>
-                                                       <div className="px-1.5 py-0.5 bg-black/80 rounded-[4px] text-[11px] font-black text-white/80 border border-white/5">{match.h2h.summary.wins}:{match.h2h.summary.losses}</div>
+                                                  <div className="flex flex-col items-center gap-1">
+                                                     <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-black text-white">{match.h2h.summary.wins}</span>
+                                                        <span className="text-[10px] font-black text-white/20">:</span>
+                                                        <span className="text-sm font-black text-white/40">{match.h2h.summary.losses}</span>
                                                      </div>
-                                                     <div className="flex flex-col items-center">
-                                                       <span className="text-[6px] font-black text-nzu-green/50 uppercase">90일</span>
-                                                       <div className="px-1.5 py-0.5 bg-nzu-green/10 rounded-[4px] text-[11px] font-black text-nzu-green border border-nzu-green/20">{match.h2h.summary.momentum90?.wins ?? 0}:{match.h2h.summary.momentum90?.losses ?? 0}</div>
+                                                     <div className="h-1 w-10 bg-white/5 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-nzu-green" style={{ width: `${(match.h2h.summary.wins / (match.h2h.summary.wins + match.h2h.summary.losses || 1)) * 100}%` }} />
                                                      </div>
                                                   </div>
-                                               ) : <div className="h-4 w-12 bg-white/5 animate-pulse rounded-full" />}
+                                               ) : <div className="h-5 w-16 bg-white/5 animate-pulse rounded-full" />}
                                             </div>
 
-                                            <div className="flex items-center justify-end gap-2 px-1 truncate">
-                                               <span className="text-[14px] font-black text-white/90 group-hover:text-nzu-green truncate">{match.p2.name}</span>
-                                               <span className={cn("text-[9px] w-4 h-4 rounded-sm flex items-center justify-center font-black shadow-inner", match.p2.race?.startsWith('T') ? "bg-terran/20 text-terran" : match.p2.race?.startsWith('Z') ? "bg-zerg/20 text-zerg" : "bg-protoss/20 text-protoss")}>{match.p2.race?.charAt(0)}</span>
+                                            <div className="flex items-center justify-end gap-3 px-2 truncate">
+                                               <span className="text-base font-black text-white group-hover:text-nzu-green transition-colors truncate">{match.p2.name}</span>
                                             </div>
-                                            <button onClick={(e) => { e.stopPropagation(); removeMatch(match.id); }} className="opacity-0 group-hover:opacity-100 p-1.5 text-white/20 hover:text-red-500 transition-all flex justify-center z-10"><X className="w-4 h-4" /></button>
+                                            
+                                            <button onClick={(e) => { e.stopPropagation(); removeMatch(match.id); }} 
+                                              className="opacity-0 group-hover:opacity-100 p-2 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all flex justify-center z-10">
+                                              <X className="w-4 h-4" />
+                                            </button>
                                          </div>
                                        )}
                                      </Draggable>
-                                 )
+                                   )
                               })}
                            </div>
                          )
@@ -403,36 +553,93 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
         </div>
       </div>
 
-      {/* 분석 대시보드 */}
-      <div className={cn("bg-[#030504] border border-white/10 rounded-[2.5rem] transition-all duration-700 overflow-hidden shadow-2xl", results ? "min-h-[400px] mt-6 py-12 px-10 md:px-16" : "h-0 border-0 opacity-0")}>
-        {results && (
-          <div className="space-y-12">
-             <div className="flex flex-col lg:flex-row items-stretch justify-between gap-12">
-                <div className="flex-1 bg-white/[0.03] p-10 rounded-[3rem] border border-white/10 relative overflow-hidden group shadow-2xl">
-                   <div className="flex flex-col md:flex-row items-center gap-12">
-                      <div className="text-center min-w-[200px]">
-                         <span className="text-xs font-black text-white/30 uppercase block mb-4 tracking-[0.3em]">승리 확률 분석</span>
-                         <span className="text-8xl font-black text-nzu-green drop-shadow-[0_0_30px_rgba(46,213,115,0.4)]">{Math.round(results.summary.winRate)}%</span>
-                      </div>
-                      <div className="h-32 w-px bg-white/10 hidden md:block" />
-                      <div className="flex-1 w-full space-y-6">
-                          <div className="flex justify-between items-end"><span className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">전체 승률 비율</span><div className="flex items-baseline gap-2"><span className="text-3xl text-nzu-green font-black">{Math.round(results.summary.winRate)}</span><span className="text-xl text-white/10 font-black">:</span><span className="text-3xl text-white/20 font-black">{100 - Math.round(results.summary.winRate)}</span></div></div>
-                          <div className="h-4 bg-black/60 rounded-full p-1 border border-white/5 relative overflow-hidden"><div className="h-full bg-nzu-green rounded-full shadow-[0_0_20px_rgba(46,213,115,0.5)] transition-all duration-1000 ease-out" style={{ width: `${results.summary.winRate}%` }} /></div>
-                      </div>
-                   </div>
-                </div>
-                <div className="lg:w-[400px] flex flex-col">
-                   <div className="flex-1 bg-white/[0.03] p-10 rounded-[3rem] border border-white/10 border-l-nzu-green border-l-[10px] shadow-2xl">
-                      <div className="flex items-center gap-4 mb-6"><ShieldCheck className="w-6 h-6 text-nzu-green" /><span className="text-xs font-black text-white/40 uppercase tracking-[0.3em]">AI 대진 분석</span></div>
-                      <p className="text-xl font-black text-white/95 italic">
-                        &quot;{results.summary.winRate > 65 ? '데이터 우위로 인한 승리 가능성이 매우 높습니다.' : '치열한 접전 속에서 전술적 변수가 승부를 가를 것으로 보입니다.'}&quot;
-                      </p>
-                   </div>
-                </div>
-             </div>
+      {/* H2H 상세 분석 Dashboard (Full Width) */}
+      {results && p1 && p2 && (
+        <section className="bg-black/80 border-2 border-nzu-green/40 rounded-[3rem] p-12 shadow-[0_0_100px_rgba(46,213,115,0.1)] relative overflow-hidden fade-in">
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <Swords className="w-64 h-64 text-nzu-green rotate-12" />
           </div>
-        )}
-      </div>
+          
+          <div className="relative z-10 space-y-12">
+            <div className="flex items-center justify-between border-b border-white/10 pb-8">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-2xl bg-nzu-green/10 flex items-center justify-center border border-nzu-green/20">
+                  <Activity className="w-8 h-8 text-nzu-green" />
+                </div>
+                <div>
+                  <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase mb-1">Detailed Analysis</h3>
+                  <p className="text-white/40 font-bold tracking-widest text-xs uppercase flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-nzu-green animate-ping" />
+                    Neural Data Processing Complete
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Match Probability</span>
+                <div className="text-5xl font-black text-white italic tracking-tighter tabular-nums">
+                  {Math.round((results.summary.wins / (results.summary.wins + results.summary.losses || 1)) * 100)}% <span className="text-nzu-green">WIN</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
+              {/* 좌측 선수 */}
+              <div className="bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 text-center space-y-4">
+                <TierBadge tier={p1.tier} size="lg" />
+                <h4 className="text-4xl font-black text-white italic">{p1.name}</h4>
+                <div className="flex justify-center gap-3">
+                  <span className="px-4 py-1.5 bg-terran/10 text-terran rounded-lg text-xs font-black border border-terran/20">{p1.race}</span>
+                  <span className="px-4 py-1.5 bg-white/5 text-white/40 rounded-lg text-xs font-black border border-white/10">{p1.university}</span>
+                </div>
+              </div>
+
+              {/* 중앙 전적 스코어 */}
+              <div className="space-y-8 flex flex-col items-center">
+                <div className="flex items-center gap-8">
+                  <div className="text-center">
+                    <div className="text-7xl font-black text-white mb-2">{results.summary.wins}</div>
+                    <div className="text-[10px] font-black text-nzu-green uppercase tracking-widest">VICTORIES</div>
+                  </div>
+                  <div className="text-4xl font-black text-white/10 italic">VS</div>
+                  <div className="text-center">
+                    <div className="text-7xl font-black text-white/40 mb-2">{results.summary.losses}</div>
+                    <div className="text-[10px] font-black text-white/10 uppercase tracking-widest">DEFEATS</div>
+                  </div>
+                </div>
+                {/* Win Prob Bar */}
+                <div className="w-full h-4 bg-white/5 rounded-full overflow-hidden relative">
+                   <div className="absolute inset-0 bg-gradient-to-r from-nzu-green/20 to-transparent" />
+                   <div className="h-full bg-nzu-green shadow-[0_0_20px_#2ed573] transition-all duration-1000" 
+                        style={{ width: `${(results.summary.wins / (results.summary.wins + results.summary.losses || 1)) * 100}%` }} />
+                </div>
+              </div>
+
+              {/* 우측 선수 */}
+              <div className="bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 text-center space-y-4">
+                <TierBadge tier={p2.tier} size="lg" />
+                <h4 className="text-4xl font-black text-white/60 italic">{p2.name}</h4>
+                <div className="flex justify-center gap-3">
+                  <span className="px-4 py-1.5 bg-zerg/10 text-zerg rounded-lg text-xs font-black border border-zerg/20">{p2.race}</span>
+                  <span className="px-4 py-1.5 bg-white/5 text-white/40 rounded-lg text-xs font-black border border-white/10">{p2.university}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center pt-8">
+              <button 
+                onClick={() => addMatch(p1, p2)}
+                className="group relative px-12 py-5 bg-white text-black text-xl font-black italic uppercase tracking-tighter rounded-3xl overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_50px_rgba(46,213,115,0.3)]"
+              >
+                <div className="absolute inset-0 bg-nzu-green translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500" />
+                <span className="relative z-10 flex items-center gap-3 group-hover:text-black">
+                  <Zap className="w-6 h-6 fill-current" />
+                  Apply To Arena Lineup
+                </span>
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

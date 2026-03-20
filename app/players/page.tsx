@@ -29,16 +29,25 @@ export default async function PlayersPage({
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 fade-in">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight mb-2 uppercase italic">Lineup</h1>
-            <p className="text-muted-foreground text-sm font-medium">늪지대 클랜의 모든 정식 멤버 정보</p>
-          </div>
+      <main className="flex-1 max-w-[1800px] mx-auto w-full px-8 py-10 fade-in">
+        <div className="mb-14">
+          <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-4 uppercase italic leading-none">Lineup</h1>
+          <p className="text-muted-foreground/60 text-lg font-medium tracking-tight">늪지대 클랜 정식 멤버 아카이브</p>
+        </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-             <PlayerSearch />
-             <RaceFilter />
+        {/* === Interactive Filter Bar (Sticky) === */}
+        <div className="sticky top-20 z-40 bg-background/80 backdrop-blur-xl py-8 border-b border-white/5 mb-14">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+             <div className="flex items-center gap-10">
+                <PlayerSearch />
+                <RaceFilter />
+             </div>
+             <div className="hidden xl:flex items-center gap-10">
+                <div className="flex flex-col items-end">
+                   <span className="text-[11px] font-black text-white/20 uppercase tracking-[0.3em]">등록 현황</span>
+                   <span className="text-sm font-black text-nzu-green uppercase tracking-[0.2em]">활성 인원 {players.length}명</span>
+                </div>
+             </div>
           </div>
         </div>
 
@@ -50,7 +59,7 @@ export default async function PlayersPage({
              <Link href="/players" className="px-6 py-2 bg-nzu-green rounded-lg text-sm font-bold shadow-lg shadow-nzu-green/20">목록 전체 보기</Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-6 md:gap-8">
             {players.map((player) => (
               <PlayerCard key={player.id} player={player} />
             ))}

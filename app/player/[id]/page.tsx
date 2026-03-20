@@ -4,7 +4,8 @@ import { playerService } from "@/lib/player-service";
 import { NZU_CONFIG } from "@/lib/constants";
 import Image from "next/image";
 import Link from "next/link";
-import { LiveBadge, RaceTag, type Race } from "@/components/ui/nzu-badges";
+import { LiveBadge, RaceTag, type Race, TierBadge } from "@/components/ui/nzu-badges";
+import { cn } from "@/lib/utils";
 
 export const revalidate = 60;
 type PlayerMatch = Awaited<ReturnType<typeof playerService.getPlayerMatches>>[number];
@@ -14,8 +15,8 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   const player = await playerService.getPlayerById(id);
   
   return {
-    title: player ? `${player.name} - NZU Player Profile` : "Player Not Found",
-    description: player?.nickname || `NZU Member ${player?.name}'s profile and match history.`,
+    title: player ? `${player.name} - NZU 공식 프로필` : "선수 정보를 찾을 수 없습니다",
+    description: player?.nickname || `NZU 멤버 ${player?.name} 선수의 상세 전적 및 공식 기록입니다.`,
   };
 }
 
@@ -26,85 +27,115 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
 
   if (!player) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-[#050706] flex flex-col">
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center p-4">
-          <h1 className="text-2xl font-bold mb-4">선수를 찾을 수 없습니다</h1>
-          <Link href="/tier" className="px-6 py-2 bg-nzu-green rounded-lg font-bold">돌아가기</Link>
+          <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center text-4xl mb-6">🚫</div>
+          <h1 className="text-2xl font-black text-white mb-6 uppercase tracking-tighter italic">선수를 찾을 수 없습니다</h1>
+          <Link href="/tier" className="px-10 py-4 bg-nzu-green text-black rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white transition-all shadow-xl">전체 명단으로 돌아가기</Link>
         </div>
       </div>
     );
   }
 
+  // 티어별 테마 색상 결정
+  const isElite = ['god', 'king'].includes(player.tier?.toLowerCase() || "");
+  const themeColor = isElite ? "rgba(255, 215, 0, 0.4)" : "rgba(46, 213, 115, 0.4)";
+
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-20">
+    <div className="min-h-screen bg-[#050706] flex flex-col pb-32">
       <Navbar />
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 pt-12">
-        {/* 뒤로가기 브레드크럼 */}
-        <Link href="/tier" className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-xs font-bold mb-8 transition-colors group">
-           <span className="group-hover:-translate-x-1 transition-transform">←</span> BACK TO ROSTER
+      <main className="flex-1 max-w-[1200px] mx-auto w-full px-8 pt-20">
+        
+        {/* Navigation Breadcrumb */}
+        <Link href="/players" className="inline-flex items-center gap-3 text-white/30 hover:text-nzu-green text-[10px] font-black uppercase tracking-[0.3em] mb-12 transition-all group">
+           <span className="group-hover:-translate-x-2 transition-transform duration-300">←</span> 전체 로스터 명단
         </Link>
 
-        {/* 히로 섹션: 가볍고 명확하게 */}
-        <section className="relative bg-card border border-border/40 rounded-[2.5rem] p-8 md:p-12 overflow-hidden mb-12">
-          {/* 장식용 배경 */}
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-nzu-green/5 to-transparent pointer-events-none" />
+        {/* === Tactical Player Hero Section === */}
+        <section className="relative bg-[#0A0F0D] border border-white/5 rounded-[3rem] p-10 md:p-16 overflow-hidden mb-20 shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
+          {/* Background FX */}
+          <div 
+            className="absolute -top-20 -right-20 w-[600px] h-[600px] rounded-full blur-[160px] pointer-events-none opacity-20"
+            style={{ backgroundColor: themeColor }}
+          />
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.02] mix-blend-overlay pointer-events-none" />
           
-          <div className="relative flex flex-col md:flex-row items-center gap-10">
-            <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-full border-4 border-nzu-green/20 overflow-hidden shadow-2xl">
-              <Image 
-                src={player.photo_url || "/placeholder-player.png"} 
-                alt={player.name} 
-                fill 
-                className="object-cover object-top"
-              />
-              {player.is_live && (
-                <div className="absolute bottom-4 inset-x-0 flex justify-center">
-                   <LiveBadge />
-                </div>
-              )}
+          <div className="relative flex flex-col lg:flex-row items-center lg:items-end gap-12 lg:gap-20">
+            {/* Player Portrait */}
+            <div className="relative">
+              <div className="relative w-56 h-56 md:w-72 md:h-72 rounded-[3rem] border-2 border-white/5 overflow-hidden shadow-2xl group">
+                <Image 
+                  src={player.photo_url || "/placeholder-player.png"} 
+                  alt={player.name} 
+                  fill 
+                  priority
+                  className="object-cover object-top transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+              </div>
+              
+              {/* Status Badge Overlays */}
+              <div className="absolute -top-4 -right-4 flex flex-col gap-2">
+                 <TierBadge tier={player.tier} size="lg" />
+                 {player.is_live && <LiveBadge />}
+              </div>
             </div>
 
-            <div className="flex-1 text-center md:text-left">
-               <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-                  <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">{player.name}</h1>
-                  <RaceTag race={player.race as Race} />
+            {/* Profile Info */}
+            <div className="flex-1 text-center lg:text-left">
+               <div className="flex flex-col lg:flex-row items-center lg:items-center gap-6 mb-4">
+                  <h1 className="text-6xl md:text-8xl font-black tracking-[-0.05em] uppercase italic text-white leading-none drop-shadow-2xl">
+                    {player.name}
+                  </h1>
+                  <div className="px-5 py-2 bg-white/5 border border-white/10 rounded-full">
+                     <RaceTag race={player.race as Race} />
+                  </div>
                </div>
                
-               <p className="text-muted-foreground text-lg font-medium mb-8">
-                  {player.nickname || "NZU 아카데미 소속"}
+               <p className="text-nzu-green/60 text-xl md:text-2xl font-black italic tracking-tight mb-12 uppercase">
+                  {player.nickname || "NZU ACADEMY MEMBER"}
                </p>
 
-               <div className="grid grid-cols-3 gap-8 max-w-md mx-auto md:mx-0">
-                  <div>
-                     <span className="block text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Tier</span>
-                     <span className="text-xl font-black text-nzu-green uppercase italic">{player.tier}</span>
+               {/* Tactical Gauge Stats */}
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl">
+                     <span className="block text-[9px] text-white/30 font-black uppercase tracking-[0.3em] mb-3">Tier Standing</span>
+                     <span className="text-3xl font-black text-nzu-green italic uppercase">{player.tier}</span>
                   </div>
-                  <div>
-                     <span className="block text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Elo Point</span>
-                     <span className="text-xl font-black text-foreground italic">{player.elo_point?.toLocaleString() ?? '0'} LP</span>
+                  <div className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl">
+                     <span className="block text-[9px] text-white/30 font-black uppercase tracking-[0.3em] mb-3">Elo Points</span>
+                     <span className="text-3xl font-black text-white italic tabular-nums">{player.elo_point?.toLocaleString() ?? '1,000'} <span className="text-xs opacity-30 not-italic">LP</span></span>
                   </div>
-                  <div>
-                     <span className="block text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Win Rate</span>
-                     <span className="text-xl font-black text-foreground italic">{player.win_rate ? `${player.win_rate}%` : '-'}</span>
+                  <div className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl">
+                     <span className="block text-[9px] text-white/30 font-black uppercase tracking-[0.3em] mb-3">Win Percent</span>
+                     <span className="text-3xl font-black text-white italic tabular-nums">{player.win_rate ? `${player.win_rate}%` : '50%'}</span>
+                  </div>
+                  <div className="p-6 bg-white/[0.02] border border-white/5 rounded-3xl border-nzu-green/20">
+                     <span className="block text-[9px] text-white/30 font-black uppercase tracking-[0.3em] mb-3">University</span>
+                     <span className="text-xs font-black text-nzu-green uppercase tracking-widest">{player.university || "NZU"}</span>
                   </div>
                </div>
             </div>
           </div>
         </section>
 
-        {/* 전적 리스트: 심플 & 가독성 */}
+        {/* === Match Analysis History === */}
         <section>
-          <div className="flex items-center gap-4 mb-6">
-             <h2 className="text-sm font-black text-muted-foreground tracking-[0.2em] uppercase whitespace-nowrap">Match History</h2>
-             <div className="flex-1 h-px bg-border/40" />
+          <div className="flex items-center justify-between mb-10 px-2">
+             <div className="flex items-center gap-4">
+                <div className="w-2 h-2 rounded-full bg-nzu-green animate-pulse" />
+                <h2 className="text-sm font-black text-white uppercase tracking-[0.4em] italic">Tactical Match History</h2>
+             </div>
+             <span className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">Latest 20 Sessions</span>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {matches.length === 0 ? (
-               <div className="py-16 text-center bg-card/30 rounded-3xl border border-dashed border-border/40">
-                  <p className="text-sm text-muted-foreground">이 선수의 매치 기록이 아직 없습니다.</p>
+               <div className="md:col-span-2 py-32 text-center bg-white/[0.01] rounded-[3rem] border border-dashed border-white/10">
+                  <div className="text-4xl mb-6 opacity-20">📊</div>
+                  <p className="text-sm text-white/30 font-black uppercase tracking-widest italic">No operational data found.<br/>Waiting for official matches.</p>
                </div>
             ) : (
               matches.map((match: PlayerMatch) => {
@@ -112,31 +143,35 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
                 const opponent = match.player1_id === id ? match.player2 : match.player1;
                 
                 return (
-                  <div key={match.id} className="group bg-card border border-border/40 rounded-2xl p-4 flex items-center justify-between hover:border-nzu-green/30 transition-all">
-                    <div className="flex items-center gap-5">
-                       <div className={`w-12 h-6 flex items-center justify-center rounded-md text-[10px] font-black tracking-tighter ${isWinner ? 'bg-nzu-green/10 text-nzu-green' : 'bg-red-500/10 text-red-500'}`}>
-                          {isWinner ? 'VICTORY' : 'DEFEAT'}
+                  <div key={match.id} className="group relative bg-[#0A0F0D] border border-white/5 rounded-[2.5rem] p-8 flex items-center justify-between hover:border-nzu-green/30 hover:bg-white/[0.03] transition-all duration-500 shadow-xl overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1.5 h-full transition-all duration-500 bg-white/5 group-hover:bg-nzu-green" />
+                    
+                    <div className="flex items-center gap-8 pl-4">
+                       <div className={cn(
+                         "w-16 h-8 flex items-center justify-center rounded-xl text-[10px] font-black tracking-widest italic transition-all",
+                         isWinner ? "bg-nzu-green/10 text-nzu-green shadow-[0_0_20px_rgba(46,213,115,0.1)]" : "bg-red-500/10 text-red-500"
+                       )}>
+                          {isWinner ? 'WIN' : 'LOSE'}
                        </div>
-                       <div className="flex items-center gap-3">
-                          <div className="relative w-8 h-8 rounded-full border border-border/60 overflow-hidden bg-muted/20">
+                       
+                       <div className="flex items-center gap-6">
+                          <div className="relative w-14 h-14 rounded-2xl border border-white/10 overflow-hidden bg-white/5 shadow-lg group-hover:scale-110 transition-transform">
                              <Image src={opponent?.photo_url || "/placeholder-player.png"} alt={opponent?.name || "Player"} fill className="object-cover" />
                           </div>
                           <div>
-                             <span className="text-xs text-muted-foreground">vs</span>
-                             <span className="ml-2 font-bold text-sm">{opponent?.name || "Unknown"}</span>
+                             <span className="text-[9px] text-white/20 uppercase font-black tracking-widest block mb-1">Opponent</span>
+                             <span className="font-black text-white text-lg tracking-tighter uppercase italic">{opponent?.name || "Unknown"}</span>
                           </div>
                        </div>
                     </div>
                     
-                    <div className="flex items-center gap-8 text-right">
-                       <div className="hidden sm:block">
-                          <span className="block text-[8px] text-muted-foreground uppercase opacity-60">Map</span>
-                          <span className="text-[10px] font-bold">{match.map_name || '-'}</span>
+                    <div className="flex flex-col items-end gap-2 text-right">
+                       <div className="px-3 py-1 bg-white/5 rounded-md border border-white/5">
+                          <span className="text-[10px] font-black text-white/40 uppercase italic tracking-widest">{match.map_name || 'ARENA'}</span>
                        </div>
-                       <div>
-                          <span className="block text-[8px] text-muted-foreground uppercase opacity-60">Date</span>
-                          <span className="text-[10px] font-medium opacity-80">{match.match_date ? new Date(match.match_date).toLocaleDateString() : '-'}</span>
-                       </div>
+                       <span className="text-[10px] font-medium text-white/20 tabular-nums">
+                          {match.match_date ? new Date(match.match_date).toLocaleDateString() : '-'}
+                       </span>
                     </div>
                   </div>
                 );

@@ -38,16 +38,43 @@ export default async function TierPage({
     <div className="min-h-screen flex flex-col">
       <Navbar />
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 fade-in">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight mb-2 uppercase text-foreground">Tier List</h1>
-            <p className="text-muted-foreground text-sm font-medium">NZU 통합 멤버 티어표 및 실시간 기록</p>
+      <main className="flex-1 max-w-[1600px] mx-auto w-full px-12 py-16 fade-in">
+        {/* === Premium Header Section === */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-20 border-b border-white/5 pb-16 relative">
+          <div className="absolute -left-20 top-0 w-40 h-40 bg-nzu-green/10 blur-[100px] rounded-full pointer-events-none" />
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-4">
+               <span className="px-3 py-1 bg-nzu-green/10 text-nzu-green text-[10px] font-black uppercase tracking-widest rounded-md border border-nzu-green/20">
+                 Live Archive
+               </span>
+               <span className="text-white/20 text-[10px] font-bold tracking-widest uppercase italic">Season 2025-Q1</span>
+            </div>
+            <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic text-white leading-none mb-6">
+              실시간 <span className="text-nzu-green">티어 랭킹</span>
+            </h1>
+            <p className="text-white/40 text-lg font-medium italic tracking-tight">
+              NZU 통합 멤버들의 실시간 전적 및 ELO 기반 공식 티어표입니다.
+            </p>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-             <PlayerSearch />
-             <RaceFilter />
+          <div className="flex flex-col gap-6 relative z-10">
+             <div className="flex items-center gap-6 text-right justify-end mb-2">
+                <div className="flex flex-col">
+                   <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Total Players</span>
+                   <span className="text-2xl font-black text-white italic">{playerList.length} <span className="text-xs font-bold text-white/40 not-italic">명</span></span>
+                </div>
+                <div className="w-px h-8 bg-white/10" />
+                <div className="flex flex-col text-nzu-green">
+                   <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">Active Live</span>
+                   <span className="text-2xl font-black italic">{playerList.filter(p => p.is_live).length} <span className="text-xs font-bold opacity-60 not-italic">ON</span></span>
+                </div>
+             </div>
+             
+             <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/[0.03] p-2 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-sm">
+                <PlayerSearch />
+                <RaceFilter />
+             </div>
           </div>
         </div>
 

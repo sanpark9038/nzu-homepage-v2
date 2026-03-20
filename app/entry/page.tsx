@@ -24,25 +24,34 @@ export default async function EntryPage() {
     <div className="min-h-screen flex flex-col bg-[#020403]">
       <Navbar />
 
-      <main className="flex-1 w-full px-8 py-8 md:py-12 fade-in">
-        {/* Header - Simple & Professional */}
-        <header className="mb-8">
-            <h1 className="text-xl md:text-2xl font-black tracking-tight text-white/90 mb-1">
-              엔트리 매칭 엔진
+      <main className="flex-1 max-w-[1800px] mx-auto w-full px-8 py-10 md:py-16 fade-in">
+        {/* Compact Strategic Header */}
+        <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 rounded-full bg-nzu-green shadow-[0_0_10px_#2ed573] animate-pulse" />
+              <span className="text-[10px] font-black text-nzu-green uppercase tracking-[0.4em]">Strategic Module Active</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none">
+              Entry <span className="text-nzu-green">Engine</span>
             </h1>
-            <p className="text-xs md:text-sm text-white/30 font-medium tracking-tight">
-              실물 데이터를 기반으로 실시간 상대 전적 및 승률을 즉각 분석합니다.
+          </div>
+          <div className="flex flex-col md:items-end gap-1">
+            <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.3em]">Neural Infrastructure Active</p>
+            <p className="text-sm text-white/40 font-bold italic">
+              실시간 데이터 기반 <span className="text-nzu-green/60">최적 엔트리 설계 모듈</span>
             </p>
+          </div>
         </header>
 
-        {/* Dashboard Section */}
-        <div className="space-y-16">
-          <section>
-             <RecentEloMatches matches={eloMatches} />
+        {/* Dashboard Section - Entry Table First */}
+        <div className="space-y-20">
+          <section className="relative">
+             <H2HLookup players={players} recentMatches={matches} />
           </section>
 
-          <section className="relative pt-8 border-t border-white/5">
-             <H2HLookup players={players} recentMatches={matches} />
+          <section className="pt-16 border-t border-white/5">
+             <RecentEloMatches matches={eloMatches} />
           </section>
         </div>
       </main>

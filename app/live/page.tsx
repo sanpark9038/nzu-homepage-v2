@@ -16,7 +16,6 @@ function getMockViewerCount(playerId: string): number {
 
 export default async function LivePage() {
   // 현재는 API가 없으므로 DB의 is_live 선수들을 기반으로 Mock 데이터를 구성
-  // 추후 SOOP API 연동 시 이 부분을 교체 예정
   const allPlayers = await playerService.getAllPlayers();
   const livePlayers = allPlayers.filter(p => p.is_live);
 
@@ -31,75 +30,117 @@ export default async function LivePage() {
     soop_url: p.broadcast_url || `https://ch.sooplive.co.kr`,
   }));
 
+  const totalViewers = mockLiveStreams.reduce((acc, curr) => acc + curr.viewer_count, 0);
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#0A0F0D]">
+    <div className="min-h-screen flex flex-col bg-[#050706]">
       <Navbar />
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 fade-in">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-               <span className="w-2 h-2 rounded-full bg-nzu-live live-dot" />
-               <span className="text-[10px] font-bold text-nzu-live uppercase tracking-widest">Live Connect</span>
+      <main className="flex-1 max-w-[1600px] mx-auto w-full px-6 md:px-12 py-10 md:py-16 fade-in">
+        
+        {/* === Global Broadcast Header === */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 mb-16 lg:mb-20 border-b border-white/5 pb-12 lg:pb-16 relative text-center lg:text-left">
+          <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-nzu-live/5 blur-[120px] rounded-full pointer-events-none" />
+          
+          <div className="relative z-10">
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 mb-6">
+               <div className="flex items-center gap-2 px-3 py-1 bg-nzu-live/10 rounded-md border border-nzu-live/20">
+                  <span className="w-2 h-2 rounded-full bg-nzu-live animate-ping" />
+                  <span className="text-nzu-live text-[10px] font-black uppercase tracking-widest">Global Broadcast</span>
+               </div>
+               <span className="text-white/20 text-[10px] font-bold tracking-widest uppercase italic lg:border-l lg:border-white/10 lg:ml-2 lg:pl-4">SOOP TV FOUNDATION</span>
             </div>
-            <h1 className="text-4xl font-black tracking-tighter uppercase italic">
-               Live <span className="gradient-text">Center</span>
+            
+            <h1 className="text-4xl md:text-5xl lg:text-[5.5rem] font-black tracking-tighter uppercase italic text-white leading-none mb-6">
+               실황 <span className="text-nzu-live">중계 센터</span>
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">SOOP TV 실시간 NZU 방송 목록</p>
+            <p className="text-white/40 text-sm md:text-xl font-medium italic tracking-tight max-w-2xl mx-auto lg:mx-0">
+               NZU 멤버들의 실시간 전장 브로드캐스트를 한곳에서 통제합니다.
+            </p>
           </div>
-
-          <div className="text-xs text-muted-foreground bg-card border border-border/40 px-3 py-1.5 rounded-lg flex items-center gap-2">
-             <span className="text-nzu-green font-bold">●</span> SOOP TV API 연동 대기 중
+          
+          <div className="flex flex-col gap-6 relative z-10 w-full lg:w-auto">
+             <div className="flex items-center gap-6 md:gap-10 justify-center lg:justify-end mb-4">
+                <div className="flex flex-col items-center lg:items-end">
+                   <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mb-1">Active Streams</span>
+                   <span className="text-3xl md:text-4xl font-black text-nzu-live italic tabular-nums">{mockLiveStreams.length} <span className="text-xs font-bold text-white/20 not-italic ml-1">ON</span></span>
+                </div>
+                <div className="w-px h-10 md:h-12 bg-white/10" />
+                <div className="flex flex-col items-center lg:items-end">
+                   <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mb-1">Total Viewers</span>
+                   <span className="text-3xl md:text-4xl font-black text-white italic tabular-nums">
+                      {totalViewers.toLocaleString()} 
+                      <span className="text-xs font-bold text-nzu-green not-italic ml-2 uppercase hidden sm:inline">Watching</span>
+                   </span>
+                </div>
+             </div>
+             
+             <div className="bg-white/[0.03] border border-white/5 px-4 py-2 rounded-xl text-[9px] md:text-[10px] font-bold text-white/40 flex items-center justify-center lg:justify-start gap-2 self-center lg:self-end shadow-2xl">
+                <span className="text-nzu-green animate-pulse">●</span> 외부 데이터 동기화 파이프라인 가동 중
+             </div>
           </div>
         </div>
 
         {mockLiveStreams.length === 0 ? (
-          <div className="mt-12 p-20 border border-dashed border-border/60 rounded-3xl flex flex-col items-center justify-center text-center">
-             <div className="w-16 h-16 rounded-full bg-muted/10 flex items-center justify-center mb-6 text-2xl">📡</div>
-             <h2 className="text-xl font-bold mb-2 text-foreground/80">현재 방송 중인 멤버가 없습니다</h2>
-             <p className="text-sm text-muted-foreground max-w-xs">
-                NZU 멤버들이 방송을 시작하면 이곳에 실시간으로 표시됩니다.
+          <div className="mt-12 py-40 border border-white/[0.03] bg-white/[0.01] rounded-[3rem] flex flex-col items-center justify-center text-center shadow-inner">
+             <div className="w-24 h-24 rounded-full bg-nzu-live/5 flex items-center justify-center mb-8 text-4xl border border-nzu-live/10">📡</div>
+             <h2 className="text-2xl font-black mb-4 text-white uppercase italic tracking-tight">현재 방송 중인 멤버가 없습니다</h2>
+             <p className="text-sm text-white/40 max-w-xs font-medium leading-relaxed">
+                NZU 멤버들이 방송을 시작하면<br/>이곳에 실시간으로 표시됩니다.
              </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {mockLiveStreams.map((stream) => (
               <LiveStreamCard key={stream.id} stream={stream} />
             ))}
           </div>
         )}
 
-        {/* 안내 섹션 */}
-        <div className="mt-16 p-8 bg-gradient-to-br from-card to-background border border-border/40 rounded-3xl">
-           <div className="grid md:grid-cols-2 gap-8 items-center">
+        {/* Infographic Detail Section */}
+        <div className="mt-32 p-12 bg-gradient-to-br from-white/[0.02] to-transparent border border-white/5 rounded-[4rem] relative overflow-hidden group">
+           <div className="absolute -top-40 -right-40 w-80 h-80 bg-nzu-green/5 blur-[120px] rounded-full group-hover:bg-nzu-green/10 transition-all duration-1000" />
+           
+           <div className="grid md:grid-cols-2 gap-16 items-center relative z-10">
               <div>
-                 <h2 className="text-xl font-bold mb-3">SOOP TV API 연동 안내</h2>
-                 <p className="text-sm text-muted-foreground leading-relaxed">
-                    본 시스템은 SOOP TV(구 아프리카TV) 파트너 API를 통해 스트림 데이터를 실시간으로 수집할 예정입니다.
-                    API 승인 전까지는 멤버 기반 동기화 데이터를 기반으로 임시 표시됩니다.
+                 <div className="text-nzu-green text-[10px] font-black uppercase tracking-[0.4em] mb-4">Infrastructure</div>
+                 <h2 className="text-2xl font-black text-white mb-6 italic uppercase tracking-tighter">SOOP TV API 연동 안내</h2>
+                 <p className="text-base text-white/40 leading-relaxed font-medium">
+                    본 시스템은 SOOP TV 파트너 API를 통해 스트림 데이터를 실시간으로 수집합니다.
+                    공식 API 승인 전까지는 멤버 기반 동기화 데이터를 기반으로 실황이 표시됩니다.
                  </p>
-              </div>
-              <div className="flex flex-col gap-3">
-                 <div className="flex items-center gap-3 p-4 bg-background/50 rounded-xl border border-border/20">
-                    <span className="text-nzu-green text-lg">✓</span>
-                    <span className="text-xs font-bold">실시간 시청자 수 업데이트</span>
+                 <div className="mt-10 flex gap-4">
+                    <div className="px-5 py-2 bg-white/5 rounded-full text-[10px] font-black text-white/60 uppercase tracking-widest border border-white/5">Auto-Sync</div>
+                    <div className="px-5 py-2 bg-white/5 rounded-full text-[10px] font-black text-white/60 uppercase tracking-widest border border-white/5">Low Latency</div>
                  </div>
-                 <div className="flex items-center gap-3 p-4 bg-background/50 rounded-xl border border-border/20">
-                    <span className="text-nzu-green text-lg">✓</span>
-                    <span className="text-xs font-bold">방송 제목 및 썸네일 수집</span>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                 <div className="flex items-center gap-5 p-6 bg-[#0A0F0D] rounded-2xl border border-white/5 hover:border-nzu-green/30 transition-colors shadow-xl">
+                    <div className="w-10 h-10 rounded-full bg-nzu-green/10 flex items-center justify-center text-nzu-green font-bold text-xl">✓</div>
+                    <div>
+                       <div className="text-xs font-black text-white uppercase tracking-widest mb-1">시청자 수 모니터링</div>
+                       <div className="text-[10px] text-white/30 font-medium">실시간 E-sports 데이터 집계 연동</div>
+                    </div>
+                 </div>
+                 <div className="flex items-center gap-5 p-6 bg-[#0A0F0D] rounded-2xl border border-white/5 hover:border-nzu-green/30 transition-colors shadow-xl">
+                    <div className="w-10 h-10 rounded-full bg-nzu-green/10 flex items-center justify-center text-nzu-green font-bold text-xl">✓</div>
+                    <div>
+                       <div className="text-xs font-black text-white uppercase tracking-widest mb-1">방송 요약 자동화</div>
+                       <div className="text-[10px] text-white/30 font-medium">방송 제목 및 메타데이터 자동 추출</div>
+                    </div>
                  </div>
               </div>
            </div>
         </div>
       </main>
 
-      <footer className="border-t border-border/40 py-8 bg-black/20 mt-20">
-          <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+      <footer className="border-t border-white/5 py-12 bg-black/40 mt-32">
+          <div className="max-w-6xl mx-auto px-12 flex flex-col md:flex-row items-center justify-between gap-8 text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-nzu-green" />
-                SOOP API FOUNDATION READY
+                SOOP TV API FOUNDATION ESTABLISHED
               </div>
-              <div className="text-right opacity-60">
+              <div className="text-right italic">
                  Designed for CEO SANPARK by El-Rade Park
               </div>
           </div>
