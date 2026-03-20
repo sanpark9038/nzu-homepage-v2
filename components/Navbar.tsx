@@ -48,10 +48,10 @@ export default function Navbar() {
             <div className="absolute -inset-1 bg-nzu-green/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           </div>
           <div className="flex flex-col">
-            <span className="font-black text-xl tracking-tighter text-white italic leading-none">
+            <span className="font-black text-xl tracking-tighter text-white leading-none">
               N.Z.U
             </span>
-            <span className="text-[10px] font-bold text-nzu-green/60 tracking-[0.3em] uppercase mt-1">
+            <span className="text-[11px] font-bold text-nzu-green/70 tracking-[0.25em] uppercase mt-1">
               늪지대 유니버시티
             </span>
           </div>

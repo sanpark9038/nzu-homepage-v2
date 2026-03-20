@@ -7,7 +7,7 @@ import { LiveBadge, RaceTag, TierBadge, WinRateBar, type Race } from "../ui/nzu-
 import { Database } from "@/lib/database.types";
 import { cn } from "@/lib/utils";
 
-type Player = Database['public']['Tables']['players']['Row'];
+export type Player = Database['public']['Tables']['players']['Row'];
 
 interface PlayerCardProps {
   player: Player
@@ -66,7 +66,7 @@ export function PlayerCard({ player, layout = 'default' }: PlayerCardProps) {
         )}>
           <div className="flex items-center justify-between">
             <span className={cn(
-              "font-black text-white italic transition-colors leading-tight",
+              "font-black text-white transition-colors leading-tight",
               isCompact ? "text-base group-hover:text-nzu-green" : "text-2xl group-hover:text-nzu-green"
             )}>{player.name}</span>
             <RaceTag race={player.race as Race} size={isCompact ? "xs" : "sm"} />
@@ -90,8 +90,8 @@ export function PlayerCard({ player, layout = 'default' }: PlayerCardProps) {
           {!isCompact && (
             <div className="space-y-2 mt-2">
               <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-white/20">
-                 <span>WIN RATE</span>
-                 <span className="text-white/60">{player.total_wins ?? 0}W {player.total_losses ?? 0}L</span>
+                 <span>승률</span>
+                 <span className="text-white/60">{player.total_wins ?? 0}승 {player.total_losses ?? 0}패</span>
               </div>
               <WinRateBar wins={player.total_wins ?? 0} losses={player.total_losses ?? 0} />
             </div>

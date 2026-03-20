@@ -53,17 +53,17 @@ export function PlayerRow({ player, rank }: { player: Player; rank?: number }) {
         {/* ELO */}
         <div className="flex justify-center">
             <span className="text-xs font-bold text-nzu-gold">
-                {player.elo_point || 0} <span className="text-[10px] opacity-40 italic">LP</span>
+                {player.elo_point || 0} <span className="text-[10px] opacity-40">점</span>
             </span>
         </div>
 
         {/* 전적 */}
-        <div className="text-[11px] font-mono text-muted-foreground text-right flex flex-col items-end">
+        <div className="text-[11px] font-black text-muted-foreground text-right flex flex-col items-end">
           <div className="flex gap-1">
-             <span className="text-nzu-green font-bold">{player.total_wins ?? 0}W</span>
-             <span className="text-destructive font-bold">{player.total_losses ?? 0}L</span>
+             <span className="text-nzu-green">{player.total_wins ?? 0}승</span>
+             <span className="text-destructive">{player.total_losses ?? 0}패</span>
           </div>
-          <span className="text-[9px] opacity-40">TOTAL { (player.total_wins ?? 0) + (player.total_losses ?? 0) }</span>
+          <span className="text-[9px] opacity-40">누적 { (player.total_wins ?? 0) + (player.total_losses ?? 0) }</span>
         </div>
       </div>
     </Link>

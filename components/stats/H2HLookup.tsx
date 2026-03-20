@@ -323,12 +323,12 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
            <div className="bg-[#050706] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border-t-nzu-green/20 border-t-2">
               <div className="grid grid-cols-[1fr_120px_1fr] bg-white/[0.02] border-b border-white/5 px-10 py-5 items-center text-left">
                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-nzu-green/40 uppercase tracking-[0.4em] mb-1">TEAM BLUE</span>
+                    <span className="text-[10px] font-black text-nzu-green/40 uppercase tracking-[0.4em] mb-1">블루 팀 (BLUE)</span>
                     <span className="text-lg font-black text-white/90 uppercase truncate tracking-tight">{u1 || "첫 번째 팀"}</span>
                  </div>
-                 <div className="text-center font-black text-white/10 text-[10px] uppercase tracking-[0.6em]">VERSUS</div>
+                 <div className="text-center font-black text-white/10 text-[10px] uppercase tracking-[0.6em]">상기 매치</div>
                  <div className="flex flex-col text-right">
-                    <span className="text-[10px] font-black text-nzu-green/40 uppercase tracking-[0.4em] mb-1">TEAM RED</span>
+                    <span className="text-[10px] font-black text-nzu-green/40 uppercase tracking-[0.4em] mb-1">레드 팀 (RED)</span>
                     <span className="text-lg font-black text-white/90 uppercase truncate tracking-tight text-right">{u2 || "두 번째 팀"}</span>
                  </div>
               </div>
@@ -339,7 +339,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                       <div className="w-20 h-20 rounded-full border-2 border-white/5 flex items-center justify-center animate-pulse">
                         <Swords className="w-8 h-8 opacity-20" />
                       </div>
-                      <p className="text-xs font-black uppercase tracking-[0.6em] text-white/20">NO AVAILABLE MATCHES IN TIERS</p>
+                      <p className="text-xs font-black uppercase tracking-[0.6em] text-white/20">매칭 가능한 선수가 없습니다</p>
                     </div>
                  ) : arenaTiers.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-white/5 gap-8 border-dashed border-2 border-white/5 m-4 rounded-[2rem]">
@@ -348,7 +348,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                         <div className="absolute inset-0 bg-nzu-green/5 blur-3xl rounded-full" />
                       </div>
                       <div className="flex flex-col items-center gap-2">
-                        <p className="text-sm font-black uppercase tracking-[0.8em] text-white/20 leading-none">AWAITING SELECTION</p>
+                        <p className="text-sm font-black uppercase tracking-[0.8em] text-white/20 leading-none">대학 선택 대기 중</p>
                         <p className="text-[10px] font-bold text-white/10 tracking-widest leading-none">대학을 선택하면 아레나가 활성화됩니다</p>
                       </div>
                     </div>
@@ -391,7 +391,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                                const isTerran = p.race?.startsWith('T');
                                const isZerg = p.race?.startsWith('Z');
                                const isProtoss = p.race?.startsWith('P');
-                               return (
+                                return (
                                 <button key={p.id} onClick={() => p2?.id === p.id ? setP2(null) : setP2(p)}
                                   className={cn(
                                     "flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all duration-300 text-sm font-black shadow-lg relative group/btn",
@@ -439,13 +439,6 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
               <ChevronLeft className={cn("w-5 h-5 transition-colors", isResizing ? "text-nzu-green" : "text-white/40 group-hover:text-nzu-green")} />
               <ChevronRight className={cn("w-5 h-5 transition-colors", isResizing ? "text-nzu-green" : "text-white/40 group-hover:text-nzu-green")} />
             </div>
-            
-            <div className={cn(
-              "absolute top-24 flex flex-col items-center transition-all duration-300",
-              isResizing ? "opacity-100 translate-y-2" : "opacity-0 group-hover:opacity-100"
-            )}>
-               <span className="text-[9px] font-black text-white uppercase tracking-[0.4em] whitespace-nowrap bg-nzu-green px-3 py-1.5 rounded-lg shadow-2xl">Board Resize</span>
-            </div>
           </div>
         </div>
 
@@ -460,12 +453,12 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                     <Trophy className="w-5 h-5 text-nzu-gold" />
                  </div>
                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-0.5">Arena Lineup</span>
-                    <h2 className="text-xl font-black text-white italic uppercase tracking-tighter">배틀 엔트리</h2>
+                    <span className="text-[9px] font-black text-white uppercase tracking-[0.4em] whitespace-nowrap bg-nzu-green px-3 py-1.5 rounded-lg shadow-2xl">보드 크기 조절</span>
+                    <h2 className="text-xl font-black text-white uppercase tracking-tighter">배틀 대진표</h2>
                  </div>
               </div>
               <div className="px-5 py-2 bg-nzu-green/10 border border-nzu-green/20 rounded-xl">
-                 <span className="text-sm font-black text-nzu-green tabular-nums">{matches.length} <span className="text-[10px] opacity-60">MATCHES</span></span>
+                  <span className="text-sm font-black text-nzu-green tabular-nums">{matches.length} <span className="text-[10px] opacity-60">경기</span></span>
               </div>
            </div>
 
@@ -567,17 +560,17 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                   <Activity className="w-8 h-8 text-nzu-green" />
                 </div>
                 <div>
-                  <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase mb-1">Detailed Analysis</h3>
+                  <h3 className="text-3xl font-black text-white tracking-tighter uppercase mb-1">상세 분석 리포트</h3>
                   <p className="text-white/40 font-bold tracking-widest text-xs uppercase flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-nzu-green animate-ping" />
-                    Neural Data Processing Complete
+                    데이터 분석 알고리즘 가동 중
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Match Probability</span>
-                <div className="text-5xl font-black text-white italic tracking-tighter tabular-nums">
-                  {Math.round((results.summary.wins / (results.summary.wins + results.summary.losses || 1)) * 100)}% <span className="text-nzu-green">WIN</span>
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">승률 예측</span>
+                <div className="text-5xl font-black text-white tracking-tighter tabular-nums">
+                  {Math.round((results.summary.wins / (results.summary.wins + results.summary.losses || 1)) * 100)}% <span className="text-nzu-green">승리</span>
                 </div>
               </div>
             </div>
@@ -586,7 +579,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
               {/* 좌측 선수 */}
               <div className="bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 text-center space-y-4">
                 <TierBadge tier={p1.tier} size="lg" />
-                <h4 className="text-4xl font-black text-white italic">{p1.name}</h4>
+                <h4 className="text-4xl font-black text-white">{p1.name}</h4>
                 <div className="flex justify-center gap-3">
                   <span className="px-4 py-1.5 bg-terran/10 text-terran rounded-lg text-xs font-black border border-terran/20">{p1.race}</span>
                   <span className="px-4 py-1.5 bg-white/5 text-white/40 rounded-lg text-xs font-black border border-white/10">{p1.university}</span>
@@ -598,12 +591,12 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                 <div className="flex items-center gap-8">
                   <div className="text-center">
                     <div className="text-7xl font-black text-white mb-2">{results.summary.wins}</div>
-                    <div className="text-[10px] font-black text-nzu-green uppercase tracking-widest">VICTORIES</div>
+                    <div className="text-[10px] font-black text-nzu-green uppercase tracking-widest">승리</div>
                   </div>
-                  <div className="text-4xl font-black text-white/10 italic">VS</div>
+                  <div className="text-4xl font-black text-white/10">VS</div>
                   <div className="text-center">
                     <div className="text-7xl font-black text-white/40 mb-2">{results.summary.losses}</div>
-                    <div className="text-[10px] font-black text-white/10 uppercase tracking-widest">DEFEATS</div>
+                    <div className="text-[10px] font-black text-white/10 uppercase tracking-widest">패배</div>
                   </div>
                 </div>
                 {/* Win Prob Bar */}
@@ -617,7 +610,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
               {/* 우측 선수 */}
               <div className="bg-white/[0.02] p-8 rounded-[2rem] border border-white/5 text-center space-y-4">
                 <TierBadge tier={p2.tier} size="lg" />
-                <h4 className="text-4xl font-black text-white/60 italic">{p2.name}</h4>
+                <h4 className="text-4xl font-black text-white/60">{p2.name}</h4>
                 <div className="flex justify-center gap-3">
                   <span className="px-4 py-1.5 bg-zerg/10 text-zerg rounded-lg text-xs font-black border border-zerg/20">{p2.race}</span>
                   <span className="px-4 py-1.5 bg-white/5 text-white/40 rounded-lg text-xs font-black border border-white/10">{p2.university}</span>
@@ -628,12 +621,12 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
             <div className="flex justify-center pt-8">
               <button 
                 onClick={() => addMatch(p1, p2)}
-                className="group relative px-12 py-5 bg-white text-black text-xl font-black italic uppercase tracking-tighter rounded-3xl overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_50px_rgba(46,213,115,0.3)]"
+                className="group relative px-12 py-5 bg-white text-black text-xl font-black uppercase tracking-tighter rounded-3xl overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_50px_rgba(46,213,115,0.3)]"
               >
                 <div className="absolute inset-0 bg-nzu-green translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500" />
                 <span className="relative z-10 flex items-center gap-3 group-hover:text-black">
                   <Zap className="w-6 h-6 fill-current" />
-                  Apply To Arena Lineup
+                  아레나 엔트리에 추가
                 </span>
               </button>
             </div>

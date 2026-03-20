@@ -24,55 +24,55 @@ export default async function HomePage() {
 
       <main className="flex-1 dashboard-grid lg:h-[calc(100vh-64px)] lg:overflow-hidden p-0 gap-0">
         
-        {/* === Left Sidebar: Recent Matches Feed (Responsive Order: Bottom on Mobile) === */}
+        {/* === 왼쪽 사이드바: 최근 전적 피드 === */}
         <aside className="bg-[#050605] border-b lg:border-r border-white/5 overflow-y-auto custom-scrollbar relative order-2 lg:order-1 h-[600px] lg:h-full">
           <div className="absolute top-0 left-0 w-1 h-full bg-nzu-green/20" />
           
-          <div className="sticky top-0 z-20 bg-[#050605]/90 backdrop-blur-md p-6 border-b border-white/5">
+          <div className="sticky top-0 z-20 bg-[#050605]/95 backdrop-blur-md p-6 border-b border-white/5">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] italic">Tactical Feed</h2>
+              <h2 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">최근 전적 분석</h2>
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-nzu-green animate-pulse" />
-                <span className="text-[9px] font-bold text-nzu-green uppercase tracking-widest">Live Sync</span>
+                <span className="text-[9px] font-bold text-nzu-green uppercase tracking-widest">실시간 동기화</span>
               </div>
             </div>
-            <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">최근 <span className="text-nzu-green">전적 피드</span></h3>
+            <h3 className="text-xl font-black text-white tracking-tighter">최근 <span className="text-nzu-green">전적 로그</span></h3>
           </div>
 
           <div className="p-4 space-y-3">
             {recentMatches.length === 0 ? (
-              <div className="py-20 text-center opacity-20 italic text-xs uppercase tracking-widest">No data archived</div>
+              <div className="py-20 text-center opacity-20 text-xs uppercase tracking-widest">기록된 데이터가 없습니다</div>
             ) : (
               recentMatches.map((match) => (
                 <div key={match.id} className="group relative bg-white/[0.02] border border-white/5 rounded-2xl p-4 hover:bg-white/[0.04] transition-all duration-300">
                   <div className="absolute top-0 left-0 w-1 h-full bg-white/5 group-hover:bg-nzu-green transition-colors" />
                   <div className="flex items-center justify-between mb-3 text-[9px] font-bold text-white/20 uppercase tracking-widest">
-                    <span>{match.map_name || 'ARENA'}</span>
+                    <span>{match.map_name || '경기장 정보 없음'}</span>
                     <span className="tabular-nums">{match.match_date ? new Date(match.match_date).toLocaleDateString() : '-'}</span>
                   </div>
                   
                   <div className="flex items-center justify-between gap-2">
-                     {/* Player 1 */}
+                     {/* 선수 1 */}
                      <div className="flex flex-col items-center flex-1">
                         <span className={cn(
                           "text-[12px] font-black uppercase tracking-tighter transition-colors text-center",
                           match.winner_id === match.player1_id ? "text-nzu-green drop-shadow-[0_0_8px_rgba(46,213,115,0.4)]" : "text-white/40"
                         )}>
-                          {(match as any).player1?.name || 'UNKNOWN'}
+                          {(match as any).player1?.name || '정보 없음'}
                         </span>
                      </div>
 
                      <div className="flex flex-col items-center px-1">
-                        <span className="text-[9px] font-black text-white/10 italic">VS</span>
+                        <span className="text-[9px] font-black text-white/10">VS</span>
                      </div>
 
-                     {/* Player 2 */}
+                     {/* 선수 2 */}
                      <div className="flex flex-col items-center flex-1">
                         <span className={cn(
                           "text-[12px] font-black uppercase tracking-tighter transition-colors text-center",
                           match.winner_id === match.player2_id ? "text-nzu-green drop-shadow-[0_0_8px_rgba(46,213,115,0.4)]" : "text-white/40"
                         )}>
-                          {(match as any).player2?.name || 'UNKNOWN'}
+                          {(match as any).player2?.name || '정보 없음'}
                         </span>
                      </div>
                   </div>
@@ -82,14 +82,13 @@ export default async function HomePage() {
           </div>
         </aside>
 
-        {/* === Right Content: Hero & Highlights === */}
+        {/* === 오른쪽 메인 콘텐츠 === */}
         <section className="overflow-y-auto lg:h-full custom-scrollbar order-1 lg:order-2 bg-[#050706]">
-          {/* Elite Hero Section */}
+          {/* 히어로 섹션 */}
           <div className="relative overflow-hidden pt-32 pb-40 lg:pt-48 lg:pb-64 border-b border-white/5 flex items-center px-8 md:px-20 min-h-[85vh]">
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute top-0 right-1/4 w-[1000px] h-[800px] bg-nzu-green/[0.08] rounded-full blur-[180px] opacity-70 animate-pulse-slow" />
               <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-nzu-gold/[0.04] rounded-full blur-[160px] opacity-40" />
-              <div className="absolute inset-0 opacity-[0.02] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay" />
               <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
             </div>
 
@@ -97,13 +96,13 @@ export default async function HomePage() {
               <div className="flex flex-col items-center lg:items-start text-center lg:text-left gap-10">
                 <div className="space-y-6">
                   <div className="flex items-center justify-center lg:justify-start gap-4">
-                    <span className="px-3 py-1 bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-[0.4em] rounded border border-white/5">Official Archive</span>
+                    <span className="px-3 py-1 bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-[0.4em] rounded border border-white/5">NZU 공식 아카이브</span>
                     <div className="h-px w-12 bg-nzu-green/30" />
                   </div>
-                  <h1 className="text-7xl md:text-[9rem] font-black tracking-[-0.05em] uppercase italic text-white leading-[0.85] drop-shadow-2xl">
+                  <h1 className="text-7xl md:text-[9rem] font-black tracking-[-0.05em] uppercase text-white leading-[0.85] drop-shadow-2xl">
                     N<span className="text-nzu-green">.</span>Z<span className="text-nzu-green">.</span>U
                   </h1>
-                  <h2 className="text-xl md:text-3xl font-black text-white/50 uppercase tracking-tighter italic">
+                  <h2 className="text-xl md:text-3xl font-black text-white/50 uppercase tracking-tighter">
                     스타크래프트 <span className="text-white">전술 데이터 센터</span>
                   </h2>
                 </div>
@@ -122,19 +121,19 @@ export default async function HomePage() {
           </div>
 
           <div className="px-8 md:px-20 py-24 max-w-[1400px] mx-auto space-y-32">
-            {/* Stats Summary */}
+            {/* 통계 요약 */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-               <StatCounter label="Active Players" value={allPlayers.length} suffix="+ " color="nzu-green" />
-               <StatCounter label="Total Matches" value={recentMatches.length + 1240} suffix="" color="white" />
-               <StatCounter label="Avg Win Rate" value={54.2} suffix="%" color="nzu-gold" />
-               <StatCounter label="Live Streaming" value={livePlayers.length} suffix=" ON" color="nzu-live" />
+               <StatCounter label="활동 선수" value={allPlayers.length} suffix="+ " color="nzu-green" />
+               <StatCounter label="총 경기 수" value={recentMatches.length + 1240} suffix="" color="white" />
+               <StatCounter label="평균 승률" value={54.2} suffix="%" color="nzu-gold" />
+               <StatCounter label="라이브 방송" value={livePlayers.length} suffix=" ON" color="nzu-live" />
             </div>
 
-            {/* Live Players Section */}
+            {/* 실시간 방송 섹션 */}
             {livePlayers.length > 0 && (
               <section>
                 <div className="flex items-center gap-4 mb-12">
-                   <h2 className="text-sm font-black text-white uppercase tracking-[0.4em] italic">Live Broadcast</h2>
+                   <h2 className="text-sm font-black text-white uppercase tracking-[0.4em]">실시간 방송</h2>
                    <div className="flex-1 h-px bg-white/5" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -145,10 +144,10 @@ export default async function HomePage() {
               </section>
             )}
 
-            {/* Top Rankers Section */}
+            {/* 상위 랭커 섹션 */}
             <section className="pb-32">
                 <div className="flex items-center gap-4 mb-12">
-                   <h2 className="text-sm font-black text-white uppercase tracking-[0.4em] italic">Elite Rankers</h2>
+                   <h2 className="text-sm font-black text-white uppercase tracking-[0.4em]">최우수 선수</h2>
                    <div className="flex-1 h-px bg-white/5" />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
