@@ -279,41 +279,42 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
            <div className="bg-[#0A100D] border border-white/5 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-r from-nzu-green/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
               <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+
                  <div className="flex-1 w-full flex items-center gap-3">
                     <div className="relative flex-1">
                       <select value={u1} onChange={(e) => setU1(e.target.value)}
-                        className="w-full bg-black border-2 border-nzu-green/20 rounded-2xl px-5 py-3 text-sm font-black text-white focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10 transition-all outline-none appearance-none cursor-pointer">
+                        className="w-full bg-black border-2 border-nzu-green/20 rounded-2xl px-6 py-4 text-base font-black text-white focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10 transition-all outline-none appearance-none cursor-pointer">
                         <option value="">좌측 대학 선택</option>
                         {sortedUniversities.map(u => <option key={u} value={u}>{u}</option>)}
                       </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-nzu-green/40">▼</div>
+                      <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-nzu-green/40">▼</div>
                     </div>
                  </div>
 
                  <div className="flex gap-3 shrink-0">
                     <button onClick={() => setHideEmptyTiers(!hideEmptyTiers)} 
-                      className={cn("px-5 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95", 
+                      className={cn("px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-lg active:scale-95", 
                         hideEmptyTiers ? "bg-nzu-green text-black hover:brightness-110" : "bg-white/5 border border-white/10 text-white/40 hover:bg-white/10")}>
                       필터 {hideEmptyTiers ? 'ON' : 'OFF'}
                     </button>
                     <button onClick={autoMatch} 
-                      className="px-6 py-3 bg-white text-black rounded-2xl text-[11px] font-black uppercase flex items-center gap-2 hover:bg-nzu-green hover:text-black transition-all shadow-xl active:scale-95">
-                      <Plus className="w-4 h-4" />자동매칭
+                      className="px-7 py-4 bg-white text-black rounded-2xl text-sm font-black uppercase flex items-center gap-2 hover:bg-nzu-green hover:text-black transition-all shadow-xl active:scale-95">
+                      <Plus className="w-5 h-5" />자동매칭
                     </button>
                     <button onClick={() => setMatches([])} 
-                      className="p-3 bg-white/5 border border-white/10 rounded-2xl text-white/20 hover:text-red-500 hover:bg-red-500/10 transition-all shadow-lg">
-                      <RotateCcw className="w-4 h-4" />
+                      className="p-4 bg-white/5 border border-white/10 rounded-2xl text-white/20 hover:text-red-500 hover:bg-red-500/10 transition-all shadow-lg">
+                      <RotateCcw className="w-5 h-5" />
                     </button>
                  </div>
 
                  <div className="flex-1 w-full flex items-center gap-3">
                     <div className="relative flex-1">
                       <select value={u2} onChange={(e) => setU2(e.target.value)}
-                        className="w-full bg-black border-2 border-nzu-green/20 rounded-2xl px-5 py-3 text-sm font-black text-white focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10 transition-all outline-none appearance-none text-right cursor-pointer">
+                        className="w-full bg-black border-2 border-nzu-green/20 rounded-2xl px-6 py-4 text-base font-black text-white focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10 transition-all outline-none appearance-none cursor-pointer">
                         <option value="">우측 대학 선택</option>
                         {sortedUniversities.map(u => <option key={u} value={u}>{u}</option>)}
                       </select>
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-nzu-green/40">▲</div>
+                      <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-nzu-green/40">▼</div>
                     </div>
                  </div>
               </div>
@@ -321,15 +322,16 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
 
            {/* 중앙 아레나 보드 */}
            <div className="bg-[#050706] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border-t-nzu-green/20 border-t-2">
-              <div className="grid grid-cols-[1fr_120px_1fr] bg-white/[0.02] border-b border-white/5 px-10 py-5 items-center text-left">
+              <div className="grid grid-cols-[1fr_120px_1fr] bg-white/[0.02] border-b border-white/5 px-10 py-7 items-center text-left">
                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-nzu-green/40 uppercase tracking-[0.4em] mb-1">블루 팀 (BLUE)</span>
-                    <span className="text-lg font-black text-white/90 uppercase truncate tracking-tight">{u1 || "첫 번째 팀"}</span>
+                    
+                    <span className="text-2xl font-black text-white/90 uppercase truncate tracking-tight">{u1 || "홈 팀"}</span>
                  </div>
-                 <div className="text-center font-black text-white/10 text-[10px] uppercase tracking-[0.6em]">상기 매치</div>
+
+                 <div className="text-center" />
                  <div className="flex flex-col text-right">
-                    <span className="text-[10px] font-black text-nzu-green/40 uppercase tracking-[0.4em] mb-1">레드 팀 (RED)</span>
-                    <span className="text-lg font-black text-white/90 uppercase truncate tracking-tight text-right">{u2 || "두 번째 팀"}</span>
+                    
+                    <span className="text-2xl font-black text-white/90 uppercase truncate tracking-tight text-right">{u2 || "원정 팀"}</span>
                  </div>
               </div>
 
@@ -365,14 +367,14 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                               return (
                                 <button key={p.id} onClick={() => p1?.id === p.id ? setP1(null) : setP1(p)}
                                   className={cn(
-                                    "flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all duration-300 text-sm font-black shadow-lg relative group/btn",
+                                    "flex items-center gap-4 px-5 py-3 rounded-xl border-2 transition-all duration-300 text-base font-black shadow-lg relative group/btn",
                                     p1?.id === p.id 
                                       ? "bg-nzu-green border-nzu-green text-black scale-105 z-10" 
                                       : "bg-[#0D1210] border-white/5 text-white/40 hover:text-white hover:border-white/20"
                                   )}>
                                   <span className="relative z-10">{p.name}</span>
                                   <span className={cn(
-                                    "text-[10px] font-black relative z-10",
+                                    "text-xs font-black relative z-10",
                                     isTerran ? "text-terran" : isZerg ? "text-zerg" : "text-protoss"
                                   )}>{p.race?.charAt(0)}</span>
                                 </button>
@@ -381,7 +383,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                          </div>
                          <div className="flex items-center justify-center bg-black/40 border-x border-white/[0.03] relative">
                             <div className="absolute w-px h-full bg-gradient-to-b from-transparent via-white/5 to-transparent" />
-                            <div className="px-4 py-2 rounded-xl text-[11px] font-black uppercase text-white border-2 shadow-2xl relative z-10 transition-transform group-hover/row:scale-110" 
+                            <div className="px-5 py-2.5 rounded-xl text-xs font-black uppercase text-white border-2 shadow-2xl relative z-10 transition-transform group-hover/row:scale-110" 
                                  style={{ backgroundColor: `${tCol}11`, borderColor: `${tCol}44`, color: tCol, boxShadow: `0 0 20px ${tCol}22` }}>
                               {tier}
                             </div>
@@ -394,14 +396,14 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                                 return (
                                 <button key={p.id} onClick={() => p2?.id === p.id ? setP2(null) : setP2(p)}
                                   className={cn(
-                                    "flex items-center gap-3 px-4 py-2.5 rounded-xl border-2 transition-all duration-300 text-sm font-black shadow-lg relative group/btn",
+                                    "flex items-center gap-4 px-5 py-3 rounded-xl border-2 transition-all duration-300 text-base font-black shadow-lg relative group/btn",
                                     p2?.id === p.id 
                                       ? "bg-nzu-green border-nzu-green text-black scale-105 z-10" 
                                       : "bg-[#0D1210] border-white/5 text-white/40 hover:text-white hover:border-white/20"
                                   )}>
                                   <span className="relative z-10">{p.name}</span>
                                   <span className={cn(
-                                    "text-[10px] font-black relative z-10",
+                                    "text-xs font-black relative z-10",
                                     isTerran ? "text-terran" : isZerg ? "text-zerg" : "text-protoss"
                                   )}>{p.race?.charAt(0)}</span>
                                 </button>
@@ -452,9 +454,10 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                  <div className="w-10 h-10 rounded-xl bg-nzu-gold/10 flex items-center justify-center border border-nzu-gold/20">
                     <Trophy className="w-5 h-5 text-nzu-gold" />
                  </div>
+
                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-white uppercase tracking-[0.4em] whitespace-nowrap bg-nzu-green px-3 py-1.5 rounded-lg shadow-2xl">보드 크기 조절</span>
-                    <h2 className="text-xl font-black text-white uppercase tracking-tighter">배틀 대진표</h2>
+                    
+                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter leading-tight">매치업</h2>
                  </div>
               </div>
               <div className="px-5 py-2 bg-nzu-green/10 border border-nzu-green/20 rounded-xl">
@@ -491,7 +494,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                                              snapshot.isDragging && "bg-[#1A221F] shadow-4xl z-50 rounded-2xl ring-2 ring-nzu-green/50 scale-105"
                                            )}>
                                             <div className="flex justify-center">
-                                               <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black border border-white/10 bg-black shadow-inner" 
+                                               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black border border-white/10 bg-black shadow-inner" 
                                                     style={{ color: tInfo.color, borderColor: `${tInfo.color}33` }}>
                                                   {match.p1.tier.includes('GOD') || match.p1.tier.includes('갓') ? 'G' : 
                                                    match.p1.tier.includes('KING') || match.p1.tier.includes('킹') ? 'K' : 
@@ -501,28 +504,28 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                                             
                                             <div className="flex items-center gap-3 px-2 truncate text-left">
                                                <span className={cn(
-                                                 "text-base font-black truncate block transition-colors", 
-                                                 idx === 0 ? "text-white" : "text-white/30"
+                                                  "text-lg font-black truncate block transition-colors", 
+                                                  idx === 0 ? "text-white" : "text-white/30"
                                                )}>{match.p1.name}</span>
                                             </div>
 
                                             <div className="flex justify-center items-center">
                                                {match.h2h ? (
-                                                  <div className="flex flex-col items-center gap-1">
-                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-black text-white">{match.h2h.summary.wins}</span>
+                                                  <div className="flex flex-col items-center gap-2">
+                                                     <div className="flex items-center gap-3">
+                                                        <span className="text-base font-black text-white">{match.h2h.summary.wins}</span>
                                                         <span className="text-[10px] font-black text-white/20">:</span>
-                                                        <span className="text-sm font-black text-white/40">{match.h2h.summary.losses}</span>
+                                                        <span className="text-base font-black text-white/40">{match.h2h.summary.losses}</span>
                                                      </div>
-                                                     <div className="h-1 w-10 bg-white/5 rounded-full overflow-hidden">
+                                                     <div className="h-1.5 w-12 bg-white/5 rounded-full overflow-hidden">
                                                         <div className="h-full bg-nzu-green" style={{ width: `${(match.h2h.summary.wins / (match.h2h.summary.wins + match.h2h.summary.losses || 1)) * 100}%` }} />
                                                      </div>
                                                   </div>
-                                               ) : <div className="h-5 w-16 bg-white/5 animate-pulse rounded-full" />}
+                                               ) : <div className="h-6 w-20 bg-white/5 animate-pulse rounded-full" />}
                                             </div>
 
                                             <div className="flex items-center justify-end gap-3 px-2 truncate">
-                                               <span className="text-base font-black text-white group-hover:text-nzu-green transition-colors truncate">{match.p2.name}</span>
+                                               <span className="text-lg font-black text-white group-hover:text-nzu-green transition-colors truncate">{match.p2.name}</span>
                                             </div>
                                             
                                             <button onClick={(e) => { e.stopPropagation(); removeMatch(match.id); }} 

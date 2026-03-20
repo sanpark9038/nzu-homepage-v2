@@ -24,9 +24,11 @@ export default async function EntryPage() {
     <div className="min-h-screen flex flex-col bg-[#020403]">
       <Navbar />
 
-      <main className="flex-1 max-w-[1800px] mx-auto w-full px-8 py-10 md:py-16 fade-in">
+
+
+      <main className="flex-1 max-w-[1800px] mx-auto w-full px-8 pt-4 md:pt-6 fade-in">
         {/* 전략 헤더 섹션 */}
-        <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8">
+        <header className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full bg-nzu-green shadow-[0_0_10px_#2ed573] animate-pulse" />
