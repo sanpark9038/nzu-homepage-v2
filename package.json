@@ -27,6 +27,10 @@
     "pipeline:status": "node scripts/tools/check-daily-status.js",
     "schedule:daily:win": "powershell -ExecutionPolicy Bypass -File scripts/schedule-daily-pipeline.ps1",
     "export:nzu:meta": "node scripts/tools/export-nzu-roster-metadata.js",
+    "report:team:table": "node scripts/tools/report-team-roster-table.js",
+    "report:team:table:all": "node scripts/tools/report-team-roster-table.js --all",
+    "onboard:team": "node scripts/tools/onboard-team.js",
+    "sync:team:roster": "node scripts/tools/sync-team-roster-metadata.js",
     "sync:id": "node scripts/enhance-players-with-id.js",
     "sync:matches": "node scripts/sync-bj-matches.js"
   },

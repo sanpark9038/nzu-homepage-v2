@@ -11,14 +11,10 @@ const EXPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "export-nzu-roster-det
 const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-nzu-2025-records.js");
 const CSV_SCRIPT = path.join(ROOT, "scripts", "tools", "export-player-matches-csv.js");
 const ORGANIZE_SCRIPT = path.join(ROOT, "scripts", "tools", "organize-generated-artifacts.js");
-
-const TEAM_CONFIG = [
-  { code: "nzu", univ: "늪지대", rosterPath: "data/metadata/projects/nzu/players.nzu.v1.json" },
-  { code: "wfu", univ: "와플대", rosterPath: "data/metadata/projects/wfu/players.wfu.v1.json" },
-  { code: "ssu", univ: "수술대", rosterPath: "data/metadata/projects/ssu/players.ssu.v1.json" },
-  { code: "jsa", univ: "JSA", rosterPath: "data/metadata/projects/jsa/players.jsa.v1.json" },
-  { code: "black", univ: "흑카데미", rosterPath: "data/metadata/projects/black/players.black.v1.json" },
-];
+const TEAM_TABLE_SCRIPT = path.join(ROOT, "scripts", "tools", "report-team-roster-table.js");
+const ROSTER_SYNC_SCRIPT = path.join(ROOT, "scripts", "tools", "sync-team-roster-metadata.js");
+const DISPLAY_ALIAS_SCRIPT = path.join(ROOT, "scripts", "tools", "apply-player-display-aliases.js");
+const TEAM_TABLE_OUT_DIR = path.join(TMP_DIR, "reports", "team-roster-table");
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -40,6 +36,31 @@ function ensureDir(p) {
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+}
+
+function loadTeamConfig() {
+  const projectsDir = path.join(ROOT, "data", "metadata", "projects");
+  if (!fs.existsSync(projectsDir)) return [];
+  const dirs = fs
+    .readdirSync(projectsDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+    .filter((code) => code !== "fa")
+    .sort((a, b) => String(a).localeCompare(String(b)));
+
+  const teams = [];
+  for (const code of dirs) {
+    const rosterPath = path.join("data", "metadata", "projects", code, `players.${code}.v1.json`);
+    const fullPath = path.join(ROOT, rosterPath);
+    if (!fs.existsSync(fullPath)) continue;
+    const json = readJson(fullPath);
+    teams.push({
+      code,
+      univ: String(json.fetch_univ_name || json.team_name || code),
+      rosterPath: rosterPath.replace(/\\/g, "/"),
+    });
+  }
+  return teams;
 }
 
 function writeJson(filePath, obj) {
@@ -73,6 +94,7 @@ function defaultAlertConfig() {
     rules: {
       pipeline_failure_severity: "critical",
       zero_record_players_severity: "high",
+      zero_record_players_allowlist: {},
       negative_delta_matches_severity: "critical",
       roster_size_changed_severity: "medium",
       no_new_matches_enabled: false,
@@ -139,6 +161,24 @@ function latestPreviousSnapshotPath(dateStr) {
   return path.join(REPORTS_DIR, files[files.length - 1]);
 }
 
+function isComparablePriorSnapshot(prior, from, to) {
+  if (!prior || typeof prior !== "object") return false;
+  return String(prior.period_from || "") === String(from) && String(prior.period_to || "") === String(to);
+}
+
+function withDeltaRows(rows, priorMap, canCompare) {
+  return rows.map((row) => {
+    const prev = canCompare ? priorMap.get(row.team_code) : null;
+    return {
+      ...row,
+      delta_total_matches: prev ? row.total_matches - Number(prev.total_matches || 0) : null,
+      delta_total_wins: prev ? row.total_wins - Number(prev.total_wins || 0) : null,
+      delta_total_losses: prev ? row.total_losses - Number(prev.total_losses || 0) : null,
+      delta_players: prev ? row.players - Number(prev.players || 0) : null,
+    };
+  });
+}
+
 function summarizeTeamFromReport(team, report) {
   const results = Array.isArray(report.results) ? report.results : [];
   let totalMatches = 0;
@@ -194,6 +234,76 @@ function getRowPeriodTotal(row) {
   const player = Array.isArray(doc.players) ? doc.players[0] : null;
   if (!player) return 0;
   return Number(player.period_total || 0);
+}
+
+function generateTeamTableReports(teams) {
+  const teamCodes = teams.map((t) => t.code).join(",");
+  try {
+    const raw = runNode(TEAM_TABLE_SCRIPT, ["--teams", teamCodes, "--out-dir", TEAM_TABLE_OUT_DIR]).trim();
+    let parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
+    }
+    return {
+      ok: true,
+      out_dir: path.relative(ROOT, TEAM_TABLE_OUT_DIR).replace(/\\/g, "/"),
+      summary: parsed,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      out_dir: path.relative(ROOT, TEAM_TABLE_OUT_DIR).replace(/\\/g, "/"),
+      error: error.message,
+    };
+  }
+}
+
+function runRosterSync(teams) {
+  const teamCodes = teams.map((t) => t.code).join(",");
+  try {
+    const raw = runNode(ROSTER_SYNC_SCRIPT, ["--teams", teamCodes]).trim();
+    let parsed = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = null;
+    }
+    return { ok: true, summary: parsed };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+}
+
+function applyDisplayAliasesForTeams(teams) {
+  const rows = [];
+  for (const team of teams) {
+    try {
+      const raw = runNode(DISPLAY_ALIAS_SCRIPT, ["--project", team.code]).trim();
+      let parsed = null;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        parsed = null;
+      }
+      rows.push({
+        team_code: team.code,
+        ok: true,
+        summary: parsed,
+      });
+    } catch (error) {
+      rows.push({
+        team_code: team.code,
+        ok: false,
+        error: error.message,
+      });
+    }
+  }
+  return {
+    ok: rows.every((r) => r.ok),
+    teams: rows,
+  };
 }
 
 function loadTeamRoster(team) {
@@ -288,6 +398,18 @@ function recoverTeamAnomalies(team, report, from, to, concurrency) {
 
 function buildAlerts(rowsWithDelta, cfg) {
   const rules = cfg.rules || {};
+  const allowlist =
+    rules && rules.zero_record_players_allowlist && typeof rules.zero_record_players_allowlist === "object"
+      ? rules.zero_record_players_allowlist
+      : {};
+
+  function splitZeroPlayers(raw) {
+    return String(raw || "")
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+  }
+
   const alerts = [];
   for (const row of rowsWithDelta) {
     if (row.fetch_fail > 0 || row.csv_fail > 0) {
@@ -299,13 +421,18 @@ function buildAlerts(rowsWithDelta, cfg) {
         message: `fetch_fail=${row.fetch_fail}, csv_fail=${row.csv_fail}`,
       });
     }
-    if (row.zero_record_players > 0) {
+    const zeroPlayers = splitZeroPlayers(row.zero_players);
+    const allowSet = new Set(
+      Array.isArray(allowlist[row.team_code]) ? allowlist[row.team_code].map((v) => String(v)) : []
+    );
+    const actionableZeroPlayers = zeroPlayers.filter((name) => !allowSet.has(name));
+    if (actionableZeroPlayers.length > 0) {
       alerts.push({
         severity: rules.zero_record_players_severity || "high",
         team: row.team,
         team_code: row.team_code,
         rule: "zero_record_players",
-        message: `zero_record_players=${row.zero_record_players} (${row.zero_players || "-"})`,
+        message: `zero_record_players=${actionableZeroPlayers.length} (${actionableZeroPlayers.join(", ") || "-"})`,
       });
     }
     if (typeof row.delta_total_matches === "number") {
@@ -347,6 +474,7 @@ function main() {
   const dateTag = argValue("--date-tag", today());
   const strict = !hasFlag("--no-strict");
   const organize = !hasFlag("--no-organize");
+  const rosterSync = !hasFlag("--no-roster-sync");
   const teamsArg = argValue("--teams", "");
   const teamSet = new Set(
     teamsArg
@@ -354,15 +482,27 @@ function main() {
       .map((v) => v.trim().toLowerCase())
       .filter(Boolean)
   );
-  const teams = teamSet.size ? TEAM_CONFIG.filter((t) => teamSet.has(t.code)) : TEAM_CONFIG;
+  const teamConfig = loadTeamConfig();
+  const teams = teamSet.size ? teamConfig.filter((t) => teamSet.has(t.code)) : teamConfig;
   if (!teams.length) {
-    throw new Error("No teams selected. Use --teams nzu,wfu,ssu,jsa,black");
+    const available = teamConfig.map((t) => t.code).join(",");
+    throw new Error(`No teams selected. Use --teams ${available || "<none>"}`);
   }
 
   ensureDir(TMP_DIR);
   ensureDir(REPORTS_DIR);
 
   const startedAt = new Date().toISOString();
+  const rosterSyncReport = rosterSync ? runRosterSync(teams) : { ok: false, skipped: true };
+  if (rosterSync && !rosterSyncReport.ok) {
+    console.error(`[WARN] roster sync failed: ${rosterSyncReport.error}`);
+  }
+  const aliasApplyReport = applyDisplayAliasesForTeams(teams);
+  if (!aliasApplyReport.ok) {
+    const failed = aliasApplyReport.teams.filter((t) => !t.ok).map((t) => t.team_code).join(",");
+    console.error(`[WARN] display alias apply failed for: ${failed}`);
+  }
+
   const perTeamReports = [];
   for (const team of teams) {
     const reportFile = path.join(TMP_DIR, `${team.code}_roster_batch_export_report.json`);
@@ -388,22 +528,15 @@ function main() {
   }
 
   const summaryRows = perTeamReports.map(({ team, report }) => summarizeTeamFromReport(team, report));
+  const teamTableReport = generateTeamTableReports(teams);
   const priorPath = latestPreviousSnapshotPath(dateTag);
   const prior = priorPath ? readJson(priorPath) : null;
+  const comparablePrior = isComparablePriorSnapshot(prior, from, to);
   const priorMap = new Map(
     Array.isArray(prior && prior.teams) ? prior.teams.map((r) => [String(r.team_code), r]) : []
   );
 
-  let rowsWithDelta = summaryRows.map((row) => {
-    const prev = priorMap.get(row.team_code);
-    return {
-      ...row,
-      delta_total_matches: prev ? row.total_matches - Number(prev.total_matches || 0) : null,
-      delta_total_wins: prev ? row.total_wins - Number(prev.total_wins || 0) : null,
-      delta_total_losses: prev ? row.total_losses - Number(prev.total_losses || 0) : null,
-      delta_players: prev ? row.players - Number(prev.players || 0) : null,
-    };
-  });
+  let rowsWithDelta = withDeltaRows(summaryRows, priorMap, comparablePrior);
 
   const recoveryActions = [];
   for (const item of perTeamReports) {
@@ -429,16 +562,7 @@ function main() {
     const refreshedSummaryRows = perTeamReports.map(({ team, report }) =>
       summarizeTeamFromReport(team, report)
     );
-    rowsWithDelta = refreshedSummaryRows.map((row) => {
-      const prev = priorMap.get(row.team_code);
-      return {
-        ...row,
-        delta_total_matches: prev ? row.total_matches - Number(prev.total_matches || 0) : null,
-        delta_total_wins: prev ? row.total_wins - Number(prev.total_wins || 0) : null,
-        delta_total_losses: prev ? row.total_losses - Number(prev.total_losses || 0) : null,
-        delta_players: prev ? row.players - Number(prev.players || 0) : null,
-      };
-    });
+    rowsWithDelta = withDeltaRows(refreshedSummaryRows, priorMap, comparablePrior);
   }
 
   const snapshot = {
@@ -447,6 +571,8 @@ function main() {
     period_from: from,
     period_to: to,
     strict,
+    roster_sync: rosterSyncReport,
+    display_alias_apply: aliasApplyReport,
     teams: rowsWithDelta.map((r) => ({
       team: r.team,
       team_code: r.team_code,
@@ -467,6 +593,14 @@ function main() {
       r.failures.map((f) => ({ team: r.team, team_code: r.team_code, ...f }))
     ),
     recovery_actions: recoveryActions,
+    team_table_report: teamTableReport,
+    delta_reference: {
+      comparable: comparablePrior,
+      prior_period_from: prior ? String(prior.period_from || "") : null,
+      prior_period_to: prior ? String(prior.period_to || "") : null,
+      current_period_from: from,
+      current_period_to: to,
+    },
     previous_snapshot: priorPath ? path.relative(ROOT, priorPath).replace(/\\/g, "/") : null,
   };
 
@@ -532,6 +666,11 @@ function main() {
   console.log(`[DONE] ${path.relative(ROOT, outCsv)}`);
   console.log(`[DONE] ${path.relative(ROOT, outAlertJson)}`);
   console.log(`[DONE] ${path.relative(ROOT, outAlertCsv)}`);
+  if (teamTableReport.ok) {
+    console.log(`[DONE] ${teamTableReport.out_dir}`);
+  } else {
+    console.error(`[WARN] team table report failed: ${teamTableReport.error}`);
+  }
 
   if (strict) {
     const blocking = new Set(

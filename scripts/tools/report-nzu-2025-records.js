@@ -615,8 +615,14 @@ async function main() {
       },
     ];
   } else {
-    const rosterHtml = decodeHtml(await fetchBinary(ROSTER_URL));
-    roster = parseRoster(rosterHtml);
+    roster = await withRetry(async () => {
+      const rosterHtml = decodeHtml(await fetchBinary(ROSTER_URL));
+      const parsed = parseRoster(rosterHtml);
+      if (!PLAYER_NAME && parsed.length === 0) {
+        throw new Error(`Empty roster parsed: ${TEAM_NAME}`);
+      }
+      return parsed;
+    }, `ROSTER ${TEAM_NAME}`);
     if (PLAYER_NAME) {
       roster = roster.filter((p) => p.name === PLAYER_NAME);
     }

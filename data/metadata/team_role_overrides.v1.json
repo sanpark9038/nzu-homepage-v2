@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-03-20T15:04:26.911Z",
+  "description": "Team-specific role priority overrides for roster ordering.",
+  "teams": {
+    "wfu": [
+      {
+        "name": "와이퍼",
+        "role_title": "이사장",
+        "role_priority": 1
+      },
+      {
+        "name": "박성준",
+        "role_title": "총장",
+        "role_priority": 2
+      }
+    ],
+    "ssu": [
+      {
+        "name": "정중만",
+        "role_title": "이사장",
+        "role_priority": 1
+      }
+    ],
+    "jsa": [
+      {
+        "name": "시조새",
+        "role_title": "이사장",
+        "role_priority": 1
+      }
+    ],
+    "black": [
+      {
+        "name": "이성은",
+        "role_title": "이사장",
+        "role_priority": 1
+      }
+    ],
+    "c9": [
+      {
+        "name": "이예준",
+        "role_title": "이사장",
+        "role_priority": 1
+      },
+      {
+        "name": "박재혁",
+        "role_title": "총장",
+        "role_priority": 2
+      }
+    ],
+    "ku": [
+      {
+        "name": "케이",
+        "role_title": "이사장",
+        "role_priority": 1
+      },
+      {
+        "name": "김학수",
+        "role_title": "총장",
+        "role_priority": 2
+      }
+    ],
+    "mbu": [
+      {
+        "name": "마예준",
+        "role_title": "이사장",
+        "role_priority": 1
+      },
+      {
+        "name": "병하",
+        "role_title": "이사장",
+        "role_priority": 2
+      }
+    ],
+    "hm": [
+      {
+        "name": "강민",
+        "role_title": "총장",
+        "role_priority": 1
+      }
+    ],
+    "yb": [
+      {
+        "name": "염보성",
+        "role_title": "이사장",
+        "role_priority": 1
+      }
+    ],
+    "ncs": [
+      {
+        "name": "박현재",
+        "role_title": "이사장",
+        "role_priority": 1
+      },
+      {
+        "name": "박성균",
+        "role_title": "부총장",
+        "role_priority": 2
+      }
+    ],
+    "tsucalm": [
+      {
+        "name": "김윤환",
+        "role_title": "이사장",
+        "role_priority": 1
+      },
+      {
+        "name": "이경민",
+        "role_title": "이사장",
+        "role_priority": 2
+      }
+    ]
+  }
+}
