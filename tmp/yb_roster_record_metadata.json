@@ -8,10 +8,14 @@
   },
   "period": {
     "from": "2025-01-01",
-    "to": "2026-03-19"
+    "to": "2026-03-20"
   },
-  "generated_at": "2026-03-19T11:55:41.374Z",
+  "generated_at": "2026-03-20T14:37:41.876Z",
   "validation_failed_count": 0,
+  "zero_row_recovery": {
+    "recoveredCount": 0,
+    "checkedCount": 0
+  },
   "total_players": 17,
   "players": [
     {
@@ -23,19 +27,19 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=45",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "염보성"
       },
       "record": {
-        "total": 0,
-        "wins": 0,
-        "losses": 0,
-        "win_rate_percent": 0,
-        "min_match_date": null,
-        "max_match_date": null
+        "total": 16,
+        "wins": 4,
+        "losses": 12,
+        "win_rate_percent": 25,
+        "min_match_date": "2025-01-01",
+        "max_match_date": "2025-09-05"
       },
       "validation": {
         "pass": true,
@@ -51,7 +55,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:염보성",
         "wr_id:45"
@@ -66,8 +70,8 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=28",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "유승곤"
@@ -94,7 +98,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:유승곤",
         "wr_id:28"
@@ -109,19 +113,19 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=21",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "김태영"
       },
       "record": {
-        "total": 444,
-        "wins": 245,
+        "total": 445,
+        "wins": 246,
         "losses": 199,
-        "win_rate_percent": 55.18,
+        "win_rate_percent": 55.28,
         "min_match_date": "2025-01-09",
-        "max_match_date": "2026-03-15"
+        "max_match_date": "2026-03-19"
       },
       "validation": {
         "pass": true,
@@ -137,7 +141,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:김태영",
         "wr_id:21"
@@ -152,19 +156,19 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=48",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "김승현"
       },
       "record": {
-        "total": 0,
-        "wins": 0,
-        "losses": 0,
-        "win_rate_percent": 0,
-        "min_match_date": null,
-        "max_match_date": null
+        "total": 13,
+        "wins": 4,
+        "losses": 9,
+        "win_rate_percent": 30.77,
+        "min_match_date": "2025-09-20",
+        "max_match_date": "2025-12-22"
       },
       "validation": {
         "pass": true,
@@ -180,7 +184,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:김승현",
         "wr_id:48"
@@ -195,18 +199,18 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=76",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "전제민"
       },
       "record": {
-        "total": 14,
-        "wins": 5,
-        "losses": 9,
-        "win_rate_percent": 35.71,
-        "min_match_date": "2025-12-08",
+        "total": 42,
+        "wins": 14,
+        "losses": 28,
+        "win_rate_percent": 33.33,
+        "min_match_date": "2025-01-04",
         "max_match_date": "2026-02-15"
       },
       "validation": {
@@ -223,7 +227,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:전제민",
         "wr_id:76"
@@ -238,18 +242,18 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=199",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "박단원"
       },
       "record": {
-        "total": 25,
-        "wins": 12,
-        "losses": 13,
-        "win_rate_percent": 48,
-        "min_match_date": "2025-06-28",
+        "total": 30,
+        "wins": 14,
+        "losses": 16,
+        "win_rate_percent": 46.67,
+        "min_match_date": "2025-01-04",
         "max_match_date": "2026-02-15"
       },
       "validation": {
@@ -266,7 +270,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:박단원",
         "wr_id:199"
@@ -281,10 +285,10 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=159",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
-        "mode": "female_or_default",
-        "endpoint": "view_list.php",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
+        "mode": "special_mix",
+        "endpoint": "mix_view_list.php",
         "p_name": "저라뎃"
       },
       "record": {
@@ -309,7 +313,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:저라뎃",
         "wr_id:159"
@@ -324,8 +328,8 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=631",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "우리밍"
@@ -352,7 +356,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:우리밍",
         "wr_id:631"
@@ -367,8 +371,8 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=653",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "태영"
@@ -395,7 +399,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:태영",
         "wr_id:653"
@@ -410,8 +414,8 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=730",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "임밍지"
@@ -438,7 +442,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:임밍지",
         "wr_id:730"
@@ -453,8 +457,8 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=820",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "으냉이"
@@ -481,7 +485,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:으냉이",
         "wr_id:820"
@@ -496,8 +500,8 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=742",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "하랑"
@@ -524,7 +528,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:하랑",
         "wr_id:742"
@@ -539,8 +543,8 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=646",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "빵지니"
@@ -567,7 +571,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:빵지니",
         "wr_id:646"
@@ -582,8 +586,8 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=891",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "한쪼니"
@@ -610,7 +614,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:한쪼니",
         "wr_id:891"
@@ -625,8 +629,8 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=898",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "하루묭"
@@ -653,7 +657,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:하루묭",
         "wr_id:898"
@@ -668,8 +672,8 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=889",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "히요코"
@@ -696,7 +700,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:히요코",
         "wr_id:889"
@@ -711,8 +715,8 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=997",
       "collection": {
         "period_from": "2025-01-01",
-        "period_to": "2026-03-19",
-        "fetched_at": "2026-03-19T11:55:41.374Z",
+        "period_to": "2026-03-20",
+        "fetched_at": "2026-03-20T14:37:41.876Z",
         "mode": "female_or_default",
         "endpoint": "view_list.php",
         "p_name": "윤하랑"
@@ -739,7 +743,7 @@
         "record",
         "women-league",
         "eloboard",
-        "season:2025-01-01_to_2026-03-19",
+        "season:2025-01-01_to_2026-03-20",
         "team:YB",
         "player:윤하랑",
         "wr_id:997"
