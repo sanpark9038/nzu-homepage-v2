@@ -24,6 +24,7 @@
     "order:roster": "node scripts/tools/apply-team-roster-order.js",
     "organize:artifacts": "node scripts/tools/organize-generated-artifacts.js",
     "pipeline:daily": "node scripts/tools/run-daily-pipeline.js",
+    "pipeline:status": "node scripts/tools/check-daily-status.js",
     "schedule:daily:win": "powershell -ExecutionPolicy Bypass -File scripts/schedule-daily-pipeline.ps1",
     "export:nzu:meta": "node scripts/tools/export-nzu-roster-metadata.js",
     "sync:id": "node scripts/enhance-players-with-id.js",

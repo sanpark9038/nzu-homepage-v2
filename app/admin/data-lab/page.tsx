@@ -182,7 +182,7 @@ function summarize(rows: MatchRow[]) {
   return { total, wins, losses, winRate };
 }
 
-function topBy<T>(rows: MatchRow[], key: (r: MatchRow) => string, limit: number): Array<{ key: string; count: number }> {
+function topBy(rows: MatchRow[], key: (r: MatchRow) => string, limit: number): Array<{ key: string; count: number }> {
   const map = new Map<string, number>();
   for (const row of rows) {
     const k = key(row) || "Unknown";
@@ -233,6 +233,9 @@ export default async function DataLabPage({
           </div>
           <Link href="/" className="text-sm underline text-nzu-green">
             홈으로
+          </Link>
+          <Link href="/admin/ops" className="text-sm underline text-nzu-green">
+            Ops 보기
           </Link>
         </div>
 

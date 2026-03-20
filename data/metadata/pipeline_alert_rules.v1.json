@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-03-20T00:00:00.000Z",
+  "blocking_severities": ["critical", "high"],
+  "rules": {
+    "pipeline_failure_severity": "critical",
+    "zero_record_players_severity": "high",
+    "negative_delta_matches_severity": "critical",
+    "roster_size_changed_severity": "medium",
+    "no_new_matches_enabled": false,
+    "no_new_matches_severity": "low"
+  }
+}
+
