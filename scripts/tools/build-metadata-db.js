@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { defaultProfileUrlForPlayer } = require("./lib/eloboard-special-cases");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const SOURCE_PATH = path.join(ROOT, "scripts", "player_metadata.json");
@@ -70,14 +71,11 @@ function compositeKey(wrId, gender) {
 }
 
 function profileUrl(gender, wrId, name = "") {
-  if (String(gender) === "female" && Number(wrId) === 671 && String(name) === "쌍디") {
-    return "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=671";
-  }
-  if (String(gender) === "female" && Number(wrId) === 913 && String(name) === "빡재TV") {
-    return "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=913";
-  }
-  const board = gender === "male" ? "men" : "women";
-  return `https://eloboard.com/${board}/bbs/board.php?bo_table=bj_list&wr_id=${wrId}`;
+  return defaultProfileUrlForPlayer({
+    gender,
+    wr_id: wrId,
+    name,
+  });
 }
 
 function main() {

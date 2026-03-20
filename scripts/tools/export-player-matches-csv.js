@@ -63,15 +63,46 @@ function safeFallbackCsvPath(filePath) {
   return `${base}_retry_${stamp}${ext}`;
 }
 
+function pruneOldRetryFiles(primaryPath, keepCount = 1) {
+  const ext = path.extname(primaryPath) || ".csv";
+  const base = primaryPath.slice(0, -ext.length);
+  const dir = path.dirname(primaryPath);
+  const fileBase = path.basename(base);
+  const rx = new RegExp(`^${fileBase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_retry_.*\\${ext.replace(".", "\\.")}$`);
+  let files = [];
+  try {
+    files = fs
+      .readdirSync(dir)
+      .filter((name) => rx.test(name))
+      .map((name) => {
+        const p = path.join(dir, name);
+        const st = fs.statSync(p);
+        return { path: p, mtime: st.mtimeMs };
+      })
+      .sort((a, b) => b.mtime - a.mtime);
+  } catch {
+    return;
+  }
+  for (let i = keepCount; i < files.length; i += 1) {
+    try {
+      fs.unlinkSync(files[i].path);
+    } catch {
+      // Keep silent if file is locked; next run can clean it.
+    }
+  }
+}
+
 function writeCsvWithFallback(filePath, content) {
   try {
     writeFileWithRetry(filePath, content, "utf8");
+    pruneOldRetryFiles(filePath, 0);
     return filePath;
   } catch (err) {
     const code = String(err && err.code ? err.code : "");
     if (code !== "EBUSY" && code !== "EPERM" && code !== "EACCES") throw err;
     const altPath = safeFallbackCsvPath(filePath);
     writeFileWithRetry(altPath, content, "utf8");
+    pruneOldRetryFiles(filePath, 1);
     return altPath;
   }
 }

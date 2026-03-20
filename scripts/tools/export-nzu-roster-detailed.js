@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
+const { defaultProfileUrlForPlayer } = require("./lib/eloboard-special-cases");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const DEFAULT_ROSTER_PATH = path.join(
@@ -14,10 +15,6 @@ const DEFAULT_ROSTER_PATH = path.join(
 const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-nzu-2025-records.js");
 const CSV_SCRIPT = path.join(ROOT, "scripts", "tools", "export-player-matches-csv.js");
 const TMP_DIR = path.join(ROOT, "tmp");
-const SPECIAL_PROFILE_URL_BY_NAME = {
-  쌍디: "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=671",
-  빡재TV: "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=913",
-};
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -47,10 +44,7 @@ function safeFileName(name) {
 }
 
 function defaultProfileUrl(player) {
-  const byName = SPECIAL_PROFILE_URL_BY_NAME[String(player?.name || "")];
-  if (byName) return byName;
-  const board = player?.gender === "male" ? "men" : "women";
-  return `https://eloboard.com/${board}/bbs/board.php?bo_table=bj_list&wr_id=${player.wr_id}`;
+  return defaultProfileUrlForPlayer(player);
 }
 
 function firstPeriodTotal(parsed) {

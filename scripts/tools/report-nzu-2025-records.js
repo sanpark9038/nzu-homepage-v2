@@ -4,6 +4,11 @@ const iconv = require("iconv-lite");
 const qs = require("querystring");
 const fs = require("fs");
 const path = require("path");
+const {
+  resolveSpecialProfileUrlByName,
+  toMixBoardProfileUrl,
+  shouldUseMixEndpoint,
+} = require("./lib/eloboard-special-cases");
 
 const START_DATE = "2025-01-01";
 const END_DATE = new Date().toISOString().slice(0, 10);
@@ -39,15 +44,6 @@ const RETRY_BASE_MS = 500;
 const K_WIN = "\uC2B9";
 const K_LOSS = "\uD328";
 const K_FEMALE_SECTION = "\uC5EC\uC131\uBC00\uB9AC\uC804\uC801";
-const K_SSANGDI = "\uC30D\uB514";
-const K_PPAKJAE_TV = "\uBE61\uC7ACTV";
-
-const SPECIAL_PROFILE_URL = {
-  [K_SSANGDI]:
-    "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=671",
-  [K_PPAKJAE_TV]:
-    "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=913",
-};
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -201,7 +197,7 @@ function parseRoster(html) {
     const wrMatch = profileUrl.match(/wr_id=(\d+)/);
     const wrId = wrMatch ? Number(wrMatch[1]) : null;
 
-    const finalProfileUrl = SPECIAL_PROFILE_URL[name] || profileUrl;
+    const finalProfileUrl = resolveSpecialProfileUrlByName(name, profileUrl);
     rows.push({
       name,
       tier,
@@ -246,9 +242,7 @@ function parseDisplayStats(html) {
 }
 
 function selectMode(player) {
-  const usesMixEndpoint =
-    player.name === K_SSANGDI ||
-    /bo_table=bj_m_list/i.test(String(player.profile_url || ""));
+  const usesMixEndpoint = shouldUseMixEndpoint(player);
   if (usesMixEndpoint) {
     return {
       mode: "special_mix",
@@ -269,14 +263,6 @@ function isMissingPostErrorPage(html) {
     text.includes("\uC624\uB958\uC548\uB0B4 \uD398\uC774\uC9C0") &&
     text.includes("\uAE00\uC774 \uC874\uC7AC\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4")
   );
-}
-
-function toMixBoardProfileUrl(url) {
-  const text = String(url || "");
-  if (!text) return null;
-  if (/bo_table=bj_m_list/i.test(text)) return text;
-  if (/bo_table=bj_list/i.test(text)) return text.replace(/bo_table=bj_list/i, "bo_table=bj_m_list");
-  return null;
 }
 
 function parsePNameFromProfile(profileHtml, endpoint, fallbackName) {
