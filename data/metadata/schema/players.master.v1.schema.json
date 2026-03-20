@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nzu.local/schemas/players.master.v1.schema.json",
+  "title": "Players Master Metadata v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "description",
+    "primary_key",
+    "unique_keys",
+    "players"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "primary_key": {
+      "type": "string",
+      "const": "entity_id"
+    },
+    "unique_keys": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "players": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/player"
+      }
+    }
+  },
+  "$defs": {
+    "player": {
+      "type": "object",
+      "required": [
+        "entity_id",
+        "provider",
+        "provider_player_id",
+        "wr_id",
+        "gender",
+        "names",
+        "profiles",
+        "source",
+        "updated_at"
+      ],
+      "properties": {
+        "entity_id": {
+          "type": "string",
+          "pattern": "^eloboard:(male|female):[0-9]+$"
+        },
+        "provider": {
+          "type": "string",
+          "const": "eloboard"
+        },
+        "provider_player_id": {
+          "type": "string",
+          "pattern": "^[0-9]+$"
+        },
+        "wr_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gender": {
+          "type": "string",
+          "enum": ["male", "female"]
+        },
+        "names": {
+          "type": "object",
+          "required": ["display", "aliases"],
+          "properties": {
+            "display": {
+              "type": "string",
+              "minLength": 1
+            },
+            "aliases": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "profiles": {
+          "type": "object",
+          "required": ["eloboard"],
+          "properties": {
+            "eloboard": {
+              "type": "string",
+              "pattern": "^https://eloboard\\.com/(men|women)/bbs/board\\.php\\?bo_table=bj_list&wr_id=[0-9]+$"
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "required": ["kind", "origin_file"],
+          "properties": {
+            "kind": { "type": "string", "minLength": 1 },
+            "origin_file": { "type": "string", "minLength": 1 }
+          }
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "meta_tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9:_-]+$"
+          }
+        }
+      }
+    }
+  }
+}

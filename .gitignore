@@ -47,6 +47,7 @@ build_error.txt
 *.html
 !public/*.html
 
+
 # temp
 .tmp/
 /tmp/*
@@ -54,3 +55,12 @@ build_error.txt
 !/tmp/player_metadata_integrity_report.json
 !/tmp/player_metadata_canonical_preview.json
 !/tmp/player_metadata.cleaned.json
+
+# pipeline data & warehouse
+/data/metadata/players.master.v1.json
+/data/warehouse/
+*.bak.*
+
+# AI coordination (exclude UI-specific logic instruction files)
+MAIN_AI_UI_BRIEFING.md
+MAIN_AI_UI_ONLY_INSTRUCTION.md
