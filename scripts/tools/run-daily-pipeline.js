@@ -61,6 +61,24 @@ function writeCsv(filePath, rows) {
   fs.writeFileSync(filePath, lines.join("\n"), "utf8");
 }
 
+function severityRank(level) {
+  if (level === "critical") return 4;
+  if (level === "high") return 3;
+  if (level === "medium") return 2;
+  if (level === "low") return 1;
+  return 0;
+}
+
+function sortedAlerts(alerts) {
+  return alerts.slice().sort((a, b) => {
+    const ar = severityRank(a.severity);
+    const br = severityRank(b.severity);
+    if (ar !== br) return br - ar;
+    if (a.team_code !== b.team_code) return String(a.team_code).localeCompare(String(b.team_code));
+    return String(a.rule).localeCompare(String(b.rule));
+  });
+}
+
 function runNode(scriptPath, args) {
   return execFileSync("node", [scriptPath, ...args], {
     cwd: ROOT,
@@ -126,6 +144,59 @@ function summarizeTeamFromReport(team, report) {
     zero_players: zeroPlayers.join(", "),
     failures,
   };
+}
+
+function buildAlerts(rowsWithDelta) {
+  const alerts = [];
+  for (const row of rowsWithDelta) {
+    if (row.fetch_fail > 0 || row.csv_fail > 0) {
+      alerts.push({
+        severity: "critical",
+        team: row.team,
+        team_code: row.team_code,
+        rule: "pipeline_failure",
+        message: `fetch_fail=${row.fetch_fail}, csv_fail=${row.csv_fail}`,
+      });
+    }
+    if (row.zero_record_players > 0) {
+      alerts.push({
+        severity: "high",
+        team: row.team,
+        team_code: row.team_code,
+        rule: "zero_record_players",
+        message: `zero_record_players=${row.zero_record_players} (${row.zero_players || "-"})`,
+      });
+    }
+    if (typeof row.delta_total_matches === "number") {
+      if (row.delta_total_matches < 0) {
+        alerts.push({
+          severity: "critical",
+          team: row.team,
+          team_code: row.team_code,
+          rule: "total_matches_decreased",
+          message: `delta_total_matches=${row.delta_total_matches}`,
+        });
+      } else if (row.delta_total_matches === 0) {
+        alerts.push({
+          severity: "low",
+          team: row.team,
+          team_code: row.team_code,
+          rule: "no_new_matches",
+          message: "delta_total_matches=0",
+        });
+      }
+    }
+    if (typeof row.delta_players === "number" && row.delta_players !== 0) {
+      alerts.push({
+        severity: "medium",
+        team: row.team,
+        team_code: row.team_code,
+        rule: "roster_size_changed",
+        message: `delta_players=${row.delta_players}`,
+      });
+    }
+  }
+  return sortedAlerts(alerts);
 }
 
 function main() {
@@ -221,8 +292,25 @@ function main() {
     previous_snapshot: priorPath ? path.relative(ROOT, priorPath).replace(/\\/g, "/") : null,
   };
 
+  const alerts = buildAlerts(rowsWithDelta);
+  const alertSummary = {
+    generated_at: new Date().toISOString(),
+    date_tag: dateTag,
+    strict,
+    counts: {
+      critical: alerts.filter((a) => a.severity === "critical").length,
+      high: alerts.filter((a) => a.severity === "high").length,
+      medium: alerts.filter((a) => a.severity === "medium").length,
+      low: alerts.filter((a) => a.severity === "low").length,
+      total: alerts.length,
+    },
+    alerts,
+  };
+
   const outJson = path.join(REPORTS_DIR, `daily_pipeline_snapshot_${dateTag}.json`);
   const outCsv = path.join(REPORTS_DIR, `daily_pipeline_snapshot_${dateTag}.csv`);
+  const outAlertJson = path.join(REPORTS_DIR, `daily_pipeline_alerts_${dateTag}.json`);
+  const outAlertCsv = path.join(REPORTS_DIR, `daily_pipeline_alerts_${dateTag}.csv`);
   writeJson(outJson, snapshot);
   writeCsv(
     outCsv,
@@ -243,6 +331,17 @@ function main() {
       delta_players: r.delta_players ?? "",
     }))
   );
+  writeJson(outAlertJson, alertSummary);
+  writeCsv(
+    outAlertCsv,
+    alerts.map((a) => ({
+      severity: a.severity,
+      team: a.team,
+      team_code: a.team_code,
+      rule: a.rule,
+      message: a.message,
+    }))
+  );
 
   if (organize) {
     runNode(ORGANIZE_SCRIPT, []);
@@ -250,15 +349,16 @@ function main() {
 
   console.log(`[DONE] ${path.relative(ROOT, outJson)}`);
   console.log(`[DONE] ${path.relative(ROOT, outCsv)}`);
+  console.log(`[DONE] ${path.relative(ROOT, outAlertJson)}`);
+  console.log(`[DONE] ${path.relative(ROOT, outAlertCsv)}`);
 
   if (strict) {
-    const hasFailure = snapshot.teams.some((t) => t.fetch_fail > 0 || t.csv_fail > 0 || t.zero_record_players > 0);
-    if (hasFailure) {
+    const hasBlockingAlert = alerts.some((a) => a.severity === "critical" || a.severity === "high");
+    if (hasBlockingAlert) {
       process.exitCode = 1;
-      console.error("[STRICT] Daily pipeline validation failed.");
+      console.error("[STRICT] Daily pipeline alerts include high/critical severity.");
     }
   }
 }
 
 main();
-
