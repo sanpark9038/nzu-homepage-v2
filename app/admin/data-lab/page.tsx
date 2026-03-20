@@ -19,6 +19,28 @@ type TeamMeta = {
   roster: RosterRow[];
 };
 
+type TeamTableReportRow = {
+  name: string;
+  tier: string;
+  race: string;
+  total: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+};
+
+type TeamTableReport = {
+  generated_at?: string;
+  team_code?: string;
+  team_name?: string;
+  source?: {
+    roster_path?: string;
+    record_path?: string;
+    record_generated_at?: string;
+  };
+  rows?: TeamTableReportRow[];
+};
+
 type MatchRow = {
   date: string;
   opponent: string;
@@ -174,6 +196,13 @@ function readLatestMatches(teamCode: string, teamName: string, playerName: strin
   return csv ? readCsvRows(csv) : [];
 }
 
+function readTeamTableReport(teamCode: string): TeamTableReport | null {
+  const p = path.join(process.cwd(), "tmp", "reports", "team-roster-table", `${teamCode}.table.json`);
+  if (!fs.existsSync(p)) return null;
+  const raw = fs.readFileSync(p, "utf8").replace(/^\uFEFF/, "");
+  return JSON.parse(raw) as TeamTableReport;
+}
+
 function summarize(rows: MatchRow[]) {
   const total = rows.length;
   const wins = rows.filter((r) => r.result === "승").length;
@@ -204,6 +233,7 @@ export default async function DataLabPage({
   const selectedTeam = teams.find((t) => t.code === params.team) || teams[0];
   const selectedPlayer =
     selectedTeam?.roster.find((r) => r.entity_id === params.player) || selectedTeam?.roster[0];
+  const selectedTeamReport = selectedTeam ? readTeamTableReport(selectedTeam.code) : null;
 
   const teamRows =
     selectedTeam?.roster.map((p) => {
@@ -268,6 +298,57 @@ export default async function DataLabPage({
             조회
           </button>
         </form>
+
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold">Batch Team Table Snapshot</h2>
+          <p className="text-xs text-muted-foreground">
+            source: <code>npm run report:team:table:all</code>
+          </p>
+          {selectedTeamReport ? (
+            <div className="border border-border rounded-lg p-4 bg-card space-y-3">
+              <p className="text-sm text-muted-foreground">
+                generated_at: {selectedTeamReport.generated_at || "-"} | record_generated_at:{" "}
+                {selectedTeamReport.source?.record_generated_at || "-"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                roster_path: {selectedTeamReport.source?.roster_path || "-"} | record_path:{" "}
+                {selectedTeamReport.source?.record_path || "-"}
+              </p>
+              <div className="overflow-x-auto border border-border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-background">
+                    <tr>
+                      <th className="text-left p-2">이름</th>
+                      <th className="text-left p-2">티어</th>
+                      <th className="text-left p-2">종족</th>
+                      <th className="text-right p-2">전적</th>
+                      <th className="text-right p-2">승</th>
+                      <th className="text-right p-2">패</th>
+                      <th className="text-right p-2">승률(%)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(selectedTeamReport.rows || []).map((r) => (
+                      <tr key={`${r.name}-${r.tier}-${r.race}`} className="border-t border-border/50">
+                        <td className="p-2">{r.name}</td>
+                        <td className="p-2">{r.tier}</td>
+                        <td className="p-2">{r.race}</td>
+                        <td className="p-2 text-right">{r.total}</td>
+                        <td className="p-2 text-right">{r.wins}</td>
+                        <td className="p-2 text-right">{r.losses}</td>
+                        <td className="p-2 text-right">{Number(r.winRate || 0).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              배치 스냅샷이 없습니다. <code>npm run report:team:table:all</code> 실행 후 새로고침하세요.
+            </p>
+          )}
+        </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold">Team Roster Summary</h2>
