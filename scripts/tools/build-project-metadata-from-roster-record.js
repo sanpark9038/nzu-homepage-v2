@@ -30,7 +30,7 @@ function slug(s) {
   return String(s || "")
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/[^\w\uac00-\ud7a3]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 

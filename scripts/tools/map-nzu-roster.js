@@ -13,8 +13,8 @@ function isValidName(name) {
 }
 
 // 🔑 복합 고유키: wr_id + gender
-function compositeKey(wr_id, gender) {
-    return `${wr_id}:${gender}`;
+function compositeKey(wrId, gender) {
+    return `${wrId}:${gender}`;
 }
 
 // 💡 알려진 늪지대 선수 이름 & wr_id 맵
@@ -70,8 +70,6 @@ async function mapNzuRoster() {
 
             const wr_id = parseInt(wrIdMatch[1]);
             const gender = historyLink.includes('/women/') ? 'female' : 'male';
-            const key = compositeKey(gender, wr_id);
-
             // 알려진 선수 맵에서 이름 확인
             const known = KNOWN_NZU_PLAYERS[`${gender}:${wr_id}`];
             let name, tier, race;
@@ -107,7 +105,9 @@ async function mapNzuRoster() {
         let updatedCount = 0;
 
         nzuPlayers.forEach(p => {
-            const idx = newMetadata.findIndex(m => compositeKey(m.wr_id, m.gender) === compositeKey(p.wr_id, p.gender));
+            const idx = newMetadata.findIndex(
+              m => compositeKey(m.wr_id, m.gender) === compositeKey(p.wr_id, p.gender)
+            );
 
             if (idx > -1) {
                 if (newMetadata[idx].name !== p.name) {

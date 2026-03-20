@@ -5,6 +5,7 @@ function normalizeName(name) {
 const SPECIAL_PROFILE_URL_BY_NAME = {
   쌍디: "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=671",
   빡재TV: "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=913",
+  케이: "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=205",
 };
 
 function resolveSpecialProfileUrlByName(name, fallbackUrl = null) {
@@ -47,4 +48,3 @@ module.exports = {
   shouldUseMixEndpoint,
   defaultProfileUrlForPlayer,
 };
-
