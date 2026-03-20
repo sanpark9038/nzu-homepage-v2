@@ -1,53 +1,60 @@
 # 🚀 NZU 프로젝트 작업 현황 및 로드맵 (TASK.md)
 
-이 파일은 다른 PC에서 작업을 이어갈 때 현재 상태를 파악하고 다음 단계를 실행하기 위한 가이드입니다.
+> **관리**: Antigravity (엘레이드박) | **실행**: Codex CLI | **최종결정**: 산박대표님
+> 이 파일은 듀얼 에이전트 오케스트레이션 시스템의 단일 진실 공급원(Source of Truth)입니다.
 
 ---
 
-## ✅ 완료된 작업 (2026-03-16)
+## ✅ 완료된 작업 (Completed)
 
-### 1. 데이터 수집 및 정제 원칙 확립 (대표님 지침 반영)
-- **경기 날짜**: 엘로보드에 등록된 날짜(`YYYY-MM-DD`)를 절대적인 경기 일자로 기록. (수집일 기준 아님)
-- **맵 이름**: 엘로보드 개인 전적 테이블의 '맵' 컬럼 데이터를 그대로 보존.
-- **매치 비고**: `(7경기)` 등은 해당 대회의 전체 매치 순번임을 명시. 중복 데이터 식별자로만 사용.
-- **데이터 인코딩**: UTF-8 기반으로 특수문자 및 깨진 글자 완벽 정제.
-
-### 2. 선수 DB 인프라 구축
-- **전체 선수 매핑**: 수스타 활성 선수 369명 중 363명을 엘로보드 개인 ID(`wr_id`) 및 성별(`gender`)과 연결 완료.
-- **수스타 독립 준비**: 로스터 필터링용 데이터 확보가 끝났으므로, 이후엔 엘로보드 직접 동기화 가능.
-
-### 3. UI/UX 개선
-- **H2H 룩업 개선**: 드래그 앤 드롭 직관성 강화, 티어별 고정 색상 적용, 한국어 로컬라이징 완료.
-- **배틀 엔트리**: 2x1 그리드 레이아웃 및 스마트 정렬(GOD -> BABY) 적용.
+### [2026-03-20] 듀얼 에이전트 오케스트레이션 시스템 구축 & UI/UX 개편
+- `.agents/workflows/` SOP 폴더 생성 (Protocol, Briefing, Karpathy Rule)
+- **홈 화면(page.tsx) 리팩토링**: LCK 스타일 미니멀리즘 도입, 정보 위계 정립 완료 ✨
+- **선수 페이지(players/page.tsx)**: Sticky Filter UI 도입 및 레이아웃 개선 완료
+- **엔트리 페이지(/entry) 대개조**: 
+    - **가변형 분할 콕핏(Resizable Split-Cockpit)** 구축 (네온 리사이즈 핸들 탑재) 🦾📐
+    - **전략적 분석 대시보드(Detailed Analysis)** 복원 및 선택 워크플로우 최적화 완료
+- **타입 에러 박멸**: `MatchForm.tsx`, `H2HLookup.tsx`, `page.tsx` 내 Supabase 타입 모호성 및 Import 경로 수정 완료
+- **공용 UI 컴포넌트 강화**: `TierBadge` 전역 사이즈(xs/sm/md/lg) 확장성 확보 (`nzu-badges.tsx`)
+- **VSCode 최적화**: `.vscode/settings.json` 생성하여 Tailwind v4 `@theme` 경고 제거 완료
 
 ---
 
-## 📅 내일 주요 작업 (우선순위별)
+## 🏗️ 현재 진행 중 (In Progress)
 
-### 1️⃣ 핀포인트 24시간 동기화 (`pinpoint-sync.js`)
-- [x] 매핑된 363명 ID를 순회하며 개인 전적 페이지 조회.
-- [ ] '최근 24시간' 등록 데이터만 선별적으로 수집하는 로직 고도화.
-- [ ] 엘로보드 날짜/맵/메오 양식에 맞춘 데이터 무결성 확보. (대표님 피드백 반영 완료)
-
-### 2️⃣ 엘로보드 대학 명단 연동 로스터 관리
-- [ ] `all_bj_list&univ_name=...` 페이지를 소스로 활용.
-- [ ] 수스타 대신 엘로보드 명단을 '정답'으로 하여 선수 소속 변경 및 티어 업데이트 자동화.
-
-### 3️⃣ H2H 분석 UI 고도화
-- [ ] 최근 10경기 승률 추이 차트 추가.
-- [ ] 맵별 승률 통계 시각화 품질 향상 (Recharts 활용).
-
-### 4️⃣ 데이터 무결성 전수 조사
-- [ ] DB 내 잔존하는 깨진 글자(?, 궎留 등) 데이터 일괄 정제.
-- [ ] 모든 선수의 성별(`gender`) 데이터 최종 검증.
+### 📊 데이터 파이프라인 고도화 (Codex CLI 집도 중)
+- [x] NZU 14인 상세전적 일괄 생성 배치 스크립트 추가 (`export:nzu:detailed`)
+- [ ] **임시 데이터 검증 페이지(Verification Page)** 구축 중 (Codex CLI 담당) 🛰️
+- [ ] **증분 집계(Incremental Aggregation)** 시스템 구축
+    - `fact_matches`, `dim_player_roster_history` 구조 설계 진행
+    - `build-aggregates-incremental.js` 구현 및 스키마 정의 진행 중
+- [ ] 3개 주요 CSV 스키마 정의 및 연동
 
 ---
 
-## 📂 참고 파일 (scripts/)
-- `scripts/check-db-readiness.js`: DB 구축 현황 확인용.
-- `scripts/list-missing-ids.js`: 아직 매핑되지 않은(7명) 선수 목록 확인용.
-- `scripts/auto-map-ids.js`: 자동 ID 매핑 스크립트.
-- `scripts/sync-eloboard-matches.js`: 게시판 기반 스크래퍼 (V9).
+## 📋 다음 우선 작업 (Backlog)
+
+### 🎨 UI/UX 프리미엄 폴리싱 (기획 완료 / 실행 대기)
+- [ ] `CODEX_BRIEFING.md` 작성 완료 (UI-ONLY)
+- [ ] 전역 스페이싱 시스템 정비 (`globals.css`)
+- [ ] 네비게이션바 & 선수 카드 디테일 강화
+
+### 🔐 보안 심폐소생술 (신규 발견)
+- [ ] **RLS 활성화**: `eloboard_matches` 테이블 보안 정책 누락 해결 (URGENT) 🚨
+- [ ] **정책 정교화**: `players`, `sync_logs` 등 `USING(true)` 만능 정책을 권한 기반으로 수정
 
 ---
-*마지막 업데이트: 2026-03-16 23:42 (Antigravity AI)*
+
+## 📂 핵심 파일 맵
+
+```
+app/
+├── globals.css              ← Tailwind v4 표준 스타일 (경고 0개)
+├── page.tsx                 ← 홈 화면 (리팩토링 완료)
+├── players/page.tsx         ← 선수 목록 (Sticky Filter 완료)
+└── entry/page.tsx           ← 가변형 전략 사령부 (Resizable UI 완료)
+```
+
+---
+
+*마지막 업데이트: 2026-03-20 18:05 (Antigravity / 엘레이드박)*
