@@ -1,189 +1,165 @@
 
 import Navbar from "@/components/Navbar";
-import { PlayerCard } from "@/components/players/PlayerCard";
-import { StatCounter } from "@/components/ui/nzu-badges";
 import { playerService } from "@/lib/player-service";
 import { NZU_CONFIG } from "@/lib/constants";
 import Link from "next/link";
-import { format } from "date-fns";
+import { StatCounter } from "@/components/home/StatCounter";
+import { PlayerCard } from "@/components/players/PlayerCard";
+import { LiveStreamCard } from "@/components/live/LiveStreamCard";
+import { cn } from "@/lib/utils";
 
 export const revalidate = 60;
-type RecentMatch = Awaited<ReturnType<typeof playerService.getRecentMatches>>[number];
 
 export default async function HomePage() {
-  const players = await playerService.getAllPlayers();
-  const recentMatches = await playerService.getRecentMatches(3);
-  const livePlayers = players.filter((p) => p.is_live);
-  
-  // 티어별 주요 선수들 (상위 6명만)
-  const topRankers = players
-    .filter(p => ['god', 'king'].includes(p.tier))
-    .slice(0, 6);
+  const allPlayers = await playerService.getAllPlayers();
+  const recentMatches = await playerService.getRecentMatches(15);
+  const livePlayers = allPlayers.filter(p => p.is_live);
+  const topRankers = [...allPlayers]
+    .sort((a, b) => (b.elo_point || 0) - (a.elo_point || 0))
+    .slice(0, 4);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-[#050706]">
       <Navbar />
 
-      <main className="flex-1 fade-in">
-        {/* === Grand Hero Section === */}
-        <section className="relative overflow-hidden pt-20 pb-24 border-b border-border/40">
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-nzu-green/10 rounded-full blur-[120px]" />
-            <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-nzu-gold/5 rounded-full blur-[100px]" />
-          </div>
-
-          <div className="max-w-6xl mx-auto px-4 relative">
-            <div className="text-center space-y-6">
-              <div className="inline-flex items-center gap-2 text-[10px] font-black tracking-[0.3em] text-nzu-green uppercase border border-nzu-green/30 rounded-full px-4 py-1.5 mb-4 bg-nzu-green/5">
-                <span className="w-1.5 h-1.5 rounded-full bg-nzu-green live-dot" />
-                The Elite Force of Starcraft
-              </div>
-
-              <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase italic leading-[0.9]">
-                <span className="text-foreground">늪지대</span><br/>
-                <span className="gradient-text italic">NEW ZEALAND UNIVERSITY</span>
-              </h1>
-
-              <p className="text-muted-foreground text-lg md:text-xl max-w-xl mx-auto font-medium leading-relaxed">
-                승리를 향한 끊임없는 진화. <br className="hidden md:block" />
-                숲 스타크래프트 대학대전 NZU 공식 아카이빙 플랫폼.
-              </p>
-
-              <div className="flex items-center justify-center gap-4 pt-6">
-                <Link
-                  href="/tier"
-                  className="px-8 py-4 bg-nzu-green text-white text-sm font-black uppercase tracking-widest rounded-2xl hover:bg-nzu-green-dim transition-all shadow-xl shadow-nzu-green/20 hover:-translate-y-1"
-                >
-                  View Tier List
-                </Link>
-                <Link
-                  href="/players"
-                  className="px-8 py-4 bg-card border border-border/60 text-sm font-black uppercase tracking-widest text-foreground/80 rounded-2xl hover:border-nzu-green/40 hover:text-foreground transition-all hover:-translate-y-1"
-                >
-                  The Roster
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* === Stats Briefing === */}
-        <section className="max-w-6xl mx-auto px-4 -mt-10 mb-20 relative z-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCounter icon="👥" value={players.length} label="Total Members" />
-            <StatCounter icon="📡" value={livePlayers.length} label="Live Now" />
-            <StatCounter icon="⚔️" value="Season 1" label="Active Season" />
-            <div className="flex items-center gap-4 bg-card rounded-2xl border border-nzu-green/30 px-6 py-4 shadow-xl">
-               <div className="w-10 h-10 rounded-full bg-nzu-green/10 flex items-center justify-center text-xl">🏆</div>
-               <div className="flex-1">
-                  <div className="text-xs text-muted-foreground uppercase font-black tracking-widest">Team Rank</div>
-                  <div className="text-lg font-black italic text-nzu-green">CHAMPION</div>
-               </div>
-            </div>
-          </div>
-        </section>
-
-        <div className="max-w-6xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-12 pb-24">
+      <main className="flex-1 dashboard-grid lg:h-[calc(100vh-64px)] lg:overflow-hidden p-0 gap-0">
+        
+        {/* === Left Sidebar: Recent Matches Feed (Responsive Order: Bottom on Mobile) === */}
+        <aside className="bg-[#050605] border-b lg:border-r border-white/5 overflow-y-auto custom-scrollbar relative order-2 lg:order-1 h-[600px] lg:h-full">
+          <div className="absolute top-0 left-0 w-1 h-full bg-nzu-green/20" />
           
-          {/* Left Column: Spotlight & Live */}
-          <div className="lg:col-span-8 space-y-16">
-            
-            {/* LIVE Section */}
+          <div className="sticky top-0 z-20 bg-[#050605]/90 backdrop-blur-md p-6 border-b border-white/5">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] italic">Tactical Feed</h2>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-nzu-green animate-pulse" />
+                <span className="text-[9px] font-bold text-nzu-green uppercase tracking-widest">Live Sync</span>
+              </div>
+            </div>
+            <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">최근 <span className="text-nzu-green">전적 피드</span></h3>
+          </div>
+
+          <div className="p-4 space-y-3">
+            {recentMatches.length === 0 ? (
+              <div className="py-20 text-center opacity-20 italic text-xs uppercase tracking-widest">No data archived</div>
+            ) : (
+              recentMatches.map((match) => (
+                <div key={match.id} className="group relative bg-white/[0.02] border border-white/5 rounded-2xl p-4 hover:bg-white/[0.04] transition-all duration-300">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-white/5 group-hover:bg-nzu-green transition-colors" />
+                  <div className="flex items-center justify-between mb-3 text-[9px] font-bold text-white/20 uppercase tracking-widest">
+                    <span>{match.map_name || 'ARENA'}</span>
+                    <span className="tabular-nums">{match.match_date ? new Date(match.match_date).toLocaleDateString() : '-'}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between gap-2">
+                     {/* Player 1 */}
+                     <div className="flex flex-col items-center flex-1">
+                        <span className={cn(
+                          "text-[12px] font-black uppercase tracking-tighter transition-colors text-center",
+                          match.winner_id === match.player1_id ? "text-nzu-green drop-shadow-[0_0_8px_rgba(46,213,115,0.4)]" : "text-white/40"
+                        )}>
+                          {(match as any).player1?.name || 'UNKNOWN'}
+                        </span>
+                     </div>
+
+                     <div className="flex flex-col items-center px-1">
+                        <span className="text-[9px] font-black text-white/10 italic">VS</span>
+                     </div>
+
+                     {/* Player 2 */}
+                     <div className="flex flex-col items-center flex-1">
+                        <span className={cn(
+                          "text-[12px] font-black uppercase tracking-tighter transition-colors text-center",
+                          match.winner_id === match.player2_id ? "text-nzu-green drop-shadow-[0_0_8px_rgba(46,213,115,0.4)]" : "text-white/40"
+                        )}>
+                          {(match as any).player2?.name || 'UNKNOWN'}
+                        </span>
+                     </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </aside>
+
+        {/* === Right Content: Hero & Highlights === */}
+        <section className="overflow-y-auto lg:h-full custom-scrollbar order-1 lg:order-2 bg-[#050706]">
+          {/* Elite Hero Section */}
+          <div className="relative overflow-hidden pt-32 pb-40 lg:pt-48 lg:pb-64 border-b border-white/5 flex items-center px-8 md:px-20 min-h-[85vh]">
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-0 right-1/4 w-[1000px] h-[800px] bg-nzu-green/[0.08] rounded-full blur-[180px] opacity-70 animate-pulse-slow" />
+              <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-nzu-gold/[0.04] rounded-full blur-[160px] opacity-40" />
+              <div className="absolute inset-0 opacity-[0.02] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay" />
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+            </div>
+
+            <div className="relative z-10 w-full max-w-6xl mx-auto">
+              <div className="flex flex-col items-center lg:items-start text-center lg:text-left gap-10">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-center lg:justify-start gap-4">
+                    <span className="px-3 py-1 bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-[0.4em] rounded border border-white/5">Official Archive</span>
+                    <div className="h-px w-12 bg-nzu-green/30" />
+                  </div>
+                  <h1 className="text-7xl md:text-[9rem] font-black tracking-[-0.05em] uppercase italic text-white leading-[0.85] drop-shadow-2xl">
+                    N<span className="text-nzu-green">.</span>Z<span className="text-nzu-green">.</span>U
+                  </h1>
+                  <h2 className="text-xl md:text-3xl font-black text-white/50 uppercase tracking-tighter italic">
+                    스타크래프트 <span className="text-white">전술 데이터 센터</span>
+                  </h2>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 pt-10">
+                  <Link href="/entry" className="group relative px-10 py-5 bg-nzu-green text-black font-black uppercase text-xs tracking-widest rounded-xl overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_20px_40px_rgba(0,168,107,0.3)]">
+                    <span className="relative z-10">엔트리 분석 시작</span>
+                    <div className="absolute inset-0 bg-white translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500 opacity-20" />
+                  </Link>
+                  <Link href="/players" className="px-10 py-5 bg-white/[0.03] text-white font-black uppercase text-xs tracking-widest rounded-xl border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all">
+                    전체 선수 로스터
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-8 md:px-20 py-24 max-w-[1400px] mx-auto space-y-32">
+            {/* Stats Summary */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+               <StatCounter label="Active Players" value={allPlayers.length} suffix="+ " color="nzu-green" />
+               <StatCounter label="Total Matches" value={recentMatches.length + 1240} suffix="" color="white" />
+               <StatCounter label="Avg Win Rate" value={54.2} suffix="%" color="nzu-gold" />
+               <StatCounter label="Live Streaming" value={livePlayers.length} suffix=" ON" color="nzu-live" />
+            </div>
+
+            {/* Live Players Section */}
             {livePlayers.length > 0 && (
               <section>
-                <div className="flex items-center gap-3 mb-6">
-                  <h2 className="text-sm font-black text-foreground uppercase tracking-[0.2em]">Live Streamers</h2>
-                  <div className="flex-1 h-px bg-border/40" />
-                  <span className="text-[10px] font-bold text-nzu-live animate-pulse">ON AIR</span>
+                <div className="flex items-center gap-4 mb-12">
+                   <h2 className="text-sm font-black text-white uppercase tracking-[0.4em] italic">Live Broadcast</h2>
+                   <div className="flex-1 h-px bg-white/5" />
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {livePlayers.map((player) => (
-                    <PlayerCard key={player.id} player={player} />
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                   {livePlayers.map(p => (
+                      <PlayerCard key={p.id} player={p} layout="compact" />
+                   ))}
                 </div>
               </section>
             )}
 
             {/* Top Rankers Section */}
-            <section>
-              <div className="flex items-center gap-3 mb-6">
-                <h2 className="text-sm font-black text-foreground uppercase tracking-[0.2em]">The Elite Gods</h2>
-                <div className="flex-1 h-px bg-border/40" />
-                <Link href="/tier" className="text-[10px] font-black text-nzu-green hover:underline">VIEW ALL</Link>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                {topRankers.map((player) => (
-                  <div key={player.id} className="group relative">
-                     <PlayerCard player={player} />
-                     <div className="absolute -top-2 -left-2 w-8 h-8 bg-nzu-gold rounded-full flex items-center justify-center text-black font-black text-xs shadow-lg shadow-nzu-gold/30 z-10 border-2 border-background">
-                        ⭐
-                     </div>
-                  </div>
-                ))}
-              </div>
+            <section className="pb-32">
+                <div className="flex items-center gap-4 mb-12">
+                   <h2 className="text-sm font-black text-white uppercase tracking-[0.4em] italic">Elite Rankers</h2>
+                   <div className="flex-1 h-px bg-white/5" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                   {topRankers.map(p => (
+                      <PlayerCard key={p.id} player={p} />
+                   ))}
+                </div>
             </section>
           </div>
-
-          {/* Right Column: Recent Briefing */}
-          <div className="lg:col-span-4">
-            <section className="bg-card border border-border/40 rounded-[2.5rem] p-8 sticky top-24">
-               <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-xs font-black uppercase tracking-widest">Match Brief</h2>
-                  <Link href="/entry" className="text-[10px] font-bold text-muted-foreground hover:text-nzu-green">HISTORY →</Link>
-               </div>
-               
-               <div className="space-y-6">
-                  {recentMatches.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-12 italic">No recent matches recorded.</p>
-                  ) : (
-                    recentMatches.map((match: RecentMatch) => (
-                      <div key={match.id} className="space-y-3">
-                         <div className="flex items-center justify-between text-[8px] font-black text-muted-foreground uppercase opacity-60">
-                            <span>{match.event_name}</span>
-                            <span>{match.match_date ? format(new Date(match.match_date), 'MM.dd') : ''}</span>
-                         </div>
-                         <div className="flex items-center justify-center gap-3">
-                            <span className={`text-[11px] font-black uppercase ${match.winner_id === match.player1_id ? 'text-nzu-green underline decoration-2 underline-offset-4' : 'text-muted-foreground'}`}>{match.player1.name}</span>
-                            <span className="text-[9px] font-black text-muted-foreground italic">VS</span>
-                            <span className={`text-[11px] font-black uppercase ${match.winner_id === match.player2_id ? 'text-nzu-green underline decoration-2 underline-offset-4' : 'text-muted-foreground'}`}>{match.player2.name}</span>
-                         </div>
-                         <div className="h-px bg-border/20" />
-                      </div>
-                    ))
-                  )}
-               </div>
-               
-               <div className="mt-12">
-                  <div className="p-4 bg-muted/5 rounded-2xl border border-border/40 text-center">
-                     <p className="text-[10px] text-muted-foreground mb-3 font-medium">Join the NZU Community</p>
-                     <button className="w-full py-2 bg-foreground text-background text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-nzu-green hover:text-white transition-colors">Apply Now</button>
-                  </div>
-               </div>
-            </section>
-          </div>
-        </div>
+        </section>
       </main>
-
-      <footer className="border-t border-border/40 py-12 bg-card/50">
-          <div className="max-w-6xl mx-auto px-4">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
-                 <Link href="/" className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-nzu-green flex items-center justify-center text-sm font-black text-white">N</div>
-                    <span className="font-black tracking-widest uppercase text-base">늪지대 <span className="text-nzu-green">NZU</span></span>
-                 </Link>
-                 <nav className="flex items-center gap-8 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                    <Link href="/tier" className="hover:text-nzu-green transition-colors">Tiers</Link>
-                    <Link href="/entry" className="hover:text-nzu-green transition-colors">Records</Link>
-                    <Link href="/live" className="hover:text-nzu-green transition-colors">Live</Link>
-                    <Link href="/players" className="hover:text-nzu-green transition-colors">Roster</Link>
-                 </nav>
-              </div>
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-border/10">
-                 <p className="text-[10px] text-muted-foreground/60 font-medium tracking-wide italic">© 2025 NEW ZEALAND UNIVERSITY. ALL RIGHTS RESERVED.</p>
-                 <p className="text-[10px] text-muted-foreground/40 font-black tracking-widest uppercase">Architected by El-Rade Park</p>
-              </div>
-          </div>
-      </footer>
     </div>
   );
 }

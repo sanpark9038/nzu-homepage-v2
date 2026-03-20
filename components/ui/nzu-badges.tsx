@@ -60,14 +60,21 @@ const tierLabels: Record<string, { label: string; color: string }> = {
   baby:  { label: "아기",  color: "text-pink-400 bg-pink-400/10 border-pink-400/20" },
 };
 
-export function TierBadge({ tier, rank }: { tier: string; rank?: number }) {
+export function TierBadge({ tier, rank, size = "sm" }: { tier: string; rank?: number; size?: "xs" | "sm" | "md" | "lg" }) {
   const normalizedTier = tier === '미정' || tier === 'N/A' || !tier ? '미정' : tier;
   const cfg = tierLabels[normalizedTier] || tierLabels[tier.toLowerCase()] || { label: tier.match(/^\d+$/) ? `${tier}티어` : tier, color: "text-muted-foreground bg-muted/30 border-border" };
   
+  const sizeClasses = {
+    xs: "text-[9px] px-1 py-0",
+    sm: "text-[11px] px-1.5 py-0.5",
+    md: "text-sm px-2 py-1",
+    lg: "text-lg px-4 py-2 rounded-xl border-2",
+  };
+
   return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold border rounded px-1.5 py-0.5 ${cfg.color}`}>
+    <span className={`inline-flex items-center gap-1 font-bold border rounded transition-all ${cfg.color} ${sizeClasses[size]}`}>
       {cfg.label}
-      {rank !== undefined && <span className="opacity-60">#{rank}</span>}
+      {rank !== undefined && <span className="opacity-60 ml-0.5">#{rank}</span>}
     </span>
   );
 }
