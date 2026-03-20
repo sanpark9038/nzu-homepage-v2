@@ -1,11 +1,15 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
+const { defaultProfileUrlForPlayer } = require("./lib/eloboard-special-cases");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const TMP_DIR = path.join(ROOT, "tmp");
 const REPORTS_DIR = path.join(TMP_DIR, "reports");
+const ALERT_RULES_PATH = path.join(ROOT, "data", "metadata", "pipeline_alert_rules.v1.json");
 const EXPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "export-nzu-roster-detailed.js");
+const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-nzu-2025-records.js");
+const CSV_SCRIPT = path.join(ROOT, "scripts", "tools", "export-player-matches-csv.js");
 const ORGANIZE_SCRIPT = path.join(ROOT, "scripts", "tools", "organize-generated-artifacts.js");
 
 const TEAM_CONFIG = [
@@ -59,6 +63,43 @@ function writeCsv(filePath, rows) {
     ...rows.map((row) => headers.map((h) => esc(row[h])).join(",")),
   ];
   fs.writeFileSync(filePath, lines.join("\n"), "utf8");
+}
+
+function defaultAlertConfig() {
+  return {
+    schema_version: "1.0.0",
+    updated_at: new Date().toISOString(),
+    blocking_severities: ["critical", "high"],
+    rules: {
+      pipeline_failure_severity: "critical",
+      zero_record_players_severity: "high",
+      negative_delta_matches_severity: "critical",
+      roster_size_changed_severity: "medium",
+      no_new_matches_enabled: false,
+      no_new_matches_severity: "low",
+    },
+  };
+}
+
+function readAlertConfig() {
+  if (!fs.existsSync(ALERT_RULES_PATH)) return defaultAlertConfig();
+  try {
+    const raw = fs.readFileSync(ALERT_RULES_PATH, "utf8").replace(/^\uFEFF/, "");
+    const parsed = JSON.parse(raw);
+    return {
+      ...defaultAlertConfig(),
+      ...parsed,
+      rules: {
+        ...defaultAlertConfig().rules,
+        ...(parsed && parsed.rules ? parsed.rules : {}),
+      },
+      blocking_severities: Array.isArray(parsed && parsed.blocking_severities)
+        ? parsed.blocking_severities
+        : defaultAlertConfig().blocking_severities,
+    };
+  } catch {
+    return defaultAlertConfig();
+  }
 }
 
 function severityRank(level) {
@@ -146,12 +187,112 @@ function summarizeTeamFromReport(team, report) {
   };
 }
 
-function buildAlerts(rowsWithDelta) {
+function getRowPeriodTotal(row) {
+  const jsonPath = String(row && row.json_path ? row.json_path : "");
+  if (!jsonPath || !fs.existsSync(jsonPath)) return 0;
+  const doc = readJson(jsonPath);
+  const player = Array.isArray(doc.players) ? doc.players[0] : null;
+  if (!player) return 0;
+  return Number(player.period_total || 0);
+}
+
+function loadTeamRoster(team) {
+  const p = path.join(ROOT, team.rosterPath);
+  const doc = readJson(p);
+  const rows = Array.isArray(doc.roster) ? doc.roster : [];
+  const byName = new Map(rows.map((r) => [String(r.name || ""), r]));
+  return byName;
+}
+
+function recoverTeamAnomalies(team, report, from, to, concurrency) {
+  const results = Array.isArray(report.results) ? report.results : [];
+  const rosterByName = loadTeamRoster(team);
+  const targetRows = results.filter((row) => getRowPeriodTotal(row) === 0);
+  if (!targetRows.length) {
+    return {
+      attempted: 0,
+      recovered: [],
+      unrecovered: [],
+    };
+  }
+
+  const recovered = [];
+  const unrecovered = [];
+  for (const row of targetRows) {
+    const playerName = String(row.player || "");
+    const rosterPlayer = rosterByName.get(playerName);
+    if (!rosterPlayer) {
+      unrecovered.push({ player: playerName, reason: "missing_roster_player" });
+      continue;
+    }
+    const profileUrl = defaultProfileUrlForPlayer(rosterPlayer);
+
+    try {
+      const raw = runNode(REPORT_SCRIPT, [
+        "--json-only",
+        "--include-matches",
+        "--no-cache",
+        "--univ",
+        team.univ,
+        "--player",
+        playerName,
+        "--profile-url",
+        profileUrl,
+        "--wr-id",
+        String(rosterPlayer.wr_id),
+        "--gender",
+        String(rosterPlayer.gender || ""),
+        "--tier",
+        String(rosterPlayer.tier || ""),
+        "--concurrency",
+        concurrency,
+      ]);
+      const parsed = JSON.parse(raw);
+      writeJson(String(row.json_path), parsed);
+
+      const csvOut = runNode(CSV_SCRIPT, [
+        "--univ",
+        team.univ,
+        "--player",
+        playerName,
+        "--from",
+        from,
+        "--to",
+        to,
+      ]).trim();
+
+      row.fetch_status = "ok";
+      row.csv_status = "ok";
+      row.csv_path = csvOut;
+      row.error = null;
+
+      const total = getRowPeriodTotal(row);
+      if (total > 0) {
+        recovered.push(playerName);
+      } else {
+        unrecovered.push({ player: playerName, reason: "still_zero_after_recovery" });
+      }
+    } catch (err) {
+      row.error = err instanceof Error ? err.message : String(err);
+      row.fetch_status = "failed";
+      unrecovered.push({ player: playerName, reason: "recovery_exception" });
+    }
+  }
+
+  return {
+    attempted: targetRows.length,
+    recovered,
+    unrecovered,
+  };
+}
+
+function buildAlerts(rowsWithDelta, cfg) {
+  const rules = cfg.rules || {};
   const alerts = [];
   for (const row of rowsWithDelta) {
     if (row.fetch_fail > 0 || row.csv_fail > 0) {
       alerts.push({
-        severity: "critical",
+        severity: rules.pipeline_failure_severity || "critical",
         team: row.team,
         team_code: row.team_code,
         rule: "pipeline_failure",
@@ -160,7 +301,7 @@ function buildAlerts(rowsWithDelta) {
     }
     if (row.zero_record_players > 0) {
       alerts.push({
-        severity: "high",
+        severity: rules.zero_record_players_severity || "high",
         team: row.team,
         team_code: row.team_code,
         rule: "zero_record_players",
@@ -170,15 +311,15 @@ function buildAlerts(rowsWithDelta) {
     if (typeof row.delta_total_matches === "number") {
       if (row.delta_total_matches < 0) {
         alerts.push({
-          severity: "critical",
+          severity: rules.negative_delta_matches_severity || "critical",
           team: row.team,
           team_code: row.team_code,
           rule: "total_matches_decreased",
           message: `delta_total_matches=${row.delta_total_matches}`,
         });
-      } else if (row.delta_total_matches === 0) {
+      } else if (row.delta_total_matches === 0 && rules.no_new_matches_enabled) {
         alerts.push({
-          severity: "low",
+          severity: rules.no_new_matches_severity || "low",
           team: row.team,
           team_code: row.team_code,
           rule: "no_new_matches",
@@ -188,7 +329,7 @@ function buildAlerts(rowsWithDelta) {
     }
     if (typeof row.delta_players === "number" && row.delta_players !== 0) {
       alerts.push({
-        severity: "medium",
+        severity: rules.roster_size_changed_severity || "medium",
         team: row.team,
         team_code: row.team_code,
         rule: "roster_size_changed",
@@ -253,7 +394,7 @@ function main() {
     Array.isArray(prior && prior.teams) ? prior.teams.map((r) => [String(r.team_code), r]) : []
   );
 
-  const rowsWithDelta = summaryRows.map((row) => {
+  let rowsWithDelta = summaryRows.map((row) => {
     const prev = priorMap.get(row.team_code);
     return {
       ...row,
@@ -263,6 +404,42 @@ function main() {
       delta_players: prev ? row.players - Number(prev.players || 0) : null,
     };
   });
+
+  const recoveryActions = [];
+  for (const item of perTeamReports) {
+    const row = rowsWithDelta.find((r) => r.team_code === item.team.code);
+    if (!row) continue;
+    const needsRecovery =
+      row.zero_record_players > 0 ||
+      (typeof row.delta_total_matches === "number" && row.delta_total_matches < 0);
+    if (!needsRecovery) continue;
+
+    const rec = recoverTeamAnomalies(item.team, item.report, from, to, concurrency);
+    if (rec.attempted > 0) {
+      recoveryActions.push({
+        team: item.team.univ,
+        team_code: item.team.code,
+        ...rec,
+      });
+      writeJson(item.reportFile, item.report);
+    }
+  }
+
+  if (recoveryActions.length > 0) {
+    const refreshedSummaryRows = perTeamReports.map(({ team, report }) =>
+      summarizeTeamFromReport(team, report)
+    );
+    rowsWithDelta = refreshedSummaryRows.map((row) => {
+      const prev = priorMap.get(row.team_code);
+      return {
+        ...row,
+        delta_total_matches: prev ? row.total_matches - Number(prev.total_matches || 0) : null,
+        delta_total_wins: prev ? row.total_wins - Number(prev.total_wins || 0) : null,
+        delta_total_losses: prev ? row.total_losses - Number(prev.total_losses || 0) : null,
+        delta_players: prev ? row.players - Number(prev.players || 0) : null,
+      };
+    });
+  }
 
   const snapshot = {
     generated_at: new Date().toISOString(),
@@ -289,14 +466,18 @@ function main() {
     failed_players: rowsWithDelta.flatMap((r) =>
       r.failures.map((f) => ({ team: r.team, team_code: r.team_code, ...f }))
     ),
+    recovery_actions: recoveryActions,
     previous_snapshot: priorPath ? path.relative(ROOT, priorPath).replace(/\\/g, "/") : null,
   };
 
-  const alerts = buildAlerts(rowsWithDelta);
+  const alertConfig = readAlertConfig();
+  const alerts = buildAlerts(rowsWithDelta, alertConfig);
   const alertSummary = {
     generated_at: new Date().toISOString(),
     date_tag: dateTag,
     strict,
+    blocking_severities: alertConfig.blocking_severities,
+    applied_rules: alertConfig.rules,
     counts: {
       critical: alerts.filter((a) => a.severity === "critical").length,
       high: alerts.filter((a) => a.severity === "high").length,
@@ -353,10 +534,15 @@ function main() {
   console.log(`[DONE] ${path.relative(ROOT, outAlertCsv)}`);
 
   if (strict) {
-    const hasBlockingAlert = alerts.some((a) => a.severity === "critical" || a.severity === "high");
+    const blocking = new Set(
+      Array.isArray(alertConfig.blocking_severities) && alertConfig.blocking_severities.length
+        ? alertConfig.blocking_severities
+        : ["critical", "high"]
+    );
+    const hasBlockingAlert = alerts.some((a) => blocking.has(a.severity));
     if (hasBlockingAlert) {
       process.exitCode = 1;
-      console.error("[STRICT] Daily pipeline alerts include high/critical severity.");
+      console.error("[STRICT] Daily pipeline alerts include blocking severity.");
     }
   }
 }
