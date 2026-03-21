@@ -13,14 +13,7 @@ const AGG_PLAYER_PATH = path.join(WAREHOUSE_DIR, "agg_daily_player.csv");
 const AGG_TEAM_PATH = path.join(WAREHOUSE_DIR, "agg_daily_team.csv");
 const REPORT_PATH = path.join(TMP_DIR, "warehouse_build_report.json");
 const STATE_PATH = path.join(CACHE_DIR, "warehouse_state.json");
-const NZU_ROSTER_PATH = path.join(
-  ROOT,
-  "data",
-  "metadata",
-  "projects",
-  "nzu",
-  "players.nzu.v1.json"
-);
+const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 
 const FACT_HEADERS = [
   "match_key",
@@ -165,6 +158,10 @@ function toWinRate(wins, total) {
   return ((wins / total) * 100).toFixed(2);
 }
 
+function isIsoDate(v) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(v || ""));
+}
+
 function hashMatch(parts) {
   return crypto.createHash("sha1").update(parts.join("|"), "utf8").digest("hex");
 }
@@ -180,13 +177,40 @@ function readJson(filePath, fallback) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
 }
 
-function buildEntityMapFromNzuRoster() {
-  const json = readJson(NZU_ROSTER_PATH, { roster: [] });
-  const map = new Map();
-  for (const row of json.roster || []) {
-    map.set(String(row.name), row);
+function buildRosterIndexFromProjects() {
+  const byName = new Map();
+  const byEntityId = new Map();
+  const duplicateEntityIds = new Set();
+  if (!fs.existsSync(PROJECTS_DIR)) {
+    return { byName, byEntityId, duplicateEntityIds };
   }
-  return map;
+
+  const dirs = fs
+    .readdirSync(PROJECTS_DIR, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name)
+    .sort((a, b) => String(a).localeCompare(String(b)));
+
+  for (const code of dirs) {
+    const rosterPath = path.join(PROJECTS_DIR, code, `players.${code}.v1.json`);
+    const json = readJson(rosterPath, { roster: [] });
+    for (const row of json.roster || []) {
+      const name = String(row.name || "").trim();
+      const entityId = String(row.entity_id || "").trim();
+      if (!name || !entityId) continue;
+      if (byEntityId.has(entityId)) {
+        duplicateEntityIds.add(entityId);
+        continue;
+      }
+      const canonical = {
+        ...row,
+        __team_code: String(row.team_code || code || "").trim() || code,
+      };
+      byEntityId.set(entityId, canonical);
+      if (!byName.has(name)) byName.set(name, canonical);
+    }
+  }
+  return { byName, byEntityId, duplicateEntityIds };
 }
 
 function listSourceCsvFiles() {
@@ -269,26 +293,27 @@ function changedFiles(files, prevState) {
   return changed;
 }
 
-function ensureDimRows(dimRows, nzuEntityMap, nowIso) {
+function ensureDimRows(dimRows, entityById, nowIso) {
   const seen = new Set(
     dimRows.map(
       (r) => `${r.entity_id}|${r.team}|${r.tier}|${r.race}|${r.valid_from}|${r.valid_to || ""}`
     )
   );
   let inserted = 0;
-  for (const row of nzuEntityMap.values()) {
-    const key = `${row.entity_id}|nzu|${row.tier}|${row.race}|1900-01-01|`;
+  for (const row of entityById.values()) {
+    const teamCode = String(row.__team_code || row.team_code || "").trim() || "unknown";
+    const key = `${row.entity_id}|${teamCode}|${row.tier}|${row.race}|1900-01-01|`;
     if (seen.has(key)) continue;
     dimRows.push({
       entity_id: row.entity_id,
       player_name: row.name,
-      team: "nzu",
+      team: teamCode,
       tier: row.tier,
       race: row.race,
       valid_from: "1900-01-01",
       valid_to: "",
       updated_at: nowIso,
-      source: "metadata:nzu_roster",
+      source: "metadata:project_roster",
     });
     inserted += 1;
   }
@@ -404,7 +429,8 @@ function main() {
   const allSourceFiles = listSourceCsvFiles();
   const prevState = readJson(STATE_PATH, {});
   const sourceFiles = rebuild ? allSourceFiles : changedFiles(allSourceFiles, prevState);
-  const nzuEntityMap = buildEntityMapFromNzuRoster();
+  const rosterIndex = buildRosterIndexFromProjects();
+  const entityMap = rosterIndex.byName;
 
   const factRows = rebuild ? [] : readCsv(FACT_PATH);
   const dimRows = readCsv(DIM_PATH);
@@ -413,6 +439,8 @@ function main() {
 
   const existingFactKeys = new Set(factRows.map((r) => r.match_key));
   const changedDates = new Set();
+  const unknownPlayers = new Set();
+  let skippedInvalidDateRows = 0;
   let insertedFacts = 0;
   let replacedFacts = 0;
 
@@ -422,8 +450,11 @@ function main() {
     for (const filePath of sourceFiles) {
       const fileName = path.basename(filePath);
       const playerName = normalizePlayerNameFromFileName(fileName);
-      const entity = nzuEntityMap.get(playerName);
-      if (!entity) continue;
+      const entity = entityMap.get(playerName);
+      if (!entity) {
+        unknownPlayers.add(playerName);
+        continue;
+      }
 
       const before = factRows.length;
       const removed = [];
@@ -445,8 +476,13 @@ function main() {
   for (const filePath of sourceFiles) {
     const fileName = path.basename(filePath);
     const playerName = normalizePlayerNameFromFileName(fileName);
-    const entity = nzuEntityMap.get(playerName);
-    if (!entity) continue;
+    const entity = entityMap.get(playerName);
+    if (!entity) {
+      unknownPlayers.add(playerName);
+      continue;
+    }
+
+    const teamCode = String(entity.__team_code || entity.team_code || "").trim() || "unknown";
 
     const rows = readCsv(filePath);
     let sourceRowNo = 0;
@@ -454,7 +490,11 @@ function main() {
     for (const r of rows) {
       sourceRowNo += 1;
       const matchDate = String(r["날짜"] || "").trim();
-      if (!matchDate || matchDate < from || matchDate > to) continue;
+      if (!matchDate || !isIsoDate(matchDate)) {
+        skippedInvalidDateRows += 1;
+        continue;
+      }
+      if (matchDate < from || matchDate > to) continue;
 
       const opponentName = String(r["상대명"] || "").trim();
       const opponentRace = String(r["상대종족"] || "").trim();
@@ -477,7 +517,7 @@ function main() {
         match_date: matchDate,
         player_entity_id: entity.entity_id,
         player_name: playerName,
-        team: "nzu",
+        team: teamCode,
         tier: entity.tier || "",
         race: entity.race || "",
         opponent_name: opponentName,
@@ -495,7 +535,7 @@ function main() {
     }
   }
 
-  const insertedDim = ensureDimRows(dimRows, nzuEntityMap, nowIso);
+  const insertedDim = ensureDimRows(dimRows, rosterIndex.byEntityId, nowIso);
 
   const fullRecalcDates =
     rebuild || !fs.existsSync(AGG_PLAYER_PATH) || !fs.existsSync(AGG_TEAM_PATH)
@@ -530,6 +570,10 @@ function main() {
     fact_total: factRows.length,
     dim_inserted: insertedDim,
     dim_total: dimRows.length,
+    unresolved_source_players: [...unknownPlayers].sort((a, b) => String(a).localeCompare(String(b))),
+    unresolved_source_players_count: unknownPlayers.size,
+    duplicate_entity_id_count: rosterIndex.duplicateEntityIds.size,
+    skipped_invalid_date_rows: skippedInvalidDateRows,
     agg_recalc_dates: fullRecalcDates.length,
     agg_player_total: nextAggPlayer.length,
     agg_team_total: nextAggTeam.length,
