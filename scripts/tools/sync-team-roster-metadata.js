@@ -251,9 +251,10 @@ function effectiveRace(observedRace, baseRace) {
   return String(baseRace || "Unknown");
 }
 
-function removeEntityFromAllDocs(docs, entityId, keepTeamCode) {
+function removeEntityFromAllDocs(docs, entityId, keepTeamCode, skipTeamCodes = new Set()) {
   for (const d of docs) {
     if (String(d.team.code) === String(keepTeamCode)) continue;
+    if (skipTeamCodes.has(String(d.team.code))) continue;
     removeRosterEntry(d.json, entityId);
   }
 }
@@ -297,11 +298,45 @@ async function main() {
   const faDoc = ensureFaProject();
   const observedByEntity = new Map();
   const observedConflicts = [];
+  const guardedTeamCodes = new Set();
+  const guardedTeams = [];
 
   for (const t of teams) {
     const url = `https://eloboard.com/univ/bbs/board.php?bo_table=all_bj_list&univ_name=${encodeURIComponent(t.univ)}`;
-    const html = await fetchHtml(url);
-    const rows = parseRoster(html);
+    const existingCount = Array.isArray(teamDocs.get(t.code)?.json?.roster)
+      ? teamDocs.get(t.code).json.roster.length
+      : 0;
+    let rows = [];
+    try {
+      const html = await fetchHtml(url);
+      rows = parseRoster(html);
+    } catch (err) {
+      guardedTeamCodes.add(String(t.code));
+      guardedTeams.push({
+        team_code: t.code,
+        team_name: t.univ,
+        existing_count: existingCount,
+        observed_count: 0,
+        reason: "fetch_error",
+        detail: err instanceof Error ? err.message : String(err),
+      });
+      continue;
+    }
+    // Safety guard: if source result collapses unexpectedly, do not mutate this team.
+    const suspiciousDrop =
+      existingCount >= 10 && rows.length > 0 && rows.length < Math.ceil(existingCount * 0.5);
+    const emptyUnexpected = existingCount > 0 && rows.length === 0;
+    if (suspiciousDrop || emptyUnexpected) {
+      guardedTeamCodes.add(String(t.code));
+      guardedTeams.push({
+        team_code: t.code,
+        team_name: t.univ,
+        existing_count: existingCount,
+        observed_count: rows.length,
+        reason: suspiciousDrop ? "suspicious_drop" : "empty_observed",
+      });
+      continue;
+    }
     for (const r of rows) {
       const prevObserved = observedByEntity.get(r.entity_id);
       if (prevObserved && String(prevObserved.team_code) !== String(t.code)) {
@@ -420,7 +455,7 @@ async function main() {
         ? d.json.roster.filter((p) => String(p.entity_id) === String(entityId)).length
         : 0,
     }));
-    removeEntityFromAllDocs(allDocs, entityId, observed.team_code);
+    removeEntityFromAllDocs(allDocs, entityId, observed.team_code, guardedTeamCodes);
     const removedFrom = beforeCounts
       .filter((x) => x.team_code !== observed.team_code && x.count > 0)
       .map((x) => x.team_code);
@@ -439,6 +474,7 @@ async function main() {
   for (const [entityId, prev] of beforeByEntity.entries()) {
     if (prev.team_code === "fa") continue;
     if (observedByEntity.has(entityId)) continue;
+    if (guardedTeamCodes.has(String(prev.team_code))) continue;
     const prevDoc = teamDocs.get(prev.team_code);
     if (!prevDoc) continue;
     removeRosterEntry(prevDoc.json, entityId);
@@ -477,6 +513,8 @@ async function main() {
     fa_fetch_error: faFetchError,
     manual_overrides_applied_count: appliedManualOverrides.length,
     manual_overrides_applied: appliedManualOverrides,
+    guarded_teams_count: guardedTeams.length,
+    guarded_teams: guardedTeams,
     observed_conflicts_count: observedConflicts.length,
     observed_conflicts: observedConflicts,
     dedup_removals_count: dedupRemovals.length,
