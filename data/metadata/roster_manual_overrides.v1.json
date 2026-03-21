@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-03-21T11:31:30.000Z",
+  "updated_at": "2026-03-21T11:40:00.000Z",
   "description": "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
   "overrides": [
     {
@@ -11,6 +11,24 @@
       "race": "Zerg",
       "manual_lock": true,
       "note": "Alias conflict: keep canonical assignment to c9/나무늘봉순 for wr_id=398."
+    },
+    {
+      "entity_id": "eloboard:female:777",
+      "name": "히댕",
+      "team_code": "c9",
+      "tier": "6",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Alias conflict: keep canonical assignment to c9/히댕 instead of FA alias 엘사."
+    },
+    {
+      "entity_id": "eloboard:female:646",
+      "name": "빵지니",
+      "team_code": "yb",
+      "tier": "7",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Alias conflict: keep canonical assignment to yb/빵지니 instead of FA alias 농떼르만."
     }
   ]
 }
