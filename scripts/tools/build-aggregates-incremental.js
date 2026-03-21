@@ -170,7 +170,9 @@ function hashMatch(parts) {
 }
 
 function normalizePlayerNameFromFileName(fileName) {
-  return fileName.replace(/_상세전적_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$/, "");
+  return fileName
+    .replace(/_상세전적_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$/, "")
+    .replace(/_상세전적\.csv$/, "");
 }
 
 function readJson(filePath, fallback) {
@@ -189,7 +191,7 @@ function buildEntityMapFromNzuRoster() {
 
 function listSourceCsvFiles() {
   if (!fs.existsSync(TMP_DIR)) return [];
-  const out = [];
+  const candidates = [];
   const stack = [TMP_DIR];
   while (stack.length) {
     const dir = stack.pop();
@@ -200,12 +202,48 @@ function listSourceCsvFiles() {
         stack.push(abs);
         continue;
       }
-      if (/_상세전적_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$/.test(ent.name)) {
-        out.push(abs);
+      if (/_상세전적(?:_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2})?\.csv$/.test(ent.name)) {
+        const stable = /_상세전적\.csv$/.test(ent.name);
+        const range = stable
+          ? null
+          : ent.name.match(/_상세전적_(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})\.csv$/);
+        candidates.push({
+          path: abs,
+          player: normalizePlayerNameFromFileName(ent.name),
+          stable,
+          from: range ? range[1] : "",
+          to: range ? range[2] : "",
+          mtime: fs.statSync(abs).mtimeMs,
+        });
       }
     }
   }
-  return out.sort();
+  // Choose exactly one source CSV per player.
+  // Priority:
+  // 1) stable file (*_상세전적.csv)
+  // 2) latest ranged file by to/from date (then mtime)
+  const byPlayer = new Map();
+  for (const c of candidates) {
+    if (!byPlayer.has(c.player)) byPlayer.set(c.player, []);
+    byPlayer.get(c.player).push(c);
+  }
+
+  const selected = [];
+  for (const rows of byPlayer.values()) {
+    const stables = rows.filter((r) => r.stable).sort((a, b) => b.mtime - a.mtime);
+    if (stables.length) {
+      selected.push(stables[0].path);
+      continue;
+    }
+    const ranged = rows.slice().sort((a, b) => {
+      if (a.to !== b.to) return String(b.to).localeCompare(String(a.to));
+      if (a.from !== b.from) return String(b.from).localeCompare(String(a.from));
+      return b.mtime - a.mtime;
+    });
+    if (ranged.length) selected.push(ranged[0].path);
+  }
+
+  return selected.sort();
 }
 
 function buildState(files) {

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-20T14:48:10.374Z",
+  "generated_at": "2026-03-21T06:11:52.460Z",
   "project": "yb",
   "team_name": "YB",
   "team_code": "yb",
@@ -8,45 +8,18 @@
   "team_aliases": [
     "YB"
   ],
-  "roster_count": 17,
+  "roster_count": 16,
   "roster": [
     {
       "team_name": "YB",
       "team_code": "yb",
-      "entity_id": "eloboard:male:45",
-      "wr_id": 45,
+      "entity_id": "eloboard:male:28",
+      "wr_id": 28,
       "gender": "male",
-      "name": "염보성",
-      "tier": "잭티어",
-      "race": "Terran",
-      "source": "yb_roster_record_metadata.json",
-      "meta_tags": [
-        "domain:player",
-        "project:yb",
-        "team:yb",
-        "team_code:yb",
-        "team_ko:YB",
-        "team_alias:yb",
-        "gender:male",
-        "race:terran",
-        "tier:unknown"
-      ],
-      "missing_in_master": false,
-      "role_title": "이사장",
-      "role_priority": 1,
-      "tier_key": "jack",
-      "display_name": "염보성"
-    },
-    {
-      "team_name": "YB",
-      "team_code": "yb",
-      "entity_id": "eloboard:male:21",
-      "wr_id": 21,
-      "gender": "male",
-      "name": "김태영",
+      "name": "유승곤",
       "tier": "킹",
       "race": "Terran",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -57,34 +30,7 @@
         "gender:male",
         "race:terran",
         "tier:king",
-        "display_alias:true"
-      ],
-      "missing_in_master": false,
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "king",
-      "display_name": "사테"
-    },
-    {
-      "team_name": "YB",
-      "team_code": "yb",
-      "entity_id": "eloboard:male:28",
-      "wr_id": 28,
-      "gender": "male",
-      "name": "유승곤",
-      "tier": "킹",
-      "race": "Terran",
-      "source": "yb_roster_record_metadata.json",
-      "meta_tags": [
-        "domain:player",
-        "project:yb",
-        "team:yb",
-        "team_code:yb",
-        "team_ko:YB",
-        "team_alias:yb",
-        "gender:male",
-        "race:terran",
-        "tier:king"
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -101,7 +47,7 @@
       "name": "김승현",
       "tier": "잭",
       "race": "Protoss",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -112,7 +58,8 @@
         "gender:male",
         "race:protoss",
         "tier:jack",
-        "display_alias:true"
+        "display_alias:true",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -129,7 +76,7 @@
       "name": "전제민",
       "tier": "조커",
       "race": "Protoss",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -139,7 +86,8 @@
         "team_alias:yb",
         "gender:male",
         "race:protoss",
-        "tier:joker"
+        "tier:joker",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -156,7 +104,7 @@
       "name": "박단원",
       "tier": "스페이드",
       "race": "Protoss",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -167,7 +115,8 @@
         "gender:male",
         "race:protoss",
         "tier:spade",
-        "display_alias:true"
+        "display_alias:true",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -184,7 +133,7 @@
       "name": "저라뎃",
       "tier": "2",
       "race": "Terran",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -194,7 +143,8 @@
         "team_alias:yb",
         "gender:female",
         "race:terran",
-        "tier:2"
+        "tier:2",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -211,7 +161,7 @@
       "name": "우리밍",
       "tier": "4",
       "race": "Terran",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -221,7 +171,8 @@
         "team_alias:yb",
         "gender:female",
         "race:terran",
-        "tier:4"
+        "tier:4",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -238,7 +189,7 @@
       "name": "임밍지",
       "tier": "4",
       "race": "Protoss",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -248,7 +199,8 @@
         "team_alias:yb",
         "gender:female",
         "race:protoss",
-        "tier:4"
+        "tier:4",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -265,7 +217,7 @@
       "name": "태영",
       "tier": "4",
       "race": "Terran",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -275,7 +227,8 @@
         "team_alias:yb",
         "gender:female",
         "race:terran",
-        "tier:4"
+        "tier:4",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -292,7 +245,7 @@
       "name": "으냉이",
       "tier": "6",
       "race": "Terran",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -302,7 +255,8 @@
         "team_alias:yb",
         "gender:female",
         "race:terran",
-        "tier:6"
+        "tier:6",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -319,7 +273,7 @@
       "name": "하랑",
       "tier": "6",
       "race": "Protoss",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -329,7 +283,8 @@
         "team_alias:yb",
         "gender:female",
         "race:protoss",
-        "tier:6"
+        "tier:6",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -346,7 +301,7 @@
       "name": "빵지니",
       "tier": "7",
       "race": "Terran",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -356,7 +311,8 @@
         "team_alias:yb",
         "gender:female",
         "race:terran",
-        "tier:7"
+        "tier:7",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -373,7 +329,7 @@
       "name": "하루묭",
       "tier": "7",
       "race": "Protoss",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -383,7 +339,8 @@
         "team_alias:yb",
         "gender:female",
         "race:protoss",
-        "tier:7"
+        "tier:7",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -400,7 +357,7 @@
       "name": "한쪼니",
       "tier": "7",
       "race": "Protoss",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -410,7 +367,8 @@
         "team_alias:yb",
         "gender:female",
         "race:protoss",
-        "tier:7"
+        "tier:7",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -427,7 +385,7 @@
       "name": "히요코",
       "tier": "8",
       "race": "Protoss",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -437,7 +395,8 @@
         "team_alias:yb",
         "gender:female",
         "race:protoss",
-        "tier:8"
+        "tier:8",
+        "team_en:yb"
       ],
       "missing_in_master": false,
       "role_title": "",
@@ -454,7 +413,7 @@
       "name": "윤하랑",
       "tier": "9",
       "race": "Protoss",
-      "source": "yb_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:yb",
@@ -464,13 +423,44 @@
         "team_alias:yb",
         "gender:female",
         "race:protoss",
-        "tier:baby"
+        "tier:baby",
+        "team_en:yb",
+        "tier:9"
       ],
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
       "tier_key": "9",
       "display_name": "윤하랑"
+    },
+    {
+      "team_name": "YB",
+      "team_code": "yb",
+      "entity_id": "eloboard:male:45",
+      "wr_id": 45,
+      "gender": "male",
+      "name": "염보성",
+      "tier": "잭티어",
+      "race": "Terran",
+      "source": "roster_sync",
+      "meta_tags": [
+        "domain:player",
+        "project:yb",
+        "team:yb",
+        "team_code:yb",
+        "team_ko:YB",
+        "team_alias:yb",
+        "gender:male",
+        "race:terran",
+        "tier:unknown",
+        "team_en:yb",
+        "tier:jack"
+      ],
+      "missing_in_master": false,
+      "role_title": "이사장",
+      "role_priority": 1,
+      "tier_key": "jack",
+      "display_name": "염보성"
     }
   ],
   "source_file": "tmp/yb_roster_record_metadata.json",

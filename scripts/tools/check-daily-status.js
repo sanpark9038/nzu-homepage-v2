@@ -8,10 +8,19 @@ function latestFileByPrefix(prefix) {
   if (!fs.existsSync(REPORTS_DIR)) return null;
   const files = fs
     .readdirSync(REPORTS_DIR)
-    .filter((n) => n.startsWith(prefix) && n.endsWith(".json"))
-    .sort();
+    .filter((n) => n.startsWith(prefix) && n.endsWith(".json"));
   if (!files.length) return null;
-  return path.join(REPORTS_DIR, files[files.length - 1]);
+  let latest = null;
+  let latestMtime = -1;
+  for (const name of files) {
+    const full = path.join(REPORTS_DIR, name);
+    const mtime = fs.statSync(full).mtimeMs;
+    if (mtime > latestMtime) {
+      latestMtime = mtime;
+      latest = full;
+    }
+  }
+  return latest;
 }
 
 function readJson(filePath) {
@@ -64,4 +73,3 @@ function main() {
 }
 
 main();
-

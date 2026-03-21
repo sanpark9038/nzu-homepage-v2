@@ -58,7 +58,7 @@ function validatePlayer(player, index, errors) {
     } else {
       for (let i = 0; i < player.meta_tags.length; i += 1) {
         const t = String(player.meta_tags[i] || "");
-        if (!/^[a-z0-9:_-]+$/.test(t)) {
+        if (!/^[\p{L}\p{N}:_-]+$/u.test(t)) {
           fail(errors, `${p}.meta_tags[${i}]`, `invalid tag format (${t})`);
         }
       }

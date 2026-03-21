@@ -175,6 +175,7 @@ function main() {
         teamName,
         "--player",
         playerName,
+        "--stable-name",
         "--from",
         from,
         "--to",

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-20T13:59:35.562Z",
+  "generated_at": "2026-03-21T06:11:52.116Z",
   "project": "c9",
   "team_name": "씨나인",
   "team_code": "c9",
@@ -14,70 +14,13 @@
     {
       "team_name": "씨나인",
       "team_code": "c9",
-      "entity_id": "eloboard:male:23",
-      "wr_id": 23,
-      "gender": "male",
-      "name": "이예준",
-      "tier": "조커",
-      "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
-      "meta_tags": [
-        "domain:player",
-        "project:c9",
-        "team:c9",
-        "team_code:c9",
-        "team_ko:씨나인",
-        "team_alias:씨나인",
-        "team_alias:c9",
-        "gender:male",
-        "race:zerg",
-        "tier:joker",
-        "display_alias:true"
-      ],
-      "missing_in_master": false,
-      "display_name": "철구",
-      "role_title": "이사장",
-      "role_priority": 1,
-      "tier_key": "joker"
-    },
-    {
-      "team_name": "씨나인",
-      "team_code": "c9",
-      "entity_id": "eloboard:male:19",
-      "wr_id": 19,
-      "gender": "male",
-      "name": "박재혁",
-      "tier": "잭",
-      "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
-      "meta_tags": [
-        "domain:player",
-        "project:c9",
-        "team:c9",
-        "team_code:c9",
-        "team_ko:씨나인",
-        "team_alias:씨나인",
-        "team_alias:c9",
-        "gender:male",
-        "race:zerg",
-        "tier:jack"
-      ],
-      "missing_in_master": false,
-      "display_name": "박재혁",
-      "role_title": "총장",
-      "role_priority": 2,
-      "tier_key": "jack"
-    },
-    {
-      "team_name": "씨나인",
-      "team_code": "c9",
       "entity_id": "eloboard:male:15",
       "wr_id": 15,
       "gender": "male",
       "name": "김민철",
       "tier": "갓",
       "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -88,7 +31,8 @@
         "team_alias:c9",
         "gender:male",
         "race:zerg",
-        "tier:god"
+        "tier:god",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "김민철",
@@ -105,7 +49,7 @@
       "name": "김택용",
       "tier": "갓",
       "race": "Protoss",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -116,7 +60,8 @@
         "team_alias:c9",
         "gender:male",
         "race:protoss",
-        "tier:god"
+        "tier:god",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "김택용",
@@ -133,7 +78,7 @@
       "name": "이영호",
       "tier": "갓",
       "race": "Terran",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -144,7 +89,8 @@
         "team_alias:c9",
         "gender:male",
         "race:terran",
-        "tier:god"
+        "tier:god",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "이영호",
@@ -161,7 +107,7 @@
       "name": "김윤중",
       "tier": "킹",
       "race": "Protoss",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -172,7 +118,8 @@
         "team_alias:c9",
         "gender:male",
         "race:protoss",
-        "tier:king"
+        "tier:king",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "김윤중",
@@ -189,7 +136,7 @@
       "name": "윤용태",
       "tier": "킹",
       "race": "Protoss",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -200,7 +147,8 @@
         "team_alias:c9",
         "gender:male",
         "race:protoss",
-        "tier:king"
+        "tier:king",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "윤용태",
@@ -217,7 +165,7 @@
       "name": "윤진규",
       "tier": "잭",
       "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -228,7 +176,8 @@
         "team_alias:c9",
         "gender:male",
         "race:zerg",
-        "tier:jack"
+        "tier:jack",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "윤진규",
@@ -245,7 +194,7 @@
       "name": "장민철",
       "tier": "잭",
       "race": "Protoss",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -256,7 +205,8 @@
         "team_alias:c9",
         "gender:male",
         "race:protoss",
-        "tier:jack"
+        "tier:jack",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "장민철",
@@ -273,7 +223,7 @@
       "name": "최재성",
       "tier": "스페이드",
       "race": "Terran",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -284,7 +234,8 @@
         "team_alias:c9",
         "gender:male",
         "race:terran",
-        "tier:spade"
+        "tier:spade",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "최재성",
@@ -329,7 +280,7 @@
       "name": "빵훈",
       "tier": "2",
       "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -340,7 +291,8 @@
         "team_alias:c9",
         "gender:female",
         "race:zerg",
-        "tier:2"
+        "tier:2",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "빵훈",
@@ -357,7 +309,7 @@
       "name": "디임",
       "tier": "3",
       "race": "Protoss",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -368,7 +320,8 @@
         "team_alias:c9",
         "gender:female",
         "race:protoss",
-        "tier:3"
+        "tier:3",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "디임",
@@ -385,7 +338,7 @@
       "name": "요닝",
       "tier": "4",
       "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -396,7 +349,8 @@
         "team_alias:c9",
         "gender:female",
         "race:zerg",
-        "tier:4"
+        "tier:4",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "요닝",
@@ -413,7 +367,7 @@
       "name": "졈니",
       "tier": "4",
       "race": "Protoss",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -424,7 +378,8 @@
         "team_alias:c9",
         "gender:female",
         "race:protoss",
-        "tier:4"
+        "tier:4",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "졈니",
@@ -441,7 +396,7 @@
       "name": "조은",
       "tier": "4",
       "race": "Terran",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -452,7 +407,8 @@
         "team_alias:c9",
         "gender:female",
         "race:terran",
-        "tier:4"
+        "tier:4",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "조은",
@@ -469,7 +425,7 @@
       "name": "남수댕",
       "tier": "5",
       "race": "Protoss",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -480,7 +436,8 @@
         "team_alias:c9",
         "gender:female",
         "race:protoss",
-        "tier:5"
+        "tier:5",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "남수댕",
@@ -497,7 +454,7 @@
       "name": "란란",
       "tier": "5",
       "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -508,7 +465,8 @@
         "team_alias:c9",
         "gender:female",
         "race:zerg",
-        "tier:5"
+        "tier:5",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "란란",
@@ -525,7 +483,7 @@
       "name": "모리",
       "tier": "6",
       "race": "Terran",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -536,7 +494,8 @@
         "team_alias:c9",
         "gender:female",
         "race:terran",
-        "tier:6"
+        "tier:6",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "모리",
@@ -553,7 +512,7 @@
       "name": "오리꿍",
       "tier": "6",
       "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -564,7 +523,8 @@
         "team_alias:c9",
         "gender:female",
         "race:zerg",
-        "tier:6"
+        "tier:6",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "오리꿍",
@@ -581,7 +541,7 @@
       "name": "히댕",
       "tier": "6",
       "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -592,7 +552,8 @@
         "team_alias:c9",
         "gender:female",
         "race:zerg",
-        "tier:6"
+        "tier:6",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "히댕",
@@ -609,7 +570,7 @@
       "name": "효짱",
       "tier": "7",
       "race": "Protoss",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -620,7 +581,8 @@
         "team_alias:c9",
         "gender:female",
         "race:protoss",
-        "tier:7"
+        "tier:7",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "효짱",
@@ -637,7 +599,7 @@
       "name": "은조",
       "tier": "8",
       "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -648,7 +610,8 @@
         "team_alias:c9",
         "gender:female",
         "race:zerg",
-        "tier:8"
+        "tier:8",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "은조",
@@ -665,7 +628,7 @@
       "name": "이지다",
       "tier": "8",
       "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:c9",
@@ -676,13 +639,73 @@
         "team_alias:c9",
         "gender:female",
         "race:zerg",
-        "tier:8"
+        "tier:8",
+        "team_en:c9"
       ],
       "missing_in_master": false,
       "display_name": "이지다",
       "role_title": "",
       "role_priority": null,
       "tier_key": "8"
+    },
+    {
+      "team_name": "씨나인",
+      "team_code": "c9",
+      "entity_id": "eloboard:male:23",
+      "wr_id": 23,
+      "gender": "male",
+      "name": "이예준",
+      "tier": "조커",
+      "race": "Zerg",
+      "source": "roster_sync",
+      "meta_tags": [
+        "domain:player",
+        "project:c9",
+        "team:c9",
+        "team_code:c9",
+        "team_ko:씨나인",
+        "team_alias:씨나인",
+        "team_alias:c9",
+        "gender:male",
+        "race:zerg",
+        "tier:joker",
+        "display_alias:true",
+        "team_en:c9"
+      ],
+      "missing_in_master": false,
+      "display_name": "철구",
+      "role_title": "이사장",
+      "role_priority": 1,
+      "tier_key": "joker"
+    },
+    {
+      "team_name": "씨나인",
+      "team_code": "c9",
+      "entity_id": "eloboard:male:19",
+      "wr_id": 19,
+      "gender": "male",
+      "name": "박재혁",
+      "tier": "잭",
+      "race": "Zerg",
+      "source": "roster_sync",
+      "meta_tags": [
+        "domain:player",
+        "project:c9",
+        "team:c9",
+        "team_code:c9",
+        "team_ko:씨나인",
+        "team_alias:씨나인",
+        "team_alias:c9",
+        "gender:male",
+        "race:zerg",
+        "tier:jack",
+        "team_en:c9"
+      ],
+      "missing_in_master": false,
+      "display_name": "박재혁",
+      "role_title": "총장",
+      "role_priority": 2,
+      "tier_key": "jack"
     }
   ],
   "source_file": "tmp/씨나인_roster_record_metadata.json",

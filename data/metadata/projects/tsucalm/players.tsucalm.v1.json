@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-20T15:07:00.964Z",
+  "generated_at": "2026-03-21T06:11:52.392Z",
   "project": "tsucalm",
   "team_name": "츠캄",
   "team_code": "tsucalm",
@@ -10,7 +10,7 @@
     "TSUCALM",
     "츠캄몬스타즈"
   ],
-  "roster_count": 16,
+  "roster_count": 19,
   "roster": [
     {
       "team_name": "츠캄",
@@ -170,6 +170,32 @@
     {
       "team_name": "츠캄",
       "team_code": "tsucalm",
+      "entity_id": "eloboard:female:475",
+      "wr_id": 475,
+      "gender": "female",
+      "name": "지두두",
+      "tier": "3",
+      "race": "Terran",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:tsucalm",
+        "team_code:tsucalm",
+        "team_ko:츠캄",
+        "team_en:tsucalm",
+        "gender:female",
+        "race:terran",
+        "tier:3"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "3",
+      "display_name": "지두두"
+    },
+    {
+      "team_name": "츠캄",
+      "team_code": "tsucalm",
       "entity_id": "eloboard:female:393",
       "wr_id": 393,
       "gender": "female",
@@ -325,6 +351,32 @@
     {
       "team_name": "츠캄",
       "team_code": "tsucalm",
+      "entity_id": "eloboard:female:865",
+      "wr_id": 865,
+      "gender": "female",
+      "name": "비타밍",
+      "tier": "6",
+      "race": "Terran",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:tsucalm",
+        "team_code:tsucalm",
+        "team_ko:츠캄",
+        "team_en:tsucalm",
+        "gender:female",
+        "race:terran",
+        "tier:6"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "6",
+      "display_name": "비타밍"
+    },
+    {
+      "team_name": "츠캄",
+      "team_code": "tsucalm",
       "entity_id": "eloboard:female:878",
       "wr_id": 878,
       "gender": "female",
@@ -383,6 +435,32 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "먼진"
+    },
+    {
+      "team_name": "츠캄",
+      "team_code": "tsucalm",
+      "entity_id": "eloboard:female:989",
+      "wr_id": 989,
+      "gender": "female",
+      "name": "아리송이",
+      "tier": "7",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:tsucalm",
+        "team_code:tsucalm",
+        "team_ko:츠캄",
+        "team_en:tsucalm",
+        "gender:female",
+        "race:protoss",
+        "tier:7"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "7",
+      "display_name": "아리송이"
     },
     {
       "team_name": "츠캄",

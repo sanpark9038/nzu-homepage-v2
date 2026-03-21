@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-20T06:53:26.412Z",
+  "generated_at": "2026-03-21T06:11:52.322Z",
   "project": "nzu-homepage",
   "team_name": "늪지대",
   "team_code": "nzu",
@@ -9,35 +9,13 @@
   "roster": [
     {
       "team_name": "늪지대",
-      "entity_id": "eloboard:female:671",
-      "wr_id": 671,
-      "gender": "female",
-      "name": "쌍디",
-      "tier": "6",
-      "race": "Zerg",
-      "source": "nzu_seed_roster",
-      "meta_tags": [
-        "domain:player",
-        "project:nzu-homepage",
-        "team:nzu",
-        "team_code:nzu",
-        "team_ko:늪지대",
-        "team_en:nzu",
-        "gender:female",
-        "race:zerg",
-        "tier:6"
-      ],
-      "missing_in_master": false
-    },
-    {
-      "team_name": "늪지대",
       "entity_id": "eloboard:male:150",
       "wr_id": 150,
       "gender": "male",
       "name": "인치호",
       "tier": "조커",
       "race": "Zerg",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -49,7 +27,12 @@
         "race:zerg",
         "tier:joker"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "joker",
+      "display_name": "인치호"
     },
     {
       "team_name": "늪지대",
@@ -59,7 +42,7 @@
       "name": "전흥식",
       "tier": "조커",
       "race": "Protoss",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -71,7 +54,12 @@
         "race:protoss",
         "tier:joker"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "joker",
+      "display_name": "전흥식"
     },
     {
       "team_name": "늪지대",
@@ -81,7 +69,7 @@
       "name": "김성제",
       "tier": "스페이드",
       "race": "Protoss",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -93,7 +81,12 @@
         "race:protoss",
         "tier:spade"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "spade",
+      "display_name": "김성제"
     },
     {
       "team_name": "늪지대",
@@ -103,7 +96,7 @@
       "name": "서기수",
       "tier": "스페이드",
       "race": "Protoss",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -115,7 +108,12 @@
         "race:protoss",
         "tier:spade"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "spade",
+      "display_name": "서기수"
     },
     {
       "team_name": "늪지대",
@@ -125,7 +123,7 @@
       "name": "애공",
       "tier": "1",
       "race": "Protoss",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -137,7 +135,12 @@
         "race:protoss",
         "tier:1"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "1",
+      "display_name": "애공"
     },
     {
       "team_name": "늪지대",
@@ -147,7 +150,7 @@
       "name": "슬아",
       "tier": "4",
       "race": "Zerg",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -159,7 +162,12 @@
         "race:zerg",
         "tier:4"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "4",
+      "display_name": "슬아"
     },
     {
       "team_name": "늪지대",
@@ -169,7 +177,7 @@
       "name": "슈슈",
       "tier": "5",
       "race": "Zerg",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -181,7 +189,12 @@
         "race:zerg",
         "tier:5"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "5",
+      "display_name": "슈슈"
     },
     {
       "team_name": "늪지대",
@@ -191,7 +204,7 @@
       "name": "예실",
       "tier": "5",
       "race": "Protoss",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -203,17 +216,22 @@
         "race:protoss",
         "tier:5"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "5",
+      "display_name": "예실"
     },
     {
       "team_name": "늪지대",
-      "entity_id": "eloboard:female:627",
-      "wr_id": 627,
+      "entity_id": "eloboard:female:671",
+      "wr_id": 671,
       "gender": "female",
-      "name": "연블비",
+      "name": "쌍디",
       "tier": "6",
       "race": "Zerg",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -225,7 +243,39 @@
         "race:zerg",
         "tier:6"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "6",
+      "display_name": "쌍디"
+    },
+    {
+      "team_name": "늪지대",
+      "entity_id": "eloboard:female:627",
+      "wr_id": 627,
+      "gender": "female",
+      "name": "연블비",
+      "tier": "6",
+      "race": "Zerg",
+      "source": "roster_sync",
+      "meta_tags": [
+        "domain:player",
+        "project:nzu-homepage",
+        "team:nzu",
+        "team_code:nzu",
+        "team_ko:늪지대",
+        "team_en:nzu",
+        "gender:female",
+        "race:zerg",
+        "tier:6"
+      ],
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "6",
+      "display_name": "연블비"
     },
     {
       "team_name": "늪지대",
@@ -235,7 +285,7 @@
       "name": "다라츄",
       "tier": "8",
       "race": "Zerg",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -247,7 +297,12 @@
         "race:zerg",
         "tier:8"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "8",
+      "display_name": "다라츄"
     },
     {
       "team_name": "늪지대",
@@ -257,7 +312,7 @@
       "name": "아링",
       "tier": "8",
       "race": "Protoss",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -269,7 +324,12 @@
         "race:protoss",
         "tier:8"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "8",
+      "display_name": "아링"
     },
     {
       "team_name": "늪지대",
@@ -279,7 +339,7 @@
       "name": "정연이",
       "tier": "8",
       "race": "Protoss",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -291,7 +351,12 @@
         "race:protoss",
         "tier:8"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "8",
+      "display_name": "정연이"
     },
     {
       "team_name": "늪지대",
@@ -301,7 +366,7 @@
       "name": "지아송",
       "tier": "8",
       "race": "Protoss",
-      "source": "nzu_seed_roster",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:nzu-homepage",
@@ -313,7 +378,12 @@
         "race:protoss",
         "tier:8"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "team_code": "nzu",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "8",
+      "display_name": "지아송"
     }
   ]
 }

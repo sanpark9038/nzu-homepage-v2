@@ -365,6 +365,7 @@ function recoverTeamAnomalies(team, report, from, to, concurrency) {
         team.univ,
         "--player",
         playerName,
+        "--stable-name",
         "--from",
         from,
         "--to",

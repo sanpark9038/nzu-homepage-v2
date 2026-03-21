@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-20T08:05:19.336Z",
+  "generated_at": "2026-03-21T06:11:52.356Z",
   "project": "ssu",
   "team_name": "수술대",
   "team_code": "ssu",
@@ -10,39 +10,13 @@
     {
       "team_name": "수술대",
       "team_code": "ssu",
-      "entity_id": "eloboard:female:670",
-      "wr_id": 670,
-      "gender": "female",
-      "name": "정중만",
-      "tier": "5",
-      "race": "Protoss",
-      "source": "수술대_roster_record_metadata.json",
-      "meta_tags": [
-        "domain:player",
-        "project:ssu",
-        "team:ssu",
-        "team_code:ssu",
-        "team_ko:수술대",
-        "team_en:ssu",
-        "gender:female",
-        "race:protoss",
-        "tier:5"
-      ],
-      "missing_in_master": false,
-      "role_title": "이사장",
-      "role_priority": 1,
-      "tier_key": "5"
-    },
-    {
-      "team_name": "수술대",
-      "team_code": "ssu",
       "entity_id": "eloboard:male:22",
       "wr_id": 22,
       "gender": "male",
       "name": "박상현",
       "tier": "갓",
       "race": "Zerg",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -57,7 +31,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "god"
+      "tier_key": "god",
+      "display_name": "박상현"
     },
     {
       "team_name": "수술대",
@@ -68,7 +43,7 @@
       "name": "송병구",
       "tier": "킹",
       "race": "Protoss",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -83,7 +58,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "king"
+      "tier_key": "king",
+      "display_name": "송병구"
     },
     {
       "team_name": "수술대",
@@ -94,7 +70,7 @@
       "name": "서문지훈",
       "tier": "잭",
       "race": "Zerg",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -109,7 +85,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "jack"
+      "tier_key": "jack",
+      "display_name": "서문지훈"
     },
     {
       "team_name": "수술대",
@@ -120,7 +97,7 @@
       "name": "신상문",
       "tier": "잭",
       "race": "Terran",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -135,7 +112,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "jack"
+      "tier_key": "jack",
+      "display_name": "신상문"
     },
     {
       "team_name": "수술대",
@@ -146,7 +124,7 @@
       "name": "선우도현",
       "tier": "조커",
       "race": "Zerg",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -161,7 +139,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "joker"
+      "tier_key": "joker",
+      "display_name": "선우도현"
     },
     {
       "team_name": "수술대",
@@ -172,7 +151,7 @@
       "name": "손찬웅",
       "tier": "조커",
       "race": "Protoss",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -187,7 +166,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "joker"
+      "tier_key": "joker",
+      "display_name": "손찬웅"
     },
     {
       "team_name": "수술대",
@@ -198,7 +178,7 @@
       "name": "멍이",
       "tier": "0",
       "race": "Protoss",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -213,7 +193,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "0"
+      "tier_key": "0",
+      "display_name": "멍이"
     },
     {
       "team_name": "수술대",
@@ -224,7 +205,7 @@
       "name": "박성용",
       "tier": "0",
       "race": "Protoss",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -239,7 +220,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "0"
+      "tier_key": "0",
+      "display_name": "박성용"
     },
     {
       "team_name": "수술대",
@@ -250,7 +232,7 @@
       "name": "다린",
       "tier": "1",
       "race": "Terran",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -265,7 +247,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "1"
+      "tier_key": "1",
+      "display_name": "다린"
     },
     {
       "team_name": "수술대",
@@ -276,7 +259,7 @@
       "name": "남덕선",
       "tier": "2",
       "race": "Zerg",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -291,7 +274,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "2"
+      "tier_key": "2",
+      "display_name": "남덕선"
     },
     {
       "team_name": "수술대",
@@ -302,7 +286,7 @@
       "name": "공다츠",
       "tier": "3",
       "race": "Zerg",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -317,7 +301,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "3"
+      "tier_key": "3",
+      "display_name": "공다츠"
     },
     {
       "team_name": "수술대",
@@ -328,7 +313,7 @@
       "name": "나예리",
       "tier": "3",
       "race": "Terran",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -343,7 +328,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "3"
+      "tier_key": "3",
+      "display_name": "나예리"
     },
     {
       "team_name": "수술대",
@@ -354,7 +340,7 @@
       "name": "파찌",
       "tier": "3",
       "race": "Zerg",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -369,7 +355,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "3"
+      "tier_key": "3",
+      "display_name": "파찌"
     },
     {
       "team_name": "수술대",
@@ -380,7 +367,7 @@
       "name": "연애인",
       "tier": "4",
       "race": "Protoss",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -395,7 +382,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "4"
+      "tier_key": "4",
+      "display_name": "연애인"
     },
     {
       "team_name": "수술대",
@@ -406,7 +394,7 @@
       "name": "깨림이",
       "tier": "5",
       "race": "Terran",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -421,7 +409,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "5"
+      "tier_key": "5",
+      "display_name": "깨림이"
     },
     {
       "team_name": "수술대",
@@ -432,7 +421,7 @@
       "name": "주서리",
       "tier": "5",
       "race": "Protoss",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -447,7 +436,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "5"
+      "tier_key": "5",
+      "display_name": "주서리"
     },
     {
       "team_name": "수술대",
@@ -458,7 +448,7 @@
       "name": "2라니",
       "tier": "6",
       "race": "Zerg",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -473,7 +463,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "6"
+      "tier_key": "6",
+      "display_name": "2라니"
     },
     {
       "team_name": "수술대",
@@ -484,7 +475,7 @@
       "name": "귀요민정",
       "tier": "6",
       "race": "Zerg",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -499,7 +490,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "6"
+      "tier_key": "6",
+      "display_name": "귀요민정"
     },
     {
       "team_name": "수술대",
@@ -510,7 +502,7 @@
       "name": "밍가",
       "tier": "6",
       "race": "Protoss",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -525,7 +517,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "6"
+      "tier_key": "6",
+      "display_name": "밍가"
     },
     {
       "team_name": "수술대",
@@ -536,7 +529,7 @@
       "name": "핑핑",
       "tier": "6",
       "race": "Zerg",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -551,7 +544,8 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "6"
+      "tier_key": "6",
+      "display_name": "핑핑"
     },
     {
       "team_name": "수술대",
@@ -562,7 +556,7 @@
       "name": "헤요이",
       "tier": "8",
       "race": "Protoss",
-      "source": "수술대_roster_record_metadata.json",
+      "source": "roster_sync",
       "meta_tags": [
         "domain:player",
         "project:ssu",
@@ -577,7 +571,35 @@
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "8"
+      "tier_key": "8",
+      "display_name": "헤요이"
+    },
+    {
+      "team_name": "수술대",
+      "team_code": "ssu",
+      "entity_id": "eloboard:female:670",
+      "wr_id": 670,
+      "gender": "female",
+      "name": "정중만",
+      "tier": "5",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "meta_tags": [
+        "domain:player",
+        "project:ssu",
+        "team:ssu",
+        "team_code:ssu",
+        "team_ko:수술대",
+        "team_en:ssu",
+        "gender:female",
+        "race:protoss",
+        "tier:5"
+      ],
+      "missing_in_master": false,
+      "role_title": "이사장",
+      "role_priority": 1,
+      "tier_key": "5",
+      "display_name": "정중만"
     }
   ],
   "source_file": "tmp/수술대_roster_record_metadata.json",

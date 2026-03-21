@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-20T15:07:00.926Z",
+  "generated_at": "2026-03-21T06:11:52.004Z",
   "project": "fa",
   "team_name": "무소속",
   "team_code": "fa",
@@ -9,6 +9,132 @@
     "무소속",
     "FA"
   ],
-  "roster_count": 0,
-  "roster": []
+  "roster_count": 5,
+  "roster": [
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:male:21",
+      "wr_id": 21,
+      "gender": "male",
+      "name": "김태영",
+      "tier": "킹",
+      "race": "Terran",
+      "source": "roster_sync_fa",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "gender:male",
+        "race:terran",
+        "tier:king"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "king"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:male:59",
+      "wr_id": 59,
+      "gender": "male",
+      "name": "김대한",
+      "tier": "조커",
+      "race": "Zerg",
+      "source": "roster_sync_fa",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "gender:male",
+        "race:zerg",
+        "tier:joker"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "joker"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:female:704",
+      "wr_id": 704,
+      "gender": "female",
+      "name": "찌킹",
+      "tier": "4",
+      "race": "Zerg",
+      "source": "roster_sync_fa",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "gender:female",
+        "race:zerg",
+        "tier:4"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "4"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:female:700",
+      "wr_id": 700,
+      "gender": "female",
+      "name": "김태향",
+      "tier": "6",
+      "race": "Zerg",
+      "source": "roster_sync_fa",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "gender:female",
+        "race:zerg",
+        "tier:6"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "6"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:female:1022",
+      "wr_id": 1022,
+      "gender": "female",
+      "name": "옥수수",
+      "tier": "9",
+      "race": "Protoss",
+      "source": "roster_sync_fa",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "gender:female",
+        "race:protoss",
+        "tier:9"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "9"
+    }
+  ]
 }

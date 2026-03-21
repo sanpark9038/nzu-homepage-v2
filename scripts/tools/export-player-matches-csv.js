@@ -17,9 +17,13 @@ if (!player) {
 
 const from = argValue("--from", "2025-01-01");
 const to = argValue("--to", new Date().toISOString().slice(0, 10));
+const stableName = process.argv.includes("--stable-name");
 
 const reportPath = path.join(process.cwd(), "tmp", `${univ}_${player}_matches.json`);
-const csvPath = path.join(process.cwd(), "tmp", `${player}_상세전적_${from}_${to}.csv`);
+const csvFileName = stableName
+  ? `${player}_상세전적.csv`
+  : `${player}_상세전적_${from}_${to}.csv`;
+const csvPath = path.join(process.cwd(), "tmp", csvFileName);
 
 function splitOpponent(text) {
   const raw = String(text || "").trim();
