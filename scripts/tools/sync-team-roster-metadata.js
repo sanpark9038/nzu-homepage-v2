@@ -108,7 +108,7 @@ function parseRoster(html) {
     const full = pName.text().trim();
     const name = full.replace(/\([^)]*\)\s*$/, "").trim();
     const tierMatch = full.match(/\(([^)]+)\)\s*$/);
-    const tier = tierMatch ? tierMatch[1].trim() : "미정";
+    const tier = tierMatch ? tierMatch[1].trim() : "";
 
     const tds = row.find("td");
     const raceCell = $(tds[1]).text().trim();
@@ -192,6 +192,11 @@ function upsertRosterEntry(teamJson, observed, source) {
   const roster = Array.isArray(teamJson.roster) ? teamJson.roster : [];
   const idx = roster.findIndex((p) => String(p.entity_id) === observed.entity_id);
   const base = idx >= 0 ? roster[idx] : {};
+  const observedTier = String(observed.tier || "").trim();
+  const observedRace = String(observed.race || "").trim();
+  const nextTier = observedTier && observedTier !== "미정" ? observedTier : String(base.tier || "미정");
+  const nextRace =
+    observedRace && observedRace !== "Unknown" ? observedRace : String(base.race || "Unknown");
   const next = {
     ...base,
     team_name: String(teamJson.team_name || ""),
@@ -200,8 +205,8 @@ function upsertRosterEntry(teamJson, observed, source) {
     wr_id: observed.wr_id,
     gender: observed.gender,
     name: observed.name,
-    tier: observed.tier || base.tier || "미정",
-    race: observed.race || base.race || "Unknown",
+    tier: nextTier,
+    race: nextRace,
     source: source || base.source || "roster_sync",
     missing_in_master: false,
   };

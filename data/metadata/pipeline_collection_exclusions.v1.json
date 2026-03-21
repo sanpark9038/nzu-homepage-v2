@@ -9,17 +9,34 @@
       "reason": "user_excluded"
     },
     {
+      "name": "김수환",
+      "wr_id": 118,
+      "reason": "user_excluded_pending_tier"
+    },
+    {
       "name": "김민교",
+      "wr_id": 162,
       "reason": "user_excluded"
     },
     {
+      "name": "박한별",
+      "wr_id": 185,
+      "reason": "user_excluded_pending_tier"
+    },
+    {
       "name": "이상호",
+      "wr_id": 402,
       "reason": "user_excluded"
     },
     {
       "name": "농떼르만",
       "wr_id": 646,
       "reason": "user_excluded"
+    },
+    {
+      "name": "엘사",
+      "wr_id": 777,
+      "reason": "user_excluded_pending_tier"
     }
   ]
 }
