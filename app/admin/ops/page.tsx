@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import Link from "next/link";
 import OpsControls from "./OpsControls";
+import RosterEditor from "./RosterEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,7 @@ export default function AdminOpsPage() {
         </section>
 
         <OpsControls />
+        <RosterEditor />
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold">Team Health</h2>
