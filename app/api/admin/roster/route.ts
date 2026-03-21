@@ -42,6 +42,16 @@ type ProjectRef = {
 
 const ROOT = process.cwd();
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
+const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
+
+type OverrideRow = {
+  entity_id: string;
+  team_code?: string;
+  tier?: string;
+  race?: string;
+  name?: string;
+  updated_at?: string;
+};
 
 function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as T;
@@ -50,6 +60,26 @@ function readJson<T>(filePath: string): T {
 function writeJson(filePath: string, value: unknown) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2), "utf8");
+}
+
+function readOverrides(): OverrideRow[] {
+  if (!fs.existsSync(OVERRIDES_PATH)) return [];
+  try {
+    const doc = readJson<{ overrides?: OverrideRow[] }>(OVERRIDES_PATH);
+    return Array.isArray(doc.overrides) ? doc.overrides : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeOverrides(rows: OverrideRow[]) {
+  writeJson(OVERRIDES_PATH, {
+    schema_version: "1.0.0",
+    updated_at: new Date().toISOString(),
+    description:
+      "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
+    overrides: rows,
+  });
 }
 
 function slug(v: string) {
@@ -149,6 +179,7 @@ function normalizeDoc(doc: ProjectDoc) {
 
 export async function GET() {
   const projects = loadProjects();
+  const overrideSet = new Set(readOverrides().map((r) => String(r.entity_id)));
   const players = projects.flatMap((p) =>
     (p.doc.roster || []).map((r) => ({
       entity_id: r.entity_id,
@@ -159,6 +190,7 @@ export async function GET() {
       team_name: p.doc.team_name,
       tier: r.tier,
       race: r.race,
+      manual_lock: overrideSet.has(String(r.entity_id)),
     }))
   );
   const teams = projects.map((p) => ({
@@ -174,11 +206,13 @@ export async function PATCH(req: Request) {
     entity_id?: string;
     team_code?: string;
     tier?: string;
+    manual_lock?: boolean;
   };
 
   const entityId = String(body.entity_id || "").trim();
   const nextTeamCode = String(body.team_code || "").trim().toLowerCase();
   const nextTier = String(body.tier || "").trim();
+  const manualLock = body.manual_lock !== false;
   if (!entityId || !nextTeamCode || !nextTier) {
     return NextResponse.json(
       { ok: false, message: "entity_id, team_code, tier are required" },
@@ -223,6 +257,17 @@ export async function PATCH(req: Request) {
   writeJson(source.filePath, source.doc);
   if (source.filePath !== target.filePath) writeJson(target.filePath, target.doc);
 
+  const overrides = readOverrides().filter((r) => String(r.entity_id) !== entityId);
+  if (manualLock) {
+    overrides.push({
+      entity_id: entityId,
+      team_code: nextTeamCode,
+      tier: nextTier,
+      updated_at: new Date().toISOString(),
+    });
+  }
+  writeOverrides(overrides);
+
   return NextResponse.json({
     ok: true,
     updated: {
@@ -232,7 +277,7 @@ export async function PATCH(req: Request) {
       team_code: moving.team_code,
       team_name: moving.team_name,
       tier: moving.tier,
+      manual_lock: manualLock,
     },
   });
 }
-

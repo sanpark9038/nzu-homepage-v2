@@ -7,6 +7,7 @@ const iconv = require("iconv-lite");
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const REPORT_DIR = path.join(ROOT, "tmp", "reports");
+const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const FA_UNIV_FALLBACKS = ["연합팀", "FA", "무소속"];
 
 function argValue(flag, fallback = "") {
@@ -17,6 +18,16 @@ function argValue(flag, fallback = "") {
 
 function readJson(p) {
   return JSON.parse(fs.readFileSync(p, "utf8").replace(/^\uFEFF/, ""));
+}
+
+function readManualOverrides() {
+  if (!fs.existsSync(OVERRIDES_PATH)) return [];
+  try {
+    const doc = readJson(OVERRIDES_PATH);
+    return Array.isArray(doc.overrides) ? doc.overrides : [];
+  } catch {
+    return [];
+  }
 }
 
 function loadTeamConfig() {
@@ -300,6 +311,29 @@ async function main() {
     }
   }
 
+  const manualOverrides = readManualOverrides();
+  const appliedManualOverrides = [];
+  for (const ov of manualOverrides) {
+    if (!ov || !ov.entity_id) continue;
+    const entityId = String(ov.entity_id);
+    const prev = beforeByEntity.get(entityId);
+    const current = observedByEntity.get(entityId);
+    const base = current || (prev ? { ...prev.player, team_code: prev.team_code } : null);
+    if (!base) continue;
+
+    const next = { ...base };
+    if (ov.team_code) next.team_code = String(ov.team_code).toLowerCase();
+    if (ov.tier) next.tier = String(ov.tier);
+    if (ov.race) next.race = String(ov.race);
+    if (ov.name) next.name = String(ov.name);
+    observedByEntity.set(entityId, next);
+    appliedManualOverrides.push({
+      entity_id: entityId,
+      team_code: next.team_code,
+      tier: next.tier || "",
+    });
+  }
+
   const moved = [];
   const added = [];
   const tierChanged = [];
@@ -369,6 +403,8 @@ async function main() {
     fa_source_univ: faSourceUniv,
     fa_observed_count: faObservedCount,
     fa_fetch_error: faFetchError,
+    manual_overrides_applied_count: appliedManualOverrides.length,
+    manual_overrides_applied: appliedManualOverrides,
     changed_teams: changedTeams,
     moved_count: moved.length,
     added_count: added.length,

@@ -11,6 +11,7 @@ type PlayerRow = {
   team_name: string;
   tier: string;
   race: string;
+  manual_lock?: boolean;
 };
 
 type TeamRow = {
@@ -53,6 +54,7 @@ export default function RosterEditor() {
   const [selectedId, setSelectedId] = useState("");
   const [teamCode, setTeamCode] = useState("");
   const [tier, setTier] = useState("");
+  const [manualLock, setManualLock] = useState(true);
 
   const selected = useMemo(() => players.find((p) => p.entity_id === selectedId) || null, [players, selectedId]);
 
@@ -88,6 +90,7 @@ export default function RosterEditor() {
     if (!selected) return;
     setTeamCode(selected.team_code);
     setTier(String(selected.tier || ""));
+    setManualLock(selected.manual_lock !== false);
   }, [selectedId, selected]);
 
   async function save() {
@@ -102,6 +105,7 @@ export default function RosterEditor() {
           entity_id: selected.entity_id,
           team_code: teamCode,
           tier,
+          manual_lock: manualLock,
         }),
       });
       const json = await res.json();
@@ -202,8 +206,17 @@ export default function RosterEditor() {
         </button>
       </div>
 
+      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={manualLock}
+          onChange={(e) => setManualLock(e.target.checked)}
+          disabled={!selected}
+        />
+        수동 잠금 유지 (자동 동기화에서 팀/티어 덮어쓰기 방지)
+      </label>
+
       {msg ? <p className="text-sm text-muted-foreground">{msg}</p> : null}
     </section>
   );
 }
-
