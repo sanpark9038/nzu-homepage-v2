@@ -235,6 +235,25 @@ function removeRosterEntry(teamJson, entityId) {
   teamJson.roster = roster.filter((p) => String(p.entity_id) !== entityId);
 }
 
+function effectiveTier(observedTier, baseTier) {
+  const o = String(observedTier || "").trim();
+  if (o && o !== "미정") return o;
+  return String(baseTier || "미정");
+}
+
+function effectiveRace(observedRace, baseRace) {
+  const o = String(observedRace || "").trim();
+  if (o && o !== "Unknown") return o;
+  return String(baseRace || "Unknown");
+}
+
+function removeEntityFromAllDocs(docs, entityId, keepTeamCode) {
+  for (const d of docs) {
+    if (String(d.team.code) === String(keepTeamCode)) continue;
+    removeRosterEntry(d.json, entityId);
+  }
+}
+
 function sortRoster(teamJson) {
   const roster = Array.isArray(teamJson.roster) ? teamJson.roster : [];
   roster.sort((a, b) => {
@@ -267,12 +286,23 @@ async function main() {
   }
   const faDoc = ensureFaProject();
   const observedByEntity = new Map();
+  const observedConflicts = [];
 
   for (const t of teams) {
     const url = `https://eloboard.com/univ/bbs/board.php?bo_table=all_bj_list&univ_name=${encodeURIComponent(t.univ)}`;
     const html = await fetchHtml(url);
     const rows = parseRoster(html);
     for (const r of rows) {
+      const prevObserved = observedByEntity.get(r.entity_id);
+      if (prevObserved && String(prevObserved.team_code) !== String(t.code)) {
+        observedConflicts.push({
+          entity_id: r.entity_id,
+          name_prev: prevObserved.name,
+          team_prev: prevObserved.team_code,
+          name_next: r.name,
+          team_next: t.code,
+        });
+      }
       observedByEntity.set(r.entity_id, { ...r, team_code: t.code });
     }
   }
@@ -292,6 +322,16 @@ async function main() {
       const faRows = parseRoster(faHtml);
       if (!faRows.length) continue;
       for (const r of faRows) {
+        const prevObserved = observedByEntity.get(r.entity_id);
+        if (prevObserved && String(prevObserved.team_code) !== "fa") {
+          observedConflicts.push({
+            entity_id: r.entity_id,
+            name_prev: prevObserved.name,
+            team_prev: prevObserved.team_code,
+            name_next: r.name,
+            team_next: "fa",
+          });
+        }
         observedByEntity.set(r.entity_id, { ...r, team_code: "fa" });
         faObservedEntityIds.add(String(r.entity_id));
       }
@@ -338,6 +378,7 @@ async function main() {
   const added = [];
   const tierChanged = [];
   const raceChanged = [];
+  const dedupRemovals = [];
 
   for (const [entityId, observed] of observedByEntity.entries()) {
     const prev = beforeByEntity.get(entityId);
@@ -354,11 +395,32 @@ async function main() {
 
     const oldTier = prev && prev.player ? String(prev.player.tier || "") : "";
     const oldRace = prev && prev.player ? String(prev.player.race || "") : "";
-    if (oldTier && oldTier !== observed.tier) {
-      tierChanged.push({ entity_id: entityId, name: observed.name, from: oldTier, to: observed.tier });
+    const newTier = effectiveTier(observed.tier, prev && prev.player ? prev.player.tier : "");
+    const newRace = effectiveRace(observed.race, prev && prev.player ? prev.player.race : "");
+    if (oldTier && oldTier !== newTier) {
+      tierChanged.push({ entity_id: entityId, name: observed.name, from: oldTier, to: newTier });
     }
-    if (oldRace && oldRace !== observed.race) {
-      raceChanged.push({ entity_id: entityId, name: observed.name, from: oldRace, to: observed.race });
+    if (oldRace && oldRace !== newRace) {
+      raceChanged.push({ entity_id: entityId, name: observed.name, from: oldRace, to: newRace });
+    }
+
+    const beforeCounts = allDocs.map((d) => ({
+      team_code: d.team.code,
+      count: Array.isArray(d.json.roster)
+        ? d.json.roster.filter((p) => String(p.entity_id) === String(entityId)).length
+        : 0,
+    }));
+    removeEntityFromAllDocs(allDocs, entityId, observed.team_code);
+    const removedFrom = beforeCounts
+      .filter((x) => x.team_code !== observed.team_code && x.count > 0)
+      .map((x) => x.team_code);
+    if (removedFrom.length > 0) {
+      dedupRemovals.push({
+        entity_id: entityId,
+        name: observed.name,
+        kept_team: observed.team_code,
+        removed_from_teams: removedFrom,
+      });
     }
 
     upsertRosterEntry(targetDoc.json, observed, "roster_sync");
@@ -405,6 +467,10 @@ async function main() {
     fa_fetch_error: faFetchError,
     manual_overrides_applied_count: appliedManualOverrides.length,
     manual_overrides_applied: appliedManualOverrides,
+    observed_conflicts_count: observedConflicts.length,
+    observed_conflicts: observedConflicts,
+    dedup_removals_count: dedupRemovals.length,
+    dedup_removals: dedupRemovals,
     changed_teams: changedTeams,
     moved_count: moved.length,
     added_count: added.length,

@@ -1,6 +1,16 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-03-21T00:00:00.000Z",
+  "updated_at": "2026-03-21T11:31:30.000Z",
   "description": "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
-  "overrides": []
+  "overrides": [
+    {
+      "entity_id": "eloboard:female:398",
+      "name": "나무늘봉순",
+      "team_code": "c9",
+      "tier": "2",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Alias conflict: keep canonical assignment to c9/나무늘봉순 for wr_id=398."
+    }
+  ]
 }
