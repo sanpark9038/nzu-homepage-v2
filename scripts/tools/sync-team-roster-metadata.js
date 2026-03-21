@@ -16,6 +16,10 @@ function argValue(flag, fallback = "") {
   return fallback;
 }
 
+function hasFlag(flag) {
+  return process.argv.includes(flag);
+}
+
 function readJson(p) {
   return JSON.parse(fs.readFileSync(p, "utf8").replace(/^\uFEFF/, ""));
 }
@@ -271,12 +275,18 @@ function sortRoster(teamJson) {
 async function main() {
   const teamsArg = argValue("--teams", "");
   const faUnivArg = argValue("--fa-univ", "");
+  const allowPartial = hasFlag("--allow-partial");
   const teamConfig = loadTeamConfig();
   const enabledCodes = teamsArg
     ? teamsArg.split(",").map((v) => v.trim().toLowerCase()).filter(Boolean)
     : teamConfig.map((t) => t.code);
   const teams = teamConfig.filter((t) => enabledCodes.includes(t.code));
   if (!teams.length) throw new Error("No teams selected.");
+  if (teamsArg && !allowPartial) {
+    throw new Error(
+      "Partial team sync is blocked by default for safety. Run without --teams, or add --allow-partial explicitly."
+    );
+  }
 
   const teamDocs = new Map();
   for (const t of teams) {
