@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
+require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local") });
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORT_DIR = path.join(ROOT, "tmp", "reports");
@@ -52,6 +53,43 @@ function writeText(filePath, content) {
   fs.writeFileSync(filePath, content, "utf8");
 }
 
+async function postDiscordWebhook(content) {
+  const webhook =
+    process.env.OPS_DISCORD_WEBHOOK_URL ||
+    process.env.DISCORD_WEBHOOK_URL ||
+    "";
+  if (!String(webhook).trim()) return { sent: false, reason: "missing_webhook" };
+
+  const res = await fetch(webhook, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Discord webhook failed: ${res.status} ${body}`);
+  }
+  return { sent: true };
+}
+
+function buildDiscordMessage(report, paths) {
+  const icon = report.status === "pass" ? "✅" : "❌";
+  const base = [
+    `${icon} NZU Ops Pipeline ${report.status.toUpperCase()}`,
+    `- generated: ${report.generated_at}`,
+    `- dry_run: ${report.dry_run ? "yes" : "no"}, skip_supabase: ${report.skip_supabase ? "yes" : "no"}`,
+    `- steps: ${report.steps.map((s) => `${s.name}:${s.ok ? "ok" : "fail"}`).join(", ")}`,
+    `- report: ${paths.report}`,
+    `- latest: ${paths.latestMd}`,
+  ];
+  if (report.failure_step) {
+    base.push(`- failed_step: ${report.failure_step.name} (exit=${report.failure_step.exit_code})`);
+    const tail = (report.failure_step.stderr_tail || report.failure_step.stdout_tail || []).slice(-5);
+    if (tail.length) base.push(`- tail: ${tail.join(" | ")}`);
+  }
+  return base.join("\n");
+}
+
 function buildMarkdownSummary(report, reportPath) {
   const lines = [];
   lines.push(`# Ops Pipeline Report`);
@@ -91,6 +129,7 @@ function ensureFile(relPath) {
 function main() {
   const skipSupabase = hasFlag("--skip-supabase");
   const dryRun = hasFlag("--dry-run");
+  const noDiscord = hasFlag("--no-discord");
   const dateTag = timestamp();
 
   const steps = [];
@@ -207,12 +246,44 @@ function main() {
   writeText(mdPath, buildMarkdownSummary(report, path.relative(ROOT, reportPath).replace(/\\/g, "/")));
   writeText(latestMdPath, buildMarkdownSummary(report, path.relative(ROOT, reportPath).replace(/\\/g, "/")));
 
+  const pathSummary = {
+    report: path.relative(ROOT, reportPath).replace(/\\/g, "/"),
+    reportMd: path.relative(ROOT, mdPath).replace(/\\/g, "/"),
+    latestJson: path.relative(ROOT, latestJsonPath).replace(/\\/g, "/"),
+    latestMd: path.relative(ROOT, latestMdPath).replace(/\\/g, "/"),
+  };
+
+  let discord = { enabled: !noDiscord, sent: false, reason: "disabled" };
+  if (!noDiscord) {
+    const message = buildDiscordMessage(report, pathSummary);
+    postDiscordWebhook(message)
+      .then((r) => {
+        discord = { enabled: true, ...r };
+      })
+      .catch((err) => {
+        discord = { enabled: true, sent: false, reason: err instanceof Error ? err.message : String(err) };
+      })
+      .finally(() => {
+        console.log(JSON.stringify({
+          ...report,
+          report_path: pathSummary.report,
+          report_md_path: pathSummary.reportMd,
+          latest_json_path: pathSummary.latestJson,
+          latest_md_path: pathSummary.latestMd,
+          discord,
+        }, null, 2));
+        if (status !== "pass") process.exit(1);
+      });
+    return;
+  }
+
   console.log(JSON.stringify({
     ...report,
-    report_path: path.relative(ROOT, reportPath).replace(/\\/g, "/"),
-    report_md_path: path.relative(ROOT, mdPath).replace(/\\/g, "/"),
-    latest_json_path: path.relative(ROOT, latestJsonPath).replace(/\\/g, "/"),
-    latest_md_path: path.relative(ROOT, latestMdPath).replace(/\\/g, "/"),
+    report_path: pathSummary.report,
+    report_md_path: pathSummary.reportMd,
+    latest_json_path: pathSummary.latestJson,
+    latest_md_path: pathSummary.latestMd,
+    discord,
   }, null, 2));
 
   if (status !== "pass") process.exit(1);
