@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-21T06:11:52.116Z",
+  "generated_at": "2026-03-21T07:49:23.219Z",
   "project": "c9",
   "team_name": "씨나인",
   "team_code": "c9",
@@ -9,7 +9,7 @@
     "씨나인",
     "C9"
   ],
-  "roster_count": 24,
+  "roster_count": 23,
   "roster": [
     {
       "team_name": "씨나인",
@@ -528,35 +528,6 @@
       ],
       "missing_in_master": false,
       "display_name": "오리꿍",
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "6"
-    },
-    {
-      "team_name": "씨나인",
-      "team_code": "c9",
-      "entity_id": "eloboard:female:777",
-      "wr_id": 777,
-      "gender": "female",
-      "name": "히댕",
-      "tier": "6",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:c9",
-        "team:c9",
-        "team_code:c9",
-        "team_ko:씨나인",
-        "team_alias:씨나인",
-        "team_alias:c9",
-        "gender:female",
-        "race:zerg",
-        "tier:6",
-        "team_en:c9"
-      ],
-      "missing_in_master": false,
-      "display_name": "히댕",
       "role_title": "",
       "role_priority": null,
       "tier_key": "6"

@@ -15,6 +15,12 @@ const DEFAULT_ROSTER_PATH = path.join(
 const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-nzu-2025-records.js");
 const CSV_SCRIPT = path.join(ROOT, "scripts", "tools", "export-player-matches-csv.js");
 const TMP_DIR = path.join(ROOT, "tmp");
+const EXCLUSIONS_PATH = path.join(
+  ROOT,
+  "data",
+  "metadata",
+  "pipeline_collection_exclusions.v1.json"
+);
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -36,6 +42,7 @@ function runNode(scriptPath, args) {
     cwd: ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: 50 * 1024 * 1024,
   });
 }
 
@@ -51,6 +58,38 @@ function firstPeriodTotal(parsed) {
   if (!parsed || !Array.isArray(parsed.players) || parsed.players.length === 0) return null;
   const total = Number(parsed.players[0]?.period_total);
   return Number.isFinite(total) ? total : null;
+}
+
+function readJsonIfExists(filePath, fallback) {
+  if (!fs.existsSync(filePath)) return fallback;
+  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+}
+
+function normalizeName(name) {
+  return String(name || "").trim().toLowerCase();
+}
+
+function loadCollectionExclusions() {
+  const doc = readJsonIfExists(EXCLUSIONS_PATH, { players: [] });
+  const rows = Array.isArray(doc.players) ? doc.players : [];
+  const byWrId = new Map();
+  const byName = new Map();
+  for (const row of rows) {
+    const reason = String(row && row.reason ? row.reason : "excluded_from_collection");
+    const wrId = Number(row && row.wr_id);
+    const name = normalizeName(row && row.name ? row.name : "");
+    if (Number.isFinite(wrId) && wrId > 0) byWrId.set(wrId, reason);
+    if (name) byName.set(name, reason);
+  }
+  return { byWrId, byName };
+}
+
+function exclusionReason(player, exclusions) {
+  const wrId = Number(player && player.wr_id);
+  if (Number.isFinite(wrId) && exclusions.byWrId.has(wrId)) return exclusions.byWrId.get(wrId);
+  const nameKey = normalizeName(player && player.name ? player.name : "");
+  if (nameKey && exclusions.byName.has(nameKey)) return exclusions.byName.get(nameKey);
+  return null;
 }
 
 function main() {
@@ -73,6 +112,7 @@ function main() {
   const teamName = argValue("--univ", rosterJson.team_name || "늪지대");
   const roster = Array.isArray(rosterJson.roster) ? rosterJson.roster : [];
   const players = limit > 0 ? roster.slice(0, limit) : roster;
+  const exclusions = loadCollectionExclusions();
 
   const summary = {
     generated_at: new Date().toISOString(),
@@ -96,6 +136,18 @@ function main() {
       csv_status: "skipped",
       error: null,
     };
+
+    const excludedReason = exclusionReason(p, exclusions);
+    if (excludedReason) {
+      result.fetch_status = "excluded";
+      result.csv_status = "excluded";
+      result.json_path = null;
+      result.excluded = true;
+      result.exclude_reason = excludedReason;
+      summary.results.push(result);
+      console.log(`[SKIP] ${playerName} excluded (${excludedReason})`);
+      continue;
+    }
 
     try {
       if (!useExisting || !fs.existsSync(jsonPath)) {

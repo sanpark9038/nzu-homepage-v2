@@ -7,6 +7,7 @@ const iconv = require("iconv-lite");
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const REPORT_DIR = path.join(ROOT, "tmp", "reports");
+const FA_UNIV_FALLBACKS = ["연합팀", "FA", "무소속"];
 
 function argValue(flag, fallback = "") {
   const i = process.argv.indexOf(flag);
@@ -151,7 +152,13 @@ function projectPath(code) {
 function ensureFaProject() {
   const code = "fa";
   const p = projectPath(code);
-  if (fs.existsSync(p)) return { code, path: p, json: readJson(p) };
+  if (fs.existsSync(p)) {
+    const json = readJson(p);
+    if (!json.fetch_univ_name) json.fetch_univ_name = "연합팀";
+    if (json.fetch_univ_name !== "연합팀") json.fetch_univ_name = "연합팀";
+    writeJson(p, json);
+    return { code, path: p, json };
+  }
   const json = {
     schema_version: "1.0.0",
     generated_at: new Date().toISOString(),
@@ -159,6 +166,7 @@ function ensureFaProject() {
     team_name: "무소속",
     team_code: "fa",
     team_name_en: "FA",
+    fetch_univ_name: "연합팀",
     team_aliases: ["무소속", "FA"],
     roster_count: 0,
     roster: [],
@@ -227,6 +235,7 @@ function sortRoster(teamJson) {
 
 async function main() {
   const teamsArg = argValue("--teams", "");
+  const faUnivArg = argValue("--fa-univ", "");
   const teamConfig = loadTeamConfig();
   const enabledCodes = teamsArg
     ? teamsArg.split(",").map((v) => v.trim().toLowerCase()).filter(Boolean)
@@ -252,6 +261,32 @@ async function main() {
     }
   }
 
+  // FA roster is authoritative for FA assignments when available.
+  const faUnivCandidates = faUnivArg
+    ? [faUnivArg]
+    : [String(faDoc.json.fetch_univ_name || "").trim(), ...FA_UNIV_FALLBACKS].filter(Boolean);
+  let faSourceUniv = null;
+  let faObservedCount = 0;
+  let faFetchError = null;
+  const faObservedEntityIds = new Set();
+  for (const faUniv of faUnivCandidates) {
+    try {
+      const faUrl = `https://eloboard.com/univ/bbs/board.php?bo_table=all_bj_list&univ_name=${encodeURIComponent(faUniv)}`;
+      const faHtml = await fetchHtml(faUrl);
+      const faRows = parseRoster(faHtml);
+      if (!faRows.length) continue;
+      for (const r of faRows) {
+        observedByEntity.set(r.entity_id, { ...r, team_code: "fa" });
+        faObservedEntityIds.add(String(r.entity_id));
+      }
+      faSourceUniv = faUniv;
+      faObservedCount = faRows.length;
+      break;
+    } catch (err) {
+      faFetchError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
   const allDocs = [...teamDocs.values(), { path: faDoc.path, json: faDoc.json, team: { code: "fa", univ: "무소속" } }];
   const beforeByEntity = new Map();
   for (const d of allDocs) {
@@ -267,7 +302,7 @@ async function main() {
 
   for (const [entityId, observed] of observedByEntity.entries()) {
     const prev = beforeByEntity.get(entityId);
-    const targetDoc = teamDocs.get(observed.team_code);
+    const targetDoc = observed.team_code === "fa" ? faDoc : teamDocs.get(observed.team_code);
     if (!targetDoc) continue;
 
     if (prev && prev.team_code !== observed.team_code) {
@@ -308,6 +343,12 @@ async function main() {
     moved.push({ entity_id: entityId, name: prev.player.name, from: prev.team_code, to: "fa" });
   }
 
+  // If FA source page is available, keep FA roster strictly aligned to observed FA entities.
+  if (faSourceUniv) {
+    const roster = Array.isArray(faDoc.json.roster) ? faDoc.json.roster : [];
+    faDoc.json.roster = roster.filter((p) => faObservedEntityIds.has(String(p.entity_id)));
+  }
+
   const changedTeams = [];
   for (const d of allDocs) {
     sortRoster(d.json);
@@ -320,6 +361,9 @@ async function main() {
   const report = {
     generated_at: new Date().toISOString(),
     teams: teams.map((t) => t.code),
+    fa_source_univ: faSourceUniv,
+    fa_observed_count: faObservedCount,
+    fa_fetch_error: faFetchError,
     changed_teams: changedTeams,
     moved_count: moved.length,
     added_count: added.length,

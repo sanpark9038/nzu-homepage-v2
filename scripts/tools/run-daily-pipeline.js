@@ -45,7 +45,6 @@ function loadTeamConfig() {
     .readdirSync(projectsDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
-    .filter((code) => code !== "fa")
     .sort((a, b) => String(a).localeCompare(String(b)));
 
   const teams = [];
@@ -147,6 +146,7 @@ function runNode(scriptPath, args) {
     cwd: ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: 50 * 1024 * 1024,
   });
 }
 
@@ -181,13 +181,15 @@ function withDeltaRows(rows, priorMap, canCompare) {
 
 function summarizeTeamFromReport(team, report) {
   const results = Array.isArray(report.results) ? report.results : [];
+  const actionable = results.filter((row) => !row.excluded);
+  const excludedPlayers = results.filter((row) => row.excluded).map((row) => String(row.player || ""));
   let totalMatches = 0;
   let totalWins = 0;
   let totalLosses = 0;
   const zeroPlayers = [];
   const failures = [];
 
-  for (const row of results) {
+  for (const row of actionable) {
     const fetchFail = row.fetch_status !== "ok" && row.fetch_status !== "used_existing_json";
     const csvFail = row.csv_status !== "ok";
     if (fetchFail || csvFail) {
@@ -215,7 +217,9 @@ function summarizeTeamFromReport(team, report) {
   return {
     team: team.univ,
     team_code: team.code,
-    players: results.length,
+    players: actionable.length,
+    excluded_players: excludedPlayers.length,
+    excluded_player_names: excludedPlayers.join(", "),
     fetch_fail: failures.filter((f) => f.fetch_status !== "ok" && f.fetch_status !== "used_existing_json").length,
     csv_fail: failures.filter((f) => f.csv_status !== "ok").length,
     total_matches: totalMatches,
@@ -317,7 +321,7 @@ function loadTeamRoster(team) {
 function recoverTeamAnomalies(team, report, from, to, concurrency) {
   const results = Array.isArray(report.results) ? report.results : [];
   const rosterByName = loadTeamRoster(team);
-  const targetRows = results.filter((row) => getRowPeriodTotal(row) === 0);
+  const targetRows = results.filter((row) => !row.excluded && getRowPeriodTotal(row) === 0);
   if (!targetRows.length) {
     return {
       attempted: 0,
@@ -578,6 +582,8 @@ function main() {
       team: r.team,
       team_code: r.team_code,
       players: r.players,
+      excluded_players: r.excluded_players,
+      excluded_player_names: r.excluded_player_names,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,
@@ -634,6 +640,7 @@ function main() {
       team: r.team,
       team_code: r.team_code,
       players: r.players,
+      excluded_players: r.excluded_players ?? 0,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,
