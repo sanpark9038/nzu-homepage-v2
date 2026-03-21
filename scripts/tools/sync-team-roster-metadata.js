@@ -471,23 +471,26 @@ async function main() {
     upsertRosterEntry(targetDoc.json, observed, "roster_sync");
   }
 
-  for (const [entityId, prev] of beforeByEntity.entries()) {
-    if (prev.team_code === "fa") continue;
-    if (observedByEntity.has(entityId)) continue;
-    if (guardedTeamCodes.has(String(prev.team_code))) continue;
-    const prevDoc = teamDocs.get(prev.team_code);
-    if (!prevDoc) continue;
-    removeRosterEntry(prevDoc.json, entityId);
-    upsertRosterEntry(faDoc.json, {
-      entity_id: entityId,
-      wr_id: Number(prev.player.wr_id),
-      gender: String(prev.player.gender || ""),
-      name: String(prev.player.name || ""),
-      tier: String(prev.player.tier || "미정"),
-      race: String(prev.player.race || "Unknown"),
-      profile_url: String(prev.player.profile_url || ""),
-    }, "roster_sync_fa");
-    moved.push({ entity_id: entityId, name: prev.player.name, from: prev.team_code, to: "fa" });
+  const faFallbackAllowed = Boolean(faSourceUniv);
+  if (faFallbackAllowed) {
+    for (const [entityId, prev] of beforeByEntity.entries()) {
+      if (prev.team_code === "fa") continue;
+      if (observedByEntity.has(entityId)) continue;
+      if (guardedTeamCodes.has(String(prev.team_code))) continue;
+      const prevDoc = teamDocs.get(prev.team_code);
+      if (!prevDoc) continue;
+      removeRosterEntry(prevDoc.json, entityId);
+      upsertRosterEntry(faDoc.json, {
+        entity_id: entityId,
+        wr_id: Number(prev.player.wr_id),
+        gender: String(prev.player.gender || ""),
+        name: String(prev.player.name || ""),
+        tier: String(prev.player.tier || "미정"),
+        race: String(prev.player.race || "Unknown"),
+        profile_url: String(prev.player.profile_url || ""),
+      }, "roster_sync_fa");
+      moved.push({ entity_id: entityId, name: prev.player.name, from: prev.team_code, to: "fa" });
+    }
   }
 
   // If FA source page is available, keep FA roster strictly aligned to observed FA entities.
@@ -511,6 +514,7 @@ async function main() {
     fa_source_univ: faSourceUniv,
     fa_observed_count: faObservedCount,
     fa_fetch_error: faFetchError,
+    fa_fallback_allowed: faFallbackAllowed,
     manual_overrides_applied_count: appliedManualOverrides.length,
     manual_overrides_applied: appliedManualOverrides,
     guarded_teams_count: guardedTeams.length,
