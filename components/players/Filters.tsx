@@ -23,17 +23,19 @@ export function PlayerSearch() {
   }, [router, searchParams]);
 
   return (
-    <div className="relative w-full max-w-sm">
+    <div className="relative w-full max-w-md group">
+      <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-nzu-green transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </div>
       <input
-
         type="text"
-        placeholder="어떤 선수를 찾으시나요? (이름 입력)"
+        placeholder="어떤 선수를 찾으시나요? (이름 검색)"
         onChange={(e) => handleSearch(e.target.value)}
         defaultValue={searchParams.get("search") || ""}
-        className="w-full bg-[#1A221F] border border-white/10 rounded-xl px-6 py-4 text-base text-white placeholder:text-white/30 focus:outline-none focus:border-nzu-green focus:bg-[#212B27] transition-all shadow-inner"
+        className="w-full bg-[#1A221F] border border-white/10 rounded-xl pl-14 pr-12 py-4 text-base text-white placeholder:text-white/30 focus:outline-none focus:border-nzu-green focus:bg-[#212B27] transition-all shadow-inner focus:ring-4 focus:ring-nzu-green/10"
       />
       {isPending && (
-        <div className="absolute right-5 top-4.5">
+        <div className="absolute right-5 top-1/2 -translate-y-1/2">
            <div className="w-5 h-5 border-2 border-nzu-green/20 border-t-nzu-green rounded-full animate-spin" />
         </div>
       )}

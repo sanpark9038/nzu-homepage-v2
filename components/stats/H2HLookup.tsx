@@ -276,8 +276,8 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
           style={{ width: isDesktop ? `calc(100% - ${sidebarWidth}px)` : '100%' }}
         >
            {/* 상단 컨트롤 바 */}
-           <div className="bg-[#0A100D] border border-white/5 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-r from-nzu-green/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+           <div className="bg-[#0A100D] border border-white/10 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-nzu-green/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
               <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
 
                  <div className="flex-1 w-full flex items-center gap-3">
@@ -321,16 +321,15 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
            </div>
 
            {/* 중앙 아레나 보드 */}
-           <div className="bg-[#050706] border border-white/5 rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border-t-nzu-green/20 border-t-2">
-              <div className="grid grid-cols-[1fr_120px_1fr] bg-white/[0.02] border-b border-white/5 px-10 py-7 items-center text-left">
+           <div className="bg-[#050706] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border-t-nzu-green/30 border-t-2 relative">
+              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-nzu-green/50 to-transparent shadow-[0_0_15px_#2ed573]" />
+              <div className="grid grid-cols-[1fr_120px_1fr] bg-white/[0.04] border-b border-white/5 px-10 py-7 items-center text-left backdrop-blur-md">
                  <div className="flex flex-col">
-                    
                     <span className="text-2xl font-black text-white/90 uppercase truncate tracking-tight">{u1 || "홈 팀"}</span>
                  </div>
 
                  <div className="text-center" />
                  <div className="flex flex-col text-right">
-                    
                     <span className="text-2xl font-black text-white/90 uppercase truncate tracking-tight text-right">{u2 || "원정 팀"}</span>
                  </div>
               </div>
@@ -446,22 +445,21 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
 
         {/* 우측 엔트리 대진표 */}
         <div 
-          className="bg-[#020403] border border-white/10 rounded-[2.5rem] flex flex-col h-[600px] lg:h-[850px] shadow-[0_0_60px_rgba(0,0,0,0.8)] overflow-hidden lg:sticky lg:top-8 mt-12 lg:mt-0"
+          className="bg-[#020403] border border-white/10 rounded-[2.5rem] flex flex-col h-[600px] lg:h-[850px] shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden lg:sticky lg:top-8 mt-12 lg:mt-0"
           style={{ width: isDesktop ? `${sidebarWidth}px` : '100%' }}
         >
-           <div className="p-7 bg-white/[0.02] border-b border-white/5 flex items-center justify-between">
+           <div className="p-7 bg-gradient-to-b from-white/[0.04] to-transparent border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-4 text-left">
                  <div className="w-10 h-10 rounded-xl bg-nzu-gold/10 flex items-center justify-center border border-nzu-gold/20">
                     <Trophy className="w-5 h-5 text-nzu-gold" />
                  </div>
 
                  <div className="flex flex-col">
-                    
-                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter leading-tight">매치업</h2>
+                    <h2 className="text-2xl font-black text-white uppercase tracking-tighter leading-tight drop-shadow-md">전략 매치업</h2>
                  </div>
               </div>
-              <div className="px-5 py-2 bg-nzu-green/10 border border-nzu-green/20 rounded-xl">
-                  <span className="text-sm font-black text-nzu-green tabular-nums">{matches.length} <span className="text-[10px] opacity-60">경기</span></span>
+              <div className="px-5 py-2 bg-gradient-to-r from-nzu-green/20 to-nzu-green/5 border border-nzu-green/30 rounded-xl shadow-inner cursor-default">
+                  <span className="text-sm font-black text-nzu-green tabular-nums">{matches.length} <span className="text-[10px] opacity-60">매치업 생성됨</span></span>
               </div>
            </div>
 

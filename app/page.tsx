@@ -96,24 +96,23 @@ export default async function HomePage() {
               <div className="flex flex-col items-center lg:items-start text-center lg:text-left gap-10">
                 <div className="space-y-6">
                   <div className="flex items-center justify-center lg:justify-start gap-4">
-                    <span className="px-3 py-1 bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-[0.4em] rounded border border-white/5">NZU 공식 아카이브</span>
-                    <div className="h-px w-12 bg-nzu-green/30" />
+                    <span className="px-3 py-1 bg-gradient-to-r from-nzu-green/20 to-transparent text-nzu-green text-[10px] font-black uppercase tracking-[0.4em] rounded border-l-2 border-nzu-green shadow-[0_0_15px_rgba(0,168,107,0.2)]">NZU 공식 아카이브</span>
                   </div>
-                  <h1 className="text-7xl md:text-[9rem] font-black tracking-[-0.05em] uppercase text-white leading-[0.85] drop-shadow-2xl">
-                    N<span className="text-nzu-green">.</span>Z<span className="text-nzu-green">.</span>U
+                  <h1 className="text-6xl md:text-[8rem] font-black tracking-[-0.03em] uppercase text-white leading-[0.85] drop-shadow-2xl font-heading">
+                    N<span className="text-nzu-green glow-green-text">.</span>Z<span className="text-nzu-green glow-green-text">.</span>U
                   </h1>
                   <h2 className="text-xl md:text-3xl font-black text-white/50 uppercase tracking-tighter">
                     스타크래프트 <span className="text-white">전술 데이터 센터</span>
                   </h2>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 pt-10">
-                  <Link href="/entry" className="group relative px-10 py-5 bg-nzu-green text-black font-black uppercase text-xs tracking-widest rounded-xl overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_20px_40px_rgba(0,168,107,0.3)]">
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-10">
+                  <Link href="/entry" className="group relative px-10 py-5 bg-nzu-green text-black font-black uppercase text-xs tracking-widest rounded-lg overflow-hidden transition-all hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,168,107,0.4)] active:scale-95">
                     <span className="relative z-10">엔트리 분석 시작</span>
                     <div className="absolute inset-0 bg-white translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500 opacity-20" />
                   </Link>
-                  <Link href="/players" className="px-10 py-5 bg-white/[0.03] text-white font-black uppercase text-xs tracking-widest rounded-xl border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all">
-                    전체 선수 로스터
+                  <Link href="/players" className="px-10 py-5 bg-[#0F1A12] text-white font-black uppercase text-xs tracking-widest rounded-lg border border-nzu-green/20 hover:bg-[#1A2B1D] hover:border-nzu-green/50 transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                    선수 명단 보기
                   </Link>
                 </div>
               </div>
