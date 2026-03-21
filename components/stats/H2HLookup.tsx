@@ -416,30 +416,45 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
            </div>
         </div>
 
-        {/* 수직 리사이즈 핸들 (Premium Divider) */}
+        {/* 수직 리사이즈 핸들 (Cyber-Mechanic Slider) */}
         <div 
           className={cn(
-            "hidden lg:flex flex-col items-center justify-center w-12 h-[750px] mt-24 mb-24 cursor-col-resize group z-[100] transition-all duration-300 relative",
-            isResizing ? "bg-nzu-green/[0.08]" : "hover:bg-nzu-green/5"
+            "hidden lg:flex flex-col items-center justify-center w-12 h-[750px] mt-24 mb-24 cursor-col-resize group z-[100] transition-all duration-500 relative",
+            isResizing ? "opacity-100" : "opacity-80 hover:opacity-100"
           )}
           onMouseDown={(e) => { e.preventDefault(); startResizing(); }}
         >
-          <div className={cn(
-            "w-[4px] h-full rounded-full transition-all duration-500",
-            isResizing ? "bg-nzu-green shadow-[0_0_35px_#2ed573] h-[100%]" : "bg-white/10 group-hover:bg-nzu-green/70 group-hover:h-[95%]"
-          )} />
+          {/* Rail Track (레일 음각) */}
+          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-black border-l border-white/[0.05] border-r border-[#000] shadow-[inset_0_0_10px_rgba(0,0,0,1)]" />
           
+          {/* LED Track Status (레이저 발광선) */}
           <div className={cn(
-            "absolute top-1/2 -translate-y-1/2 w-14 h-24 flex flex-col items-center justify-center transition-all duration-300",
-            isResizing ? "scale-110" : "group-hover:scale-110"
+            "absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] transition-all duration-500",
+            isResizing ? "bg-nzu-green shadow-[0_0_20px_#2ed573] h-full" : "bg-nzu-green opacity-0 group-hover:opacity-100 h-1/2 group-hover:h-full group-hover:shadow-[0_0_10px_#2ed573]"
+          )} />
+
+          {/* Mechanic Knob (합금 다이얼) */}
+          <div className={cn(
+            "absolute top-1/2 -translate-y-1/2 w-7 h-28 flex flex-col items-center justify-center transition-all duration-300 rounded-xl overflow-hidden shadow-[0_15px_30px_rgba(0,0,0,0.8)]",
+            "bg-gradient-to-b from-[#1a1f1d] via-[#101412] to-[#0a0d0c] border border-white/10",
+            isResizing ? "scale-105 border-nzu-green/50 shadow-[0_0_30px_rgba(46,213,115,0.2)]" : "group-hover:border-white/20"
           )}>
-            <div className={cn(
-              "p-3 rounded-2xl border-2 bg-[#0A100D] shadow-[0_0_40px_rgba(0,0,0,0.6)] flex items-center gap-2 transition-all duration-300",
-              isResizing ? "border-nzu-green ring-8 ring-nzu-green/20" : "border-white/20 group-hover:border-nzu-green shadow-nzu-green/5"
-            )}>
-              <ChevronLeft className={cn("w-5 h-5 transition-colors", isResizing ? "text-nzu-green" : "text-white/40 group-hover:text-nzu-green")} />
-              <ChevronRight className={cn("w-5 h-5 transition-colors", isResizing ? "text-nzu-green" : "text-white/40 group-hover:text-nzu-green")} />
-            </div>
+             {/* 3D Knurling Texture (기계적 미끄럼 방지 그립 질감) */}
+             <div className="absolute inset-0 opacity-[0.15] pointer-events-none"
+                  style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #ffffff 2px, #ffffff 4px)' }} />
+
+             <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
+
+             {/* Center LED Indicator (무결점 점등 LED) */}
+             <div className={cn(
+               "w-full h-1 transition-all duration-300 z-10 absolute top-1/2 -translate-y-1/2",
+               isResizing ? "bg-nzu-green shadow-[0_0_15px_#2ed573]" : "bg-nzu-green/10 group-hover:bg-nzu-green/70 group-hover:shadow-[0_0_10px_#2ed573]"
+             )} />
+
+             <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-0.5 z-10 w-full pointer-events-none">
+               <ChevronLeft className={cn("w-3 h-3 transition-colors", isResizing ? "text-nzu-green" : "text-white/20 group-hover:text-white/60")} />
+               <ChevronRight className={cn("w-3 h-3 transition-colors", isResizing ? "text-nzu-green" : "text-white/20 group-hover:text-white/60")} />
+             </div>
           </div>
         </div>
 
