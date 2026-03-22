@@ -10,6 +10,8 @@
 2. 최신 리포트 확인
    - `tmp/reports/ops_pipeline_latest.md`
    - `tmp/reports/ops_pipeline_latest.json`
+3. 06:20 누락 감시 결과 확인 (신규)
+   - `node scripts/tools/check-ops-pipeline-freshness.js`
 
 ## 3) 실패/이상 시 즉시 실행
 1. 수동 재실행
@@ -21,9 +23,14 @@
 
 ## 4) 현재 자동화 상태 (완료)
 - 작업 스케줄러: `NZU_Ops_Pipeline_0610` (매일 06:10)
+- 누락 감시 스케줄러: `NZU_Ops_Pipeline_0620_HealthCheck` (매일 06:20)
 - 실행 파일: `scripts/tools/run-ops-pipeline.cmd`
 - 메인 실행기: `scripts/tools/run-ops-pipeline.js`
+- 감시 실행기: `scripts/tools/check-ops-pipeline-freshness.js`
 - 디스코드 알림: `.env.local`의 `OPS_DISCORD_WEBHOOK_URL` 사용
+
+## 4-1) 스케줄러 재등록(권장)
+- `npm run schedule:ops:win`
 
 ## 5) 반영된 핵심 보호장치
 - 부분 팀 동기화 기본 차단 (`--teams` 단독 실행 방지)
@@ -43,4 +50,3 @@
 ## 7) 보안 주의
 - 디스코드 웹훅 URL은 절대 채팅에 원문 공유 금지
 - 노출 시 즉시 폐기(재발급) 후 `.env.local` 교체
-

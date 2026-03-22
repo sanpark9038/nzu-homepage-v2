@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-21T07:49:23.224Z",
+  "generated_at": "2026-03-22T08:55:42.417Z",
   "project": "yb",
   "team_name": "YB",
   "team_code": "yb",
@@ -8,7 +8,7 @@
   "team_aliases": [
     "YB"
   ],
-  "roster_count": 15,
+  "roster_count": 16,
   "roster": [
     {
       "team_name": "YB",
@@ -127,26 +127,24 @@
     {
       "team_name": "YB",
       "team_code": "yb",
-      "entity_id": "eloboard:female:159",
+      "entity_id": "eloboard:male:159",
       "wr_id": 159,
-      "gender": "female",
+      "gender": "male",
       "name": "저라뎃",
       "tier": "2",
       "race": "Terran",
       "source": "roster_sync",
+      "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "project:yb",
         "team:yb",
         "team_code:yb",
         "team_ko:YB",
-        "team_alias:yb",
-        "gender:female",
+        "team_en:yb",
+        "gender:male",
         "race:terran",
-        "tier:2",
-        "team_en:yb"
+        "tier:2"
       ],
-      "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
       "tier_key": "2",
@@ -291,6 +289,32 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "하랑"
+    },
+    {
+      "team_name": "YB",
+      "team_code": "yb",
+      "entity_id": "eloboard:female:646",
+      "wr_id": 646,
+      "gender": "female",
+      "name": "빵지니",
+      "tier": "7",
+      "race": "Terran",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:yb",
+        "team_code:yb",
+        "team_ko:YB",
+        "team_en:yb",
+        "gender:female",
+        "race:terran",
+        "tier:7"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "7",
+      "display_name": "빵지니"
     },
     {
       "team_name": "YB",

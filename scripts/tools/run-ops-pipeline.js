@@ -5,6 +5,7 @@ require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local") 
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORT_DIR = path.join(ROOT, "tmp", "reports");
+const NODE_BIN = process.execPath || "node";
 
 function hasFlag(flag) {
   return process.argv.includes(flag);
@@ -18,7 +19,7 @@ function timestamp() {
 
 function runStep(name, args, options = {}) {
   const startedAt = new Date().toISOString();
-  const res = spawnSync("node", args, {
+  const res = spawnSync(NODE_BIN, args, {
     cwd: ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -26,15 +27,19 @@ function runStep(name, args, options = {}) {
   });
   const endedAt = new Date().toISOString();
   const ok = res.status === 0;
+  const spawnError =
+    res.error && typeof res.error === "object"
+      ? `${res.error.code || "spawn_error"}: ${res.error.message || String(res.error)}`
+      : "";
   const step = {
     name,
-    command: `node ${args.join(" ")}`,
+    command: `${NODE_BIN} ${args.join(" ")}`,
     started_at: startedAt,
     ended_at: endedAt,
     exit_code: res.status,
     ok,
     stdout: String(res.stdout || "").trim(),
-    stderr: String(res.stderr || "").trim(),
+    stderr: [String(res.stderr || "").trim(), spawnError].filter(Boolean).join("\n"),
   };
   if (!ok && !options.allowFailure) throw Object.assign(new Error(`Step failed: ${name}`), { step });
   return step;
@@ -51,6 +56,71 @@ function tailLines(text, count = 20) {
 function writeText(filePath, content) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, content, "utf8");
+}
+
+function readJsonIfExists(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+}
+
+function dailySnapshotChangeSummary() {
+  if (!fs.existsSync(REPORT_DIR)) return null;
+  const files = fs
+    .readdirSync(REPORT_DIR)
+    .filter((n) => /^daily_pipeline_snapshot_\d{4}-\d{2}-\d{2}\.json$/.test(n))
+    .sort();
+  if (files.length < 2) return null;
+
+  const currentName = files[files.length - 1];
+  const prevName = files[files.length - 2];
+  const currentDoc = readJsonIfExists(path.join(REPORT_DIR, currentName));
+  const prevDoc = readJsonIfExists(path.join(REPORT_DIR, prevName));
+  if (!currentDoc || !prevDoc) return null;
+
+  const prevMap = new Map(
+    Array.isArray(prevDoc.teams) ? prevDoc.teams.map((t) => [String(t.team_code || ""), t]) : []
+  );
+  const rows = [];
+  for (const t of Array.isArray(currentDoc.teams) ? currentDoc.teams : []) {
+    const code = String(t.team_code || "");
+    if (!code || !prevMap.has(code)) continue;
+    const p = prevMap.get(code);
+    const deltaMatches = Number(t.total_matches || 0) - Number(p.total_matches || 0);
+    const deltaPlayers = Number(t.players || 0) - Number(p.players || 0);
+    const deltaExcluded = Number(t.excluded_players || 0) - Number(p.excluded_players || 0);
+    if (deltaMatches || deltaPlayers || deltaExcluded) {
+      rows.push({
+        team: String(t.team || code),
+        team_code: code,
+        delta_matches: deltaMatches,
+        delta_players: deltaPlayers,
+        delta_excluded: deltaExcluded,
+      });
+    }
+  }
+
+  const notable = rows
+    .slice()
+    .sort((a, b) => Math.abs(b.delta_matches) - Math.abs(a.delta_matches))
+    .slice(0, 5);
+
+  const rosterSummary =
+    currentDoc &&
+    currentDoc.roster_sync &&
+    currentDoc.roster_sync.summary &&
+    typeof currentDoc.roster_sync.summary === "object"
+      ? currentDoc.roster_sync.summary
+      : {};
+
+  return {
+    current_snapshot: `tmp/reports/${currentName}`,
+    previous_snapshot: `tmp/reports/${prevName}`,
+    changed_teams: rows.length,
+    notable_teams: notable,
+    moved_count: Number(rosterSummary.moved_count || 0),
+    added_count: Number(rosterSummary.added_count || 0),
+    tier_changed_count: Number(rosterSummary.tier_changed_count || 0),
+  };
 }
 
 async function postDiscordWebhook(content) {
@@ -86,6 +156,18 @@ function buildDiscordMessage(report, paths) {
     base.push(`- failed_step: ${report.failure_step.name} (exit=${report.failure_step.exit_code})`);
     const tail = (report.failure_step.stderr_tail || report.failure_step.stdout_tail || []).slice(-5);
     if (tail.length) base.push(`- tail: ${tail.join(" | ")}`);
+  } else if (report.change_summary) {
+    base.push(
+      `- changes: teams=${report.change_summary.changed_teams}, moved=${report.change_summary.moved_count}, added=${report.change_summary.added_count}, tier_changed=${report.change_summary.tier_changed_count}`
+    );
+    const top = Array.isArray(report.change_summary.notable_teams)
+      ? report.change_summary.notable_teams.slice(0, 3)
+      : [];
+    if (top.length) {
+      base.push(
+        `- top_match_deltas: ${top.map((r) => `${r.team_code}:${r.delta_matches > 0 ? "+" : ""}${r.delta_matches}`).join(", ")}`
+      );
+    }
   }
   return base.join("\n");
 }
@@ -115,6 +197,22 @@ function buildMarkdownSummary(report, reportPath) {
     } else if (report.failure_step.stdout_tail && report.failure_step.stdout_tail.length) {
       lines.push(`- stdout tail:`);
       for (const row of report.failure_step.stdout_tail) lines.push(`  - ${row}`);
+    }
+  } else if (report.change_summary) {
+    lines.push("");
+    lines.push("## Change Summary");
+    lines.push(`- Compared: ${report.change_summary.previous_snapshot} -> ${report.change_summary.current_snapshot}`);
+    lines.push(`- Changed Teams: ${report.change_summary.changed_teams}`);
+    lines.push(
+      `- Roster Sync: moved=${report.change_summary.moved_count}, added=${report.change_summary.added_count}, tier_changed=${report.change_summary.tier_changed_count}`
+    );
+    const top = Array.isArray(report.change_summary.notable_teams)
+      ? report.change_summary.notable_teams.slice(0, 5)
+      : [];
+    for (const row of top) {
+      lines.push(
+        `- ${row.team_code}: delta_matches=${row.delta_matches > 0 ? "+" : ""}${row.delta_matches}, delta_players=${row.delta_players > 0 ? "+" : ""}${row.delta_players}, delta_excluded=${row.delta_excluded > 0 ? "+" : ""}${row.delta_excluded}`
+      );
     }
   }
   return lines.join("\n");
@@ -234,6 +332,7 @@ function main() {
           stderr_tail: tailLines(failureStep.stderr, 15),
         }
       : null,
+    change_summary: status === "pass" && !dryRun ? dailySnapshotChangeSummary() : null,
   };
 
   fs.mkdirSync(REPORT_DIR, { recursive: true });

@@ -72,23 +72,46 @@ function normalizeName(name) {
 function loadCollectionExclusions() {
   const doc = readJsonIfExists(EXCLUSIONS_PATH, { players: [] });
   const rows = Array.isArray(doc.players) ? doc.players : [];
-  const byWrId = new Map();
-  const byName = new Map();
+  const normalizedRows = [];
   for (const row of rows) {
     const reason = String(row && row.reason ? row.reason : "excluded_from_collection");
+    const entityId = String(row && row.entity_id ? row.entity_id : "").trim();
     const wrId = Number(row && row.wr_id);
     const name = normalizeName(row && row.name ? row.name : "");
-    if (Number.isFinite(wrId) && wrId > 0) byWrId.set(wrId, reason);
-    if (name) byName.set(name, reason);
+    normalizedRows.push({
+      reason,
+      entity_id: entityId || null,
+      wr_id: Number.isFinite(wrId) && wrId > 0 ? wrId : null,
+      name: name || null,
+    });
   }
-  return { byWrId, byName };
+  return normalizedRows;
 }
 
 function exclusionReason(player, exclusions) {
+  const entityId = String(player && player.entity_id ? player.entity_id : "").trim();
   const wrId = Number(player && player.wr_id);
-  if (Number.isFinite(wrId) && exclusions.byWrId.has(wrId)) return exclusions.byWrId.get(wrId);
   const nameKey = normalizeName(player && player.name ? player.name : "");
-  if (nameKey && exclusions.byName.has(nameKey)) return exclusions.byName.get(nameKey);
+  for (const rule of exclusions) {
+    if (!rule || typeof rule !== "object") continue;
+    if (rule.entity_id) {
+      if (entityId && entityId === rule.entity_id) return rule.reason;
+      continue;
+    }
+    if (rule.wr_id && rule.name) {
+      if (Number.isFinite(wrId) && wrId === rule.wr_id && nameKey && nameKey === rule.name) {
+        return rule.reason;
+      }
+      continue;
+    }
+    if (rule.wr_id) {
+      if (Number.isFinite(wrId) && wrId === rule.wr_id) return rule.reason;
+      continue;
+    }
+    if (rule.name) {
+      if (nameKey && nameKey === rule.name) return rule.reason;
+    }
+  }
   return null;
 }
 

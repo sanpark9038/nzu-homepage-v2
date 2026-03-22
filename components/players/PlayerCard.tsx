@@ -12,10 +12,11 @@ export type Player = Database['public']['Tables']['players']['Row'];
 interface PlayerCardProps {
   player: Player
   layout?: 'default' | 'compact'
+  className?: string
 }
 
 
-export function PlayerCard({ player, layout = 'default' }: PlayerCardProps) {
+export function PlayerCard({ player, layout = 'default', className }: PlayerCardProps) {
   const isCompact = layout === 'compact';
   const race = (player.race || "T") as Race;
 
@@ -46,7 +47,7 @@ export function PlayerCard({ player, layout = 'default' }: PlayerCardProps) {
   }[race];
 
   return (
-    <Link href={`/player/${player.id}`} className={cn("block group cursor-pointer", isCompact ? "w-full" : "")}>
+    <Link href={`/player/${player.id}`} className={cn("block group cursor-pointer", isCompact ? "w-full" : "", className)}>
       <div className={cn(
         "relative flex rounded-[2rem] border transition-all duration-700 overflow-hidden shadow-2xl group",
         isCompact 

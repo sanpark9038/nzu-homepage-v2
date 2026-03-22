@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-21T07:49:23.220Z",
+  "generated_at": "2026-03-22T08:55:42.050Z",
   "project": "jsa",
   "team_name": "JSA",
   "team_code": "jsa",
@@ -253,6 +253,32 @@
     {
       "team_name": "JSA",
       "team_code": "jsa",
+      "entity_id": "eloboard:male:332",
+      "wr_id": 332,
+      "gender": "male",
+      "name": "시조새",
+      "tier": "3",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:jsa",
+        "team_code:jsa",
+        "team_ko:JSA",
+        "team_en:jsa",
+        "gender:male",
+        "race:protoss",
+        "tier:3"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "3",
+      "display_name": "시조새"
+    },
+    {
+      "team_name": "JSA",
+      "team_code": "jsa",
       "entity_id": "eloboard:female:689",
       "wr_id": 689,
       "gender": "female",
@@ -465,33 +491,6 @@
       "role_priority": null,
       "tier_key": "9",
       "display_name": "미진이"
-    },
-    {
-      "team_name": "JSA",
-      "team_code": "jsa",
-      "entity_id": "eloboard:female:332",
-      "wr_id": 332,
-      "gender": "female",
-      "name": "시조새",
-      "tier": "3",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:jsa",
-        "team:jsa",
-        "team_code:jsa",
-        "team_ko:JSA",
-        "team_en:jsa",
-        "gender:female",
-        "race:protoss",
-        "tier:3"
-      ],
-      "missing_in_master": false,
-      "role_title": "이사장",
-      "role_priority": 1,
-      "tier_key": "3",
-      "display_name": "시조새"
     }
   ],
   "source_file": "tmp/jsa_roster_record_metadata.json",

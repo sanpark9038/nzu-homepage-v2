@@ -331,29 +331,15 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                  <div className="text-center" />
                  <div className="flex flex-col text-right">
                     <span className="text-2xl font-black text-white/90 uppercase truncate tracking-tight text-right">{u2 || "원정 팀"}</span>
-                 </div>
-              </div>
+                  </div>
+               </div>
 
-              <div className="h-[700px] overflow-y-auto custom-scrollbar p-2">
-                 {(arenaTiers.length === 0 && (u1 || u2)) ? (
-                    <div className="h-full flex flex-col items-center justify-center text-white/5 gap-8">
-                      <div className="w-20 h-20 rounded-full border-2 border-white/5 flex items-center justify-center animate-pulse">
-                        <Swords className="w-8 h-8 opacity-20" />
-                      </div>
-                      <p className="text-xs font-black uppercase tracking-[0.6em] text-white/20">매칭 가능한 선수가 없습니다</p>
+               <div className="h-[700px] overflow-y-auto custom-scrollbar p-2">
+                  {arenaTiers.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center">
+                      <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/10 leading-none">대학 선택 대기 중</p>
                     </div>
-                 ) : arenaTiers.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-white/5 gap-8 border-dashed border-2 border-white/5 m-4 rounded-[2rem]">
-                      <div className="relative">
-                        <Swords className="w-24 h-24 opacity-5 animate-pulse" />
-                        <div className="absolute inset-0 bg-nzu-green/5 blur-3xl rounded-full" />
-                      </div>
-                      <div className="flex flex-col items-center gap-2">
-                        <p className="text-sm font-black uppercase tracking-[0.8em] text-white/20 leading-none">대학 선택 대기 중</p>
-                        <p className="text-[10px] font-bold text-white/10 tracking-widest leading-none">대학을 선택하면 아레나가 활성화됩니다</p>
-                      </div>
-                    </div>
-                 ) : arenaTiers.map(tier => {
+                  ) : arenaTiers.map(tier => {
                     const g1 = groups1.find(g => g.tier === tier), g2 = groups2.find(g => g.tier === tier);
                     const tCol = TIER_CONFIG[tier]?.color || '#475569';
                     return (
@@ -433,28 +419,30 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
             isResizing ? "bg-nzu-green shadow-[0_0_20px_#2ed573] h-full" : "bg-nzu-green opacity-0 group-hover:opacity-100 h-1/2 group-hover:h-full group-hover:shadow-[0_0_10px_#2ed573]"
           )} />
 
-          {/* Mechanic Knob (합금 다이얼) */}
+           {/* Mechanic Knob (고성능 그립 핸들) */}
           <div className={cn(
-            "absolute top-1/2 -translate-y-1/2 w-7 h-28 flex flex-col items-center justify-center transition-all duration-300 rounded-xl overflow-hidden shadow-[0_15px_30px_rgba(0,0,0,0.8)]",
-            "bg-gradient-to-b from-[#1a1f1d] via-[#101412] to-[#0a0d0c] border border-white/10",
-            isResizing ? "scale-105 border-nzu-green/50 shadow-[0_0_30px_rgba(46,213,115,0.2)]" : "group-hover:border-white/20"
+            "absolute top-1/2 -translate-y-1/2 w-8 h-32 flex flex-col items-center justify-center transition-all duration-300 rounded-2xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.9)] cursor-col-resize",
+            "bg-gradient-to-br from-[#1e2522] via-[#0d1210] to-[#050706] border border-white/10",
+            isResizing ? "scale-110 border-nzu-green/60 shadow-[0_0_40px_rgba(46,213,115,0.3)]" : "group-hover:border-nzu-green/40 group-hover:shadow-[0_0_20px_rgba(46,213,115,0.1)]"
           )}>
-             {/* 3D Knurling Texture (기계적 미끄럼 방지 그립 질감) */}
-             <div className="absolute inset-0 opacity-[0.15] pointer-events-none"
-                  style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #ffffff 2px, #ffffff 4px)' }} />
-
-             <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
-
-             {/* Center LED Indicator (무결점 점등 LED) */}
-             <div className={cn(
-               "w-full h-1 transition-all duration-300 z-10 absolute top-1/2 -translate-y-1/2",
-               isResizing ? "bg-nzu-green shadow-[0_0_15px_#2ed573]" : "bg-nzu-green/10 group-hover:bg-nzu-green/70 group-hover:shadow-[0_0_10px_#2ed573]"
-             )} />
-
-             <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-0.5 z-10 w-full pointer-events-none">
-               <ChevronLeft className={cn("w-3 h-3 transition-colors", isResizing ? "text-nzu-green" : "text-white/20 group-hover:text-white/60")} />
-               <ChevronRight className={cn("w-3 h-3 transition-colors", isResizing ? "text-nzu-green" : "text-white/20 group-hover:text-white/60")} />
+             {/* Dynamic Grip Pattern (직관적인 3중 그립 바) */}
+             <div className="flex gap-1.5 items-center justify-center h-full pointer-events-none">
+                {[1, 2, 3].map((i) => (
+                  <div 
+                    key={i} 
+                    className={cn(
+                      "w-[3px] rounded-full transition-all duration-300",
+                      isResizing ? "bg-nzu-green h-12 shadow-[0_0_10px_#2ed573]" : "bg-white/20 h-8 group-hover:bg-white/40 group-hover:h-10"
+                    )} 
+                  />
+                ))}
              </div>
+
+             {/* LED Status Glow (상태 표시 하이라이트) */}
+             <div className={cn(
+               "absolute inset-x-0 bottom-0 h-1 transition-all duration-300",
+               isResizing ? "bg-nzu-green shadow-[0_0_15px_#2ed573]" : "bg-transparent group-hover:bg-nzu-green/30"
+             )} />
           </div>
         </div>
 
@@ -474,7 +462,9 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                  </div>
               </div>
               <div className="px-5 py-2 bg-gradient-to-r from-nzu-green/20 to-nzu-green/5 border border-nzu-green/30 rounded-xl shadow-inner cursor-default">
-                  <span className="text-sm font-black text-nzu-green tabular-nums">{matches.length} <span className="text-[10px] opacity-60">매치업 생성됨</span></span>
+                  <span className="text-sm font-black text-nzu-green tabular-nums">
+                    {matches.length} <span className="text-[10px] opacity-60">매치업 생성됨</span>
+                  </span>
               </div>
            </div>
 

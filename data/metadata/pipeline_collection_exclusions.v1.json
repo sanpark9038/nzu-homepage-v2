@@ -31,11 +31,13 @@
     {
       "name": "농떼르만",
       "wr_id": 646,
+      "entity_id": "eloboard:male:646",
       "reason": "user_excluded"
     },
     {
       "name": "엘사",
       "wr_id": 777,
+      "entity_id": "eloboard:male:777",
       "reason": "user_excluded_pending_tier"
     }
   ]

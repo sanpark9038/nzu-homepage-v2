@@ -136,7 +136,11 @@ function parseRoster(html) {
     const wr = profileUrl.match(/wr_id=(\d+)/);
     const wrId = wr ? Number(wr[1]) : null;
     if (!wrId) return;
-    const gender = profileUrl.includes("/men/") ? "male" : "female";
+    const boardMatch = profileUrl.match(/[?&]bo_table=([^&]+)/i);
+    const board = boardMatch ? String(boardMatch[1]).toLowerCase() : "";
+    // women/bj_m_list entries are "female site male roster", so treat as male to avoid wr_id collisions.
+    const gender =
+      profileUrl.includes("/men/") || board === "bj_m_list" ? "male" : "female";
     rows.push({
       wr_id: wrId,
       gender,

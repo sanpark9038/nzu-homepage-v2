@@ -18,7 +18,16 @@ async function main() {
   
   // 1. Load Exclusions and Overrides
   const exclusionsData = JSON.parse(fs.readFileSync(EXCLUSIONS_FILE, 'utf8').replace(/^\uFEFF/, ''));
-  const excludedWrIds = new Set((exclusionsData.players || []).map(p => Number(p.wr_id)));
+  const exclusionRules = (exclusionsData.players || []).map((p) => {
+    const wrId = Number(p && p.wr_id);
+    const name = String(p && p.name ? p.name : '').trim().toLowerCase();
+    const entityId = String(p && p.entity_id ? p.entity_id : '').trim();
+    return {
+      entity_id: entityId || null,
+      wr_id: Number.isFinite(wrId) && wrId > 0 ? wrId : null,
+      name: name || null,
+    };
+  });
   
   const overridesData = fs.existsSync(OVERRIDES_FILE) ? JSON.parse(fs.readFileSync(OVERRIDES_FILE, 'utf8').replace(/^\uFEFF/, '')) : { overrides: [] };
   const overridesMap = new Map();
@@ -63,7 +72,20 @@ async function main() {
   }
 
   // 3. Filter excluded players
-  const validPlayers = allPlayers.filter(p => !excludedWrIds.has(Number(p.eloboard_id.split(':').pop())));
+  const shouldExclude = (player) => {
+    const entityId = String(player.eloboard_id || '').trim();
+    const wrId = Number(entityId.split(':').pop());
+    const name = String(player.name || '').trim().toLowerCase();
+    return exclusionRules.some((rule) => {
+      if (!rule) return false;
+      if (rule.entity_id) return entityId === rule.entity_id;
+      if (rule.wr_id && rule.name) return wrId === rule.wr_id && name === rule.name;
+      if (rule.wr_id) return wrId === rule.wr_id;
+      if (rule.name) return name === rule.name;
+      return false;
+    });
+  };
+  const validPlayers = allPlayers.filter(p => !shouldExclude(p));
   const excludedCount = allPlayers.length - validPlayers.length;
 
   // 4. Truncate staging table safely

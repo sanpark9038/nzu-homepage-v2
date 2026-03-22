@@ -6,7 +6,8 @@
     "pipeline_failure_severity": "critical",
     "zero_record_players_severity": "high",
     "zero_record_players_allowlist": {
-      "ku": ["케이"]
+      "ku": ["케이"],
+      "ncs": ["트슈"]
     },
     "negative_delta_matches_severity": "critical",
     "roster_size_changed_severity": "medium",

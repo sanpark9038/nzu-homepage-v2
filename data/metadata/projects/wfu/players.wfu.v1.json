@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-21T07:49:23.223Z",
+  "generated_at": "2026-03-22T08:55:42.373Z",
   "project": "wfu-validation",
   "team_name": "와플대",
   "team_code": "wfu",
@@ -225,6 +225,32 @@
     {
       "team_name": "와플대",
       "team_code": "wfu",
+      "entity_id": "eloboard:male:1055",
+      "wr_id": 1055,
+      "gender": "male",
+      "name": "와이퍼",
+      "tier": "8",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:wfu",
+        "team_code:wfu",
+        "team_ko:와플대",
+        "team_en:wfu",
+        "gender:male",
+        "race:protoss",
+        "tier:8"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "8",
+      "display_name": "와이퍼"
+    },
+    {
+      "team_name": "와플대",
+      "team_code": "wfu",
       "entity_id": "eloboard:female:991",
       "wr_id": 991,
       "gender": "female",
@@ -248,33 +274,6 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "있찌"
-    },
-    {
-      "team_name": "와플대",
-      "team_code": "wfu",
-      "entity_id": "eloboard:female:1055",
-      "wr_id": 1055,
-      "gender": "female",
-      "name": "와이퍼",
-      "tier": "8",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:wfu-validation",
-        "team:wfu",
-        "team_code:wfu",
-        "team_ko:와플대",
-        "team_en:wfu",
-        "gender:female",
-        "race:protoss",
-        "tier:8"
-      ],
-      "missing_in_master": false,
-      "role_title": "이사장",
-      "role_priority": 1,
-      "tier_key": "8",
-      "display_name": "와이퍼"
     },
     {
       "team_name": "와플대",

@@ -6,10 +6,12 @@ const { defaultProfileUrlForPlayer } = require("./lib/eloboard-special-cases");
 const ROOT = path.resolve(__dirname, "..", "..");
 const TMP_DIR = path.join(ROOT, "tmp");
 const REPORTS_DIR = path.join(TMP_DIR, "reports");
+const NODE_BIN = process.execPath || "node";
 const ALERT_RULES_PATH = path.join(ROOT, "data", "metadata", "pipeline_alert_rules.v1.json");
 const EXPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "export-nzu-roster-detailed.js");
 const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-nzu-2025-records.js");
 const CSV_SCRIPT = path.join(ROOT, "scripts", "tools", "export-player-matches-csv.js");
+const EXPORT_METADATA_SCRIPT = path.join(ROOT, "scripts", "tools", "export-nzu-roster-metadata.js");
 const ORGANIZE_SCRIPT = path.join(ROOT, "scripts", "tools", "organize-generated-artifacts.js");
 const TEAM_TABLE_SCRIPT = path.join(ROOT, "scripts", "tools", "report-team-roster-table.js");
 const ROSTER_SYNC_SCRIPT = path.join(ROOT, "scripts", "tools", "sync-team-roster-metadata.js");
@@ -142,7 +144,7 @@ function sortedAlerts(alerts) {
 }
 
 function runNode(scriptPath, args) {
-  return execFileSync("node", [scriptPath, ...args], {
+  return execFileSync(NODE_BIN, [scriptPath, ...args], {
     cwd: ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -264,10 +266,14 @@ function generateTeamTableReports(teams) {
   }
 }
 
-function runRosterSync(teams) {
+function runRosterSync(teams, totalTeamCount) {
   const teamCodes = teams.map((t) => t.code).join(",");
+  const isFullSync = Number(totalTeamCount || 0) > 0 && teams.length === Number(totalTeamCount);
+  const args = isFullSync
+    ? []
+    : ["--teams", teamCodes, "--allow-partial"];
   try {
-    const raw = runNode(ROSTER_SYNC_SCRIPT, ["--teams", teamCodes]).trim();
+    const raw = runNode(ROSTER_SYNC_SCRIPT, args).trim();
     let parsed = null;
     try {
       parsed = JSON.parse(raw);
@@ -277,6 +283,32 @@ function runRosterSync(teams) {
     return { ok: true, summary: parsed };
   } catch (error) {
     return { ok: false, error: error.message };
+  }
+}
+
+function ensureFaRecordMetadata(teams) {
+  const faTeam = teams.find((t) => t.code === "fa");
+  if (!faTeam) return { ok: true, skipped: true };
+
+  const candidates = [
+    path.join(TMP_DIR, "무소속_roster_record_metadata.json"),
+    path.join(TMP_DIR, "연합팀_roster_record_metadata.json"),
+    path.join(TMP_DIR, "fa_roster_record_metadata.json"),
+  ];
+  if (candidates.some((p) => fs.existsSync(p))) {
+    return { ok: true, generated: false, source_univ: faTeam.univ };
+  }
+
+  try {
+    runNode(EXPORT_METADATA_SCRIPT, ["--univ", faTeam.univ]);
+    return { ok: true, generated: true, source_univ: faTeam.univ };
+  } catch (error) {
+    return {
+      ok: false,
+      generated: false,
+      source_univ: faTeam.univ,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 
@@ -498,7 +530,7 @@ function main() {
   ensureDir(REPORTS_DIR);
 
   const startedAt = new Date().toISOString();
-  const rosterSyncReport = rosterSync ? runRosterSync(teams) : { ok: false, skipped: true };
+  const rosterSyncReport = rosterSync ? runRosterSync(teams, teamConfig.length) : { ok: false, skipped: true };
   if (rosterSync && !rosterSyncReport.ok) {
     console.error(`[WARN] roster sync failed: ${rosterSyncReport.error}`);
   }
@@ -533,6 +565,10 @@ function main() {
   }
 
   const summaryRows = perTeamReports.map(({ team, report }) => summarizeTeamFromReport(team, report));
+  const faRecordMetadata = ensureFaRecordMetadata(teams);
+  if (!faRecordMetadata.ok) {
+    console.error(`[WARN] FA record metadata prepare failed: ${faRecordMetadata.error}`);
+  }
   const teamTableReport = generateTeamTableReports(teams);
   const priorPath = latestPreviousSnapshotPath(dateTag);
   const prior = priorPath ? readJson(priorPath) : null;
@@ -578,6 +614,7 @@ function main() {
     strict,
     roster_sync: rosterSyncReport,
     display_alias_apply: aliasApplyReport,
+    fa_record_metadata: faRecordMetadata,
     teams: rowsWithDelta.map((r) => ({
       team: r.team,
       team_code: r.team_code,

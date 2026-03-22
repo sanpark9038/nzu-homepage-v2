@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-21T07:49:23.219Z",
+  "generated_at": "2026-03-22T08:55:41.905Z",
   "project": "c9",
   "team_name": "씨나인",
   "team_code": "c9",
@@ -9,7 +9,7 @@
     "씨나인",
     "C9"
   ],
-  "roster_count": 23,
+  "roster_count": 24,
   "roster": [
     {
       "team_name": "씨나인",
@@ -252,34 +252,6 @@
       "name": "나무늘봉순",
       "tier": "2",
       "race": "Zerg",
-      "source": "씨나인_roster_record_metadata.json",
-      "meta_tags": [
-        "domain:player",
-        "project:c9",
-        "team:c9",
-        "team_code:c9",
-        "team_ko:씨나인",
-        "team_alias:씨나인",
-        "team_alias:c9",
-        "gender:female",
-        "race:zerg",
-        "tier:2"
-      ],
-      "missing_in_master": false,
-      "display_name": "나무늘봉순",
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "2"
-    },
-    {
-      "team_name": "씨나인",
-      "team_code": "c9",
-      "entity_id": "eloboard:female:313",
-      "wr_id": 313,
-      "gender": "female",
-      "name": "빵훈",
-      "tier": "2",
-      "race": "Zerg",
       "source": "roster_sync",
       "meta_tags": [
         "domain:player",
@@ -295,10 +267,36 @@
         "team_en:c9"
       ],
       "missing_in_master": false,
-      "display_name": "빵훈",
+      "display_name": "나무늘봉순",
       "role_title": "",
       "role_priority": null,
       "tier_key": "2"
+    },
+    {
+      "team_name": "씨나인",
+      "team_code": "c9",
+      "entity_id": "eloboard:male:313",
+      "wr_id": 313,
+      "gender": "male",
+      "name": "빵훈",
+      "tier": "2",
+      "race": "Zerg",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:c9",
+        "team_code:c9",
+        "team_ko:씨나인",
+        "team_en:c9",
+        "gender:male",
+        "race:zerg",
+        "tier:2"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "2",
+      "display_name": "빵훈"
     },
     {
       "team_name": "씨나인",
@@ -531,6 +529,32 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6"
+    },
+    {
+      "team_name": "씨나인",
+      "team_code": "c9",
+      "entity_id": "eloboard:female:777",
+      "wr_id": 777,
+      "gender": "female",
+      "name": "히댕",
+      "tier": "6",
+      "race": "Zerg",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:c9",
+        "team_code:c9",
+        "team_ko:씨나인",
+        "team_en:c9",
+        "gender:female",
+        "race:zerg",
+        "tier:6"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "6",
+      "display_name": "히댕"
     },
     {
       "team_name": "씨나인",

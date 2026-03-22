@@ -35,6 +35,8 @@ function shouldUseMixEndpoint(player) {
 function defaultProfileUrlForPlayer(player) {
   const byName = resolveSpecialProfileUrlByName(player && player.name);
   if (byName) return byName;
+  const byProfile = String(player && player.profile_url ? player.profile_url : "").trim();
+  if (byProfile) return byProfile.replace(/^http:\/\//i, "https://");
   const board = player && player.gender === "male" ? "men" : "women";
   const wrId = Number(player && player.wr_id);
   return `https://eloboard.com/${board}/bbs/board.php?bo_table=bj_list&wr_id=${wrId}`;
