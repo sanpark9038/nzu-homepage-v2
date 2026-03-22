@@ -56,6 +56,8 @@ function main() {
   const table = teams.map((t) => ({
     team: t.team,
     players: t.players,
+    fetched_players: t.fetched_players ?? "",
+    reused_players: t.reused_players ?? "",
     fetch_fail: t.fetch_fail,
     csv_fail: t.csv_fail,
     zero_record_players: t.zero_record_players,

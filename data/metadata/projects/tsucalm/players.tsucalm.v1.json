@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T11:24:25.451Z",
+  "generated_at": "2026-03-22T15:30:29.360Z",
   "project": "tsucalm",
   "team_name": "츠캄",
   "team_code": "tsucalm",
@@ -41,7 +41,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "king",
-      "display_name": "박수범"
+      "display_name": "박수범",
+      "last_checked_at": "2026-03-22T15:26:37.907Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.331Z"
     },
     {
       "team_name": "츠캄",
@@ -72,7 +77,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "king",
-      "display_name": "박준오"
+      "display_name": "박준오",
+      "last_checked_at": "2026-03-22T15:26:50.466Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.331Z"
     },
     {
       "team_name": "츠캄",
@@ -103,7 +113,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "display_name": "배성흠"
+      "display_name": "배성흠",
+      "last_checked_at": "2026-03-22T15:27:00.315Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.332Z"
     },
     {
       "team_name": "츠캄",
@@ -134,7 +149,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "display_name": "지동원"
+      "display_name": "지동원",
+      "last_checked_at": "2026-03-22T15:27:12.992Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.333Z"
     },
     {
       "team_name": "츠캄",
@@ -160,7 +180,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "spade",
-      "display_name": "파도튜브"
+      "display_name": "파도튜브",
+      "last_checked_at": "2026-03-22T15:27:16.183Z",
+      "last_match_at": "2026-01-23T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:29.333Z"
     },
     {
       "team_name": "츠캄",
@@ -186,7 +211,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "3",
-      "display_name": "지두두"
+      "display_name": "지두두",
+      "last_checked_at": "2026-03-22T15:27:23.554Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.334Z"
     },
     {
       "team_name": "츠캄",
@@ -217,7 +247,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "3",
-      "display_name": "토마토"
+      "display_name": "토마토",
+      "last_checked_at": "2026-03-22T15:27:30.849Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.336Z"
     },
     {
       "team_name": "츠캄",
@@ -248,7 +283,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "4",
-      "display_name": "햇살"
+      "display_name": "햇살",
+      "last_checked_at": "2026-03-22T15:27:37.810Z",
+      "last_match_at": "2026-03-14T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.339Z"
     },
     {
       "team_name": "츠캄",
@@ -279,7 +319,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "소주양"
+      "display_name": "소주양",
+      "last_checked_at": "2026-03-22T15:27:45.465Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.341Z"
     },
     {
       "team_name": "츠캄",
@@ -310,7 +355,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "주하랑"
+      "display_name": "주하랑",
+      "last_checked_at": "2026-03-22T15:27:52.796Z",
+      "last_match_at": "2026-03-14T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.344Z"
     },
     {
       "team_name": "츠캄",
@@ -341,7 +391,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "치리"
+      "display_name": "치리",
+      "last_checked_at": "2026-03-22T15:28:00.324Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.347Z"
     },
     {
       "team_name": "츠캄",
@@ -367,7 +422,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "display_name": "비타밍"
+      "display_name": "비타밍",
+      "last_checked_at": "2026-03-22T15:28:07.431Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.350Z"
     },
     {
       "team_name": "츠캄",
@@ -398,7 +458,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "display_name": "임조이"
+      "display_name": "임조이",
+      "last_checked_at": "2026-03-22T15:28:13.967Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.353Z"
     },
     {
       "team_name": "츠캄",
@@ -429,7 +494,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "먼진"
+      "display_name": "먼진",
+      "last_checked_at": "2026-03-22T15:28:20.411Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.356Z"
     },
     {
       "team_name": "츠캄",
@@ -455,7 +525,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "아리송이"
+      "display_name": "아리송이",
+      "last_checked_at": "2026-03-22T15:28:25.621Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.357Z"
     },
     {
       "team_name": "츠캄",
@@ -486,7 +561,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "박쭈이"
+      "display_name": "박쭈이",
+      "last_checked_at": "2026-03-22T15:28:32.300Z",
+      "last_match_at": "2026-03-16T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.357Z"
     },
     {
       "team_name": "츠캄",
@@ -517,7 +597,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "진땅콩"
+      "display_name": "진땅콩",
+      "last_checked_at": "2026-03-22T15:28:37.602Z",
+      "last_match_at": "2026-03-16T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.359Z"
     },
     {
       "team_name": "츠캄",
@@ -548,7 +633,12 @@
       "role_title": "이사장",
       "role_priority": 1,
       "tier_key": "jack",
-      "display_name": "김윤환"
+      "display_name": "김윤환",
+      "last_checked_at": "2026-03-22T15:28:51.931Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.359Z"
     },
     {
       "team_name": "츠캄",
@@ -579,7 +669,12 @@
       "role_title": "이사장",
       "role_priority": 2,
       "tier_key": "jack",
-      "display_name": "이경민"
+      "display_name": "이경민",
+      "last_checked_at": "2026-03-22T15:29:04.913Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.360Z"
     }
   ],
   "source_file": "tmp/츠캄몬스타즈_roster_record_metadata.json",

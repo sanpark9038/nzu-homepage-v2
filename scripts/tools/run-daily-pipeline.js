@@ -17,6 +17,7 @@ const TEAM_TABLE_SCRIPT = path.join(ROOT, "scripts", "tools", "report-team-roste
 const ROSTER_SYNC_SCRIPT = path.join(ROOT, "scripts", "tools", "sync-team-roster-metadata.js");
 const DISPLAY_ALIAS_SCRIPT = path.join(ROOT, "scripts", "tools", "apply-player-display-aliases.js");
 const TEAM_TABLE_OUT_DIR = path.join(TMP_DIR, "reports", "team-roster-table");
+const NODE_BIN_FALLBACK = "node";
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -144,12 +145,23 @@ function sortedAlerts(alerts) {
 }
 
 function runNode(scriptPath, args) {
-  return execFileSync(NODE_BIN, [scriptPath, ...args], {
-    cwd: ROOT,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-    maxBuffer: 50 * 1024 * 1024,
-  });
+  try {
+    return execFileSync(NODE_BIN, [scriptPath, ...args], {
+      cwd: ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 50 * 1024 * 1024,
+    });
+  } catch (error) {
+    const code = error && typeof error === "object" ? String(error.code || "") : "";
+    if (code !== "EPERM" || NODE_BIN === NODE_BIN_FALLBACK) throw error;
+    return execFileSync(NODE_BIN_FALLBACK, [scriptPath, ...args], {
+      cwd: ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 50 * 1024 * 1024,
+    });
+  }
 }
 
 function latestPreviousSnapshotPath(dateStr) {
@@ -185,6 +197,14 @@ function summarizeTeamFromReport(team, report) {
   const results = Array.isArray(report.results) ? report.results : [];
   const actionable = results.filter((row) => !row.excluded);
   const excludedPlayers = results.filter((row) => row.excluded).map((row) => String(row.player || ""));
+  const fetchedPlayers = actionable.filter((row) => String(row.fetch_status || "") === "ok").length;
+  const reusedPlayers = actionable.filter((row) =>
+    [
+      "used_existing_json",
+      "used_existing_json_inactive",
+      "used_existing_json_priority_window",
+    ].includes(String(row.fetch_status || ""))
+  ).length;
   let totalMatches = 0;
   let totalWins = 0;
   let totalLosses = 0;
@@ -192,7 +212,12 @@ function summarizeTeamFromReport(team, report) {
   const failures = [];
 
   for (const row of actionable) {
-    const fetchOkStates = new Set(["ok", "used_existing_json", "used_existing_json_inactive"]);
+    const fetchOkStates = new Set([
+      "ok",
+      "used_existing_json",
+      "used_existing_json_inactive",
+      "used_existing_json_priority_window",
+    ]);
     const fetchFail = !fetchOkStates.has(String(row.fetch_status || ""));
     const csvFail = !["ok", "used_existing_csv"].includes(String(row.csv_status || ""));
     if (fetchFail || csvFail) {
@@ -223,8 +248,16 @@ function summarizeTeamFromReport(team, report) {
     players: actionable.length,
     excluded_players: excludedPlayers.length,
     excluded_player_names: excludedPlayers.join(", "),
+    fetched_players: fetchedPlayers,
+    reused_players: reusedPlayers,
     fetch_fail: failures.filter(
-      (f) => !["ok", "used_existing_json", "used_existing_json_inactive"].includes(String(f.fetch_status || ""))
+      (f) =>
+        ![
+          "ok",
+          "used_existing_json",
+          "used_existing_json_inactive",
+          "used_existing_json_priority_window",
+        ].includes(String(f.fetch_status || ""))
     ).length,
     csv_fail: failures.filter((f) => !["ok", "used_existing_csv"].includes(String(f.csv_status || ""))).length,
     total_matches: totalMatches,
@@ -515,6 +548,9 @@ function main() {
   const strict = !hasFlag("--no-strict");
   const organize = !hasFlag("--no-organize");
   const rosterSync = !hasFlag("--no-roster-sync");
+  const displayAliasApply = !hasFlag("--no-display-alias");
+  const teamTableEnabled = !hasFlag("--no-team-table");
+  const faRecordMetadataEnabled = !hasFlag("--no-fa-record-metadata");
   const useExistingJson = !hasFlag("--no-use-existing-json");
   const inactiveSkipDays = Number(argValue("--inactive-skip-days", "14")) || 0;
   const teamsArg = argValue("--teams", "");
@@ -539,8 +575,10 @@ function main() {
   if (rosterSync && !rosterSyncReport.ok) {
     console.error(`[WARN] roster sync failed: ${rosterSyncReport.error}`);
   }
-  const aliasApplyReport = applyDisplayAliasesForTeams(teams);
-  if (!aliasApplyReport.ok) {
+  const aliasApplyReport = displayAliasApply
+    ? applyDisplayAliasesForTeams(teams)
+    : { ok: false, skipped: true, teams: [] };
+  if (displayAliasApply && !aliasApplyReport.ok) {
     const failed = aliasApplyReport.teams.filter((t) => !t.ok).map((t) => t.team_code).join(",");
     console.error(`[WARN] display alias apply failed for: ${failed}`);
   }
@@ -574,11 +612,15 @@ function main() {
   }
 
   const summaryRows = perTeamReports.map(({ team, report }) => summarizeTeamFromReport(team, report));
-  const faRecordMetadata = ensureFaRecordMetadata(teams);
-  if (!faRecordMetadata.ok) {
+  const faRecordMetadata = faRecordMetadataEnabled
+    ? ensureFaRecordMetadata(teams)
+    : { ok: false, skipped: true };
+  if (faRecordMetadataEnabled && !faRecordMetadata.ok) {
     console.error(`[WARN] FA record metadata prepare failed: ${faRecordMetadata.error}`);
   }
-  const teamTableReport = generateTeamTableReports(teams);
+  const teamTableReport = teamTableEnabled
+    ? generateTeamTableReports(teams)
+    : { ok: false, skipped: true, out_dir: path.relative(ROOT, TEAM_TABLE_OUT_DIR).replace(/\\/g, "/") };
   const priorPath = latestPreviousSnapshotPath(dateTag);
   const prior = priorPath ? readJson(priorPath) : null;
   const comparablePrior = isComparablePriorSnapshot(prior, from, to);
@@ -630,6 +672,8 @@ function main() {
       players: r.players,
       excluded_players: r.excluded_players,
       excluded_player_names: r.excluded_player_names,
+      fetched_players: r.fetched_players,
+      reused_players: r.reused_players,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,
@@ -687,6 +731,8 @@ function main() {
       team_code: r.team_code,
       players: r.players,
       excluded_players: r.excluded_players ?? 0,
+      fetched_players: r.fetched_players ?? 0,
+      reused_players: r.reused_players ?? 0,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,
@@ -722,7 +768,7 @@ function main() {
   console.log(`[DONE] ${path.relative(ROOT, outAlertCsv)}`);
   if (teamTableReport.ok) {
     console.log(`[DONE] ${teamTableReport.out_dir}`);
-  } else {
+  } else if (!teamTableReport.skipped) {
     console.error(`[WARN] team table report failed: ${teamTableReport.error}`);
   }
 

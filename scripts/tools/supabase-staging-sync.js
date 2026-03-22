@@ -64,6 +64,11 @@ async function main() {
           university: p.team_name || '',
           gender: p.gender || null,
           photo_url: p.photo_url || null,
+          last_checked_at: p.last_checked_at || null,
+          last_match_at: p.last_match_at || null,
+          last_changed_at: p.last_changed_at || null,
+          check_priority: p.check_priority || null,
+          check_interval_days: Number.isFinite(Number(p.check_interval_days)) ? Number(p.check_interval_days) : null,
           created_at: new Date().toISOString(),
           is_live: false,
         });
@@ -106,7 +111,11 @@ async function main() {
   // Verification Queries
   const { count: stagingTotal } = await supabase.from('players_staging').select('*', { count: 'exact', head: true });
   const { count: faCount } = await supabase.from('players_staging').select('*', { count: 'exact', head: true }).or('university.eq.무소속,university.eq.연합팀');
-  const { data: jiking } = await supabase.from('players_staging').select('name, tier, race').eq('eloboard_id', 'eloboard:male:704').single();
+  const { data: jiking } = await supabase
+    .from('players_staging')
+    .select('name, tier, race, check_priority, check_interval_days')
+    .eq('eloboard_id', 'eloboard:female:704')
+    .single();
   const { data: excludedCheck } = await supabase.from('players_staging').select('name, eloboard_id').in('name', ['김수환', '김민교', '박한별', '이상호', '농떼르만', '엘사', '옥수수']);
 
   console.log('\n=== 검증 리포트 (Verification Report) ===');
@@ -117,11 +126,13 @@ async function main() {
   console.log(`📌 FA(무소속) 병력: ${faCount}명`);
   console.log(`📌 제외 타겟 7명 실제 DB 검출 수: ${excludedCheck ? excludedCheck.length : 0}명 (0이어야 정상)`);
   
-  console.log(`\n📌 찌킹(wr_id 704) 샘플 검증:`);
+  console.log(`\n📌 찌킹(entity_id eloboard:female:704) 샘플 검증:`);
   if (jiking) {
      console.log(` - 이름: ${jiking.name}`);
      console.log(` - 티어: ${jiking.tier} (정상: 4)`);
      console.log(` - 종족: ${jiking.race} (정상: Zerg)`);
+     console.log(` - 점검우선순위: ${jiking.check_priority ?? 'null'}`);
+     console.log(` - 점검간격일: ${jiking.check_interval_days ?? 'null'}`);
   } else {
      console.log(` - 검색 실패!`);
   }

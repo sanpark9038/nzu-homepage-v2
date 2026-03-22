@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T11:24:25.029Z",
+  "generated_at": "2026-03-22T15:30:28.935Z",
   "project": "bgm",
   "team_name": "BGM",
   "team_code": "bgm",
@@ -37,7 +37,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "joker",
-      "display_name": "쿨지지"
+      "display_name": "쿨지지",
+      "last_checked_at": "2026-03-22T14:53:33.985Z",
+      "last_match_at": "2026-02-18T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:28.916Z"
     },
     {
       "team_name": "BGM",
@@ -66,7 +71,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "joker",
-      "display_name": "쿰신"
+      "display_name": "쿰신",
+      "last_checked_at": "2026-03-22T14:53:43.845Z",
+      "last_match_at": "2026-01-17T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:28.916Z"
     },
     {
       "team_name": "BGM",
@@ -95,7 +105,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "joker",
-      "display_name": "라박이"
+      "display_name": "라박이",
+      "last_checked_at": "2026-03-22T14:53:55.884Z",
+      "last_match_at": "2026-03-06T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:28.918Z"
     },
     {
       "team_name": "BGM",
@@ -123,7 +138,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "spade",
-      "display_name": "박성진"
+      "display_name": "박성진",
+      "last_checked_at": "2026-03-22T14:54:06.100Z",
+      "last_match_at": "2026-02-15T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:28.918Z"
     },
     {
       "team_name": "BGM",
@@ -149,7 +169,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "1",
-      "display_name": "라히"
+      "display_name": "라히",
+      "last_checked_at": "2026-03-22T14:54:09.924Z",
+      "last_match_at": "2026-03-02T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:28.919Z"
     },
     {
       "team_name": "BGM",
@@ -177,7 +202,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "1",
-      "display_name": "안아"
+      "display_name": "안아",
+      "last_checked_at": "2026-03-22T14:54:17.489Z",
+      "last_match_at": "2026-03-12T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.920Z"
     },
     {
       "team_name": "BGM",
@@ -205,7 +235,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "2",
-      "display_name": "김쵸아"
+      "display_name": "김쵸아",
+      "last_checked_at": "2026-03-22T14:54:25.706Z",
+      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.921Z"
     },
     {
       "team_name": "BGM",
@@ -233,7 +268,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "삐약삐약"
+      "display_name": "삐약삐약",
+      "last_checked_at": "2026-03-22T14:54:31.521Z",
+      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.922Z"
     },
     {
       "team_name": "BGM",
@@ -261,7 +301,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "옆집뽀누나"
+      "display_name": "옆집뽀누나",
+      "last_checked_at": "2026-03-22T14:54:40.264Z",
+      "last_match_at": "2026-03-20T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.929Z"
     },
     {
       "team_name": "BGM",
@@ -289,7 +334,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "display_name": "태린"
+      "display_name": "태린",
+      "last_checked_at": "2026-03-22T14:54:47.110Z",
+      "last_match_at": "2026-03-15T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.930Z"
     },
     {
       "team_name": "BGM",
@@ -317,7 +367,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "진니"
+      "display_name": "진니",
+      "last_checked_at": "2026-03-22T14:54:53.995Z",
+      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.931Z"
     },
     {
       "team_name": "BGM",
@@ -345,7 +400,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "흑설"
+      "display_name": "흑설",
+      "last_checked_at": "2026-03-22T14:54:58.547Z",
+      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.931Z"
     },
     {
       "team_name": "BGM",
@@ -373,7 +433,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "김세주"
+      "display_name": "김세주",
+      "last_checked_at": "2026-03-22T14:55:04.625Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.932Z"
     },
     {
       "team_name": "BGM",
@@ -401,7 +466,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "먹체토"
+      "display_name": "먹체토",
+      "last_checked_at": "2026-03-22T14:55:09.130Z",
+      "last_match_at": "2026-03-15T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.933Z"
     },
     {
       "team_name": "BGM",
@@ -429,7 +499,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "햇참새"
+      "display_name": "햇참새",
+      "last_checked_at": "2026-03-22T14:55:14.147Z",
+      "last_match_at": "2026-03-15T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.934Z"
     },
     {
       "team_name": "BGM",
@@ -455,7 +530,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "9",
-      "display_name": "두폴조합"
+      "display_name": "두폴조합",
+      "last_checked_at": "2026-03-22T14:55:17.513Z",
+      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.934Z"
     },
     {
       "team_name": "BGM",
@@ -484,7 +564,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "9",
-      "display_name": "유녜"
+      "display_name": "유녜",
+      "last_checked_at": "2026-03-22T14:55:21.468Z",
+      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.935Z"
     }
   ],
   "source_file": "tmp/bgm_roster_record_metadata.json",

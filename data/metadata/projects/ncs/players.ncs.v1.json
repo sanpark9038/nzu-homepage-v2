@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T11:24:25.340Z",
+  "generated_at": "2026-03-22T15:30:29.284Z",
   "project": "ncs",
   "team_name": "뉴캣슬",
   "team_code": "ncs",
@@ -38,7 +38,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "god",
-      "display_name": "도재욱"
+      "display_name": "도재욱",
+      "last_checked_at": "2026-03-22T15:18:46.322Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.256Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -68,7 +73,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "king",
-      "display_name": "샤이니"
+      "display_name": "샤이니",
+      "last_checked_at": "2026-03-22T15:19:01.690Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.258Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -98,7 +108,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "display_name": "구라미스"
+      "display_name": "구라미스",
+      "last_checked_at": "2026-03-22T15:19:13.264Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.258Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -127,7 +142,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "joker",
-      "display_name": "김건욱"
+      "display_name": "김건욱",
+      "last_checked_at": "2026-03-22T15:19:23.373Z",
+      "last_match_at": "2026-03-06T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.258Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -157,7 +177,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "joker",
-      "display_name": "액션구드론"
+      "display_name": "액션구드론",
+      "last_checked_at": "2026-03-22T15:19:33.175Z",
+      "last_match_at": "2026-03-06T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.259Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -187,7 +212,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "joker",
-      "display_name": "미동미동"
+      "display_name": "미동미동",
+      "last_checked_at": "2026-03-22T15:19:42.086Z",
+      "last_match_at": "2026-03-06T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.259Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -217,7 +247,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "spade",
-      "display_name": "초난강"
+      "display_name": "초난강",
+      "last_checked_at": "2026-03-22T15:19:50.747Z",
+      "last_match_at": "2026-03-06T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.259Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -243,7 +278,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "spade",
-      "display_name": "트슈"
+      "display_name": "트슈",
+      "last_checked_at": "2026-03-22T15:19:55.227Z",
+      "last_match_at": "2026-01-23T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:29.259Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -272,7 +312,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "2",
-      "display_name": "다나짱"
+      "display_name": "다나짱",
+      "last_checked_at": "2026-03-22T15:20:02.599Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.262Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -301,7 +346,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "4",
-      "display_name": "쥬나"
+      "display_name": "쥬나",
+      "last_checked_at": "2026-03-22T15:20:08.922Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.264Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -330,7 +380,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "4",
-      "display_name": "최도랑"
+      "display_name": "최도랑",
+      "last_checked_at": "2026-03-22T15:20:15.491Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.265Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -359,7 +414,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "4",
-      "display_name": "키링"
+      "display_name": "키링",
+      "last_checked_at": "2026-03-22T15:20:21.744Z",
+      "last_match_at": "2026-03-04T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.267Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -388,7 +448,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "강덕구"
+      "display_name": "강덕구",
+      "last_checked_at": "2026-03-22T15:20:29.371Z",
+      "last_match_at": "2026-03-10T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.270Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -417,7 +482,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "백갑숙"
+      "display_name": "백갑숙",
+      "last_checked_at": "2026-03-22T15:20:35.919Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.272Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -446,7 +516,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "display_name": "진유성"
+      "display_name": "진유성",
+      "last_checked_at": "2026-03-22T15:20:43.147Z",
+      "last_match_at": "2026-03-06T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.275Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -475,7 +550,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "막내현진"
+      "display_name": "막내현진",
+      "last_checked_at": "2026-03-22T15:20:50.026Z",
+      "last_match_at": "2026-03-10T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.277Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -501,7 +581,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "욱하는형"
+      "display_name": "욱하는형",
+      "last_checked_at": "2026-03-22T15:20:53.765Z",
+      "last_match_at": "2026-03-16T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.277Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -530,7 +615,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "퀸주"
+      "display_name": "퀸주",
+      "last_checked_at": "2026-03-22T15:20:58.641Z",
+      "last_match_at": "2026-03-20T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.278Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -559,7 +649,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "냥냥코기"
+      "display_name": "냥냥코기",
+      "last_checked_at": "2026-03-22T15:21:03.851Z",
+      "last_match_at": "2026-03-11T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.279Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -588,7 +683,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "밍또얌"
+      "display_name": "밍또얌",
+      "last_checked_at": "2026-03-22T15:21:09.264Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.281Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -618,7 +718,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "9",
-      "display_name": "밤하밍"
+      "display_name": "밤하밍",
+      "last_checked_at": "2026-03-22T15:21:13.420Z",
+      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.282Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -648,7 +753,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "9",
-      "display_name": "유즈"
+      "display_name": "유즈",
+      "last_checked_at": "2026-03-22T15:21:17.149Z",
+      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.282Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -678,7 +788,12 @@
       "role_title": "이사장",
       "role_priority": 1,
       "tier_key": "spade",
-      "display_name": "기뉴다"
+      "display_name": "기뉴다",
+      "last_checked_at": "2026-03-22T15:21:26.547Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.282Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -707,7 +822,12 @@
       "role_title": "부총장",
       "role_priority": 2,
       "tier_key": "king",
-      "display_name": "박성균"
+      "display_name": "박성균",
+      "last_checked_at": "2026-03-22T15:21:41.571Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.284Z"
     }
   ],
   "source_file": "tmp/뉴캣슬_roster_record_metadata.json",

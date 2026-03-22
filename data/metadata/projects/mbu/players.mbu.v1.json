@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T11:24:25.302Z",
+  "generated_at": "2026-03-22T15:30:29.252Z",
   "project": "mbu",
   "team_name": "엠비대",
   "team_code": "mbu",
@@ -38,7 +38,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "king",
-      "display_name": "이영한"
+      "display_name": "이영한",
+      "last_checked_at": "2026-03-22T15:16:15.113Z",
+      "last_match_at": "2026-03-03T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.227Z"
     },
     {
       "team_name": "엠비대",
@@ -68,7 +73,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "display_name": "얍삽"
+      "display_name": "얍삽",
+      "last_checked_at": "2026-03-22T15:16:25.776Z",
+      "last_match_at": "2026-02-22T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.228Z"
     },
     {
       "team_name": "엠비대",
@@ -98,7 +108,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "display_name": "만두호성"
+      "display_name": "만두호성",
+      "last_checked_at": "2026-03-22T15:16:36.054Z",
+      "last_match_at": "2026-02-23T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.228Z"
     },
     {
       "team_name": "엠비대",
@@ -127,7 +142,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "display_name": "이창우"
+      "display_name": "이창우",
+      "last_checked_at": "2026-03-22T15:16:48.412Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.230Z"
     },
     {
       "team_name": "엠비대",
@@ -156,7 +176,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "display_name": "진영화"
+      "display_name": "진영화",
+      "last_checked_at": "2026-03-22T15:17:00.221Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.232Z"
     },
     {
       "team_name": "엠비대",
@@ -186,7 +211,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "spade",
-      "display_name": "빡죠스"
+      "display_name": "빡죠스",
+      "last_checked_at": "2026-03-22T15:17:09.790Z",
+      "last_match_at": "2026-02-03T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:29.232Z"
     },
     {
       "team_name": "엠비대",
@@ -212,7 +242,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "0",
-      "display_name": "토스봇"
+      "display_name": "토스봇",
+      "last_checked_at": "2026-03-22T15:17:13.736Z",
+      "last_match_at": "2025-12-16T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:29.232Z"
     },
     {
       "team_name": "엠비대",
@@ -241,7 +276,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "2",
-      "display_name": "카히리"
+      "display_name": "카히리",
+      "last_checked_at": "2026-03-22T15:17:20.879Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.235Z"
     },
     {
       "team_name": "엠비대",
@@ -270,7 +310,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "3",
-      "display_name": "하리"
+      "display_name": "하리",
+      "last_checked_at": "2026-03-22T15:17:28.183Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.238Z"
     },
     {
       "team_name": "엠비대",
@@ -299,7 +344,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "4",
-      "display_name": "링고"
+      "display_name": "링고",
+      "last_checked_at": "2026-03-22T15:17:34.985Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.241Z"
     },
     {
       "team_name": "엠비대",
@@ -328,7 +378,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "시녕뭉"
+      "display_name": "시녕뭉",
+      "last_checked_at": "2026-03-22T15:17:41.259Z",
+      "last_match_at": "2026-03-14T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.242Z"
     },
     {
       "team_name": "엠비대",
@@ -357,7 +412,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "최세상"
+      "display_name": "최세상",
+      "last_checked_at": "2026-03-22T15:17:48.569Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.245Z"
     },
     {
       "team_name": "엠비대",
@@ -386,7 +446,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "display_name": "엄보리"
+      "display_name": "엄보리",
+      "last_checked_at": "2026-03-22T15:17:54.904Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.247Z"
     },
     {
       "team_name": "엠비대",
@@ -415,7 +480,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "면추가"
+      "display_name": "면추가",
+      "last_checked_at": "2026-03-22T15:17:59.825Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.248Z"
     },
     {
       "team_name": "엠비대",
@@ -444,7 +514,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "정다닝"
+      "display_name": "정다닝",
+      "last_checked_at": "2026-03-22T15:18:04.469Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.249Z"
     },
     {
       "team_name": "엠비대",
@@ -473,7 +548,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "권아온"
+      "display_name": "권아온",
+      "last_checked_at": "2026-03-22T15:18:08.366Z",
+      "last_match_at": "2026-03-12T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.249Z"
     },
     {
       "team_name": "엠비대",
@@ -499,7 +579,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "마예준"
+      "display_name": "마예준",
+      "last_checked_at": "2026-03-22T15:18:11.707Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.250Z"
     },
     {
       "team_name": "엠비대",
@@ -525,7 +610,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "병하"
+      "display_name": "병하",
+      "last_checked_at": "2026-03-22T15:18:14.598Z",
+      "last_match_at": "2026-02-11T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.250Z"
     },
     {
       "team_name": "엠비대",
@@ -554,7 +644,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "엄키키"
+      "display_name": "엄키키",
+      "last_checked_at": "2026-03-22T15:18:20.144Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.252Z"
     },
     {
       "team_name": "엠비대",
@@ -584,7 +679,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "9",
-      "display_name": "요정너구리"
+      "display_name": "요정너구리",
+      "last_checked_at": "2026-03-22T15:18:23.621Z",
+      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.252Z"
     },
     {
       "team_name": "엠비대",
@@ -614,7 +714,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "9",
-      "display_name": "햄희"
+      "display_name": "햄희",
+      "last_checked_at": "2026-03-22T15:18:27.046Z",
+      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.252Z"
     }
   ],
   "source_file": "tmp/엠비대_roster_record_metadata.json",

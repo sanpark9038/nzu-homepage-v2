@@ -6,9 +6,23 @@ require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local") 
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORT_DIR = path.join(ROOT, "tmp", "reports");
 const NODE_BIN = process.execPath || "node";
+const NODE_BIN_FALLBACK = "node";
 
 function hasFlag(flag) {
   return process.argv.includes(flag);
+}
+
+function argValue(flag, fallback = null) {
+  const idx = process.argv.indexOf(flag);
+  if (idx >= 0 && process.argv[idx + 1]) return process.argv[idx + 1];
+  return fallback;
+}
+
+function appendArgIfPresent(args, flag, value) {
+  if (value === null || value === undefined) return;
+  const text = String(value).trim();
+  if (!text) return;
+  args.push(flag, text);
 }
 
 function timestamp() {
@@ -19,12 +33,22 @@ function timestamp() {
 
 function runStep(name, args, options = {}) {
   const startedAt = new Date().toISOString();
-  const res = spawnSync(NODE_BIN, args, {
+  let usedNodeBin = NODE_BIN;
+  let res = spawnSync(usedNodeBin, args, {
     cwd: ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     maxBuffer: 64 * 1024 * 1024,
   });
+  if (res.error && String(res.error.code || "") === "EPERM" && NODE_BIN !== NODE_BIN_FALLBACK) {
+    usedNodeBin = NODE_BIN_FALLBACK;
+    res = spawnSync(usedNodeBin, args, {
+      cwd: ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 64 * 1024 * 1024,
+    });
+  }
   const endedAt = new Date().toISOString();
   const ok = res.status === 0;
   const spawnError =
@@ -33,7 +57,7 @@ function runStep(name, args, options = {}) {
       : "";
   const step = {
     name,
-    command: `${NODE_BIN} ${args.join(" ")}`,
+    command: `${usedNodeBin} ${args.join(" ")}`,
     started_at: startedAt,
     ended_at: endedAt,
     exit_code: res.status,
@@ -229,6 +253,20 @@ function main() {
   const dryRun = hasFlag("--dry-run");
   const noDiscord = hasFlag("--no-discord");
   const dateTag = timestamp();
+  const dailyArgs = ["scripts/tools/run-daily-pipeline.js"];
+  appendArgIfPresent(dailyArgs, "--from", argValue("--from", null));
+  appendArgIfPresent(dailyArgs, "--to", argValue("--to", null));
+  appendArgIfPresent(dailyArgs, "--date-tag", argValue("--date-tag", null));
+  appendArgIfPresent(dailyArgs, "--teams", argValue("--teams", null));
+  appendArgIfPresent(dailyArgs, "--concurrency", argValue("--concurrency", null));
+  appendArgIfPresent(dailyArgs, "--inactive-skip-days", argValue("--inactive-skip-days", null));
+  if (hasFlag("--no-use-existing-json")) dailyArgs.push("--no-use-existing-json");
+  if (hasFlag("--no-roster-sync")) dailyArgs.push("--no-roster-sync");
+  if (hasFlag("--no-display-alias")) dailyArgs.push("--no-display-alias");
+  if (hasFlag("--no-team-table")) dailyArgs.push("--no-team-table");
+  if (hasFlag("--no-fa-record-metadata")) dailyArgs.push("--no-fa-record-metadata");
+  if (hasFlag("--no-organize")) dailyArgs.push("--no-organize");
+  const dailyCommand = `node ${dailyArgs.join(" ")}`;
 
   const steps = [];
   let status = "pass";
@@ -246,7 +284,7 @@ function main() {
     if (dryRun) {
       steps.push({
         name: "daily_pipeline",
-        command: "node scripts/tools/run-daily-pipeline.js",
+        command: dailyCommand,
         started_at: new Date().toISOString(),
         ended_at: new Date().toISOString(),
         exit_code: 0,
@@ -288,7 +326,7 @@ function main() {
       }
     } else {
       steps.push(
-        runStep("daily_pipeline", ["scripts/tools/run-daily-pipeline.js"])
+        runStep("daily_pipeline", dailyArgs)
       );
       steps.push(
         runStep("warehouse_verify", ["scripts/tools/verify-warehouse-integrity.js"])

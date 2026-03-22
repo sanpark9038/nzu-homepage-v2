@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T11:24:25.526Z",
+  "generated_at": "2026-03-22T15:30:29.392Z",
   "project": "yb",
   "team_name": "YB",
   "team_code": "yb",
@@ -36,7 +36,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "king",
-      "display_name": "유승곤"
+      "display_name": "유승곤",
+      "last_checked_at": "2026-03-22T14:18:33.820Z",
+      "last_match_at": "2026-02-23T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T14:24:23.413Z"
     },
     {
       "team_name": "YB",
@@ -65,7 +70,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "display_name": "오메킴"
+      "display_name": "오메킴",
+      "last_checked_at": "2026-03-22T14:18:44.265Z",
+      "last_match_at": "2025-12-22T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T14:24:23.413Z"
     },
     {
       "team_name": "YB",
@@ -93,7 +103,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "joker",
-      "display_name": "전제민"
+      "display_name": "전제민",
+      "last_checked_at": "2026-03-22T14:18:54.878Z",
+      "last_match_at": "2026-02-15T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T14:24:23.413Z"
     },
     {
       "team_name": "YB",
@@ -122,7 +137,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "spade",
-      "display_name": "탱크"
+      "display_name": "탱크",
+      "last_checked_at": "2026-03-22T14:19:04.142Z",
+      "last_match_at": "2026-02-15T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T14:24:23.413Z"
     },
     {
       "team_name": "YB",
@@ -148,7 +168,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "2",
-      "display_name": "저라뎃"
+      "display_name": "저라뎃",
+      "last_checked_at": "2026-03-22T14:19:07.440Z",
+      "last_match_at": "2025-09-26T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T14:24:23.414Z"
     },
     {
       "team_name": "YB",
@@ -176,7 +201,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "4",
-      "display_name": "우리밍"
+      "display_name": "우리밍",
+      "last_checked_at": "2026-03-22T14:19:14.465Z",
+      "last_match_at": "2026-02-22T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T14:24:23.415Z"
     },
     {
       "team_name": "YB",
@@ -204,7 +234,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "4",
-      "display_name": "임밍지"
+      "display_name": "임밍지",
+      "last_checked_at": "2026-03-22T14:19:20.850Z",
+      "last_match_at": "2026-02-22T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T14:24:23.417Z"
     },
     {
       "team_name": "YB",
@@ -232,7 +267,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "4",
-      "display_name": "태영"
+      "display_name": "태영",
+      "last_checked_at": "2026-03-22T14:19:28.479Z",
+      "last_match_at": "2026-01-15T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T14:24:23.419Z"
     },
     {
       "team_name": "YB",
@@ -260,7 +300,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "display_name": "으냉이"
+      "display_name": "으냉이",
+      "last_checked_at": "2026-03-22T14:19:35.060Z",
+      "last_match_at": "2026-02-21T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T14:24:23.421Z"
     },
     {
       "team_name": "YB",
@@ -288,7 +333,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "display_name": "하랑"
+      "display_name": "하랑",
+      "last_checked_at": "2026-03-22T14:19:42.517Z",
+      "last_match_at": "2026-01-26T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T14:24:23.423Z"
     },
     {
       "team_name": "YB",
@@ -314,7 +364,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "빵지니"
+      "display_name": "빵지니",
+      "last_checked_at": "2026-03-22T14:19:48.854Z",
+      "last_match_at": "2026-01-23T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T14:24:23.425Z"
     },
     {
       "team_name": "YB",
@@ -342,7 +397,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "하루묭"
+      "display_name": "하루묭",
+      "last_checked_at": "2026-03-22T14:19:55.452Z",
+      "last_match_at": "2026-02-21T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T14:24:23.428Z"
     },
     {
       "team_name": "YB",
@@ -370,7 +430,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "한쪼니"
+      "display_name": "한쪼니",
+      "last_checked_at": "2026-03-22T14:20:02.185Z",
+      "last_match_at": "2026-02-21T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T14:24:23.430Z"
     },
     {
       "team_name": "YB",
@@ -398,7 +463,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "히요코"
+      "display_name": "히요코",
+      "last_checked_at": "2026-03-22T14:20:09.276Z",
+      "last_match_at": "2026-02-05T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T14:24:23.432Z"
     },
     {
       "team_name": "YB",
@@ -427,7 +497,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "9",
-      "display_name": "윤하랑"
+      "display_name": "윤하랑",
+      "last_checked_at": "2026-03-22T14:24:21.868Z",
+      "last_match_at": "2026-03-12T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T14:24:23.432Z"
     },
     {
       "team_name": "YB",
@@ -456,7 +531,12 @@
       "role_title": "이사장",
       "role_priority": 1,
       "tier_key": "jack",
-      "display_name": "염보성"
+      "display_name": "염보성",
+      "last_checked_at": "2026-03-22T14:20:25.025Z",
+      "last_match_at": "2025-09-05T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T14:24:23.432Z"
     }
   ],
   "source_file": "tmp/yb_roster_record_metadata.json",

@@ -44,6 +44,14 @@ function daysBetween(a, b) {
   return Math.floor(ms / (24 * 60 * 60 * 1000));
 }
 
+function shouldSkipByPriorityWindow(player, to) {
+  const lastChecked = asDate(player && player.last_checked_at ? player.last_checked_at : "");
+  const checkIntervalDays = Number(player && player.check_interval_days ? player.check_interval_days : 0) || 0;
+  const todayDate = asDate(to) || new Date();
+  if (!lastChecked || checkIntervalDays <= 0) return false;
+  return daysBetween(todayDate, lastChecked) < checkIntervalDays;
+}
+
 function readPeriodMaxDate(jsonPath) {
   if (!fs.existsSync(jsonPath)) return null;
   try {
@@ -209,7 +217,10 @@ function main() {
     try {
       let shouldFetch = true;
       if (useExisting && fs.existsSync(jsonPath)) {
-        if (inactiveSkipDays > 0) {
+        if (shouldSkipByPriorityWindow(p, to)) {
+          shouldFetch = false;
+          result.fetch_status = "used_existing_json_priority_window";
+        } else if (inactiveSkipDays > 0) {
           const maxDate = readPeriodMaxDate(jsonPath);
           const todayDate = asDate(to) || new Date();
           if (maxDate && daysBetween(todayDate, maxDate) > inactiveSkipDays) {

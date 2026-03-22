@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T11:24:25.376Z",
+  "generated_at": "2026-03-22T15:30:29.297Z",
   "project": "nzu-homepage",
   "team_name": "늪지대",
   "team_code": "nzu",
@@ -32,7 +32,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "joker",
-      "display_name": "인치호"
+      "display_name": "인치호",
+      "last_checked_at": "2026-03-22T15:21:53.211Z",
+      "last_match_at": "2026-03-06T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.285Z"
     },
     {
       "team_name": "늪지대",
@@ -59,7 +64,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "joker",
-      "display_name": "전흥식"
+      "display_name": "전흥식",
+      "last_checked_at": "2026-03-22T15:22:02.414Z",
+      "last_match_at": "2026-01-21T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:29.285Z"
     },
     {
       "team_name": "늪지대",
@@ -86,7 +96,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "spade",
-      "display_name": "김성제"
+      "display_name": "김성제",
+      "last_checked_at": "2026-03-22T15:22:11.010Z",
+      "last_match_at": "2025-10-16T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:29.285Z"
     },
     {
       "team_name": "늪지대",
@@ -113,7 +128,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "spade",
-      "display_name": "서기수"
+      "display_name": "서기수",
+      "last_checked_at": "2026-03-22T15:22:19.923Z",
+      "last_match_at": "2026-01-10T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:29.286Z"
     },
     {
       "team_name": "늪지대",
@@ -140,7 +160,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "1",
-      "display_name": "애공"
+      "display_name": "애공",
+      "last_checked_at": "2026-03-22T15:22:26.732Z",
+      "last_match_at": "2026-03-13T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.286Z"
     },
     {
       "team_name": "늪지대",
@@ -167,7 +192,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "4",
-      "display_name": "슬아"
+      "display_name": "슬아",
+      "last_checked_at": "2026-03-22T15:22:34.036Z",
+      "last_match_at": "2026-03-09T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.288Z"
     },
     {
       "team_name": "늪지대",
@@ -194,7 +224,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "슈슈"
+      "display_name": "슈슈",
+      "last_checked_at": "2026-03-22T15:22:41.393Z",
+      "last_match_at": "2026-02-27T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.291Z"
     },
     {
       "team_name": "늪지대",
@@ -221,7 +256,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "예실"
+      "display_name": "예실",
+      "last_checked_at": "2026-03-22T15:22:45.767Z",
+      "last_match_at": "2026-03-12T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.292Z"
     },
     {
       "team_name": "늪지대",
@@ -247,7 +287,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "display_name": "쌍디"
+      "display_name": "쌍디",
+      "last_checked_at": "2026-03-22T15:22:49.063Z",
+      "last_match_at": "2026-01-22T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:29.292Z"
     },
     {
       "team_name": "늪지대",
@@ -274,7 +319,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "display_name": "연블비"
+      "display_name": "연블비",
+      "last_checked_at": "2026-03-22T15:22:54.230Z",
+      "last_match_at": "2026-03-09T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.292Z"
     },
     {
       "team_name": "늪지대",
@@ -301,7 +351,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "다라츄"
+      "display_name": "다라츄",
+      "last_checked_at": "2026-03-22T15:22:59.345Z",
+      "last_match_at": "2026-03-06T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-22T15:30:29.294Z"
     },
     {
       "team_name": "늪지대",
@@ -328,7 +383,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "아링"
+      "display_name": "아링",
+      "last_checked_at": "2026-03-22T15:23:04.008Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.295Z"
     },
     {
       "team_name": "늪지대",
@@ -355,7 +415,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "정연이"
+      "display_name": "정연이",
+      "last_checked_at": "2026-03-22T15:23:08.611Z",
+      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.296Z"
     },
     {
       "team_name": "늪지대",
@@ -382,7 +447,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "display_name": "지아송"
+      "display_name": "지아송",
+      "last_checked_at": "2026-03-22T15:23:13.163Z",
+      "last_match_at": "2026-03-20T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:29.297Z"
     }
   ]
 }

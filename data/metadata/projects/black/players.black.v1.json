@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T11:24:25.075Z",
+  "generated_at": "2026-03-22T15:30:28.954Z",
   "project": "black",
   "team_name": "흑카데미",
   "team_code": "black",
@@ -37,7 +37,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "king",
-      "display_name": "몽군"
+      "display_name": "몽군",
+      "last_checked_at": "2026-03-22T14:55:38.248Z",
+      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.936Z"
     },
     {
       "team_name": "흑카데미",
@@ -65,7 +70,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "joker",
-      "display_name": "김영주"
+      "display_name": "김영주",
+      "last_checked_at": "2026-03-22T14:55:49.299Z",
+      "last_match_at": "2026-01-21T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:28.937Z"
     },
     {
       "team_name": "흑카데미",
@@ -91,7 +101,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "1",
-      "display_name": "빡재TV"
+      "display_name": "빡재TV",
+      "last_checked_at": "2026-03-22T14:55:53.226Z",
+      "last_match_at": "2026-01-22T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:28.937Z"
     },
     {
       "team_name": "흑카데미",
@@ -119,7 +134,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "2",
-      "display_name": "우힝이"
+      "display_name": "우힝이",
+      "last_checked_at": "2026-03-22T14:56:01.183Z",
+      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.938Z"
     },
     {
       "team_name": "흑카데미",
@@ -147,7 +167,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "2",
-      "display_name": "히엉"
+      "display_name": "히엉",
+      "last_checked_at": "2026-03-22T14:56:08.871Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.941Z"
     },
     {
       "team_name": "흑카데미",
@@ -175,7 +200,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "3",
-      "display_name": "뚜미"
+      "display_name": "뚜미",
+      "last_checked_at": "2026-03-22T14:56:16.631Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.944Z"
     },
     {
       "team_name": "흑카데미",
@@ -203,7 +233,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "display_name": "링가"
+      "display_name": "링가",
+      "last_checked_at": "2026-03-22T14:56:24.147Z",
+      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.946Z"
     },
     {
       "team_name": "흑카데미",
@@ -231,7 +266,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "display_name": "메옹"
+      "display_name": "메옹",
+      "last_checked_at": "2026-03-22T14:56:30.375Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.948Z"
     },
     {
       "team_name": "흑카데미",
@@ -259,7 +299,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "display_name": "이아깽"
+      "display_name": "이아깽",
+      "last_checked_at": "2026-03-22T14:56:37.657Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.949Z"
     },
     {
       "team_name": "흑카데미",
@@ -287,7 +332,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "갱이다"
+      "display_name": "갱이다",
+      "last_checked_at": "2026-03-22T14:56:42.312Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.950Z"
     },
     {
       "team_name": "흑카데미",
@@ -315,7 +365,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "경콩"
+      "display_name": "경콩",
+      "last_checked_at": "2026-03-22T14:56:47.781Z",
+      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.952Z"
     },
     {
       "team_name": "흑카데미",
@@ -343,7 +398,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "display_name": "제갈츄빈"
+      "display_name": "제갈츄빈",
+      "last_checked_at": "2026-03-22T14:56:52.420Z",
+      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.954Z"
     },
     {
       "team_name": "흑카데미",
@@ -372,7 +432,12 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "9",
-      "display_name": "김유나"
+      "display_name": "김유나",
+      "last_checked_at": "2026-03-22T14:56:55.669Z",
+      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-22T15:30:28.954Z"
     },
     {
       "team_name": "흑카데미",
@@ -401,7 +466,12 @@
       "role_title": "이사장",
       "role_priority": 1,
       "tier_key": "jack",
-      "display_name": "흑운장"
+      "display_name": "흑운장",
+      "last_checked_at": "2026-03-22T14:57:04.786Z",
+      "last_match_at": "2026-01-24T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-22T15:30:28.954Z"
     }
   ],
   "source_file": "tmp/흑카데미_roster_record_metadata.json",
