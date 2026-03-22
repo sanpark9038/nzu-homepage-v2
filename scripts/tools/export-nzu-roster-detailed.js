@@ -32,6 +32,39 @@ function hasFlag(flag) {
   return process.argv.includes(flag);
 }
 
+function asDate(value) {
+  if (!value) return null;
+  const d = new Date(String(value));
+  if (!Number.isFinite(d.getTime())) return null;
+  return d;
+}
+
+function daysBetween(a, b) {
+  const ms = Math.abs(a.getTime() - b.getTime());
+  return Math.floor(ms / (24 * 60 * 60 * 1000));
+}
+
+function readPeriodMaxDate(jsonPath) {
+  if (!fs.existsSync(jsonPath)) return null;
+  try {
+    const raw = fs.readFileSync(jsonPath, "utf8").replace(/^\uFEFF/, "");
+    const doc = JSON.parse(raw);
+    const p = Array.isArray(doc.players) ? doc.players[0] : null;
+    if (!p) return null;
+    return asDate(p.period_max_date || "");
+  } catch {
+    return null;
+  }
+}
+
+function expectedExportCsvPath(playerName, teamCode) {
+  const safeName = safeFileName(playerName);
+  const direct = path.join(TMP_DIR, `${safeName}_상세전적.csv`);
+  const teamScoped = path.join(TMP_DIR, "exports", String(teamCode || ""), "csv", `${safeName}_상세전적.csv`);
+  if (fs.existsSync(teamScoped)) return teamScoped;
+  return direct;
+}
+
 function writeJson(filePath, obj) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(obj, null, 2), "utf8");
@@ -126,6 +159,7 @@ function main() {
   const from = argValue("--from", "2025-01-01");
   const to = argValue("--to", new Date().toISOString().slice(0, 10));
   const useExisting = hasFlag("--use-existing-json");
+  const inactiveSkipDays = Number(argValue("--inactive-skip-days", "0")) || 0;
   const reportPath = argValue(
     "--report-path",
     path.join(TMP_DIR, "nzu_roster_batch_export_report.json")
@@ -142,7 +176,7 @@ function main() {
     team_name: teamName,
     source_roster: rosterPath,
     total_players: players.length,
-    options: { limit, concurrency, from, to, useExisting },
+    options: { limit, concurrency, from, to, useExisting, inactiveSkipDays },
     results: [],
   };
 
@@ -173,7 +207,24 @@ function main() {
     }
 
     try {
-      if (!useExisting || !fs.existsSync(jsonPath)) {
+      let shouldFetch = true;
+      if (useExisting && fs.existsSync(jsonPath)) {
+        if (inactiveSkipDays > 0) {
+          const maxDate = readPeriodMaxDate(jsonPath);
+          const todayDate = asDate(to) || new Date();
+          if (maxDate && daysBetween(todayDate, maxDate) > inactiveSkipDays) {
+            shouldFetch = false;
+            result.fetch_status = "used_existing_json_inactive";
+          } else {
+            shouldFetch = true;
+          }
+        } else {
+          shouldFetch = false;
+          result.fetch_status = "used_existing_json";
+        }
+      }
+
+      if (shouldFetch) {
         let raw = runNode(REPORT_SCRIPT, [
           "--json-only",
           "--include-matches",
@@ -241,24 +292,28 @@ function main() {
         }
         writeJson(jsonPath, parsed);
         result.fetch_status = "ok";
-      } else {
-        result.fetch_status = "used_existing_json";
       }
 
-      const csvOutput = runNode(CSV_SCRIPT, [
-        "--univ",
-        teamName,
-        "--player",
-        playerName,
-        "--stable-name",
-        "--from",
-        from,
-        "--to",
-        to,
-      ]).trim();
+      const reusedJson = result.fetch_status === "used_existing_json" || result.fetch_status === "used_existing_json_inactive";
+      if (reusedJson) {
+        result.csv_path = expectedExportCsvPath(playerName, p.team_code);
+        result.csv_status = "used_existing_csv";
+      } else {
+        const csvOutput = runNode(CSV_SCRIPT, [
+          "--univ",
+          teamName,
+          "--player",
+          playerName,
+          "--stable-name",
+          "--from",
+          from,
+          "--to",
+          to,
+        ]).trim();
 
-      result.csv_path = csvOutput;
-      result.csv_status = "ok";
+        result.csv_path = csvOutput;
+        result.csv_status = "ok";
+      }
     } catch (err) {
       result.error = err instanceof Error ? err.message : String(err);
       if (result.fetch_status === "skipped") result.fetch_status = "failed";

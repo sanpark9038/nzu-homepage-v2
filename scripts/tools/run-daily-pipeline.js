@@ -192,8 +192,9 @@ function summarizeTeamFromReport(team, report) {
   const failures = [];
 
   for (const row of actionable) {
-    const fetchFail = row.fetch_status !== "ok" && row.fetch_status !== "used_existing_json";
-    const csvFail = row.csv_status !== "ok";
+    const fetchOkStates = new Set(["ok", "used_existing_json", "used_existing_json_inactive"]);
+    const fetchFail = !fetchOkStates.has(String(row.fetch_status || ""));
+    const csvFail = !["ok", "used_existing_csv"].includes(String(row.csv_status || ""));
     if (fetchFail || csvFail) {
       failures.push({
         player: row.player,
@@ -222,8 +223,10 @@ function summarizeTeamFromReport(team, report) {
     players: actionable.length,
     excluded_players: excludedPlayers.length,
     excluded_player_names: excludedPlayers.join(", "),
-    fetch_fail: failures.filter((f) => f.fetch_status !== "ok" && f.fetch_status !== "used_existing_json").length,
-    csv_fail: failures.filter((f) => f.csv_status !== "ok").length,
+    fetch_fail: failures.filter(
+      (f) => !["ok", "used_existing_json", "used_existing_json_inactive"].includes(String(f.fetch_status || ""))
+    ).length,
+    csv_fail: failures.filter((f) => !["ok", "used_existing_csv"].includes(String(f.csv_status || ""))).length,
     total_matches: totalMatches,
     total_wins: totalWins,
     total_losses: totalLosses,
@@ -512,6 +515,8 @@ function main() {
   const strict = !hasFlag("--no-strict");
   const organize = !hasFlag("--no-organize");
   const rosterSync = !hasFlag("--no-roster-sync");
+  const useExistingJson = !hasFlag("--no-use-existing-json");
+  const inactiveSkipDays = Number(argValue("--inactive-skip-days", "14")) || 0;
   const teamsArg = argValue("--teams", "");
   const teamSet = new Set(
     teamsArg
@@ -558,6 +563,10 @@ function main() {
       "--report-path",
       reportFile,
     ];
+    if (useExistingJson) args.push("--use-existing-json");
+    if (inactiveSkipDays > 0) {
+      args.push("--inactive-skip-days", String(inactiveSkipDays));
+    }
     console.log(`[RUN] ${team.code} ${team.univ}`);
     runNode(args[0], args.slice(1));
     const report = readJson(reportFile);

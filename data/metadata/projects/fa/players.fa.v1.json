@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T08:55:41.953Z",
+  "generated_at": "2026-03-22T11:24:25.150Z",
   "project": "fa",
   "team_name": "무소속",
   "team_code": "fa",
@@ -9,7 +9,7 @@
     "무소속",
     "FA"
   ],
-  "roster_count": 63,
+  "roster_count": 64,
   "roster": [
     {
       "team_name": "무소속",
@@ -664,6 +664,32 @@
       "role_priority": null,
       "tier_key": "unknown",
       "display_name": "밍도릿"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:female:517",
+      "wr_id": 517,
+      "gender": "female",
+      "name": "박듀듀",
+      "tier": "미정",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "gender:female",
+        "race:protoss",
+        "tier:unknown"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "unknown",
+      "display_name": "박듀듀"
     },
     {
       "team_name": "무소속",
