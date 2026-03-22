@@ -5,6 +5,7 @@ const qs = require("querystring");
 const fs = require("fs");
 const path = require("path");
 const {
+  normalizeProfileUrl,
   resolveSpecialProfileUrlByName,
   toMixBoardProfileUrl,
   shouldUseMixEndpoint,
@@ -192,7 +193,7 @@ function parseRoster(html) {
     let profileUrl = historyHref.startsWith("http")
       ? historyHref
       : `https://eloboard.com${historyHref}`;
-    profileUrl = profileUrl.replace(/^http:\/\//i, "https://");
+    profileUrl = normalizeProfileUrl(profileUrl);
 
     const wrMatch = profileUrl.match(/wr_id=(\d+)/);
     const wrId = wrMatch ? Number(wrMatch[1]) : null;
@@ -599,7 +600,7 @@ async function main() {
 
   let roster = [];
   if (PROFILE_URL_ARG) {
-    const profileUrl = String(PROFILE_URL_ARG).replace(/^http:\/\//i, "https://");
+    const profileUrl = normalizeProfileUrl(PROFILE_URL_ARG);
     const wrMatch = profileUrl.match(/wr_id=(\d+)/);
     const wrId = Number.isFinite(WR_ID_ARG) ? WR_ID_ARG : wrMatch ? Number(wrMatch[1]) : null;
     const name =

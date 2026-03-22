@@ -3,6 +3,7 @@ const path = require("path");
 const axios = require("axios");
 const cheerio = require("cheerio");
 const iconv = require("iconv-lite");
+const { normalizeProfileUrl } = require("./lib/eloboard-special-cases");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
@@ -132,7 +133,8 @@ function parseRoster(html) {
 
     const historyHref = row.find('a[target="_blank"]').attr("href") || "";
     if (!historyHref) return;
-    const profileUrl = historyHref.startsWith("http") ? historyHref : `https://eloboard.com${historyHref}`;
+    const profileUrlRaw = historyHref.startsWith("http") ? historyHref : `https://eloboard.com${historyHref}`;
+    const profileUrl = normalizeProfileUrl(profileUrlRaw);
     const wr = profileUrl.match(/wr_id=(\d+)/);
     const wrId = wr ? Number(wr[1]) : null;
     if (!wrId) return;
@@ -147,7 +149,7 @@ function parseRoster(html) {
       name,
       tier,
       race,
-      profile_url: profileUrl.replace(/^http:\/\//i, "https://"),
+      profile_url: profileUrl,
       entity_id: `eloboard:${gender}:${wrId}`,
     });
   });
