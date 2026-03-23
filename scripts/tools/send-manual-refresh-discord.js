@@ -222,6 +222,11 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const todayTop = buildTodayTopPlayers(afterPlayers);
   const teams = Array.isArray(snapshot && snapshot.teams) ? snapshot.teams : [];
   const alerts = Array.isArray(alertsDoc && alertsDoc.alerts) ? alertsDoc.alerts : [];
+  const deltaComparable = Boolean(
+    snapshot &&
+      snapshot.delta_reference &&
+      snapshot.delta_reference.comparable
+  );
   const newMatches = teams.reduce((acc, row) => {
     const value = Number(row && row.delta_total_matches);
     if (!Number.isFinite(value) || value <= 0) return acc;
@@ -235,10 +240,15 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     !affiliationChanges.length &&
     !joiners.length &&
     !removals.length &&
-    newMatches <= 0 &&
+    (deltaComparable ? newMatches <= 0 : true) &&
     !todayTop.players.length
   ) {
-    lines.push("오늘 변동사항 없음");
+    if (deltaComparable) {
+      lines.push("오늘 변동사항 없음");
+    } else {
+      lines.push("오늘 선수 변동은 감지되지 않았습니다.");
+      lines.push("직전 실행 비교 기준이 없어 신규 전적 증감은 이번 알림에서 계산하지 않았습니다.");
+    }
   } else {
     if (tierChanges.length) {
       lines.push("📊 티어 변동");
@@ -272,8 +282,13 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
       lines.push("");
     }
 
-    lines.push("🆕 신규 전적");
-    lines.push(`- 직전 실행 대비 새로 반영된 경기: ${newMatches}건`);
+    if (deltaComparable) {
+      lines.push("🆕 신규 전적");
+      lines.push(`- 직전 실행 대비 새로 반영된 경기: ${newMatches}건`);
+    } else {
+      lines.push("🆕 신규 전적");
+      lines.push("- 직전 실행 비교 기준 없음");
+    }
 
     if (todayTop.players.length) {
       lines.push("");
@@ -290,7 +305,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   }
   if (runUrl) {
     lines.push("");
-    lines.push(`실행 링크: ${runUrl}`);
+    lines.push(`실행 링크: <${runUrl}>`);
   }
 
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
