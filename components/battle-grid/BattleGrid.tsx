@@ -1,12 +1,12 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Player } from '@/lib/player-service';
 import { TeamSelector } from './TeamSelector';
 import { TierRow } from './TierRow';
-import { Tiers, TIERS } from '@/lib/constants';
+import { TIERS } from '@/lib/constants';
+import { normalizeTier } from '@/lib/utils';
 
 interface BattleGridProps {
   players: Player[];
@@ -41,21 +41,23 @@ export function BattleGrid({ players, universities, initialTeamA, initialTeamB }
     const grouped: Record<string, { teamA: Player[], teamB: Player[] }> = {};
 
     for (const tier of TIERS) {
-      grouped[tier] = { teamA: [], teamB: [] };
+      const normTier = normalizeTier(tier);
+      grouped[normTier] = { teamA: [], teamB: [] };
     }
 
     players.forEach(p => {
-      if (!p.tier || !p.university) return;
+      const pTier = normalizeTier(p.tier);
+      if (!pTier || !p.university) return;
 
-      if (!grouped[p.tier]) {
-        grouped[p.tier] = { teamA: [], teamB: [] };
+      if (!grouped[pTier]) {
+        grouped[pTier] = { teamA: [], teamB: [] };
       }
 
       if (p.university === teamA) {
-        grouped[p.tier].teamA.push(p);
+        grouped[pTier].teamA.push(p);
       }
       if (p.university === teamB) {
-        grouped[p.tier].teamB.push(p);
+        grouped[pTier].teamB.push(p);
       }
     });
 
@@ -83,7 +85,8 @@ export function BattleGrid({ players, universities, initialTeamA, initialTeamB }
 
       <div className="space-y-2">
         {TIERS.map(tier => {
-          const tierData = playersByTier[tier];
+          const normTier = normalizeTier(tier);
+          const tierData = playersByTier[normTier];
           if (!tierData) return null;
 
           if (hideEmptyTiers && tierData.teamA.length === 0 && tierData.teamB.length === 0) {
@@ -93,7 +96,7 @@ export function BattleGrid({ players, universities, initialTeamA, initialTeamB }
           return (
             <TierRow 
               key={tier}
-              tier={tier}
+              tier={normTier}
               teamAPlayers={tierData.teamA}
               teamBPlayers={tierData.teamB}
             />

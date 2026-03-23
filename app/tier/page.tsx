@@ -9,6 +9,8 @@ import Link from "next/link";
 
 export const revalidate = 60;
 
+import { normalizeTier } from "@/lib/utils";
+
 export default async function TierPage({
   searchParams,
 }: {
@@ -25,12 +27,16 @@ export default async function TierPage({
     playerList = playerList.filter(p => p.race === race);
   }
 
-  // 티어별 그룹화 로직
-  const godPlayers = playerList.filter(p => p.tier === 'god');
-  const kingPlayers = playerList.filter(p => p.tier === 'king');
-  const jackPlayers = playerList.filter(p => p.tier === 'jack');
-  const jokerPlayers = playerList.filter(p => p.tier === 'joker');
-  const numberedPlayers = playerList.filter(p => !isNaN(Number(p.tier))).sort((a, b) => Number(a.tier) - Number(b.tier));
+  // 티어별 그룹화 로직 (정규화된 값 기준)
+  const godPlayers = playerList.filter(p => normalizeTier(p.tier) === '갓');
+  const kingPlayers = playerList.filter(p => normalizeTier(p.tier) === '킹');
+  const jackPlayers = playerList.filter(p => normalizeTier(p.tier) === '잭');
+  const jokerPlayers = playerList.filter(p => normalizeTier(p.tier) === '조커');
+  const numberedPlayers = playerList.filter(p => {
+    const norm = normalizeTier(p.tier);
+    return !isNaN(Number(norm)) && norm !== '미정';
+  }).sort((a, b) => Number(normalizeTier(a.tier)) - Number(normalizeTier(b.tier)));
+
 
   const hasResults = playerList.length > 0;
 

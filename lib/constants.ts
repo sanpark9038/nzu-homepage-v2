@@ -33,6 +33,7 @@ export const REAL_NAME_MAP: Record<string, string> = {
   '초난강': '우규민'
 };
 
-export const TIERS = ["GOD", "KING", "JACK", "QUEEN", "JOKER", "스페이드", "0", "1", "2", "3", "4", "5", "6", "7", "8", "BABY", "NEWBIE", "팬"] as const;
+export const TIERS = ["GOD", "KING", "JACK", "QUEEN", "JOKER", "스페이드", "0", "1", "2", "3", "4", "5", "6", "7", "8", "BABY", "미정"] as const;
+
 
 export type Tiers = typeof TIERS[number];

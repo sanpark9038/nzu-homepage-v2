@@ -40,15 +40,11 @@ export function LiveBadge() {
 
 /** 티어 배지 */
 const tierLabels: Record<string, { label: string; color: string }> = {
-  god:   { label: "갓",   color: "text-yellow-300 bg-yellow-400/10 border-yellow-400/30" },
-  king:  { label: "킹",   color: "text-orange-400 bg-orange-400/10 border-orange-400/30" },
-  jack:  { label: "잭",   color: "text-blue-400 bg-blue-400/10 border-blue-400/30" },
-  joker: { label: "조커", color: "text-purple-400 bg-purple-400/10 border-purple-400/30" },
-  // 한글 키 추가 지원
   '갓':  { label: "갓",   color: "text-yellow-300 bg-yellow-400/10 border-yellow-400/30" },
   '킹':  { label: "킹",   color: "text-orange-400 bg-orange-400/10 border-orange-400/30" },
   '잭':  { label: "잭",   color: "text-blue-400 bg-blue-400/10 border-blue-400/30" },
   '조커': { label: "조커", color: "text-purple-400 bg-purple-400/10 border-purple-400/30" },
+  '스페이드': { label: "스페이드", color: "text-slate-300 bg-slate-400/10 border-slate-400/30" },
   "1":   { label: "1티어", color: "text-nzu-green bg-nzu-green/10 border-nzu-green/30" },
   "2":   { label: "2티어", color: "text-nzu-green/80 bg-nzu-green/8 border-nzu-green/20" },
   "3":   { label: "3티어", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
@@ -57,12 +53,20 @@ const tierLabels: Record<string, { label: string; color: string }> = {
   "6":   { label: "6티어", color: "text-sky-400 bg-sky-400/10 border-sky-400/20" },
   "7":   { label: "7티어", color: "text-slate-400 bg-slate-400/10 border-slate-400/20" },
   "8":   { label: "8티어", color: "text-slate-500 bg-slate-500/10 border-slate-500/20" },
-  baby:  { label: "아기",  color: "text-pink-400 bg-pink-400/10 border-pink-400/20" },
+  '아기':  { label: "아기",  color: "text-pink-400 bg-pink-400/10 border-pink-400/20" },
+  '미정':  { label: "미정",  color: "text-white/20 bg-white/5 border-white/10" },
 };
 
+import { normalizeTier, getTierLabel } from "@/lib/utils";
+
 export function TierBadge({ tier, rank, size = "sm" }: { tier: string; rank?: number; size?: "xs" | "sm" | "md" | "lg" }) {
-  const normalizedTier = tier === '미정' || tier === 'N/A' || !tier ? '미정' : tier;
-  const cfg = tierLabels[normalizedTier] || tierLabels[tier.toLowerCase()] || { label: tier.match(/^\d+$/) ? `${tier}티어` : tier, color: "text-muted-foreground bg-muted/30 border-border" };
+  const norm = normalizeTier(tier);
+  const cfg = tierLabels[norm] || { 
+    label: getTierLabel(tier), 
+    color: "text-muted-foreground bg-muted/30 border-border" 
+  };
+
+
   
   const sizeClasses = {
     xs: "text-[9px] px-1 py-0",

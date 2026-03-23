@@ -5,7 +5,9 @@ import { NZU_CONFIG } from "@/lib/constants";
 import Image from "next/image";
 import Link from "next/link";
 import { LiveBadge, RaceTag, type Race, TierBadge } from "@/components/ui/nzu-badges";
-import { cn } from "@/lib/utils";
+import { cn, normalizeTier, getTierLabel } from "@/lib/utils";
+
+
 
 export const revalidate = 60;
 type PlayerMatch = Awaited<ReturnType<typeof playerService.getPlayerMatches>>[number];
@@ -38,9 +40,12 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
     );
   }
 
-  // 티어별 테마 색상 결정
-  const isElite = ['god', 'king'].includes(player.tier?.toLowerCase() || "");
+  // 티어별 테마 색상 결정 (정규화된 값 기준)
+  const normTier = normalizeTier(player.tier);
+  const isElite = ['갓', '킹'].includes(normTier);
   const themeColor = isElite ? "rgba(255, 215, 0, 0.4)" : "rgba(46, 213, 115, 0.4)";
+  const displayTier = getTierLabel(player.tier);
+
 
   return (
     <div className="min-h-screen bg-[#050706] flex flex-col pb-32">
@@ -101,8 +106,10 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
                {/* Tactical Gauge Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="p-5 md:p-6 bg-white/[0.02] border border-white/5 rounded-[2rem] flex flex-col justify-between hover:bg-white/[0.04] transition-colors group/card min-w-0">
-                     <span className="block text-sm text-white/40 font-black uppercase tracking-widest mb-3 group-hover/card:text-nzu-green transition-colors truncate">현재 티어</span>
-                     <span className="text-3xl md:text-4xl font-black text-nzu-green uppercase leading-none whitespace-nowrap">{player.tier}</span>
+                   <span className="block text-sm text-white/40 font-black uppercase tracking-widest mb-3 group-hover/card:text-nzu-green transition-colors truncate">현재 티어</span>
+                   <span className="text-3xl md:text-4xl font-black text-nzu-green uppercase leading-none whitespace-nowrap">{displayTier}</span>
+
+
                   </div>
                   <div className="p-5 md:p-6 bg-white/[0.02] border border-white/5 rounded-[2rem] flex flex-col justify-between hover:bg-white/[0.04] transition-colors group/card min-w-0">
                      <span className="block text-sm text-white/40 font-black uppercase tracking-widest mb-3 group-hover/card:text-white/60 transition-colors truncate">ELO 점수</span>

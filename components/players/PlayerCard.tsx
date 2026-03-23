@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { LiveBadge, RaceTag, TierBadge, WinRateBar, type Race } from "../ui/nzu-badges";
 import { Database } from "@/lib/database.types";
-import { cn } from "@/lib/utils";
+import { cn, formatTimeAgo, normalizeRace } from "@/lib/utils";
 
 export type Player = Database['public']['Tables']['players']['Row'];
 
@@ -18,7 +18,9 @@ interface PlayerCardProps {
 
 export function PlayerCard({ player, layout = 'default', className }: PlayerCardProps) {
   const isCompact = layout === 'compact';
-  const race = (player.race || "T") as Race;
+  const race = normalizeRace(player.race);
+  const timeAgo = formatTimeAgo(player.last_match_at);
+
 
 
   // 종족별 테마 스타일 정의 (프리미엄 소프트 그라디언트 적용)
@@ -107,7 +109,15 @@ export function PlayerCard({ player, layout = 'default', className }: PlayerCard
               raceStyles.text,
               isCompact ? "text-base" : "text-2xl"
             )}>{player.name}</span>
-            <RaceTag race={race} size={isCompact ? "xs" : "sm"} />
+            <div className="flex flex-col items-end gap-1">
+              <RaceTag race={race} size={isCompact ? "xs" : "sm"} />
+              {timeAgo && (
+                <span className="text-[9px] font-bold text-white/20 whitespace-nowrap">
+                  {timeAgo} 경기
+                </span>
+              )}
+
+            </div>
           </div>
 
           <div className={cn(
