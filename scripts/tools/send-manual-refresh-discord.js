@@ -6,6 +6,7 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
+const TMP_DIR = path.join(ROOT, "tmp");
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -42,6 +43,15 @@ function sumBy(rows, key) {
 function normalizeTeamName(value) {
   const raw = String(value || "").trim();
   return raw || "무소속";
+}
+
+function todayInSeoul() {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 function loadCurrentRosterState() {
@@ -96,10 +106,18 @@ function comparePlayerChanges(beforePlayers, afterPlayers) {
   const afterMap = toPlayerMap(afterPlayers);
   const tierChanges = [];
   const affiliationChanges = [];
+  const joiners = [];
+  const removals = [];
 
   for (const [key, current] of afterMap.entries()) {
     const prev = beforeMap.get(key);
-    if (!prev) continue;
+    if (!prev) {
+      joiners.push({
+        player_name: current.display_name || current.name,
+        team_name: normalizeTeamName(current.team_name),
+      });
+      continue;
+    }
 
     const prevTier = String(prev.tier || "").trim();
     const currentTier = String(current.tier || "").trim();
@@ -123,10 +141,60 @@ function comparePlayerChanges(beforePlayers, afterPlayers) {
     }
   }
 
+  for (const [key, prev] of beforeMap.entries()) {
+    if (afterMap.has(key)) continue;
+    removals.push({
+      player_name: prev.display_name || prev.name,
+      team_name: normalizeTeamName(prev.team_name),
+    });
+  }
+
   tierChanges.sort((a, b) => String(a.player_name).localeCompare(String(b.player_name), "ko"));
   affiliationChanges.sort((a, b) => String(a.player_name).localeCompare(String(b.player_name), "ko"));
+  joiners.sort((a, b) => String(a.player_name).localeCompare(String(b.player_name), "ko"));
+  removals.sort((a, b) => String(a.player_name).localeCompare(String(b.player_name), "ko"));
 
-  return { tierChanges, affiliationChanges };
+  return { tierChanges, affiliationChanges, joiners, removals };
+}
+
+function matchFilePathForPlayer(player) {
+  const teamName = String(player && player.team_name ? player.team_name : "").trim();
+  const playerName = String(player && player.name ? player.name : "").trim();
+  if (!teamName || !playerName) return null;
+  return path.join(TMP_DIR, `${teamName}_${playerName}_matches.json`);
+}
+
+function countTodayMatchesForPlayer(player, targetDate) {
+  const filePath = matchFilePathForPlayer(player);
+  if (!filePath || !fs.existsSync(filePath)) return 0;
+  const doc = readJsonIfExists(filePath);
+  const rows =
+    Array.isArray(doc && doc.players) && doc.players[0] && Array.isArray(doc.players[0].matches)
+      ? doc.players[0].matches
+      : [];
+  return rows.reduce((acc, row) => {
+    return String(row && row.date ? row.date : "").trim() === targetDate ? acc + 1 : acc;
+  }, 0);
+}
+
+function buildTodayTopPlayers(afterPlayers) {
+  const targetDate = todayInSeoul();
+  const rows = afterPlayers
+    .map((player) => ({
+      player_name: player.display_name || player.name,
+      team_name: normalizeTeamName(player.team_name),
+      today_matches: countTodayMatchesForPlayer(player, targetDate),
+    }))
+    .filter((row) => row.today_matches > 0)
+    .sort((a, b) => {
+      if (a.today_matches !== b.today_matches) return b.today_matches - a.today_matches;
+      return String(a.player_name).localeCompare(String(b.player_name), "ko");
+    });
+
+  return {
+    targetDate,
+    players: rows.slice(0, 5),
+  };
 }
 
 function dateLabelFromSnapshot(snapshot) {
@@ -150,7 +218,8 @@ function dateLabelFromSnapshot(snapshot) {
 function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const beforePlayers = loadBaselinePlayers();
   const afterPlayers = loadCurrentRosterState();
-  const { tierChanges, affiliationChanges } = comparePlayerChanges(beforePlayers, afterPlayers);
+  const { tierChanges, affiliationChanges, joiners, removals } = comparePlayerChanges(beforePlayers, afterPlayers);
+  const todayTop = buildTodayTopPlayers(afterPlayers);
   const teams = Array.isArray(snapshot && snapshot.teams) ? snapshot.teams : [];
   const alerts = Array.isArray(alertsDoc && alertsDoc.alerts) ? alertsDoc.alerts : [];
   const newMatches = teams.reduce((acc, row) => {
@@ -161,7 +230,14 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
 
   const lines = [`NZU 일일 업데이트 (${dateLabelFromSnapshot(snapshot)})`, ""];
 
-  if (!tierChanges.length && !affiliationChanges.length && newMatches <= 0) {
+  if (
+    !tierChanges.length &&
+    !affiliationChanges.length &&
+    !joiners.length &&
+    !removals.length &&
+    newMatches <= 0 &&
+    !todayTop.players.length
+  ) {
     lines.push("오늘 변동사항 없음");
   } else {
     if (tierChanges.length) {
@@ -180,8 +256,32 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
       lines.push("");
     }
 
+    if (joiners.length) {
+      lines.push("🆕 신규 합류");
+      for (const item of joiners) {
+        lines.push(`- ${item.player_name} (${item.team_name})`);
+      }
+      lines.push("");
+    }
+
+    if (removals.length) {
+      lines.push("📤 로스터 제외");
+      for (const item of removals) {
+        lines.push(`- ${item.player_name} (${item.team_name})`);
+      }
+      lines.push("");
+    }
+
     lines.push("🆕 신규 전적");
-    lines.push(`- 오늘 새로 추가된 경기: ${newMatches}건`);
+    lines.push(`- 직전 실행 대비 새로 반영된 경기: ${newMatches}건`);
+
+    if (todayTop.players.length) {
+      lines.push("");
+      lines.push(`🔥 오늘 경기 수 상위 선수 (${todayTop.targetDate})`);
+      for (const item of todayTop.players) {
+        lines.push(`- ${item.player_name} (${item.team_name}) : ${item.today_matches}경기`);
+      }
+    }
   }
 
   if (alerts.length) {
