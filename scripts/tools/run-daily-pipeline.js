@@ -30,7 +30,12 @@ function hasFlag(flag) {
 }
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 function ensureDir(p) {
@@ -508,8 +513,9 @@ function buildAlerts(rowsWithDelta, cfg) {
         message: `zero_record_players=${actionableZeroPlayers.length} (${actionableZeroPlayers.join(", ") || "-"})`,
       });
     }
+    const rosterChanged = typeof row.delta_players === "number" && row.delta_players !== 0;
     if (typeof row.delta_total_matches === "number") {
-      if (row.delta_total_matches < 0) {
+      if (row.delta_total_matches < 0 && !rosterChanged) {
         alerts.push({
           severity: rules.negative_delta_matches_severity || "critical",
           team: row.team,
