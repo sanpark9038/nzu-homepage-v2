@@ -443,6 +443,10 @@ function compareMatchDesc(a, b) {
   return 0;
 }
 
+function totalDisplayCount(displayStats) {
+  return Number(displayStats && displayStats.total && displayStats.total.total ? displayStats.total.total : 0) || 0;
+}
+
 async function collectPlayer(player, cacheEntry = null) {
   let resolvedPlayer = { ...player };
   let profileHtml = decodeHtml(await fetchBinary(resolvedPlayer.profile_url));
@@ -476,7 +480,13 @@ async function collectPlayer(player, cacheEntry = null) {
 
   let pagesScanned = 0;
   let lastId = initial.initialLastId;
+  const displayTotal = totalDisplayCount(displayStats);
   const isMenBoard = resolvedPlayer.profile_url.includes("/men/");
+  // Some profile pages intermittently render summary stats but omit the initial list board.
+  // Force a paginated fetch in that case instead of accepting a silent 0-match result.
+  if (lastId <= 0 && initial.rows.length === 0 && displayTotal > 0) {
+    lastId = 1;
+  }
   if (lastId <= 0 && isMenBoard && mode.endpoint === "view_list.php") {
     lastId = 1;
   }
@@ -542,11 +552,13 @@ async function collectPlayer(player, cacheEntry = null) {
     no_unknown_outcome: unknownOutcomeRows === 0,
     no_out_of_range: outOfRange === 0,
     wins_losses_match_total: wins + losses === matches.length,
+    display_total_consistent: !(displayTotal > 0 && matches.length === 0),
   };
   const validationPass =
     validation.no_unknown_outcome &&
     validation.no_out_of_range &&
-    validation.wins_losses_match_total;
+    validation.wins_losses_match_total &&
+    validation.display_total_consistent;
 
   return {
     ...resolvedPlayer,

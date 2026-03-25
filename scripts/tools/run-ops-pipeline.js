@@ -169,7 +169,7 @@ async function postDiscordWebhook(content) {
 function buildDiscordMessage(report, paths) {
   const icon = report.status === "pass" ? "✅" : "❌";
   const base = [
-    `${icon} NZU Ops Pipeline ${report.status.toUpperCase()}`,
+    `${icon} SANPARK SYSTEM Ops Pipeline ${report.status.toUpperCase()}`,
     `- generated: ${report.generated_at}`,
     `- dry_run: ${report.dry_run ? "yes" : "no"}, skip_supabase: ${report.skip_supabase ? "yes" : "no"}`,
     `- steps: ${report.steps.map((s) => `${s.name}:${s.ok ? "ok" : "fail"}`).join(", ")}`,

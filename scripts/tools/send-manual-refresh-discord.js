@@ -215,6 +215,16 @@ function dateLabelFromSnapshot(snapshot) {
   return new Date().toISOString().slice(0, 10);
 }
 
+function countAlertsBySeverity(alerts) {
+  return {
+    critical: alerts.filter((a) => a.severity === "critical").length,
+    high: alerts.filter((a) => a.severity === "high").length,
+    medium: alerts.filter((a) => a.severity === "medium").length,
+    low: alerts.filter((a) => a.severity === "low").length,
+    total: alerts.length,
+  };
+}
+
 function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const beforePlayers = loadBaselinePlayers();
   const afterPlayers = loadCurrentRosterState();
@@ -222,6 +232,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const todayTop = buildTodayTopPlayers(afterPlayers);
   const teams = Array.isArray(snapshot && snapshot.teams) ? snapshot.teams : [];
   const alerts = Array.isArray(alertsDoc && alertsDoc.alerts) ? alertsDoc.alerts : [];
+  const alertCounts = countAlertsBySeverity(alerts);
   const deltaComparable = Boolean(
     snapshot &&
       snapshot.delta_reference &&
@@ -233,7 +244,10 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     return acc + value;
   }, 0);
 
-  const lines = [`NZU 일일 업데이트 (${dateLabelFromSnapshot(snapshot)})`, ""];
+  const lines = [
+    `SANPARK SYSTEM 일일 업데이트 ${alertCounts.total > 0 ? "완료 (경고 포함)" : "완료"} (${dateLabelFromSnapshot(snapshot)})`,
+    "",
+  ];
 
   if (
     !tierChanges.length &&
@@ -301,7 +315,12 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
 
   if (alerts.length) {
     lines.push("");
-    lines.push(`주의 알림: ${alerts.length}건`);
+    lines.push(
+      `주의 알림: ${alertCounts.total}건 (critical ${alertCounts.critical}, high ${alertCounts.high}, medium ${alertCounts.medium}, low ${alertCounts.low})`
+    );
+    if (alertCounts.critical === 0 && alertCounts.high === 0) {
+      lines.push("경고는 있었지만 반영은 계속 진행되었습니다.");
+    }
   }
   if (runUrl) {
     lines.push("");
@@ -314,7 +333,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
 function buildFailureMessage({ snapshot, runUrl }) {
   const dateLabel = dateLabelFromSnapshot(snapshot);
   const lines = [
-    `NZU 일일 업데이트 실패 (${dateLabel})`,
+    `SANPARK SYSTEM 일일 업데이트 실패 (${dateLabel})`,
     "",
     "수집 또는 반영 단계에서 오류가 발생했습니다.",
   ];
