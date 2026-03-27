@@ -170,16 +170,16 @@ function runNode(scriptPath, args) {
   }
 }
 
-function latestPreviousSnapshotPath(dateStr) {
+function latestPreviousSnapshotPath(dateStr, reportsDir = REPORTS_DIR) {
   const currentDate = String(dateStr || "").trim().slice(0, 10);
-  if (!fs.existsSync(REPORTS_DIR)) return null;
+  if (!fs.existsSync(reportsDir)) return null;
   const files = fs
-    .readdirSync(REPORTS_DIR)
+    .readdirSync(reportsDir)
     .filter((n) => /^daily_pipeline_snapshot_\d{4}-\d{2}-\d{2}\.json$/.test(n))
     .filter((n) => !currentDate || !n.includes(currentDate))
     .sort();
   if (!files.length) return null;
-  return path.join(REPORTS_DIR, files[files.length - 1]);
+  return path.join(reportsDir, files[files.length - 1]);
 }
 
 function parseDateTag(value) {
@@ -818,4 +818,12 @@ function main() {
   }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  isComparablePriorSnapshot,
+  latestPreviousSnapshotPath,
+  parseDateTag,
+};
