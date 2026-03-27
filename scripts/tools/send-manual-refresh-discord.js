@@ -245,7 +245,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   }, 0);
 
   const lines = [
-    `SANPARK SYSTEM 일일 업데이트 ${alertCounts.total > 0 ? "완료 (경고 포함)" : "완료"} (${dateLabelFromSnapshot(snapshot)})`,
+    `산박대표님.일일 업데이트보고입니다. ${alertCounts.total > 0 ? "(경고 포함)" : ""} (${dateLabelFromSnapshot(snapshot)})`.trim(),
     "",
   ];
 
@@ -261,7 +261,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
       lines.push("오늘 변동사항 없음");
     } else {
       lines.push("오늘 선수 변동은 감지되지 않았습니다.");
-      lines.push("직전 실행 비교 기준이 없어 신규 전적 증감은 이번 알림에서 계산하지 않았습니다.");
+      lines.push("직전 스냅샷 비교가 성립하지 않아 신규 전적 증감은 이번 알림에서 계산하지 못했습니다.");
     }
   } else {
     if (tierChanges.length) {
@@ -301,7 +301,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
       lines.push(`- 직전 실행 대비 새로 반영된 경기: ${newMatches}건`);
     } else {
       lines.push("🆕 신규 전적");
-      lines.push("- 직전 실행 비교 기준 없음");
+      lines.push("- 직전 스냅샷 비교 불가");
     }
 
     if (todayTop.players.length) {
@@ -333,7 +333,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
 function buildFailureMessage({ snapshot, runUrl }) {
   const dateLabel = dateLabelFromSnapshot(snapshot);
   const lines = [
-    `SANPARK SYSTEM 일일 업데이트 실패 (${dateLabel})`,
+    `산박대표님.일일 업데이트보고입니다. 실패 (${dateLabel})`,
     "",
     "수집 또는 반영 단계에서 오류가 발생했습니다.",
   ];

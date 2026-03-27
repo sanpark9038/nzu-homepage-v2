@@ -180,9 +180,24 @@ function latestPreviousSnapshotPath(dateStr) {
   return path.join(REPORTS_DIR, files[files.length - 1]);
 }
 
+function parseDateTag(value) {
+  const text = String(value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+  const stamp = `${text}T00:00:00Z`;
+  const ms = Date.parse(stamp);
+  if (Number.isNaN(ms)) return null;
+  return ms;
+}
+
 function isComparablePriorSnapshot(prior, from, to) {
   if (!prior || typeof prior !== "object") return false;
-  return String(prior.period_from || "") === String(from) && String(prior.period_to || "") === String(to);
+  if (String(prior.period_from || "") !== String(from)) return false;
+
+  const priorTo = parseDateTag(prior.period_to);
+  const currentTo = parseDateTag(to);
+  if (priorTo === null || currentTo === null) return false;
+
+  return priorTo < currentTo;
 }
 
 function withDeltaRows(rows, priorMap, canCompare) {
