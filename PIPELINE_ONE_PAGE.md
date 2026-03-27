@@ -8,60 +8,59 @@
 ## 핵심 원칙
 1. **수집/검증과 본반영을 분리**
 2. **승인 전에는 절대 prod sync 금지**
-3. **일일 작업은 변동 확인 중심**
+3. **일일 작업은 GitHub Actions 자동 실행 기준**
 
 ## 실행 흐름 (매일)
-1. 수집 + 로컬 검증만 실행
-   - `npm run pipeline:collect-only`
-   - 긴 작업 권장: `npm run pipeline:collect:chunked`
-   - 06:10 자동실행 명령:
-     - `scripts/tools/run-ops-pipeline.cmd`
-     - 실제 실행: `node scripts/tools/run-ops-pipeline-chunked.js --chunk-size 3 --inactive-skip-days 14`
-   - 의미: 데이터 수집/검증/리포트 생성까지만 수행, Supabase 반영 안 함
-   - 대략 소요시간:
-     - 전체 팀: 약 15~40분 (네트워크/변동량에 따라)
-     - 단일 팀 점검: 약 3~8분
-   - 기본 증분 정책:
-     - `--use-existing-json` 사용
-     - `--inactive-skip-days 14` 사용
-     - 최근 활동이 없는 선수는 기존 JSON/CSV 재사용
-   - 빠른 재점검(단일 팀):
-     - `node scripts/tools/run-ops-pipeline.js --skip-supabase --teams c9 --inactive-skip-days 14`
-   - 청크 실행 결과:
-     - `tmp/reports/ops_pipeline_chunked_latest.json`
-     - 각 청크별 PASS/FAIL, 경과시간, stderr tail 확인 가능
-     - 참고: 청크 모드는 `daily_pipeline_snapshot_YYYY-MM-DD_HHMMSS-chunkN.json` 형태로 저장(덮어쓰기 방지)
-     - 실행 끝나면 자동으로 `daily_pipeline_snapshot_YYYY-MM-DD.json` 통합본 생성
+1. GitHub Actions `NZU Ops Pipeline` 실행
+   - workflow: `.github/workflows/ops-pipeline-cache.yml`
+   - cron: `10 21 * * *` UTC = 매일 06:10 KST
+   - 실행 순서:
+     - `npm ci`
+     - `npm run test:pipeline:daily`
+     - `npm run validate:pipeline-alert-rules`
+     - `npm run pipeline:manual:refresh`
+     - `npm run pipeline:status`
+     - Discord 요약 발송
+     - Discord summary 검증 결과를 Actions Summary에 기록
+     - artifact 업로드 + cache save
 
-2. 결과 확인
-   - `tmp/reports/ops_pipeline_latest.md`
+2. 실제 수집/반영 진입점
+   - `npm run pipeline:manual:refresh`
+   - 내부 동작:
+     - `run-ops-pipeline-chunked.js`
+     - `push-supabase-approved.js --approved`
+
+3. 결과 확인
+   - GitHub Actions Summary
+   - artifact `pipeline-reports-<run_id>`
    - `tmp/reports/daily_pipeline_snapshot_YYYY-MM-DD.json`
-   - `tmp/reports/metadata_review_current.csv` (필요 시 재생성)
-
-3. 승인 후 Supabase 반영
-   - `npm run pipeline:push:approved`
-   - 의미: staging -> prod 순서 반영
+   - `tmp/reports/daily_pipeline_alerts_YYYY-MM-DD.json`
 
 ## 수동 운영
-- PC를 켠 뒤 한 번에 갱신:
+- 수동 fallback 실행:
   - `npm run pipeline:manual:refresh`
 - 결과만 빠르게 확인:
   - `npm run pipeline:status`
+- Discord 요약 재검증:
+  - `npm run pipeline:verify:discord`
 - 권장 방식:
-  - 평소에는 홈페이지가 Supabase 데이터만 읽도록 유지
-  - 수집은 필요할 때만 수동 실행
+  - 기본은 GitHub Actions 자동 실행
+  - 수동 실행은 재검증/재실행/fallback 용도
 
 ## 안전장치
-- 승인 게이트 스크립트:
-  - `scripts/tools/push-supabase-approved.js`
-  - `--approved` 없으면 강제 실패
+- 회귀 테스트:
+  - `npm run test:pipeline:daily`
+- alert rules 검증:
+  - `npm run validate:pipeline-alert-rules`
+- 승인 게이트:
+  - `push-supabase-approved.js --approved`
 
 ## 문제 발생 시
-1. 수집 단계 실패:
-   - `node scripts/tools/run-ops-pipeline.js --dry-run`
-2. DB 반영 단계 실패:
-   - `node scripts/tools/supabase-staging-sync.js`
-   - `node scripts/tools/supabase-prod-sync.js`
+1. 먼저 GitHub Actions Summary 확인
+2. 그다음 artifact의 snapshot / alerts 확인
+3. 로컬 검증:
+   - `npm run pipeline:verify:discord`
+   - `npm run pipeline:status`
 
 ## 데이터 저장 위치
 - 선수 메타데이터: `data/metadata/projects/*/players.*.v1.json`
