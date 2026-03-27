@@ -11,6 +11,7 @@
     },
     "negative_delta_matches_severity": "critical",
     "roster_size_changed_severity": "medium",
+    "roster_size_changed_team_allowlist": ["fa"],
     "no_new_matches_enabled": false,
     "no_new_matches_severity": "low"
   }

@@ -104,6 +104,7 @@ function defaultAlertConfig() {
       zero_record_players_allowlist: {},
       negative_delta_matches_severity: "critical",
       roster_size_changed_severity: "medium",
+      roster_size_changed_team_allowlist: [],
       no_new_matches_enabled: false,
       no_new_matches_severity: "low",
     },
@@ -496,6 +497,11 @@ function buildAlerts(rowsWithDelta, cfg) {
     rules && rules.zero_record_players_allowlist && typeof rules.zero_record_players_allowlist === "object"
       ? rules.zero_record_players_allowlist
       : {};
+  const rosterSizeChangedAllowlist = new Set(
+    Array.isArray(rules && rules.roster_size_changed_team_allowlist)
+      ? rules.roster_size_changed_team_allowlist.map((v) => String(v))
+      : []
+  );
 
   function splitZeroPlayers(raw) {
     return String(raw || "")
@@ -549,7 +555,11 @@ function buildAlerts(rowsWithDelta, cfg) {
         });
       }
     }
-    if (typeof row.delta_players === "number" && row.delta_players !== 0) {
+    if (
+      typeof row.delta_players === "number" &&
+      row.delta_players !== 0 &&
+      !rosterSizeChangedAllowlist.has(String(row.team_code || ""))
+    ) {
       alerts.push({
         severity: rules.roster_size_changed_severity || "medium",
         team: row.team,
