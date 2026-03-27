@@ -42,6 +42,9 @@ jobs:
           restore-keys: |
             pipeline-state-${{ runner.os }}-v1-
 
+      - name: Restore tracked alert rules from repo
+        run: git checkout -- data/metadata/pipeline_alert_rules.v1.json
+
       - name: Run manual refresh
         id: manual_refresh
         run: npm run pipeline:manual:refresh
