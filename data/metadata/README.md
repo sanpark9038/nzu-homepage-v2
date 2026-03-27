@@ -52,6 +52,7 @@ npm run validate:metadata
 
 - `pipeline_alert_rules.v1.json`
   - Controls daily pipeline alert severities, allowlists, and blocking behavior.
+  - `zero_record_players_severity` is intentionally treated as a blocking-level alert (`high`) unless explicitly redesigned.
 
 Validate alert rules:
 

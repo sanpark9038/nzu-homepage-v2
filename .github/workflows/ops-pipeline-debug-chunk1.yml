@@ -33,17 +33,20 @@ jobs:
         with:
           path: |
             tmp/
-            data/metadata/
-          key: pipeline-state-${{ runner.os }}-v1-${{ github.run_id }}
+            data/metadata/projects/
+          key: pipeline-state-${{ runner.os }}-v2-${{ github.run_id }}
           restore-keys: |
-            pipeline-state-${{ runner.os }}-v1-
+            pipeline-state-${{ runner.os }}-v2-
 
-      - name: Run chunk1 teams without strict
+      - name: Run chunk1 teams via ops pipeline path
         run: |
-          node scripts/tools/run-daily-pipeline.js \
+          node scripts/tools/run-ops-pipeline.js \
+            --skip-supabase \
+            --no-discord \
             --teams bgm,black,c9 \
             --inactive-skip-days 14 \
-            --no-strict \
+            --no-roster-sync \
+            --no-display-alias \
             --no-team-table \
             --no-organize
 
