@@ -5,10 +5,11 @@ description: Standard format for writing CODEX_BRIEFING.md — the task handoff 
 # CODEX_BRIEFING.md 작성 표준
 
 ## 황금 원칙
-- **Before/After 코드 블록 필수** — 추측으로 실행하게 하지 말 것
+- **대형 handoff에만 사용** — 모든 작업에 강제하지 말 것
+- **Before/After 코드 블록 권장** — 복잡한 수정일수록 포함
 - **파일 경로 절대 명시** — 상대경로 사용 시 프로젝트 루트 기준
 - **완료 조건 명시** — Codex가 언제 끝났는지 알 수 있게
-- **삭제 지시 포함** — 마지막에 항상 `CODEX_BRIEFING.md` 삭제 지시 포함
+- **삭제 지시 권장** — 단발성 브리핑이면 정리, 장기 문맥이면 유지 가능
 
 ---
 
@@ -58,8 +59,15 @@ description: Standard format for writing CODEX_BRIEFING.md — the task handoff 
 
 ## 브리핑 작성 시 Antigravity 체크리스트
 
-- [ ] `types/index.ts`가 타입의 single source of truth인지 확인했는가?
+- [ ] 현재 코드 기준의 실제 import/source of truth를 확인했는가?
 - [ ] Codex가 이전에 저지른 동일한 실수 패턴이 반복되는 건 아닌가?
 - [ ] 기존 프로젝트 패턴(import 경로, 네이밍 컨벤션)을 따르는가?
 - [ ] Before 코드가 실제 현재 파일의 내용과 일치하는가?
 - [ ] 작업 범위가 최소화되어 있는가? (외과적 수정)
+
+## 언제 생략해도 되는가
+
+- 단일 파일 소규모 수정
+- 아티팩트 확인이나 원인 분석
+- 긴급 운영 대응
+- 현재 대화 맥락만으로 범위와 완료 조건이 충분히 명확한 경우

@@ -4,16 +4,12 @@ description: Behavioral guidelines to reduce common LLM coding mistakes. Use whe
 
 # Karpathy Rule — LLM 코딩 실수 방지 원칙
 
-Andrej Karpathy의 원칙을 NZU 프로젝트에 맞게 적용한 규칙입니다.
-Codex에게 브리핑할 때 이 원칙 위반 여부를 항상 체크합니다.
-
----
 
 ## 핵심 원칙
 
 ### 1. 기존 패턴을 따라라 (Don't Invent New Patterns)
 - 프로젝트에 이미 존재하는 방식을 먼저 찾고 따른다
-- **NZU 프로젝트 적용**: 타입은 `@/types`에서, 서비스는 `@/lib/*-service`에서, DB 타입은 `@/lib/database.types.ts`에서
+- **NZU 프로젝트 적용**: 타입/서비스 import는 실제 현재 코드 기준으로 확인하고, 가능하면 `@/types`, `@/lib/*-service`, `@/lib/database.types.ts` 패턴에 점진적으로 정렬한다
 - 새 패턴을 만들기 전에 반드시 기존 코드를 먼저 탐색
 
 ### 2. 최소한으로 수정하라 (Surgical Changes Only)
@@ -36,8 +32,13 @@ Codex에게 브리핑할 때 이 원칙 위반 여부를 항상 체크합니다.
 
 | 실수 패턴 | 올바른 방법 |
 |---|---|
-| `Player` 타입을 `@/lib/player-service`에서 import | `@/types`에서 import |
-| `H2HStats` 타입을 `@/lib/h2h-service`에서 import | `@/types`에서 import |
-| `EloMatch`, `Match` 타입도 서비스 파일에서 import | 모두 `@/types`에서 import |
+| `Player` 타입 import 경로를 추측 | 실제 현재 코드와 `types/index.ts`를 먼저 확인 |
+| `H2HStats` 타입 import 경로를 추측 | 실제 현재 코드와 `types/index.ts`를 먼저 확인 |
+| `EloMatch`, `Match` 타입 경로를 추측 | 실제 현재 코드와 `types/index.ts`를 먼저 확인 |
 | `supabase` 클라이언트를 새로 생성 | `@/lib/supabase`에서 import |
 | Tailwind v4 `@theme`, `@custom-variant` 경고 | 빌드 에러 아님, 무시 |
+
+## 해석 메모
+
+- 이 문서는 현재 코드를 점진적으로 더 일관되게 만들기 위한 참고 원칙입니다.
+- 현재 코드베이스에 이미 혼재된 패턴이 있으면, 리팩토링 요청이 없는 한 기존 파일의 흐름을 우선합니다.

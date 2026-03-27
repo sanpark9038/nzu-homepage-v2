@@ -2,17 +2,24 @@
 description: Dual-Agent Orchestration Protocol — Antigravity (Main) + Codex CLI (Sub)
 ---
 
-# 🏟️ NZU 프로젝트 듀얼 에이전트 오케스트레이션 프로토콜
+# NZU 프로젝트 듀얼 에이전트 오케스트레이션 프로토콜
 
 ## 역할 정의
 
 | 에이전트 | 역할 | 절대 하지 않는 것 |
 |---|---|---|
-| **Antigravity (엘레이드박)** | `app/`, `components/`, `public/`, `styles/` 파일 직접 수정. UI/UX 구현 및 디자인 고도화 | `scripts/`, `data/`, 백엔드 로직 수정 |
-| **Codex CLI** | `scripts/`, `data/`, `lib/` 데이터 파이프라인 전담 및 툴킷 실행, 백엔드 로직 수정 | UI 컴포넌트 (`app/`, `components/`) 단독 수정 |
+| **Antigravity (엘레이드박)** | 기본적으로 `app/`, `components/`, `public/`, `styles/` 중심의 UI/UX 구현과 사용자 흐름 설계 담당 | 데이터 파이프라인 변경을 단독으로 확정하지 않음 |
+| **Codex CLI** | 기본적으로 `scripts/`, `data/`, `lib/`, workflow, 운영 자동화, 검증 스크립트 담당 | UI 대규모 리디자인을 단독으로 확정하지 않음 |
 | **산박대표님** | 목표 제시·방향성 설정·최종 승인 | — |
 
 ---
+
+## 해석 원칙
+
+1. 위 역할 정의는 **기본 우선순위**이며 절대 금지 규칙이 아닙니다.
+2. 버그 수정, 긴급 운영 대응, 검증 자동화처럼 파일 경계가 섞이는 작업은 예외가 가능합니다.
+3. 충돌 가능성이 있으면 각 에이전트는 기존 변경을 덮어쓰지 말고 현재 상태를 먼저 확인합니다.
+4. 실제 코드베이스 상태와 현재 대화 지시가 이 문서보다 우선합니다.
 
 ## 표준 작업 루틴 (듀얼 트랙)
 
@@ -22,32 +29,25 @@ description: Dual-Agent Orchestration Protocol — Antigravity (Main) + Codex CL
 
 ### 트랙 B: 데이터 파이프라인 (Codex CLI 주도)
 1. 시스템 아키텍처나 백엔드 스크립트 수정이 필요할 때 발동합니다.
-2. Antigravity가 `CODEX_BRIEFING.md`를 작성합니다.
-3. 대표님이 Codex CLI에 명령을 내려 브리핑을 실행하게 합니다:
-   `Read CODEX_BRIEFING.md in the project root and execute all tasks described. Delete the file when all tasks are complete.`
-4. 작업 완료 후 Antigravity가 `TASK.md`를 업데이트합니다.
+2. 필요 시 Antigravity가 `CODEX_BRIEFING.md`를 작성할 수 있습니다.
+3. 단순 작업이나 긴급 대응은 브리핑 파일 없이 직접 지시로 진행할 수 있습니다.
+4. 브리핑 파일을 쓸 경우 대표님이 Codex CLI에 명령을 내려 실행하게 합니다.
+5. 작업 완료 후 필요하면 `TASK.md` 또는 관련 운영 문서를 업데이트합니다.
 
 ---
 
 ## 파일 역할 정의
 
-```
-nzu-homepage/
-├── TASK.md                  ← 프로젝트 전체 목표 및 진행 현황 (Antigravity 관리)
-├── CODEX_BRIEFING.md        ← Codex에게 전달하는 단발성 작업 지시서 (완료 후 Codex가 삭제)
-└── .agents/
-    └── workflows/
-        ├── orchestration-protocol.md   ← 이 파일 (운영 규칙)
-        ├── codex-briefing.md           ← CODEX_BRIEFING.md 작성 표준 형식
-        └── karpathy-rule.md            ← 코딩 실수 방지 원칙
-```
+- `TASK.md` — 프로젝트 전체 목표·진행 현황을 적는 기본 문서
+- `CODEX_BRIEFING.md` — 대형 handoff가 필요할 때 쓰는 선택형 작업 지시서
+- `.agents/workflows/` — `orchestration-protocol.md`, `codex-briefing.md`, `karpathy-rule.md`
 
 ---
 
 ## Antigravity 작동 원칙
 
-1. **항상 TASK.md를 먼저 확인** — 현재 프로젝트 맥락을 파악합니다.
-2. **UI/UX 직접 집도** — 대표님의 승인이 떨어지면 최상의 럭셔리 디자인을 직접 코드로 구현합니다.
+1. **가능하면 TASK.md를 먼저 확인** — 단, 긴급 운영 대응에서는 현재 오류 맥락과 실제 파일 상태를 우선합니다.
+2. **역할 우선순위를 지킨다** — 단, 한 작업이 여러 레이어를 걸치면 예외를 허용합니다.
 3. **추측 금지** — 파일을 읽고 확인한 사실을 기반으로 작업합니다.
-4. **브리핑은 외과적으로** — Codex에게 넘기는 데이터 작업은 명확하고 독립적으로 작성합니다.
+4. **브리핑은 필요할 때만 사용** — 작은 수정까지 문서 handoff를 강제하지 않습니다.
 5. **아키텍처 수호** — 프로젝트의 디자인 패턴과 한글화 원칙을 일관성 있게 유지합니다.
