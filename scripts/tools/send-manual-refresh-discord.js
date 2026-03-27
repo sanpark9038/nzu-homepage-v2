@@ -14,6 +14,7 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
+const MANUAL_REFRESH_REPORT_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.json");
 const TMP_DIR = path.join(ROOT, "tmp");
 
 function argValue(flag, fallback = null) {
@@ -170,6 +171,31 @@ function dateLabelFromSnapshot(snapshot) {
   return new Date().toISOString().slice(0, 10);
 }
 
+function dateLabelFromManualRefreshReport(report) {
+  const generatedAt = String(report && report.generated_at ? report.generated_at : "").trim();
+  if (!generatedAt) return null;
+  const dt = new Date(generatedAt);
+  if (Number.isNaN(dt.getTime())) return null;
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(dt);
+}
+
+function failureTailLine(report) {
+  const failureStep = report && report.failure_step && typeof report.failure_step === "object"
+    ? report.failure_step
+    : null;
+  if (!failureStep) return "";
+  const stderrTail = Array.isArray(failureStep.stderr_tail) ? failureStep.stderr_tail : [];
+  const stdoutTail = Array.isArray(failureStep.stdout_tail) ? failureStep.stdout_tail : [];
+  const source = stderrTail.length ? stderrTail : stdoutTail;
+  if (!source.length) return "";
+  return String(source[source.length - 1] || "").trim();
+}
+
 function countAlertsBySeverity(alerts) {
   return {
     critical: alerts.filter((a) => a.severity === "critical").length,
@@ -290,12 +316,23 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
 }
 
 function buildFailureMessage({ snapshot, runUrl }) {
-  const dateLabel = dateLabelFromSnapshot(snapshot);
+  const report = readJsonIfExists(MANUAL_REFRESH_REPORT_PATH);
+  const dateLabel = dateLabelFromManualRefreshReport(report) || dateLabelFromSnapshot(snapshot);
   const lines = [
     `산박대표님.일일 업데이트보고입니다. 실패 (${dateLabel})`,
     "",
     "수집 또는 반영 단계에서 오류가 발생했습니다.",
   ];
+  if (report && report.failure_step && report.failure_step.name) {
+    lines.push(`실패 단계: ${report.failure_step.name}`);
+  }
+  if (report && report.error) {
+    lines.push(`오류 요약: ${String(report.error).trim()}`);
+  }
+  const tail = failureTailLine(report);
+  if (tail) {
+    lines.push(`마지막 로그: ${tail}`);
+  }
   if (runUrl) {
     lines.push("");
     lines.push(`실행 링크: ${runUrl}`);
