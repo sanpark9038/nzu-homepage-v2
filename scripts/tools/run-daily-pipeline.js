@@ -170,11 +170,12 @@ function runNode(scriptPath, args) {
 }
 
 function latestPreviousSnapshotPath(dateStr) {
+  const currentDate = String(dateStr || "").trim().slice(0, 10);
   if (!fs.existsSync(REPORTS_DIR)) return null;
   const files = fs
     .readdirSync(REPORTS_DIR)
     .filter((n) => /^daily_pipeline_snapshot_\d{4}-\d{2}-\d{2}\.json$/.test(n))
-    .filter((n) => !n.includes(dateStr))
+    .filter((n) => !currentDate || !n.includes(currentDate))
     .sort();
   if (!files.length) return null;
   return path.join(REPORTS_DIR, files[files.length - 1]);
