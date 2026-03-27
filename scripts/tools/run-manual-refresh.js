@@ -10,6 +10,12 @@ const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 const REPORT_LATEST_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.json");
 const REPORT_LATEST_MD_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.md");
 
+function argValue(flag, fallback = null) {
+  const idx = process.argv.indexOf(flag);
+  if (idx >= 0 && process.argv[idx + 1]) return process.argv[idx + 1];
+  return fallback;
+}
+
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
@@ -175,6 +181,8 @@ function buildMarkdownSummary(report, reportPath) {
 }
 
 function main() {
+  const chunkSize = String(argValue("--chunk-size", "3")).trim() || "3";
+  const inactiveSkipDays = String(argValue("--inactive-skip-days", "14")).trim() || "14";
   const steps = [];
   let status = "pass";
   let errorMessage = null;
@@ -185,9 +193,9 @@ function main() {
     steps.push(
       runStep("collect_chunked", "scripts/tools/run-ops-pipeline-chunked.js", [
         "--chunk-size",
-        "3",
+        chunkSize,
         "--inactive-skip-days",
-        "14",
+        inactiveSkipDays,
       ])
     );
     steps.push(runStep("supabase_push", "scripts/tools/push-supabase-approved.js", ["--approved"]));

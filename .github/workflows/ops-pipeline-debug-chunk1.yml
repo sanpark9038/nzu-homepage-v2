@@ -14,6 +14,7 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      OPS_DISCORD_WEBHOOK_URL: ${{ secrets.OPS_DISCORD_WEBHOOK_URL }}
 
     steps:
       - name: Checkout
@@ -53,6 +54,17 @@ jobs:
       - name: Print pipeline status
         if: always()
         run: npm run pipeline:status || true
+
+      - name: Send Discord summary
+        if: always()
+        env:
+          GH_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            node scripts/tools/send-manual-refresh-discord.js --outcome success --source github-actions-debug --run-url "$GH_RUN_URL"
+          else
+            node scripts/tools/send-manual-refresh-discord.js --outcome failure --source github-actions-debug --run-url "$GH_RUN_URL"
+          fi
 
       - name: Upload debug artifacts
         if: always()
