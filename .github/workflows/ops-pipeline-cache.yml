@@ -37,13 +37,10 @@ jobs:
         with:
           path: |
             tmp/
-            data/metadata/
-          key: pipeline-state-${{ runner.os }}-v1-${{ github.run_id }}
+            data/metadata/projects/
+          key: pipeline-state-${{ runner.os }}-v2-${{ github.run_id }}
           restore-keys: |
-            pipeline-state-${{ runner.os }}-v1-
-
-      - name: Restore tracked alert rules from repo
-        run: git checkout -- data/metadata/pipeline_alert_rules.v1.json
+            pipeline-state-${{ runner.os }}-v2-
 
       - name: Run manual refresh
         id: manual_refresh
@@ -80,5 +77,5 @@ jobs:
         with:
           path: |
             tmp/
-            data/metadata/
-          key: pipeline-state-${{ runner.os }}-v1-${{ github.run_id }}
+            data/metadata/projects/
+          key: pipeline-state-${{ runner.os }}-v2-${{ github.run_id }}
