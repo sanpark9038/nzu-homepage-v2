@@ -7,6 +7,13 @@
 
 ## ✅ 완료된 작업 (Completed)
 
+### [2026-03-27] 🛠️ GitHub Actions 운영 안정화 및 Discord 일일 보고 정비
+- **운영 모델 정정**: Supabase Native 전환 결정 문구와 별개로, 현재 실제 일일 운영은 다시 **GitHub Actions `NZU Ops Pipeline` 자동 실행 기준**임을 확인 및 문서 재정렬 ✅
+- **Discord 일일 보고 정비**: 제목을 `산박대표님.일일 업데이트보고입니다.`로 표준화하고, `신규 전적` 비교 로직/문구를 수정하여 실제 직전 스냅샷 기준 집계가 가능하도록 안정화 ✅
+- **스냅샷/경고 안정성 강화**: 같은 날짜 snapshot 오선택 방지, `FA` 로스터 증감 경고 제외, chunk merge 시 alert rules drift 검증 추가 ✅
+- **GitHub Actions 파이프라인 강화**: cache 범위 축소, Discord summary 검증 결과를 Actions Summary에 기록, 회귀 테스트와 alert rules 검증을 수집 전에 자동 실행하도록 보강 ✅
+- **운영 문서 정리**: `.agents/workflows` 규칙 문서 완화, `PIPELINE_EXTERNAL_BRIEF.md` 현행화, 짧은 incident playbook 추가 ✅
+
 ### [2026-03-20] 🇰🇷 한국형 럭셔리 미니멀리즘 UI 개편 (박부장 집도)
 - **전 구역 한글 현지화 완료**: 메뉴, 버튼, 레이블, 단위(LP→점, W/L→승/패) 100% 한글화 🇰🇷✅
 - **타이포그래피 정제**: 전 사이트 내 **기울임꼴(Italic) 완전 박멸** 및 정갈한 정좌체 적용 📏✅
@@ -69,6 +76,11 @@
 - **CODEX 전략 브리핑 작성**: `entity_id` 식별 로직 사수, 06:10/07:30 스케줄링, 주요 지표 검증 체계 등을 망라한 `CODEX_BRIEFING.md` 배포 완료 🧱✍️
 - **운영 안전장치 강화**: 사용자 명시 승인 전 `Prod Sync` 금지 원칙 수립으로 시스템 안정성 확보 🔐🛡️
 
+### [2026-03-27] ⚠️ 운영 메모
+- 위 2026-03-22의 "GitHub Actions 탈출" 방향은 **현재 기준 미완료 전략 메모**입니다.
+- 실제 운영 Source of Truth는 **GitHub Actions 자동 파이프라인 + 수동 fallback**입니다.
+- 향후 Supabase Native 전환을 다시 추진하더라도, 현재 운영 상태를 대체한 것으로 해석하면 안 됩니다.
+
 ---
 
 ## 🏗️ 넥스트 세션 예약 (Next Session Plan / 목표)
@@ -77,6 +89,11 @@
 - [ ] **초정밀 전적 카운팅 애니메이션(Kinetic Counter)**: 모든 승률/승/패 숫자가 렌더링 시점에 빠르게 롤링하며 목표 숫자에 꽂히는 방송용 E-Sports 연출 이펙트 적용 (유보) 📈
 - [ ] **사이버펑크 빈 화면 레이더 스캔**: 데이터가 없는 빈 화면(Empty State)에 고해상도 녹색 레이더 스캐닝 배경 효과를 얹어 전술 통제소 분위기 연출 (유보) 📡
 
+### 🛠️ 운영 안정성 후속 작업
+- [ ] `TOMORROW_RUNBOOK.md`와 운영 문서를 현재 GitHub Actions 기준으로 추가 정리
+- [ ] chunk merge / ops 경로 회귀 테스트 범위 보강
+- [ ] 메인 AI 검토 결과 중 사실 기반 문서 이슈만 선별 반영
+
 ---
 
-*마지막 업데이트: 2026-03-22 20:00 (Antigravity / 엘레이드박)*
+*마지막 업데이트: 2026-03-27 (Antigravity / 엘레이드박 + Codex 보완)*
