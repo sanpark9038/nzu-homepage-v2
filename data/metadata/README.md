@@ -47,3 +47,14 @@ Validate generated metadata:
 ```bash
 npm run validate:metadata
 ```
+
+## Pipeline Alert Rules
+
+- `pipeline_alert_rules.v1.json`
+  - Controls daily pipeline alert severities, allowlists, and blocking behavior.
+
+Validate alert rules:
+
+```bash
+npm run validate:pipeline-alert-rules
+```

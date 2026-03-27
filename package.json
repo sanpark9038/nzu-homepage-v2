@@ -11,6 +11,7 @@
     "build:metadata": "node scripts/tools/build-metadata-db.js",
     "build:project:metadata": "node scripts/tools/build-project-metadata-from-roster-record.js",
     "build:aggregates": "node scripts/tools/build-aggregates-incremental.js",
+    "validate:pipeline-alert-rules": "node scripts/tools/validate-pipeline-alert-rules.js",
     "verify:warehouse": "node scripts/tools/verify-warehouse-integrity.js",
     "validate:metadata": "node scripts/tools/validate-metadata-schema.js",
     "report:metadata:conflicts": "node scripts/tools/report-metadata-conflicts.js",

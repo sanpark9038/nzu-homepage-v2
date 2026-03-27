@@ -34,6 +34,9 @@ jobs:
       - name: Run daily pipeline regression tests
         run: npm run test:pipeline:daily
 
+      - name: Validate pipeline alert rules
+        run: npm run validate:pipeline-alert-rules
+
       - name: Restore pipeline state cache
         id: pipeline-cache-restore
         uses: actions/cache/restore@v4
