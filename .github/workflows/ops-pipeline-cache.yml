@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run daily pipeline regression tests
+        run: npm run test:pipeline:daily
+
       - name: Restore pipeline state cache
         id: pipeline-cache-restore
         uses: actions/cache/restore@v4
