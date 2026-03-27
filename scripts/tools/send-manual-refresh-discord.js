@@ -1,6 +1,14 @@
 const fs = require("fs");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local") });
+const {
+  buildDiscordSummaryCheck,
+  buildPlayerKey,
+  loadBaselinePlayers,
+  loadCurrentRosterState,
+  normalizeTeamName,
+  readJsonIfExists,
+} = require("./lib/discord-summary");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
@@ -31,18 +39,8 @@ function latestFileByPrefix(prefix) {
   return files.length ? files[0].full : null;
 }
 
-function readJsonIfExists(filePath) {
-  if (!filePath || !fs.existsSync(filePath)) return null;
-  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
-}
-
 function sumBy(rows, key) {
   return rows.reduce((acc, row) => acc + (Number(row && row[key] ? row[key] : 0) || 0), 0);
-}
-
-function normalizeTeamName(value) {
-  const raw = String(value || "").trim();
-  return raw || "무소속";
 }
 
 function todayInSeoul() {
@@ -54,51 +52,8 @@ function todayInSeoul() {
   }).format(new Date());
 }
 
-function loadCurrentRosterState() {
-  if (!fs.existsSync(PROJECTS_DIR)) return [];
-  const teamDirs = fs
-    .readdirSync(PROJECTS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort((a, b) => String(a).localeCompare(String(b)));
-
-  const players = [];
-  for (const code of teamDirs) {
-    const filePath = path.join(PROJECTS_DIR, code, `players.${code}.v1.json`);
-    if (!fs.existsSync(filePath)) continue;
-    const doc = readJsonIfExists(filePath);
-    const roster = Array.isArray(doc && doc.roster) ? doc.roster : [];
-    for (const player of roster) {
-      players.push({
-        entity_id: String(player && player.entity_id ? player.entity_id : ""),
-        name: String(player && player.name ? player.name : ""),
-        display_name: String(
-          player && (player.display_name || player.name) ? player.display_name || player.name : ""
-        ),
-        team_code: String(player && player.team_code ? player.team_code : doc.team_code || code),
-        team_name: normalizeTeamName(player && player.team_name ? player.team_name : doc.team_name || code),
-        tier: String(player && player.tier ? player.tier : ""),
-        last_changed_at: player && player.last_changed_at ? player.last_changed_at : null,
-      });
-    }
-  }
-  return players;
-}
-
-function buildPlayerKey(player) {
-  const entityId = String(player && player.entity_id ? player.entity_id : "").trim();
-  if (entityId) return `entity:${entityId}`;
-  return `name:${String(player && player.name ? player.name : "").trim().toLowerCase()}`;
-}
-
 function toPlayerMap(players) {
   return new Map(players.map((player) => [buildPlayerKey(player), player]));
-}
-
-function loadBaselinePlayers() {
-  const baseline = readJsonIfExists(BASELINE_PATH);
-  const teams = Array.isArray(baseline && baseline.teams) ? baseline.teams : [];
-  return teams.flatMap((team) => (Array.isArray(team.players) ? team.players : []));
 }
 
 function comparePlayerChanges(beforePlayers, afterPlayers) {
@@ -226,23 +181,27 @@ function countAlertsBySeverity(alerts) {
 }
 
 function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
-  const beforePlayers = loadBaselinePlayers();
-  const afterPlayers = loadCurrentRosterState();
+  const beforePlayers = loadBaselinePlayers(BASELINE_PATH);
+  const afterPlayers = loadCurrentRosterState(PROJECTS_DIR);
   const { tierChanges, affiliationChanges, joiners, removals } = comparePlayerChanges(beforePlayers, afterPlayers);
   const todayTop = buildTodayTopPlayers(afterPlayers);
-  const teams = Array.isArray(snapshot && snapshot.teams) ? snapshot.teams : [];
-  const alerts = Array.isArray(alertsDoc && alertsDoc.alerts) ? alertsDoc.alerts : [];
-  const alertCounts = countAlertsBySeverity(alerts);
+  const summaryCheck = buildDiscordSummaryCheck({
+    reportsDir: REPORTS_DIR,
+    baselinePath: BASELINE_PATH,
+    projectsDir: PROJECTS_DIR,
+    snapshot,
+    alertsDoc,
+  });
+  const alertCounts = summaryCheck.alerts.counts || countAlertsBySeverity([]);
   const deltaComparable = Boolean(
     snapshot &&
       snapshot.delta_reference &&
       snapshot.delta_reference.comparable
   );
-  const newMatches = teams.reduce((acc, row) => {
-    const value = Number(row && row.delta_total_matches);
-    if (!Number.isFinite(value) || value <= 0) return acc;
-    return acc + value;
-  }, 0);
+  const newMatches = summaryCheck.new_matches_total;
+  const joinersForMessage = Array.isArray(summaryCheck.joiners) && summaryCheck.joiners.length
+    ? summaryCheck.joiners
+    : joiners;
 
   const lines = [
     `산박대표님.일일 업데이트보고입니다. ${alertCounts.total > 0 ? "(경고 포함)" : ""} (${dateLabelFromSnapshot(snapshot)})`.trim(),
@@ -252,7 +211,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   if (
     !tierChanges.length &&
     !affiliationChanges.length &&
-    !joiners.length &&
+    !joinersForMessage.length &&
     !removals.length &&
     (deltaComparable ? newMatches <= 0 : true) &&
     !todayTop.players.length
@@ -280,9 +239,9 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
       lines.push("");
     }
 
-    if (joiners.length) {
+    if (joinersForMessage.length) {
       lines.push("🆕 신규 합류");
-      for (const item of joiners) {
+      for (const item of joinersForMessage) {
         lines.push(`- ${item.player_name} (${item.team_name})`);
       }
       lines.push("");
@@ -313,7 +272,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     }
   }
 
-  if (alerts.length) {
+  if ((alertCounts.total || 0) > 0) {
     lines.push("");
     lines.push(
       `주의 알림: ${alertCounts.total}건 (critical ${alertCounts.critical}, high ${alertCounts.high}, medium ${alertCounts.medium}, low ${alertCounts.low})`

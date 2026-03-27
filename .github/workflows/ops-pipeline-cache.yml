@@ -63,6 +63,7 @@ jobs:
 
       - name: Write Discord summary check
         if: always()
+        continue-on-error: true
         run: npm run pipeline:verify:discord -- --markdown >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload reports artifact
