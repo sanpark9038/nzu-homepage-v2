@@ -1,5 +1,10 @@
 # GitHub Actions First Run Failure
 
+> Historical incident note.
+> This document describes the first failure state only.
+> It does not represent the current production status by itself.
+> Later follow-up, fixes, and successful reruns should be read together before judging current readiness.
+
 ## Summary
 The first GitHub Actions run did not fail because the pipeline could not execute.
 
@@ -89,12 +94,7 @@ Specifically:
    - request timeout / partial response
    - runner-specific network behavior
 
-## Operational Conclusion
-For now, GitHub Actions should be considered:
-- promising
-- but not production-ready yet for this pipeline
+## Historical Conclusion At That Time
+At the time of this first run, GitHub Actions was not yet ready to be trusted for this pipeline.
 
-Reason:
-- local and GitHub Actions collection quality are not yet equivalent
-- first real run produced many abnormal zero-record results
-- strict validation correctly stopped the pipeline
+That conclusion was specific to the initial failure state and should not be read as the final current-state verdict.

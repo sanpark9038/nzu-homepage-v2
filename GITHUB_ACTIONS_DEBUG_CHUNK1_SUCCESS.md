@@ -1,5 +1,9 @@
 # GitHub Actions Debug Chunk1 Success
 
+> Historical debug note.
+> This document records a successful debug run for an older debug workflow configuration.
+> It should not be treated as proof that the current debug workflow or current production workflow are identical.
+
 ## Purpose
 This note records the successful outcome of the second `chunk1` debug run after applying the mix URL normalization fix.
 
@@ -23,11 +27,15 @@ Workflow:
 
 Scope:
 - only `bgm`, `black`, `c9`
-- `--no-strict`
+- `--no-strict` (at the time of this debug run)
 - `--no-team-table`
 - `--no-organize`
 
 This isolated the actual collection behavior from unrelated reporting steps.
+
+Current note:
+- the debug workflow has since been adjusted
+- if re-validating today, read the current workflow file first instead of assuming this exact flag set still applies
 
 ## Result
 The debug run succeeded at the data-quality level.

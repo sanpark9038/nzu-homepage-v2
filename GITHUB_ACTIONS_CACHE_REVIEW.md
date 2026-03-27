@@ -1,12 +1,16 @@
 # GitHub Actions Cache Review
 
+> Historical review note.
+> Current production workflow status has changed since this note was first written.
+> Discord summary delivery is now enabled in `ops-pipeline-cache.yml`, and the cache scope is currently `tmp/` + `data/metadata/projects/`.
+
 ## Review Question
 Can the current pipeline be run in GitHub Actions while preserving local incremental behavior by caching these paths between runs?
 
 ```yaml
 path: |
   tmp/
-  data/metadata/
+  data/metadata/projects/
 ```
 
 ## Short Answer
@@ -95,13 +99,11 @@ That means it directly improves:
 ## What This Still Does Not Solve Automatically
 
 ### Discord alerts
-The current manual command path does not send Discord notifications.
+At the time of the original review, cache configuration alone did not solve Discord delivery.
 
-Reason:
-- `pipeline:manual:refresh` calls the chunked runner
-- the chunked runner invokes inner ops runs with `--no-discord`
-
-So even if GitHub Actions runs the existing command successfully, Discord alert delivery is not automatically enabled by this cache approach alone.
+Current status:
+- the GitHub Actions workflow now sends Discord summary messages explicitly after `pipeline:manual:refresh`
+- inner chunk runs still use `--no-discord`, but final summary delivery is handled separately in the workflow
 
 ### Full equivalence with local execution
 This approach improves persistence substantially, but it still depends on GitHub Actions cache behavior and cache availability.
@@ -150,11 +152,11 @@ The workflow expects these GitHub Secrets:
 For the current pipeline structure, caching these paths in GitHub Actions is a reasonable and technically sound strategy:
 
 - `tmp/`
-- `data/metadata/`
+- `data/metadata/projects/`
 
 This is likely the most practical way to preserve the current incremental pipeline behavior without redesigning the pipeline into a fully stateless system.
 
 However, it should be understood clearly:
 - it solves the major state persistence problem
-- it does not by itself enable Discord alerts
+- Discord delivery is now handled by the workflow itself, not by cache behavior
 - it is suitable for execution continuity, not for making the pipeline fully stateless
