@@ -3,17 +3,16 @@
 ## Purpose
 - Collect accurate player metadata and match records from ELOBoard-derived sources.
 - Keep the website fast by serving stored data from Supabase instead of scraping at request time.
-- Allow manual refresh when the operator turns on the PC and runs a command.
-- Automatic scheduled execution is optional and not required for current operation.
+- Support both scheduled GitHub Actions execution and manual refresh when needed.
 
 ## Current Operating Model
-- Data refresh is manual.
-- The operator runs one command on the local PC.
+- Primary daily execution runs in GitHub Actions (`NZU Ops Pipeline`).
+- Manual refresh still exists as an operator fallback and verification path.
 - The pipeline collects updates, validates them, updates local metadata, and pushes the approved result to Supabase.
 - The website reads from Supabase only.
 
 ## Primary Command Set
-1. Refresh data:
+1. Manual refresh:
 ```bash
 npm run pipeline:manual:refresh
 ```
@@ -22,6 +21,30 @@ npm run pipeline:manual:refresh
 ```bash
 npm run pipeline:status
 ```
+
+3. Verify Discord summary locally:
+```bash
+npm run pipeline:verify:discord
+```
+
+## Primary Scheduled Workflow
+
+- Workflow: `NZU Ops Pipeline`
+- File:
+  - `.github/workflows/ops-pipeline-cache.yml`
+- Trigger:
+  - scheduled daily run
+  - manual `workflow_dispatch`
+
+The workflow currently runs:
+1. `npm ci`
+2. `npm run test:pipeline:daily`
+3. `npm run validate:pipeline-alert-rules`
+4. `npm run pipeline:manual:refresh`
+5. `npm run pipeline:status`
+6. Discord summary send
+7. Discord summary verification to GitHub Actions Summary
+8. artifact upload + cache save
 
 ## What `pipeline:manual:refresh` Does
 `pipeline:manual:refresh` runs [scripts/tools/run-manual-refresh.js](/C:/Users/NZU/Desktop/nzu-homepage/scripts/tools/run-manual-refresh.js).
@@ -154,33 +177,36 @@ This keeps the site light and fast even if collection takes minutes or tens of m
 ## Current Strengths
 - Identity collision handling is already implemented.
 - Incremental refresh exists.
-- Detailed match metadata is already accumulated locally.
+- Detailed match metadata is accumulated and reused through cache/artifacts.
 - Supabase sync path is operational.
-- Manual refresh mode is validated.
+- Scheduled GitHub Actions execution is operational.
+- Manual refresh mode is still available as fallback.
 - The website can stay fast because it only consumes stored data.
 
 ## Current Limitations
-- The refresh process still runs on the local PC.
-- If the PC is off, manual refresh cannot run.
+- GitHub Actions state still depends on cache/artifact continuity.
+- If cache/rules drift occurs, alert/snapshot consistency can be affected.
+- Manual refresh is fallback, not the primary daily path.
 - Current operation prioritizes accuracy over minimal runtime.
 - `pipeline:status` is mainly an operational summary, not a full player-by-player diff report.
 
 ## Latest Validation Summary
-Latest validated manual refresh completed successfully and produced:
+Latest validated pipeline runs produced:
 - chunked collection report
 - merged daily snapshot
-- zero alerts for critical/high/medium/low in that run
+- Discord daily summary
+- GitHub Actions Summary verification output
 - successful Supabase staging and production sync
 
 This means:
-- the command chain works
+- the command chain works in current GitHub Actions operation
 - Supabase receives refreshed data
-- the deployed website can show new data after a manual refresh, as long as it reads from Supabase
+- the deployed website can show new data after scheduled or manual refresh, as long as it reads from Supabase
 
 ## Recommended Interpretation
 This system should be understood as:
-- a local manual ETL pipeline
+- a stateful ETL pipeline with GitHub Actions as the primary runner
 - feeding Supabase as the serving database
 - with the website acting as a read-only consumer of the stored dataset
 
-It is not currently a real-time scraper and not currently a cloud-executed batch system.
+It is not a real-time scraper. It is also not a stateless batch job, because it still depends on persisted cache, reports, and evolving metadata state.
