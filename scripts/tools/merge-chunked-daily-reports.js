@@ -41,6 +41,37 @@ function writeCsv(filePath, rows) {
   fs.writeFileSync(filePath, lines.join("\n"), "utf8");
 }
 
+function stableStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort((a, b) => String(a).localeCompare(String(b)))
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function ensureConsistentAlertSettings(snapshots) {
+  if (!snapshots.length) return;
+
+  const first = snapshots[0];
+  const baselineBlocking = stableStringify(first.alerts && first.alerts.blocking_severities);
+  const baselineRules = stableStringify(first.alerts && first.alerts.applied_rules);
+
+  for (const item of snapshots.slice(1)) {
+    const currentBlocking = stableStringify(item.alerts && item.alerts.blocking_severities);
+    const currentRules = stableStringify(item.alerts && item.alerts.applied_rules);
+    if (currentBlocking !== baselineBlocking || currentRules !== baselineRules) {
+      throw new Error(
+        `Chunk alert settings mismatch: ${item.tag} differs from ${first.tag}. Check blocking_severities/applied_rules consistency.`
+      );
+    }
+  }
+}
+
 function main() {
   const outputDate = argValue("--output-date", "");
   const tagsRaw = argValue("--chunk-date-tags", "");
@@ -73,6 +104,8 @@ function main() {
       alerts: readJson(alertsPath),
     };
   });
+
+  ensureConsistentAlertSettings(snapshots);
 
   const first = snapshots[0].snapshot;
   const teamMap = new Map();
