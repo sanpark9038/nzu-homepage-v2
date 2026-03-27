@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { LiveBadge, RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
 import { cn, getTierLabel, normalizeTier } from "@/lib/utils";
 import { type Player } from "@/lib/player-service";
@@ -80,7 +79,7 @@ export default function PlayerSearchResult({
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 md:col-start-3 md:row-start-1 md:h-full">
+        <div className="md:col-start-3 md:row-start-1 md:h-full">
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
@@ -90,9 +89,6 @@ export default function PlayerSearchResult({
               {isExpanded ? "상세 접기" : "상세 보기"}
             </span>
           </button>
-          <Link href={`/player/${player.id}`} className="inline-flex min-h-[46px] items-center justify-center rounded-[0.9rem] border border-white/10 bg-white/[0.03] px-3 py-2 text-[0.92rem] font-[1000] tracking-tight text-white/74 transition-all hover:border-white/20 hover:bg-white/[0.06] hover:text-white">
-            독립 페이지 열기
-          </Link>
         </div>
 
         <div className="min-w-0 md:col-start-2 md:row-start-2">
