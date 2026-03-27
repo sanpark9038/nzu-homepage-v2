@@ -61,6 +61,10 @@ jobs:
             node scripts/tools/send-manual-refresh-discord.js --outcome failure --source github-actions --run-url "$GH_RUN_URL"
           fi
 
+      - name: Write Discord summary check
+        if: always()
+        run: npm run pipeline:verify:discord -- --markdown >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload reports artifact
         if: always()
         uses: actions/upload-artifact@v4

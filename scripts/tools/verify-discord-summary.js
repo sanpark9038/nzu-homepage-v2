@@ -12,6 +12,10 @@ function argValue(flag, fallback = null) {
   return fallback;
 }
 
+function hasFlag(flag) {
+  return process.argv.includes(flag);
+}
+
 function resolveReportsDir() {
   const input = String(argValue("--reports-dir", DEFAULT_REPORTS_DIR) || "").trim();
   return path.resolve(input);
@@ -177,6 +181,57 @@ function relativePath(filePath) {
   return path.relative(ROOT, filePath).replace(/\\/g, "/");
 }
 
+function toMarkdown(summary) {
+  const lines = [
+    "## Discord Summary Check",
+    "",
+    `- Snapshot: \`${summary.snapshot}\``,
+    `- Alerts: \`${summary.alerts}\``,
+    `- Period: ${summary.period_from || "-"} ~ ${summary.period_to || "-"}`,
+    `- Previous Snapshot: ${summary.previous_snapshot || "-"}`,
+    `- Comparable: ${summary.delta_reference && summary.delta_reference.comparable ? "yes" : "no"}`,
+    `- New Matches Total: ${summary.discord_summary_check.new_matches_total}`,
+  ];
+
+  const joiners = Array.isArray(summary.discord_summary_check.joiners)
+    ? summary.discord_summary_check.joiners
+    : [];
+  const alerts = summary.discord_summary_check.alerts || { counts: {}, alerts: [] };
+  const topTeamDeltas = Array.isArray(summary.discord_summary_check.top_team_deltas)
+    ? summary.discord_summary_check.top_team_deltas
+    : [];
+
+  lines.push(
+    `- Alerts Count: critical ${alerts.counts.critical || 0}, high ${alerts.counts.high || 0}, medium ${alerts.counts.medium || 0}, low ${alerts.counts.low || 0}`
+  );
+
+  if (joiners.length) {
+    lines.push("");
+    lines.push("### Joiners");
+    for (const row of joiners) {
+      lines.push(`- ${row.player_name} (${row.team_name})`);
+    }
+  }
+
+  if (topTeamDeltas.length) {
+    lines.push("");
+    lines.push("### Top Team Match Deltas");
+    for (const row of topTeamDeltas) {
+      lines.push(`- ${row.team} (${row.team_code}): +${row.delta_total_matches} matches`);
+    }
+  }
+
+  if (Array.isArray(alerts.alerts) && alerts.alerts.length) {
+    lines.push("");
+    lines.push("### Alerts");
+    for (const row of alerts.alerts) {
+      lines.push(`- [${row.severity}] ${row.team} (${row.team_code}) ${row.rule}: ${row.message}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 function main() {
   const reportsDir = resolveReportsDir();
   const baselinePath = resolveFilePath(argValue("--baseline", ""), path.join(reportsDir, "manual_refresh_baseline.json"));
@@ -233,6 +288,11 @@ function main() {
       alerts: alertSummary,
     },
   };
+
+  if (hasFlag("--markdown")) {
+    console.log(toMarkdown(output));
+    return;
+  }
 
   console.log(JSON.stringify(output, null, 2));
 }
