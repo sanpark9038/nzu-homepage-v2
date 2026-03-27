@@ -49,9 +49,33 @@ function main() {
   console.log(`alerts:   ${path.relative(ROOT, alertsPath)}`);
   console.log(`generated_at: ${snapshot.generated_at || "-"}`);
   console.log(`period: ${snapshot.period_from || "-"} ~ ${snapshot.period_to || "-"}`);
+  console.log(`previous_snapshot: ${snapshot.previous_snapshot || "-"}`);
+  console.log(
+    `delta_comparable: ${snapshot.delta_reference && snapshot.delta_reference.comparable ? "yes" : "no"}`
+  );
   console.log(
     `alerts critical/high/medium/low: ${critical}/${high}/${medium}/${low}`
   );
+  console.log(`alerts_total: ${alerts.length}`);
+
+  const topMatchDeltas = teams
+    .map((t) => ({
+      team: t.team,
+      team_code: t.team_code,
+      delta_total_matches: typeof t.delta_total_matches === "number" ? t.delta_total_matches : null,
+    }))
+    .filter((row) => typeof row.delta_total_matches === "number" && row.delta_total_matches !== 0)
+    .sort((a, b) => Math.abs(b.delta_total_matches) - Math.abs(a.delta_total_matches))
+    .slice(0, 5);
+
+  if (topMatchDeltas.length) {
+    console.log("top_match_deltas:");
+    for (const row of topMatchDeltas) {
+      console.log(
+        `  - ${row.team_code}: ${row.delta_total_matches > 0 ? "+" : ""}${row.delta_total_matches} (${row.team})`
+      );
+    }
+  }
 
   const table = teams.map((t) => ({
     team: t.team,
