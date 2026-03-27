@@ -7,7 +7,7 @@ const {
   isComparablePriorSnapshot,
   latestPreviousSnapshotPath,
   parseDateTag,
-} = require("./run-daily-pipeline");
+} = require("./lib/daily-pipeline-snapshot");
 
 function makeTempReportsDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "nzu-daily-pipeline-"));
