@@ -32,6 +32,7 @@
     "pipeline:manual:refresh": "node scripts/tools/run-manual-refresh.js",
     "pipeline:push:approved": "node scripts/tools/push-supabase-approved.js --approved",
     "pipeline:status": "node scripts/tools/check-daily-status.js",
+    "pipeline:verify:discord": "node scripts/tools/verify-discord-summary.js",
     "schedule:daily:win": "powershell -ExecutionPolicy Bypass -File scripts/schedule-daily-pipeline.ps1",
     "schedule:ops:win": "powershell -ExecutionPolicy Bypass -File scripts/schedule-ops-pipeline.ps1",
     "export:nzu:meta": "node scripts/tools/export-nzu-roster-metadata.js",
