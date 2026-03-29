@@ -19,7 +19,7 @@ function validatePlayer(player, index, errors) {
     return;
   }
 
-  if (!/^eloboard:(male|female):\d+$/.test(String(player.entity_id || ""))) {
+  if (!/^eloboard:(male|female)(:mix)?:\d+$/.test(String(player.entity_id || ""))) {
     fail(errors, `${p}.entity_id`, "invalid format");
   }
   if (player.provider !== "eloboard") {
@@ -106,7 +106,9 @@ function main() {
     if (seenEntityId.has(entityId)) fail(errors, `players[${i}].entity_id`, "duplicate");
     seenEntityId.add(entityId);
 
-    const composite = `${player?.wr_id}:${player?.gender}`;
+    const composite = /^eloboard:(male|female):mix:\d+$/.test(String(player?.entity_id || ""))
+      ? `${player?.wr_id}:${player?.gender}:mix`
+      : `${player?.wr_id}:${player?.gender}:default`;
     if (seenComposite.has(composite)) fail(errors, `players[${i}]`, `duplicate wr_id+gender (${composite})`);
     seenComposite.add(composite);
   }

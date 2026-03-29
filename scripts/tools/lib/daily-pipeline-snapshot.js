@@ -2,12 +2,13 @@ const fs = require("fs");
 const path = require("path");
 
 function latestPreviousSnapshotPath(dateStr, reportsDir) {
-  const currentDate = String(dateStr || "").trim().slice(0, 10);
+  const currentTag = String(dateStr || "").trim();
+  const exactDate = /^\d{4}-\d{2}-\d{2}$/.test(currentTag) ? currentTag : null;
   if (!fs.existsSync(reportsDir)) return null;
   const files = fs
     .readdirSync(reportsDir)
     .filter((n) => /^daily_pipeline_snapshot_\d{4}-\d{2}-\d{2}\.json$/.test(n))
-    .filter((n) => !currentDate || !n.includes(currentDate))
+    .filter((n) => !exactDate || n !== `daily_pipeline_snapshot_${exactDate}.json`)
     .sort();
   if (!files.length) return null;
   return path.join(reportsDir, files[files.length - 1]);

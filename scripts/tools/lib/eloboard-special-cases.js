@@ -2,6 +2,12 @@ function normalizeName(name) {
   return String(name || "").trim();
 }
 
+function normalizeGender(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (raw === "male" || raw === "female") return raw;
+  return "";
+}
+
 function normalizeProfileUrl(url) {
   const text = String(url || "").trim().replace(/^http:\/\//i, "https://");
   if (!text) return null;
@@ -27,6 +33,18 @@ function resolveSpecialProfileUrlByName(name, fallbackUrl = null) {
 
 function isMixBoardProfileUrl(url) {
   return /bo_table=bj_m_list/i.test(String(url || ""));
+}
+
+function getEloboardProfileKind(input) {
+  const url = normalizeProfileUrl(
+    typeof input === "string"
+      ? input
+      : input && typeof input === "object"
+        ? input.profile_url || input.eloboard_profile_url || ""
+        : ""
+  );
+  if (isMixBoardProfileUrl(url)) return "mix";
+  return "default";
 }
 
 function toMixBoardProfileUrl(url) {
@@ -56,8 +74,32 @@ function defaultProfileUrlForPlayer(player) {
   return `https://eloboard.com/${board}/bbs/board.php?bo_table=bj_list&wr_id=${wrId}`;
 }
 
+function buildEloboardEntityId(player) {
+  const gender = normalizeGender(player && player.gender);
+  const wrId = Number(player && player.wr_id);
+  if (!gender || !Number.isFinite(wrId) || wrId <= 0) return "";
+  const profileUrl = defaultProfileUrlForPlayer(player || {});
+  const profileKind = getEloboardProfileKind(profileUrl);
+  if (profileKind === "mix") {
+    return `eloboard:${gender}:mix:${wrId}`;
+  }
+  return `eloboard:${gender}:${wrId}`;
+}
+
+function buildEloboardCompositeKey(player) {
+  const entityId = buildEloboardEntityId(player);
+  if (entityId) return entityId;
+  const gender = normalizeGender(player && player.gender);
+  const wrId = Number(player && player.wr_id);
+  return gender && Number.isFinite(wrId) && wrId > 0 ? `eloboard:${gender}:${wrId}` : "";
+}
+
 module.exports = {
   SPECIAL_PROFILE_URL_BY_NAME,
+  buildEloboardCompositeKey,
+  buildEloboardEntityId,
+  getEloboardProfileKind,
+  normalizeGender,
   normalizeProfileUrl,
   resolveSpecialProfileUrlByName,
   isMixBoardProfileUrl,

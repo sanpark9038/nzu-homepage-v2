@@ -1,5 +1,10 @@
 const fs = require("fs");
 const path = require("path");
+const {
+  buildEloboardEntityId,
+  defaultProfileUrlForPlayer,
+  getEloboardProfileKind,
+} = require("./lib/eloboard-special-cases");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 
@@ -68,13 +73,16 @@ function main() {
     const gender = String(p.gender || "").trim();
     const tier = String(p.tier || "미정").trim() || "미정";
     const race = normalizeRace(p.race);
+    const profileUrl = defaultProfileUrlForPlayer({ wr_id: wrId, gender, name });
     return {
       team_name: teamName,
       team_code: teamCode,
-      entity_id: `eloboard:${gender}:${wrId}`,
+      entity_id: buildEloboardEntityId({ wr_id: wrId, gender, name, profile_url: profileUrl }),
       wr_id: wrId,
       gender,
       name,
+      profile_url: profileUrl,
+      profile_kind: getEloboardProfileKind(profileUrl),
       tier,
       race,
       source: path.basename(inPath),

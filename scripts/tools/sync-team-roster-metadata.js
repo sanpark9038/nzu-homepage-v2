@@ -3,7 +3,12 @@ const path = require("path");
 const axios = require("axios");
 const cheerio = require("cheerio");
 const iconv = require("iconv-lite");
-const { normalizeProfileUrl } = require("./lib/eloboard-special-cases");
+const {
+  buildEloboardCompositeKey,
+  buildEloboardEntityId,
+  getEloboardProfileKind,
+  normalizeProfileUrl,
+} = require("./lib/eloboard-special-cases");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
@@ -35,6 +40,31 @@ function readManualOverrides() {
   }
 }
 
+function normalizeName(value) {
+  return String(value || "").trim();
+}
+
+function resolveOverrideEntityId(overrideRow, observedByEntity, beforeByEntity) {
+  const explicitEntityId = String(overrideRow && overrideRow.entity_id ? overrideRow.entity_id : "").trim();
+  if (explicitEntityId) return explicitEntityId;
+
+  const targetName = normalizeName(overrideRow && overrideRow.name ? overrideRow.name : "");
+  if (!targetName) return "";
+
+  const matches = [];
+  for (const [entityId, observed] of observedByEntity.entries()) {
+    if (normalizeName(observed && observed.name) === targetName) matches.push(entityId);
+  }
+  for (const [entityId, prev] of beforeByEntity.entries()) {
+    const prevName = normalizeName(prev && prev.player ? prev.player.name : "");
+    const prevDisplayName = normalizeName(prev && prev.player ? prev.player.display_name : "");
+    if (prevName === targetName || prevDisplayName === targetName) matches.push(entityId);
+  }
+
+  const unique = [...new Set(matches)];
+  return unique.length === 1 ? unique[0] : "";
+}
+
 function loadTeamConfig() {
   if (!fs.existsSync(PROJECTS_DIR)) return [];
   const dirs = fs
@@ -49,6 +79,7 @@ function loadTeamConfig() {
     const p = path.join(PROJECTS_DIR, code, `players.${code}.v1.json`);
     if (!fs.existsSync(p)) continue;
     const json = readJson(p);
+    if (json.manual_managed) continue;
     teams.push({ code, univ: String(json.fetch_univ_name || json.team_name || code) });
   }
   return teams;
@@ -150,13 +181,20 @@ function parseRoster(html) {
       tier,
       race,
       profile_url: profileUrl,
-      entity_id: `eloboard:${gender}:${wrId}`,
+      profile_kind: getEloboardProfileKind(profileUrl),
+      entity_id: buildEloboardEntityId({
+        wr_id: wrId,
+        gender,
+        name,
+        profile_url: profileUrl,
+      }),
     });
   });
 
   const byEntity = new Map();
   for (const r of rows) {
-    if (!byEntity.has(r.entity_id)) byEntity.set(r.entity_id, r);
+    const key = buildEloboardCompositeKey(r);
+    if (key && !byEntity.has(key)) byEntity.set(key, r);
   }
   return [...byEntity.values()];
 }
@@ -197,7 +235,11 @@ function ensureFaProject() {
 }
 
 function ensureTags(player, teamCode, teamName, teamEn) {
-  const tags = new Set(Array.isArray(player.meta_tags) ? player.meta_tags : []);
+  const tags = new Set(
+    (Array.isArray(player.meta_tags) ? player.meta_tags : []).filter(
+      (tag) => !/^(team:|team_code:|team_ko:|team_en:|race:|tier:)/.test(String(tag || ""))
+    )
+  );
   tags.add("domain:player");
   tags.add(`team:${teamCode}`);
   tags.add(`team_code:${teamCode}`);
@@ -209,15 +251,23 @@ function ensureTags(player, teamCode, teamName, teamEn) {
   player.meta_tags = [...tags];
 }
 
-function upsertRosterEntry(teamJson, observed, source) {
+function fallbackValue(primary, secondary, tertiary, emptyValue) {
+  const values = [primary, secondary, tertiary];
+  for (const value of values) {
+    const s = String(value || "").trim();
+    if (s && s !== emptyValue) return s;
+  }
+  return emptyValue;
+}
+
+function upsertRosterEntry(teamJson, observed, source, fallbackPlayer = null) {
   const roster = Array.isArray(teamJson.roster) ? teamJson.roster : [];
   const idx = roster.findIndex((p) => String(p.entity_id) === observed.entity_id);
   const base = idx >= 0 ? roster[idx] : {};
   const observedTier = String(observed.tier || "").trim();
   const observedRace = String(observed.race || "").trim();
-  const nextTier = observedTier && observedTier !== "미정" ? observedTier : String(base.tier || "미정");
-  const nextRace =
-    observedRace && observedRace !== "Unknown" ? observedRace : String(base.race || "Unknown");
+  const nextTier = fallbackValue(observedTier, base.tier, fallbackPlayer && fallbackPlayer.tier, "미정");
+  const nextRace = fallbackValue(observedRace, base.race, fallbackPlayer && fallbackPlayer.race, "Unknown");
   const next = {
     ...base,
     team_name: String(teamJson.team_name || ""),
@@ -226,6 +276,8 @@ function upsertRosterEntry(teamJson, observed, source) {
     wr_id: observed.wr_id,
     gender: observed.gender,
     name: observed.name,
+    profile_url: observed.profile_url || base.profile_url || "",
+    profile_kind: observed.profile_kind || base.profile_kind || "default",
     tier: nextTier,
     race: nextRace,
     source: source || base.source || "roster_sync",
@@ -398,15 +450,18 @@ async function main() {
   const beforeByEntity = new Map();
   for (const d of allDocs) {
     for (const p of d.json.roster || []) {
-      beforeByEntity.set(String(p.entity_id), { player: p, team_code: d.team.code });
+      const key = buildEloboardCompositeKey(p);
+      if (!key) continue;
+      beforeByEntity.set(key, { player: p, team_code: d.team.code });
     }
   }
 
   const manualOverrides = readManualOverrides();
   const appliedManualOverrides = [];
   for (const ov of manualOverrides) {
-    if (!ov || !ov.entity_id) continue;
-    const entityId = String(ov.entity_id);
+    if (!ov) continue;
+    const entityId = resolveOverrideEntityId(ov, observedByEntity, beforeByEntity);
+    if (!entityId) continue;
     const prev = beforeByEntity.get(entityId);
     const current = observedByEntity.get(entityId);
     const base = current || (prev ? { ...prev.player, team_code: prev.team_code } : null);
@@ -474,7 +529,7 @@ async function main() {
       });
     }
 
-    upsertRosterEntry(targetDoc.json, observed, "roster_sync");
+    upsertRosterEntry(targetDoc.json, observed, "roster_sync", prev && prev.player ? prev.player : null);
   }
 
   const faFallbackAllowed = Boolean(faSourceUniv);
@@ -544,7 +599,17 @@ async function main() {
   console.log(JSON.stringify({ ok: true, report_path: path.relative(ROOT, reportPath).replace(/\\/g, "/"), ...report }, null, 2));
 }
 
-main().catch((err) => {
-  console.error(err instanceof Error ? err.message : String(err));
-  process.exit(1);
-});
+module.exports = {
+  effectiveRace,
+  effectiveTier,
+  fallbackValue,
+  tierKey,
+  upsertRosterEntry,
+};
+
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  });
+}

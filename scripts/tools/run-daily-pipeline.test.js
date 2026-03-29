@@ -23,15 +23,15 @@ function runTest(name, fn) {
   }
 }
 
-runTest("latestPreviousSnapshotPath excludes the current calendar date", () => {
+runTest("latestPreviousSnapshotPath keeps same-day final snapshot when current tag is chunked", () => {
   const reportsDir = makeTempReportsDir();
-  fs.writeFileSync(path.join(reportsDir, "daily_pipeline_snapshot_2026-03-25.json"), "{}");
   fs.writeFileSync(path.join(reportsDir, "daily_pipeline_snapshot_2026-03-26.json"), "{}");
+  fs.writeFileSync(path.join(reportsDir, "daily_pipeline_snapshot_2026-03-25.json"), "{}");
   fs.writeFileSync(path.join(reportsDir, "daily_pipeline_snapshot_2026-03-27.json"), "{}");
 
   const actual = latestPreviousSnapshotPath("2026-03-27_080957-chunk1", reportsDir);
 
-  assert.equal(actual, path.join(reportsDir, "daily_pipeline_snapshot_2026-03-26.json"));
+  assert.equal(actual, path.join(reportsDir, "daily_pipeline_snapshot_2026-03-27.json"));
 });
 
 runTest("latestPreviousSnapshotPath returns null when only same-day snapshot exists", () => {

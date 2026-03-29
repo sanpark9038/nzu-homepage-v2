@@ -6,8 +6,8 @@ This directory is the reusable player identity metadata DB for cross-project use
 
 - `players.master.v1.json`
   - Canonical player identity records.
-  - Primary key: `entity_id` (`eloboard:{gender}:{wr_id}`).
-  - Uniqueness model: `wr_id + gender`.
+  - Primary key: `entity_id` (`eloboard:{gender}:{wr_id}` or `eloboard:{gender}:mix:{wr_id}`).
+  - Uniqueness model: `wr_id + gender + profile_kind`.
 
 - `projects/nzu/players.nzu.v1.json`
   - Project-specific roster view for NZU.

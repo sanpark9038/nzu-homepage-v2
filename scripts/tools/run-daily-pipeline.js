@@ -66,6 +66,7 @@ function loadTeamConfig() {
     const fullPath = path.join(ROOT, rosterPath);
     if (!fs.existsSync(fullPath)) continue;
     const json = readJson(fullPath);
+    if (json.manual_managed) continue;
     teams.push({
       code,
       univ: String(json.fetch_univ_name || json.team_name || code),
@@ -626,7 +627,7 @@ function main() {
   const teamTableReport = teamTableEnabled
     ? generateTeamTableReports(teams)
     : { ok: false, skipped: true, out_dir: path.relative(ROOT, TEAM_TABLE_OUT_DIR).replace(/\\/g, "/") };
-  const priorPath = latestPreviousSnapshotPath(dateTag, REPORTS_DIR);
+  const priorPath = latestPreviousSnapshotPath(to, REPORTS_DIR);
   const prior = priorPath ? readJson(priorPath) : null;
   const comparablePrior = isComparablePriorSnapshot(prior, from, to);
   const priorMap = new Map(

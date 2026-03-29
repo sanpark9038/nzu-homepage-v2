@@ -1,5 +1,10 @@
 const fs = require("fs");
 const path = require("path");
+const {
+  buildEloboardEntityId,
+  defaultProfileUrlForPlayer,
+  getEloboardProfileKind,
+} = require("./lib/eloboard-special-cases");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const IN_PATH = path.join(ROOT, "tmp", "와플대_roster_record_metadata.json");
@@ -37,13 +42,16 @@ function main() {
     const gender = String(p.gender || "").trim();
     const tier = String(p.tier || "미정").trim() || "미정";
     const race = normalizeRace(p.race);
+    const profileUrl = defaultProfileUrlForPlayer({ wr_id: wrId, gender, name });
     return {
       team_name: "와플대",
       team_code: "wfu",
-      entity_id: `eloboard:${gender}:${wrId}`,
+      entity_id: buildEloboardEntityId({ wr_id: wrId, gender, name, profile_url: profileUrl }),
       wr_id: wrId,
       gender,
       name,
+      profile_url: profileUrl,
+      profile_kind: getEloboardProfileKind(profileUrl),
       tier,
       race,
       source: "wfu_roster_record_metadata",

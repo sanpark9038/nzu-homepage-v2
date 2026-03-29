@@ -1,6 +1,11 @@
 const fs = require("fs");
 const path = require("path");
-const { defaultProfileUrlForPlayer } = require("./lib/eloboard-special-cases");
+const {
+  buildEloboardCompositeKey,
+  buildEloboardEntityId,
+  defaultProfileUrlForPlayer,
+  getEloboardProfileKind,
+} = require("./lib/eloboard-special-cases");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const SOURCE_PATH = path.join(ROOT, "scripts", "player_metadata.json");
@@ -101,7 +106,7 @@ function main() {
       invalidRows.push({ index: i, row: r });
       continue;
     }
-    const key = compositeKey(r.wr_id, String(r.gender));
+    const key = buildEloboardCompositeKey(r);
     if (!nameSetByComposite.has(key)) nameSetByComposite.set(key, new Set());
     nameSetByComposite.get(key).add(String(r.name));
 
@@ -120,26 +125,28 @@ function main() {
   }
 
   const nzuKeySet = new Set(
-    NZU_ROSTER_SEED.players.map((p) => compositeKey(p.wr_id, p.gender))
+    NZU_ROSTER_SEED.players.map((p) => buildEloboardCompositeKey(p))
   );
 
   const masterPlayers = [...byComposite.values()]
     .map((r) => {
-      const key = compositeKey(r.wr_id, r.gender);
+      const key = buildEloboardCompositeKey(r);
+      const profile = profileUrl(r.gender, r.wr_id, r.name);
       const aliases = [...(nameSetByComposite.get(key) || new Set())].filter((n) => n !== r.name);
       const isNzu = nzuKeySet.has(key);
       return {
-        entity_id: `eloboard:${r.gender}:${r.wr_id}`,
+        entity_id: buildEloboardEntityId({ ...r, profile_url: profile }),
         provider: "eloboard",
         provider_player_id: String(r.wr_id),
         wr_id: r.wr_id,
         gender: r.gender,
+        profile_kind: getEloboardProfileKind(profile),
         names: {
           display: r.name,
           aliases,
         },
         profiles: {
-          eloboard: profileUrl(r.gender, r.wr_id, r.name),
+          eloboard: profile,
         },
         source: {
           kind: "manual_or_scraped_mapping",
@@ -168,13 +175,13 @@ function main() {
     generated_at: now,
     description: "Reusable master metadata DB for Eloboard player identity mapping.",
     primary_key: "entity_id",
-    unique_keys: ["entity_id", "wr_id+gender"],
+    unique_keys: ["entity_id", "wr_id+gender+profile_kind"],
     players: masterPlayers,
   };
 
-  const masterIndex = new Map(masterPlayers.map((p) => [compositeKey(p.wr_id, p.gender), p]));
+  const masterIndex = new Map(masterPlayers.map((p) => [buildEloboardCompositeKey(p), p]));
   const nzuRoster = NZU_ROSTER_SEED.players.map((p) => {
-    const key = compositeKey(p.wr_id, p.gender);
+    const key = buildEloboardCompositeKey(p);
     const hit = masterIndex.get(key);
     return {
       team_name: NZU_ROSTER_SEED.team_name,
