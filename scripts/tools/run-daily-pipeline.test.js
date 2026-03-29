@@ -8,6 +8,7 @@ const {
   latestPreviousSnapshotPath,
   parseDateTag,
 } = require("./lib/daily-pipeline-snapshot");
+const { buildAlerts, movedInPlayersByTeam } = require("./run-daily-pipeline");
 
 function makeTempReportsDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "nzu-daily-pipeline-"));
@@ -59,4 +60,81 @@ runTest("parseDateTag returns null for non-YYYY-MM-DD text", () => {
   assert.equal(parseDateTag("2026-03-27"), Date.parse("2026-03-27T00:00:00Z"));
   assert.equal(parseDateTag("2026-03-27_080957-chunk1"), null);
   assert.equal(parseDateTag(""), null);
+});
+
+runTest("movedInPlayersByTeam groups roster sync moves by destination team", () => {
+  const actual = movedInPlayersByTeam({
+    summary: {
+      moved: [
+        { name: "김무아", from: "fa", to: "jsa" },
+        { name: "엄보리", from: "fa", to: "jsa" },
+        { name: "또해영", from: "ku", to: "fa" },
+      ],
+    },
+  });
+
+  assert.deepEqual([...actual.get("jsa")].sort(), ["김무아", "엄보리"]);
+  assert.deepEqual([...actual.get("fa")], ["또해영"]);
+});
+
+runTest("buildAlerts ignores moved-in zero-record players for the current run", () => {
+  const actual = buildAlerts(
+    [
+      {
+        team: "연합팀",
+        team_code: "fa",
+        zero_players: "또해영, 욱하는형, 기존선수",
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: -10,
+        delta_players: -1,
+      },
+      {
+        team: "JSA",
+        team_code: "jsa",
+        zero_players: "김무아, 엄보리",
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: 0,
+        delta_players: 2,
+      },
+    ],
+    {
+      rules: {
+        zero_record_players_severity: "high",
+        zero_record_players_allowlist: {},
+        negative_delta_matches_severity: "critical",
+        roster_size_changed_severity: "medium",
+        roster_size_changed_team_allowlist: ["fa"],
+        no_new_matches_enabled: false,
+      },
+    },
+    {
+      summary: {
+        moved: [
+          { name: "또해영", from: "ku", to: "fa" },
+          { name: "욱하는형", from: "ncs", to: "fa" },
+          { name: "김무아", from: "fa", to: "jsa" },
+          { name: "엄보리", from: "fa", to: "jsa" },
+        ],
+      },
+    }
+  );
+
+  assert.deepEqual(actual, [
+    {
+      severity: "high",
+      team: "연합팀",
+      team_code: "fa",
+      rule: "zero_record_players",
+      message: "zero_record_players=1 (기존선수)",
+    },
+    {
+      severity: "medium",
+      team: "JSA",
+      team_code: "jsa",
+      rule: "roster_size_changed",
+      message: "delta_players=2",
+    },
+  ]);
 });

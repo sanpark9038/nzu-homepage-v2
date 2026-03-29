@@ -374,6 +374,21 @@ function applyDisplayAliasesForTeams(teams) {
   };
 }
 
+function movedInPlayersByTeam(rosterSyncReport) {
+  const map = new Map();
+  const moved = Array.isArray(rosterSyncReport && rosterSyncReport.summary && rosterSyncReport.summary.moved)
+    ? rosterSyncReport.summary.moved
+    : [];
+  for (const row of moved) {
+    const teamCode = String(row && row.to ? row.to : "").trim();
+    const playerName = String(row && row.name ? row.name : "").trim();
+    if (!teamCode || !playerName) continue;
+    if (!map.has(teamCode)) map.set(teamCode, new Set());
+    map.get(teamCode).add(playerName);
+  }
+  return map;
+}
+
 function loadTeamRoster(team) {
   const p = path.join(ROOT, team.rosterPath);
   const doc = readJson(p);
@@ -465,12 +480,13 @@ function recoverTeamAnomalies(team, report, from, to, concurrency) {
   };
 }
 
-function buildAlerts(rowsWithDelta, cfg) {
+function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null) {
   const rules = cfg.rules || {};
   const allowlist =
     rules && rules.zero_record_players_allowlist && typeof rules.zero_record_players_allowlist === "object"
       ? rules.zero_record_players_allowlist
       : {};
+  const movedInByTeam = movedInPlayersByTeam(rosterSyncReport);
   const rosterSizeChangedAllowlist = new Set(
     Array.isArray(rules && rules.roster_size_changed_team_allowlist)
       ? rules.roster_size_changed_team_allowlist.map((v) => String(v))
@@ -499,7 +515,8 @@ function buildAlerts(rowsWithDelta, cfg) {
     const allowSet = new Set(
       Array.isArray(allowlist[row.team_code]) ? allowlist[row.team_code].map((v) => String(v)) : []
     );
-    const actionableZeroPlayers = zeroPlayers.filter((name) => !allowSet.has(name));
+    const movedInSet = movedInByTeam.get(String(row.team_code || "")) || new Set();
+    const actionableZeroPlayers = zeroPlayers.filter((name) => !allowSet.has(name) && !movedInSet.has(name));
     if (actionableZeroPlayers.length > 0) {
       alerts.push({
         severity: rules.zero_record_players_severity || "high",
@@ -708,7 +725,7 @@ function main() {
   };
 
   const alertConfig = readAlertConfig();
-  const alerts = buildAlerts(rowsWithDelta, alertConfig);
+  const alerts = buildAlerts(rowsWithDelta, alertConfig, rosterSyncReport);
   const alertSummary = {
     generated_at: new Date().toISOString(),
     date_tag: dateTag,
@@ -795,3 +812,8 @@ function main() {
 if (require.main === module) {
   main();
 }
+
+module.exports = {
+  buildAlerts,
+  movedInPlayersByTeam,
+};
