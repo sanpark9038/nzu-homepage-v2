@@ -13,6 +13,7 @@ const {
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
+const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 const MANUAL_REFRESH_REPORT_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.json");
 const TMP_DIR = path.join(ROOT, "tmp");
@@ -57,9 +58,44 @@ function toPlayerMap(players) {
   return new Map(players.map((player) => [buildPlayerKey(player), player]));
 }
 
+function normalizeName(value) {
+  return String(value || "").trim();
+}
+
+function normalizeEntityId(value) {
+  return String(value || "").trim();
+}
+
+function loadManualOverrides() {
+  const doc = readJsonIfExists(MANUAL_OVERRIDES_PATH);
+  return Array.isArray(doc && doc.overrides) ? doc.overrides : [];
+}
+
+function buildManualOverrideLookup() {
+  const byEntityId = new Map();
+  const byName = new Map();
+  for (const row of loadManualOverrides()) {
+    const entityId = normalizeEntityId(row && row.entity_id);
+    const name = normalizeName(row && row.name);
+    if (entityId) byEntityId.set(entityId, row);
+    if (name && !byName.has(name)) byName.set(name, row);
+  }
+  return { byEntityId, byName };
+}
+
+function resolveManualOverrideForPlayer(player, lookup) {
+  if (!player || !lookup) return null;
+  const entityId = normalizeEntityId(player.entity_id);
+  if (entityId && lookup.byEntityId.has(entityId)) return lookup.byEntityId.get(entityId);
+  const name = normalizeName(player.name || player.display_name);
+  if (name && lookup.byName.has(name)) return lookup.byName.get(name);
+  return null;
+}
+
 function comparePlayerChanges(beforePlayers, afterPlayers) {
   const beforeMap = toPlayerMap(beforePlayers);
   const afterMap = toPlayerMap(afterPlayers);
+  const manualOverrideLookup = buildManualOverrideLookup();
   const tierChanges = [];
   const affiliationChanges = [];
   const joiners = [];
@@ -78,6 +114,11 @@ function comparePlayerChanges(beforePlayers, afterPlayers) {
     const prevTier = String(prev.tier || "").trim();
     const currentTier = String(current.tier || "").trim();
     if (prevTier && currentTier && prevTier !== currentTier) {
+      const override = resolveManualOverrideForPlayer(current, manualOverrideLookup);
+      const overrideTier = normalizeName(override && override.tier);
+      if (overrideTier && overrideTier === currentTier) {
+        continue;
+      }
       tierChanges.push({
         player_name: current.display_name || current.name,
         team_name: normalizeTeamName(current.team_name),
