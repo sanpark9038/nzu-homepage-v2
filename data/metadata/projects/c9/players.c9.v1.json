@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T15:30:28.993Z",
+  "generated_at": "2026-03-29T06:59:31.105Z",
   "project": "c9",
   "team_name": "씨나인",
   "team_code": "c9",
@@ -9,42 +9,8 @@
     "씨나인",
     "C9"
   ],
-  "roster_count": 24,
+  "roster_count": 23,
   "roster": [
-    {
-      "team_name": "씨나인",
-      "team_code": "c9",
-      "entity_id": "eloboard:male:15",
-      "wr_id": 15,
-      "gender": "male",
-      "name": "김민철",
-      "tier": "갓",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:c9",
-        "team:c9",
-        "team_code:c9",
-        "team_ko:씨나인",
-        "team_alias:씨나인",
-        "team_alias:c9",
-        "gender:male",
-        "race:zerg",
-        "tier:god",
-        "team_en:c9"
-      ],
-      "missing_in_master": false,
-      "display_name": "김민철",
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "god",
-      "last_checked_at": "2026-03-22T14:14:51.038Z",
-      "last_match_at": "2026-03-11T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.737Z"
-    },
     {
       "team_name": "씨나인",
       "team_code": "c9",
@@ -73,11 +39,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "god",
-      "last_checked_at": "2026-03-22T14:15:07.147Z",
-      "last_match_at": "2026-03-12T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:27:13.687Z",
+      "last_match_at": "2026-03-25T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.740Z"
+      "last_changed_at": "2026-03-25T01:55:40.149Z"
     },
     {
       "team_name": "씨나인",
@@ -107,11 +73,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "god",
-      "last_checked_at": "2026-03-22T14:15:20.506Z",
+      "last_checked_at": "2026-03-25T01:27:24.960Z",
       "last_match_at": "2026-03-22T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.743Z"
+      "last_changed_at": "2026-03-25T01:55:40.151Z"
     },
     {
       "team_name": "씨나인",
@@ -141,11 +107,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "king",
-      "last_checked_at": "2026-03-22T14:15:37.757Z",
-      "last_match_at": "2026-03-15T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:27:40.445Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.745Z"
+      "last_changed_at": "2026-03-25T01:55:40.152Z"
     },
     {
       "team_name": "씨나인",
@@ -175,11 +141,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "king",
-      "last_checked_at": "2026-03-22T14:15:50.844Z",
-      "last_match_at": "2026-03-15T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:27:53.167Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.746Z"
+      "last_changed_at": "2026-03-25T01:55:40.153Z"
     },
     {
       "team_name": "씨나인",
@@ -209,11 +175,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "last_checked_at": "2026-03-22T14:16:02.199Z",
+      "last_checked_at": "2026-03-22T21:15:19.568Z",
       "last_match_at": "2026-02-16T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:28:24.748Z"
+      "last_changed_at": "2026-03-22T21:53:36.885Z"
     },
     {
       "team_name": "씨나인",
@@ -243,11 +209,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "last_checked_at": "2026-03-22T14:16:13.252Z",
+      "last_checked_at": "2026-03-22T21:15:31.341Z",
       "last_match_at": "2026-03-05T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:28:24.749Z"
+      "last_changed_at": "2026-03-22T21:53:36.886Z"
     },
     {
       "team_name": "씨나인",
@@ -277,11 +243,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "spade",
-      "last_checked_at": "2026-03-22T14:16:22.796Z",
+      "last_checked_at": "2026-03-22T21:15:41.286Z",
       "last_match_at": "2026-02-15T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:28:24.749Z"
+      "last_changed_at": "2026-03-22T21:53:36.887Z"
     },
     {
       "team_name": "씨나인",
@@ -296,26 +262,28 @@
       "meta_tags": [
         "domain:player",
         "project:c9",
-        "team:c9",
-        "team_code:c9",
-        "team_ko:씨나인",
         "team_alias:씨나인",
         "team_alias:c9",
         "gender:female",
+        "team:c9",
+        "team_code:c9",
+        "team_ko:씨나인",
+        "team_en:c9",
         "race:zerg",
-        "tier:2",
-        "team_en:c9"
+        "tier:2"
       ],
       "missing_in_master": false,
       "display_name": "나무늘봉순",
       "role_title": "",
       "role_priority": null,
       "tier_key": "2",
-      "last_checked_at": "2026-03-22T14:16:30.117Z",
+      "last_checked_at": "2026-03-25T01:28:00.173Z",
       "last_match_at": "2026-03-21T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.752Z"
+      "last_changed_at": "2026-03-25T01:55:40.155Z",
+      "profile_url": "",
+      "profile_kind": "default"
     },
     {
       "team_name": "씨나인",
@@ -342,11 +310,11 @@
       "role_priority": null,
       "tier_key": "2",
       "display_name": "빵훈",
-      "last_checked_at": "2026-03-22T14:16:33.356Z",
+      "last_checked_at": "2026-03-22T21:15:52.055Z",
       "last_match_at": "2025-08-01T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T14:28:24.753Z"
+      "last_changed_at": "2026-03-22T21:53:36.891Z"
     },
     {
       "team_name": "씨나인",
@@ -376,11 +344,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "3",
-      "last_checked_at": "2026-03-22T14:16:40.253Z",
+      "last_checked_at": "2026-03-25T01:28:07.108Z",
       "last_match_at": "2026-03-21T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.753Z"
+      "last_changed_at": "2026-03-25T01:55:40.156Z"
     },
     {
       "team_name": "씨나인",
@@ -389,7 +357,7 @@
       "wr_id": 347,
       "gender": "female",
       "name": "요닝",
-      "tier": "4",
+      "tier": "3",
       "race": "Zerg",
       "source": "roster_sync",
       "meta_tags": [
@@ -403,18 +371,19 @@
         "gender:female",
         "race:zerg",
         "tier:4",
-        "team_en:c9"
+        "team_en:c9",
+        "tier:3"
       ],
       "missing_in_master": false,
       "display_name": "요닝",
       "role_title": "",
       "role_priority": null,
-      "tier_key": "4",
-      "last_checked_at": "2026-03-22T14:16:47.510Z",
+      "tier_key": "3",
+      "last_checked_at": "2026-03-25T01:28:14.830Z",
       "last_match_at": "2026-03-17T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.756Z"
+      "last_changed_at": "2026-03-25T01:55:40.158Z"
     },
     {
       "team_name": "씨나인",
@@ -444,11 +413,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "4",
-      "last_checked_at": "2026-03-22T14:16:55.538Z",
+      "last_checked_at": "2026-03-25T01:28:22.000Z",
       "last_match_at": "2026-03-11T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.759Z"
+      "last_changed_at": "2026-03-25T01:55:40.160Z"
     },
     {
       "team_name": "씨나인",
@@ -478,11 +447,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "4",
-      "last_checked_at": "2026-03-22T14:17:02.412Z",
+      "last_checked_at": "2026-03-25T01:28:29.056Z",
       "last_match_at": "2026-03-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.762Z"
+      "last_changed_at": "2026-03-25T01:55:40.162Z"
     },
     {
       "team_name": "씨나인",
@@ -512,11 +481,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "last_checked_at": "2026-03-22T14:17:08.436Z",
+      "last_checked_at": "2026-03-25T01:28:34.994Z",
       "last_match_at": "2026-03-21T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.764Z"
+      "last_changed_at": "2026-03-25T01:55:40.164Z"
     },
     {
       "team_name": "씨나인",
@@ -546,11 +515,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "5",
-      "last_checked_at": "2026-03-22T14:17:15.535Z",
+      "last_checked_at": "2026-03-25T01:28:41.715Z",
       "last_match_at": "2026-03-17T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.765Z"
+      "last_changed_at": "2026-03-25T01:55:40.164Z"
     },
     {
       "team_name": "씨나인",
@@ -580,11 +549,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "last_checked_at": "2026-03-22T14:17:22.767Z",
+      "last_checked_at": "2026-03-25T01:28:47.905Z",
       "last_match_at": "2026-03-17T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.768Z"
+      "last_changed_at": "2026-03-25T01:55:40.166Z"
     },
     {
       "team_name": "씨나인",
@@ -614,11 +583,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "last_checked_at": "2026-03-22T14:17:29.910Z",
+      "last_checked_at": "2026-03-25T01:28:53.920Z",
       "last_match_at": "2026-03-21T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.771Z"
+      "last_changed_at": "2026-03-25T01:55:40.168Z"
     },
     {
       "team_name": "씨나인",
@@ -633,11 +602,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:c9",
         "team_code:c9",
         "team_ko:씨나인",
         "team_en:c9",
-        "gender:female",
         "race:zerg",
         "tier:6"
       ],
@@ -645,11 +614,48 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "히댕",
-      "last_checked_at": "2026-03-22T14:17:36.734Z",
-      "last_match_at": "2026-03-14T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:29:00.226Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.773Z"
+      "last_changed_at": "2026-03-25T01:55:40.170Z",
+      "profile_url": "",
+      "profile_kind": "default"
+    },
+    {
+      "team_name": "씨나인",
+      "team_code": "c9",
+      "entity_id": "eloboard:female:973",
+      "wr_id": 973,
+      "gender": "female",
+      "name": "이지다",
+      "tier": "7",
+      "race": "Zerg",
+      "source": "roster_sync",
+      "meta_tags": [
+        "domain:player",
+        "project:c9",
+        "team:c9",
+        "team_code:c9",
+        "team_ko:씨나인",
+        "team_alias:씨나인",
+        "team_alias:c9",
+        "gender:female",
+        "race:zerg",
+        "tier:8",
+        "team_en:c9",
+        "tier:7"
+      ],
+      "missing_in_master": false,
+      "display_name": "이지다",
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "7",
+      "last_checked_at": "2026-03-25T01:29:06.183Z",
+      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-03-25T01:55:40.171Z"
     },
     {
       "team_name": "씨나인",
@@ -679,11 +685,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "7",
-      "last_checked_at": "2026-03-22T14:17:43.454Z",
-      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:29:13.708Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.777Z"
+      "last_changed_at": "2026-03-25T01:55:40.173Z"
     },
     {
       "team_name": "씨나인",
@@ -713,45 +719,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "8",
-      "last_checked_at": "2026-03-22T14:17:48.107Z",
-      "last_match_at": "2026-03-20T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:29:18.390Z",
+      "last_match_at": "2026-03-25T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.778Z"
-    },
-    {
-      "team_name": "씨나인",
-      "team_code": "c9",
-      "entity_id": "eloboard:female:973",
-      "wr_id": 973,
-      "gender": "female",
-      "name": "이지다",
-      "tier": "8",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:c9",
-        "team:c9",
-        "team_code:c9",
-        "team_ko:씨나인",
-        "team_alias:씨나인",
-        "team_alias:c9",
-        "gender:female",
-        "race:zerg",
-        "tier:8",
-        "team_en:c9"
-      ],
-      "missing_in_master": false,
-      "display_name": "이지다",
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "8",
-      "last_checked_at": "2026-03-22T14:17:53.650Z",
-      "last_match_at": "2026-03-21T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:28:24.780Z"
+      "last_changed_at": "2026-03-25T01:55:40.174Z"
     },
     {
       "team_name": "씨나인",
@@ -782,11 +754,11 @@
       "role_title": "이사장",
       "role_priority": 1,
       "tier_key": "joker",
-      "last_checked_at": "2026-03-22T14:18:03.063Z",
+      "last_checked_at": "2026-03-22T21:17:22.140Z",
       "last_match_at": "2026-02-11T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:28:24.781Z"
+      "last_changed_at": "2026-03-22T21:53:36.940Z"
     },
     {
       "team_name": "씨나인",
@@ -816,11 +788,11 @@
       "role_title": "총장",
       "role_priority": 2,
       "tier_key": "jack",
-      "last_checked_at": "2026-03-22T14:18:17.939Z",
+      "last_checked_at": "2026-03-22T21:17:35.818Z",
       "last_match_at": "2026-03-06T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:28:24.782Z"
+      "last_changed_at": "2026-03-22T21:53:36.942Z"
     }
   ],
   "source_file": "tmp/씨나인_roster_record_metadata.json",

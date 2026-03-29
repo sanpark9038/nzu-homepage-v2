@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T15:30:29.392Z",
+  "generated_at": "2026-03-29T06:59:31.109Z",
   "project": "yb",
   "team_name": "YB",
   "team_code": "yb",
@@ -37,11 +37,11 @@
       "role_priority": null,
       "tier_key": "king",
       "display_name": "유승곤",
-      "last_checked_at": "2026-03-22T14:18:33.820Z",
+      "last_checked_at": "2026-03-22T21:51:46.535Z",
       "last_match_at": "2026-02-23T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:24:23.413Z"
+      "last_changed_at": "2026-03-22T21:53:37.564Z"
     },
     {
       "team_name": "YB",
@@ -71,11 +71,11 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "오메킴",
-      "last_checked_at": "2026-03-22T14:18:44.265Z",
+      "last_checked_at": "2026-03-22T21:51:56.632Z",
       "last_match_at": "2025-12-22T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T14:24:23.413Z"
+      "last_changed_at": "2026-03-22T21:53:37.565Z"
     },
     {
       "team_name": "YB",
@@ -104,11 +104,11 @@
       "role_priority": null,
       "tier_key": "joker",
       "display_name": "전제민",
-      "last_checked_at": "2026-03-22T14:18:54.878Z",
+      "last_checked_at": "2026-03-22T21:52:07.110Z",
       "last_match_at": "2026-02-15T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:24:23.413Z"
+      "last_changed_at": "2026-03-22T21:53:37.565Z"
     },
     {
       "team_name": "YB",
@@ -138,11 +138,11 @@
       "role_priority": null,
       "tier_key": "spade",
       "display_name": "탱크",
-      "last_checked_at": "2026-03-22T14:19:04.142Z",
+      "last_checked_at": "2026-03-22T21:52:16.295Z",
       "last_match_at": "2026-02-15T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:24:23.413Z"
+      "last_changed_at": "2026-03-22T21:53:37.565Z"
     },
     {
       "team_name": "YB",
@@ -169,11 +169,11 @@
       "role_priority": null,
       "tier_key": "2",
       "display_name": "저라뎃",
-      "last_checked_at": "2026-03-22T14:19:07.440Z",
+      "last_checked_at": "2026-03-22T21:52:19.474Z",
       "last_match_at": "2025-09-26T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T14:24:23.414Z"
+      "last_changed_at": "2026-03-22T21:53:37.565Z"
     },
     {
       "team_name": "YB",
@@ -202,11 +202,11 @@
       "role_priority": null,
       "tier_key": "4",
       "display_name": "우리밍",
-      "last_checked_at": "2026-03-22T14:19:14.465Z",
+      "last_checked_at": "2026-03-22T21:52:26.233Z",
       "last_match_at": "2026-02-22T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:24:23.415Z"
+      "last_changed_at": "2026-03-22T21:53:37.566Z"
     },
     {
       "team_name": "YB",
@@ -235,11 +235,11 @@
       "role_priority": null,
       "tier_key": "4",
       "display_name": "임밍지",
-      "last_checked_at": "2026-03-22T14:19:20.850Z",
+      "last_checked_at": "2026-03-22T21:52:32.615Z",
       "last_match_at": "2026-02-22T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:24:23.417Z"
+      "last_changed_at": "2026-03-22T21:53:37.568Z"
     },
     {
       "team_name": "YB",
@@ -268,11 +268,11 @@
       "role_priority": null,
       "tier_key": "4",
       "display_name": "태영",
-      "last_checked_at": "2026-03-22T14:19:28.479Z",
+      "last_checked_at": "2026-03-22T21:52:39.512Z",
       "last_match_at": "2026-01-15T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T14:24:23.419Z"
+      "last_changed_at": "2026-03-22T21:53:37.570Z"
     },
     {
       "team_name": "YB",
@@ -301,11 +301,11 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "으냉이",
-      "last_checked_at": "2026-03-22T14:19:35.060Z",
+      "last_checked_at": "2026-03-22T21:52:45.919Z",
       "last_match_at": "2026-02-21T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:24:23.421Z"
+      "last_changed_at": "2026-03-22T21:53:37.572Z"
     },
     {
       "team_name": "YB",
@@ -334,11 +334,11 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "하랑",
-      "last_checked_at": "2026-03-22T14:19:42.517Z",
+      "last_checked_at": "2026-03-22T21:52:53.126Z",
       "last_match_at": "2026-01-26T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T14:24:23.423Z"
+      "last_changed_at": "2026-03-22T21:53:37.574Z"
     },
     {
       "team_name": "YB",
@@ -353,11 +353,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:yb",
         "team_code:yb",
         "team_ko:YB",
         "team_en:yb",
-        "gender:female",
         "race:terran",
         "tier:7"
       ],
@@ -365,11 +365,13 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "빵지니",
-      "last_checked_at": "2026-03-22T14:19:48.854Z",
+      "last_checked_at": "2026-03-22T21:52:59.598Z",
       "last_match_at": "2026-01-23T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T14:24:23.425Z"
+      "last_changed_at": "2026-03-22T21:53:37.576Z",
+      "profile_url": "",
+      "profile_kind": "default"
     },
     {
       "team_name": "YB",
@@ -398,11 +400,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "하루묭",
-      "last_checked_at": "2026-03-22T14:19:55.452Z",
+      "last_checked_at": "2026-03-22T21:53:06.807Z",
       "last_match_at": "2026-02-21T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:24:23.428Z"
+      "last_changed_at": "2026-03-22T21:53:37.578Z"
     },
     {
       "team_name": "YB",
@@ -431,11 +433,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "한쪼니",
-      "last_checked_at": "2026-03-22T14:20:02.185Z",
+      "last_checked_at": "2026-03-22T21:53:13.342Z",
       "last_match_at": "2026-02-21T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:24:23.430Z"
+      "last_changed_at": "2026-03-22T21:53:37.580Z"
     },
     {
       "team_name": "YB",
@@ -464,11 +466,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "히요코",
-      "last_checked_at": "2026-03-22T14:20:09.276Z",
+      "last_checked_at": "2026-03-22T21:53:19.615Z",
       "last_match_at": "2026-02-05T00:00:00.000Z",
-      "check_priority": "normal",
-      "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T14:24:23.432Z"
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-25T01:55:40.500Z"
     },
     {
       "team_name": "YB",
@@ -498,11 +500,11 @@
       "role_priority": null,
       "tier_key": "9",
       "display_name": "윤하랑",
-      "last_checked_at": "2026-03-22T14:24:21.868Z",
-      "last_match_at": "2026-03-12T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:55:38.694Z",
+      "last_match_at": "2026-03-23T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T14:24:23.432Z"
+      "last_changed_at": "2026-03-25T01:55:40.500Z"
     },
     {
       "team_name": "YB",
@@ -532,11 +534,11 @@
       "role_priority": 1,
       "tier_key": "jack",
       "display_name": "염보성",
-      "last_checked_at": "2026-03-22T14:20:25.025Z",
+      "last_checked_at": "2026-03-22T21:53:35.165Z",
       "last_match_at": "2025-09-05T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T14:24:23.432Z"
+      "last_changed_at": "2026-03-22T21:53:37.582Z"
     }
   ],
   "source_file": "tmp/yb_roster_record_metadata.json",

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T15:30:29.297Z",
+  "generated_at": "2026-03-29T06:59:31.107Z",
   "project": "nzu-homepage",
   "team_name": "늪지대",
   "team_code": "nzu",
@@ -33,11 +33,11 @@
       "role_priority": null,
       "tier_key": "joker",
       "display_name": "인치호",
-      "last_checked_at": "2026-03-22T15:21:53.211Z",
+      "last_checked_at": "2026-03-22T21:43:16.025Z",
       "last_match_at": "2026-03-06T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.285Z"
+      "last_changed_at": "2026-03-22T21:53:37.370Z"
     },
     {
       "team_name": "늪지대",
@@ -65,11 +65,11 @@
       "role_priority": null,
       "tier_key": "joker",
       "display_name": "전흥식",
-      "last_checked_at": "2026-03-22T15:22:02.414Z",
+      "last_checked_at": "2026-03-22T21:43:27.355Z",
       "last_match_at": "2026-01-21T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.285Z"
+      "last_changed_at": "2026-03-22T21:53:37.371Z"
     },
     {
       "team_name": "늪지대",
@@ -97,11 +97,11 @@
       "role_priority": null,
       "tier_key": "spade",
       "display_name": "김성제",
-      "last_checked_at": "2026-03-22T15:22:11.010Z",
+      "last_checked_at": "2026-03-22T21:43:37.770Z",
       "last_match_at": "2025-10-16T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.285Z"
+      "last_changed_at": "2026-03-22T21:53:37.371Z"
     },
     {
       "team_name": "늪지대",
@@ -129,11 +129,11 @@
       "role_priority": null,
       "tier_key": "spade",
       "display_name": "서기수",
-      "last_checked_at": "2026-03-22T15:22:19.923Z",
+      "last_checked_at": "2026-03-22T21:43:47.634Z",
       "last_match_at": "2026-01-10T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.286Z"
+      "last_changed_at": "2026-03-22T21:53:37.372Z"
     },
     {
       "team_name": "늪지대",
@@ -161,11 +161,11 @@
       "role_priority": null,
       "tier_key": "1",
       "display_name": "애공",
-      "last_checked_at": "2026-03-22T15:22:26.732Z",
+      "last_checked_at": "2026-03-25T01:50:23.897Z",
       "last_match_at": "2026-03-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.286Z"
+      "last_changed_at": "2026-03-25T01:55:40.401Z"
     },
     {
       "team_name": "늪지대",
@@ -193,11 +193,11 @@
       "role_priority": null,
       "tier_key": "4",
       "display_name": "슬아",
-      "last_checked_at": "2026-03-22T15:22:34.036Z",
+      "last_checked_at": "2026-03-22T21:44:00.789Z",
       "last_match_at": "2026-03-09T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.288Z"
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-25T01:55:40.402Z"
     },
     {
       "team_name": "늪지대",
@@ -225,11 +225,11 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "슈슈",
-      "last_checked_at": "2026-03-22T15:22:41.393Z",
+      "last_checked_at": "2026-03-22T21:44:08.337Z",
       "last_match_at": "2026-02-27T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.291Z"
+      "last_changed_at": "2026-03-22T21:53:37.385Z"
     },
     {
       "team_name": "늪지대",
@@ -257,11 +257,11 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "예실",
-      "last_checked_at": "2026-03-22T15:22:45.767Z",
+      "last_checked_at": "2026-03-25T01:50:28.457Z",
       "last_match_at": "2026-03-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.292Z"
+      "last_changed_at": "2026-03-25T01:55:40.406Z"
     },
     {
       "team_name": "늪지대",
@@ -288,11 +288,11 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "쌍디",
-      "last_checked_at": "2026-03-22T15:22:49.063Z",
+      "last_checked_at": "2026-03-22T21:44:15.975Z",
       "last_match_at": "2026-01-22T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.292Z"
+      "last_changed_at": "2026-03-22T21:53:37.388Z"
     },
     {
       "team_name": "늪지대",
@@ -320,11 +320,11 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "연블비",
-      "last_checked_at": "2026-03-22T15:22:54.230Z",
+      "last_checked_at": "2026-03-22T21:44:21.798Z",
       "last_match_at": "2026-03-09T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.292Z"
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-25T01:55:40.407Z"
     },
     {
       "team_name": "늪지대",
@@ -352,11 +352,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "다라츄",
-      "last_checked_at": "2026-03-22T15:22:59.345Z",
+      "last_checked_at": "2026-03-22T21:44:27.142Z",
       "last_match_at": "2026-03-06T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.294Z"
+      "last_changed_at": "2026-03-22T21:53:37.393Z"
     },
     {
       "team_name": "늪지대",
@@ -384,11 +384,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "아링",
-      "last_checked_at": "2026-03-22T15:23:04.008Z",
+      "last_checked_at": "2026-03-25T01:50:32.915Z",
       "last_match_at": "2026-03-17T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.295Z"
+      "last_changed_at": "2026-03-25T01:55:40.410Z"
     },
     {
       "team_name": "늪지대",
@@ -416,11 +416,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "정연이",
-      "last_checked_at": "2026-03-22T15:23:08.611Z",
+      "last_checked_at": "2026-03-25T01:50:37.258Z",
       "last_match_at": "2026-03-19T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.296Z"
+      "last_changed_at": "2026-03-25T01:55:40.411Z"
     },
     {
       "team_name": "늪지대",
@@ -448,11 +448,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "지아송",
-      "last_checked_at": "2026-03-22T15:23:13.163Z",
+      "last_checked_at": "2026-03-25T01:50:41.571Z",
       "last_match_at": "2026-03-20T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.297Z"
+      "last_changed_at": "2026-03-25T01:55:40.412Z"
     }
   ]
 }

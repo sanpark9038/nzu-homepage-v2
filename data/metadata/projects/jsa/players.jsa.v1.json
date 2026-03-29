@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T15:30:29.187Z",
+  "generated_at": "2026-03-29T06:59:31.106Z",
   "project": "jsa",
   "team_name": "JSA",
   "team_code": "jsa",
@@ -33,11 +33,11 @@
       "role_priority": null,
       "tier_key": "god",
       "display_name": "임홍규",
-      "last_checked_at": "2026-03-22T15:10:30.643Z",
-      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:43:47.523Z",
+      "last_match_at": "2026-03-25T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.166Z"
+      "last_changed_at": "2026-03-25T01:55:40.308Z"
     },
     {
       "team_name": "JSA",
@@ -65,11 +65,11 @@
       "role_priority": null,
       "tier_key": "god",
       "display_name": "조기석",
-      "last_checked_at": "2026-03-22T15:10:49.457Z",
-      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:44:09.865Z",
+      "last_match_at": "2026-03-25T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.170Z"
+      "last_changed_at": "2026-03-25T01:55:40.312Z"
     },
     {
       "team_name": "JSA",
@@ -97,11 +97,11 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "김병수",
-      "last_checked_at": "2026-03-22T15:10:59.938Z",
+      "last_checked_at": "2026-03-22T21:30:40.118Z",
       "last_match_at": "2026-01-17T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.171Z"
+      "last_changed_at": "2026-03-22T21:53:37.100Z"
     },
     {
       "team_name": "JSA",
@@ -129,11 +129,11 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "김영진",
-      "last_checked_at": "2026-03-22T15:11:10.553Z",
+      "last_checked_at": "2026-03-22T21:30:51.897Z",
       "last_match_at": "2026-03-07T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.171Z"
+      "last_changed_at": "2026-03-22T21:53:37.115Z"
     },
     {
       "team_name": "JSA",
@@ -161,11 +161,11 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "배병우",
-      "last_checked_at": "2026-03-22T15:11:24.979Z",
+      "last_checked_at": "2026-03-25T01:44:24.093Z",
       "last_match_at": "2026-03-22T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.172Z"
+      "last_changed_at": "2026-03-25T01:55:40.314Z"
     },
     {
       "team_name": "JSA",
@@ -193,11 +193,11 @@
       "role_priority": null,
       "tier_key": "joker",
       "display_name": "김민우",
-      "last_checked_at": "2026-03-22T15:11:34.567Z",
+      "last_checked_at": "2026-03-22T21:31:20.086Z",
       "last_match_at": "2026-02-01T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.172Z"
+      "last_changed_at": "2026-03-22T21:53:37.117Z"
     },
     {
       "team_name": "JSA",
@@ -225,11 +225,11 @@
       "role_priority": null,
       "tier_key": "joker",
       "display_name": "윤준석",
-      "last_checked_at": "2026-03-22T15:11:44.276Z",
+      "last_checked_at": "2026-03-22T21:31:31.506Z",
       "last_match_at": "2026-01-19T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.172Z"
+      "last_changed_at": "2026-03-22T21:53:37.118Z"
     },
     {
       "team_name": "JSA",
@@ -257,11 +257,11 @@
       "role_priority": null,
       "tier_key": "2",
       "display_name": "하블리",
-      "last_checked_at": "2026-03-22T15:11:51.396Z",
+      "last_checked_at": "2026-03-25T01:44:31.563Z",
       "last_match_at": "2026-03-22T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.174Z"
+      "last_changed_at": "2026-03-25T01:55:40.316Z"
     },
     {
       "team_name": "JSA",
@@ -289,11 +289,11 @@
       "role_priority": null,
       "tier_key": "3",
       "display_name": "라미",
-      "last_checked_at": "2026-03-22T15:11:58.511Z",
-      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:44:38.900Z",
+      "last_match_at": "2026-03-23T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.176Z"
+      "last_changed_at": "2026-03-25T01:55:40.318Z"
     },
     {
       "team_name": "JSA",
@@ -320,11 +320,11 @@
       "role_priority": null,
       "tier_key": "3",
       "display_name": "시조새",
-      "last_checked_at": "2026-03-22T15:12:02.972Z",
+      "last_checked_at": "2026-03-22T21:31:54.942Z",
       "last_match_at": "2026-01-21T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.177Z"
+      "last_changed_at": "2026-03-22T21:53:37.129Z"
     },
     {
       "team_name": "JSA",
@@ -352,11 +352,11 @@
       "role_priority": null,
       "tier_key": "4",
       "display_name": "나린",
-      "last_checked_at": "2026-03-22T15:12:10.248Z",
+      "last_checked_at": "2026-03-25T01:44:46.584Z",
       "last_match_at": "2026-03-18T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.178Z"
+      "last_changed_at": "2026-03-25T01:55:40.320Z"
     },
     {
       "team_name": "JSA",
@@ -384,11 +384,11 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "려원님",
-      "last_checked_at": "2026-03-22T15:12:16.247Z",
+      "last_checked_at": "2026-03-25T01:44:52.767Z",
       "last_match_at": "2026-03-20T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.180Z"
+      "last_changed_at": "2026-03-25T01:55:40.322Z"
     },
     {
       "team_name": "JSA",
@@ -416,11 +416,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "밥새",
-      "last_checked_at": "2026-03-22T15:12:22.946Z",
-      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:44:59.376Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.182Z"
+      "last_changed_at": "2026-03-25T01:55:40.324Z"
     },
     {
       "team_name": "JSA",
@@ -448,11 +448,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "쟈닌",
-      "last_checked_at": "2026-03-22T15:12:28.537Z",
+      "last_checked_at": "2026-03-25T01:45:05.957Z",
       "last_match_at": "2026-03-18T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.184Z"
+      "last_changed_at": "2026-03-25T01:55:40.326Z"
     },
     {
       "team_name": "JSA",
@@ -480,11 +480,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "돌애정",
-      "last_checked_at": "2026-03-22T15:12:32.751Z",
+      "last_checked_at": "2026-03-25T01:45:10.958Z",
       "last_match_at": "2026-03-18T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.185Z"
+      "last_changed_at": "2026-03-25T01:55:40.327Z"
     },
     {
       "team_name": "JSA",
@@ -512,11 +512,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "모비",
-      "last_checked_at": "2026-03-22T15:12:37.203Z",
-      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:45:15.595Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.186Z"
+      "last_changed_at": "2026-03-25T01:55:40.328Z"
     },
     {
       "team_name": "JSA",
@@ -544,11 +544,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "백원이야",
-      "last_checked_at": "2026-03-22T15:12:42.512Z",
+      "last_checked_at": "2026-03-25T01:45:20.779Z",
       "last_match_at": "2026-03-18T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.187Z"
+      "last_changed_at": "2026-03-25T01:55:40.329Z"
     },
     {
       "team_name": "JSA",
@@ -576,11 +576,11 @@
       "role_priority": null,
       "tier_key": "9",
       "display_name": "미진이",
-      "last_checked_at": "2026-03-22T15:12:45.926Z",
+      "last_checked_at": "2026-03-25T01:45:24.123Z",
       "last_match_at": "2026-03-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.187Z"
+      "last_changed_at": "2026-03-25T01:55:40.329Z"
     }
   ],
   "source_file": "tmp/jsa_roster_record_metadata.json",

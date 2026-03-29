@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T15:30:29.252Z",
+  "generated_at": "2026-03-29T06:59:31.106Z",
   "project": "mbu",
   "team_name": "엠비대",
   "team_code": "mbu",
@@ -9,7 +9,7 @@
     "엠비대",
     "MBU"
   ],
-  "roster_count": 21,
+  "roster_count": 15,
   "roster": [
     {
       "team_name": "엠비대",
@@ -39,11 +39,11 @@
       "role_priority": null,
       "tier_key": "king",
       "display_name": "이영한",
-      "last_checked_at": "2026-03-22T15:16:15.113Z",
+      "last_checked_at": "2026-03-22T21:36:42.584Z",
       "last_match_at": "2026-03-03T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.227Z"
+      "last_changed_at": "2026-03-22T21:53:37.242Z"
     },
     {
       "team_name": "엠비대",
@@ -74,11 +74,11 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "얍삽",
-      "last_checked_at": "2026-03-22T15:16:25.776Z",
+      "last_checked_at": "2026-03-22T21:36:55.664Z",
       "last_match_at": "2026-02-22T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.228Z"
+      "last_changed_at": "2026-03-22T21:53:37.242Z"
     },
     {
       "team_name": "엠비대",
@@ -109,11 +109,11 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "만두호성",
-      "last_checked_at": "2026-03-22T15:16:36.054Z",
+      "last_checked_at": "2026-03-22T21:37:07.573Z",
       "last_match_at": "2026-02-23T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.228Z"
+      "last_changed_at": "2026-03-22T21:53:37.243Z"
     },
     {
       "team_name": "엠비대",
@@ -143,45 +143,11 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "이창우",
-      "last_checked_at": "2026-03-22T15:16:48.412Z",
-      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:47:32.980Z",
+      "last_match_at": "2026-03-23T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.230Z"
-    },
-    {
-      "team_name": "엠비대",
-      "team_code": "mbu",
-      "entity_id": "eloboard:male:63",
-      "wr_id": 63,
-      "gender": "male",
-      "name": "진영화",
-      "tier": "잭",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:mbu",
-        "team:mbu",
-        "team_code:mbu",
-        "team_ko:엠비대",
-        "team_alias:엠비대",
-        "team_alias:mbu",
-        "gender:male",
-        "race:protoss",
-        "tier:jack",
-        "team_en:mbu"
-      ],
-      "missing_in_master": false,
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "jack",
-      "display_name": "진영화",
-      "last_checked_at": "2026-03-22T15:17:00.221Z",
-      "last_match_at": "2026-03-21T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.232Z"
+      "last_changed_at": "2026-03-25T01:55:40.361Z"
     },
     {
       "team_name": "엠비대",
@@ -212,11 +178,11 @@
       "role_priority": null,
       "tier_key": "spade",
       "display_name": "빡죠스",
-      "last_checked_at": "2026-03-22T15:17:09.790Z",
+      "last_checked_at": "2026-03-22T21:37:46.751Z",
       "last_match_at": "2026-02-03T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.232Z"
+      "last_changed_at": "2026-03-22T21:53:37.248Z"
     },
     {
       "team_name": "엠비대",
@@ -243,11 +209,11 @@
       "role_priority": null,
       "tier_key": "0",
       "display_name": "토스봇",
-      "last_checked_at": "2026-03-22T15:17:13.736Z",
+      "last_checked_at": "2026-03-22T21:37:51.186Z",
       "last_match_at": "2025-12-16T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.232Z"
+      "last_changed_at": "2026-03-22T21:53:37.249Z"
     },
     {
       "team_name": "엠비대",
@@ -277,79 +243,11 @@
       "role_priority": null,
       "tier_key": "2",
       "display_name": "카히리",
-      "last_checked_at": "2026-03-22T15:17:20.879Z",
+      "last_checked_at": "2026-03-25T01:47:39.923Z",
       "last_match_at": "2026-03-17T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.235Z"
-    },
-    {
-      "team_name": "엠비대",
-      "team_code": "mbu",
-      "entity_id": "eloboard:female:294",
-      "wr_id": 294,
-      "gender": "female",
-      "name": "하리",
-      "tier": "3",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:mbu",
-        "team:mbu",
-        "team_code:mbu",
-        "team_ko:엠비대",
-        "team_alias:엠비대",
-        "team_alias:mbu",
-        "gender:female",
-        "race:protoss",
-        "tier:3",
-        "team_en:mbu"
-      ],
-      "missing_in_master": false,
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "3",
-      "display_name": "하리",
-      "last_checked_at": "2026-03-22T15:17:28.183Z",
-      "last_match_at": "2026-03-17T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.238Z"
-    },
-    {
-      "team_name": "엠비대",
-      "team_code": "mbu",
-      "entity_id": "eloboard:female:724",
-      "wr_id": 724,
-      "gender": "female",
-      "name": "링고",
-      "tier": "4",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:mbu",
-        "team:mbu",
-        "team_code:mbu",
-        "team_ko:엠비대",
-        "team_alias:엠비대",
-        "team_alias:mbu",
-        "gender:female",
-        "race:protoss",
-        "tier:4",
-        "team_en:mbu"
-      ],
-      "missing_in_master": false,
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "4",
-      "display_name": "링고",
-      "last_checked_at": "2026-03-22T15:17:34.985Z",
-      "last_match_at": "2026-03-17T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.241Z"
+      "last_changed_at": "2026-03-25T01:55:40.363Z"
     },
     {
       "team_name": "엠비대",
@@ -379,11 +277,11 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "시녕뭉",
-      "last_checked_at": "2026-03-22T15:17:41.259Z",
+      "last_checked_at": "2026-03-25T01:47:45.395Z",
       "last_match_at": "2026-03-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.242Z"
+      "last_changed_at": "2026-03-25T01:55:40.364Z"
     },
     {
       "team_name": "엠비대",
@@ -413,79 +311,11 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "최세상",
-      "last_checked_at": "2026-03-22T15:17:48.569Z",
+      "last_checked_at": "2026-03-25T01:47:52.533Z",
       "last_match_at": "2026-03-17T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.245Z"
-    },
-    {
-      "team_name": "엠비대",
-      "team_code": "mbu",
-      "entity_id": "eloboard:female:871",
-      "wr_id": 871,
-      "gender": "female",
-      "name": "엄보리",
-      "tier": "6",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:mbu",
-        "team:mbu",
-        "team_code:mbu",
-        "team_ko:엠비대",
-        "team_alias:엠비대",
-        "team_alias:mbu",
-        "gender:female",
-        "race:protoss",
-        "tier:6",
-        "team_en:mbu"
-      ],
-      "missing_in_master": false,
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "6",
-      "display_name": "엄보리",
-      "last_checked_at": "2026-03-22T15:17:54.904Z",
-      "last_match_at": "2026-03-17T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.247Z"
-    },
-    {
-      "team_name": "엠비대",
-      "team_code": "mbu",
-      "entity_id": "eloboard:female:956",
-      "wr_id": 956,
-      "gender": "female",
-      "name": "면추가",
-      "tier": "7",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:mbu",
-        "team:mbu",
-        "team_code:mbu",
-        "team_ko:엠비대",
-        "team_alias:엠비대",
-        "team_alias:mbu",
-        "gender:female",
-        "race:zerg",
-        "tier:7",
-        "team_en:mbu"
-      ],
-      "missing_in_master": false,
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "7",
-      "display_name": "면추가",
-      "last_checked_at": "2026-03-22T15:17:59.825Z",
-      "last_match_at": "2026-03-17T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.248Z"
+      "last_changed_at": "2026-03-25T01:55:40.366Z"
     },
     {
       "team_name": "엠비대",
@@ -515,11 +345,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "정다닝",
-      "last_checked_at": "2026-03-22T15:18:04.469Z",
+      "last_checked_at": "2026-03-25T01:47:56.618Z",
       "last_match_at": "2026-03-17T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.249Z"
+      "last_changed_at": "2026-03-25T01:55:40.367Z"
     },
     {
       "team_name": "엠비대",
@@ -549,11 +379,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "권아온",
-      "last_checked_at": "2026-03-22T15:18:08.366Z",
-      "last_match_at": "2026-03-12T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:48:00.189Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.249Z"
+      "last_changed_at": "2026-03-25T01:55:40.368Z"
     },
     {
       "team_name": "엠비대",
@@ -580,11 +410,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "마예준",
-      "last_checked_at": "2026-03-22T15:18:11.707Z",
+      "last_checked_at": "2026-03-25T01:48:03.524Z",
       "last_match_at": "2026-03-22T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.250Z"
+      "last_changed_at": "2026-03-25T01:55:40.368Z"
     },
     {
       "team_name": "엠비대",
@@ -611,45 +441,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "병하",
-      "last_checked_at": "2026-03-22T15:18:14.598Z",
+      "last_checked_at": "2026-03-22T21:38:59.062Z",
       "last_match_at": "2026-02-11T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.250Z"
-    },
-    {
-      "team_name": "엠비대",
-      "team_code": "mbu",
-      "entity_id": "eloboard:female:930",
-      "wr_id": 930,
-      "gender": "female",
-      "name": "엄키키",
-      "tier": "8",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:mbu",
-        "team:mbu",
-        "team_code:mbu",
-        "team_ko:엠비대",
-        "team_alias:엠비대",
-        "team_alias:mbu",
-        "gender:female",
-        "race:protoss",
-        "tier:8",
-        "team_en:mbu"
-      ],
-      "missing_in_master": false,
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "8",
-      "display_name": "엄키키",
-      "last_checked_at": "2026-03-22T15:18:20.144Z",
-      "last_match_at": "2026-03-17T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.252Z"
+      "last_changed_at": "2026-03-22T21:53:37.284Z"
     },
     {
       "team_name": "엠비대",
@@ -680,11 +476,11 @@
       "role_priority": null,
       "tier_key": "9",
       "display_name": "요정너구리",
-      "last_checked_at": "2026-03-22T15:18:23.621Z",
-      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:48:06.976Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.252Z"
+      "last_changed_at": "2026-03-25T01:55:40.369Z"
     },
     {
       "team_name": "엠비대",
@@ -715,11 +511,11 @@
       "role_priority": null,
       "tier_key": "9",
       "display_name": "햄희",
-      "last_checked_at": "2026-03-22T15:18:27.046Z",
-      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:48:10.152Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.252Z"
+      "last_changed_at": "2026-03-25T01:55:40.369Z"
     }
   ],
   "source_file": "tmp/엠비대_roster_record_metadata.json",

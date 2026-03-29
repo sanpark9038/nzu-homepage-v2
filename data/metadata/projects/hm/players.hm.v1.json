@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T15:30:29.163Z",
+  "generated_at": "2026-03-29T06:59:31.105Z",
   "project": "hm",
   "team_name": "HM",
   "team_code": "hm",
@@ -8,7 +8,7 @@
   "team_aliases": [
     "HM"
   ],
-  "roster_count": 13,
+  "roster_count": 12,
   "roster": [
     {
       "team_name": "HM",
@@ -37,11 +37,11 @@
       "role_priority": null,
       "tier_key": "god",
       "display_name": "최호선",
-      "last_checked_at": "2026-03-22T15:08:59.487Z",
-      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:43:04.369Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.151Z"
+      "last_changed_at": "2026-03-25T01:55:40.296Z"
     },
     {
       "team_name": "HM",
@@ -70,11 +70,11 @@
       "role_priority": null,
       "tier_key": "king",
       "display_name": "방태수",
-      "last_checked_at": "2026-03-22T15:09:14.537Z",
-      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:43:21.508Z",
+      "last_match_at": "2026-03-25T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.154Z"
+      "last_changed_at": "2026-03-25T01:55:40.299Z"
     },
     {
       "team_name": "HM",
@@ -103,11 +103,11 @@
       "role_priority": null,
       "tier_key": "spade",
       "display_name": "박태민",
-      "last_checked_at": "2026-03-22T15:09:23.890Z",
+      "last_checked_at": "2026-03-22T21:29:11.892Z",
       "last_match_at": "2026-02-03T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.155Z"
+      "last_changed_at": "2026-03-22T21:53:37.067Z"
     },
     {
       "team_name": "HM",
@@ -134,11 +134,11 @@
       "role_priority": null,
       "tier_key": "0",
       "display_name": "파메",
-      "last_checked_at": "2026-03-22T15:09:27.506Z",
+      "last_checked_at": "2026-03-22T21:29:15.455Z",
       "last_match_at": "2025-10-03T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.155Z"
+      "last_changed_at": "2026-03-22T21:53:37.068Z"
     },
     {
       "team_name": "HM",
@@ -165,11 +165,11 @@
       "role_priority": null,
       "tier_key": "1",
       "display_name": "나도현",
-      "last_checked_at": "2026-03-22T15:09:30.599Z",
+      "last_checked_at": "2026-03-22T21:29:18.553Z",
       "last_match_at": "2026-01-24T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.155Z"
+      "last_changed_at": "2026-03-22T21:53:37.069Z"
     },
     {
       "team_name": "HM",
@@ -198,11 +198,11 @@
       "role_priority": null,
       "tier_key": "3",
       "display_name": "사랑e",
-      "last_checked_at": "2026-03-22T15:09:34.185Z",
+      "last_checked_at": "2026-03-22T21:29:21.803Z",
       "last_match_at": "2026-03-01T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.156Z"
+      "last_changed_at": "2026-03-22T21:53:37.069Z"
     },
     {
       "team_name": "HM",
@@ -231,11 +231,11 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "뚜비",
-      "last_checked_at": "2026-03-22T15:09:42.539Z",
+      "last_checked_at": "2026-03-22T21:29:28.946Z",
       "last_match_at": "2026-03-01T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.160Z"
+      "last_changed_at": "2026-03-22T21:53:37.077Z"
     },
     {
       "team_name": "HM",
@@ -264,44 +264,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "세월",
-      "last_checked_at": "2026-03-22T15:09:47.619Z",
+      "last_checked_at": "2026-03-22T21:29:33.349Z",
       "last_match_at": "2026-03-09T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.161Z"
-    },
-    {
-      "team_name": "HM",
-      "team_code": "hm",
-      "entity_id": "eloboard:female:1015",
-      "wr_id": 1015,
-      "gender": "female",
-      "name": "땃쥐",
-      "tier": "8",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:hm",
-        "team:hm",
-        "team_code:hm",
-        "team_ko:HM",
-        "team_alias:hm",
-        "gender:female",
-        "race:zerg",
-        "tier:8",
-        "team_en:hm"
-      ],
-      "missing_in_master": false,
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "8",
-      "display_name": "땃쥐",
-      "last_checked_at": "2026-03-22T15:09:51.186Z",
-      "last_match_at": "2026-03-19T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.161Z"
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-25T01:55:40.303Z"
     },
     {
       "team_name": "HM",
@@ -330,11 +297,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "삼교",
-      "last_checked_at": "2026-03-22T15:09:56.591Z",
+      "last_checked_at": "2026-03-25T01:43:27.556Z",
       "last_match_at": "2026-03-15T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.163Z"
+      "last_changed_at": "2026-03-25T01:55:40.304Z"
     },
     {
       "team_name": "HM",
@@ -363,11 +330,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "이주리",
-      "last_checked_at": "2026-03-22T15:09:59.767Z",
+      "last_checked_at": "2026-03-22T21:29:44.329Z",
       "last_match_at": "2026-02-25T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.163Z"
+      "last_changed_at": "2026-03-22T21:53:37.083Z"
     },
     {
       "team_name": "HM",
@@ -397,11 +364,11 @@
       "role_priority": null,
       "tier_key": "9",
       "display_name": "멍라희",
-      "last_checked_at": "2026-03-22T15:10:03.264Z",
+      "last_checked_at": "2026-03-25T01:43:31.714Z",
       "last_match_at": "2026-03-18T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.163Z"
+      "last_changed_at": "2026-03-25T01:55:40.305Z"
     },
     {
       "team_name": "HM",
@@ -430,11 +397,11 @@
       "role_priority": 1,
       "tier_key": "spade",
       "display_name": "강민",
-      "last_checked_at": "2026-03-22T15:10:13.884Z",
+      "last_checked_at": "2026-03-22T21:29:55.897Z",
       "last_match_at": "2026-01-24T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.163Z"
+      "last_changed_at": "2026-03-22T21:53:37.084Z"
     }
   ],
   "source_file": "tmp/hm_roster_record_metadata.json",

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T15:30:29.226Z",
+  "generated_at": "2026-03-29T06:59:31.106Z",
   "project": "ku",
   "team_name": "케이대",
   "team_code": "ku",
@@ -9,7 +9,7 @@
     "케이대",
     "KU"
   ],
-  "roster_count": 23,
+  "roster_count": 22,
   "roster": [
     {
       "team_name": "케이대",
@@ -39,11 +39,11 @@
       "role_priority": null,
       "tier_key": "god",
       "display_name": "장윤철",
-      "last_checked_at": "2026-03-22T15:13:06.416Z",
-      "last_match_at": "2026-03-21T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:45:44.610Z",
+      "last_match_at": "2026-03-25T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.191Z"
+      "last_changed_at": "2026-03-25T01:55:40.333Z"
     },
     {
       "team_name": "케이대",
@@ -73,11 +73,11 @@
       "role_priority": null,
       "tier_key": "god",
       "display_name": "정영재",
-      "last_checked_at": "2026-03-22T15:13:21.773Z",
-      "last_match_at": "2026-03-13T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:45:59.978Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.193Z"
+      "last_changed_at": "2026-03-25T01:55:40.334Z"
     },
     {
       "team_name": "케이대",
@@ -107,11 +107,11 @@
       "role_priority": null,
       "tier_key": "king",
       "display_name": "김경모",
-      "last_checked_at": "2026-03-22T15:13:36.672Z",
-      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:46:16.623Z",
+      "last_match_at": "2026-03-25T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.195Z"
+      "last_changed_at": "2026-03-25T01:55:40.336Z"
     },
     {
       "team_name": "케이대",
@@ -126,26 +126,28 @@
       "meta_tags": [
         "domain:player",
         "project:ku",
-        "team:ku",
-        "team_code:ku",
-        "team_ko:케이대",
         "team_alias:케이대",
         "team_alias:ku",
         "gender:male",
+        "team:ku",
+        "team_code:ku",
+        "team_ko:케이대",
+        "team_en:ku",
         "race:protoss",
-        "tier:king",
-        "team_en:ku"
+        "tier:king"
       ],
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
       "tier_key": "king",
       "display_name": "홍덕",
-      "last_checked_at": "2026-03-22T15:13:49.615Z",
+      "last_checked_at": "2026-03-22T21:33:55.328Z",
       "last_match_at": "2026-01-31T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.196Z"
+      "last_changed_at": "2026-03-22T21:53:37.180Z",
+      "profile_url": "",
+      "profile_kind": "default"
     },
     {
       "team_name": "케이대",
@@ -175,11 +177,11 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "고석현",
-      "last_checked_at": "2026-03-22T15:14:01.045Z",
+      "last_checked_at": "2026-03-22T21:34:08.432Z",
       "last_match_at": "2025-12-03T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.197Z"
+      "last_changed_at": "2026-03-22T21:53:37.181Z"
     },
     {
       "team_name": "케이대",
@@ -209,11 +211,11 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "정민기",
-      "last_checked_at": "2026-03-22T15:14:12.649Z",
+      "last_checked_at": "2026-03-22T21:34:22.048Z",
       "last_match_at": "2026-02-15T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.197Z"
+      "last_changed_at": "2026-03-22T21:53:37.182Z"
     },
     {
       "team_name": "케이대",
@@ -243,11 +245,11 @@
       "role_priority": null,
       "tier_key": "spade",
       "display_name": "유민",
-      "last_checked_at": "2026-03-22T15:14:21.579Z",
+      "last_checked_at": "2026-03-22T21:34:32.217Z",
       "last_match_at": "2025-10-21T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.197Z"
+      "last_changed_at": "2026-03-22T21:53:37.182Z"
     },
     {
       "team_name": "케이대",
@@ -277,11 +279,11 @@
       "role_priority": null,
       "tier_key": "0",
       "display_name": "보혜",
-      "last_checked_at": "2026-03-22T15:14:27.962Z",
+      "last_checked_at": "2026-03-22T21:34:39.013Z",
       "last_match_at": "2026-02-09T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.198Z"
+      "last_changed_at": "2026-03-22T21:53:37.183Z"
     },
     {
       "team_name": "케이대",
@@ -311,11 +313,11 @@
       "role_priority": null,
       "tier_key": "0",
       "display_name": "정소윤",
-      "last_checked_at": "2026-03-22T15:14:33.583Z",
+      "last_checked_at": "2026-03-22T21:34:45.646Z",
       "last_match_at": "2026-02-23T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.198Z"
+      "last_changed_at": "2026-03-22T21:53:37.184Z"
     },
     {
       "team_name": "케이대",
@@ -345,11 +347,11 @@
       "role_priority": null,
       "tier_key": "2",
       "display_name": "슬돌이",
-      "last_checked_at": "2026-03-22T15:14:40.641Z",
+      "last_checked_at": "2026-03-25T01:46:24.294Z",
       "last_match_at": "2026-03-15T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.200Z"
+      "last_changed_at": "2026-03-25T01:55:40.340Z"
     },
     {
       "team_name": "케이대",
@@ -379,45 +381,11 @@
       "role_priority": null,
       "tier_key": "3",
       "display_name": "규리야",
-      "last_checked_at": "2026-03-22T15:14:48.483Z",
+      "last_checked_at": "2026-03-25T01:46:32.110Z",
       "last_match_at": "2026-03-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.203Z"
-    },
-    {
-      "team_name": "케이대",
-      "team_code": "ku",
-      "entity_id": "eloboard:female:619",
-      "wr_id": 619,
-      "gender": "female",
-      "name": "김뽀뇨",
-      "tier": "3",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:ku",
-        "team:ku",
-        "team_code:ku",
-        "team_ko:케이대",
-        "team_alias:케이대",
-        "team_alias:ku",
-        "gender:female",
-        "race:protoss",
-        "tier:3",
-        "team_en:ku"
-      ],
-      "missing_in_master": false,
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "3",
-      "display_name": "김뽀뇨",
-      "last_checked_at": "2026-03-22T15:14:55.872Z",
-      "last_match_at": "2026-03-16T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.205Z"
+      "last_changed_at": "2026-03-25T01:55:40.344Z"
     },
     {
       "team_name": "케이대",
@@ -447,11 +415,11 @@
       "role_priority": null,
       "tier_key": "4",
       "display_name": "구루미",
-      "last_checked_at": "2026-03-22T15:15:02.272Z",
+      "last_checked_at": "2026-03-22T21:35:18.975Z",
       "last_match_at": "2026-02-10T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.207Z"
+      "last_changed_at": "2026-03-22T21:53:37.206Z"
     },
     {
       "team_name": "케이대",
@@ -481,11 +449,11 @@
       "role_priority": null,
       "tier_key": "4",
       "display_name": "늑대채린",
-      "last_checked_at": "2026-03-22T15:15:09.809Z",
+      "last_checked_at": "2026-03-25T01:46:39.893Z",
       "last_match_at": "2026-03-19T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.209Z"
+      "last_changed_at": "2026-03-25T01:55:40.347Z"
     },
     {
       "team_name": "케이대",
@@ -515,11 +483,11 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "내가먼지",
-      "last_checked_at": "2026-03-22T15:15:16.770Z",
+      "last_checked_at": "2026-03-22T21:35:36.331Z",
       "last_match_at": "2026-03-09T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.211Z"
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-25T01:55:40.349Z"
     },
     {
       "team_name": "케이대",
@@ -549,11 +517,11 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "또해영",
-      "last_checked_at": "2026-03-22T15:15:23.434Z",
+      "last_checked_at": "2026-03-25T01:46:46.365Z",
       "last_match_at": "2026-03-16T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.213Z"
+      "last_changed_at": "2026-03-25T01:55:40.351Z"
     },
     {
       "team_name": "케이대",
@@ -583,11 +551,11 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "박하악",
-      "last_checked_at": "2026-03-22T15:15:30.247Z",
+      "last_checked_at": "2026-03-25T01:46:53.585Z",
       "last_match_at": "2026-03-20T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.216Z"
+      "last_changed_at": "2026-03-25T01:55:40.354Z"
     },
     {
       "team_name": "케이대",
@@ -617,11 +585,11 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "정서린",
-      "last_checked_at": "2026-03-22T15:15:35.472Z",
-      "last_match_at": "2026-03-20T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:46:59.333Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.218Z"
+      "last_changed_at": "2026-03-25T01:55:40.355Z"
     },
     {
       "team_name": "케이대",
@@ -651,11 +619,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "냥수디",
-      "last_checked_at": "2026-03-22T15:15:40.316Z",
+      "last_checked_at": "2026-03-22T21:36:03.197Z",
       "last_match_at": "2026-03-04T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.221Z"
+      "last_changed_at": "2026-03-22T21:53:37.234Z"
     },
     {
       "team_name": "케이대",
@@ -685,11 +653,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "다예나",
-      "last_checked_at": "2026-03-22T15:15:44.888Z",
+      "last_checked_at": "2026-03-25T01:47:05.466Z",
       "last_match_at": "2026-03-16T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.223Z"
+      "last_changed_at": "2026-03-25T01:55:40.358Z"
     },
     {
       "team_name": "케이대",
@@ -719,11 +687,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "단비송",
-      "last_checked_at": "2026-03-22T15:15:49.484Z",
+      "last_checked_at": "2026-03-25T01:47:10.480Z",
       "last_match_at": "2026-03-16T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.225Z"
+      "last_changed_at": "2026-03-25T01:55:40.358Z"
     },
     {
       "team_name": "케이대",
@@ -750,11 +718,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "케이",
-      "last_checked_at": "2026-03-22T15:21:43.287Z",
+      "last_checked_at": "2026-03-25T01:50:15.261Z",
       "last_match_at": null,
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.225Z"
+      "last_changed_at": "2026-03-25T01:55:40.359Z"
     },
     {
       "team_name": "케이대",
@@ -784,11 +752,11 @@
       "role_priority": 2,
       "tier_key": "joker",
       "display_name": "김학수",
-      "last_checked_at": "2026-03-22T15:16:03.393Z",
+      "last_checked_at": "2026-03-25T01:47:19.986Z",
       "last_match_at": "2026-03-22T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.226Z"
+      "last_changed_at": "2026-03-25T01:55:40.359Z"
     }
   ],
   "source_file": "tmp/케이대_roster_record_metadata.json",

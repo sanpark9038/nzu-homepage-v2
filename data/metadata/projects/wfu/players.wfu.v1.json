@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-22T15:30:29.371Z",
+  "generated_at": "2026-03-29T06:59:31.108Z",
   "project": "wfu-validation",
   "team_name": "와플대",
   "team_code": "wfu",
@@ -33,11 +33,11 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "이광용",
-      "last_checked_at": "2026-03-22T15:29:18.138Z",
+      "last_checked_at": "2026-03-22T21:50:23.772Z",
       "last_match_at": "2026-01-30T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T15:30:29.361Z"
+      "last_changed_at": "2026-03-22T21:53:37.551Z"
     },
     {
       "team_name": "와플대",
@@ -65,11 +65,11 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "허유진",
-      "last_checked_at": "2026-03-22T15:29:29.412Z",
+      "last_checked_at": "2026-03-22T21:50:34.219Z",
       "last_match_at": "2026-02-23T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.361Z"
+      "last_changed_at": "2026-03-22T21:53:37.552Z"
     },
     {
       "team_name": "와플대",
@@ -97,11 +97,11 @@
       "role_priority": null,
       "tier_key": "joker",
       "display_name": "전상욱",
-      "last_checked_at": "2026-03-22T15:29:40.137Z",
+      "last_checked_at": "2026-03-22T21:50:44.709Z",
       "last_match_at": "2026-02-05T00:00:00.000Z",
-      "check_priority": "normal",
-      "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.361Z"
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-25T01:55:40.473Z"
     },
     {
       "team_name": "와플대",
@@ -129,11 +129,11 @@
       "role_priority": null,
       "tier_key": "4",
       "display_name": "꼬니부깅",
-      "last_checked_at": "2026-03-22T15:29:46.267Z",
+      "last_checked_at": "2026-03-22T21:50:50.361Z",
       "last_match_at": "2026-03-02T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.362Z"
+      "last_changed_at": "2026-03-22T21:53:37.554Z"
     },
     {
       "team_name": "와플대",
@@ -161,11 +161,11 @@
       "role_priority": null,
       "tier_key": "4",
       "display_name": "몽순",
-      "last_checked_at": "2026-03-22T15:29:53.174Z",
+      "last_checked_at": "2026-03-22T21:50:57.061Z",
       "last_match_at": "2026-03-08T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.364Z"
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-25T01:55:40.475Z"
     },
     {
       "team_name": "와플대",
@@ -193,11 +193,11 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "비재희",
-      "last_checked_at": "2026-03-22T15:30:00.105Z",
+      "last_checked_at": "2026-03-25T01:55:22.818Z",
       "last_match_at": "2026-03-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.367Z"
+      "last_changed_at": "2026-03-25T01:55:40.478Z"
     },
     {
       "team_name": "와플대",
@@ -224,11 +224,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "얌쭈",
-      "last_checked_at": "2026-03-22T15:30:04.319Z",
+      "last_checked_at": "2026-03-25T01:55:26.775Z",
       "last_match_at": "2026-03-22T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.367Z"
+      "last_changed_at": "2026-03-25T01:55:40.478Z"
     },
     {
       "team_name": "와플대",
@@ -256,11 +256,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "구키",
-      "last_checked_at": "2026-03-22T15:30:09.839Z",
+      "last_checked_at": "2026-03-22T21:51:14.406Z",
       "last_match_at": "2026-03-01T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.369Z"
+      "last_changed_at": "2026-03-22T21:53:37.561Z"
     },
     {
       "team_name": "와플대",
@@ -287,11 +287,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "와이퍼",
-      "last_checked_at": "2026-03-22T15:30:13.337Z",
+      "last_checked_at": "2026-03-25T01:55:30.487Z",
       "last_match_at": "2026-03-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.370Z"
+      "last_changed_at": "2026-03-25T01:55:40.480Z"
     },
     {
       "team_name": "와플대",
@@ -319,11 +319,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "있찌",
-      "last_checked_at": "2026-03-22T15:30:17.258Z",
-      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "last_checked_at": "2026-03-25T01:55:34.275Z",
+      "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-22T15:30:29.370Z"
+      "last_changed_at": "2026-03-25T01:55:40.481Z"
     },
     {
       "team_name": "와플대",
@@ -351,11 +351,11 @@
       "role_priority": 2,
       "tier_key": "spade",
       "display_name": "박성준",
-      "last_checked_at": "2026-03-22T15:30:26.774Z",
+      "last_checked_at": "2026-03-22T21:51:32.141Z",
       "last_match_at": "2026-02-15T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T15:30:29.371Z"
+      "last_changed_at": "2026-03-22T21:53:37.563Z"
     }
   ],
   "source_file": "tmp/와플대_roster_record_metadata.json",

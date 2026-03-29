@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-03-21T11:40:00.000Z",
+  "updated_at": "2026-03-26T09:51:57.136Z",
   "description": "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
   "overrides": [
     {
@@ -29,6 +29,555 @@
       "race": "Terran",
       "manual_lock": true,
       "note": "Alias conflict: keep canonical assignment to yb/빵지니 instead of FA alias 농떼르만."
+    },
+    {
+      "entity_id": "eloboard:male:73",
+      "name": "홍덕",
+      "team_code": "ku",
+      "tier": "킹",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Alias conflict: keep canonical assignment to ku/홍덕 instead of FA alias 오뀨."
+    },
+    {
+      "entity_id": "eloboard:female:956",
+      "name": "면추가",
+      "tier": "7",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:71",
+      "name": "이예훈",
+      "tier": "킹",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:63",
+      "name": "진영화",
+      "tier": "잭",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:15",
+      "name": "김민철",
+      "tier": "갓",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:1015",
+      "name": "땃쥐",
+      "tier": "8",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:20",
+      "name": "김범수",
+      "tier": "잭",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:517",
+      "name": "박듀듀",
+      "tier": "3",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:39",
+      "name": "정윤종",
+      "tier": "갓",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:40",
+      "name": "김정우",
+      "tier": "갓",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:35",
+      "name": "변현제",
+      "tier": "갓",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:213",
+      "name": "어윤수",
+      "tier": "잭",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:12",
+      "name": "유영진",
+      "tier": "갓",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:33",
+      "name": "이재호",
+      "tier": "갓",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:42",
+      "name": "이제동",
+      "tier": "갓",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:864",
+      "name": "하이현",
+      "tier": "7",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:32",
+      "name": "황병영",
+      "tier": "갓",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:36",
+      "name": "김명운",
+      "tier": "갓",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:34",
+      "name": "김성대",
+      "tier": "갓",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:29",
+      "name": "김지성",
+      "tier": "갓",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:750",
+      "name": "다뉴",
+      "tier": "7",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:32",
+      "name": "또봉순",
+      "tier": "2",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:894",
+      "name": "사사삼",
+      "tier": "7",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:881",
+      "name": "수니양",
+      "tier": "6",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:999",
+      "name": "연또",
+      "tier": "8",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:9",
+      "name": "윤수철",
+      "tier": "킹",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:13",
+      "name": "조일장",
+      "tier": "갓",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:974",
+      "name": "지우리",
+      "tier": "8",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:955",
+      "name": "찡찡시아",
+      "tier": "8",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:1020",
+      "name": "혜냥",
+      "tier": "8",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:413",
+      "name": "구보라",
+      "tier": "3",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:965",
+      "name": "뀨알",
+      "tier": "8",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:605",
+      "name": "아라미",
+      "tier": "5",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:1013",
+      "name": "오세은",
+      "tier": "9",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:50",
+      "name": "지유",
+      "tier": "4",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:416",
+      "name": "하두링",
+      "tier": "6",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:233",
+      "name": "기나",
+      "tier": "3",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:858",
+      "name": "김말랑",
+      "tier": "7",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:354",
+      "name": "햄찌야",
+      "tier": "7",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:724",
+      "name": "링고",
+      "tier": "4",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:509",
+      "name": "만다",
+      "tier": "5",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:871",
+      "name": "엄보리",
+      "tier": "6",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:930",
+      "name": "엄키키",
+      "tier": "7",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:5",
+      "name": "임진묵",
+      "tier": "잭",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:294",
+      "name": "하리",
+      "tier": "3",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:754",
+      "name": "김무아",
+      "tier": "6",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:619",
+      "name": "김뽀뇨",
+      "tier": "3",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:998",
+      "name": "박쭈이",
+      "tier": "8",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:1003",
+      "name": "우질",
+      "tier": "8",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:912",
+      "name": "요시",
+      "tier": "8",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:136",
+      "name": "김인호",
+      "tier": "3",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:767",
+      "name": "유이",
+      "tier": "5",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:958",
+      "name": "제티",
+      "tier": "7",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:565",
+      "name": "금선",
+      "tier": "4",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:662",
+      "name": "예슬",
+      "tier": "5",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:331",
+      "name": "라운이",
+      "tier": "5",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:11",
+      "name": "상어녀",
+      "tier": "3",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:693",
+      "name": "하리보나",
+      "tier": "7",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:533",
+      "name": "단양",
+      "tier": "5",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:386",
+      "name": "키모야",
+      "tier": "7",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:939",
+      "name": "행복짱",
+      "tier": "8",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:951",
+      "name": "단이",
+      "tier": "8",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:618",
+      "name": "정소이",
+      "tier": "4",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:297",
+      "name": "유복실",
+      "tier": "3",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:456",
+      "name": "이유란",
+      "tier": "3",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:female:782",
+      "name": "황단비",
+      "tier": "8",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review."
+    },
+    {
+      "entity_id": "eloboard:male:24",
+      "name": "윤찬희",
+      "team_code": "fa",
+      "tier": "갓",
+      "race": "Terran",
+      "manual_lock": true,
+      "manual_mode": "temporary",
+      "updated_at": "2026-03-26T08:56:39.839Z"
+    },
+    {
+      "entity_id": "eloboard:female:776",
+      "name": "밍도릿",
+      "team_code": "fa",
+      "tier": "6",
+      "race": "Zerg",
+      "manual_lock": true,
+      "manual_mode": "temporary",
+      "updated_at": "2026-03-26T09:51:57.135Z"
     }
   ]
 }
