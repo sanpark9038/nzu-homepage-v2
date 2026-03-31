@@ -34,6 +34,57 @@ function uniqueUpsertKeyCount(players) {
   ).size;
 }
 
+function isMixEntityId(entityId) {
+  return /:mix:\d+$/i.test(String(entityId || '').trim());
+}
+
+function toTime(value) {
+  const ms = Date.parse(String(value || ''));
+  return Number.isFinite(ms) ? ms : -1;
+}
+
+function choosePreferredNameRow(current, candidate) {
+  const currentMix = isMixEntityId(current && current.eloboard_id);
+  const candidateMix = isMixEntityId(candidate && candidate.eloboard_id);
+  if (currentMix !== candidateMix) return candidateMix ? candidate : current;
+
+  const currentChecked = toTime(current && current.last_checked_at);
+  const candidateChecked = toTime(candidate && candidate.last_checked_at);
+  if (currentChecked !== candidateChecked) return candidateChecked > currentChecked ? candidate : current;
+
+  const currentMatch = toTime(current && current.last_match_at);
+  const candidateMatch = toTime(candidate && candidate.last_match_at);
+  if (currentMatch !== candidateMatch) return candidateMatch > currentMatch ? candidate : current;
+
+  return current;
+}
+
+function dedupePlayersByName(players) {
+  const byName = new Map();
+  const collisions = [];
+  for (const player of players) {
+    const name = normalizeName(player && player.name ? player.name : '');
+    if (!name) continue;
+    if (!byName.has(name)) {
+      byName.set(name, player);
+      continue;
+    }
+    const previous = byName.get(name);
+    const chosen = choosePreferredNameRow(previous, player);
+    const dropped = chosen === player ? previous : player;
+    byName.set(name, chosen);
+    collisions.push({
+      name,
+      kept_eloboard_id: String(chosen && chosen.eloboard_id ? chosen.eloboard_id : ''),
+      dropped_eloboard_id: String(dropped && dropped.eloboard_id ? dropped.eloboard_id : ''),
+    });
+  }
+  return {
+    players: [...byName.values()],
+    collisions,
+  };
+}
+
 async function main() {
   console.log('--- Supabase Staging Sync Started ---');
   
@@ -119,17 +170,19 @@ async function main() {
   };
   const validPlayers = allPlayers.filter(p => !shouldExclude(p));
   const excludedCount = allPlayers.length - validPlayers.length;
-  const expectedUpsertRows = uniqueUpsertKeyCount(validPlayers);
+  const deduped = dedupePlayersByName(validPlayers);
+  const playersForUpsert = deduped.players;
+  const expectedUpsertRows = uniqueUpsertKeyCount(playersForUpsert);
 
   // 4. Truncate staging table safely
   console.log('Truncating players_staging...');
   await supabase.from('players_staging').delete().neq('name', 'INVALID_NAME_FOR_TRUNCATE');
 
   // Insert to staging
-  console.log(`Inserting ${validPlayers.length} players to players_staging...`);
+  console.log(`Inserting ${playersForUpsert.length} players to players_staging...`);
   const chunkSize = 100;
-  for (let i = 0; i < validPlayers.length; i += chunkSize) {
-    const chunk = validPlayers.slice(i, i + chunkSize);
+  for (let i = 0; i < playersForUpsert.length; i += chunkSize) {
+    const chunk = playersForUpsert.slice(i, i + chunkSize);
     const { error } = await supabase.from('players_staging').upsert(chunk, { onConflict: 'name' });
     if (error) {
        console.error('Error inserting chunk:', error);
@@ -144,11 +197,17 @@ async function main() {
     .select('name, tier, race, check_priority, check_interval_days')
     .eq('eloboard_id', 'eloboard:female:704')
     .single();
-  const { data: excludedCheck } = await supabase.from('players_staging').select('name, eloboard_id').in('name', ['김수환', '김민교', '박한별', '이상호', '농떼르만', '엘사', '옥수수']);
+  const excludedEntityIds = exclusionRules
+    .map((rule) => String(rule && rule.entity_id ? rule.entity_id : '').trim())
+    .filter(Boolean);
+  const { data: excludedCheck } = excludedEntityIds.length
+    ? await supabase.from('players_staging').select('name, eloboard_id').in('eloboard_id', excludedEntityIds)
+    : { data: [] };
 
   console.log('\n=== 검증 리포트 (Verification Report) ===');
   console.log(`[+] 전체 적재 대상: ${allPlayers.length}명`);
   console.log(`[-] 제외 필터 적용: ${excludedCount}명 제외됨 (사유: Exclusion List)`);
+  console.log(`[=] 이름 충돌 정규화: ${deduped.collisions.length}건`);
   console.log(`[=] Staging 적재 완료: ${stagingTotal}명\n`);
   console.log(`[=] 예상 Upsert Key 수(name 기준): ${expectedUpsertRows}명`);
 
@@ -159,7 +218,7 @@ async function main() {
   }
   
   console.log(`📌 FA(무소속) 병력: ${faCount}명`);
-  console.log(`📌 제외 타겟 7명 실제 DB 검출 수: ${excludedCheck ? excludedCheck.length : 0}명 (0이어야 정상)`);
+  console.log(`📌 exclusion entity_id 실제 DB 검출 수: ${excludedCheck ? excludedCheck.length : 0}명 (0이어야 정상)`);
   
   console.log(`\n📌 찌킹(entity_id eloboard:female:704) 샘플 검증:`);
   if (jiking) {
