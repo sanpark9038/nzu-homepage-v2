@@ -35,6 +35,7 @@
     "pipeline:collect:chunked": "node scripts/tools/run-ops-pipeline-chunked.js --chunk-size 3 --inactive-skip-days 14",
     "pipeline:merge:chunked": "node scripts/tools/merge-chunked-daily-reports.js",
     "pipeline:manual:refresh": "node scripts/tools/run-manual-refresh.js",
+    "pipeline:manual:refresh:with-sync": "node scripts/tools/run-manual-refresh.js --with-supabase-sync",
     "pipeline:push:approved": "node scripts/tools/push-supabase-approved.js --approved",
     "pipeline:status": "node scripts/tools/check-daily-status.js",
     "pipeline:verify:discord": "node scripts/tools/verify-discord-summary.js",

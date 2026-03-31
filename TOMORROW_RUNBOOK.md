@@ -19,11 +19,16 @@
 ## 3) 실패/이상 시 즉시 실행
 1. 수동 재실행
    - `npm run pipeline:manual:refresh`
+   - 기본값은 collect-only
+   - DB sync는 자동으로 하지 않음
 2. 점검용 검증
    - `npm run test:pipeline:daily`
    - `npm run validate:pipeline-alert-rules`
 3. 디스코드 요약 재검증
    - `npm run pipeline:verify:discord`
+4. Supabase sync가 정말 필요할 때만
+   - `npm run pipeline:manual:refresh:with-sync`
+   - 전제: `SUPABASE_SERVICE_ROLE_KEY` 설정 완료
 
 ## 4) 현재 자동화 상태 (완료)
 - 기본 실행기: GitHub Actions `NZU Ops Pipeline`
@@ -48,6 +53,8 @@
 - 부분 팀 동기화 기본 차단 (`--teams` 단독 실행 방지)
 - 원천 페이지 일시 장애 시 팀별 보호(guard) 적용
 - FA 소스 미수집 시 자동 FA 이동 금지
+- manual refresh 기본 collect-only
+- service-role 없는 Supabase sync 차단
 - alias 충돌 수동 고정:
   - `eloboard:female:398` -> `c9 / 나무늘봉순`
   - `eloboard:female:777` -> `c9 / 히댕`

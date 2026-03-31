@@ -16,6 +16,10 @@ function argValue(flag, fallback = null) {
   return fallback;
 }
 
+function hasFlag(flag) {
+  return process.argv.includes(flag);
+}
+
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
@@ -153,6 +157,7 @@ function buildMarkdownSummary(report, reportPath) {
     "",
     `- Generated: ${report.generated_at}`,
     `- Status: **${String(report.status || "").toUpperCase()}**`,
+    `- Supabase Sync: ${report.with_supabase_sync ? "enabled" : "disabled"}`,
     `- JSON Report: ${reportPath}`,
     "",
     "## Steps",
@@ -183,6 +188,7 @@ function buildMarkdownSummary(report, reportPath) {
 function main() {
   const chunkSize = String(argValue("--chunk-size", "3")).trim() || "3";
   const inactiveSkipDays = String(argValue("--inactive-skip-days", "14")).trim() || "14";
+  const withSupabaseSync = hasFlag("--with-supabase-sync");
   const steps = [];
   let status = "pass";
   let errorMessage = null;
@@ -198,7 +204,9 @@ function main() {
         inactiveSkipDays,
       ])
     );
-    steps.push(runStep("supabase_push", "scripts/tools/push-supabase-approved.js", ["--approved"]));
+    if (withSupabaseSync) {
+      steps.push(runStep("supabase_push", "scripts/tools/push-supabase-approved.js", ["--approved"]));
+    }
     console.log("Done: manual refresh completed.");
   } catch (error) {
     status = "fail";
@@ -211,6 +219,7 @@ function main() {
     generated_at: new Date().toISOString(),
     status,
     error: errorMessage,
+    with_supabase_sync: withSupabaseSync,
     steps,
     failure_step: failureStep,
     baseline_path: path.relative(ROOT, BASELINE_PATH).replace(/\\/g, "/"),

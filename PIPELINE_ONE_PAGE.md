@@ -3,7 +3,7 @@
 ## 목적
 - 정확한 선수 데이터 수집
 - 정확한 변동 알림
-- Supabase 본반영은 승인 후에만 수행
+- Supabase 본반영은 명시적 opt-in 후에만 수행
 
 ## 핵심 원칙
 1. **수집/검증과 본반영을 분리**
@@ -28,7 +28,11 @@
    - `npm run pipeline:manual:refresh`
    - 내부 동작:
      - `run-ops-pipeline-chunked.js`
-     - `push-supabase-approved.js --approved`
+   - 기본값:
+     - collect-only
+     - Supabase sync 없음
+   - Supabase sync가 필요할 때만:
+     - `npm run pipeline:manual:refresh:with-sync`
 
 3. 결과 확인
    - GitHub Actions Summary
@@ -39,6 +43,8 @@
 ## 수동 운영
 - 수동 fallback 실행:
   - `npm run pipeline:manual:refresh`
+- 수동 + Supabase sync:
+  - `npm run pipeline:manual:refresh:with-sync`
 - 결과만 빠르게 확인:
   - `npm run pipeline:status`
 - Discord 요약 재검증:
@@ -54,6 +60,10 @@
   - `npm run validate:pipeline-alert-rules`
 - 승인 게이트:
   - `push-supabase-approved.js --approved`
+- 서비스 롤 키 필수:
+  - `SUPABASE_SERVICE_ROLE_KEY` 또는 `SUPABASE_SERVICE_KEY`
+- 운영 기준:
+  - `PIPELINE_SUCCESS_CRITERIA.md`
 
 ## 문제 발생 시
 1. 먼저 GitHub Actions Summary 확인
