@@ -30,6 +30,7 @@ function readJson(filePath) {
 function main() {
   const snapshotPath = latestFileByPrefix("daily_pipeline_snapshot_");
   const alertsPath = latestFileByPrefix("daily_pipeline_alerts_");
+  const manualRefreshPath = path.join(REPORTS_DIR, "manual_refresh_latest.json");
   if (!snapshotPath || !alertsPath) {
     console.error("Missing daily pipeline reports.");
     process.exit(1);
@@ -37,6 +38,7 @@ function main() {
 
   const snapshot = readJson(snapshotPath);
   const alertsDoc = readJson(alertsPath);
+  const manualRefresh = fs.existsSync(manualRefreshPath) ? readJson(manualRefreshPath) : null;
   const teams = Array.isArray(snapshot.teams) ? snapshot.teams : [];
   const alerts = Array.isArray(alertsDoc.alerts) ? alertsDoc.alerts : [];
 
@@ -48,6 +50,9 @@ function main() {
   console.log(`snapshot: ${path.relative(ROOT, snapshotPath)}`);
   console.log(`alerts:   ${path.relative(ROOT, alertsPath)}`);
   console.log(`generated_at: ${snapshot.generated_at || "-"}`);
+  if (manualRefresh && typeof manualRefresh.with_supabase_sync === "boolean") {
+    console.log(`supabase_sync: ${manualRefresh.with_supabase_sync ? "enabled" : "disabled (collect-only)"}`);
+  }
   console.log(`period: ${snapshot.period_from || "-"} ~ ${snapshot.period_to || "-"}`);
   console.log(`previous_snapshot: ${snapshot.previous_snapshot || "-"}`);
   console.log(

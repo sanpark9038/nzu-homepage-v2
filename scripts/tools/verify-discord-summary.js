@@ -54,6 +54,13 @@ function toMarkdown(summary) {
     "",
     `- Snapshot: \`${summary.snapshot}\``,
     `- Alerts: \`${summary.alerts}\``,
+    `- Supabase Sync: ${
+      summary.supabase_sync === true
+        ? "enabled"
+        : summary.supabase_sync === false
+          ? "disabled (collect-only)"
+          : "unknown"
+    }`,
     `- Period: ${summary.period_from || "-"} ~ ${summary.period_to || "-"}`,
     `- Previous Snapshot: ${summary.previous_snapshot || "-"}`,
     `- Comparable: ${summary.delta_reference && summary.delta_reference.comparable ? "yes" : "no"}`,
@@ -103,6 +110,7 @@ function main() {
   const reportsDir = resolveReportsDir();
   const baselinePath = resolveFilePath(argValue("--baseline", ""), path.join(reportsDir, "manual_refresh_baseline.json"));
   const projectsDir = resolveFilePath(argValue("--projects-dir", ""), DEFAULT_PROJECTS_DIR);
+  const manualRefreshPath = path.join(reportsDir, "manual_refresh_latest.json");
 
   const snapshotPath = resolveFilePath(
     argValue("--snapshot", ""),
@@ -120,6 +128,7 @@ function main() {
 
   const snapshot = readJsonIfExists(snapshotPath);
   const alertsDoc = readJsonIfExists(alertsPath);
+  const manualRefresh = readJsonIfExists(manualRefreshPath);
   if (!snapshot || !alertsDoc) {
     console.error("Unable to read snapshot or alerts JSON.");
     process.exit(1);
@@ -142,6 +151,10 @@ function main() {
     alerts: relativePath(alertsPath),
     baseline: fs.existsSync(baselinePath) ? relativePath(baselinePath) : null,
     generated_at: snapshot.generated_at || null,
+    supabase_sync:
+      manualRefresh && typeof manualRefresh.with_supabase_sync === "boolean"
+        ? manualRefresh.with_supabase_sync
+        : null,
     period_from: snapshot.period_from || null,
     period_to: snapshot.period_to || null,
     previous_snapshot: snapshot.previous_snapshot || null,

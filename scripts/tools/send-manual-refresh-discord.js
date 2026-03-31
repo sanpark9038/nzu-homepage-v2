@@ -284,6 +284,14 @@ function countAlertsBySeverity(alerts) {
   };
 }
 
+function supabaseSyncModeLabel() {
+  const report = readJsonIfExists(MANUAL_REFRESH_REPORT_PATH);
+  if (report && typeof report.with_supabase_sync === "boolean") {
+    return report.with_supabase_sync ? "Supabase sync enabled" : "Collect-only (Supabase sync skipped)";
+  }
+  return "";
+}
+
 function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const beforePlayers = loadBaselinePlayers(BASELINE_PATH);
   const afterPlayers = loadCurrentRosterState(PROJECTS_DIR);
@@ -311,6 +319,11 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     `산박대표님.일일 업데이트보고입니다. ${alertCounts.total > 0 ? "(경고 포함)" : ""} (${dateLabelFromSnapshot(snapshot)})`.trim(),
     "",
   ];
+  const syncModeLabel = supabaseSyncModeLabel();
+  if (syncModeLabel) {
+    lines.push(syncModeLabel);
+    lines.push("");
+  }
 
   if (
     !tierChanges.length &&
@@ -406,6 +419,10 @@ function buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport })
     "",
     "수집 또는 반영 단계에서 오류가 발생했습니다.",
   ];
+  const syncModeLabel = supabaseSyncModeLabel();
+  if (syncModeLabel) {
+    lines.push(`실행 모드: ${syncModeLabel}`);
+  }
   if (report && report.failure_step && report.failure_step.name) {
     lines.push(`실패 단계: ${report.failure_step.name}`);
   }
