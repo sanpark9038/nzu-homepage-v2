@@ -622,6 +622,7 @@ function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null, rosterTransiti
     if (
       typeof row.delta_players === "number" &&
       row.delta_players !== 0 &&
+      rosterTransition &&
       !rosterSizeChangedAllowlist.has(String(row.team_code || ""))
     ) {
       alerts.push({

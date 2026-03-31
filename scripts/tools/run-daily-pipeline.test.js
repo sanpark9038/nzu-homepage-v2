@@ -118,7 +118,18 @@ runTest("buildAlerts ignores moved-in zero-record players for the current run", 
           { name: "엄보리", from: "fa", to: "jsa" },
         ],
       },
-    }
+    },
+    [
+      {
+        team: "JSA",
+        team_code: "jsa",
+        baseline_players: 18,
+        current_players: 20,
+        added_entity_ids: ["eloboard:male:1", "eloboard:female:2"],
+        removed_entity_ids: [],
+        changed: true,
+      },
+    ]
   );
 
   assert.deepEqual(actual, [
@@ -136,7 +147,54 @@ runTest("buildAlerts ignores moved-in zero-record players for the current run", 
       rule: "roster_size_changed",
       message: "delta_players=2",
     },
+    {
+      severity: "medium",
+      team: "JSA",
+      team_code: "jsa",
+      rule: "roster_transition_detected",
+      message: "baseline=18, current=20, added=2, removed=0",
+    },
   ]);
+});
+
+runTest("buildAlerts suppresses stale roster_size_changed alerts when current run has no roster transition", () => {
+  const actual = buildAlerts(
+    [
+      {
+        team: "JSA",
+        team_code: "jsa",
+        zero_players: "",
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: 100,
+        delta_players: 4,
+      },
+    ],
+    {
+      rules: {
+        zero_record_players_severity: "high",
+        zero_record_players_allowlist: {},
+        negative_delta_matches_severity: "critical",
+        roster_size_changed_severity: "medium",
+        roster_size_changed_team_allowlist: [],
+        no_new_matches_enabled: false,
+      },
+    },
+    null,
+    [
+      {
+        team: "JSA",
+        team_code: "jsa",
+        baseline_players: 22,
+        current_players: 22,
+        added_entity_ids: [],
+        removed_entity_ids: [],
+        changed: false,
+      },
+    ]
+  );
+
+  assert.deepEqual(actual, []);
 });
 
 runTest("buildAlerts suppresses blocking alerts for teams with roster transitions", () => {
