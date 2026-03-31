@@ -8,8 +8,11 @@
 ## Safe Default
 - Default manual refresh is collect-only:
   - `npm run pipeline:manual:refresh`
+- Default ops pipeline is collect-only:
+  - `npm run pipeline:ops`
 - Supabase sync is explicit opt-in only:
   - `npm run pipeline:manual:refresh:with-sync`
+  - `npm run pipeline:ops:with-sync`
 
 ## A Run Counts As Healthy Only If
 1. `npm run test:pipeline:daily` passes

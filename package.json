@@ -27,6 +27,7 @@
     "organize:artifacts": "node scripts/tools/organize-generated-artifacts.js",
     "pipeline:daily": "node scripts/tools/run-daily-pipeline.js",
     "pipeline:ops": "node scripts/tools/run-ops-pipeline.js",
+    "pipeline:ops:with-sync": "node scripts/tools/run-ops-pipeline.js --with-supabase-sync",
     "pipeline:ops:freshness": "node scripts/tools/check-ops-pipeline-freshness.js",
     "test:pipeline:daily": "node scripts/tools/run-daily-pipeline.test.js",
     "test:roster:sync": "node scripts/tools/sync-team-roster-metadata.test.js",

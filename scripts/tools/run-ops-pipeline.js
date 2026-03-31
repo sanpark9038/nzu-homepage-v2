@@ -249,7 +249,8 @@ function ensureFile(relPath) {
 }
 
 function main() {
-  const skipSupabase = hasFlag("--skip-supabase");
+  const withSupabaseSync = hasFlag("--with-supabase-sync");
+  const skipSupabase = !withSupabaseSync;
   const dryRun = hasFlag("--dry-run");
   const noDiscord = hasFlag("--no-discord");
   const dateTag = timestamp();
