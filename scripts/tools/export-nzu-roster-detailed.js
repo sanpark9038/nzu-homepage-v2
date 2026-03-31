@@ -21,6 +21,12 @@ const EXCLUSIONS_PATH = path.join(
   "metadata",
   "pipeline_collection_exclusions.v1.json"
 );
+const RESUMES_PATH = path.join(
+  ROOT,
+  "data",
+  "metadata",
+  "pipeline_collection_resumes.v1.json"
+);
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -65,12 +71,53 @@ function readPeriodMaxDate(jsonPath) {
   }
 }
 
-function expectedExportCsvPath(playerName, teamCode) {
+function playerArtifactKey(player) {
+  const entityId = String(player && player.entity_id ? player.entity_id : "").trim();
+  if (entityId) return entityId.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
+  const wrId = Number(player && player.wr_id ? player.wr_id : 0);
+  const gender = String(player && player.gender ? player.gender : "").trim() || "unknown";
+  if (Number.isFinite(wrId) && wrId > 0) return `wr_${gender}_${wrId}`;
+  return safeFileName(String(player && player.name ? player.name : "unknown_player"));
+}
+
+function playerJsonPath(teamName, player) {
+  return path.join(TMP_DIR, `${teamName}_${playerArtifactKey(player)}_matches.json`);
+}
+
+function playerCsvPath(playerName, player) {
+  return path.join(TMP_DIR, `${playerArtifactKey(player)}_${safeFileName(playerName)}_상세전적.csv`);
+}
+
+function expectedExportCsvPath(playerName, player) {
+  const preferred = playerCsvPath(playerName, player);
+  if (fs.existsSync(preferred)) return preferred;
   const safeName = safeFileName(playerName);
   const direct = path.join(TMP_DIR, `${safeName}_상세전적.csv`);
-  const teamScoped = path.join(TMP_DIR, "exports", String(teamCode || ""), "csv", `${safeName}_상세전적.csv`);
+  const teamScoped = path.join(TMP_DIR, "exports", String(player && player.team_code ? player.team_code : ""), "csv", `${safeName}_상세전적.csv`);
   if (fs.existsSync(teamScoped)) return teamScoped;
   return direct;
+}
+
+function directReportArgs(teamName, playerName, player, extraFlags = []) {
+  const profileUrl = defaultProfileUrl(player);
+  const args = [
+    "--json-only",
+    "--include-matches",
+    "--univ",
+    teamName,
+    "--player",
+    playerName,
+    "--profile-url",
+    profileUrl,
+    "--wr-id",
+    String(player.wr_id),
+    "--gender",
+    String(player.gender || ""),
+    "--tier",
+    String(player.tier || ""),
+    ...extraFlags,
+  ];
+  return args;
 }
 
 function writeJson(filePath, obj) {
@@ -129,6 +176,25 @@ function loadCollectionExclusions() {
   return normalizedRows;
 }
 
+function loadCollectionResumes() {
+  const doc = readJsonIfExists(RESUMES_PATH, { players: [] });
+  const rows = Array.isArray(doc.players) ? doc.players : [];
+  return rows.map((row) => ({
+    entity_id: String(row && row.entity_id ? row.entity_id : "").trim() || null,
+    wr_id: Number.isFinite(Number(row && row.wr_id)) ? Number(row.wr_id) : null,
+    name: normalizeName(row && row.name ? row.name : "") || null,
+  }));
+}
+
+function writeCollectionResumes(rows) {
+  writeJson(RESUMES_PATH, {
+    schema_version: "1.0.0",
+    updated_at: new Date().toISOString(),
+    description: "Players that should be forcibly recollected once after exclusion is cleared.",
+    players: rows,
+  });
+}
+
 function exclusionReason(player, exclusions) {
   const entityId = String(player && player.entity_id ? player.entity_id : "").trim();
   const wrId = Number(player && player.wr_id);
@@ -156,6 +222,30 @@ function exclusionReason(player, exclusions) {
   return null;
 }
 
+function hasResumeMarker(player, resumes) {
+  const entityId = String(player && player.entity_id ? player.entity_id : "").trim();
+  const wrId = Number(player && player.wr_id);
+  const nameKey = normalizeName(player && player.name ? player.name : "");
+  return resumes.some((row) => {
+    if (row.entity_id && entityId && row.entity_id === entityId) return true;
+    if (Number.isFinite(row.wr_id) && Number.isFinite(wrId) && row.wr_id === wrId) return true;
+    if (row.name && nameKey && row.name === nameKey) return true;
+    return false;
+  });
+}
+
+function clearResumeMarker(player, resumes) {
+  const entityId = String(player && player.entity_id ? player.entity_id : "").trim();
+  const wrId = Number(player && player.wr_id);
+  const nameKey = normalizeName(player && player.name ? player.name : "");
+  return resumes.filter((row) => {
+    if (row.entity_id && entityId && row.entity_id === entityId) return false;
+    if (Number.isFinite(row.wr_id) && Number.isFinite(wrId) && row.wr_id === wrId) return false;
+    if (row.name && nameKey && row.name === nameKey) return false;
+    return true;
+  });
+}
+
 function main() {
   const rosterPath = argValue("--roster-path", DEFAULT_ROSTER_PATH);
   if (!fs.existsSync(rosterPath)) {
@@ -178,6 +268,7 @@ function main() {
   const roster = Array.isArray(rosterJson.roster) ? rosterJson.roster : [];
   const players = limit > 0 ? roster.slice(0, limit) : roster;
   const exclusions = loadCollectionExclusions();
+  let resumes = loadCollectionResumes();
 
   const summary = {
     generated_at: new Date().toISOString(),
@@ -190,10 +281,10 @@ function main() {
 
   for (const p of players) {
     const playerName = p.name;
-    const safeName = safeFileName(playerName);
-    const jsonPath = path.join(TMP_DIR, `${teamName}_${safeName}_matches.json`);
+    const jsonPath = playerJsonPath(teamName, p);
     const result = {
       player: playerName,
+      entity_id: String(p.entity_id || ""),
       wr_id: p.wr_id,
       json_path: jsonPath,
       csv_path: null,
@@ -216,7 +307,10 @@ function main() {
 
     try {
       let shouldFetch = true;
-      if (useExisting && fs.existsSync(jsonPath)) {
+      const forceRefresh = hasResumeMarker(p, resumes);
+      if (forceRefresh) {
+        result.fetch_status = "forced_recollect_after_resume";
+      } else if (useExisting && fs.existsSync(jsonPath)) {
         if (shouldSkipByPriorityWindow(p, to)) {
           shouldFetch = false;
           result.fetch_status = "used_existing_json_priority_window";
@@ -236,83 +330,33 @@ function main() {
       }
 
       if (shouldFetch) {
-        let raw = runNode(REPORT_SCRIPT, [
-          "--json-only",
-          "--include-matches",
-          "--univ",
-          teamName,
-          "--player",
-          playerName,
-          "--concurrency",
-          concurrency,
-        ]);
+        let raw = runNode(REPORT_SCRIPT, directReportArgs(teamName, playerName, p, ["--concurrency", concurrency]));
         let parsed = JSON.parse(raw);
-
-        // Fallback: if player is not found in current roster page, fetch directly by profile URL.
-        const noPlayerHit =
-          !parsed ||
-          !Array.isArray(parsed.players) ||
-          parsed.players.length === 0;
-        if (noPlayerHit && p.wr_id && p.gender) {
-          const profileUrl = defaultProfileUrl(p);
-          raw = runNode(REPORT_SCRIPT, [
-            "--json-only",
-            "--include-matches",
-            "--univ",
-            teamName,
-            "--player",
-            playerName,
-            "--profile-url",
-            profileUrl,
-            "--wr-id",
-            String(p.wr_id),
-            "--gender",
-            String(p.gender),
-            "--tier",
-            String(p.tier || ""),
-            "--concurrency",
-            concurrency,
-          ]);
-          parsed = JSON.parse(raw);
-        }
 
         // Guardrail: when collection unexpectedly returns 0, retry once with no-cache.
         // This prevents transient empty responses from being persisted as final output.
         if (firstPeriodTotal(parsed) === 0 && p.wr_id && p.gender) {
-          const profileUrl = defaultProfileUrl(p);
-          raw = runNode(REPORT_SCRIPT, [
-            "--json-only",
-            "--include-matches",
-            "--no-cache",
-            "--univ",
-            teamName,
-            "--player",
-            playerName,
-            "--profile-url",
-            profileUrl,
-            "--wr-id",
-            String(p.wr_id),
-            "--gender",
-            String(p.gender),
-            "--tier",
-            String(p.tier || ""),
-            "--concurrency",
-            concurrency,
-          ]);
+          raw = runNode(REPORT_SCRIPT, directReportArgs(teamName, playerName, p, ["--no-cache", "--concurrency", concurrency]));
           parsed = JSON.parse(raw);
         }
         writeJson(jsonPath, parsed);
         result.fetch_status = "ok";
+        if (forceRefresh) {
+          resumes = clearResumeMarker(p, resumes);
+          writeCollectionResumes(resumes);
+        }
       }
 
       const reusedJson = result.fetch_status === "used_existing_json" || result.fetch_status === "used_existing_json_inactive";
       if (reusedJson) {
-        result.csv_path = expectedExportCsvPath(playerName, p.team_code);
+        result.csv_path = expectedExportCsvPath(playerName, p);
         result.csv_status = "used_existing_csv";
       } else {
         const csvOutput = runNode(CSV_SCRIPT, [
-          "--univ",
-          teamName,
+          "--report-path",
+          jsonPath,
+          "--csv-path",
+          playerCsvPath(playerName, p),
           "--player",
           playerName,
           "--stable-name",

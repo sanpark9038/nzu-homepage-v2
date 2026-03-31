@@ -13,6 +13,18 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
+function normalizeName(value) {
+  return String(value || '').trim();
+}
+
+function uniqueUpsertKeyCount(players) {
+  return new Set(
+    players
+      .map((player) => normalizeName(player && player.name ? player.name : ''))
+      .filter(Boolean)
+  ).size;
+}
+
 async function main() {
   console.log('--- Supabase Staging Sync Started ---');
   
@@ -31,7 +43,13 @@ async function main() {
   
   const overridesData = fs.existsSync(OVERRIDES_FILE) ? JSON.parse(fs.readFileSync(OVERRIDES_FILE, 'utf8').replace(/^\uFEFF/, '')) : { overrides: [] };
   const overridesMap = new Map();
-  (overridesData.overrides || []).forEach(o => overridesMap.set(String(o.entity_id), o));
+  const overridesByName = new Map();
+  (overridesData.overrides || []).forEach(o => {
+    const entityId = String(o && o.entity_id ? o.entity_id : '').trim();
+    const name = normalizeName(o && o.name ? o.name : '');
+    if (entityId) overridesMap.set(entityId, o);
+    if (name && !overridesByName.has(name)) overridesByName.set(name, o);
+  });
 
   // 2. Load all project JSONs
   let allPlayers = [];
@@ -44,7 +62,7 @@ async function main() {
       const roster = Array.isArray(data.roster) ? data.roster : [];
       roster.forEach(p => {
         // Enforce the manual locks strictly
-        const override = overridesMap.get(String(p.entity_id));
+        const override = overridesMap.get(String(p.entity_id)) || overridesByName.get(normalizeName(p.name));
         if (override) {
           if (override.tier) p.tier = override.tier;
           if (override.race) p.race = override.race;
@@ -92,6 +110,7 @@ async function main() {
   };
   const validPlayers = allPlayers.filter(p => !shouldExclude(p));
   const excludedCount = allPlayers.length - validPlayers.length;
+  const expectedUpsertRows = uniqueUpsertKeyCount(validPlayers);
 
   // 4. Truncate staging table safely
   console.log('Truncating players_staging...');
@@ -122,6 +141,13 @@ async function main() {
   console.log(`[+] 전체 적재 대상: ${allPlayers.length}명`);
   console.log(`[-] 제외 필터 적용: ${excludedCount}명 제외됨 (사유: Exclusion List)`);
   console.log(`[=] Staging 적재 완료: ${stagingTotal}명\n`);
+  console.log(`[=] 예상 Upsert Key 수(name 기준): ${expectedUpsertRows}명`);
+
+  if (Number(stagingTotal || 0) < Math.floor(expectedUpsertRows * 0.8)) {
+    throw new Error(
+      `Staging visible row count is unexpectedly low. expected_unique_names=${expectedUpsertRows}, actual=${Number(stagingTotal || 0)}`
+    );
+  }
   
   console.log(`📌 FA(무소속) 병력: ${faCount}명`);
   console.log(`📌 제외 타겟 7명 실제 DB 검출 수: ${excludedCheck ? excludedCheck.length : 0}명 (0이어야 정상)`);

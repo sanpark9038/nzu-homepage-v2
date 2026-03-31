@@ -48,7 +48,16 @@ function loadTeamCodes() {
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
     .sort((a, b) => String(a).localeCompare(String(b)));
-  return dirs.filter((code) => fs.existsSync(path.join(PROJECTS_DIR, code, `players.${code}.v1.json`)));
+  return dirs.filter((code) => {
+    const filePath = path.join(PROJECTS_DIR, code, `players.${code}.v1.json`);
+    if (!fs.existsSync(filePath)) return false;
+    try {
+      const json = JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+      return !json.manual_managed;
+    } catch {
+      return false;
+    }
+  });
 }
 
 function splitIntoChunks(arr, chunkSize) {

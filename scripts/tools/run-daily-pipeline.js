@@ -23,6 +23,7 @@ const ROSTER_SYNC_SCRIPT = path.join(ROOT, "scripts", "tools", "sync-team-roster
 const DISPLAY_ALIAS_SCRIPT = path.join(ROOT, "scripts", "tools", "apply-player-display-aliases.js");
 const TEAM_TABLE_OUT_DIR = path.join(TMP_DIR, "reports", "team-roster-table");
 const NODE_BIN_FALLBACK = "node";
+const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -51,6 +52,15 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
 }
 
+function readJsonIfExists(filePath, fallback = null) {
+  if (!fs.existsSync(filePath)) return fallback;
+  try {
+    return readJson(filePath);
+  } catch {
+    return fallback;
+  }
+}
+
 function loadTeamConfig() {
   const projectsDir = path.join(ROOT, "data", "metadata", "projects");
   if (!fs.existsSync(projectsDir)) return [];
@@ -74,6 +84,48 @@ function loadTeamConfig() {
     });
   }
   return teams;
+}
+
+function baselineTeamPlayerMap(baselineDoc) {
+  const teams = Array.isArray(baselineDoc && baselineDoc.teams) ? baselineDoc.teams : [];
+  return new Map(
+    teams.map((team) => [String(team && team.team_code ? team.team_code : ""), Array.isArray(team.players) ? team.players : []])
+  );
+}
+
+function currentRosterEntityIds(teamCode) {
+  const filePath = path.join(ROOT, "data", "metadata", "projects", teamCode, `players.${teamCode}.v1.json`);
+  const teamDoc = readJsonIfExists(filePath, null);
+  const roster = Array.isArray(teamDoc && teamDoc.roster) ? teamDoc.roster : [];
+  return roster
+    .map((player) => String(player && player.entity_id ? player.entity_id : "").trim())
+    .filter(Boolean);
+}
+
+function summarizeRosterTransitions(teamConfig, baselineDoc) {
+  const baselineByTeam = baselineTeamPlayerMap(baselineDoc);
+  const summaries = [];
+  for (const team of teamConfig) {
+    const code = String(team && team.code ? team.code : "");
+    if (!code) continue;
+    const baselinePlayers = baselineByTeam.get(code) || [];
+    const baselineIds = new Set(
+      baselinePlayers.map((player) => String(player && player.entity_id ? player.entity_id : "").trim()).filter(Boolean)
+    );
+    const currentIds = new Set(currentRosterEntityIds(code));
+    const added = [...currentIds].filter((id) => !baselineIds.has(id)).sort();
+    const removed = [...baselineIds].filter((id) => !currentIds.has(id)).sort();
+    summaries.push({
+      team: team.univ,
+      team_code: code,
+      baseline_players: baselineIds.size,
+      current_players: currentIds.size,
+      added_entity_ids: added,
+      removed_entity_ids: removed,
+      changed: added.length > 0 || removed.length > 0,
+    });
+  }
+  return summaries;
 }
 
 function writeJson(filePath, obj) {
@@ -393,8 +445,18 @@ function loadTeamRoster(team) {
   const p = path.join(ROOT, team.rosterPath);
   const doc = readJson(p);
   const rows = Array.isArray(doc.roster) ? doc.roster : [];
-  const byName = new Map(rows.map((r) => [String(r.name || ""), r]));
-  return byName;
+  const byEntityId = new Map();
+  const byWrId = new Map();
+  const byName = new Map();
+  for (const row of rows) {
+    const entityId = String(row && row.entity_id ? row.entity_id : "").trim();
+    const wrId = Number(row && row.wr_id ? row.wr_id : 0);
+    const name = String(row && row.name ? row.name : "").trim();
+    if (entityId && !byEntityId.has(entityId)) byEntityId.set(entityId, row);
+    if (Number.isFinite(wrId) && wrId > 0 && !byWrId.has(wrId)) byWrId.set(wrId, row);
+    if (name && !byName.has(name)) byName.set(name, row);
+  }
+  return { byEntityId, byWrId, byName };
 }
 
 function recoverTeamAnomalies(team, report, from, to, concurrency) {
@@ -413,7 +475,12 @@ function recoverTeamAnomalies(team, report, from, to, concurrency) {
   const unrecovered = [];
   for (const row of targetRows) {
     const playerName = String(row.player || "");
-    const rosterPlayer = rosterByName.get(playerName);
+    const entityId = String(row.entity_id || "").trim();
+    const wrId = Number(row.wr_id || 0);
+    const rosterPlayer =
+      (entityId && rosterByName.byEntityId.get(entityId)) ||
+      (Number.isFinite(wrId) && wrId > 0 ? rosterByName.byWrId.get(wrId) : null) ||
+      rosterByName.byName.get(playerName);
     if (!rosterPlayer) {
       unrecovered.push({ player: playerName, reason: "missing_roster_player" });
       continue;
@@ -444,8 +511,8 @@ function recoverTeamAnomalies(team, report, from, to, concurrency) {
       writeJson(String(row.json_path), parsed);
 
       const csvOut = runNode(CSV_SCRIPT, [
-        "--univ",
-        team.univ,
+        "--report-path",
+        String(row.json_path),
         "--player",
         playerName,
         "--stable-name",
@@ -480,7 +547,7 @@ function recoverTeamAnomalies(team, report, from, to, concurrency) {
   };
 }
 
-function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null) {
+function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null, rosterTransitionSummary = []) {
   const rules = cfg.rules || {};
   const allowlist =
     rules && rules.zero_record_players_allowlist && typeof rules.zero_record_players_allowlist === "object"
@@ -492,6 +559,11 @@ function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null) {
       ? rules.roster_size_changed_team_allowlist.map((v) => String(v))
       : []
   );
+  const rosterTransitionByTeam = new Map(
+    (Array.isArray(rosterTransitionSummary) ? rosterTransitionSummary : [])
+      .filter((row) => row && row.changed)
+      .map((row) => [String(row.team_code || ""), row])
+  );
 
   function splitZeroPlayers(raw) {
     return String(raw || "")
@@ -502,6 +574,7 @@ function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null) {
 
   const alerts = [];
   for (const row of rowsWithDelta) {
+    const rosterTransition = rosterTransitionByTeam.get(String(row.team_code || "")) || null;
     if (row.fetch_fail > 0 || row.csv_fail > 0) {
       alerts.push({
         severity: rules.pipeline_failure_severity || "critical",
@@ -517,7 +590,7 @@ function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null) {
     );
     const movedInSet = movedInByTeam.get(String(row.team_code || "")) || new Set();
     const actionableZeroPlayers = zeroPlayers.filter((name) => !allowSet.has(name) && !movedInSet.has(name));
-    if (actionableZeroPlayers.length > 0) {
+    if (actionableZeroPlayers.length > 0 && !rosterTransition) {
       alerts.push({
         severity: rules.zero_record_players_severity || "high",
         team: row.team,
@@ -528,7 +601,7 @@ function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null) {
     }
     const rosterChanged = typeof row.delta_players === "number" && row.delta_players !== 0;
     if (typeof row.delta_total_matches === "number") {
-      if (row.delta_total_matches < 0 && !rosterChanged) {
+      if (row.delta_total_matches < 0 && !rosterChanged && !rosterTransition) {
         alerts.push({
           severity: rules.negative_delta_matches_severity || "critical",
           team: row.team,
@@ -557,6 +630,15 @@ function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null) {
         team_code: row.team_code,
         rule: "roster_size_changed",
         message: `delta_players=${row.delta_players}`,
+      });
+    }
+    if (rosterTransition) {
+      alerts.push({
+        severity: "medium",
+        team: row.team,
+        team_code: row.team_code,
+        rule: "roster_transition_detected",
+        message: `baseline=${rosterTransition.baseline_players}, current=${rosterTransition.current_players}, added=${rosterTransition.added_entity_ids.length}, removed=${rosterTransition.removed_entity_ids.length}`,
       });
     }
   }
@@ -714,6 +796,7 @@ function main() {
     ),
     recovery_actions: recoveryActions,
     team_table_report: teamTableReport,
+    roster_transition_summary: summarizeRosterTransitions(teamConfig, readJsonIfExists(MANUAL_REFRESH_BASELINE_PATH, null)),
     delta_reference: {
       comparable: comparablePrior,
       prior_period_from: prior ? String(prior.period_from || "") : null,
@@ -725,7 +808,7 @@ function main() {
   };
 
   const alertConfig = readAlertConfig();
-  const alerts = buildAlerts(rowsWithDelta, alertConfig, rosterSyncReport);
+  const alerts = buildAlerts(rowsWithDelta, alertConfig, rosterSyncReport, snapshot.roster_transition_summary);
   const alertSummary = {
     generated_at: new Date().toISOString(),
     date_tag: dateTag,

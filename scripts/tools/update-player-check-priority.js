@@ -23,6 +23,15 @@ function safeFileName(name) {
   return String(name).replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
 }
 
+function playerArtifactKey(player) {
+  const entityId = String(player && player.entity_id ? player.entity_id : "").trim();
+  if (entityId) return entityId.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
+  const wrId = Number(player && player.wr_id ? player.wr_id : 0);
+  const gender = String(player && player.gender ? player.gender : "").trim() || "unknown";
+  if (Number.isFinite(wrId) && wrId > 0) return `wr_${gender}_${wrId}`;
+  return safeFileName(String(player && player.name ? player.name : "unknown_player"));
+}
+
 function asDate(value) {
   if (!value) return null;
   const d = new Date(String(value));
@@ -51,9 +60,12 @@ function loadTeamCodes() {
     .sort((a, b) => String(a).localeCompare(String(b)));
 }
 
-function matchJsonPath(teamCode, teamName, fetchUnivName, playerName) {
+function matchJsonPath(teamCode, teamName, fetchUnivName, player) {
+  const playerName = String(player && player.name ? player.name : "");
   const safeName = safeFileName(playerName);
   const candidates = [
+    path.join(TMP_DIR, `${teamName}_${playerArtifactKey(player)}_matches.json`),
+    path.join(TMP_DIR, `${fetchUnivName}_${playerArtifactKey(player)}_matches.json`),
     path.join(TMP_DIR, `${teamName}_${safeName}_matches.json`),
     path.join(TMP_DIR, `${fetchUnivName}_${safeName}_matches.json`),
     path.join(TMP_DIR, "exports", String(teamCode || ""), "json", `${teamName}_${safeName}_matches.json`),
@@ -122,7 +134,7 @@ function main() {
         check_priority: String(player.check_priority || ""),
         check_interval_days: Number(player.check_interval_days || 0) || 0,
       };
-      const meta = readPlayerMatchMeta(matchJsonPath(code, teamName, fetchUnivName, player.name));
+      const meta = readPlayerMatchMeta(matchJsonPath(code, teamName, fetchUnivName, player));
       if (meta) {
         player.last_checked_at = meta.last_checked_at;
         player.last_match_at = meta.last_match_at;

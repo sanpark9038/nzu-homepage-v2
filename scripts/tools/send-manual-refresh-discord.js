@@ -16,6 +16,7 @@ const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 const MANUAL_REFRESH_REPORT_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.json");
+const OPS_PIPELINE_REPORT_PATH = path.join(REPORTS_DIR, "ops_pipeline_latest.json");
 const TMP_DIR = path.join(ROOT, "tmp");
 
 function argValue(flag, fallback = null) {
@@ -64,6 +65,19 @@ function normalizeName(value) {
 
 function normalizeEntityId(value) {
   return String(value || "").trim();
+}
+
+function safeFileName(name) {
+  return String(name || "").replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
+}
+
+function playerArtifactKey(player) {
+  const entityId = normalizeEntityId(player && player.entity_id);
+  if (entityId) return entityId.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
+  const wrId = Number(player && player.wr_id ? player.wr_id : 0);
+  const gender = String(player && player.gender ? player.gender : "").trim() || "unknown";
+  if (Number.isFinite(wrId) && wrId > 0) return `wr_${gender}_${wrId}`;
+  return safeFileName(String(player && player.name ? player.name : "unknown_player"));
 }
 
 function loadManualOverrides() {
@@ -158,7 +172,11 @@ function matchFilePathForPlayer(player) {
   const teamName = String(player && player.team_name ? player.team_name : "").trim();
   const playerName = String(player && player.name ? player.name : "").trim();
   if (!teamName || !playerName) return null;
-  return path.join(TMP_DIR, `${teamName}_${playerName}_matches.json`);
+  const candidates = [
+    path.join(TMP_DIR, `${teamName}_${playerArtifactKey(player)}_matches.json`),
+    path.join(TMP_DIR, `${teamName}_${safeFileName(playerName)}_matches.json`),
+  ];
+  return candidates.find((filePath) => fs.existsSync(filePath)) || candidates[0];
 }
 
 function countTodayMatchesForPlayer(player, targetDate) {
@@ -235,6 +253,25 @@ function failureTailLine(report) {
   const source = stderrTail.length ? stderrTail : stdoutTail;
   if (!source.length) return "";
   return String(source[source.length - 1] || "").trim();
+}
+
+function blockingAlertsSummary(alertsDoc, limit = 3) {
+  const alerts = Array.isArray(alertsDoc && alertsDoc.alerts) ? alertsDoc.alerts : [];
+  const blocking = new Set(
+    Array.isArray(alertsDoc && alertsDoc.blocking_severities) && alertsDoc.blocking_severities.length
+      ? alertsDoc.blocking_severities.map((value) => String(value))
+      : ["critical", "high"]
+  );
+  const rows = alerts.filter((alert) => blocking.has(String(alert && alert.severity ? alert.severity : "")));
+  return {
+    total: rows.length,
+    rows: rows.slice(0, limit).map((alert) => ({
+      severity: String(alert && alert.severity ? alert.severity : ""),
+      team: String(alert && alert.team ? alert.team : alert && alert.team_code ? alert.team_code : ""),
+      rule: String(alert && alert.rule ? alert.rule : ""),
+      message: String(alert && alert.message ? alert.message : ""),
+    })),
+  };
 }
 
 function countAlertsBySeverity(alerts) {
@@ -356,9 +393,14 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function buildFailureMessage({ snapshot, runUrl }) {
+function buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport }) {
   const report = readJsonIfExists(MANUAL_REFRESH_REPORT_PATH);
   const dateLabel = dateLabelFromManualRefreshReport(report) || dateLabelFromSnapshot(snapshot);
+  const opsFailureStep =
+    opsPipelineReport && opsPipelineReport.failure_step && typeof opsPipelineReport.failure_step === "object"
+      ? opsPipelineReport.failure_step
+      : null;
+  const blockingSummary = blockingAlertsSummary(alertsDoc);
   const lines = [
     `산박대표님.일일 업데이트보고입니다. 실패 (${dateLabel})`,
     "",
@@ -374,6 +416,21 @@ function buildFailureMessage({ snapshot, runUrl }) {
   if (tail) {
     lines.push(`마지막 로그: ${tail}`);
   }
+  if (opsFailureStep && opsFailureStep.name) {
+    lines.push(`내부 실패 단계: ${opsFailureStep.name}`);
+  }
+  if (blockingSummary.total > 0) {
+    lines.push(
+      `Blocking alerts: ${blockingSummary.total}건${
+        alertsDoc && alertsDoc.counts
+          ? ` (critical ${Number(alertsDoc.counts.critical || 0)}, high ${Number(alertsDoc.counts.high || 0)})`
+          : ""
+      }`
+    );
+    for (const item of blockingSummary.rows) {
+      lines.push(`- [${item.severity}] ${item.team} / ${item.rule} / ${item.message}`);
+    }
+  }
   if (runUrl) {
     lines.push("");
     lines.push(`실행 링크: ${runUrl}`);
@@ -386,8 +443,9 @@ function buildMessage({ outcome, source, runUrl }) {
   const alertsPath = latestFileByPrefix("daily_pipeline_alerts_");
   const snapshot = readJsonIfExists(snapshotPath);
   const alertsDoc = readJsonIfExists(alertsPath);
+  const opsPipelineReport = readJsonIfExists(OPS_PIPELINE_REPORT_PATH);
   if (outcome !== "success") {
-    return buildFailureMessage({ snapshot, runUrl, source });
+    return buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport, source });
   }
   return buildSuccessMessage({ snapshot, alertsDoc, runUrl, source });
 }

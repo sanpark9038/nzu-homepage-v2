@@ -18,12 +18,14 @@ if (!player) {
 const from = argValue("--from", "2025-01-01");
 const to = argValue("--to", new Date().toISOString().slice(0, 10));
 const stableName = process.argv.includes("--stable-name");
+const explicitReportPath = argValue("--report-path", null);
+const explicitCsvPath = argValue("--csv-path", null);
 
-const reportPath = path.join(process.cwd(), "tmp", `${univ}_${player}_matches.json`);
+const reportPath = explicitReportPath || path.join(process.cwd(), "tmp", `${univ}_${player}_matches.json`);
 const csvFileName = stableName
   ? `${player}_상세전적.csv`
   : `${player}_상세전적_${from}_${to}.csv`;
-const csvPath = path.join(process.cwd(), "tmp", csvFileName);
+const csvPath = explicitCsvPath || path.join(process.cwd(), "tmp", csvFileName);
 
 function splitOpponent(text) {
   const raw = String(text || "").trim();

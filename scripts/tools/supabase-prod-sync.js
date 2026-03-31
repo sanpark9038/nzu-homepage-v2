@@ -1,11 +1,69 @@
+const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env.local') });
+
+const ROOT = path.join(__dirname, '..', '..');
+const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
+const EXCLUSIONS_FILE = path.join(ROOT, 'data', 'metadata', 'pipeline_collection_exclusions.v1.json');
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
+
+function normalizeName(value) {
+  return String(value || '').trim();
+}
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, ''));
+}
+
+function loadExpectedLocalVisibleCount() {
+  const exclusionsData = fs.existsSync(EXCLUSIONS_FILE) ? readJson(EXCLUSIONS_FILE) : { players: [] };
+  const exclusionRules = (exclusionsData.players || []).map((p) => {
+    const wrId = Number(p && p.wr_id);
+    const name = String(p && p.name ? p.name : '').trim().toLowerCase();
+    const entityId = String(p && p.entity_id ? p.entity_id : '').trim();
+    return {
+      entity_id: entityId || null,
+      wr_id: Number.isFinite(wrId) && wrId > 0 ? wrId : null,
+      name: name || null,
+    };
+  });
+
+  const shouldExclude = (player) => {
+    const entityId = String(player && player.entity_id ? player.entity_id : '').trim();
+    const wrId = Number(entityId.split(':').pop());
+    const name = String(player && player.name ? player.name : '').trim().toLowerCase();
+    return exclusionRules.some((rule) => {
+      if (!rule) return false;
+      if (rule.entity_id) return entityId === rule.entity_id;
+      if (rule.wr_id && rule.name) return wrId === rule.wr_id && name === rule.name;
+      if (rule.wr_id) return wrId === rule.wr_id;
+      if (rule.name) return name === rule.name;
+      return false;
+    });
+  };
+
+  const names = new Set();
+  const dirs = fs.existsSync(PROJECTS_DIR)
+    ? fs.readdirSync(PROJECTS_DIR, { withFileTypes: true }).filter((d) => d.isDirectory())
+    : [];
+  for (const dir of dirs) {
+    const filePath = path.join(PROJECTS_DIR, dir.name, `players.${dir.name}.v1.json`);
+    if (!fs.existsSync(filePath)) continue;
+    const doc = readJson(filePath);
+    const roster = Array.isArray(doc.roster) ? doc.roster : [];
+    for (const player of roster) {
+      if (shouldExclude(player)) continue;
+      const name = normalizeName(player && player.name ? player.name : '');
+      if (name) names.add(name);
+    }
+  }
+  return names.size;
+}
 
 async function main() {
   console.log('--- Production Sync Started ---');
@@ -36,6 +94,12 @@ async function main() {
 
   if (!sanitized.length) {
     throw new Error('players_staging has no valid rows to sync.');
+  }
+  const expectedVisibleCount = loadExpectedLocalVisibleCount();
+  if (expectedVisibleCount > 0 && sanitized.length < Math.floor(expectedVisibleCount * 0.8)) {
+    throw new Error(
+      `players_staging visible rows are unexpectedly low. expected_local_unique_names=${expectedVisibleCount}, actual=${sanitized.length}`
+    );
   }
 
   console.log(`[+] Fetched ${sanitized.length} valid records from players_staging`);

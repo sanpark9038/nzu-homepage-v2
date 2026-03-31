@@ -45,6 +45,8 @@ function loadCurrentRosterState(projectsDir) {
     for (const player of roster) {
       players.push({
         entity_id: String(player && player.entity_id ? player.entity_id : ""),
+        wr_id: Number(player && player.wr_id ? player.wr_id : 0) || 0,
+        gender: String(player && player.gender ? player.gender : ""),
         name: String(player && player.name ? player.name : ""),
         display_name: String(
           player && (player.display_name || player.name) ? player.display_name || player.name : ""

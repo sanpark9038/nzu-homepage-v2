@@ -138,3 +138,51 @@ runTest("buildAlerts ignores moved-in zero-record players for the current run", 
     },
   ]);
 });
+
+runTest("buildAlerts suppresses blocking alerts for teams with roster transitions", () => {
+  const actual = buildAlerts(
+    [
+      {
+        team: "흑카데미",
+        team_code: "black",
+        zero_players: "빡재TV, 우힝이",
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: -6638,
+        delta_players: 0,
+      },
+    ],
+    {
+      rules: {
+        zero_record_players_severity: "high",
+        zero_record_players_allowlist: {},
+        negative_delta_matches_severity: "critical",
+        roster_size_changed_severity: "medium",
+        roster_size_changed_team_allowlist: [],
+        no_new_matches_enabled: false,
+      },
+    },
+    null,
+    [
+      {
+        team: "흑카데미",
+        team_code: "black",
+        baseline_players: 16,
+        current_players: 16,
+        added_entity_ids: ["eloboard:male:913"],
+        removed_entity_ids: ["eloboard:male:mix:913"],
+        changed: true,
+      },
+    ]
+  );
+
+  assert.deepEqual(actual, [
+    {
+      severity: "medium",
+      team: "흑카데미",
+      team_code: "black",
+      rule: "roster_transition_detected",
+      message: "baseline=16, current=16, added=1, removed=1",
+    },
+  ]);
+});
