@@ -1,13 +1,23 @@
 
 import { supabase } from "./supabase";
 import { type Player } from "../types";
+export type { Player };
+
+// Public pages should consume website-serving data from Supabase through this layer.
+// Local metadata and tmp reports remain admin / pipeline sources, not public page sources.
+const PLAYER_SERVING_SELECT = [
+  "broadcast_title, broadcast_url, created_at, detailed_stats, elo_point, eloboard_id, id, is_live, last_synced_at, match_history, name, nickname, photo_url, race, soop_id, tier, tier_rank, total_losses, total_wins, university, win_rate, gender, last_checked_at, last_match_at, last_changed_at, check_priority, check_interval_days",
+] as const;
+
+const MATCH_SERVING_SELECT =
+  "*, player1:players!player1_id(id, name, race, photo_url), player2:players!player2_id(id, name, race, photo_url), winner:players!winner_id(id, name)" as const;
 
 export const playerService = {
   /** 전적(ELO) 순으로 모든 선수 가져오기 */
   async getAllPlayers() {
     const { data, error } = await supabase
       .from("players")
-      .select("*")
+      .select(PLAYER_SERVING_SELECT[0])
       .order("elo_point", { ascending: false, nullsFirst: false })
       .order("tier", { ascending: true });
     
@@ -19,7 +29,7 @@ export const playerService = {
   async getPlayerById(id: string) {
     const { data, error } = await supabase
       .from("players")
-      .select("*")
+      .select(PLAYER_SERVING_SELECT[0])
       .eq("id", id)
       .single();
     
@@ -31,7 +41,7 @@ export const playerService = {
   async getLivePlayers() {
     const { data, error } = await supabase
       .from("players")
-      .select("*")
+      .select(PLAYER_SERVING_SELECT[0])
       .eq("is_live", true)
       .order("elo_point", { ascending: false });
     
@@ -43,7 +53,7 @@ export const playerService = {
   async getPlayerMatches(playerId: string, limit = 10) {
     const { data, error } = await supabase
       .from('matches')
-      .select('*, player1:players!player1_id(id, name, race, photo_url), player2:players!player2_id(id, name, race, photo_url)')
+      .select(MATCH_SERVING_SELECT)
       .or(`player1_id.eq.${playerId},player2_id.eq.${playerId}`)
       .order('match_date', { ascending: false })
       .limit(limit);
@@ -56,12 +66,7 @@ export const playerService = {
   async getRecentMatches(limit = 10) {
     const { data, error } = await supabase
       .from("matches")
-      .select(`
-        *,
-        player1:player1_id(id, name, race, photo_url),
-        player2:player2_id(id, name, race, photo_url),
-        winner:winner_id(id, name)
-      `)
+      .select(MATCH_SERVING_SELECT)
       .order("match_date", { ascending: false })
       .limit(limit);
     
@@ -86,7 +91,7 @@ export const playerService = {
   async searchPlayers(query: string) {
     const { data, error } = await supabase
       .from("players")
-      .select("*")
+      .select(PLAYER_SERVING_SELECT[0])
       .ilike("name", `%${query}%`)
       .limit(10);
     
@@ -110,7 +115,7 @@ export const playerService = {
   async getPlayersByUniversity(univ: string) {
     const { data, error } = await supabase
       .from("players")
-      .select("*")
+      .select(PLAYER_SERVING_SELECT[0])
       .eq("university", univ)
       .order("name", { ascending: true });
     

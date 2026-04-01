@@ -4,9 +4,14 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import type { Player } from "@/types";
 
-export function MatchForm({ players }: { players: Player[] }) {
+type MatchFormPlayer = {
+  id: string;
+  name: string;
+  race: string;
+};
+
+export function MatchForm({ players }: { players: MatchFormPlayer[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);

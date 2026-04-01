@@ -2,28 +2,69 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { LiveBadge, RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
-import { cn, getTierLabel, normalizeTier } from "@/lib/utils";
+import { RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
 import { type Player } from "@/lib/player-service";
+import { cn, normalizeTier } from "@/lib/utils";
 
-type PlayerMatch = {
-  id: string;
-  winner_id: string | null;
-  player1_id: string | null;
-  player2_id: string | null;
-  map_name: string | null;
-  match_date: string | null;
-  player1: { id: string; name: string; photo_url: string | null } | null;
-  player2: { id: string; name: string; photo_url: string | null } | null;
+type RaceSummary = {
+  race: Race;
+  matches: number;
+  wins: number;
+  losses: number;
+  winRate: string;
+  hasRecord: boolean;
 };
+
+type MapSummary = {
+  mapName: string;
+  matches: number;
+  wins: number;
+  losses: number;
+  winRate: string;
+};
+
+type RaceMapSummary = {
+  race: Race;
+  bestMap: MapSummary | null;
+};
+
+type SpawnPartnerSummary = {
+  name: string;
+  race: Race;
+  matches: number;
+  wins: number;
+  losses: number;
+} | null;
+
+type SpawnPartnerCard = NonNullable<SpawnPartnerSummary>;
+
+type RecentLog = {
+  id: string;
+  result: "승" | "패";
+  opponentName: string;
+  opponentRace: Race;
+  mapName: string;
+  dateText: string;
+};
+
+type RecentSummary = {
+  winRate: string;
+  wins: number;
+  losses: number;
+  form: readonly ("승" | "패")[];
+};
+
+const TEMP_RECENT_FORM = ["승", "승", "패", "패", "패"] as const;
 
 type Props = {
   player: Player;
-  matches: PlayerMatch[];
-  recentWinRate: string;
-  recentWins: number;
-  recentLosses: number;
-  recentForm: readonly string[];
+  raceSummaries: RaceSummary[];
+  strongestMap: MapSummary | null;
+  weakestMap: MapSummary | null;
+  raceBestMaps: RaceMapSummary[];
+  spawnPartner: SpawnPartnerSummary;
+  recentLogs: RecentLog[];
+  recentSummary: RecentSummary;
 };
 
 function normalizeRaceValue(race: string | null | undefined): Race {
@@ -33,22 +74,74 @@ function normalizeRaceValue(race: string | null | undefined): Race {
   return "T";
 }
 
+const TEMP_RACE_SUMMARIES: RaceSummary[] = [
+  { race: "T", matches: 21, wins: 13, losses: 8, winRate: "62%", hasRecord: true },
+  { race: "Z", matches: 17, wins: 10, losses: 7, winRate: "59%", hasRecord: true },
+  { race: "P", matches: 14, wins: 6, losses: 8, winRate: "43%", hasRecord: true },
+];
+
+const TEMP_STRONGEST_MAP: MapSummary = {
+  mapName: "폴리포이드",
+  matches: 8,
+  wins: 6,
+  losses: 2,
+  winRate: "75%",
+};
+
+const TEMP_WEAKEST_MAP: MapSummary = {
+  mapName: "네오 실피드",
+  matches: 7,
+  wins: 2,
+  losses: 5,
+  winRate: "29%",
+};
+
+const TEMP_RACE_BEST_MAPS: RaceMapSummary[] = [
+  { race: "T", bestMap: { mapName: "폴리포이드", matches: 4, wins: 3, losses: 1, winRate: "75%" } },
+  { race: "Z", bestMap: { mapName: "버터", matches: 3, wins: 2, losses: 1, winRate: "67%" } },
+  { race: "P", bestMap: { mapName: "투혼", matches: 3, wins: 2, losses: 1, winRate: "67%" } },
+];
+
+const TEMP_SPAWN_PARTNER: SpawnPartnerCard = {
+  name: "철구",
+  race: "T",
+  matches: 18,
+  wins: 10,
+  losses: 8,
+};
+
+const TEMP_RECENT_LOGS: RecentLog[] = [
+  { id: "temp-1", result: "승", opponentName: "철구", opponentRace: "T", mapName: "폴리포이드", dateText: "26.03.27" },
+  { id: "temp-2", result: "승", opponentName: "요정너구리", opponentRace: "P", mapName: "버터", dateText: "26.03.26" },
+  { id: "temp-3", result: "패", opponentName: "김민철", opponentRace: "Z", mapName: "네오 실피드", dateText: "26.03.25" },
+  { id: "temp-4", result: "패", opponentName: "정윤종", opponentRace: "P", mapName: "투혼", dateText: "26.03.24" },
+  { id: "temp-5", result: "패", opponentName: "박성균", opponentRace: "T", mapName: "라데온", dateText: "26.03.23" },
+];
+
 export default function PlayerSearchResult({
   player,
-  matches,
-  recentWinRate,
-  recentWins,
-  recentLosses,
-  recentForm,
+  raceSummaries,
+  strongestMap,
+  weakestMap,
+  raceBestMaps,
+  spawnPartner,
+  recentLogs,
+  recentSummary,
 }: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
   const normTier = normalizeTier(player.tier);
   const isElite = ["갓", "킹"].includes(normTier);
   const themeColor = isElite ? "rgba(255, 215, 0, 0.28)" : "rgba(0, 255, 163, 0.22)";
-  const displayTier = getTierLabel(player.tier);
+  const recentForm = recentSummary.form.length ? recentSummary.form : TEMP_RECENT_FORM;
+  const resolvedRaceSummaries = raceSummaries.some((item) => item.hasRecord) ? raceSummaries : TEMP_RACE_SUMMARIES;
+  const resolvedStrongestMap = strongestMap || TEMP_STRONGEST_MAP;
+  const resolvedWeakestMap = weakestMap || TEMP_WEAKEST_MAP;
+  const resolvedRaceBestMaps = raceBestMaps.some((item) => item.bestMap) ? raceBestMaps : TEMP_RACE_BEST_MAPS;
+  const resolvedSpawnPartner: SpawnPartnerCard = spawnPartner ?? TEMP_SPAWN_PARTNER;
+  const resolvedRecentLogs = recentLogs.length ? recentLogs : TEMP_RECENT_LOGS;
 
   return (
-    <div className="overflow-hidden rounded-[1.55rem] border border-white/8 bg-white/[0.03] px-5 py-5 md:px-6 md:py-6">
+    <div className="overflow-hidden rounded-[1.55rem] border border-white/8 bg-white/[0.03] px-4 py-4 md:px-6 md:py-5 xl:px-7 xl:py-6">
       <div className="grid gap-5 md:grid-cols-[112px_minmax(0,1fr)_220px] md:grid-rows-[112px_auto]">
         <div className="md:row-span-2">
           <div className="w-28 shrink-0">
@@ -56,14 +149,14 @@ export default function PlayerSearchResult({
               <Image src={player.photo_url || "/placeholder-player.png"} alt={player.name} fill className="object-cover object-top" />
             </div>
             <div className="mt-3 text-center">
-              <h2 className="text-[1.32rem] font-[1000] tracking-tight text-white md:text-[1.46rem]">{player.name}</h2>
-              {player.nickname ? <p className="mt-1 text-[0.8rem] font-[1000] tracking-tight text-white/42">{player.nickname}</p> : null}
+              <h2 className="text-[1.36rem] font-[1000] tracking-tight text-white md:text-[1.54rem] xl:text-[1.66rem]">{player.name}</h2>
+              {player.nickname ? <p className="mt-1 text-[0.82rem] font-[1000] tracking-tight text-white/42 md:text-[0.86rem]">{player.nickname}</p> : null}
               {player.broadcast_url ? (
-                <a href={player.broadcast_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[0.95rem] border border-sky-400/20 bg-sky-400/[0.09] px-3 text-[0.88rem] font-[1000] tracking-tight text-sky-300 transition-all hover:border-sky-300/36 hover:bg-sky-400/[0.16] hover:text-white">
+                <a href={player.broadcast_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[0.95rem] border border-sky-400/20 bg-sky-400/[0.09] px-3 text-[0.9rem] font-[1000] tracking-tight text-sky-300 transition-all hover:border-sky-300/36 hover:bg-sky-400/[0.16] hover:text-white md:h-10 md:text-[0.94rem]">
                   방송국 이동
                 </a>
               ) : (
-                <button type="button" disabled className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[0.95rem] border border-sky-400/10 bg-sky-400/[0.04] px-3 text-[0.88rem] font-[1000] tracking-tight text-sky-200/25">
+                <button type="button" disabled className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[0.95rem] border border-sky-400/10 bg-sky-400/[0.04] px-3 text-[0.9rem] font-[1000] tracking-tight text-sky-200/25 md:h-10 md:text-[0.94rem]">
                   방송국 이동
                 </button>
               )}
@@ -93,28 +186,28 @@ export default function PlayerSearchResult({
 
         <div className="min-w-0 md:col-start-2 md:row-start-2">
           <div className="grid gap-2.5 md:grid-cols-2">
-            <div className="px-1"><span className="text-[13px] font-black tracking-wide text-nzu-green">전체: 2025.01.01 ~ 현재</span></div>
-            <div className="px-1"><span className="text-[13px] font-black tracking-wide text-red-500">최근: 최근 3개월 전적</span></div>
+            <div className="px-1"><span className="text-[13px] font-black tracking-wide text-nzu-green md:text-[13.5px]">전체: 2025.01.01 ~ 현재</span></div>
+            <div className="px-1"><span className="text-[13px] font-black tracking-wide text-red-500 md:text-[13.5px]">최근: 최근 3개월 전적</span></div>
           </div>
           <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard tone="green" label="전체 승률" value={player.win_rate != null ? `${player.win_rate}%` : "-"} />
             <MetricCard tone="green" label="전체 전적" value={`${player.total_wins ?? 0}승 / ${player.total_losses ?? 0}패`} />
-            <MetricCard tone="red" label="최근 승률" value={recentWinRate} />
-            <MetricCard tone="red" label="최근 전적" value={`${recentWins}승 / ${recentLosses}패`} />
+            <MetricCard tone="red" label="최근 승률" value={recentSummary.winRate} />
+            <MetricCard tone="red" label="최근 전적" value={`${recentSummary.wins}승 / ${recentSummary.losses}패`} />
           </div>
         </div>
 
         <div className="flex h-full flex-col md:col-start-3 md:row-start-2">
-          <div className="px-1"><span className="text-[13px] font-black tracking-wide text-white/72">최근 폼: 최근 5경기</span></div>
-          <div className="mt-2.5 flex flex-1 flex-col rounded-[1rem] border border-white/8 bg-white/[0.03] px-3 py-3">
-            <div className="flex items-center justify-between text-[12px] font-[1000] tracking-tight"><span className="text-white/46">과거</span><span className="text-white/30">→</span><span className="text-white/82">최근</span></div>
+          <div className="px-1"><span className="text-[13px] font-black tracking-wide text-white/72 md:text-[13.5px]">최근 폼: 최근 5경기</span></div>
+          <div className="mt-2.5 flex flex-1 flex-col rounded-[1rem] border border-white/8 bg-white/[0.03] px-3 py-3 xl:px-3.5 xl:py-3.5">
+            <div className="flex items-center justify-between text-[12px] font-[1000] tracking-tight md:text-[12.5px]"><span className="text-white/46">과거</span><span className="text-white/30">→</span><span className="text-white/82">최근</span></div>
             <div className="mt-2 grid grid-cols-5 items-end gap-1.5">
               {recentForm.map((result, index) => (
                 <span
                   key={`${result}-${index}`}
                   className={cn(
                     "inline-flex w-full items-center justify-center rounded-[0.7rem] border font-[1000] tracking-tight",
-                    index < 2 ? "h-7 text-[0.78rem]" : index === 2 ? "h-8 text-[0.84rem]" : index === 3 ? "h-9 text-[0.9rem]" : "h-10 text-[0.98rem]",
+                    index < 2 ? "h-7 text-[0.8rem] md:h-8 md:text-[0.84rem]" : index === 2 ? "h-8 text-[0.86rem] md:h-9 md:text-[0.9rem]" : index === 3 ? "h-9 text-[0.92rem] md:h-10 md:text-[0.98rem]" : "h-10 text-[1rem] md:h-11 md:text-[1.06rem]",
                     result === "승" ? "border-nzu-green/25 bg-nzu-green/[0.1] text-nzu-green" : "border-red-400/25 bg-red-400/[0.1] text-red-300",
                   )}
                 >
@@ -127,88 +220,118 @@ export default function PlayerSearchResult({
       </div>
 
       {isExpanded ? (
-        <section className="relative mt-5 overflow-hidden rounded-[1.6rem] border border-white/8 bg-[#0a0f0d] p-5 shadow-[0_28px_70px_rgba(0,0,0,0.32)] md:p-7">
-          <div className="pointer-events-none absolute -right-24 -top-24 h-[280px] w-[280px] rounded-full blur-[110px] opacity-30" style={{ backgroundColor: themeColor }} />
-          <div className="relative">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.32em] text-white/32">expanded player card</p>
-                <h3 className="mt-2 text-[1.35rem] font-[1000] tracking-tight text-white md:text-[1.7rem]">{player.name} 상세 분석</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <TierBadge tier={player.tier || "미정"} size="sm" />
-                <RaceTag race={normalizeRaceValue(player.race)} size="sm" />
-                {player.is_live ? <LiveBadge /> : null}
-              </div>
-            </div>
-
-            <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-              <div className="space-y-3">
-                <div className="relative aspect-[4/5] overflow-hidden rounded-[1.2rem] border border-white/10 bg-black/35">
-                  <Image src={player.photo_url || "/placeholder-player.png"} alt={player.name} fill className="object-cover object-top" />
-                </div>
-                <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] p-4">
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/32">Profile</p>
-                  <div className="mt-3 space-y-2 text-sm font-[1000] text-white/78">
-                    <p>{player.nickname || "별칭 정보 없음"}</p>
-                    <p>{player.university || "무소속"}</p>
-                    <p>{displayTier}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-5">
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  <MetricCard tone="neutral" label="Tier Status" value={displayTier} />
-                  <MetricCard tone="neutral" label="Elo Rating" value={player.elo_point?.toLocaleString() ?? "1,000"} />
-                  <MetricCard tone="neutral" label="Win Rate" value={player.win_rate != null ? `${player.win_rate}%` : "-"} />
-                  <MetricCard tone="neutral" label="Record" value={`${(player.total_wins ?? 0) + (player.total_losses ?? 0)}경기`} />
-                </div>
-
-                <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-2 w-2 rounded-full bg-nzu-green shadow-[0_0_8px_rgba(46,213,115,0.45)]" />
-                      <h4 className="text-sm font-black uppercase tracking-[0.24em] text-white">Tactical Logs</h4>
+        <section className="relative mt-5 overflow-hidden rounded-[1.2rem] border border-white/8 bg-[#0a0f0d] px-3 py-3 shadow-[0_18px_42px_rgba(0,0,0,0.24)] md:px-3.5 md:py-3.5 xl:px-4 xl:py-4">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-[180px] w-[180px] rounded-full blur-[90px] opacity-20" style={{ backgroundColor: themeColor }} />
+          <div className="relative space-y-3">
+            <Section title="스폰깐부">
+              <div className="rounded-[1rem] border border-nzu-green/14 bg-[linear-gradient(180deg,rgba(0,255,163,0.08),rgba(255,255,255,0.02))] px-3 py-3.5">
+                <div className="space-y-2.5">
+                  <div className="rounded-[0.9rem] border border-white/8 bg-black/15 px-3 py-3.5 text-center">
+                    <div className="flex items-center justify-center gap-2.5">
+                      <span className="truncate text-[1.4rem] font-[1000] tracking-tight text-white md:text-[1.56rem] xl:text-[1.68rem]">{resolvedSpawnPartner.name}</span>
+                      <RaceTag race={resolvedSpawnPartner.race} size="sm" />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/24">최근 {matches.length}경기</span>
                   </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {matches.length === 0 ? (
-                      <div className="md:col-span-2 rounded-[1rem] border border-dashed border-white/8 bg-white/[0.02] px-4 py-10 text-center text-[11px] font-black uppercase tracking-[0.22em] text-white/24">NO DATA FOUND</div>
-                    ) : (
-                      matches.map((match) => {
-                        const isWinner = match.winner_id === player.id;
-                        const opponent = match.player1_id === player.id ? match.player2 : match.player1;
-                        return (
-                          <div key={match.id} className="group relative flex items-center justify-between rounded-[1rem] border border-white/6 bg-white/[0.02] p-4 transition-all duration-300 hover:border-white/12 hover:bg-white/[0.04]">
-                            <div className={cn("absolute left-0 top-0 h-full w-1 rounded-l-[1rem]", isWinner ? "bg-nzu-green" : "bg-red-400/65")} />
-                            <div className="flex items-center gap-4 pl-2">
-                              <div className={cn("flex h-7 w-14 items-center justify-center rounded text-[10px] font-black tracking-[0.18em]", isWinner ? "bg-nzu-green text-black" : "bg-white/6 text-white/45")}>
-                                {isWinner ? "WIN" : "LOSE"}
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <div className="relative h-11 w-11 overflow-hidden rounded-lg border border-white/10 bg-black/40">
-                                  <Image src={opponent?.photo_url || "/placeholder-player.png"} alt={opponent?.name || "Player"} fill className="object-cover" />
-                                </div>
-                                <div>
-                                  <span className="mb-0.5 block text-[8px] font-black uppercase tracking-[0.22em] text-white/20">VS</span>
-                                  <span className="text-sm font-bold tracking-tight text-white">{opponent?.name || "UNKNOWN"}</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/34">{match.map_name || "ARENA"}</p>
-                              <p className="mt-1 text-[10px] font-medium tabular-nums text-white/16">{match.match_date ? new Date(match.match_date).toLocaleDateString() : "-"}</p>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-[0.85rem] border border-white/8 bg-black/15 px-2.5 py-2 text-center">
+                      <div className="flex items-center justify-center gap-2 text-[1rem] font-[1000] tracking-tight text-white md:text-[1.08rem]">
+                        <span>승률</span>
+                        <span>{Math.round((resolvedSpawnPartner.wins / resolvedSpawnPartner.matches) * 100)}%</span>
+                      </div>
+                    </div>
+                    <div className="rounded-[0.85rem] border border-white/8 bg-black/15 px-2.5 py-2 text-center">
+                      <div className="flex items-center justify-center gap-2 text-[1rem] font-[1000] tracking-tight text-white md:text-[1.08rem]">
+                        <span>상대전적</span>
+                        <span>{resolvedSpawnPartner.matches}전 {resolvedSpawnPartner.wins}승 {resolvedSpawnPartner.losses}패</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+            </Section>
+
+            <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+              <Section title="종족별 승률">
+                <div className="grid gap-2 md:grid-cols-3">
+                {resolvedRaceSummaries.map((item) => (
+                  <DataTile
+                    key={item.race}
+                    title={<RaceTag race={item.race} size="xs" />}
+                    headline={item.hasRecord ? item.winRate : "기록 없음"}
+                    lines={item.hasRecord ? [`${item.matches}경기 · ${item.wins}승 ${item.losses}패`] : ["기록 없음"]}
+                    tone={item.race}
+                  />
+                ))}
+              </div>
+            </Section>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <Section title="강한 맵" titleClassName="text-nzu-green">
+                  <DataTile
+                    headline={resolvedStrongestMap ? resolvedStrongestMap.mapName : "표본 부족"}
+                    lines={resolvedStrongestMap ? [resolvedStrongestMap.winRate, `${resolvedStrongestMap.matches}경기 · ${resolvedStrongestMap.wins}승 ${resolvedStrongestMap.losses}패`] : ["표본 부족"]}
+                    tone="strong"
+                    headlineClassName="md:text-[1.24rem] xl:text-[1.28rem]"
+                  />
+                </Section>
+                <Section title="약한 맵" titleClassName="text-red-300">
+                  <DataTile
+                    headline={resolvedWeakestMap ? resolvedWeakestMap.mapName : "표본 부족"}
+                    lines={resolvedWeakestMap ? [resolvedWeakestMap.winRate, `${resolvedWeakestMap.matches}경기 · ${resolvedWeakestMap.wins}승 ${resolvedWeakestMap.losses}패`] : ["표본 부족"]}
+                    tone="weak"
+                    headlineClassName="md:text-[1.24rem] xl:text-[1.28rem]"
+                  />
+                </Section>
+              </div>
             </div>
+
+            <Section title={<><span>종족별 상대로 </span><span className="text-nzu-green">강한 맵</span></>}>
+              <div className="grid gap-2 md:grid-cols-3">
+                {resolvedRaceBestMaps.map((item) => (
+                  <DataTile
+                    key={item.race}
+                    title={<RaceTag race={item.race} size="xs" />}
+                    headline={item.bestMap ? item.bestMap.mapName : "표본 부족"}
+                    lines={item.bestMap ? [`${item.bestMap.matches}경기`, `${item.bestMap.wins}승 ${item.bestMap.losses}패 · ${item.bestMap.winRate}`] : ["표본 부족"]}
+                    tone={item.race}
+                  />
+                ))}
+              </div>
+            </Section>
+
+            <Section title="최근 5경기">
+              <div className="grid gap-1.5">
+                {resolvedRecentLogs.length ? (
+                  resolvedRecentLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-[0.85rem] border border-white/7 bg-white/[0.02] px-2.5 py-2 text-[0.78rem] font-[900] tracking-tight text-white/78 md:px-3"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span
+                          className={cn(
+                            "inline-flex h-6 w-10 shrink-0 items-center justify-center rounded-[0.55rem] text-[0.72rem] md:w-11",
+                            log.result === "승"
+                              ? "border border-nzu-green/25 bg-nzu-green/[0.12] text-nzu-green"
+                              : "border border-red-400/25 bg-red-400/[0.1] text-red-300",
+                          )}
+                        >
+                          {log.result}
+                        </span>
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="whitespace-nowrap text-[0.88rem] text-white md:text-[0.92rem]">{log.opponentName}</span>
+                          <RaceTag race={log.opponentRace} size="xs" />
+                        </span>
+                      </span>
+                      <span className="truncate text-center text-white/52 md:text-[0.82rem]">{log.mapName}</span>
+                      <span className="justify-self-end text-right tabular-nums text-white/46 md:text-[0.8rem]">{log.dateText}</span>
+                    </div>
+                  ))
+                ) : (
+                  <CompactRow value="기록 없음" />
+                )}
+              </div>
+            </Section>
           </div>
         </section>
       ) : null}
@@ -216,27 +339,121 @@ export default function PlayerSearchResult({
   );
 }
 
-function StatPanel({ label, children }: { label: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  titleClassName,
+}: {
+  title: React.ReactNode;
+  children: React.ReactNode;
+  titleClassName?: string;
+}) {
   return (
-    <div className="flex h-full flex-col justify-center rounded-[1.05rem] border border-white/8 bg-white/[0.045] px-4 py-3">
-      <p className="text-[13px] font-[1000] uppercase tracking-[0.12em] text-white/40">{label}</p>
-      <div className="mt-1.5 text-[1.22rem] font-[1000] tracking-tight text-white md:text-[1.38rem]">{children}</div>
+    <div className="space-y-1.5">
+      <p className={cn("text-center text-[0.9rem] font-[1000] tracking-[0.02em] text-white/76 md:text-[0.96rem]", titleClassName)}>{title}</p>
+      {children}
     </div>
   );
 }
 
-function MetricCard({ tone, label, value }: { tone: "green" | "red" | "neutral"; label: string; value: string }) {
-  const toneClass =
-    tone === "green"
-      ? "border-nzu-green/18 bg-nzu-green/[0.07]"
-      : tone === "red"
-        ? "border-red-400/18 bg-red-400/[0.06]"
-        : "border-white/8 bg-white/[0.03]";
-  const labelClass = tone === "green" ? "text-nzu-green/72" : tone === "red" ? "text-red-300/78" : "text-white/32";
+function CompactRow({
+  label,
+  leading,
+  value,
+}: {
+  label?: string;
+  leading?: React.ReactNode;
+  value: string;
+}) {
   return (
-    <div className={cn("rounded-[1rem] px-3 py-3.5", toneClass)}>
-      <p className={cn("text-[12px] font-[1000] tracking-tight", labelClass)}>{label}</p>
-      <p className="mt-1.5 text-[1.18rem] font-[1000] tracking-tight text-white md:text-[1.28rem]">{value}</p>
+    <div className="flex items-center gap-2 rounded-[0.85rem] border border-white/7 bg-white/[0.02] px-2.5 py-2 text-[0.76rem] font-[900] tracking-tight text-white/78">
+      {leading ? <span className="shrink-0">{leading}</span> : null}
+      {label ? <span className="shrink-0 text-white/56">{label}</span> : null}
+      <span className="min-w-0 truncate">{value}</span>
+    </div>
+  );
+}
+
+function DataTile({
+  title,
+  headline,
+  lines,
+  tone = "neutral",
+  className,
+  headlineClassName,
+}: {
+  title?: React.ReactNode;
+  headline: string;
+  lines: string[];
+  tone?: "neutral" | "strong" | "weak" | Race;
+  className?: string;
+  headlineClassName?: string;
+}) {
+  const toneClass =
+    tone === "T"
+      ? "border-terran/20 bg-terran/10"
+      : tone === "Z"
+        ? "border-zerg/20 bg-zerg/10"
+        : tone === "P"
+          ? "border-protoss/20 bg-protoss/10"
+          : tone === "strong"
+            ? "border-nzu-green/18 bg-nzu-green/[0.08]"
+            : tone === "weak"
+              ? "border-red-400/18 bg-red-400/[0.08]"
+              : "border-white/8 bg-white/[0.03]";
+
+  return (
+    <div className={cn("rounded-[1rem] px-2.5 py-2.5 text-center md:px-3 md:py-3", toneClass, className)}>
+      {title ? (
+        <div className="mb-1.5 flex min-h-[24px] items-center justify-center">
+          {title}
+        </div>
+      ) : null}
+      <p className={cn("line-clamp-1 text-[1.12rem] font-[1000] tracking-tight text-white md:text-[1.18rem] xl:text-[1.22rem]", headlineClassName)}>{headline}</p>
+      <div className="mt-1.5 space-y-0.5">
+        {lines.map((line) => (
+          <p key={line} className="text-[0.82rem] font-[900] tracking-tight text-white/68 md:text-[0.86rem]">
+            {line}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatPanel({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex h-full flex-col justify-center rounded-[1.05rem] border border-white/8 bg-white/[0.045] px-3.5 py-3 md:px-4 md:py-3.5">
+      <p className="text-[13px] font-[1000] uppercase tracking-[0.12em] text-white/40 md:text-[13.5px]">{label}</p>
+      <div className="mt-1.5 text-[1.24rem] font-[1000] tracking-tight text-white md:text-[1.42rem] xl:text-[1.48rem]">{children}</div>
+    </div>
+  );
+}
+
+function MetricCard({ tone, label, value }: { tone: "green" | "red"; label: string; value: string }) {
+  const toneClass = tone === "green" ? "border-nzu-green/18 bg-nzu-green/[0.07]" : "border-red-400/18 bg-red-400/[0.06]";
+  const labelClass = tone === "green" ? "text-nzu-green/72" : "text-red-300/78";
+  const compactValue = value === "기록 없음" ? "없음" : value;
+  const isRecordCard = label.includes("전적");
+  const recordLines = compactValue.split(" / ").filter(Boolean);
+  const isEmptyValue = compactValue === "없음";
+
+  return (
+    <div className={cn("rounded-[1rem] px-2.5 py-3 text-center md:px-3 md:py-3.5", toneClass)}>
+      <p className={cn("text-[12px] font-[1000] tracking-tight md:text-[12.5px]", labelClass)}>{label}</p>
+      {isRecordCard && recordLines.length > 1 ? (
+        <div className="mt-1.5 space-y-0.5">
+          {recordLines.map((line) => (
+            <p key={line} className="text-[1.14rem] font-[1000] tracking-tight text-white md:text-[1.22rem] xl:text-[1.26rem]">
+              {line}
+            </p>
+          ))}
+        </div>
+      ) : isEmptyValue ? (
+        <p className="mt-2 text-[1.04rem] font-[1000] tracking-tight text-white/54 md:text-[1.1rem]">없음</p>
+      ) : (
+        <p className="mt-1.5 text-[1.22rem] font-[1000] tracking-tight text-white md:text-[1.32rem] xl:text-[1.38rem]">{compactValue}</p>
+      )}
     </div>
   );
 }
