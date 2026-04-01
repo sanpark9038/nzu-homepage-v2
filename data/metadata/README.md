@@ -1,17 +1,48 @@
 # Metadata DB
 
-This directory is the reusable player identity metadata DB for cross-project use.
+This directory is the reusable metadata layer for NZU and future projects.
 
-## Files
+The intended separation is:
 
 - `players.master.v1.json`
-  - Canonical player identity records.
-  - Primary key: `entity_id` (`eloboard:{gender}:{wr_id}` or `eloboard:{gender}:mix:{wr_id}`).
-  - Uniqueness model: `wr_id + gender + profile_kind`.
+  - Cross-project canonical player identity DB.
+  - Stable primary key: `entity_id`
+  - Identity contract: `eloboard:{gender}:{wr_id}` or `eloboard:{gender}:mix:{wr_id}`
+  - Use this when a new project needs a shared player identity source.
 
-- `projects/nzu/players.nzu.v1.json`
-  - Project-specific roster view for NZU.
+- `projects/<code>/players.<code>.v1.json`
+  - Project/team-specific roster view.
   - References canonical `entity_id` from the master DB.
+  - Adds roster semantics such as `team_code`, `tier`, `race`, `display_name`, freshness fields, and profile URL.
+  - Use this when a project needs a current roster snapshot rather than the full identity DB.
+
+- Supabase `players`
+  - Serving layer for the current NZU website.
+  - This is not the canonical source of identity.
+  - Website projects may consume it directly, but upstream logic should still treat local metadata as the source of truth.
+
+## Consumer Contract
+
+If another homepage or app wants to reuse this pipeline output:
+
+1. Read `players.master.v1.json` for stable identity.
+2. Read `projects/*/players.*.v1.json` for current roster membership.
+3. Treat `entity_id` as the durable join key across projects.
+4. Do not assume Supabase is the only serving layer.
+5. Validate both master and project roster metadata before publishing or syncing.
+
+Hard contract for `projects/*/players.*.v1.json`:
+
+- `team_code` must remain stable and match the dataset folder.
+- `entity_id` is the durable player join key.
+- `name`, `tier`, `race`, `source`, `missing_in_master` are required roster semantics.
+
+Recommended fields for richer consumers:
+
+- `display_name`
+- `profile_url`
+- `profile_kind`
+- freshness fields such as `last_checked_at`, `last_match_at`, `last_changed_at`
 
 ## Build
 
@@ -46,6 +77,7 @@ Validate generated metadata:
 
 ```bash
 npm run validate:metadata
+npm run validate:metadata:projects
 ```
 
 ## Pipeline Alert Rules

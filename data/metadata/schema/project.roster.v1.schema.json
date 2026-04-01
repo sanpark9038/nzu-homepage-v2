@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nzu.local/schemas/project.roster.v1.schema.json",
+  "title": "Project Roster Metadata v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "project",
+    "team_name",
+    "team_code",
+    "roster_count",
+    "roster"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "project": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$"
+    },
+    "team_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "team_code": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$"
+    },
+    "team_name_en": {
+      "type": "string"
+    },
+    "team_aliases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "roster_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "roster": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/rosterPlayer"
+      }
+    }
+  },
+  "$defs": {
+    "rosterPlayer": {
+      "type": "object",
+      "required": [
+        "team_name",
+        "team_code",
+        "entity_id",
+        "wr_id",
+        "gender",
+        "name",
+        "tier",
+        "race",
+        "source",
+        "missing_in_master"
+      ],
+      "properties": {
+        "team_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "team_code": {
+          "type": "string",
+          "pattern": "^[a-z0-9_-]+$"
+        },
+        "entity_id": {
+          "type": "string",
+          "pattern": "^eloboard:(male|female)(:mix)?:[0-9]+$"
+        },
+        "wr_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gender": {
+          "type": "string",
+          "enum": ["male", "female"]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tier": {
+          "type": "string",
+          "minLength": 1
+        },
+        "race": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "missing_in_master": {
+          "type": "boolean"
+        },
+        "meta_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "role_title": {
+          "type": ["string", "null"]
+        },
+        "role_priority": {
+          "type": ["integer", "null"]
+        },
+        "tier_key": {
+          "type": "string"
+        },
+        "last_checked_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "last_match_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "check_priority": {
+          "type": ["string", "null"]
+        },
+        "check_interval_days": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "last_changed_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "profile_url": {
+          "type": "string",
+          "pattern": "^https://eloboard\\.com/(men|women)/bbs/board\\.php\\?bo_table=bj(_m)?_list&wr_id=[0-9]+$"
+        },
+        "profile_kind": {
+          "type": "string",
+          "enum": ["default", "mix"]
+        }
+      }
+    }
+  }
+}
