@@ -22,6 +22,8 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
       OPS_DISCORD_WEBHOOK_URL: ${{ secrets.OPS_DISCORD_WEBHOOK_URL }}
 
     steps:
@@ -54,17 +56,40 @@ jobs:
           restore-keys: |
             pipeline-state-${{ runner.os }}-v2-
 
+      - name: Determine workflow mode
+        id: workflow_mode
+        shell: bash
+        run: |
+          run_command="npm run pipeline:manual:refresh"
+          mode_label="collect-only"
+          sync_warning=""
+          sync_requested="false"
+          sync_enabled="false"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.with_supabase_sync }}" = "true" ]; then
+            sync_requested="true"
+            if [ -n "${NEXT_PUBLIC_SUPABASE_URL}" ] && { [ -n "${SUPABASE_SERVICE_ROLE_KEY}" ] || [ -n "${SUPABASE_SERVICE_KEY}" ]; }; then
+              run_command="npm run pipeline:manual:refresh:with-sync"
+              mode_label="manual dispatch with Supabase sync"
+              sync_enabled="true"
+            else
+              mode_label="manual dispatch requested sync, downgraded to collect-only"
+              sync_warning="Supabase service-role secret is not configured in GitHub Actions, so sync was skipped."
+            fi
+          fi
+
+          {
+            echo "run_command=$run_command"
+            echo "mode_label=$mode_label"
+            echo "sync_requested=$sync_requested"
+            echo "sync_enabled=$sync_enabled"
+            echo "sync_warning=$sync_warning"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Run manual refresh
         id: manual_refresh
         shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.with_supabase_sync }}" = "true" ]; then
-            echo "Running manual refresh with Supabase sync enabled."
-            npm run pipeline:manual:refresh:with-sync
-          else
-            echo "Running manual refresh in collect-only mode."
-            npm run pipeline:manual:refresh
-          fi
+        run: ${{ steps.workflow_mode.outputs.run_command }}
 
       - name: Print pipeline status
         if: always()
@@ -74,6 +99,8 @@ jobs:
         if: always()
         env:
           GH_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          WORKFLOW_MODE_LABEL: ${{ steps.workflow_mode.outputs.mode_label }}
+          WORKFLOW_SYNC_WARNING: ${{ steps.workflow_mode.outputs.sync_warning }}
         run: |
           if [ "${{ steps.manual_refresh.outcome }}" = "success" ]; then
             node scripts/tools/send-manual-refresh-discord.js --outcome success --source github-actions --run-url "$GH_RUN_URL"
@@ -86,10 +113,9 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.with_supabase_sync }}" = "true" ]; then
-            echo "- Workflow Mode: manual dispatch with Supabase sync" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "- Workflow Mode: collect-only" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Workflow Mode: ${{ steps.workflow_mode.outputs.mode_label }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${{ steps.workflow_mode.outputs.sync_warning }}" ]; then
+            echo "- Sync Warning: ${{ steps.workflow_mode.outputs.sync_warning }}" >> "$GITHUB_STEP_SUMMARY"
           fi
           npm run pipeline:verify:discord -- --markdown >> "$GITHUB_STEP_SUMMARY"
 

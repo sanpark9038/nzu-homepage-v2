@@ -285,6 +285,12 @@ function countAlertsBySeverity(alerts) {
 }
 
 function supabaseSyncModeLabel() {
+  const workflowModeLabel = String(process.env.WORKFLOW_MODE_LABEL || "").trim();
+  if (workflowModeLabel) {
+    return workflowModeLabel.startsWith("실행 모드:")
+      ? workflowModeLabel
+      : `실행 모드: ${workflowModeLabel}`;
+  }
   const report = readJsonIfExists(MANUAL_REFRESH_REPORT_PATH);
   if (report && typeof report.with_supabase_sync === "boolean") {
     return report.with_supabase_sync
@@ -292,6 +298,10 @@ function supabaseSyncModeLabel() {
       : "실행 모드: Collect-only (Supabase sync skipped)";
   }
   return "";
+}
+
+function workflowSyncWarning() {
+  return String(process.env.WORKFLOW_SYNC_WARNING || "").trim();
 }
 
 function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
@@ -324,6 +334,10 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const syncModeLabel = supabaseSyncModeLabel();
   if (syncModeLabel) {
     lines.push(syncModeLabel);
+    const syncWarning = workflowSyncWarning();
+    if (syncWarning) {
+      lines.push(`- ${syncWarning}`);
+    }
     lines.push("");
   }
 
@@ -424,7 +438,11 @@ function buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport })
   ];
   const syncModeLabel = supabaseSyncModeLabel();
   if (syncModeLabel) {
-    lines.push(`실행 모드: ${syncModeLabel}`);
+    lines.push(syncModeLabel);
+  }
+  const syncWarning = workflowSyncWarning();
+  if (syncWarning) {
+    lines.push(`동기화 안내: ${syncWarning}`);
   }
   if (report && report.failure_step && report.failure_step.name) {
     lines.push(`실패 단계: ${report.failure_step.name}`);
