@@ -14,6 +14,7 @@
     "verify:warehouse": "node scripts/tools/verify-warehouse-integrity.js",
     "validate:metadata": "node scripts/tools/validate-metadata-schema.js",
     "validate:metadata:projects": "node scripts/tools/validate-project-metadata.js",
+    "normalize:metadata:projects": "node scripts/tools/normalize-project-metadata.js --write",
     "validate:pipeline-alert-rules": "node scripts/tools/validate-pipeline-alert-rules.js",
     "report:metadata:conflicts": "node scripts/tools/report-metadata-conflicts.js",
     "report:metadata:resolution": "node scripts/tools/propose-metadata-conflict-resolutions.js",

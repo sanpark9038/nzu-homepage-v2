@@ -6,6 +6,7 @@ const iconv = require("iconv-lite");
 const {
   buildEloboardCompositeKey,
   buildEloboardEntityId,
+  defaultProfileUrlForPlayer,
   getEloboardProfileKind,
   normalizeProfileUrl,
 } = require("./lib/eloboard-special-cases");
@@ -266,6 +267,16 @@ function upsertRosterEntry(teamJson, observed, source, fallbackPlayer = null) {
   const base = idx >= 0 ? roster[idx] : {};
   const observedTier = String(observed.tier || "").trim();
   const observedRace = String(observed.race || "").trim();
+  const profileUrl = normalizeProfileUrl(
+    observed.profile_url ||
+      base.profile_url ||
+      (fallbackPlayer && fallbackPlayer.profile_url) ||
+      defaultProfileUrlForPlayer({
+        wr_id: observed.wr_id,
+        gender: observed.gender,
+        name: observed.name,
+      })
+  ) || "";
   const nextTier = fallbackValue(observedTier, base.tier, fallbackPlayer && fallbackPlayer.tier, "미정");
   const nextRace = fallbackValue(observedRace, base.race, fallbackPlayer && fallbackPlayer.race, "Unknown");
   const next = {
@@ -276,8 +287,9 @@ function upsertRosterEntry(teamJson, observed, source, fallbackPlayer = null) {
     wr_id: observed.wr_id,
     gender: observed.gender,
     name: observed.name,
-    profile_url: observed.profile_url || base.profile_url || "",
-    profile_kind: observed.profile_kind || base.profile_kind || "default",
+    display_name: String(base.display_name || observed.name || ""),
+    profile_url: profileUrl,
+    profile_kind: observed.profile_kind || base.profile_kind || getEloboardProfileKind(profileUrl),
     tier: nextTier,
     race: nextRace,
     source: source || base.source || "roster_sync",

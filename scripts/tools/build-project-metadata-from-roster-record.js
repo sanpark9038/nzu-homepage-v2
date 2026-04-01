@@ -81,6 +81,7 @@ function main() {
       wr_id: wrId,
       gender,
       name,
+      display_name: name,
       profile_url: profileUrl,
       profile_kind: getEloboardProfileKind(profileUrl),
       tier,
