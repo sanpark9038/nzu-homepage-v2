@@ -2,6 +2,12 @@ name: NZU Ops Pipeline
 
 on:
   workflow_dispatch:
+    inputs:
+      with_supabase_sync:
+        description: "Enable Supabase push after collection"
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: "10 21 * * *"
 
@@ -50,7 +56,15 @@ jobs:
 
       - name: Run manual refresh
         id: manual_refresh
-        run: npm run pipeline:manual:refresh
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.with_supabase_sync }}" = "true" ]; then
+            echo "Running manual refresh with Supabase sync enabled."
+            npm run pipeline:manual:refresh:with-sync
+          else
+            echo "Running manual refresh in collect-only mode."
+            npm run pipeline:manual:refresh
+          fi
 
       - name: Print pipeline status
         if: always()
@@ -70,7 +84,14 @@ jobs:
       - name: Write Discord summary check
         if: always()
         continue-on-error: true
-        run: npm run pipeline:verify:discord -- --markdown >> "$GITHUB_STEP_SUMMARY"
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.with_supabase_sync }}" = "true" ]; then
+            echo "- Workflow Mode: manual dispatch with Supabase sync" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Workflow Mode: collect-only" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          npm run pipeline:verify:discord -- --markdown >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload reports artifact
         if: always()

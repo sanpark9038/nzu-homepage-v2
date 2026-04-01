@@ -287,7 +287,9 @@ function countAlertsBySeverity(alerts) {
 function supabaseSyncModeLabel() {
   const report = readJsonIfExists(MANUAL_REFRESH_REPORT_PATH);
   if (report && typeof report.with_supabase_sync === "boolean") {
-    return report.with_supabase_sync ? "Supabase sync enabled" : "Collect-only (Supabase sync skipped)";
+    return report.with_supabase_sync
+      ? "실행 모드: Supabase sync enabled"
+      : "실행 모드: Collect-only (Supabase sync skipped)";
   }
   return "";
 }
@@ -357,10 +359,11 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     }
 
     if (joinersForMessage.length) {
-      lines.push("🆕 신규 합류");
+      lines.push("🆕 로스터 신규 편입");
       for (const item of joinersForMessage) {
         lines.push(`- ${item.player_name} (${item.team_name})`);
       }
+      lines.push("- 기준선 대비 이번 실행에서 새로 로스터에 포함된 선수입니다.");
       lines.push("");
     }
 

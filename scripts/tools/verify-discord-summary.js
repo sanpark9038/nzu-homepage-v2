@@ -81,7 +81,7 @@ function toMarkdown(summary) {
 
   if (joiners.length) {
     lines.push("");
-    lines.push("### Joiners");
+    lines.push("### Roster Joiners");
     for (const row of joiners) {
       lines.push(`- ${row.player_name} (${row.team_name})`);
     }
