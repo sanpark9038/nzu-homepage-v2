@@ -9,6 +9,7 @@ const {
   parseDateTag,
 } = require("./lib/daily-pipeline-snapshot");
 const { buildAlerts, movedInPlayersByTeam } = require("./run-daily-pipeline");
+const { exportConcurrencyForTeam, exportTimeoutForTeam } = require("./run-daily-pipeline");
 
 function makeTempReportsDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "nzu-daily-pipeline-"));
@@ -322,4 +323,15 @@ runTest("buildAlerts suppresses zero-record alerts for team-allowlisted teams", 
       message: "delta_total_matches=-100",
     },
   ]);
+});
+
+runTest("exportConcurrencyForTeam forces higher concurrency for fa", () => {
+  assert.equal(exportConcurrencyForTeam("fa", "1"), "2");
+  assert.equal(exportConcurrencyForTeam("fa", "3"), "3");
+  assert.equal(exportConcurrencyForTeam("jsa", "1"), "1");
+});
+
+runTest("exportTimeoutForTeam extends timeout for fa only", () => {
+  assert.equal(exportTimeoutForTeam("fa"), 1800000);
+  assert.equal(exportTimeoutForTeam("jsa"), 900000);
 });

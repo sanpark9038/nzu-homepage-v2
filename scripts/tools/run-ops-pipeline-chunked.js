@@ -68,6 +68,21 @@ function splitIntoChunks(arr, chunkSize) {
   return out;
 }
 
+function splitIntoChunksWithDedicatedTeams(arr, chunkSize, dedicatedTeams = []) {
+  const dedicated = new Set(dedicatedTeams.map((team) => String(team || "").trim().toLowerCase()).filter(Boolean));
+  const regularTeams = [];
+  const dedicatedChunks = [];
+  for (const team of arr) {
+    const code = String(team || "").trim().toLowerCase();
+    if (dedicated.has(code)) {
+      dedicatedChunks.push([team]);
+      continue;
+    }
+    regularTeams.push(team);
+  }
+  return [...splitIntoChunks(regularTeams, chunkSize), ...dedicatedChunks];
+}
+
 function formatSecs(sec) {
   const s = Math.max(0, Math.round(sec));
   const m = Math.floor(s / 60);
@@ -221,7 +236,7 @@ async function main() {
     throw new Error(`No teams selected. Available: ${all.join(",") || "<none>"}`);
   }
 
-  const chunks = splitIntoChunks(teams, chunkSize);
+  const chunks = splitIntoChunksWithDedicatedTeams(teams, chunkSize, ["fa"]);
   const passThroughFlags = [];
   const from = argValue("--from", null);
   const to = argValue("--to", null);
@@ -374,7 +389,14 @@ async function main() {
   if (hadFailure) process.exit(1);
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.stack || error.message : String(error));
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.stack || error.message : String(error));
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  splitIntoChunks,
+  splitIntoChunksWithDedicatedTeams,
+};

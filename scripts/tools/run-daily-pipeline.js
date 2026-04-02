@@ -25,6 +25,9 @@ const TEAM_TABLE_OUT_DIR = path.join(TMP_DIR, "reports", "team-roster-table");
 const NODE_BIN_FALLBACK = "node";
 const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 let ACTIVE_PROGRESS_LOG_PATH = null;
+const TEAM_EXPORT_TIMEOUT_MS = 900000;
+const FA_EXPORT_TIMEOUT_MS = 1800000;
+const FA_EXPORT_CONCURRENCY = "2";
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -85,6 +88,20 @@ function loadTeamConfig() {
     });
   }
   return teams;
+}
+
+function exportConcurrencyForTeam(teamCode, fallbackConcurrency) {
+  if (String(teamCode || "").trim().toLowerCase() === "fa") {
+    const requested = Number(fallbackConcurrency);
+    const minimum = Number(FA_EXPORT_CONCURRENCY);
+    if (Number.isFinite(requested) && requested > minimum) return String(requested);
+    return FA_EXPORT_CONCURRENCY;
+  }
+  return String(fallbackConcurrency);
+}
+
+function exportTimeoutForTeam(teamCode) {
+  return String(teamCode || "").trim().toLowerCase() === "fa" ? FA_EXPORT_TIMEOUT_MS : TEAM_EXPORT_TIMEOUT_MS;
 }
 
 function baselineTeamPlayerMap(baselineDoc) {
@@ -773,6 +790,7 @@ function main() {
   const perTeamReports = [];
   for (const team of teams) {
     const reportFile = path.join(TMP_DIR, `${team.code}_roster_batch_export_report.json`);
+    const teamConcurrency = exportConcurrencyForTeam(team.code, concurrency);
     const args = [
       EXPORT_SCRIPT,
       "--roster-path",
@@ -780,7 +798,7 @@ function main() {
       "--univ",
       team.univ,
       "--concurrency",
-      concurrency,
+      teamConcurrency,
       "--from",
       from,
       "--to",
@@ -796,7 +814,7 @@ function main() {
     appendProgress("team_start", { team_code: team.code, team: team.univ, report_path: path.relative(ROOT, reportFile).replace(/\\/g, "/") });
     runNode(args[0], args.slice(1), {
       label: `export_roster:${team.code}`,
-      timeoutMs: 900000,
+      timeoutMs: exportTimeoutForTeam(team.code),
     });
     const report = readJson(reportFile);
     appendProgress("team_done", {
@@ -998,4 +1016,6 @@ if (require.main === module) {
 module.exports = {
   buildAlerts,
   movedInPlayersByTeam,
+  exportConcurrencyForTeam,
+  exportTimeoutForTeam,
 };
