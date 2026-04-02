@@ -125,12 +125,26 @@ function writeJson(filePath, obj) {
   fs.writeFileSync(filePath, JSON.stringify(obj, null, 2), "utf8");
 }
 
-function runNode(scriptPath, args) {
+function appendExportProgress(reportPath, event, payload = {}) {
+  const dir = path.dirname(reportPath);
+  const base = path.basename(reportPath, path.extname(reportPath));
+  const progressPath = path.join(dir, `${base}.progress.jsonl`);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.appendFileSync(
+    progressPath,
+    `${JSON.stringify({ ts: new Date().toISOString(), event, ...payload })}\n`,
+    "utf8"
+  );
+}
+
+function runNode(scriptPath, args, options = {}) {
+  const timeoutMs = Number(options.timeoutMs || 300000);
   return execFileSync("node", [scriptPath, ...args], {
     cwd: ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     maxBuffer: 50 * 1024 * 1024,
+    timeout: timeoutMs,
   });
 }
 
@@ -278,6 +292,11 @@ function main() {
     options: { limit, concurrency, from, to, useExisting, inactiveSkipDays },
     results: [],
   };
+  appendExportProgress(reportPath, "team_export_start", {
+    team_name: teamName,
+    roster_path: rosterPath,
+    total_players: players.length,
+  });
 
   for (const p of players) {
     const playerName = p.name;
@@ -301,11 +320,21 @@ function main() {
       result.excluded = true;
       result.exclude_reason = excludedReason;
       summary.results.push(result);
+      appendExportProgress(reportPath, "player_excluded", {
+        player: playerName,
+        wr_id: p.wr_id,
+        reason: excludedReason,
+      });
       console.log(`[SKIP] ${playerName} excluded (${excludedReason})`);
       continue;
     }
 
     try {
+      appendExportProgress(reportPath, "player_start", {
+        player: playerName,
+        wr_id: p.wr_id,
+        entity_id: String(p.entity_id || ""),
+      });
       let shouldFetch = true;
       const forceRefresh = hasResumeMarker(p, resumes);
       if (forceRefresh) {
@@ -330,14 +359,42 @@ function main() {
       }
 
       if (shouldFetch) {
-        let raw = runNode(REPORT_SCRIPT, directReportArgs(teamName, playerName, p, ["--concurrency", concurrency]));
+        appendExportProgress(reportPath, "player_report_start", {
+          player: playerName,
+          wr_id: p.wr_id,
+          no_cache: false,
+        });
+        let raw = runNode(REPORT_SCRIPT, directReportArgs(teamName, playerName, p, ["--concurrency", concurrency]), {
+          timeoutMs: 240000,
+        });
         let parsed = JSON.parse(raw);
+        appendExportProgress(reportPath, "player_report_done", {
+          player: playerName,
+          wr_id: p.wr_id,
+          period_total: firstPeriodTotal(parsed),
+          no_cache: false,
+        });
 
         // Guardrail: when collection unexpectedly returns 0, retry once with no-cache.
         // This prevents transient empty responses from being persisted as final output.
         if (firstPeriodTotal(parsed) === 0 && p.wr_id && p.gender) {
-          raw = runNode(REPORT_SCRIPT, directReportArgs(teamName, playerName, p, ["--no-cache", "--concurrency", concurrency]));
+          appendExportProgress(reportPath, "player_report_start", {
+            player: playerName,
+            wr_id: p.wr_id,
+            no_cache: true,
+          });
+          raw = runNode(
+            REPORT_SCRIPT,
+            directReportArgs(teamName, playerName, p, ["--no-cache", "--concurrency", concurrency]),
+            { timeoutMs: 240000 }
+          );
           parsed = JSON.parse(raw);
+          appendExportProgress(reportPath, "player_report_done", {
+            player: playerName,
+            wr_id: p.wr_id,
+            period_total: firstPeriodTotal(parsed),
+            no_cache: true,
+          });
         }
         writeJson(jsonPath, parsed);
         result.fetch_status = "ok";
@@ -352,6 +409,10 @@ function main() {
         result.csv_path = expectedExportCsvPath(playerName, p);
         result.csv_status = "used_existing_csv";
       } else {
+        appendExportProgress(reportPath, "player_csv_start", {
+          player: playerName,
+          wr_id: p.wr_id,
+        });
         const csvOutput = runNode(CSV_SCRIPT, [
           "--report-path",
           jsonPath,
@@ -364,23 +425,48 @@ function main() {
           from,
           "--to",
           to,
-        ]).trim();
+        ], {
+          timeoutMs: 120000,
+        }).trim();
 
         result.csv_path = csvOutput;
         result.csv_status = "ok";
+        appendExportProgress(reportPath, "player_csv_done", {
+          player: playerName,
+          wr_id: p.wr_id,
+          csv_path: csvOutput,
+        });
       }
     } catch (err) {
       result.error = err instanceof Error ? err.message : String(err);
       if (result.fetch_status === "skipped") result.fetch_status = "failed";
       if (result.csv_status === "skipped") result.csv_status = "failed";
+      appendExportProgress(reportPath, "player_fail", {
+        player: playerName,
+        wr_id: p.wr_id,
+        fetch_status: result.fetch_status,
+        csv_status: result.csv_status,
+        error: result.error,
+      });
     }
 
     summary.results.push(result);
     const icon = result.error ? "FAIL" : "OK";
     console.log(`[${icon}] ${playerName} fetch=${result.fetch_status} csv=${result.csv_status}`);
+    appendExportProgress(reportPath, "player_done", {
+      player: playerName,
+      wr_id: p.wr_id,
+      fetch_status: result.fetch_status,
+      csv_status: result.csv_status,
+      error: result.error,
+    });
   }
 
   writeJson(reportPath, summary);
+  appendExportProgress(reportPath, "team_export_done", {
+    team_name: teamName,
+    total_results: summary.results.length,
+  });
   console.log(`report: ${reportPath}`);
 }
 
