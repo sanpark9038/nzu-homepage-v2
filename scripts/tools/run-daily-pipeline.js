@@ -633,7 +633,7 @@ function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null, rosterTransiti
         message: `delta_players=${row.delta_players}`,
       });
     }
-    if (rosterTransition) {
+    if (rosterTransition && !rosterSizeChangedAllowlist.has(String(row.team_code || ""))) {
       alerts.push({
         severity: "medium",
         team: row.team,

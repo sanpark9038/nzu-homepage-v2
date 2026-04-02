@@ -52,9 +52,9 @@ jobs:
           path: |
             tmp/
             data/metadata/projects/
-          key: pipeline-state-${{ runner.os }}-v2-${{ github.run_id }}
+          key: pipeline-state-${{ runner.os }}-v3-${{ github.run_id }}
           restore-keys: |
-            pipeline-state-${{ runner.os }}-v2-
+            pipeline-state-${{ runner.os }}-v3-
 
       - name: Determine workflow mode
         id: workflow_mode
@@ -136,4 +136,4 @@ jobs:
           path: |
             tmp/
             data/metadata/projects/
-          key: pipeline-state-${{ runner.os }}-v2-${{ github.run_id }}
+          key: pipeline-state-${{ runner.os }}-v3-${{ github.run_id }}

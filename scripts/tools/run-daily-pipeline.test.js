@@ -244,3 +244,43 @@ runTest("buildAlerts suppresses blocking alerts for teams with roster transition
     },
   ]);
 });
+
+runTest("buildAlerts suppresses roster transition alerts for allowlisted teams", () => {
+  const actual = buildAlerts(
+    [
+      {
+        team: "연합팀",
+        team_code: "fa",
+        zero_players: "",
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: -22707,
+        delta_players: -65,
+      },
+    ],
+    {
+      rules: {
+        zero_record_players_severity: "high",
+        zero_record_players_allowlist: {},
+        negative_delta_matches_severity: "critical",
+        roster_size_changed_severity: "medium",
+        roster_size_changed_team_allowlist: ["fa"],
+        no_new_matches_enabled: false,
+      },
+    },
+    null,
+    [
+      {
+        team: "연합팀",
+        team_code: "fa",
+        baseline_players: 91,
+        current_players: 21,
+        added_entity_ids: [],
+        removed_entity_ids: Array.from({ length: 70 }, (_, i) => `entity-${i + 1}`),
+        changed: true,
+      },
+    ]
+  );
+
+  assert.deepEqual(actual, []);
+});

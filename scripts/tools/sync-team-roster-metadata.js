@@ -14,6 +14,7 @@ const {
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const REPORT_DIR = path.join(ROOT, "tmp", "reports");
+const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORT_DIR, "manual_refresh_baseline.json");
 const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const FA_UNIV_FALLBACKS = ["연합팀", "FA", "무소속"];
 
@@ -36,6 +37,18 @@ function readManualOverrides() {
   try {
     const doc = readJson(OVERRIDES_PATH);
     return Array.isArray(doc.overrides) ? doc.overrides : [];
+  } catch {
+    return [];
+  }
+}
+
+function readManualRefreshBaselinePlayers(teamCode) {
+  if (!fs.existsSync(MANUAL_REFRESH_BASELINE_PATH)) return [];
+  try {
+    const doc = readJson(MANUAL_REFRESH_BASELINE_PATH);
+    const teams = Array.isArray(doc && doc.teams) ? doc.teams : [];
+    const team = teams.find((row) => String(row && row.team_code ? row.team_code : "") === String(teamCode || ""));
+    return Array.isArray(team && team.players) ? team.players : [];
   } catch {
     return [];
   }
@@ -309,6 +322,73 @@ function removeRosterEntry(teamJson, entityId) {
   teamJson.roster = roster.filter((p) => String(p.entity_id) !== entityId);
 }
 
+function buildRetainedFaEntityIds(faObservedEntityIds, observedByEntity, fallbackEntityIds = []) {
+  const retained = new Set(
+    Array.isArray(fallbackEntityIds) ? fallbackEntityIds.map((value) => String(value)) : []
+  );
+  for (const entityId of faObservedEntityIds || []) {
+    retained.add(String(entityId));
+  }
+  if (observedByEntity && typeof observedByEntity.entries === "function") {
+    for (const [entityId, observed] of observedByEntity.entries()) {
+      if (String(observed && observed.team_code ? observed.team_code : "") === "fa") {
+        retained.add(String(entityId));
+      }
+    }
+  }
+  return retained;
+}
+
+function restoreMissingFaBaselinePlayers(faDoc, baselinePlayers, observedByEntity, beforeByEntity, guardedTeamCodes) {
+  const restored = [];
+  const currentFaIds = new Set(
+    (Array.isArray(faDoc && faDoc.json && faDoc.json.roster) ? faDoc.json.roster : []).map((row) =>
+      String(row && row.entity_id ? row.entity_id : "")
+    )
+  );
+
+  for (const baselinePlayer of Array.isArray(baselinePlayers) ? baselinePlayers : []) {
+    const entityId = String(baselinePlayer && baselinePlayer.entity_id ? baselinePlayer.entity_id : "").trim();
+    if (!entityId || currentFaIds.has(entityId)) continue;
+    const observed = observedByEntity.get(entityId);
+    if (observed) continue;
+    const prev = beforeByEntity.get(entityId);
+    if (prev && prev.team_code && prev.team_code !== "fa" && !guardedTeamCodes.has(String(prev.team_code))) {
+      continue;
+    }
+
+    upsertRosterEntry(
+      faDoc.json,
+      {
+        entity_id: entityId,
+        wr_id: Number(baselinePlayer && baselinePlayer.wr_id ? baselinePlayer.wr_id : 0),
+        gender: String(baselinePlayer && baselinePlayer.gender ? baselinePlayer.gender : ""),
+        name: String(
+          baselinePlayer && (baselinePlayer.name || baselinePlayer.display_name)
+            ? baselinePlayer.name || baselinePlayer.display_name
+            : ""
+        ),
+        tier: String(baselinePlayer && baselinePlayer.tier ? baselinePlayer.tier : "미정"),
+        race: String(baselinePlayer && baselinePlayer.race ? baselinePlayer.race : "Unknown"),
+        profile_url: String(baselinePlayer && baselinePlayer.profile_url ? baselinePlayer.profile_url : ""),
+      },
+      "roster_sync_fa_baseline",
+      prev && prev.player ? prev.player : baselinePlayer
+    );
+    currentFaIds.add(entityId);
+    restored.push({
+      entity_id: entityId,
+      name: String(
+        baselinePlayer && (baselinePlayer.display_name || baselinePlayer.name)
+          ? baselinePlayer.display_name || baselinePlayer.name
+          : ""
+      ),
+    });
+  }
+
+  return restored;
+}
+
 function effectiveTier(observedTier, baseTier) {
   const o = String(observedTier || "").trim();
   if (o && o !== "미정") return o;
@@ -341,6 +421,18 @@ function sortRoster(teamJson) {
     return String(a.name || "").localeCompare(String(b.name || ""), "ko");
   });
   teamJson.roster = roster;
+}
+
+function shouldGuardObservedRoster(existingCount, observedCount) {
+  const safeExisting = Number(existingCount || 0);
+  const safeObserved = Number(observedCount || 0);
+  const suspiciousDrop =
+    safeExisting >= 10 && safeObserved > 0 && safeObserved < Math.ceil(safeExisting * 0.5);
+  const emptyUnexpected = safeExisting > 0 && safeObserved === 0;
+  return {
+    guarded: suspiciousDrop || emptyUnexpected,
+    reason: suspiciousDrop ? "suspicious_drop" : emptyUnexpected ? "empty_observed" : "",
+  };
 }
 
 async function main() {
@@ -429,12 +521,19 @@ async function main() {
   let faSourceUniv = null;
   let faObservedCount = 0;
   let faFetchError = null;
+  const existingFaCount = Array.isArray(faDoc.json.roster) ? faDoc.json.roster.length : 0;
+  const faBaselinePlayers = readManualRefreshBaselinePlayers("fa");
   const faObservedEntityIds = new Set();
   for (const faUniv of faUnivCandidates) {
     try {
       const faUrl = `https://eloboard.com/univ/bbs/board.php?bo_table=all_bj_list&univ_name=${encodeURIComponent(faUniv)}`;
       const faHtml = await fetchHtml(faUrl);
       const faRows = parseRoster(faHtml);
+      const faGuard = shouldGuardObservedRoster(existingFaCount, faRows.length);
+      if (faGuard.guarded) {
+        faFetchError = `guarded:${faGuard.reason}:existing=${existingFaCount}:observed=${faRows.length}`;
+        continue;
+      }
       if (!faRows.length) continue;
       for (const r of faRows) {
         const prevObserved = observedByEntity.get(r.entity_id);
@@ -497,6 +596,7 @@ async function main() {
   const tierChanged = [];
   const raceChanged = [];
   const dedupRemovals = [];
+  const faFallbackEntityIds = new Set();
 
   for (const [entityId, observed] of observedByEntity.entries()) {
     const prev = beforeByEntity.get(entityId);
@@ -563,13 +663,21 @@ async function main() {
         profile_url: String(prev.player.profile_url || ""),
       }, "roster_sync_fa");
       moved.push({ entity_id: entityId, name: prev.player.name, from: prev.team_code, to: "fa" });
+      faFallbackEntityIds.add(String(entityId));
     }
   }
 
   // If FA source page is available, keep FA roster strictly aligned to observed FA entities.
   if (faSourceUniv) {
     const roster = Array.isArray(faDoc.json.roster) ? faDoc.json.roster : [];
-    faDoc.json.roster = roster.filter((p) => faObservedEntityIds.has(String(p.entity_id)));
+    const retainedFaEntityIds = buildRetainedFaEntityIds(
+      faObservedEntityIds,
+      observedByEntity,
+      [...faFallbackEntityIds]
+    );
+    faDoc.json.roster = roster.filter((p) => retainedFaEntityIds.has(String(p.entity_id)));
+  } else {
+    restoreMissingFaBaselinePlayers(faDoc, faBaselinePlayers, observedByEntity, beforeByEntity, guardedTeamCodes);
   }
 
   const changedTeams = [];
@@ -612,9 +720,13 @@ async function main() {
 }
 
 module.exports = {
+  buildRetainedFaEntityIds,
   effectiveRace,
   effectiveTier,
   fallbackValue,
+  restoreMissingFaBaselinePlayers,
+  readManualRefreshBaselinePlayers,
+  shouldGuardObservedRoster,
   tierKey,
   upsertRosterEntry,
 };
