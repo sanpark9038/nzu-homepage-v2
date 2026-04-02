@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
+const { spawn } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
@@ -75,30 +75,79 @@ function formatSecs(sec) {
   return `${m}m ${r}s`;
 }
 
-function runNode(args) {
-  let used = NODE_BIN;
-  let res = spawnSync(used, args, {
-    cwd: ROOT,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  if (res.error && String(res.error.code || "") === "EPERM" && NODE_BIN !== NODE_BIN_FALLBACK) {
-    used = NODE_BIN_FALLBACK;
-    res = spawnSync(used, args, {
-      cwd: ROOT,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      maxBuffer: 64 * 1024 * 1024,
-    });
+function streamChunkOutput(prefix, text, writer) {
+  if (!text) return;
+  const normalized = text.replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (!line && i === lines.length - 1) continue;
+    writer.write(`${prefix}${line}\n`);
   }
+}
+
+function spawnNodeOnce(bin, args) {
+  return spawn(bin, args, {
+    cwd: ROOT,
+    env: process.env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+async function runNode(args, label = args[0]) {
+  let used = NODE_BIN;
+  let child;
+  try {
+    child = spawnNodeOnce(used, args);
+  } catch (error) {
+    if (String(error.code || "") === "EPERM" && NODE_BIN !== NODE_BIN_FALLBACK) {
+      used = NODE_BIN_FALLBACK;
+      child = spawnNodeOnce(used, args);
+    } else {
+      throw error;
+    }
+  }
+
+  let stdout = "";
+  let stderr = "";
+  let spawnError = "";
+  let lastOutputAt = Date.now();
+  const heartbeat = setInterval(() => {
+    const idleSeconds = Math.floor((Date.now() - lastOutputAt) / 1000);
+    console.log(`[WAIT] ${label} still running (idle=${idleSeconds}s)`);
+  }, 60000);
+
+  child.stdout.on("data", (chunk) => {
+    const text = chunk.toString("utf8");
+    stdout += text;
+    lastOutputAt = Date.now();
+    streamChunkOutput(`[${label}] `, text, process.stdout);
+  });
+
+  child.stderr.on("data", (chunk) => {
+    const text = chunk.toString("utf8");
+    stderr += text;
+    lastOutputAt = Date.now();
+    streamChunkOutput(`[${label}] `, text, process.stderr);
+  });
+
+  const status = await new Promise((resolve) => {
+    child.on("error", (error) => {
+      spawnError = String(error.message || error);
+      resolve(typeof error.code === "number" ? error.code : 1);
+    });
+    child.on("close", resolve);
+  }).finally(() => {
+    clearInterval(heartbeat);
+  });
+
   return {
     node_bin: used,
-    status: res.status,
-    ok: res.status === 0,
-    stdout: String(res.stdout || "").trim(),
-    stderr: String(res.stderr || "").trim(),
-    error: res.error ? String(res.error.message || res.error) : "",
+    status,
+    ok: status === 0,
+    stdout: String(stdout || "").trim(),
+    stderr: String(stderr || "").trim(),
+    error: spawnError,
   };
 }
 
@@ -110,13 +159,13 @@ function tail(text, count = 10) {
     .slice(-count);
 }
 
-function runCommonPreparation(teamCodes, allTeamCodes) {
+async function runCommonPreparation(teamCodes, allTeamCodes) {
   const steps = [];
   const isFullSync = teamCodes.length === allTeamCodes.length && teamCodes.every((code, idx) => code === allTeamCodes[idx]);
   const rosterArgs = isFullSync
     ? [ROSTER_SYNC_SCRIPT]
     : [ROSTER_SYNC_SCRIPT, "--teams", teamCodes.join(","), "--allow-partial"];
-  const rosterRes = runNode(rosterArgs);
+  const rosterRes = await runNode(rosterArgs, "roster_sync");
   steps.push({
     name: "roster_sync",
     ok: rosterRes.ok,
@@ -128,7 +177,7 @@ function runCommonPreparation(teamCodes, allTeamCodes) {
 
   for (const teamCode of teamCodes.filter((code) => code !== "fa")) {
     const aliasArgs = [DISPLAY_ALIAS_SCRIPT, "--project", teamCode];
-    const aliasRes = runNode(aliasArgs);
+    const aliasRes = await runNode(aliasArgs, `display_alias:${teamCode}`);
     steps.push({
       name: `display_alias:${teamCode}`,
       ok: aliasRes.ok,
@@ -142,7 +191,7 @@ function runCommonPreparation(teamCodes, allTeamCodes) {
   return { ok: true, steps };
 }
 
-function main() {
+async function main() {
   ensureDir(REPORT_DIR);
   const chunkSize = Math.max(1, Number(argValue("--chunk-size", "3")) || 3);
   const continueOnError = hasFlag("--continue-on-error");
@@ -174,7 +223,7 @@ function main() {
   const chunkReports = [];
   const chunkDateTags = [];
   let hadFailure = false;
-  const preparation = runCommonPreparation(teams, all);
+  const preparation = await runCommonPreparation(teams, all);
   if (!preparation.ok) hadFailure = true;
 
   console.log(`[START] chunked ops: teams=${teams.length}, chunk_size=${chunkSize}, chunks=${chunks.length}`);
@@ -201,7 +250,7 @@ function main() {
     ];
     chunkDateTags.push(`${runTag}-chunk${idx}`);
     console.log(`[CHUNK ${idx}/${chunks.length}] teams=${chunkTeams.join(",")}`);
-    const res = runNode(args);
+    const res = await runNode(args, `chunk${idx}`);
     const elapsed = (Date.now() - chunkStarted) / 1000;
     const spent = (Date.now() - startedAt) / 1000;
     const avg = spent / idx;
@@ -242,7 +291,7 @@ function main() {
       "--chunk-date-tags",
       chunkDateTags.join(","),
     ];
-    const mergeRes = runNode(mergeArgs);
+    const mergeRes = await runNode(mergeArgs, "merge_chunks");
     merged = {
       ok: mergeRes.ok,
       skipped: false,
@@ -260,7 +309,7 @@ function main() {
   };
   if (!hadFailure) {
     const priorityArgs = [PRIORITY_SCRIPT, "--teams", teams.join(",")];
-    const priorityRes = runNode(priorityArgs);
+    const priorityRes = await runNode(priorityArgs, "priority_update");
     priorityUpdate = {
       ok: priorityRes.ok,
       skipped: false,
@@ -298,4 +347,7 @@ function main() {
   if (hadFailure) process.exit(1);
 }
 
-main();
+main().catch((error) => {
+  console.error(error instanceof Error ? error.stack || error.message : String(error));
+  process.exit(1);
+});

@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
+const { spawn } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const NODE_BIN = process.execPath || "node";
@@ -80,32 +80,66 @@ function captureRosterBaseline() {
   );
 }
 
-function runStep(name, scriptRelPath, args = []) {
+function streamToConsole(text, writer) {
+  if (!text) return;
+  writer.write(text);
+  if (!text.endsWith("\n")) writer.write("\n");
+}
+
+function spawnNode(scriptRelPath, args = []) {
+  return spawn(NODE_BIN, [scriptRelPath, ...args], {
+    cwd: ROOT,
+    env: process.env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
+async function runStep(name, scriptRelPath, args = []) {
   const startedAt = new Date().toISOString();
   console.log(`[RUN] ${name}`);
-  const res = spawnSync(NODE_BIN, [scriptRelPath, ...args], {
-    cwd: ROOT,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-    maxBuffer: 64 * 1024 * 1024,
+  const child = spawnNode(scriptRelPath, args);
+  let stdout = "";
+  let stderr = "";
+  let lastOutputAt = Date.now();
+  const heartbeat = setInterval(() => {
+    const idleSeconds = Math.floor((Date.now() - lastOutputAt) / 1000);
+    console.log(`[WAIT] ${name} still running (idle=${idleSeconds}s)`);
+  }, 60000);
+
+  child.stdout.on("data", (chunk) => {
+    const text = chunk.toString("utf8");
+    stdout += text;
+    lastOutputAt = Date.now();
+    streamToConsole(text, process.stdout);
   });
+
+  child.stderr.on("data", (chunk) => {
+    const text = chunk.toString("utf8");
+    stderr += text;
+    lastOutputAt = Date.now();
+    streamToConsole(text, process.stderr);
+  });
+
+  const exitCode = await new Promise((resolve, reject) => {
+    child.on("error", reject);
+    child.on("close", resolve);
+  }).finally(() => {
+    clearInterval(heartbeat);
+  });
+
   const endedAt = new Date().toISOString();
-  const stdout = String(res.stdout || "");
-  const stderr = String(res.stderr || "");
-  if (stdout) process.stdout.write(stdout);
-  if (stderr) process.stderr.write(stderr);
   const step = {
     name,
     command: `${NODE_BIN} ${[scriptRelPath, ...args].join(" ")}`,
     started_at: startedAt,
     ended_at: endedAt,
-    exit_code: res.status,
-    ok: res.status === 0,
+    exit_code: exitCode,
+    ok: exitCode === 0,
     stdout_tail: tailLines(stdout),
     stderr_tail: tailLines(stderr),
   };
-  if (res.status !== 0) {
-    throw Object.assign(new Error(`${name} failed (exit=${res.status}) ${startedAt} -> ${endedAt}`), { step });
+  if (exitCode !== 0) {
+    throw Object.assign(new Error(`${name} failed (exit=${exitCode}) ${startedAt} -> ${endedAt}`), { step });
   }
   console.log(`[OK] ${name}`);
   return step;
@@ -185,7 +219,7 @@ function buildMarkdownSummary(report, reportPath) {
   return lines.join("\n");
 }
 
-function main() {
+async function main() {
   const chunkSize = String(argValue("--chunk-size", "3")).trim() || "3";
   const inactiveSkipDays = String(argValue("--inactive-skip-days", "14")).trim() || "14";
   const withSupabaseSync = hasFlag("--with-supabase-sync");
@@ -197,7 +231,7 @@ function main() {
   captureRosterBaseline();
   try {
     steps.push(
-      runStep("collect_chunked", "scripts/tools/run-ops-pipeline-chunked.js", [
+      await runStep("collect_chunked", "scripts/tools/run-ops-pipeline-chunked.js", [
         "--chunk-size",
         chunkSize,
         "--inactive-skip-days",
@@ -205,7 +239,7 @@ function main() {
       ])
     );
     if (withSupabaseSync) {
-      steps.push(runStep("supabase_push", "scripts/tools/push-supabase-approved.js", ["--approved"]));
+      steps.push(await runStep("supabase_push", "scripts/tools/push-supabase-approved.js", ["--approved"]));
     }
     console.log("Done: manual refresh completed.");
   } catch (error) {
@@ -230,4 +264,7 @@ function main() {
   }
 }
 
-main();
+main().catch((error) => {
+  console.error(error instanceof Error ? error.stack || error.message : String(error));
+  process.exit(1);
+});
