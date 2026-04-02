@@ -9,7 +9,7 @@ const {
   parseDateTag,
 } = require("./lib/daily-pipeline-snapshot");
 const { buildAlerts, movedInPlayersByTeam } = require("./run-daily-pipeline");
-const { exportConcurrencyForTeam, exportTimeoutForTeam } = require("./run-daily-pipeline");
+const { classifyZeroRecordPlayers, exportConcurrencyForTeam, exportTimeoutForTeam } = require("./run-daily-pipeline");
 
 function makeTempReportsDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "nzu-daily-pipeline-"));
@@ -334,4 +334,42 @@ runTest("exportConcurrencyForTeam forces higher concurrency for fa", () => {
 runTest("exportTimeoutForTeam extends timeout for fa only", () => {
   assert.equal(exportTimeoutForTeam("fa"), 1800000);
   assert.equal(exportTimeoutForTeam("jsa"), 900000);
+});
+
+runTest("classifyZeroRecordPlayers separates allowlisted, excluded, alias-conflict, and review players", () => {
+  const actual = classifyZeroRecordPlayers(
+    [
+      {
+        team: "연합팀",
+        team_code: "fa",
+        zero_players: "박퍼니",
+      },
+      {
+        team: "케이대",
+        team_code: "ku",
+        zero_players: "케이, 신규점검대상",
+      },
+      {
+        team: "YB",
+        team_code: "yb",
+        zero_players: "루다, 오뀨",
+      },
+    ],
+    {
+      rules: {
+        zero_record_players_allowlist: {
+          ku: ["케이"],
+        },
+        zero_record_players_team_allowlist: ["fa"],
+      },
+    }
+  );
+
+  assert.equal(actual.total, 5);
+  assert.equal(actual.counts.team_allowlisted, 1);
+  assert.equal(actual.counts.player_allowlisted, 1);
+  assert.equal(actual.counts.collection_excluded, 1);
+  assert.equal(actual.counts.manual_alias_conflict, 1);
+  assert.equal(actual.counts.needs_review, 1);
+  assert.equal(actual.needs_review_count, 1);
 });

@@ -24,6 +24,8 @@ const DISPLAY_ALIAS_SCRIPT = path.join(ROOT, "scripts", "tools", "apply-player-d
 const TEAM_TABLE_OUT_DIR = path.join(TMP_DIR, "reports", "team-roster-table");
 const NODE_BIN_FALLBACK = "node";
 const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
+const COLLECTION_EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
+const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 let ACTIVE_PROGRESS_LOG_PATH = null;
 const TEAM_EXPORT_TIMEOUT_MS = 900000;
 const FA_EXPORT_TIMEOUT_MS = 1800000;
@@ -515,6 +517,133 @@ function movedInPlayersByTeam(rosterSyncReport) {
   return map;
 }
 
+function splitZeroPlayers(raw) {
+  return String(raw || "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function loadCollectionExclusionLookup() {
+  const doc = readJsonIfExists(COLLECTION_EXCLUSIONS_PATH, { players: [] });
+  const rows = Array.isArray(doc && doc.players) ? doc.players : [];
+  const lookup = new Map();
+  for (const row of rows) {
+    const name = String(row && row.name ? row.name : "").trim();
+    if (!name) continue;
+    lookup.set(name, {
+      reason: String(row && row.reason ? row.reason : "excluded_from_collection"),
+      wr_id: Number(row && row.wr_id ? row.wr_id : 0) || null,
+      entity_id: String(row && row.entity_id ? row.entity_id : "").trim() || null,
+    });
+  }
+  return lookup;
+}
+
+function loadManualOverrideLookup() {
+  const doc = readJsonIfExists(MANUAL_OVERRIDES_PATH, { overrides: [] });
+  const rows = Array.isArray(doc && doc.overrides) ? doc.overrides : [];
+  const lookup = new Map();
+  for (const row of rows) {
+    const name = String(row && row.name ? row.name : "").trim();
+    if (!name) continue;
+    lookup.set(name, {
+      note: String(row && row.note ? row.note : "").trim(),
+      entity_id: String(row && row.entity_id ? row.entity_id : "").trim() || null,
+      team_code: String(row && row.team_code ? row.team_code : "").trim() || null,
+    });
+  }
+  return lookup;
+}
+
+function loadManualAliasConflictLookup() {
+  const doc = readJsonIfExists(MANUAL_OVERRIDES_PATH, { overrides: [] });
+  const rows = Array.isArray(doc && doc.overrides) ? doc.overrides : [];
+  const lookup = new Map();
+  for (const row of rows) {
+    const note = String(row && row.note ? row.note : "").trim();
+    if (!note.includes("Alias conflict")) continue;
+    const match = note.match(/FA alias\s+([^.\s]+)/i);
+    if (!match) continue;
+    const aliasName = String(match[1] || "").trim();
+    if (!aliasName) continue;
+    lookup.set(aliasName, note);
+  }
+  return lookup;
+}
+
+function classifyZeroRecordPlayers(rowsWithDelta, cfg) {
+  const rules = cfg && cfg.rules ? cfg.rules : {};
+  const zeroRecordAllowlist =
+    rules && rules.zero_record_players_allowlist && typeof rules.zero_record_players_allowlist === "object"
+      ? rules.zero_record_players_allowlist
+      : {};
+  const teamAllowlist = new Set(
+    Array.isArray(rules && rules.zero_record_players_team_allowlist)
+      ? rules.zero_record_players_team_allowlist.map((value) => String(value || "").trim())
+      : []
+  );
+  const collectionExclusions = loadCollectionExclusionLookup();
+  const manualOverrides = loadManualOverrideLookup();
+  const manualAliasConflicts = loadManualAliasConflictLookup();
+  const players = [];
+
+  for (const teamRow of Array.isArray(rowsWithDelta) ? rowsWithDelta : []) {
+    const teamCode = String(teamRow && teamRow.team_code ? teamRow.team_code : "").trim();
+    const teamName = String(teamRow && teamRow.team ? teamRow.team : teamCode).trim();
+    const playerAllowlist = new Set(
+      Array.isArray(zeroRecordAllowlist[teamCode])
+        ? zeroRecordAllowlist[teamCode].map((value) => String(value || "").trim())
+        : []
+    );
+
+    for (const playerName of splitZeroPlayers(teamRow && teamRow.zero_players ? teamRow.zero_players : "")) {
+      let category = "needs_review";
+      let reason = "unclassified_zero_record";
+      if (teamAllowlist.has(teamCode)) {
+        category = "team_allowlisted";
+        reason = "zero_record_team_allowlist";
+      } else if (playerAllowlist.has(playerName)) {
+        category = "player_allowlisted";
+        reason = "zero_record_player_allowlist";
+      } else if (collectionExclusions.has(playerName)) {
+        category = "collection_excluded";
+        reason = collectionExclusions.get(playerName).reason;
+      } else if (manualAliasConflicts.has(playerName)) {
+        category = "manual_alias_conflict";
+        reason = manualAliasConflicts.get(playerName);
+      } else if (manualOverrides.has(playerName)) {
+        const override = manualOverrides.get(playerName);
+        if (String(override && override.note ? override.note : "").includes("Alias conflict")) {
+          category = "manual_alias_conflict";
+          reason = override.note;
+        }
+      }
+
+      players.push({
+        team_code: teamCode,
+        team: teamName,
+        player_name: playerName,
+        category,
+        reason,
+      });
+    }
+  }
+
+  const counts = players.reduce((acc, row) => {
+    acc[row.category] = Number(acc[row.category] || 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    generated_at: new Date().toISOString(),
+    total: players.length,
+    counts,
+    needs_review_count: Number(counts.needs_review || 0),
+    players,
+  };
+}
+
 function loadTeamRoster(team) {
   const p = path.join(ROOT, team.rosterPath);
   const doc = readJson(p);
@@ -649,13 +778,6 @@ function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null, rosterTransiti
       .filter((row) => row && row.changed)
       .map((row) => [String(row.team_code || ""), row])
   );
-
-  function splitZeroPlayers(raw) {
-    return String(raw || "")
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean);
-  }
 
   const alerts = [];
   for (const row of rowsWithDelta) {
@@ -919,6 +1041,7 @@ function main() {
 
   const alertConfig = readAlertConfig();
   const alerts = buildAlerts(rowsWithDelta, alertConfig, rosterSyncReport, snapshot.roster_transition_summary);
+  const zeroRecordReview = classifyZeroRecordPlayers(rowsWithDelta, alertConfig);
   const alertSummary = {
     generated_at: new Date().toISOString(),
     date_tag: dateTag,
@@ -939,6 +1062,14 @@ function main() {
   const outCsv = path.join(REPORTS_DIR, `daily_pipeline_snapshot_${dateTag}.csv`);
   const outAlertJson = path.join(REPORTS_DIR, `daily_pipeline_alerts_${dateTag}.json`);
   const outAlertCsv = path.join(REPORTS_DIR, `daily_pipeline_alerts_${dateTag}.csv`);
+  const zeroRecordReviewPath = path.join(REPORTS_DIR, `zero_record_review_${dateTag}.json`);
+  const zeroRecordReviewLatestPath = path.join(REPORTS_DIR, "zero_record_review_latest.json");
+  snapshot.zero_record_review = {
+    total: zeroRecordReview.total,
+    counts: zeroRecordReview.counts,
+    needs_review_count: zeroRecordReview.needs_review_count,
+    report_path: path.relative(ROOT, zeroRecordReviewPath).replace(/\\/g, "/"),
+  };
   writeJson(outJson, snapshot);
   writeCsv(
     outCsv,
@@ -973,6 +1104,8 @@ function main() {
       message: a.message,
     }))
   );
+  writeJson(zeroRecordReviewPath, zeroRecordReview);
+  writeJson(zeroRecordReviewLatestPath, zeroRecordReview);
 
   if (organize) {
     runNode(ORGANIZE_SCRIPT, [], {
@@ -985,6 +1118,8 @@ function main() {
   console.log(`[DONE] ${path.relative(ROOT, outCsv)}`);
   console.log(`[DONE] ${path.relative(ROOT, outAlertJson)}`);
   console.log(`[DONE] ${path.relative(ROOT, outAlertCsv)}`);
+  console.log(`[DONE] ${path.relative(ROOT, zeroRecordReviewPath)}`);
+  console.log(`[DONE] ${path.relative(ROOT, zeroRecordReviewLatestPath)}`);
   if (teamTableReport.ok) {
     console.log(`[DONE] ${teamTableReport.out_dir}`);
   } else if (!teamTableReport.skipped) {
@@ -1015,6 +1150,7 @@ if (require.main === module) {
 
 module.exports = {
   buildAlerts,
+  classifyZeroRecordPlayers,
   movedInPlayersByTeam,
   exportConcurrencyForTeam,
   exportTimeoutForTeam,
