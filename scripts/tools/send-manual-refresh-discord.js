@@ -284,6 +284,37 @@ function countAlertsBySeverity(alerts) {
   };
 }
 
+function describeAlertTone(alertCounts) {
+  const counts = alertCounts || {};
+  const critical = Number(counts.critical || 0);
+  const high = Number(counts.high || 0);
+  const medium = Number(counts.medium || 0);
+  const low = Number(counts.low || 0);
+  const total = Number(counts.total || 0);
+  if (critical > 0 || high > 0) {
+    return {
+      headlineSuffix: "(경고 포함)",
+      summaryLabel: "주의 알림",
+      followup: "경고가 있었으므로 세부 항목을 확인해야 합니다.",
+      isWarning: true,
+    };
+  }
+  if (medium > 0 || low > 0 || total > 0) {
+    return {
+      headlineSuffix: "(변동 알림)",
+      summaryLabel: "변동 알림",
+      followup: "반영은 정상 완료되었고, 아래 항목은 운영상 참고용입니다.",
+      isWarning: false,
+    };
+  }
+  return {
+    headlineSuffix: "",
+    summaryLabel: "알림",
+    followup: "",
+    isWarning: false,
+  };
+}
+
 function supabaseSyncModeLabel() {
   const workflowModeLabel = String(process.env.WORKFLOW_MODE_LABEL || "").trim();
   if (workflowModeLabel) {
@@ -317,6 +348,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     alertsDoc,
   });
   const alertCounts = summaryCheck.alerts.counts || countAlertsBySeverity([]);
+  const alertTone = describeAlertTone(alertCounts);
   const deltaComparable = Boolean(
     snapshot &&
       snapshot.delta_reference &&
@@ -328,7 +360,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     : joiners;
 
   const lines = [
-    `산박대표님.일일 업데이트보고입니다. ${alertCounts.total > 0 ? "(경고 포함)" : ""} (${dateLabelFromSnapshot(snapshot)})`.trim(),
+    `산박대표님.일일 업데이트보고입니다. ${alertTone.headlineSuffix} (${dateLabelFromSnapshot(snapshot)})`.trim(),
     "",
   ];
   const syncModeLabel = supabaseSyncModeLabel();
@@ -409,10 +441,10 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   if ((alertCounts.total || 0) > 0) {
     lines.push("");
     lines.push(
-      `주의 알림: ${alertCounts.total}건 (critical ${alertCounts.critical}, high ${alertCounts.high}, medium ${alertCounts.medium}, low ${alertCounts.low})`
+      `${alertTone.summaryLabel}: ${alertCounts.total}건 (critical ${alertCounts.critical}, high ${alertCounts.high}, medium ${alertCounts.medium}, low ${alertCounts.low})`
     );
-    if (alertCounts.critical === 0 && alertCounts.high === 0) {
-      lines.push("경고는 있었지만 반영은 계속 진행되었습니다.");
+    if (alertTone.followup) {
+      lines.push(alertTone.followup);
     }
   }
   if (runUrl) {
@@ -522,7 +554,14 @@ async function main() {
   console.log(message);
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  describeAlertTone,
+  buildSuccessMessage,
+};
