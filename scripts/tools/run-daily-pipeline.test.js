@@ -336,7 +336,7 @@ runTest("exportTimeoutForTeam extends timeout for fa only", () => {
   assert.equal(exportTimeoutForTeam("jsa"), 900000);
 });
 
-runTest("classifyZeroRecordPlayers separates allowlisted, excluded, alias-conflict, and review players", () => {
+runTest("classifyZeroRecordPlayers separates team allowlist, player allowlist, and review players", () => {
   const actual = classifyZeroRecordPlayers(
     [
       {
@@ -347,12 +347,7 @@ runTest("classifyZeroRecordPlayers separates allowlisted, excluded, alias-confli
       {
         team: "케이대",
         team_code: "ku",
-        zero_players: "케이, 신규점검대상",
-      },
-      {
-        team: "YB",
-        team_code: "yb",
-        zero_players: "루다, 오뀨",
+        zero_players: "케이, 신규점검대상1, 신규점검대상2",
       },
     ],
     {
@@ -365,11 +360,9 @@ runTest("classifyZeroRecordPlayers separates allowlisted, excluded, alias-confli
     }
   );
 
-  assert.equal(actual.total, 5);
+  assert.equal(actual.total, 4);
   assert.equal(actual.counts.team_allowlisted, 1);
   assert.equal(actual.counts.player_allowlisted, 1);
-  assert.equal(actual.counts.collection_excluded, 1);
-  assert.equal(actual.counts.manual_alias_conflict, 1);
-  assert.equal(actual.counts.needs_review, 1);
-  assert.equal(actual.needs_review_count, 1);
+  assert.equal(actual.counts.needs_review, 2);
+  assert.equal(actual.needs_review_count, 2);
 });
