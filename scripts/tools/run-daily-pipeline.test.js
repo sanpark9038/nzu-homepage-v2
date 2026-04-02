@@ -284,3 +284,42 @@ runTest("buildAlerts suppresses roster transition alerts for allowlisted teams",
 
   assert.deepEqual(actual, []);
 });
+
+runTest("buildAlerts suppresses zero-record alerts for team-allowlisted teams", () => {
+  const actual = buildAlerts(
+    [
+      {
+        team: "연합팀",
+        team_code: "fa",
+        zero_players: "고요, 권혁진, 루다",
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: -100,
+        delta_players: 0,
+      },
+    ],
+    {
+      rules: {
+        zero_record_players_severity: "high",
+        zero_record_players_allowlist: {},
+        zero_record_players_team_allowlist: ["fa"],
+        negative_delta_matches_severity: "critical",
+        roster_size_changed_severity: "medium",
+        roster_size_changed_team_allowlist: ["fa"],
+        no_new_matches_enabled: false,
+      },
+    },
+    null,
+    []
+  );
+
+  assert.deepEqual(actual, [
+    {
+      severity: "critical",
+      team: "연합팀",
+      team_code: "fa",
+      rule: "total_matches_decreased",
+      message: "delta_total_matches=-100",
+    },
+  ]);
+});

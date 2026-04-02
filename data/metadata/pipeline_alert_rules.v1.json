@@ -9,6 +9,7 @@
       "ku": ["케이"],
       "ncs": ["트슈"]
     },
+    "zero_record_players_team_allowlist": ["fa"],
     "negative_delta_matches_severity": "critical",
     "roster_size_changed_severity": "medium",
     "roster_size_changed_team_allowlist": ["fa"],

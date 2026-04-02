@@ -160,6 +160,7 @@ function defaultAlertConfig() {
       pipeline_failure_severity: "critical",
       zero_record_players_severity: "high",
       zero_record_players_allowlist: {},
+      zero_record_players_team_allowlist: [],
       negative_delta_matches_severity: "critical",
       roster_size_changed_severity: "medium",
       roster_size_changed_team_allowlist: [],
@@ -553,6 +554,11 @@ function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null, rosterTransiti
     rules && rules.zero_record_players_allowlist && typeof rules.zero_record_players_allowlist === "object"
       ? rules.zero_record_players_allowlist
       : {};
+  const zeroRecordTeamAllowlist = new Set(
+    Array.isArray(rules && rules.zero_record_players_team_allowlist)
+      ? rules.zero_record_players_team_allowlist.map((v) => String(v))
+      : []
+  );
   const movedInByTeam = movedInPlayersByTeam(rosterSyncReport);
   const rosterSizeChangedAllowlist = new Set(
     Array.isArray(rules && rules.roster_size_changed_team_allowlist)
@@ -590,7 +596,11 @@ function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null, rosterTransiti
     );
     const movedInSet = movedInByTeam.get(String(row.team_code || "")) || new Set();
     const actionableZeroPlayers = zeroPlayers.filter((name) => !allowSet.has(name) && !movedInSet.has(name));
-    if (actionableZeroPlayers.length > 0 && !rosterTransition) {
+    if (
+      actionableZeroPlayers.length > 0 &&
+      !rosterTransition &&
+      !zeroRecordTeamAllowlist.has(String(row.team_code || ""))
+    ) {
       alerts.push({
         severity: rules.zero_record_players_severity || "high",
         team: row.team,
