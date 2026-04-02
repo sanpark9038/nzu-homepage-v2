@@ -159,6 +159,19 @@ function tail(text, count = 10) {
     .slice(-count);
 }
 
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+}
+
+function hasBlockingAlerts(alertDoc) {
+  const blockingSeverities =
+    Array.isArray(alertDoc && alertDoc.blocking_severities) && alertDoc.blocking_severities.length
+      ? alertDoc.blocking_severities.map((value) => String(value || "").trim().toLowerCase()).filter(Boolean)
+      : ["critical", "high"];
+  const alerts = Array.isArray(alertDoc && alertDoc.alerts) ? alertDoc.alerts : [];
+  return alerts.some((alert) => blockingSeverities.includes(String(alert && alert.severity ? alert.severity : "").trim().toLowerCase()));
+}
+
 async function runCommonPreparation(teamCodes, allTeamCodes) {
   const steps = [];
   const isFullSync = teamCodes.length === allTeamCodes.length && teamCodes.every((code, idx) => code === allTeamCodes[idx]);
@@ -195,6 +208,7 @@ async function main() {
   ensureDir(REPORT_DIR);
   const chunkSize = Math.max(1, Number(argValue("--chunk-size", "3")) || 3);
   const continueOnError = hasFlag("--continue-on-error");
+  const strict = !hasFlag("--no-strict");
   const dateTag = timestamp();
   const baseDateTag = todayDateTag();
   const runTag = dateTag;
@@ -246,6 +260,7 @@ async function main() {
       "--no-display-alias",
       "--no-team-table",
       "--no-organize",
+      "--no-strict",
       ...passThroughFlags,
     ];
     chunkDateTags.push(`${runTag}-chunk${idx}`);
@@ -300,6 +315,17 @@ async function main() {
       stderr_tail: tail([mergeRes.stderr, mergeRes.error].filter(Boolean).join("\n")),
     };
     if (!mergeRes.ok) hadFailure = true;
+    if (!hadFailure && strict) {
+      const mergedAlertsPath = path.join(REPORT_DIR, `daily_pipeline_alerts_${baseDateTag}.json`);
+      const mergedAlerts = readJson(mergedAlertsPath);
+      if (hasBlockingAlerts(mergedAlerts)) {
+        hadFailure = true;
+        merged.strict_blocking_failure = true;
+        console.error("[STRICT] Merged daily pipeline alerts include blocking severity.");
+      } else {
+        merged.strict_blocking_failure = false;
+      }
+    }
   }
 
   let priorityUpdate = {
@@ -327,6 +353,7 @@ async function main() {
     total_teams: teams.length,
     total_chunks: chunks.length,
     continue_on_error: continueOnError,
+    strict,
     elapsed_seconds: (endedAt - startedAt) / 1000,
     teams,
     run_tag: runTag,
