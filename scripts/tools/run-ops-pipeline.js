@@ -267,6 +267,7 @@ function main() {
   if (hasFlag("--no-team-table")) dailyArgs.push("--no-team-table");
   if (hasFlag("--no-fa-record-metadata")) dailyArgs.push("--no-fa-record-metadata");
   if (hasFlag("--no-organize")) dailyArgs.push("--no-organize");
+  if (hasFlag("--no-strict")) dailyArgs.push("--no-strict");
   const dailyCommand = `node ${dailyArgs.join(" ")}`;
 
   const steps = [];
