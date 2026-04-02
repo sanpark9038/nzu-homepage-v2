@@ -24,6 +24,7 @@ const DISPLAY_ALIAS_SCRIPT = path.join(ROOT, "scripts", "tools", "apply-player-d
 const TEAM_TABLE_OUT_DIR = path.join(TMP_DIR, "reports", "team-roster-table");
 const NODE_BIN_FALLBACK = "node";
 const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
+let ACTIVE_PROGRESS_LOG_PATH = null;
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -133,6 +134,16 @@ function writeJson(filePath, obj) {
   fs.writeFileSync(filePath, JSON.stringify(obj, null, 2), "utf8");
 }
 
+function appendProgress(event, payload = {}) {
+  if (!ACTIVE_PROGRESS_LOG_PATH) return;
+  ensureDir(path.dirname(ACTIVE_PROGRESS_LOG_PATH));
+  fs.appendFileSync(
+    ACTIVE_PROGRESS_LOG_PATH,
+    `${JSON.stringify({ ts: new Date().toISOString(), event, ...payload })}\n`,
+    "utf8"
+  );
+}
+
 function writeCsv(filePath, rows) {
   ensureDir(path.dirname(filePath));
   if (!rows.length) {
@@ -209,23 +220,56 @@ function sortedAlerts(alerts) {
   });
 }
 
-function runNode(scriptPath, args) {
+function runNode(scriptPath, args, options = {}) {
+  const label = String(options.label || path.basename(scriptPath));
+  const timeoutMs = Number(options.timeoutMs || 600000);
+  const startedAt = Date.now();
+  console.log(`[STEP] start ${label}`);
+  appendProgress("step_start", {
+    label,
+    script: path.relative(ROOT, scriptPath).replace(/\\/g, "/"),
+    args,
+    timeout_ms: timeoutMs,
+  });
   try {
-    return execFileSync(NODE_BIN, [scriptPath, ...args], {
+    const output = execFileSync(NODE_BIN, [scriptPath, ...args], {
       cwd: ROOT,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
       maxBuffer: 50 * 1024 * 1024,
+      timeout: timeoutMs,
     });
+    const elapsedMs = Date.now() - startedAt;
+    console.log(`[STEP] done ${label} elapsed=${elapsedMs}ms`);
+    appendProgress("step_done", { label, elapsed_ms: elapsedMs });
+    return output;
   } catch (error) {
     const code = error && typeof error === "object" ? String(error.code || "") : "";
-    if (code !== "EPERM" || NODE_BIN === NODE_BIN_FALLBACK) throw error;
-    return execFileSync(NODE_BIN_FALLBACK, [scriptPath, ...args], {
-      cwd: ROOT,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      maxBuffer: 50 * 1024 * 1024,
+    if (code === "EPERM" && NODE_BIN !== NODE_BIN_FALLBACK) {
+      const output = execFileSync(NODE_BIN_FALLBACK, [scriptPath, ...args], {
+        cwd: ROOT,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+        maxBuffer: 50 * 1024 * 1024,
+        timeout: timeoutMs,
+      });
+      const elapsedMs = Date.now() - startedAt;
+      console.log(`[STEP] done ${label} elapsed=${elapsedMs}ms fallback=node`);
+      appendProgress("step_done", { label, elapsed_ms: elapsedMs, fallback: true });
+      return output;
+    }
+    const elapsedMs = Date.now() - startedAt;
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[STEP] fail ${label} elapsed=${elapsedMs}ms error=${message}`);
+    appendProgress("step_fail", {
+      label,
+      elapsed_ms: elapsedMs,
+      code: error && typeof error === "object" ? String(error.code || "") : "",
+      signal: error && typeof error === "object" ? String(error.signal || "") : "",
+      killed: Boolean(error && typeof error === "object" && error.killed),
+      message,
     });
+    throw error;
   }
 }
 
@@ -330,7 +374,10 @@ function getRowPeriodTotal(row) {
 function generateTeamTableReports(teams) {
   const teamCodes = teams.map((t) => t.code).join(",");
   try {
-    const raw = runNode(TEAM_TABLE_SCRIPT, ["--teams", teamCodes, "--out-dir", TEAM_TABLE_OUT_DIR]).trim();
+    const raw = runNode(TEAM_TABLE_SCRIPT, ["--teams", teamCodes, "--out-dir", TEAM_TABLE_OUT_DIR], {
+      label: "team_table_report",
+      timeoutMs: 120000,
+    }).trim();
     let parsed = null;
     try {
       parsed = JSON.parse(raw);
@@ -358,7 +405,10 @@ function runRosterSync(teams, totalTeamCount) {
     ? []
     : ["--teams", teamCodes, "--allow-partial"];
   try {
-    const raw = runNode(ROSTER_SYNC_SCRIPT, args).trim();
+    const raw = runNode(ROSTER_SYNC_SCRIPT, args, {
+      label: `roster_sync:${teamCodes || "all"}`,
+      timeoutMs: 300000,
+    }).trim();
     let parsed = null;
     try {
       parsed = JSON.parse(raw);
@@ -385,7 +435,10 @@ function ensureFaRecordMetadata(teams) {
   }
 
   try {
-    runNode(EXPORT_METADATA_SCRIPT, ["--univ", faTeam.univ]);
+    runNode(EXPORT_METADATA_SCRIPT, ["--univ", faTeam.univ], {
+      label: `fa_record_metadata:${faTeam.univ}`,
+      timeoutMs: 180000,
+    });
     return { ok: true, generated: true, source_univ: faTeam.univ };
   } catch (error) {
     return {
@@ -401,7 +454,10 @@ function applyDisplayAliasesForTeams(teams) {
   const rows = [];
   for (const team of teams) {
     try {
-      const raw = runNode(DISPLAY_ALIAS_SCRIPT, ["--project", team.code]).trim();
+      const raw = runNode(DISPLAY_ALIAS_SCRIPT, ["--project", team.code], {
+        label: `display_alias:${team.code}`,
+        timeoutMs: 120000,
+      }).trim();
       let parsed = null;
       try {
         parsed = JSON.parse(raw);
@@ -507,7 +563,10 @@ function recoverTeamAnomalies(team, report, from, to, concurrency) {
         String(rosterPlayer.tier || ""),
         "--concurrency",
         concurrency,
-      ]);
+      ], {
+        label: `recover_report:${team.code}:${playerName}`,
+        timeoutMs: 300000,
+      });
       const parsed = JSON.parse(raw);
       writeJson(String(row.json_path), parsed);
 
@@ -521,7 +580,10 @@ function recoverTeamAnomalies(team, report, from, to, concurrency) {
         from,
         "--to",
         to,
-      ]).trim();
+      ], {
+        label: `recover_csv:${team.code}:${playerName}`,
+        timeoutMs: 120000,
+      }).trim();
 
       row.fetch_status = "ok";
       row.csv_status = "ok";
@@ -685,6 +747,15 @@ function main() {
 
   ensureDir(TMP_DIR);
   ensureDir(REPORTS_DIR);
+  ACTIVE_PROGRESS_LOG_PATH = path.join(REPORTS_DIR, `daily_pipeline_progress_${dateTag}.jsonl`);
+  fs.writeFileSync(ACTIVE_PROGRESS_LOG_PATH, "", "utf8");
+  appendProgress("pipeline_start", {
+    date_tag: dateTag,
+    from,
+    to,
+    strict,
+    teams: teams.map((team) => team.code),
+  });
 
   const startedAt = new Date().toISOString();
   const rosterSyncReport = rosterSync ? runRosterSync(teams, teamConfig.length) : { ok: false, skipped: true };
@@ -722,8 +793,17 @@ function main() {
       args.push("--inactive-skip-days", String(inactiveSkipDays));
     }
     console.log(`[RUN] ${team.code} ${team.univ}`);
-    runNode(args[0], args.slice(1));
+    appendProgress("team_start", { team_code: team.code, team: team.univ, report_path: path.relative(ROOT, reportFile).replace(/\\/g, "/") });
+    runNode(args[0], args.slice(1), {
+      label: `export_roster:${team.code}`,
+      timeoutMs: 900000,
+    });
     const report = readJson(reportFile);
+    appendProgress("team_done", {
+      team_code: team.code,
+      team: team.univ,
+      results: Array.isArray(report.results) ? report.results.length : 0,
+    });
     perTeamReports.push({ team, reportFile, report });
   }
 
@@ -816,6 +896,7 @@ function main() {
       current_period_to: to,
     },
     previous_snapshot: priorPath ? path.relative(ROOT, priorPath).replace(/\\/g, "/") : null,
+    progress_log: path.relative(ROOT, ACTIVE_PROGRESS_LOG_PATH).replace(/\\/g, "/"),
   };
 
   const alertConfig = readAlertConfig();
@@ -876,7 +957,10 @@ function main() {
   );
 
   if (organize) {
-    runNode(ORGANIZE_SCRIPT, []);
+    runNode(ORGANIZE_SCRIPT, [], {
+      label: "organize_generated_artifacts",
+      timeoutMs: 120000,
+    });
   }
 
   console.log(`[DONE] ${path.relative(ROOT, outJson)}`);
@@ -897,9 +981,13 @@ function main() {
     );
     const hasBlockingAlert = alerts.some((a) => blocking.has(a.severity));
     if (hasBlockingAlert) {
+      appendProgress("pipeline_fail", { reason: "blocking_alert", alert_counts: alertSummary.counts });
       process.exitCode = 1;
       console.error("[STRICT] Daily pipeline alerts include blocking severity.");
     }
+  }
+  if (!process.exitCode) {
+    appendProgress("pipeline_done", { alert_counts: alertSummary.counts });
   }
 }
 
