@@ -7,6 +7,9 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const REPORT_DIR = path.join(ROOT, "tmp", "reports");
 const NODE_BIN = process.execPath || "node";
 const NODE_BIN_FALLBACK = "node";
+const DAILY_PIPELINE_TIMEOUT_MS = 60 * 60 * 1000;
+const WAREHOUSE_VERIFY_TIMEOUT_MS = 5 * 60 * 1000;
+const SUPABASE_SYNC_TIMEOUT_MS = 30 * 60 * 1000;
 
 function hasFlag(flag) {
   return process.argv.includes(flag);
@@ -31,14 +34,23 @@ function timestamp() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
 
+function stepTimeoutFor(name) {
+  if (name === "daily_pipeline") return DAILY_PIPELINE_TIMEOUT_MS;
+  if (name === "warehouse_verify") return WAREHOUSE_VERIFY_TIMEOUT_MS;
+  if (name === "supabase_staging_sync" || name === "supabase_prod_sync") return SUPABASE_SYNC_TIMEOUT_MS;
+  return 30 * 60 * 1000;
+}
+
 function runStep(name, args, options = {}) {
   const startedAt = new Date().toISOString();
   let usedNodeBin = NODE_BIN;
+  const timeoutMs = Number(options.timeoutMs || stepTimeoutFor(name));
   let res = spawnSync(usedNodeBin, args, {
     cwd: ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     maxBuffer: 64 * 1024 * 1024,
+    timeout: timeoutMs,
   });
   if (res.error && String(res.error.code || "") === "EPERM" && NODE_BIN !== NODE_BIN_FALLBACK) {
     usedNodeBin = NODE_BIN_FALLBACK;
@@ -47,10 +59,13 @@ function runStep(name, args, options = {}) {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
       maxBuffer: 64 * 1024 * 1024,
+      timeout: timeoutMs,
     });
   }
   const endedAt = new Date().toISOString();
-  const ok = res.status === 0;
+  const timedOut = Boolean(res.error && String(res.error.code || "") === "ETIMEDOUT");
+  const exitCode = typeof res.status === "number" ? res.status : timedOut ? 124 : 1;
+  const ok = exitCode === 0;
   const spawnError =
     res.error && typeof res.error === "object"
       ? `${res.error.code || "spawn_error"}: ${res.error.message || String(res.error)}`
@@ -60,8 +75,10 @@ function runStep(name, args, options = {}) {
     command: `${usedNodeBin} ${args.join(" ")}`,
     started_at: startedAt,
     ended_at: endedAt,
-    exit_code: res.status,
+    exit_code: exitCode,
     ok,
+    timeout_ms: timeoutMs,
+    timed_out: timedOut,
     stdout: String(res.stdout || "").trim(),
     stderr: [String(res.stderr || "").trim(), spawnError].filter(Boolean).join("\n"),
   };
@@ -428,4 +445,10 @@ function main() {
   if (status !== "pass") process.exit(1);
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  stepTimeoutFor,
+};

@@ -9,6 +9,8 @@ const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 const REPORT_LATEST_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.json");
 const REPORT_LATEST_MD_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.md");
+const COLLECT_CHUNKED_TIMEOUT_MS = 110 * 60 * 1000;
+const SUPABASE_PUSH_TIMEOUT_MS = 30 * 60 * 1000;
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -94,17 +96,31 @@ function spawnNode(scriptRelPath, args = []) {
   });
 }
 
-async function runStep(name, scriptRelPath, args = []) {
+function stepTimeoutFor(name) {
+  if (name === "collect_chunked") return COLLECT_CHUNKED_TIMEOUT_MS;
+  if (name === "supabase_push") return SUPABASE_PUSH_TIMEOUT_MS;
+  return 30 * 60 * 1000;
+}
+
+async function runStep(name, scriptRelPath, args = [], options = {}) {
   const startedAt = new Date().toISOString();
+  const timeoutMs = Number(options.timeoutMs || stepTimeoutFor(name));
   console.log(`[RUN] ${name}`);
   const child = spawnNode(scriptRelPath, args);
   let stdout = "";
   let stderr = "";
   let lastOutputAt = Date.now();
+  let timedOut = false;
   const heartbeat = setInterval(() => {
     const idleSeconds = Math.floor((Date.now() - lastOutputAt) / 1000);
     console.log(`[WAIT] ${name} still running (idle=${idleSeconds}s)`);
   }, 60000);
+  const killer = setTimeout(() => {
+    timedOut = true;
+    stderr += `${stderr ? "\n" : ""}[TIMEOUT] ${name} exceeded ${timeoutMs}ms`;
+    child.kill("SIGTERM");
+    setTimeout(() => child.kill("SIGKILL"), 5000).unref();
+  }, timeoutMs);
 
   child.stdout.on("data", (chunk) => {
     const text = chunk.toString("utf8");
@@ -122,9 +138,10 @@ async function runStep(name, scriptRelPath, args = []) {
 
   const exitCode = await new Promise((resolve, reject) => {
     child.on("error", reject);
-    child.on("close", resolve);
+    child.on("close", (code) => resolve(typeof code === "number" ? code : timedOut ? 124 : 1));
   }).finally(() => {
     clearInterval(heartbeat);
+    clearTimeout(killer);
   });
 
   const endedAt = new Date().toISOString();
@@ -135,6 +152,8 @@ async function runStep(name, scriptRelPath, args = []) {
     ended_at: endedAt,
     exit_code: exitCode,
     ok: exitCode === 0,
+    timeout_ms: timeoutMs,
+    timed_out: timedOut,
     stdout_tail: tailLines(stdout),
     stderr_tail: tailLines(stderr),
   };
@@ -236,10 +255,14 @@ async function main() {
         chunkSize,
         "--inactive-skip-days",
         inactiveSkipDays,
-      ])
+      ], { timeoutMs: stepTimeoutFor("collect_chunked") })
     );
     if (withSupabaseSync) {
-      steps.push(await runStep("supabase_push", "scripts/tools/push-supabase-approved.js", ["--approved"]));
+      steps.push(
+        await runStep("supabase_push", "scripts/tools/push-supabase-approved.js", ["--approved"], {
+          timeoutMs: stepTimeoutFor("supabase_push"),
+        })
+      );
     }
     console.log("Done: manual refresh completed.");
   } catch (error) {
@@ -264,7 +287,13 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.stack || error.message : String(error));
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.stack || error.message : String(error));
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  stepTimeoutFor,
+};
