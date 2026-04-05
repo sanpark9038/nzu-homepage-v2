@@ -4,6 +4,18 @@
   "description": "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
   "overrides": [
     {
+      "entity_id": "eloboard:female:1028",
+      "legacy_entity_ids": [
+        "eloboard:female:1026"
+      ],
+      "name": "미진이",
+      "team_code": "jsa",
+      "tier": "9",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Canonical successor mapping: use wr_id=1028 after race/profile transition; retire legacy wr_id=1026 from roster-change alerts."
+    },
+    {
       "entity_id": "eloboard:female:398",
       "name": "나무늘봉순",
       "team_code": "c9",

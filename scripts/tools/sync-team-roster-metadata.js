@@ -42,6 +42,19 @@ function readManualOverrides() {
   }
 }
 
+function buildLegacyEntityIdsBySuccessor(manualOverrides) {
+  const lookup = new Map();
+  for (const row of Array.isArray(manualOverrides) ? manualOverrides : []) {
+    const entityId = String(row && row.entity_id ? row.entity_id : "").trim();
+    if (!entityId) continue;
+    const legacyEntityIds = Array.isArray(row && row.legacy_entity_ids)
+      ? row.legacy_entity_ids.map((value) => String(value || "").trim()).filter(Boolean)
+      : [];
+    if (legacyEntityIds.length) lookup.set(entityId, legacyEntityIds);
+  }
+  return lookup;
+}
+
 function readManualRefreshBaselinePlayers(teamCode) {
   if (!fs.existsSync(MANUAL_REFRESH_BASELINE_PATH)) return [];
   try {
@@ -401,6 +414,70 @@ function effectiveRace(observedRace, baseRace) {
   return String(baseRace || "Unknown");
 }
 
+function normalizePlayerNameForIdentity(value) {
+  return String(value || "").trim();
+}
+
+function findBaselineIdentityMigrationCandidate(beforeByEntity, observed, claimedEntityIds = new Set()) {
+  if (!beforeByEntity || !observed) return null;
+  const observedTeamCode = String(observed.team_code || "").trim();
+  const observedGender = String(observed.gender || "").trim();
+  const observedWrId = Number(observed.wr_id || 0);
+  const observedName = normalizePlayerNameForIdentity(observed.name);
+  if (!observedTeamCode || !observedGender || !Number.isFinite(observedWrId) || observedWrId <= 0 || !observedName) {
+    return null;
+  }
+
+  const matches = [];
+  for (const [entityId, prev] of beforeByEntity.entries()) {
+    if (claimedEntityIds.has(String(entityId))) continue;
+    const prevPlayer = prev && prev.player ? prev.player : null;
+    if (!prevPlayer) continue;
+    if (String(prev && prev.team_code ? prev.team_code : "").trim() !== observedTeamCode) continue;
+    if (String(prevPlayer.gender || "").trim() !== observedGender) continue;
+    if (Number(prevPlayer.wr_id || 0) !== observedWrId) continue;
+    const prevName = normalizePlayerNameForIdentity(prevPlayer.name || prevPlayer.display_name);
+    const prevDisplayName = normalizePlayerNameForIdentity(prevPlayer.display_name || prevPlayer.name);
+    if (prevName !== observedName && prevDisplayName !== observedName) continue;
+    matches.push({ entity_id: String(entityId), prev });
+  }
+
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function reconcileObservedIdentityMigrations(observedByEntity, beforeByEntity) {
+  const reconciled = new Map();
+  const migrations = [];
+  const claimedEntityIds = new Set();
+
+  for (const [entityId, observed] of observedByEntity.entries()) {
+    if (beforeByEntity.has(entityId) || reconciled.has(entityId)) {
+      reconciled.set(entityId, observed);
+      claimedEntityIds.add(String(entityId));
+      continue;
+    }
+
+    const candidate = findBaselineIdentityMigrationCandidate(beforeByEntity, observed, claimedEntityIds);
+    if (!candidate) {
+      reconciled.set(entityId, observed);
+      claimedEntityIds.add(String(entityId));
+      continue;
+    }
+
+    const nextEntityId = String(candidate.entity_id);
+    reconciled.set(nextEntityId, { ...observed, entity_id: nextEntityId });
+    claimedEntityIds.add(nextEntityId);
+    migrations.push({
+      name: String(observed && observed.name ? observed.name : ""),
+      team_code: String(observed && observed.team_code ? observed.team_code : ""),
+      previous_entity_id: nextEntityId,
+      observed_entity_id: String(entityId),
+    });
+  }
+
+  return { observedByEntity: reconciled, migrations };
+}
+
 function removeEntityFromAllDocs(docs, entityId, keepTeamCode, skipTeamCodes = new Set()) {
   for (const d of docs) {
     if (String(d.team.code) === String(keepTeamCode)) continue;
@@ -568,6 +645,7 @@ async function main() {
   }
 
   const manualOverrides = readManualOverrides();
+  const legacyEntityIdsBySuccessor = buildLegacyEntityIdsBySuccessor(manualOverrides);
   const appliedManualOverrides = [];
   for (const ov of manualOverrides) {
     if (!ov) continue;
@@ -591,6 +669,12 @@ async function main() {
     });
   }
 
+  const identityReconciliation = reconcileObservedIdentityMigrations(observedByEntity, beforeByEntity);
+  observedByEntity.clear();
+  for (const [entityId, observed] of identityReconciliation.observedByEntity.entries()) {
+    observedByEntity.set(entityId, observed);
+  }
+
   const moved = [];
   const added = [];
   const tierChanged = [];
@@ -600,21 +684,27 @@ async function main() {
 
   for (const [entityId, observed] of observedByEntity.entries()) {
     const prev = beforeByEntity.get(entityId);
+    const legacyEntityId =
+      !prev && legacyEntityIdsBySuccessor.has(entityId)
+        ? legacyEntityIdsBySuccessor.get(entityId).find((legacyId) => beforeByEntity.has(String(legacyId))) || null
+        : null;
+    const prevEntityId = legacyEntityId || entityId;
+    const prevInfo = prev || (legacyEntityId ? beforeByEntity.get(String(legacyEntityId)) : null);
     const targetDoc = observed.team_code === "fa" ? faDoc : teamDocs.get(observed.team_code);
     if (!targetDoc) continue;
 
-    if (prev && prev.team_code !== observed.team_code) {
-      const prevDoc = prev.team_code === "fa" ? faDoc : teamDocs.get(prev.team_code);
-      if (prevDoc) removeRosterEntry(prevDoc.json, entityId);
-      moved.push({ entity_id: entityId, name: observed.name, from: prev.team_code, to: observed.team_code });
-    } else if (!prev) {
+    if (prevInfo && prevInfo.team_code !== observed.team_code) {
+      const prevDoc = prevInfo.team_code === "fa" ? faDoc : teamDocs.get(prevInfo.team_code);
+      if (prevDoc) removeRosterEntry(prevDoc.json, prevEntityId);
+      moved.push({ entity_id: entityId, name: observed.name, from: prevInfo.team_code, to: observed.team_code });
+    } else if (!prevInfo) {
       added.push({ entity_id: entityId, name: observed.name, to: observed.team_code });
     }
 
-    const oldTier = prev && prev.player ? String(prev.player.tier || "") : "";
-    const oldRace = prev && prev.player ? String(prev.player.race || "") : "";
-    const newTier = effectiveTier(observed.tier, prev && prev.player ? prev.player.tier : "");
-    const newRace = effectiveRace(observed.race, prev && prev.player ? prev.player.race : "");
+    const oldTier = prevInfo && prevInfo.player ? String(prevInfo.player.tier || "") : "";
+    const oldRace = prevInfo && prevInfo.player ? String(prevInfo.player.race || "") : "";
+    const newTier = effectiveTier(observed.tier, prevInfo && prevInfo.player ? prevInfo.player.tier : "");
+    const newRace = effectiveRace(observed.race, prevInfo && prevInfo.player ? prevInfo.player.race : "");
     if (oldTier && oldTier !== newTier) {
       tierChanged.push({ entity_id: entityId, name: observed.name, from: oldTier, to: newTier });
     }
@@ -625,10 +715,18 @@ async function main() {
     const beforeCounts = allDocs.map((d) => ({
       team_code: d.team.code,
       count: Array.isArray(d.json.roster)
-        ? d.json.roster.filter((p) => String(p.entity_id) === String(entityId)).length
+        ? d.json.roster.filter((p) => {
+            const candidateId = String(p.entity_id || "");
+            return candidateId === String(entityId) || candidateId === String(prevEntityId);
+          }).length
         : 0,
     }));
     removeEntityFromAllDocs(allDocs, entityId, observed.team_code, guardedTeamCodes);
+    if (legacyEntityId && legacyEntityId !== entityId) {
+      for (const d of allDocs) {
+        removeRosterEntry(d.json, legacyEntityId);
+      }
+    }
     const removedFrom = beforeCounts
       .filter((x) => x.team_code !== observed.team_code && x.count > 0)
       .map((x) => x.team_code);
@@ -641,7 +739,7 @@ async function main() {
       });
     }
 
-    upsertRosterEntry(targetDoc.json, observed, "roster_sync", prev && prev.player ? prev.player : null);
+    upsertRosterEntry(targetDoc.json, observed, "roster_sync", prevInfo && prevInfo.player ? prevInfo.player : null);
   }
 
   const faFallbackAllowed = Boolean(faSourceUniv);
@@ -702,6 +800,8 @@ async function main() {
     guarded_teams: guardedTeams,
     observed_conflicts_count: observedConflicts.length,
     observed_conflicts: observedConflicts,
+    identity_migrations_count: identityReconciliation.migrations.length,
+    identity_migrations: identityReconciliation.migrations,
     dedup_removals_count: dedupRemovals.length,
     dedup_removals: dedupRemovals,
     changed_teams: changedTeams,
@@ -720,10 +820,13 @@ async function main() {
 }
 
 module.exports = {
+  buildLegacyEntityIdsBySuccessor,
   buildRetainedFaEntityIds,
   effectiveRace,
   effectiveTier,
   fallbackValue,
+  findBaselineIdentityMigrationCandidate,
+  reconcileObservedIdentityMigrations,
   restoreMissingFaBaselinePlayers,
   readManualRefreshBaselinePlayers,
   shouldGuardObservedRoster,

@@ -1,9 +1,12 @@
 const assert = require("node:assert/strict");
 
 const {
+  buildLegacyEntityIdsBySuccessor,
   buildRetainedFaEntityIds,
   effectiveTier,
   effectiveRace,
+  findBaselineIdentityMigrationCandidate,
+  reconcileObservedIdentityMigrations,
   restoreMissingFaBaselinePlayers,
   shouldGuardObservedRoster,
   upsertRosterEntry,
@@ -86,6 +89,22 @@ runTest("buildRetainedFaEntityIds keeps observed FA, manual override FA, and fal
   ]);
 });
 
+runTest("buildLegacyEntityIdsBySuccessor maps current entity ids to deprecated predecessors", () => {
+  const actual = buildLegacyEntityIdsBySuccessor([
+    {
+      entity_id: "eloboard:female:1028",
+      legacy_entity_ids: ["eloboard:female:1026"],
+    },
+    {
+      entity_id: "eloboard:male:159",
+    },
+  ]);
+
+  assert.deepEqual([...actual.entries()], [
+    ["eloboard:female:1028", ["eloboard:female:1026"]],
+  ]);
+});
+
 runTest("shouldGuardObservedRoster blocks suspicious partial roster collapses", () => {
   assert.deepEqual(shouldGuardObservedRoster(91, 25), {
     guarded: true,
@@ -142,4 +161,88 @@ runTest("restoreMissingFaBaselinePlayers rehydrates FA players missing from curr
   assert.equal(faDoc.json.roster.length, 1);
   assert.equal(faDoc.json.roster[0].entity_id, "eloboard:female:998");
   assert.equal(faDoc.json.roster[0].source, "roster_sync_fa_baseline");
+});
+
+runTest("findBaselineIdentityMigrationCandidate matches same-team same-player profile-kind migrations", () => {
+  const beforeByEntity = new Map([
+    [
+      "eloboard:male:1055",
+      {
+        team_code: "wfu",
+        player: {
+          entity_id: "eloboard:male:1055",
+          wr_id: 1055,
+          gender: "male",
+          name: "와이퍼",
+          display_name: "와이퍼",
+        },
+      },
+    ],
+  ]);
+
+  const actual = findBaselineIdentityMigrationCandidate(beforeByEntity, {
+    entity_id: "eloboard:male:mix:1055",
+    wr_id: 1055,
+    gender: "male",
+    name: "와이퍼",
+    team_code: "wfu",
+  });
+
+  assert.deepEqual(actual, {
+    entity_id: "eloboard:male:1055",
+    prev: {
+      team_code: "wfu",
+      player: {
+        entity_id: "eloboard:male:1055",
+        wr_id: 1055,
+        gender: "male",
+        name: "와이퍼",
+        display_name: "와이퍼",
+      },
+    },
+  });
+});
+
+runTest("reconcileObservedIdentityMigrations preserves baseline entity ids for profile-kind-only changes", () => {
+  const observedByEntity = new Map([
+    [
+      "eloboard:male:mix:1055",
+      {
+        entity_id: "eloboard:male:mix:1055",
+        wr_id: 1055,
+        gender: "male",
+        name: "와이퍼",
+        team_code: "wfu",
+        profile_kind: "mix",
+      },
+    ],
+  ]);
+  const beforeByEntity = new Map([
+    [
+      "eloboard:male:1055",
+      {
+        team_code: "wfu",
+        player: {
+          entity_id: "eloboard:male:1055",
+          wr_id: 1055,
+          gender: "male",
+          name: "와이퍼",
+          display_name: "와이퍼",
+        },
+      },
+    ],
+  ]);
+
+  const actual = reconcileObservedIdentityMigrations(observedByEntity, beforeByEntity);
+
+  assert.equal(actual.observedByEntity.has("eloboard:male:1055"), true);
+  assert.equal(actual.observedByEntity.has("eloboard:male:mix:1055"), false);
+  assert.deepEqual(actual.migrations, [
+    {
+      name: "와이퍼",
+      team_code: "wfu",
+      previous_entity_id: "eloboard:male:1055",
+      observed_entity_id: "eloboard:male:mix:1055",
+    },
+  ]);
 });
