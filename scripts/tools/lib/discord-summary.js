@@ -34,6 +34,30 @@ function legacyEntityIdLookup() {
   return cachedLegacyEntityIdLookup;
 }
 
+function buildIdentityMigrationLookup(syncReport) {
+  const lookup = new Map();
+  const migrations = Array.isArray(syncReport && syncReport.identity_migrations) ? syncReport.identity_migrations : [];
+  for (const row of migrations) {
+    const previousEntityId = String(row && row.previous_entity_id ? row.previous_entity_id : "").trim();
+    const observedEntityId = String(row && row.observed_entity_id ? row.observed_entity_id : "").trim();
+    if (!previousEntityId || !observedEntityId) continue;
+    lookup.set(observedEntityId, previousEntityId);
+  }
+  return lookup;
+}
+
+function mergedEntityIdLookup({ reportsDir } = {}) {
+  const lookup = new Map(legacyEntityIdLookup());
+  if (reportsDir) {
+    const syncReport = readJsonIfExists(path.join(reportsDir, "team_roster_sync_report.json"));
+    const migrationLookup = buildIdentityMigrationLookup(syncReport);
+    for (const [fromId, toId] of migrationLookup.entries()) {
+      lookup.set(fromId, lookup.get(toId) || toId);
+    }
+  }
+  return lookup;
+}
+
 function canonicalEntityId(value, lookup = legacyEntityIdLookup()) {
   const entityId = String(value || "").trim();
   if (!entityId) return "";
@@ -95,8 +119,7 @@ function loadCurrentRosterState(projectsDir) {
   return players;
 }
 
-function compareRosterJoinersRemovals(beforePlayers, afterPlayers) {
-  const lookup = legacyEntityIdLookup();
+function compareRosterJoinersRemovals(beforePlayers, afterPlayers, lookup = legacyEntityIdLookup()) {
   const beforeMap = toPlayerMap(beforePlayers, lookup);
   const afterMap = toPlayerMap(afterPlayers, lookup);
   const joiners = [];
@@ -180,7 +203,8 @@ function loadRosterSyncJoiners(reportsDir) {
 function buildDiscordSummaryCheck({ reportsDir, baselinePath, projectsDir, snapshot, alertsDoc }) {
   const beforePlayers = loadBaselinePlayers(baselinePath);
   const afterPlayers = loadCurrentRosterState(projectsDir);
-  const rosterChanges = compareRosterJoinersRemovals(beforePlayers, afterPlayers);
+  const lookup = mergedEntityIdLookup({ reportsDir });
+  const rosterChanges = compareRosterJoinersRemovals(beforePlayers, afterPlayers, lookup);
   const rosterSyncJoiners = loadRosterSyncJoiners(reportsDir);
 
   return {
@@ -195,11 +219,14 @@ function buildDiscordSummaryCheck({ reportsDir, baselinePath, projectsDir, snaps
 
 module.exports = {
   buildLegacyEntityIdLookup,
+  buildIdentityMigrationLookup,
   buildDiscordSummaryCheck,
   buildPlayerKey,
   canonicalEntityId,
+  compareRosterJoinersRemovals,
   loadBaselinePlayers,
   loadCurrentRosterState,
+  mergedEntityIdLookup,
   normalizeTeamName,
   readJsonIfExists,
 };

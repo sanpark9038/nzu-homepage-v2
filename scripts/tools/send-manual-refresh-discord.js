@@ -4,6 +4,7 @@ require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local") 
 const {
   buildDiscordSummaryCheck,
   buildPlayerKey,
+  mergedEntityIdLookup,
   loadBaselinePlayers,
   loadCurrentRosterState,
   normalizeTeamName,
@@ -56,7 +57,8 @@ function todayInSeoul() {
 }
 
 function toPlayerMap(players) {
-  return new Map(players.map((player) => [buildPlayerKey(player), player]));
+  const lookup = mergedEntityIdLookup({ reportsDir: REPORTS_DIR });
+  return new Map(players.map((player) => [buildPlayerKey(player, lookup), player]));
 }
 
 function normalizeName(value) {

@@ -1,7 +1,17 @@
 const assert = require("node:assert/strict");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 
 const { describeAlertTone } = require("./send-manual-refresh-discord");
-const { buildLegacyEntityIdLookup, buildPlayerKey, canonicalEntityId } = require("./lib/discord-summary");
+const {
+  buildIdentityMigrationLookup,
+  buildLegacyEntityIdLookup,
+  buildPlayerKey,
+  canonicalEntityId,
+  compareRosterJoinersRemovals,
+  mergedEntityIdLookup,
+} = require("./lib/discord-summary");
 
 function runTest(name, fn) {
   try {
@@ -57,4 +67,55 @@ runTest("buildPlayerKey treats legacy and successor entity ids as the same Disco
   const currentKey = buildPlayerKey({ entity_id: "eloboard:female:1028", name: "미진이" }, legacyLookup);
 
   assert.equal(baselineKey, currentKey);
+});
+
+runTest("buildIdentityMigrationLookup maps observed runtime ids back to prior baseline ids", () => {
+  const lookup = buildIdentityMigrationLookup({
+    identity_migrations: [
+      {
+        previous_entity_id: "eloboard:male:1055",
+        observed_entity_id: "eloboard:male:mix:1055",
+      },
+    ],
+  });
+
+  assert.equal(lookup.get("eloboard:male:mix:1055"), "eloboard:male:1055");
+});
+
+runTest("mergedEntityIdLookup combines manual legacy ids and runtime identity migrations", () => {
+  const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-summary-"));
+  fs.writeFileSync(
+    path.join(reportsDir, "team_roster_sync_report.json"),
+    JSON.stringify(
+      {
+        identity_migrations: [
+          {
+            previous_entity_id: "eloboard:male:1055",
+            observed_entity_id: "eloboard:male:mix:1055",
+          },
+        ],
+      },
+      null,
+      2
+    )
+  );
+
+  const lookup = mergedEntityIdLookup({ reportsDir });
+
+  assert.equal(lookup.get("eloboard:female:1026"), "eloboard:female:1028");
+  assert.equal(lookup.get("eloboard:male:mix:1055"), "eloboard:male:1055");
+});
+
+runTest("compareRosterJoinersRemovals suppresses runtime identity-migration false removals", () => {
+  const lookup = new Map([
+    ["eloboard:male:mix:1055", "eloboard:male:1055"],
+  ]);
+
+  const actual = compareRosterJoinersRemovals(
+    [{ entity_id: "eloboard:male:1055", name: "와이퍼", team_name: "와플대" }],
+    [{ entity_id: "eloboard:male:mix:1055", name: "와이퍼", team_name: "와플대" }],
+    lookup
+  );
+
+  assert.deepEqual(actual, { joiners: [], removals: [] });
 });
