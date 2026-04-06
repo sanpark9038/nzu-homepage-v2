@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 
 const {
+  buildEloboardCompositeKey,
   buildEloboardEntityId,
   getEloboardProfileKind,
   normalizeProfileUrl,
@@ -54,5 +55,16 @@ runTest("buildEloboardEntityId separates women mix board from men board", () => 
       profile_url: "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=73",
     }),
     "eloboard:male:73"
+  );
+});
+
+runTest("buildEloboardCompositeKey falls back to explicit entity_id when wr_id and gender are missing", () => {
+  assert.equal(
+    buildEloboardCompositeKey({
+      entity_id: "eloboard:male:155",
+      name: "강민기",
+      display_name: "쿨지지",
+    }),
+    "eloboard:male:155"
   );
 });

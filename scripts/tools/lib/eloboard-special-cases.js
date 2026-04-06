@@ -89,6 +89,8 @@ function buildEloboardEntityId(player) {
 function buildEloboardCompositeKey(player) {
   const entityId = buildEloboardEntityId(player);
   if (entityId) return entityId;
+  const explicitEntityId = String(player && player.entity_id ? player.entity_id : "").trim();
+  if (/^eloboard:(male|female)(:mix)?:\d+$/i.test(explicitEntityId)) return explicitEntityId;
   const gender = normalizeGender(player && player.gender);
   const wrId = Number(player && player.wr_id);
   return gender && Number.isFinite(wrId) && wrId > 0 ? `eloboard:${gender}:${wrId}` : "";
