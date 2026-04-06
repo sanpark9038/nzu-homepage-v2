@@ -9,6 +9,7 @@ const {
   loadCurrentRosterState,
   normalizeTeamName,
   readJsonIfExists,
+  writeCurrentRosterStateSnapshot,
 } = require("./lib/discord-summary");
 
 const ROOT = path.resolve(__dirname, "..", "..");
@@ -340,6 +341,7 @@ function workflowSyncWarning() {
 function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const beforePlayers = loadBaselinePlayers(BASELINE_PATH);
   const afterPlayers = loadCurrentRosterState(PROJECTS_DIR);
+  writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
   const { tierChanges, affiliationChanges, joiners, removals } = comparePlayerChanges(beforePlayers, afterPlayers);
   const todayTop = buildTodayTopPlayers(afterPlayers);
   const summaryCheck = buildDiscordSummaryCheck({

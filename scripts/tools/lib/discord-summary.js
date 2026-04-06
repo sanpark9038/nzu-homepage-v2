@@ -3,6 +3,7 @@ const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
 const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
+const CURRENT_ROSTER_STATE_FILE = "current_roster_state.json";
 
 function readJsonIfExists(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return null;
@@ -119,6 +120,37 @@ function loadCurrentRosterState(projectsDir) {
   return players;
 }
 
+function loadCurrentRosterStateSnapshot(reportsDir) {
+  if (!reportsDir) return [];
+  const doc = readJsonIfExists(path.join(reportsDir, CURRENT_ROSTER_STATE_FILE));
+  const players = Array.isArray(doc && doc.players) ? doc.players : [];
+  return players.map((player) => ({
+    entity_id: String(player && player.entity_id ? player.entity_id : ""),
+    wr_id: Number(player && player.wr_id ? player.wr_id : 0) || 0,
+    gender: String(player && player.gender ? player.gender : ""),
+    name: String(player && player.name ? player.name : ""),
+    display_name: String(
+      player && (player.display_name || player.name) ? player.display_name || player.name : ""
+    ),
+    team_code: String(player && player.team_code ? player.team_code : ""),
+    team_name: normalizeTeamName(player && player.team_name ? player.team_name : ""),
+    tier: String(player && player.tier ? player.tier : ""),
+    last_changed_at: player && player.last_changed_at ? player.last_changed_at : null,
+  }));
+}
+
+function writeCurrentRosterStateSnapshot(reportsDir, players) {
+  if (!reportsDir) return null;
+  const filePath = path.join(reportsDir, CURRENT_ROSTER_STATE_FILE);
+  const payload = {
+    generated_at: new Date().toISOString(),
+    players: Array.isArray(players) ? players : [],
+  };
+  fs.mkdirSync(reportsDir, { recursive: true });
+  fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), "utf8");
+  return filePath;
+}
+
 function compareRosterJoinersRemovals(beforePlayers, afterPlayers, lookup = legacyEntityIdLookup()) {
   const beforeMap = toPlayerMap(beforePlayers, lookup);
   const afterMap = toPlayerMap(afterPlayers, lookup);
@@ -202,7 +234,8 @@ function loadRosterSyncJoiners(reportsDir) {
 
 function buildDiscordSummaryCheck({ reportsDir, baselinePath, projectsDir, snapshot, alertsDoc }) {
   const beforePlayers = loadBaselinePlayers(baselinePath);
-  const afterPlayers = loadCurrentRosterState(projectsDir);
+  const snapshotPlayers = loadCurrentRosterStateSnapshot(reportsDir);
+  const afterPlayers = snapshotPlayers.length ? snapshotPlayers : loadCurrentRosterState(projectsDir);
   const lookup = mergedEntityIdLookup({ reportsDir });
   const rosterChanges = compareRosterJoinersRemovals(beforePlayers, afterPlayers, lookup);
   const rosterSyncJoiners = loadRosterSyncJoiners(reportsDir);
@@ -210,6 +243,7 @@ function buildDiscordSummaryCheck({ reportsDir, baselinePath, projectsDir, snaps
   return {
     joiners: rosterSyncJoiners.length ? rosterSyncJoiners : rosterChanges.joiners,
     joiners_source: rosterSyncJoiners.length ? "team_roster_sync_report" : "baseline_vs_current_roster",
+    roster_source: snapshotPlayers.length ? CURRENT_ROSTER_STATE_FILE : "projects_dir",
     removals: rosterChanges.removals,
     new_matches_total: sumNewMatches(snapshot),
     top_team_deltas: topTeamDeltas(snapshot),
@@ -226,7 +260,9 @@ module.exports = {
   compareRosterJoinersRemovals,
   loadBaselinePlayers,
   loadCurrentRosterState,
+  loadCurrentRosterStateSnapshot,
   mergedEntityIdLookup,
   normalizeTeamName,
   readJsonIfExists,
+  writeCurrentRosterStateSnapshot,
 };

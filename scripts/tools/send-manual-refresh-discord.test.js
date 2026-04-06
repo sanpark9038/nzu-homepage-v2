@@ -7,10 +7,12 @@ const { describeAlertTone } = require("./send-manual-refresh-discord");
 const {
   buildIdentityMigrationLookup,
   buildLegacyEntityIdLookup,
+  buildDiscordSummaryCheck,
   buildPlayerKey,
   canonicalEntityId,
   compareRosterJoinersRemovals,
   mergedEntityIdLookup,
+  writeCurrentRosterStateSnapshot,
 } = require("./lib/discord-summary");
 
 function runTest(name, fn) {
@@ -118,4 +120,51 @@ runTest("compareRosterJoinersRemovals suppresses runtime identity-migration fals
   );
 
   assert.deepEqual(actual, { joiners: [], removals: [] });
+});
+
+runTest("buildDiscordSummaryCheck prefers saved roster snapshot over local projects dir", () => {
+  const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-summary-snapshot-"));
+  const baselinePath = path.join(reportsDir, "manual_refresh_baseline.json");
+  fs.writeFileSync(
+    baselinePath,
+    JSON.stringify(
+      {
+        teams: [
+          {
+            team_code: "bgm",
+            players: [
+              {
+                entity_id: "eloboard:male:155",
+                name: "강민기",
+                display_name: "쿨지지",
+                team_name: "BGM",
+              },
+            ],
+          },
+        ],
+      },
+      null,
+      2
+    )
+  );
+  writeCurrentRosterStateSnapshot(reportsDir, [
+    {
+      entity_id: "eloboard:male:155",
+      name: "강민기",
+      display_name: "쿨지지",
+      team_code: "fa",
+      team_name: "무소속",
+    },
+  ]);
+
+  const actual = buildDiscordSummaryCheck({
+    reportsDir,
+    baselinePath,
+    projectsDir: path.join(reportsDir, "missing-projects"),
+    snapshot: { teams: [] },
+    alertsDoc: { counts: { critical: 0, high: 0, medium: 0, low: 0, total: 0 }, alerts: [] },
+  });
+
+  assert.equal(actual.roster_source, "current_roster_state.json");
+  assert.deepEqual(actual.removals, []);
 });
