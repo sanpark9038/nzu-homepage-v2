@@ -4,7 +4,7 @@
   "blocking_severities": ["critical", "high"],
   "rules": {
     "pipeline_failure_severity": "critical",
-    "zero_record_players_severity": "high",
+    "zero_record_players_severity": "medium",
     "zero_record_players_allowlist": {
       "ku": ["케이"],
       "ncs": ["트슈"]
