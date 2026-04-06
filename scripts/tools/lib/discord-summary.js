@@ -1,9 +1,43 @@
 const fs = require("fs");
 const path = require("path");
 
+const ROOT = path.resolve(__dirname, "..", "..", "..");
+const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
+
 function readJsonIfExists(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return null;
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+}
+
+let cachedLegacyEntityIdLookup = null;
+
+function buildLegacyEntityIdLookup(manualOverrides) {
+  const lookup = new Map();
+  for (const row of Array.isArray(manualOverrides) ? manualOverrides : []) {
+    const successorEntityId = String(row && row.entity_id ? row.entity_id : "").trim();
+    if (!successorEntityId) continue;
+    lookup.set(successorEntityId, successorEntityId);
+    const legacyEntityIds = Array.isArray(row && row.legacy_entity_ids)
+      ? row.legacy_entity_ids.map((value) => String(value || "").trim()).filter(Boolean)
+      : [];
+    for (const legacyEntityId of legacyEntityIds) {
+      lookup.set(legacyEntityId, successorEntityId);
+    }
+  }
+  return lookup;
+}
+
+function legacyEntityIdLookup() {
+  if (cachedLegacyEntityIdLookup) return cachedLegacyEntityIdLookup;
+  const doc = readJsonIfExists(MANUAL_OVERRIDES_PATH);
+  cachedLegacyEntityIdLookup = buildLegacyEntityIdLookup(doc && doc.overrides);
+  return cachedLegacyEntityIdLookup;
+}
+
+function canonicalEntityId(value, lookup = legacyEntityIdLookup()) {
+  const entityId = String(value || "").trim();
+  if (!entityId) return "";
+  return lookup.get(entityId) || entityId;
 }
 
 function normalizeTeamName(value) {
@@ -12,14 +46,14 @@ function normalizeTeamName(value) {
   return raw || "무소속";
 }
 
-function buildPlayerKey(player) {
-  const entityId = String(player && player.entity_id ? player.entity_id : "").trim();
+function buildPlayerKey(player, lookup = legacyEntityIdLookup()) {
+  const entityId = canonicalEntityId(player && player.entity_id ? player.entity_id : "", lookup);
   if (entityId) return `entity:${entityId}`;
   return `name:${String(player && player.name ? player.name : "").trim().toLowerCase()}`;
 }
 
-function toPlayerMap(players) {
-  return new Map(players.map((player) => [buildPlayerKey(player), player]));
+function toPlayerMap(players, lookup = legacyEntityIdLookup()) {
+  return new Map(players.map((player) => [buildPlayerKey(player, lookup), player]));
 }
 
 function loadBaselinePlayers(baselinePath) {
@@ -62,8 +96,9 @@ function loadCurrentRosterState(projectsDir) {
 }
 
 function compareRosterJoinersRemovals(beforePlayers, afterPlayers) {
-  const beforeMap = toPlayerMap(beforePlayers);
-  const afterMap = toPlayerMap(afterPlayers);
+  const lookup = legacyEntityIdLookup();
+  const beforeMap = toPlayerMap(beforePlayers, lookup);
+  const afterMap = toPlayerMap(afterPlayers, lookup);
   const joiners = [];
   const removals = [];
 
@@ -159,8 +194,10 @@ function buildDiscordSummaryCheck({ reportsDir, baselinePath, projectsDir, snaps
 }
 
 module.exports = {
+  buildLegacyEntityIdLookup,
   buildDiscordSummaryCheck,
   buildPlayerKey,
+  canonicalEntityId,
   loadBaselinePlayers,
   loadCurrentRosterState,
   normalizeTeamName,
