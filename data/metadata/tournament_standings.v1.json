@@ -1,0 +1,161 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-04-07T11:35:30.835Z",
+  "description": "Temporary standings data for the tournament.",
+  "standings": {
+    "teams": [
+      {
+        "team_code": "t1",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "team_code": "t2",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "team_code": "t3",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "team_code": "t4",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "team_code": "t5",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "team_code": "t6",
+        "wins": 0,
+        "losses": 0
+      }
+    ],
+    "players": [
+      {
+        "player_id": "9607ae88-c176-410c-ae66-1c6f6310e94e",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "531a8596-52fe-4c9e-b3c9-df659cef24f3",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "c87a2286-4964-49b5-b7da-96ff203d3eef",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "199064c8-cc4d-4d70-939e-64f54ae31b94",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "50d958e8-31c9-4728-99ec-fb40eea79ac3",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "79b31d28-41ae-4f09-b20b-31be6e77d1d8",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "8c279233-3f53-4a2f-b0ac-7d4c48e34156",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "8321a430-efde-4cab-8886-f1209881784e",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "10924777-04e0-434b-a1bb-211a4a0c3ee3",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "4941ee34-b978-4d9f-b495-9c41591333ba",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "f2ad82a5-5e57-4764-a910-b3081e8c8708",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "865fdc96-637a-469f-9e10-57423079e476",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "118f0ed3-3dd7-41f8-812a-3265c99bc4eb",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "fa24d250-a2f3-4002-80ba-8ede76b8c0a5",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "4d905c6f-ae88-4562-8e33-a9168e66aaa1",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "33fd3c2c-b47f-44b8-ad65-dd2e499c7086",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "ed140be2-9085-4bf8-a62a-1fe64d97c7a5",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "83ceb3bb-f5ff-4fd9-a057-bbdbea46357e",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "b056b59d-62f5-4a62-88e1-da3b388c5459",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "dbc6a4b5-3762-44a3-9537-c24d4b17e11b",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "fbc987ae-7672-4748-bd0e-40ebb11264a4",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "39f5aebf-a2d5-4f48-bee7-693f59859bd5",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "ba8337c6-a3f9-452a-9c13-49595ca55b54",
+        "wins": 0,
+        "losses": 0
+      },
+      {
+        "player_id": "162baabf-2317-4b3b-a20d-490d791d8e75",
+        "wins": 0,
+        "losses": 0
+      }
+    ]
+  }
+}

@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-29T06:59:31.106Z",
+  "generated_at": "2026-04-06T05:39:53.466Z",
   "project": "jsa",
   "team_name": "JSA",
   "team_code": "jsa",
   "team_name_en": "JSA",
-  "roster_count": 18,
+  "roster_count": 22,
   "roster": [
     {
       "team_name": "JSA",
@@ -20,11 +20,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:male",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:male",
         "race:zerg",
         "tier:god"
       ],
@@ -33,11 +33,13 @@
       "role_priority": null,
       "tier_key": "god",
       "display_name": "임홍규",
-      "last_checked_at": "2026-03-25T01:43:47.523Z",
-      "last_match_at": "2026-03-25T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:49:47.918Z",
+      "last_match_at": "2026-03-31T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.308Z"
+      "last_changed_at": "2026-04-02T10:04:50.227Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=2",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
@@ -52,11 +54,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:male",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:male",
         "race:terran",
         "tier:god"
       ],
@@ -65,11 +67,46 @@
       "role_priority": null,
       "tier_key": "god",
       "display_name": "조기석",
-      "last_checked_at": "2026-03-25T01:44:09.865Z",
-      "last_match_at": "2026-03-25T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:50:07.543Z",
+      "last_match_at": "2026-04-01T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.312Z"
+      "last_changed_at": "2026-04-02T10:04:50.232Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=3",
+      "profile_kind": "default"
+    },
+    {
+      "team_name": "JSA",
+      "team_code": "jsa",
+      "entity_id": "eloboard:male:55",
+      "wr_id": 55,
+      "gender": "male",
+      "name": "구성훈",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=55",
+      "profile_kind": "default",
+      "tier": "킹",
+      "race": "Terran",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:male",
+        "team:jsa",
+        "team_code:jsa",
+        "team_ko:JSA",
+        "team_en:jsa",
+        "race:terran",
+        "tier:king"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "king",
+      "display_name": "구성훈",
+      "last_checked_at": "2026-03-31T08:07:02.264Z",
+      "last_match_at": "2026-02-11T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-03-31T08:28:19.847Z"
     },
     {
       "team_name": "JSA",
@@ -84,11 +121,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:male",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:male",
         "race:zerg",
         "tier:jack"
       ],
@@ -97,11 +134,13 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "김병수",
-      "last_checked_at": "2026-03-22T21:30:40.118Z",
+      "last_checked_at": "2026-03-31T08:07:13.760Z",
       "last_match_at": "2026-01-17T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T21:53:37.100Z"
+      "last_changed_at": "2026-03-31T08:28:19.848Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=60",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
@@ -116,11 +155,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:male",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:male",
         "race:terran",
         "tier:jack"
       ],
@@ -129,11 +168,13 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "김영진",
-      "last_checked_at": "2026-03-22T21:30:51.897Z",
+      "last_checked_at": "2026-03-31T08:07:23.433Z",
       "last_match_at": "2026-03-07T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T21:53:37.115Z"
+      "last_changed_at": "2026-03-31T08:28:19.848Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=182",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
@@ -148,11 +189,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:male",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:male",
         "race:zerg",
         "tier:jack"
       ],
@@ -161,11 +202,13 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "배병우",
-      "last_checked_at": "2026-03-25T01:44:24.093Z",
+      "last_checked_at": "2026-04-02T09:50:20.764Z",
       "last_match_at": "2026-03-22T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.314Z"
+      "last_changed_at": "2026-04-02T10:04:50.237Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=18",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
@@ -180,11 +223,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:male",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:male",
         "race:protoss",
         "tier:joker"
       ],
@@ -193,11 +236,13 @@
       "role_priority": null,
       "tier_key": "joker",
       "display_name": "김민우",
-      "last_checked_at": "2026-03-22T21:31:20.086Z",
+      "last_checked_at": "2026-03-31T08:07:46.584Z",
       "last_match_at": "2026-02-01T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T21:53:37.117Z"
+      "last_changed_at": "2026-03-31T08:28:19.849Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=173",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
@@ -212,11 +257,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:male",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:male",
         "race:protoss",
         "tier:joker"
       ],
@@ -225,11 +270,13 @@
       "role_priority": null,
       "tier_key": "joker",
       "display_name": "윤준석",
-      "last_checked_at": "2026-03-22T21:31:31.506Z",
+      "last_checked_at": "2026-03-31T08:07:56.180Z",
       "last_match_at": "2026-01-19T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T21:53:37.118Z"
+      "last_changed_at": "2026-03-31T08:28:19.849Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=132",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
@@ -244,11 +291,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:female",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:female",
         "race:zerg",
         "tier:2"
       ],
@@ -257,11 +304,13 @@
       "role_priority": null,
       "tier_key": "2",
       "display_name": "하블리",
-      "last_checked_at": "2026-03-25T01:44:31.563Z",
-      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:50:28.554Z",
+      "last_match_at": "2026-03-26T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.316Z"
+      "last_changed_at": "2026-04-02T10:04:50.241Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=346",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
@@ -276,11 +325,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:female",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:female",
         "race:zerg",
         "tier:3"
       ],
@@ -289,30 +338,67 @@
       "role_priority": null,
       "tier_key": "3",
       "display_name": "라미",
-      "last_checked_at": "2026-03-25T01:44:38.900Z",
+      "last_checked_at": "2026-04-02T09:50:36.478Z",
       "last_match_at": "2026-03-23T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.318Z"
+      "last_changed_at": "2026-04-02T10:04:50.244Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=578",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
       "team_code": "jsa",
-      "entity_id": "eloboard:male:332",
+      "entity_id": "eloboard:female:492",
+      "wr_id": 492,
+      "gender": "female",
+      "name": "소심",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=492",
+      "profile_kind": "default",
+      "tier": "3",
+      "race": "Terran",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:female",
+        "team:jsa",
+        "team_code:jsa",
+        "team_ko:JSA",
+        "team_en:jsa",
+        "race:terran",
+        "tier:3"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "3",
+      "display_name": "소심",
+      "last_checked_at": "2026-04-02T09:50:43.954Z",
+      "last_match_at": "2026-03-26T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-04-02T10:04:50.248Z"
+    },
+    {
+      "team_name": "JSA",
+      "team_code": "jsa",
+      "entity_id": "eloboard:male:mix:332",
       "wr_id": 332,
       "gender": "male",
       "name": "시조새",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=332",
+      "profile_kind": "mix",
       "tier": "3",
       "race": "Protoss",
       "source": "roster_sync",
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:male",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:male",
         "race:protoss",
         "tier:3"
       ],
@@ -320,11 +406,11 @@
       "role_priority": null,
       "tier_key": "3",
       "display_name": "시조새",
-      "last_checked_at": "2026-03-22T21:31:54.942Z",
-      "last_match_at": "2026-01-21T00:00:00.000Z",
-      "check_priority": "low",
-      "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T21:53:37.129Z"
+      "last_checked_at": "2026-04-02T09:50:48.737Z",
+      "last_match_at": "2026-03-28T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-04-02T10:04:50.249Z"
     },
     {
       "team_name": "JSA",
@@ -339,11 +425,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:female",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:female",
         "race:zerg",
         "tier:4"
       ],
@@ -352,11 +438,46 @@
       "role_priority": null,
       "tier_key": "4",
       "display_name": "나린",
-      "last_checked_at": "2026-03-25T01:44:46.584Z",
-      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:50:55.963Z",
+      "last_match_at": "2026-03-29T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.320Z"
+      "last_changed_at": "2026-04-02T10:04:50.252Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=689",
+      "profile_kind": "default"
+    },
+    {
+      "team_name": "JSA",
+      "team_code": "jsa",
+      "entity_id": "eloboard:female:754",
+      "wr_id": 754,
+      "gender": "female",
+      "name": "김무아",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=754",
+      "profile_kind": "default",
+      "tier": "6",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:female",
+        "team:jsa",
+        "team_code:jsa",
+        "team_ko:JSA",
+        "team_en:jsa",
+        "race:protoss",
+        "tier:6"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "6",
+      "display_name": "김무아",
+      "last_checked_at": "2026-04-02T09:51:01.985Z",
+      "last_match_at": "2026-03-31T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-04-02T10:04:50.254Z"
     },
     {
       "team_name": "JSA",
@@ -371,11 +492,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:female",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:female",
         "race:terran",
         "tier:6"
       ],
@@ -384,11 +505,46 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "려원님",
-      "last_checked_at": "2026-03-25T01:44:52.767Z",
-      "last_match_at": "2026-03-20T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:51:08.221Z",
+      "last_match_at": "2026-03-28T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.322Z"
+      "last_changed_at": "2026-04-02T10:04:50.256Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=680",
+      "profile_kind": "default"
+    },
+    {
+      "team_name": "JSA",
+      "team_code": "jsa",
+      "entity_id": "eloboard:female:871",
+      "wr_id": 871,
+      "gender": "female",
+      "name": "엄보리",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=871",
+      "profile_kind": "default",
+      "tier": "6",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:female",
+        "team:jsa",
+        "team_code:jsa",
+        "team_ko:JSA",
+        "team_en:jsa",
+        "race:protoss",
+        "tier:6"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "6",
+      "display_name": "엄보리",
+      "last_checked_at": "2026-04-02T09:51:15.287Z",
+      "last_match_at": "2026-03-31T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-04-02T10:04:50.259Z"
     },
     {
       "team_name": "JSA",
@@ -403,11 +559,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:female",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:female",
         "race:terran",
         "tier:7"
       ],
@@ -416,11 +572,13 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "밥새",
-      "last_checked_at": "2026-03-25T01:44:59.376Z",
-      "last_match_at": "2026-03-24T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:51:21.633Z",
+      "last_match_at": "2026-04-01T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.324Z"
+      "last_changed_at": "2026-04-02T10:04:50.264Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=896",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
@@ -435,11 +593,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:female",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:female",
         "race:zerg",
         "tier:7"
       ],
@@ -448,11 +606,13 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "쟈닌",
-      "last_checked_at": "2026-03-25T01:45:05.957Z",
-      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:51:27.951Z",
+      "last_match_at": "2026-03-28T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.326Z"
+      "last_changed_at": "2026-04-02T10:04:50.267Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=910",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
@@ -467,11 +627,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:female",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:female",
         "race:terran",
         "tier:8"
       ],
@@ -480,11 +640,13 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "돌애정",
-      "last_checked_at": "2026-03-25T01:45:10.958Z",
+      "last_checked_at": "2026-03-31T08:09:00.082Z",
       "last_match_at": "2026-03-18T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.327Z"
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T10:04:50.269Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=963",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
@@ -499,11 +661,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:female",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:female",
         "race:protoss",
         "tier:8"
       ],
@@ -512,11 +674,13 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "모비",
-      "last_checked_at": "2026-03-25T01:45:15.595Z",
-      "last_match_at": "2026-03-24T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:51:32.348Z",
+      "last_match_at": "2026-03-27T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.328Z"
+      "last_changed_at": "2026-04-02T10:04:50.270Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=962",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
@@ -531,11 +695,11 @@
       "meta_tags": [
         "domain:player",
         "project:jsa",
+        "gender:female",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:female",
         "race:zerg",
         "tier:8"
       ],
@@ -544,43 +708,46 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "백원이야",
-      "last_checked_at": "2026-03-25T01:45:20.779Z",
-      "last_match_at": "2026-03-18T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:51:37.078Z",
+      "last_match_at": "2026-03-30T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.329Z"
+      "last_changed_at": "2026-04-02T10:04:50.272Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=972",
+      "profile_kind": "default"
     },
     {
       "team_name": "JSA",
       "team_code": "jsa",
-      "entity_id": "eloboard:female:1026",
-      "wr_id": 1026,
+      "entity_id": "eloboard:female:1028",
+      "wr_id": 1028,
       "gender": "female",
       "name": "미진이",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1028",
+      "profile_kind": "default",
       "tier": "9",
-      "race": "Terran",
+      "race": "Protoss",
       "source": "roster_sync",
+      "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "project:jsa",
+        "gender:female",
         "team:jsa",
         "team_code:jsa",
         "team_ko:JSA",
         "team_en:jsa",
-        "gender:female",
-        "race:terran",
+        "race:protoss",
         "tier:9"
       ],
-      "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
       "tier_key": "9",
       "display_name": "미진이",
-      "last_checked_at": "2026-03-25T01:45:24.123Z",
-      "last_match_at": "2026-03-12T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:51:40.260Z",
+      "last_match_at": "2026-03-31T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.329Z"
+      "last_changed_at": "2026-04-02T10:04:50.272Z"
     }
   ],
   "source_file": "tmp/jsa_roster_record_metadata.json",

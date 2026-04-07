@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-04-07T11:10:54.815Z",
+  "description": "Public tournament prediction votes keyed by browser voter_id.",
+  "votes": [
+    {
+      "voter_id": "a41e73a9-2104-4bca-b5c7-ebda7f2ae055",
+      "match_id": "match-1",
+      "picked_team_code": "t2",
+      "picked_player_id": "79b31d28-41ae-4f09-b20b-31be6e77d1d8",
+      "updated_at": "2026-04-07T11:10:54.815Z",
+      "change_count": 20
+    }
+  ]
+}

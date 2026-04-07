@@ -1,5 +1,4 @@
 
-import Navbar from "@/components/Navbar";
 import { playerService } from "@/lib/player-service";
 import { format } from "date-fns";
 import H2HLookup from "@/components/stats/H2HLookup";
@@ -21,30 +20,30 @@ export default async function EntryPage() {
   ]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#020403]">
-      <Navbar />
-
-
-
+    <div className="min-h-screen flex flex-col bg-background">
       <main className="flex-1 max-w-[1800px] mx-auto w-full px-8 pt-4 md:pt-6 fade-in">
-        {/* 전략 헤더 섹션 */}
-        <header className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-4">
-          <div className="space-y-1">
+        {/* === Tactical Entry Header (컴팩트 고밀도 개편) === */}
+        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-6">
+          <div className="space-y-4">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-nzu-green shadow-[0_0_10px_#2ed573] animate-pulse" />
-              <span className="text-[10px] font-black text-nzu-green uppercase tracking-[0.4em]">전략 모듈 가동 중</span>
+              <div className="w-2 h-2 rounded-full bg-nzu-green/40 shadow-[0_0_8px_rgba(46,213,115,0.2)]" />
+              <span className="text-sm font-bold text-nzu-green/80">데이터 분석 모듈 활성</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter leading-none">
-              엔트리 <span className="text-nzu-green">분석 엔진</span>
-            </h1>
+            <div className="flex flex-col gap-2">
+              <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">엔트리 분석 엔진</h1>
+              <p className="text-sm font-bold text-muted-foreground">상대 팀 분석 및 최적의 매치업을 구성하세요</p>
+            </div>
           </div>
+
           <div className="flex flex-col md:items-end gap-1">
-            <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.3em]">데이터 인프라 활성화</p>
-            <p className="text-sm text-white/40 font-bold">
-              실시간 데이터 기반 <span className="text-nzu-green/60">최적 엔트리 설계 모듈</span>
+            <p className="text-[11px] text-white/10 font-black uppercase tracking-widest leading-none mb-1">DATA INFRASTRUCTURE ENABLED</p>
+            <p className="text-xs text-white/30 font-bold uppercase tracking-tight">
+              REAL-TIME <span className="text-nzu-green/40">OPTIMIZATION ENGINE</span> FOR COMPETITIVE ROSTERS
             </p>
           </div>
         </header>
+
+
 
         {/* 대시보드 섹션 */}
         <div className="space-y-20">

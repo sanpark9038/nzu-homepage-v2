@@ -66,82 +66,41 @@
 }
 
 :root {
-  /* 기본은 다크모드로 고정 */
   color-scheme: dark;
+  --sidebar-width: 256px;
 
-  /* 배경 */
-  --background: #080E0B;
+  /* Force Dark Mode (Premium Deep Green/Black) as default */
+  --background: #0C1214; /* 차콜-티얼 계열의 전역 다크 배경 */
   --foreground: #E8F0EA;
-
-  /* 카드 */
-  --card: #0F1A12;
+  --card: #141B1E;
   --card-foreground: #E8F0EA;
-
-  /* 팝오버 */
-  --popover: #0F1A12;
+  --popover: #141B1E;
   --popover-foreground: #E8F0EA;
-
-  /* 프라이머리 — 롤렉스 그린 */
   --primary: #00A86B;
   --primary-foreground: #FFFFFF;
-
-  /* 세컨더리 */
-  --secondary: #1A2B1D;
-  --secondary-foreground: #A8C4AD;
-
-  /* 뮤티드 */
-  --muted: #152018;
-  --muted-foreground: #6B8F71;
-
-  /* 액센트 */
-  --accent: #1F3022;
-  --accent-foreground: #C5E0CA;
-
-  /* 디스트럭티브 */
-  --destructive: #FF4444;
-
-  /* 테두리 / 입력 */
-  --border: #1E3322;
-  --input: #1A2B1D;
+  --secondary: #182126;
+  --secondary-foreground: #AAC3B5;
+  --muted: #151D21;
+  --muted-foreground: #769185;
+  --accent: #1A2529;
+  --accent-foreground: #C7DED2;
+  --border: #243238;
+  --input: #182126;
   --ring: #00A86B;
+  --radius: 0.75rem;
 
-  /* 반지름 */
-  --radius: 0.5rem;
-
-  /* 차트 */
-  --chart-1: #00A86B;
-  --chart-2: #C9A84C;
-  --chart-3: #4A9EFF;
-  --chart-4: #FF6B3D;
-  /* LCK Colors */
-  --dashboard-bg: #050706;
-  --dashboard-card: #0a0d0c;
-  --lck-accent: #2ed573;
-  --lck-border: rgba(46, 213, 115, 0.1);
-
-  /* 사이드바 */
-  --sidebar: #0A1410;
-  --sidebar-foreground: #A8C4AD;
-  --sidebar-primary: #00A86B;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #1A2B1D;
-  --sidebar-accent-foreground: #C5E0CA;
-  --sidebar-border: #1E3322;
-  --sidebar-ring: #00A86B;
-
-  /* === NZU 브랜드 컬러 === */
-  --nzu-green:       #00A86B;   /* 롤렉스 그린 */
-  --nzu-green-dim:   #007A4E;   /* 딤 그린 */
-  --nzu-green-glow:  rgba(0, 168, 107, 0.15);  /* 글로우 효과 */
-  --nzu-gold:        #C9A84C;   /* 골드 포인트 */
-  --nzu-live:        #FF3B3B;   /* LIVE 배지 */
+  /* === NZU 브랜드 컬러 (Common) === */
+  --nzu-green:       #00A86B;
+  --nzu-green-dim:   #007A4E;
+  --nzu-green-glow:  rgba(0, 168, 107, 0.15);
+  --nzu-gold:        #C9A84C;
+  --nzu-live:        #FF3B3B;
 
   /* 종족 컬러 */
-  --terran:   #4A9EFF;  /* 테란 블루 */
-  --zerg:     #A855F7;  /* 저그 퍼플 */
-  --protoss:  #FFD700;  /* 프로토스 골드 */
+  --terran:   #4A9EFF;
+  --zerg:     #A855F7;
+  --protoss:  #FFD700;
 
-  /* 폰트 */
   --font-pretendard: "Pretendard Variable", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
@@ -162,7 +121,12 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
+    line-height: 1.6;
     font-family: var(--font-pretendard);
+  }
+
+  #main-scroll-container {
+    scrollbar-gutter: stable;
   }
 
   /* 스크롤바 스타일링 */
@@ -171,7 +135,7 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #050706;
+    background: #0A0F11;
   }
   ::-webkit-scrollbar-thumb {
     background: rgba(46, 213, 115, 0.2);
@@ -270,8 +234,7 @@
 
   .lck-header {
     font-family: var(--font-heading);
-    letter-spacing: -0.05em;
-    text-transform: uppercase;
+    letter-spacing: -0.02em;
   }
 
   .info-layer {

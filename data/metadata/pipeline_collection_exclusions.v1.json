@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-03-21T07:18:00.000Z",
+  "updated_at": "2026-03-26T09:51:57.136Z",
   "description": "Players excluded from match collection pipeline.",
   "players": [
     {
@@ -39,6 +39,25 @@
       "wr_id": 777,
       "entity_id": "eloboard:male:777",
       "reason": "user_excluded_pending_tier"
+    },
+    {
+      "name": "루다",
+      "wr_id": 932,
+      "entity_id": "eloboard:female:932",
+      "reason": "user_excluded_inactive_until_affiliated"
+    },
+    {
+      "name": "초롱빡",
+      "wr_id": 41,
+      "entity_id": "eloboard:female:41",
+      "reason": "user_excluded_inactive_until_affiliated"
+    },
+    {
+      "entity_id": "eloboard:female:939",
+      "wr_id": 939,
+      "name": "행복짱",
+      "reason": "user_excluded",
+      "updated_at": "2026-03-26T08:57:45.416Z"
     }
   ]
 }

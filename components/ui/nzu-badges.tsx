@@ -2,11 +2,12 @@
 export type Race = "T" | "Z" | "P";
 import { RaceLetterBadge } from "./race-letter-badge";
 
-export function RaceTag({ race, size = "sm" }: { race: Race; size?: "xs" | "sm" | "md" }) {
+export function RaceTag({ race, size = "sm" }: { race: Race; size?: "xs" | "sm" | "md" | "lg" }) {
   const mappedSize = {
     xs: "sm",
     sm: "md",
     md: "lg",
+    lg: "xl",
   } as const;
 
   return (
@@ -19,39 +20,46 @@ export function LiveBadge() {
   return (
     <span className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-nzu-live/90 px-1.5 py-0.5 rounded">
       <span className="w-1.5 h-1.5 rounded-full bg-white live-dot" />
-      ON AIR
+      방송중
     </span>
   );
 }
 
 /** 티어 배지 */
-const tierLabels: Record<string, { label: string; color: string }> = {
-  '갓':  { label: "갓",   color: "text-yellow-300 bg-yellow-400/10 border-yellow-400/30" },
-  '킹':  { label: "킹",   color: "text-orange-400 bg-orange-400/10 border-orange-400/30" },
-  '잭':  { label: "잭",   color: "text-blue-400 bg-blue-400/10 border-blue-400/30" },
-  '조커': { label: "조커", color: "text-purple-400 bg-purple-400/10 border-purple-400/30" },
-  '스페이드': { label: "스페이드", color: "text-slate-300 bg-slate-400/10 border-slate-400/30" },
-  "0":   { label: "0티어", color: "text-nzu-green/90 bg-nzu-green/10 border-nzu-green/40" },
-  "1":   { label: "1티어", color: "text-nzu-green bg-nzu-green/10 border-nzu-green/30" },
-  "2":   { label: "2티어", color: "text-nzu-green/80 bg-nzu-green/8 border-nzu-green/20" },
-  "3":   { label: "3티어", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" },
-  "4":   { label: "4티어", color: "text-teal-500 bg-teal-500/10 border-teal-500/20" },
-  "5":   { label: "5티어", color: "text-cyan-500 bg-cyan-500/10 border-cyan-500/20" },
-  "6":   { label: "6티어", color: "text-sky-400 bg-sky-400/10 border-sky-400/20" },
-  "7":   { label: "7티어", color: "text-slate-400 bg-slate-400/10 border-slate-400/20" },
-  "8":   { label: "8티어", color: "text-slate-500 bg-slate-500/10 border-slate-500/20" },
-  '아기':  { label: "BABY",  color: "text-pink-400 bg-pink-400/10 border-pink-400/20" },
-  '미정':  { label: "미정",  color: "text-white/20 bg-white/5 border-white/10" },
+const tierLabels: Record<string, { label: string; color: string; hex: string }> = {
+  '갓': { label: "갓", color: "text-amber-200 bg-amber-500/12 border-amber-400/32", hex: "#fbbf24" },
+  '킹': { label: "킹", color: "text-orange-300 bg-orange-500/12 border-orange-400/30", hex: "#fb923c" },
+  '잭': { label: "잭", color: "text-rose-200 bg-rose-500/14 border-rose-300/34", hex: "#fecdd3" },
+  '퀸': { label: "퀸", color: "text-fuchsia-200 bg-fuchsia-500/14 border-fuchsia-300/34", hex: "#f5d0fe" },
+  '조커': { label: "조커", color: "text-red-200 bg-red-500/14 border-red-300/34", hex: "#fecaca" },
+  '스페이드': { label: "스페이드", color: "text-violet-200 bg-violet-500/14 border-violet-300/34", hex: "#ddd6fe" },
+  "0": { label: "0티어", color: "text-emerald-200 bg-emerald-500/12 border-emerald-400/30", hex: "#6ee7b7" },
+  "1": { label: "1티어", color: "text-cyan-200 bg-cyan-500/12 border-cyan-400/28", hex: "#67e8f9" },
+  "2": { label: "2티어", color: "text-sky-200 bg-sky-500/14 border-sky-300/30", hex: "#7dd3fc" },
+  "3": { label: "3티어", color: "text-blue-200 bg-blue-500/14 border-blue-300/30", hex: "#93c5fd" },
+  "4": { label: "4티어", color: "text-indigo-200 bg-indigo-500/14 border-indigo-300/30", hex: "#c7d2fe" },
+  "5": { label: "5티어", color: "text-slate-200 bg-slate-500/14 border-slate-300/28", hex: "#e2e8f0" },
+  "6": { label: "6티어", color: "text-green-300 bg-green-500/12 border-green-400/28", hex: "#86efac" },
+  "7": { label: "7티어", color: "text-lime-300 bg-lime-500/12 border-lime-400/28", hex: "#bef264" },
+  "8": { label: "8티어", color: "text-yellow-200 bg-yellow-500/14 border-yellow-300/32", hex: "#fde68a" },
+  '베이비': { label: "베이비", color: "text-stone-100 bg-stone-700/24 border-stone-400/24", hex: "#f5f5f4" },
+  '미정':  { label: "미정",  color: "text-white/20 bg-white/5 border-white/10", hex: "#64748b" },
 };
 
 import { normalizeTier, getTierLabel } from "@/lib/utils";
 
-export function TierBadge({ tier, rank, size = "sm" }: { tier: string; rank?: number; size?: "xs" | "sm" | "md" | "lg" }) {
+export function getTierTone(tier: string | null | undefined) {
   const norm = normalizeTier(tier);
-  const cfg = tierLabels[norm] || { 
-    label: getTierLabel(tier), 
-    color: "text-muted-foreground bg-muted/30 border-border" 
+  const cfg = tierLabels[norm];
+  return cfg || {
+    label: getTierLabel(tier),
+    color: "text-muted-foreground bg-muted/30 border-border",
+    hex: "#64748b",
   };
+}
+
+export function TierBadge({ tier, rank, size = "sm" }: { tier: string; rank?: number; size?: "xs" | "sm" | "md" | "lg" }) {
+  const cfg = getTierTone(tier);
 
 
   
@@ -59,7 +67,7 @@ export function TierBadge({ tier, rank, size = "sm" }: { tier: string; rank?: nu
     xs: "text-[11px] px-1.5 py-0.5",
     sm: "text-xs px-2 py-0.5",
     md: "text-base px-3 py-1",
-    lg: "text-xl px-5 py-2.5 rounded-xl border-2",
+    lg: "h-10 px-4 text-[18px] rounded-xl border-2 leading-none",
   };
 
 

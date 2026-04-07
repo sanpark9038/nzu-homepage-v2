@@ -68,8 +68,8 @@ export async function POST(req: Request) {
     mode?: "full" | "smoke";
     teams?: string;
   };
-  const mode = body.mode === "smoke" ? "smoke" : "full";
-  const teams = String(body.teams || (mode === "smoke" ? "black" : "")).trim();
+  const mode = body?.mode === "smoke" ? "smoke" : "full";
+  const teams = String(body?.teams || (mode === "smoke" ? "black" : "")).trim();
 
   const dateTag = mode === "smoke" ? `${toDateTag()}-ops-smoke` : toDateTag();
   const from = "2025-01-01";
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
   fs.closeSync(outFd);
 
   writeState({
-    pid: child.pid,
+    pid: child.pid || 0,
     started_at: new Date().toISOString(),
     status: "running",
     mode,
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: true,
     message: "Pipeline started.",
-    pid: child.pid,
+    pid: child.pid || 0,
     mode,
     teams: teams || "all",
     log_path: logPath,

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-04-02T10:04:50.192Z",
+  "generated_at": "2026-04-06T05:39:53.260Z",
   "project": "fa",
   "team_name": "무소속",
   "team_code": "fa",
@@ -9,7 +9,7 @@
     "무소속",
     "FA"
   ],
-  "roster_count": 90,
+  "roster_count": 88,
   "roster": [
     {
       "team_name": "무소속",
@@ -644,39 +644,6 @@
     {
       "team_name": "무소속",
       "team_code": "fa",
-      "entity_id": "eloboard:male:76",
-      "wr_id": 76,
-      "gender": "male",
-      "name": "전제민",
-      "display_name": "전제민",
-      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=76",
-      "profile_kind": "default",
-      "tier": "조커",
-      "race": "Protoss",
-      "source": "roster_sync_fa",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "gender:male",
-        "race:protoss",
-        "tier:joker"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "joker",
-      "last_checked_at": "2026-04-02T09:45:03.212Z",
-      "last_match_at": "2026-02-15T00:00:00.000Z",
-      "check_priority": "low",
-      "check_interval_days": 7,
-      "last_changed_at": "2026-04-02T10:04:50.063Z"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
       "entity_id": "eloboard:female:32",
       "wr_id": 32,
       "gender": "female",
@@ -970,39 +937,6 @@
       "last_changed_at": "2026-03-31T08:28:19.760Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=565",
       "profile_kind": "default"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:724",
-      "wr_id": 724,
-      "gender": "female",
-      "name": "링고",
-      "tier": "4",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:protoss",
-        "tier:4"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "4",
-      "last_checked_at": "2026-03-31T07:59:23.100Z",
-      "last_match_at": "2026-03-17T00:00:00.000Z",
-      "check_priority": "normal",
-      "check_interval_days": 3,
-      "last_changed_at": "2026-04-02T10:04:50.091Z",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=724",
-      "profile_kind": "default",
-      "display_name": "링고"
     },
     {
       "team_name": "무소속",
@@ -2151,11 +2085,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "9",
-      "last_checked_at": "2026-03-21T07:24:38.423Z",
-      "last_match_at": "2026-03-12T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T15:14:40.119Z",
+      "last_match_at": null,
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-04-02T10:04:50.158Z"
+      "last_changed_at": "2026-04-02T15:14:54.959Z"
     },
     {
       "team_name": "무소속",
@@ -2183,11 +2117,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:02:19.080Z",
-      "last_match_at": "2026-03-26T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.159Z"
+      "last_checked_at": "2026-04-02T15:14:40.730Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.959Z"
     },
     {
       "team_name": "무소속",
@@ -2215,11 +2149,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:02:29.428Z",
-      "last_match_at": "2026-03-22T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.160Z"
+      "last_checked_at": "2026-04-02T15:14:41.334Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.959Z"
     },
     {
       "team_name": "무소속",
@@ -2247,11 +2181,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:02:42.858Z",
-      "last_match_at": "2026-03-31T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.161Z"
+      "last_checked_at": "2026-04-02T15:14:41.964Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.959Z"
     },
     {
       "team_name": "무소속",
@@ -2279,11 +2213,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": null,
+      "last_checked_at": "2026-04-02T15:14:42.565Z",
       "last_match_at": null,
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.161Z"
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.960Z"
     },
     {
       "team_name": "무소속",
@@ -2311,11 +2245,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:02:53.392Z",
-      "last_match_at": "2026-03-25T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.162Z"
+      "last_checked_at": "2026-04-02T15:14:43.170Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.960Z"
     },
     {
       "team_name": "무소속",
@@ -2343,11 +2277,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:03:05.785Z",
-      "last_match_at": "2026-03-23T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.163Z"
+      "last_checked_at": "2026-04-02T15:14:43.797Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.960Z"
     },
     {
       "team_name": "무소속",
@@ -2375,11 +2309,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-21T07:51:00.127Z",
-      "last_match_at": "2026-03-01T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T15:14:44.423Z",
+      "last_match_at": null,
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-04-02T10:04:50.164Z"
+      "last_changed_at": "2026-04-02T15:14:54.960Z"
     },
     {
       "team_name": "무소속",
@@ -2407,11 +2341,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:03:08.759Z",
-      "last_match_at": "2026-03-25T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.165Z"
+      "last_checked_at": "2026-04-02T15:14:45.066Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.961Z"
     },
     {
       "team_name": "무소속",
@@ -2503,11 +2437,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:03:20.728Z",
-      "last_match_at": "2026-03-24T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.169Z"
+      "last_checked_at": "2026-04-02T15:14:45.664Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.965Z"
     },
     {
       "team_name": "무소속",
@@ -2535,11 +2469,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-21T07:53:20.425Z",
-      "last_match_at": "2026-03-01T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T15:14:46.282Z",
+      "last_match_at": null,
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-04-02T10:04:50.172Z"
+      "last_changed_at": "2026-04-02T15:14:54.965Z"
     },
     {
       "team_name": "무소속",
@@ -2567,11 +2501,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:03:28.030Z",
-      "last_match_at": "2026-03-22T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.176Z"
+      "last_checked_at": "2026-04-02T15:14:46.924Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.965Z"
     },
     {
       "team_name": "무소속",
@@ -2599,11 +2533,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:03:32.001Z",
-      "last_match_at": "2026-03-30T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.177Z"
+      "last_checked_at": "2026-04-02T15:14:47.651Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.966Z"
     },
     {
       "team_name": "무소속",
@@ -2663,11 +2597,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:03:45.783Z",
-      "last_match_at": "2026-03-25T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.178Z"
+      "last_checked_at": "2026-04-02T15:14:48.347Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.967Z"
     },
     {
       "team_name": "무소속",
@@ -2760,11 +2694,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:04:13.876Z",
-      "last_match_at": "2026-03-30T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.186Z"
+      "last_checked_at": "2026-04-02T15:14:49.264Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.970Z"
     },
     {
       "team_name": "무소속",
@@ -2792,11 +2726,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": null,
+      "last_checked_at": "2026-04-02T15:14:50.090Z",
       "last_match_at": null,
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.186Z"
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.970Z"
     },
     {
       "team_name": "무소속",
@@ -2824,11 +2758,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T11:10:30.934Z",
-      "last_match_at": "2026-03-31T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.189Z"
+      "last_checked_at": "2026-04-02T15:14:50.844Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.971Z"
     },
     {
       "team_name": "무소속",
@@ -2888,11 +2822,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:04:31.611Z",
-      "last_match_at": "2026-03-27T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.190Z"
+      "last_checked_at": "2026-04-02T15:14:51.558Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.972Z"
     },
     {
       "team_name": "무소속",
@@ -2953,11 +2887,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "unknown",
-      "last_checked_at": "2026-03-31T08:04:43.435Z",
-      "last_match_at": "2026-03-26T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.192Z"
+      "last_checked_at": "2026-04-02T15:14:52.290Z",
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-02T15:14:54.973Z"
     }
   ],
   "fetch_univ_name": "연합팀"

@@ -72,15 +72,16 @@ export function BattleGrid({ players, universities, initialTeamA, initialTeamB }
       </div>
       
       <div className="flex justify-end mb-4">
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
+        <label className="flex items-center gap-2 text-xs font-bold cursor-pointer text-white/40 hover:text-white/60 transition-colors">
           <input 
             type="checkbox" 
             checked={hideEmptyTiers}
             onChange={(e) => setHideEmptyTiers(e.target.checked)}
             className="form-checkbox h-4 w-4 rounded bg-card text-nzu-green border-border focus:ring-nzu-green/50"
           />
-          없는 티어 라인 숨기기
+          미사용 티어 라인 숨기기
         </label>
+
       </div>
 
       <div className="space-y-2">

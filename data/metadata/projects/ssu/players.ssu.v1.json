@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-03-29T06:59:31.108Z",
+  "generated_at": "2026-04-06T05:39:53.671Z",
   "project": "ssu",
   "team_name": "수술대",
   "team_code": "ssu",
   "team_name_en": "SSU",
-  "roster_count": 22,
+  "roster_count": 23,
   "roster": [
     {
       "team_name": "수술대",
@@ -20,11 +20,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:male",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:male",
         "race:zerg",
         "tier:god"
       ],
@@ -33,11 +33,13 @@
       "role_priority": null,
       "tier_key": "god",
       "display_name": "박상현",
-      "last_checked_at": "2026-03-25T01:50:59.024Z",
-      "last_match_at": "2026-03-25T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:58:01.450Z",
+      "last_match_at": "2026-04-02T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.416Z"
+      "last_changed_at": "2026-04-02T10:04:50.393Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=22",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -52,11 +54,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:male",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:male",
         "race:protoss",
         "tier:king"
       ],
@@ -65,11 +67,13 @@
       "role_priority": null,
       "tier_key": "king",
       "display_name": "송병구",
-      "last_checked_at": "2026-03-25T01:51:15.060Z",
-      "last_match_at": "2026-03-25T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:58:18.456Z",
+      "last_match_at": "2026-04-02T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.419Z"
+      "last_changed_at": "2026-04-02T10:04:50.396Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=16",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -84,11 +88,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:male",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:male",
         "race:zerg",
         "tier:jack"
       ],
@@ -97,11 +101,13 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "서문지훈",
-      "last_checked_at": "2026-03-22T21:45:26.508Z",
-      "last_match_at": "2026-03-02T00:00:00.000Z",
-      "check_priority": "normal",
-      "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T21:53:37.420Z"
+      "last_checked_at": "2026-04-02T09:58:29.840Z",
+      "last_match_at": "2026-03-23T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-04-02T10:04:50.397Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=74",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -116,11 +122,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:male",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:male",
         "race:terran",
         "tier:jack"
       ],
@@ -129,11 +135,13 @@
       "role_priority": null,
       "tier_key": "jack",
       "display_name": "신상문",
-      "last_checked_at": "2026-03-25T01:51:28.246Z",
-      "last_match_at": "2026-03-25T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:58:42.354Z",
+      "last_match_at": "2026-04-01T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.420Z"
+      "last_changed_at": "2026-04-02T10:04:50.398Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=102",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -148,11 +156,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:male",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:male",
         "race:zerg",
         "tier:joker"
       ],
@@ -161,11 +169,13 @@
       "role_priority": null,
       "tier_key": "joker",
       "display_name": "선우도현",
-      "last_checked_at": "2026-03-22T21:45:47.639Z",
+      "last_checked_at": "2026-03-31T08:20:05.481Z",
       "last_match_at": "2026-03-02T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T21:53:37.422Z"
+      "last_changed_at": "2026-03-31T08:28:19.964Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=194",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -180,11 +190,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:male",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:male",
         "race:protoss",
         "tier:joker"
       ],
@@ -193,30 +203,34 @@
       "role_priority": null,
       "tier_key": "joker",
       "display_name": "손찬웅",
-      "last_checked_at": "2026-03-25T01:51:38.663Z",
+      "last_checked_at": "2026-03-31T08:20:15.600Z",
       "last_match_at": "2026-03-12T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.420Z"
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-03-31T08:28:19.965Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=203",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
       "team_code": "ssu",
-      "entity_id": "eloboard:male:143",
+      "entity_id": "eloboard:male:mix:143",
       "wr_id": 143,
       "gender": "male",
       "name": "멍이",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=143",
+      "profile_kind": "mix",
       "tier": "0",
       "race": "Protoss",
       "source": "roster_sync",
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:male",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:male",
         "race:protoss",
         "tier:0"
       ],
@@ -224,11 +238,11 @@
       "role_priority": null,
       "tier_key": "0",
       "display_name": "멍이",
-      "last_checked_at": "2026-03-22T21:46:01.280Z",
+      "last_checked_at": "2026-03-31T08:20:19.267Z",
       "last_match_at": "2026-01-08T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T21:53:37.424Z"
+      "last_changed_at": "2026-03-31T08:28:19.965Z"
     },
     {
       "team_name": "수술대",
@@ -243,11 +257,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:male",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:male",
         "race:protoss",
         "tier:0"
       ],
@@ -256,11 +270,13 @@
       "role_priority": null,
       "tier_key": "0",
       "display_name": "박성용",
-      "last_checked_at": "2026-03-22T21:46:10.632Z",
+      "last_checked_at": "2026-03-31T08:20:28.680Z",
       "last_match_at": "2025-09-29T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-03-22T21:53:37.424Z"
+      "last_changed_at": "2026-03-31T08:28:19.965Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=79",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -275,11 +291,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:terran",
         "tier:1"
       ],
@@ -288,11 +304,13 @@
       "role_priority": null,
       "tier_key": "1",
       "display_name": "다린",
-      "last_checked_at": "2026-03-25T01:51:45.327Z",
-      "last_match_at": "2026-03-11T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:58:49.594Z",
+      "last_match_at": "2026-03-26T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.421Z"
+      "last_changed_at": "2026-04-02T10:04:50.400Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=28",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -307,11 +325,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:zerg",
         "tier:2"
       ],
@@ -320,11 +338,13 @@
       "role_priority": null,
       "tier_key": "2",
       "display_name": "남덕선",
-      "last_checked_at": "2026-03-22T21:46:24.143Z",
+      "last_checked_at": "2026-03-31T08:20:42.401Z",
       "last_match_at": "2026-03-02T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T21:53:37.428Z"
+      "last_changed_at": "2026-03-31T08:28:19.967Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=35",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -339,11 +359,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:zerg",
         "tier:3"
       ],
@@ -352,11 +372,13 @@
       "role_priority": null,
       "tier_key": "3",
       "display_name": "공다츠",
-      "last_checked_at": "2026-03-25T01:51:52.115Z",
-      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:58:56.682Z",
+      "last_match_at": "2026-03-26T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.425Z"
+      "last_changed_at": "2026-04-02T10:04:50.406Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=617",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -371,11 +393,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:terran",
         "tier:3"
       ],
@@ -384,11 +406,13 @@
       "role_priority": null,
       "tier_key": "3",
       "display_name": "나예리",
-      "last_checked_at": "2026-03-25T01:51:59.687Z",
-      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:59:04.563Z",
+      "last_match_at": "2026-04-02T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.427Z"
+      "last_changed_at": "2026-04-02T10:04:50.409Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=177",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -403,11 +427,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:zerg",
         "tier:3"
       ],
@@ -416,11 +440,13 @@
       "role_priority": null,
       "tier_key": "3",
       "display_name": "파찌",
-      "last_checked_at": "2026-03-25T01:52:06.741Z",
-      "last_match_at": "2026-03-22T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:59:11.244Z",
+      "last_match_at": "2026-03-26T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.428Z"
+      "last_changed_at": "2026-04-02T10:04:50.410Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=119",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -435,11 +461,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:protoss",
         "tier:4"
       ],
@@ -448,11 +474,13 @@
       "role_priority": null,
       "tier_key": "4",
       "display_name": "연애인",
-      "last_checked_at": "2026-03-22T21:46:52.262Z",
+      "last_checked_at": "2026-03-31T08:21:12.760Z",
       "last_match_at": "2026-02-28T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-22T21:53:37.447Z"
+      "last_changed_at": "2026-03-31T08:28:19.974Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=373",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -467,11 +495,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:terran",
         "tier:5"
       ],
@@ -480,30 +508,34 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "깨림이",
-      "last_checked_at": "2026-03-25T01:52:13.584Z",
+      "last_checked_at": "2026-04-02T09:59:17.649Z",
       "last_match_at": "2026-03-19T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.432Z"
+      "last_changed_at": "2026-04-02T10:04:50.414Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=713",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
       "team_code": "ssu",
-      "entity_id": "eloboard:male:670",
+      "entity_id": "eloboard:male:mix:670",
       "wr_id": 670,
       "gender": "male",
       "name": "정중만",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=670",
+      "profile_kind": "mix",
       "tier": "5",
       "race": "Protoss",
       "source": "roster_sync",
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:male",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:male",
         "race:protoss",
         "tier:5"
       ],
@@ -511,11 +543,11 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "정중만",
-      "last_checked_at": "2026-03-25T01:52:16.921Z",
+      "last_checked_at": "2026-04-02T09:59:21.285Z",
       "last_match_at": "2026-03-19T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.432Z"
+      "last_changed_at": "2026-04-02T10:04:50.414Z"
     },
     {
       "team_name": "수술대",
@@ -530,11 +562,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:protoss",
         "tier:5"
       ],
@@ -543,11 +575,13 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "주서리",
-      "last_checked_at": "2026-03-25T01:52:23.769Z",
-      "last_match_at": "2026-03-20T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:59:29.696Z",
+      "last_match_at": "2026-03-31T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.434Z"
+      "last_changed_at": "2026-04-02T10:04:50.417Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=566",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -562,11 +596,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:zerg",
         "tier:6"
       ],
@@ -575,11 +609,13 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "2라니",
-      "last_checked_at": "2026-03-25T01:52:29.700Z",
-      "last_match_at": "2026-03-16T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:59:37.469Z",
+      "last_match_at": "2026-03-30T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.436Z"
+      "last_changed_at": "2026-04-02T10:04:50.420Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=860",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -594,11 +630,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:zerg",
         "tier:6"
       ],
@@ -607,11 +643,13 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "귀요민정",
-      "last_checked_at": "2026-03-25T01:52:36.104Z",
-      "last_match_at": "2026-03-19T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T09:59:44.074Z",
+      "last_match_at": "2026-03-30T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.438Z"
+      "last_changed_at": "2026-04-02T10:04:50.422Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=784",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -626,11 +664,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:protoss",
         "tier:6"
       ],
@@ -639,11 +677,13 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "밍가",
-      "last_checked_at": "2026-03-22T21:47:28.371Z",
+      "last_checked_at": "2026-03-31T08:21:49.009Z",
       "last_match_at": "2026-03-08T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-03-25T01:55:40.440Z"
+      "last_changed_at": "2026-03-31T08:28:19.984Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=781",
+      "profile_kind": "default"
     },
     {
       "team_name": "수술대",
@@ -658,11 +698,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:zerg",
         "tier:6"
       ],
@@ -671,11 +711,46 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "핑핑",
-      "last_checked_at": "2026-03-22T21:47:33.990Z",
-      "last_match_at": "2026-03-08T00:00:00.000Z",
-      "check_priority": "normal",
-      "check_interval_days": 3,
-      "last_changed_at": "2026-03-25T01:55:40.441Z"
+      "last_checked_at": "2026-04-02T09:59:49.623Z",
+      "last_match_at": "2026-03-28T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-04-02T10:04:50.426Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=895",
+      "profile_kind": "default"
+    },
+    {
+      "team_name": "수술대",
+      "team_code": "ssu",
+      "entity_id": "eloboard:female:956",
+      "wr_id": 956,
+      "gender": "female",
+      "name": "면추가",
+      "display_name": "면추가",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=956",
+      "profile_kind": "default",
+      "tier": "7",
+      "race": "Zerg",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:female",
+        "team:ssu",
+        "team_code:ssu",
+        "team_ko:수술대",
+        "team_en:ssu",
+        "race:zerg",
+        "tier:7"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "7",
+      "last_checked_at": "2026-04-02T09:59:54.670Z",
+      "last_match_at": "2026-03-30T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-04-02T10:04:50.427Z"
     },
     {
       "team_name": "수술대",
@@ -690,11 +765,11 @@
       "meta_tags": [
         "domain:player",
         "project:ssu",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:protoss",
         "tier:8"
       ],
@@ -703,11 +778,13 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "헤요이",
-      "last_checked_at": "2026-03-25T01:52:41.110Z",
-      "last_match_at": "2026-03-24T00:00:00.000Z",
+      "last_checked_at": "2026-04-02T10:00:00.613Z",
+      "last_match_at": "2026-03-30T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-03-25T01:55:40.443Z"
+      "last_changed_at": "2026-04-02T10:04:50.428Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=976",
+      "profile_kind": "default"
     }
   ],
   "source_file": "tmp/수술대_roster_record_metadata.json",

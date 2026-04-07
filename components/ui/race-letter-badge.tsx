@@ -14,7 +14,7 @@ export function RaceLetterBadge({
   className,
 }: {
   race: string;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }) {
   const r = normalizeRaceLetter(race);
@@ -27,6 +27,7 @@ export function RaceLetterBadge({
     sm: "min-w-[24px] h-6 px-1 text-[12px] rounded-md",
     md: "min-w-[30px] h-7 px-1.5 text-[13px] rounded-md",
     lg: "min-w-[36px] h-8 px-2 text-[14px] rounded-lg",
+    xl: "min-w-[48px] h-10 px-3 text-[18px] rounded-xl border-2",
   };
   const cfg = configs[r] || configs.T;
 

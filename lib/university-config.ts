@@ -1,21 +1,20 @@
 import { type UniversityInfo } from "../types";
 
-export const UNIVERSITY_MAP: Record<string, UniversityInfo> = {
-  '수술대': { name: 'SSUSTAR (수술대)', logo: '🩺', color: '#2ED573' },
-  '케이대': { name: '케이대', logo: '🦁', color: '#004A99' },
-  'JSA': { name: 'JSA (저사대)', logo: '🦅', color: '#E41E31' },
-  'BGM': { name: 'BGM', logo: '🎵', color: '#FFD700' },
-  '엠비대': { name: 'MBD (엠비대)', logo: '👊', color: '#2F3542' },
-  '흑카데미': { name: '흑카데미', logo: '🎓', color: '#000000' },
-  '정선대': { name: '정선대', logo: '☀️', color: '#FFA500' },
-  '츠캄몬스타즈': { name: '츠캄몬스터즈', logo: '👾', color: '#9B59B6' },
-  '뉴캣슬': { name: '뉴캣슬', logo: '🏰', color: '#3498DB' },
-  '와플대': { name: '와플대', logo: '🧇', color: '#F1C40F' },
-  'HM': { name: 'HM', logo: '🛡️', color: '#E67E22' },
-  '늪지대': { name: 'NZU (늪지대)', logo: '🏟️', color: '#00A86B' },
-  'YB': { name: 'YB', logo: '🌟', color: '#A4B0BE' },
-  '씨나인': { name: 'C9 (씨나인)', logo: '⚡', color: '#1E272E' },
-  '무소속': { name: 'FA / 무소속', logo: '👤', color: '#747D8C' }
+export const UNIVERSITY_MAP: Record<string, { name: string; logo: string; color: string; stars?: number }> = {
+  'NZU': { name: '늪지대', logo: '🦎', color: 'from-nzu-green/20 to-nzu-green/5', stars: 0 },
+  'KU': { name: '케이대', logo: '🦁', color: 'from-blue-600/20 to-blue-600/5', stars: 2 },
+  'JSA': { name: 'JSA', logo: '🦅', color: 'from-red-600/20 to-red-600/5', stars: 2 },
+  'C9': { name: '씨나인', logo: '☁️', color: 'from-sky-400/20 to-sky-400/5', stars: 1 },
+  'TSUCALM': { name: '츠캄몬스타즈', logo: '👹', color: 'from-orange-600/20 to-orange-600/5', stars: 1 },
+  'YB': { name: 'YB', logo: '🐻', color: 'from-yellow-600/20 to-yellow-600/5', stars: 1 },
+  'SSU': { name: '수술대', logo: '🩺', color: 'from-emerald-600/20 to-emerald-600/5', stars: 0 },
+  'BGM': { name: 'BGM', logo: '🎵', color: 'from-purple-600/20 to-purple-600/5', stars: 0 },
+  'MBU': { name: '엠비대', logo: '🎙️', color: 'from-indigo-600/20 to-indigo-600/5', stars: 0 },
+  'B.A': { name: '흑카데미', logo: '🎓', color: 'from-gray-800/20 to-gray-800/5', stars: 0 },
+  'N.C.S': { name: '뉴캣슬', logo: '🏰', color: 'from-slate-600/20 to-slate-600/5', stars: 0 },
+  'WFU': { name: '와플대', logo: '🧇', color: 'from-amber-600/20 to-amber-600/5', stars: 0 },
+  'HM': { name: 'HM', logo: '⚔️', color: 'from-cyan-600/20 to-cyan-600/5', stars: 0 },
+  'FA': { name: '무소속', logo: '🕊️', color: 'from-white/10 to-white/5', stars: 0 },
 };
 
 export const getUniversityInfo = (univ: string): UniversityInfo => {

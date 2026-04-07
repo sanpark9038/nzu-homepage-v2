@@ -33,8 +33,10 @@ export function normalizeTier(tier: string | null | undefined): string {
     '조커': '조커',
     'spade': '스페이드',
     '스페이드': '스페이드',
-    'baby': '아기',
-    '아기': '아기'
+    '9': '베이비',
+    'baby': '베이비',
+    '아기': '베이비',
+    '베이비': '베이비'
   };
 
   if (logicalMap[t]) return logicalMap[t];
@@ -54,7 +56,7 @@ export function getTierLabel(tier: string | null | undefined): string {
   const norm = normalizeTier(tier);
   
   if (norm === '미정') return '미정';
-  if (['갓', '킹', '잭', '퀸', '조커', '스페이드', '아기'].includes(norm)) return norm;
+  if (['갓', '킹', '잭', '퀸', '조커', '스페이드', '베이비'].includes(norm)) return norm;
   
   // 숫자 티어인 경우 "N티어" 붙임
   if (!isNaN(Number(norm))) return `${norm}티어`;
@@ -102,4 +104,3 @@ export function formatTimeAgo(dateString: string | null | undefined): string {
     return '';
   }
 }
-

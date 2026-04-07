@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
 import { type Player } from "@/lib/player-service";
@@ -54,8 +54,6 @@ type RecentSummary = {
   form: readonly ("승" | "패")[];
 };
 
-const TEMP_RECENT_FORM = ["승", "승", "패", "패", "패"] as const;
-
 type Props = {
   player: Player;
   raceSummaries: RaceSummary[];
@@ -65,6 +63,7 @@ type Props = {
   spawnPartner: SpawnPartnerSummary;
   recentLogs: RecentLog[];
   recentSummary: RecentSummary;
+  defaultExpanded?: boolean;
 };
 
 function normalizeRaceValue(race: string | null | undefined): Race {
@@ -73,50 +72,6 @@ function normalizeRaceValue(race: string | null | undefined): Race {
   if (raw.startsWith("P")) return "P";
   return "T";
 }
-
-const TEMP_RACE_SUMMARIES: RaceSummary[] = [
-  { race: "T", matches: 21, wins: 13, losses: 8, winRate: "62%", hasRecord: true },
-  { race: "Z", matches: 17, wins: 10, losses: 7, winRate: "59%", hasRecord: true },
-  { race: "P", matches: 14, wins: 6, losses: 8, winRate: "43%", hasRecord: true },
-];
-
-const TEMP_STRONGEST_MAP: MapSummary = {
-  mapName: "폴리포이드",
-  matches: 8,
-  wins: 6,
-  losses: 2,
-  winRate: "75%",
-};
-
-const TEMP_WEAKEST_MAP: MapSummary = {
-  mapName: "네오 실피드",
-  matches: 7,
-  wins: 2,
-  losses: 5,
-  winRate: "29%",
-};
-
-const TEMP_RACE_BEST_MAPS: RaceMapSummary[] = [
-  { race: "T", bestMap: { mapName: "폴리포이드", matches: 4, wins: 3, losses: 1, winRate: "75%" } },
-  { race: "Z", bestMap: { mapName: "버터", matches: 3, wins: 2, losses: 1, winRate: "67%" } },
-  { race: "P", bestMap: { mapName: "투혼", matches: 3, wins: 2, losses: 1, winRate: "67%" } },
-];
-
-const TEMP_SPAWN_PARTNER: SpawnPartnerCard = {
-  name: "철구",
-  race: "T",
-  matches: 18,
-  wins: 10,
-  losses: 8,
-};
-
-const TEMP_RECENT_LOGS: RecentLog[] = [
-  { id: "temp-1", result: "승", opponentName: "철구", opponentRace: "T", mapName: "폴리포이드", dateText: "26.03.27" },
-  { id: "temp-2", result: "승", opponentName: "요정너구리", opponentRace: "P", mapName: "버터", dateText: "26.03.26" },
-  { id: "temp-3", result: "패", opponentName: "김민철", opponentRace: "Z", mapName: "네오 실피드", dateText: "26.03.25" },
-  { id: "temp-4", result: "패", opponentName: "정윤종", opponentRace: "P", mapName: "투혼", dateText: "26.03.24" },
-  { id: "temp-5", result: "패", opponentName: "박성균", opponentRace: "T", mapName: "라데온", dateText: "26.03.23" },
-];
 
 export default function PlayerSearchResult({
   player,
@@ -127,18 +82,37 @@ export default function PlayerSearchResult({
   spawnPartner,
   recentLogs,
   recentSummary,
+  defaultExpanded = false,
 }: Props) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [visibleRecentCount, setVisibleRecentCount] = useState(5);
   const normTier = normalizeTier(player.tier);
   const isElite = ["갓", "킹"].includes(normTier);
   const themeColor = isElite ? "rgba(255, 215, 0, 0.28)" : "rgba(0, 255, 163, 0.22)";
-  const recentForm = recentSummary.form.length ? recentSummary.form : TEMP_RECENT_FORM;
-  const resolvedRaceSummaries = raceSummaries.some((item) => item.hasRecord) ? raceSummaries : TEMP_RACE_SUMMARIES;
-  const resolvedStrongestMap = strongestMap || TEMP_STRONGEST_MAP;
-  const resolvedWeakestMap = weakestMap || TEMP_WEAKEST_MAP;
-  const resolvedRaceBestMaps = raceBestMaps.some((item) => item.bestMap) ? raceBestMaps : TEMP_RACE_BEST_MAPS;
-  const resolvedSpawnPartner: SpawnPartnerCard = spawnPartner ?? TEMP_SPAWN_PARTNER;
-  const resolvedRecentLogs = recentLogs.length ? recentLogs : TEMP_RECENT_LOGS;
+  const recentForm = recentSummary.form;
+  const visibleRecentLogs = recentLogs.slice(0, visibleRecentCount);
+  const canExpandRecentLogs = recentLogs.length > visibleRecentCount;
+  const canCollapseRecentLogs = recentLogs.length > 5 && visibleRecentCount > 5;
+  const hasRaceData = raceSummaries.some((item) => item.hasRecord);
+  const hasRaceBestMaps = raceBestMaps.some((item) => item.bestMap);
+  const hasSpawnPartner = Boolean(spawnPartner);
+
+  useEffect(() => {
+    setVisibleRecentCount(5);
+  }, [player.id, recentLogs.length]);
+
+  useEffect(() => {
+    setIsExpanded(defaultExpanded);
+  }, [defaultExpanded, player.id]);
+
+  function handleToggleExpanded() {
+    setIsExpanded((prev) => {
+      if (prev) {
+        setVisibleRecentCount(5);
+      }
+      return !prev;
+    });
+  }
 
   return (
     <div className="overflow-hidden rounded-[1.55rem] border border-white/8 bg-white/[0.03] px-4 py-4 md:px-6 md:py-5 xl:px-7 xl:py-6">
@@ -157,7 +131,7 @@ export default function PlayerSearchResult({
                 </a>
               ) : (
                 <button type="button" disabled className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[0.95rem] border border-sky-400/10 bg-sky-400/[0.04] px-3 text-[0.9rem] font-[1000] tracking-tight text-sky-200/25 md:h-10 md:text-[0.94rem]">
-                  방송국 이동
+                  방송 링크 없음
                 </button>
               )}
             </div>
@@ -175,7 +149,7 @@ export default function PlayerSearchResult({
         <div className="md:col-start-3 md:row-start-1 md:h-full">
           <button
             type="button"
-            onClick={() => setIsExpanded((prev) => !prev)}
+            onClick={handleToggleExpanded}
             className="group inline-flex h-full min-h-[52px] w-full items-center justify-center rounded-[0.9rem] border border-nzu-green/18 bg-[linear-gradient(180deg,rgba(0,255,163,0.07),rgba(0,255,163,0.03))] px-3 py-2 text-nzu-green transition-all hover:border-nzu-green/36 hover:bg-[linear-gradient(180deg,rgba(0,255,163,0.12),rgba(0,255,163,0.06))] hover:text-white"
           >
             <span className="flex items-center justify-center rounded-[0.78rem] border border-white/6 bg-black/12 px-4 py-2 text-[1.02rem] font-[1000] tracking-tight transition-all group-hover:border-white/12 group-hover:bg-black/18">
@@ -187,7 +161,7 @@ export default function PlayerSearchResult({
         <div className="min-w-0 md:col-start-2 md:row-start-2">
           <div className="grid gap-2.5 md:grid-cols-2">
             <div className="px-1"><span className="text-[13px] font-black tracking-wide text-nzu-green md:text-[13.5px]">전체: 2025.01.01 ~ 현재</span></div>
-            <div className="px-1"><span className="text-[13px] font-black tracking-wide text-red-500 md:text-[13.5px]">최근: 최근 3개월 전적</span></div>
+            <div className="px-1"><span className="text-[13px] font-black tracking-wide text-red-500 md:text-[13.5px]">최근: 3개월 전적</span></div>
           </div>
           <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
             <MetricCard tone="green" label="전체 승률" value={player.win_rate != null ? `${player.win_rate}%` : "-"} />
@@ -201,20 +175,26 @@ export default function PlayerSearchResult({
           <div className="px-1"><span className="text-[13px] font-black tracking-wide text-white/72 md:text-[13.5px]">최근 폼: 최근 5경기</span></div>
           <div className="mt-2.5 flex flex-1 flex-col rounded-[1rem] border border-white/8 bg-white/[0.03] px-3 py-3 xl:px-3.5 xl:py-3.5">
             <div className="flex items-center justify-between text-[12px] font-[1000] tracking-tight md:text-[12.5px]"><span className="text-white/46">과거</span><span className="text-white/30">→</span><span className="text-white/82">최근</span></div>
-            <div className="mt-2 grid grid-cols-5 items-end gap-1.5">
-              {recentForm.map((result, index) => (
-                <span
-                  key={`${result}-${index}`}
-                  className={cn(
-                    "inline-flex w-full items-center justify-center rounded-[0.7rem] border font-[1000] tracking-tight",
-                    index < 2 ? "h-7 text-[0.8rem] md:h-8 md:text-[0.84rem]" : index === 2 ? "h-8 text-[0.86rem] md:h-9 md:text-[0.9rem]" : index === 3 ? "h-9 text-[0.92rem] md:h-10 md:text-[0.98rem]" : "h-10 text-[1rem] md:h-11 md:text-[1.06rem]",
-                    result === "승" ? "border-nzu-green/25 bg-nzu-green/[0.1] text-nzu-green" : "border-red-400/25 bg-red-400/[0.1] text-red-300",
-                  )}
-                >
-                  {result}
-                </span>
-              ))}
-            </div>
+            {recentForm.length ? (
+              <div className="mt-2 grid grid-cols-5 items-end gap-1.5">
+                {recentForm.map((result, index) => (
+                  <span
+                    key={`${result}-${index}`}
+                    className={cn(
+                      "inline-flex w-full items-center justify-center rounded-[0.7rem] border font-[1000] tracking-tight",
+                      index < 2 ? "h-7 text-[0.8rem] md:h-8 md:text-[0.84rem]" : index === 2 ? "h-8 text-[0.86rem] md:h-9 md:text-[0.9rem]" : index === 3 ? "h-9 text-[0.92rem] md:h-10 md:text-[0.98rem]" : "h-10 text-[1rem] md:h-11 md:text-[1.06rem]",
+                      result === "승" ? "border-nzu-green/25 bg-nzu-green/[0.1] text-nzu-green" : "border-red-400/25 bg-red-400/[0.1] text-red-300",
+                    )}
+                  >
+                    {result}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-2 flex flex-1 items-center justify-center rounded-[0.8rem] border border-dashed border-white/8 bg-black/10 px-3 py-4 text-[0.84rem] font-[900] tracking-tight text-white/38">
+                최근 경기 데이터 없음
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -225,35 +205,43 @@ export default function PlayerSearchResult({
           <div className="relative space-y-3">
             <Section title="스폰깐부">
               <div className="rounded-[1rem] border border-nzu-green/14 bg-[linear-gradient(180deg,rgba(0,255,163,0.08),rgba(255,255,255,0.02))] px-3 py-3.5">
-                <div className="space-y-2.5">
-                  <div className="rounded-[0.9rem] border border-white/8 bg-black/15 px-3 py-3.5 text-center">
-                    <div className="flex items-center justify-center gap-2.5">
-                      <span className="truncate text-[1.4rem] font-[1000] tracking-tight text-white md:text-[1.56rem] xl:text-[1.68rem]">{resolvedSpawnPartner.name}</span>
-                      <RaceTag race={resolvedSpawnPartner.race} size="sm" />
-                    </div>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-[0.85rem] border border-white/8 bg-black/15 px-2.5 py-2 text-center">
-                      <div className="flex items-center justify-center gap-2 text-[1rem] font-[1000] tracking-tight text-white md:text-[1.08rem]">
-                        <span>승률</span>
-                        <span>{Math.round((resolvedSpawnPartner.wins / resolvedSpawnPartner.matches) * 100)}%</span>
+                {hasSpawnPartner ? (
+                  <div className="space-y-2.5">
+                    <div className="rounded-[0.9rem] border border-white/8 bg-black/15 px-3 py-3.5 text-center">
+                      <div className="flex items-center justify-center gap-2.5">
+                        <span className="truncate text-[1.4rem] font-[1000] tracking-tight text-white md:text-[1.56rem] xl:text-[1.68rem]">{spawnPartner!.name}</span>
+                        <RaceTag race={spawnPartner!.race} size="sm" />
                       </div>
                     </div>
-                    <div className="rounded-[0.85rem] border border-white/8 bg-black/15 px-2.5 py-2 text-center">
-                      <div className="flex items-center justify-center gap-2 text-[1rem] font-[1000] tracking-tight text-white md:text-[1.08rem]">
-                        <span>상대전적</span>
-                        <span>{resolvedSpawnPartner.matches}전 {resolvedSpawnPartner.wins}승 {resolvedSpawnPartner.losses}패</span>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="rounded-[0.85rem] border border-white/8 bg-black/15 px-2.5 py-2 text-center">
+                        <div className="flex items-center justify-center gap-2 text-[1rem] font-[1000] tracking-tight text-white md:text-[1.08rem]">
+                          <span>승률</span>
+                          <span>{Math.round((spawnPartner!.wins / spawnPartner!.matches) * 100)}%</span>
+                        </div>
+                      </div>
+                      <div className="rounded-[0.85rem] border border-white/8 bg-black/15 px-2.5 py-2 text-center">
+                        <div className="flex items-center justify-center gap-2 text-[1rem] font-[1000] tracking-tight text-white md:text-[1.08rem]">
+                          <span>상대전적</span>
+                          <span>{spawnPartner!.matches}전 {spawnPartner!.wins}승 {spawnPartner!.losses}패</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <CompactRow value="기록 없음" />
+                )}
               </div>
             </Section>
 
             <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
               <Section title="종족별 승률">
                 <div className="grid gap-2 md:grid-cols-3">
-                {resolvedRaceSummaries.map((item) => (
+                {(hasRaceData ? raceSummaries : [
+                  { race: "T" as const, matches: 0, wins: 0, losses: 0, winRate: "기록 없음", hasRecord: false },
+                  { race: "Z" as const, matches: 0, wins: 0, losses: 0, winRate: "기록 없음", hasRecord: false },
+                  { race: "P" as const, matches: 0, wins: 0, losses: 0, winRate: "기록 없음", hasRecord: false },
+                ]).map((item) => (
                   <DataTile
                     key={item.race}
                     title={<RaceTag race={item.race} size="xs" />}
@@ -268,16 +256,16 @@ export default function PlayerSearchResult({
               <div className="grid gap-3 md:grid-cols-2">
                 <Section title="강한 맵" titleClassName="text-nzu-green">
                   <DataTile
-                    headline={resolvedStrongestMap ? resolvedStrongestMap.mapName : "표본 부족"}
-                    lines={resolvedStrongestMap ? [resolvedStrongestMap.winRate, `${resolvedStrongestMap.matches}경기 · ${resolvedStrongestMap.wins}승 ${resolvedStrongestMap.losses}패`] : ["표본 부족"]}
+                    headline={strongestMap ? strongestMap.mapName : "표본 부족"}
+                    lines={strongestMap ? [strongestMap.winRate, `${strongestMap.matches}경기 · ${strongestMap.wins}승 ${strongestMap.losses}패`] : ["표본 부족"]}
                     tone="strong"
                     headlineClassName="md:text-[1.24rem] xl:text-[1.28rem]"
                   />
                 </Section>
                 <Section title="약한 맵" titleClassName="text-red-300">
                   <DataTile
-                    headline={resolvedWeakestMap ? resolvedWeakestMap.mapName : "표본 부족"}
-                    lines={resolvedWeakestMap ? [resolvedWeakestMap.winRate, `${resolvedWeakestMap.matches}경기 · ${resolvedWeakestMap.wins}승 ${resolvedWeakestMap.losses}패`] : ["표본 부족"]}
+                    headline={weakestMap ? weakestMap.mapName : "표본 부족"}
+                    lines={weakestMap ? [weakestMap.winRate, `${weakestMap.matches}경기 · ${weakestMap.wins}승 ${weakestMap.losses}패`] : ["표본 부족"]}
                     tone="weak"
                     headlineClassName="md:text-[1.24rem] xl:text-[1.28rem]"
                   />
@@ -287,7 +275,11 @@ export default function PlayerSearchResult({
 
             <Section title={<><span>종족별 상대로 </span><span className="text-nzu-green">강한 맵</span></>}>
               <div className="grid gap-2 md:grid-cols-3">
-                {resolvedRaceBestMaps.map((item) => (
+                {(hasRaceBestMaps ? raceBestMaps : [
+                  { race: "T" as const, bestMap: null },
+                  { race: "Z" as const, bestMap: null },
+                  { race: "P" as const, bestMap: null },
+                ]).map((item) => (
                   <DataTile
                     key={item.race}
                     title={<RaceTag race={item.race} size="xs" />}
@@ -299,10 +291,10 @@ export default function PlayerSearchResult({
               </div>
             </Section>
 
-            <Section title="최근 5경기">
+            <Section title="최근 경기 기록">
               <div className="grid gap-1.5">
-                {resolvedRecentLogs.length ? (
-                  resolvedRecentLogs.map((log) => (
+                {recentLogs.length ? (
+                  visibleRecentLogs.map((log) => (
                     <div
                       key={log.id}
                       className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-[0.85rem] border border-white/7 bg-white/[0.02] px-2.5 py-2 text-[0.78rem] font-[900] tracking-tight text-white/78 md:px-3"
@@ -330,6 +322,28 @@ export default function PlayerSearchResult({
                 ) : (
                   <CompactRow value="기록 없음" />
                 )}
+                {recentLogs.length > 5 ? (
+                  <div className="mt-1 flex justify-center gap-2">
+                    {canExpandRecentLogs ? (
+                      <button
+                        type="button"
+                        onClick={() => setVisibleRecentCount((count) => Math.min(count + 5, recentLogs.length))}
+                        className="rounded-[0.8rem] border border-nzu-green/18 bg-nzu-green/[0.06] px-4 py-2 text-[0.82rem] font-[1000] tracking-tight text-nzu-green transition-all hover:border-nzu-green/36 hover:bg-nzu-green/[0.12] hover:text-white"
+                      >
+                        경기 기록 더보기
+                      </button>
+                    ) : null}
+                    {canCollapseRecentLogs ? (
+                      <button
+                        type="button"
+                        onClick={() => setVisibleRecentCount(5)}
+                        className="rounded-[0.8rem] border border-white/10 bg-white/[0.03] px-4 py-2 text-[0.82rem] font-[1000] tracking-tight text-white/70 transition-all hover:border-white/16 hover:bg-white/[0.06] hover:text-white"
+                      >
+                        접기
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </Section>
           </div>

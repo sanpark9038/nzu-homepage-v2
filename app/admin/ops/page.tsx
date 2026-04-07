@@ -1,8 +1,12 @@
 import fs from "fs";
 import path from "path";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { AdminNav } from "@/components/admin/AdminNav";
+import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import OpsControls from "./OpsControls";
-import RosterEditor from "./RosterEditor";
+import LogoutButton from "./LogoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +65,13 @@ function badgeColor(level: string): string {
   return "bg-zinc-300 text-black";
 }
 
-export default function AdminOpsPage() {
+export default async function AdminOpsPage() {
+  const cookieStore = await cookies();
+  const sessionValue = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  if (!isValidAdminSession(sessionValue)) {
+    redirect("/admin/login?next=/admin/ops");
+  }
+
   const snapshotPath = latestJsonByPrefix("daily_pipeline_snapshot_");
   const alertsPath = latestJsonByPrefix("daily_pipeline_alerts_");
   const snapshot = readJson<SnapshotDoc>(snapshotPath);
@@ -73,6 +83,7 @@ export default function AdminOpsPage() {
   return (
     <main className="min-h-screen bg-background text-foreground p-6 md:p-10">
       <div className="max-w-6xl mx-auto space-y-6">
+        <AdminNav />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight">Pipeline Ops (Temporary)</h1>
@@ -81,12 +92,7 @@ export default function AdminOpsPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <Link href="/admin/data-lab" className="text-sm underline text-nzu-green">
-              Data Lab
-            </Link>
-            <Link href="/" className="text-sm underline text-nzu-green">
-              홈으로
-            </Link>
+            <LogoutButton />
           </div>
         </div>
 
@@ -120,7 +126,23 @@ export default function AdminOpsPage() {
         </section>
 
         <OpsControls />
-        <RosterEditor />
+
+        <section className="border border-border rounded-lg p-4 bg-card">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="font-bold">Roster Admin</h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                선수 수동 이동, 티어 수정, 수집 제외 관리는 전용 페이지에서 처리합니다.
+              </p>
+            </div>
+            <Link
+              href="/admin/roster"
+              className="inline-flex items-center justify-center rounded-lg bg-nzu-green px-4 py-2 text-sm font-bold text-white"
+            >
+              로스터 관리 열기
+            </Link>
+          </div>
+        </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold">Team Health</h2>

@@ -37,6 +37,20 @@ export const playerService = {
     return data;
   },
 
+  /** UUID 접두사(8자리 등)로 선수 정보 가져오기 */
+  async getPlayerByIdPrefix(prefix: string) {
+    const normalizedPrefix = String(prefix || "").trim().toLowerCase();
+    if (!normalizedPrefix) return null;
+
+    const { data, error } = await supabase
+      .from("players")
+      .select(PLAYER_SERVING_SELECT[0])
+      .order("elo_point", { ascending: false, nullsFirst: false });
+
+    if (error) throw error;
+    return (data || []).find((player) => String(player.id || "").toLowerCase().startsWith(normalizedPrefix)) || null;
+  },
+
   /** 현재 방송 중인 선수들만 가져오기 */
   async getLivePlayers() {
     const { data, error } = await supabase

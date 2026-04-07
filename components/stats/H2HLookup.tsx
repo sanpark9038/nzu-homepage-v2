@@ -3,40 +3,40 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { playerService } from '@/lib/player-service'
 import type { Player } from '@/types'
-import { TierBadge } from '@/components/ui/nzu-badges'
+import { TierBadge, getTierTone } from '@/components/ui/nzu-badges'
 import { getInstantH2H } from '@/lib/h2h-service'
 import type { H2HStats } from '@/types'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { Search, Trophy, Map as MapIcon, X, Swords, Plus, RotateCcw, GripVertical, ShieldCheck, ChevronLeft, ChevronRight, Activity, Zap } from 'lucide-react'
+import { cn, getTierLabel } from '@/lib/utils'
+import { Trophy, X, Swords, Plus, RotateCcw, Activity, Zap } from 'lucide-react'
 import { UNIVERSITY_MAP } from '@/lib/university-config'
 import { REAL_NAME_MAP } from '@/lib/constants'
-import Image from 'next/image'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 
 const TIER_CONFIG: Record<string, { weight: number; color: string }> = {
-  GOD: { weight: 0, color: '#eab308' },
-  갓: { weight: 1, color: '#eab308' },
-  KING: { weight: 2, color: '#06b6d4' },
-  킹: { weight: 3, color: '#06b6d4' },
-  JACK: { weight: 4, color: '#3b82f6' },
-  잭: { weight: 5, color: '#3b82f6' },
-  JOKER: { weight: 6, color: '#8b5cf6' },
-  조커: { weight: 7, color: '#8b5cf6' },
-  SPADE: { weight: 8, color: '#a855f7' },
-  스페이드: { weight: 9, color: '#a855f7' },
-  '0': { weight: 10, color: '#14b8a6' },
-  '1': { weight: 11, color: '#10b981' },
-  '2': { weight: 12, color: '#f43f5e' },
-  '3': { weight: 13, color: '#ec4899' },
-  '4': { weight: 14, color: '#f97316' },
-  '5': { weight: 15, color: '#d97706' },
-  '6': { weight: 16, color: '#6366f1' },
-  '7': { weight: 17, color: '#64748b' },
-  '8': { weight: 18, color: '#71717a' },
-  BABY: { weight: 19, color: '#94a3b8' },
-  베이비: { weight: 20, color: '#94a3b8' },
-  미정: { weight: 99, color: '#475569' },
+  GOD: { weight: 0, color: getTierTone('갓').hex },
+  갓: { weight: 1, color: getTierTone('갓').hex },
+  KING: { weight: 2, color: getTierTone('킹').hex },
+  킹: { weight: 3, color: getTierTone('킹').hex },
+  JACK: { weight: 4, color: getTierTone('잭').hex },
+  잭: { weight: 5, color: getTierTone('잭').hex },
+  QUEEN: { weight: 6, color: getTierTone('퀸').hex },
+  퀸: { weight: 7, color: getTierTone('퀸').hex },
+  JOKER: { weight: 8, color: getTierTone('조커').hex },
+  조커: { weight: 9, color: getTierTone('조커').hex },
+  SPADE: { weight: 10, color: getTierTone('스페이드').hex },
+  스페이드: { weight: 11, color: getTierTone('스페이드').hex },
+  '0': { weight: 12, color: getTierTone('0').hex },
+  '1': { weight: 13, color: getTierTone('1').hex },
+  '2': { weight: 14, color: getTierTone('2').hex },
+  '3': { weight: 15, color: getTierTone('3').hex },
+  '4': { weight: 16, color: getTierTone('4').hex },
+  '5': { weight: 17, color: getTierTone('5').hex },
+  '6': { weight: 18, color: getTierTone('6').hex },
+  '7': { weight: 19, color: getTierTone('7').hex },
+  '8': { weight: 20, color: getTierTone('8').hex },
+  BABY: { weight: 21, color: getTierTone('베이비').hex },
+  베이비: { weight: 22, color: getTierTone('베이비').hex },
+  미정: { weight: 99, color: getTierTone('미정').hex },
 };
 
 const EXCLUDED_TIERS = ['JACK', '잭', 'JOKER', '조커', 'SPADE', '스페이드'];
@@ -53,18 +53,17 @@ interface H2HLookupProps {
   recentMatches?: unknown[]
 }
 
-export default function H2HLookup({ players = [], recentMatches = [] }: H2HLookupProps) {
+export default function H2HLookup({}: H2HLookupProps) {
   // Selection State (Historical)
   const [p1, setP1] = useState<Player | null>(null)
   const [p2, setP2] = useState<Player | null>(null)
   const [results, setResults] = useState<H2HStats | null>(null)
-  const [loading, setLoading] = useState(false)
 
   // Side Selection States
   const [u1, setU1] = useState<string>('')
   const [u2, setU2] = useState<string>('')
-  const [q1, setQ1] = useState('')
-  const [q2, setQ2] = useState('')
+  const [q1] = useState('')
+  const [q2] = useState('')
   
   const [players1, setPlayers1] = useState<Player[]>([])
   const [players2, setPlayers2] = useState<Player[]>([])
@@ -155,13 +154,9 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
   // Detailed Analysis for Manual Selection
   useEffect(() => {
     if (p1 && p2) {
-      setLoading(true)
       getInstantH2H(REAL_NAME_MAP[p1.name] || p1.name, REAL_NAME_MAP[p2.name] || p2.name)
         .then(data => setResults(data))
         .catch(err => console.error(err))
-        .finally(() => setLoading(false))
-    } else {
-      setResults(null)
     }
   }, [p1, p2])
 
@@ -262,7 +257,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
       if (last && last.p1Id === m.p1.id) last.matches.push(m); else groups.push({ p1Id: m.p1.id, matches: [m] });
     });
     return groups;
-  }, [matches, TIER_CONFIG]);
+  }, [matches]);
 
   return (
     <div className="w-full space-y-20">
@@ -295,11 +290,11 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                     <button onClick={() => setHideEmptyTiers(!hideEmptyTiers)} 
                       className={cn("px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-lg active:scale-95", 
                         hideEmptyTiers ? "bg-nzu-green text-black hover:brightness-110" : "bg-white/5 border border-white/10 text-white/40 hover:bg-white/10")}>
-                      필터 {hideEmptyTiers ? 'ON' : 'OFF'}
+                      필터 {hideEmptyTiers ? '켜짐' : '꺼짐'}
                     </button>
                     <button onClick={autoMatch} 
-                      className="px-7 py-4 bg-white text-black rounded-2xl text-sm font-black uppercase flex items-center gap-2 hover:bg-nzu-green hover:text-black transition-all shadow-xl active:scale-95">
-                      <Plus className="w-5 h-5" />자동매칭
+                      className="px-7 py-4 bg-white text-black rounded-2xl text-base font-bold flex items-center gap-2 hover:bg-nzu-green hover:text-black transition-all shadow-xl active:scale-95">
+                      <Plus className="w-5 h-5" />자동 매칭
                     </button>
                     <button onClick={() => setMatches([])} 
                       className="p-4 bg-white/5 border border-white/10 rounded-2xl text-white/20 hover:text-red-500 hover:bg-red-500/10 transition-all shadow-lg">
@@ -337,7 +332,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                <div className="h-[700px] overflow-y-auto custom-scrollbar p-2">
                   {arenaTiers.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center">
-                      <p className="text-[10px] font-black uppercase tracking-[0.6em] text-white/10 leading-none">대학 선택 대기 중</p>
+                      <p className="text-sm font-bold text-white/20">대학 선택을 기다리고 있습니다...</p>
                     </div>
                   ) : arenaTiers.map(tier => {
                     const g1 = groups1.find(g => g.tier === tier), g2 = groups2.find(g => g.tier === tier);
@@ -348,7 +343,6 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                             {g1?.players.map(p => {
                               const isTerran = p.race?.startsWith('T');
                               const isZerg = p.race?.startsWith('Z');
-                              const isProtoss = p.race?.startsWith('P');
                               return (
                                 <button key={p.id} onClick={() => p1?.id === p.id ? setP1(null) : setP1(p)}
                                   className={cn(
@@ -370,14 +364,13 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                             <div className="absolute w-px h-full bg-gradient-to-b from-transparent via-white/5 to-transparent" />
                             <div className="px-5 py-2.5 rounded-xl text-xs font-black uppercase text-white border-2 shadow-2xl relative z-10 transition-transform group-hover/row:scale-110" 
                                  style={{ backgroundColor: `${tCol}11`, borderColor: `${tCol}44`, color: tCol, boxShadow: `0 0 20px ${tCol}22` }}>
-                              {tier}
+                              {getTierLabel(tier)}
                             </div>
                          </div>
                          <div className="flex flex-wrap items-center justify-start gap-3 p-4 pl-6">
                             {g2?.players.map(p => {
                                const isTerran = p.race?.startsWith('T');
                                const isZerg = p.race?.startsWith('Z');
-                               const isProtoss = p.race?.startsWith('P');
                                 return (
                                 <button key={p.id} onClick={() => p2?.id === p.id ? setP2(null) : setP2(p)}
                                   className={cn(
@@ -448,7 +441,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
 
         {/* 우측 엔트리 대진표 */}
         <div 
-          className="bg-[#020403] border border-white/10 rounded-[2.5rem] flex flex-col h-[600px] lg:h-[850px] shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden lg:sticky lg:top-8 mt-12 lg:mt-0"
+          className="bg-background border border-white/10 rounded-[2.5rem] flex flex-col h-[600px] lg:h-[850px] shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden lg:sticky lg:top-8 mt-12 lg:mt-0"
           style={{ width: isDesktop ? `${sidebarWidth}px` : '100%' }}
         >
            <div className="p-7 bg-gradient-to-b from-white/[0.04] to-transparent border-b border-white/5 flex items-center justify-between">
@@ -574,9 +567,9 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                 </div>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">승률 예측</span>
+                <span className="text-sm font-bold text-white/40 mb-2">승률 예측</span>
                 <div className="text-5xl font-black text-white tracking-tighter tabular-nums">
-                  {Math.round((results.summary.wins / (results.summary.wins + results.summary.losses || 1)) * 100)}% <span className="text-nzu-green">승리</span>
+                  {Math.round((results.summary.wins / (results.summary.wins + results.summary.losses || 1)) * 100)}% <span className="text-nzu-green">승리 예상</span>
                 </div>
               </div>
             </div>
@@ -599,7 +592,7 @@ export default function H2HLookup({ players = [], recentMatches = [] }: H2HLooku
                     <div className="text-7xl font-black text-white mb-2">{results.summary.wins}</div>
                     <div className="text-[10px] font-black text-nzu-green uppercase tracking-widest">승리</div>
                   </div>
-                  <div className="text-4xl font-black text-white/10">VS</div>
+                  <div className="text-4xl font-black text-white/10">대전</div>
                   <div className="text-center">
                     <div className="text-7xl font-black text-white/40 mb-2">{results.summary.losses}</div>
                     <div className="text-[10px] font-black text-white/10 uppercase tracking-widest">패배</div>

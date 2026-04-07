@@ -21,8 +21,8 @@ export function H2HSelectorBar() {
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    const handleAddPlayer = (e: any) => {
-      const newPlayer = e.detail as Player
+    const handleAddPlayer = (e: Event) => {
+      const newPlayer = (e as CustomEvent<Player>).detail
       setIsVisible(true)
 
       setMatchups(prev => {
@@ -146,7 +146,7 @@ export function H2HSelectorBar() {
                 {matchups.length > 1 && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); removeMatch(mIdx); }}
-                    className="absolute -top-1.5 -right-1.5 p-1.5 bg-card border border-white/10 text-red-500/60 hover:text-red-500 hover:border-red-500/50 rounded-full shadow-lg opacity-0 group-hover/match:opacity-100 transition-all z-30"
+                    className="absolute -top-1.5 -right-1.5 p-1.5 bg-card border border-white/10 text-white/20 hover:text-red-400 hover:border-red-500/40 rounded-full shadow-lg opacity-0 group-hover/match:opacity-100 transition-all z-30"
                   >
                     <X size={12} strokeWidth={3} />
                   </button>
@@ -164,14 +164,14 @@ export function H2HSelectorBar() {
                          <RaceLetterBadge race={match.p1.race} size="sm" />
                          <button 
                             onClick={(e) => { e.stopPropagation(); removePlayer(mIdx, 'p1'); }} 
-                            className="ml-2 p-1 bg-white/5 border border-white/5 hover:border-red-500/40 text-white/20 hover:text-red-500 rounded-lg transition-all opacity-0 group-hover/p1:opacity-100"
+                            className="ml-2 p-1 bg-white/5 border border-white/5 hover:border-red-500/35 text-white/20 hover:text-red-400 rounded-lg transition-all opacity-0 group-hover/p1:opacity-100"
                          >
                             <X size={10} strokeWidth={3} />
                          </button>
                       </div>
                     </div>
                   ) : (
-                    <span className="mx-auto text-[11px] font-black tracking-[0.4em] text-foreground/5 italic">PLAYER 1</span>
+                    <span className="mx-auto text-[11px] font-black tracking-[0.4em] text-foreground/5 italic">A팀 선수</span>
                   )}
                 </div>
 
@@ -217,7 +217,7 @@ export function H2HSelectorBar() {
                       <div className="relative flex items-center scale-110">
                          <button 
                             onClick={(e) => { e.stopPropagation(); removePlayer(mIdx, 'p2'); }} 
-                            className="mr-2 p-1 bg-white/5 border border-white/5 hover:border-red-500/40 text-white/20 hover:text-red-500 rounded-lg transition-all opacity-0 group-hover/p2:opacity-100"
+                            className="mr-2 p-1 bg-white/5 border border-white/5 hover:border-red-500/35 text-white/20 hover:text-red-400 rounded-lg transition-all opacity-0 group-hover/p2:opacity-100"
                          >
                             <X size={10} strokeWidth={3} />
                          </button>
@@ -226,7 +226,7 @@ export function H2HSelectorBar() {
                       <span className="text-[24px] font-black text-foreground drop-shadow-md leading-none">{match.p2.name}</span>
                     </div>
                   ) : (
-                    <span className="mx-auto text-[11px] font-black tracking-[0.4em] text-foreground/5 italic">PLAYER 2</span>
+                    <span className="mx-auto text-[11px] font-black tracking-[0.4em] text-foreground/5 italic">B팀 선수</span>
                   )}
                 </div>
               </div>
@@ -241,7 +241,7 @@ export function H2HSelectorBar() {
                 setMatchups(prev => [...prev, { p1: null, p2: null, overallScore: [0, 0], recentScore: [0, 0] }])
                 setActiveMatchIndex(matchups.length)
               }}
-              className="w-full py-3 rounded-2xl border-2 border-dashed border-white/5 hover:border-nzu-green/50 hover:bg-nzu-green/[0.04] text-foreground/20 hover:text-nzu-green/80 transition-all flex items-center justify-center gap-3 group"
+              className="w-full py-3 rounded-2xl border border-nzu-green/18 bg-nzu-green/[0.05] hover:border-nzu-green/40 hover:bg-nzu-green/[0.1] text-nzu-green transition-all flex items-center justify-center gap-3 group"
            >
               <Plus size={18} className="group-hover:rotate-180 transition-transform duration-500" />
               <span className="text-[13.5px] font-black uppercase tracking-[0.3em]">새로운 팀 매치 전적 추가</span>

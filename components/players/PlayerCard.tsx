@@ -3,9 +3,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { LiveBadge, RaceTag, TierBadge, WinRateBar, type Race } from "../ui/nzu-badges";
+import { TierBadge } from "../ui/nzu-badges";
+import { RaceLetterBadge } from "../ui/race-letter-badge";
 import { Database } from "@/lib/database.types";
-import { cn, formatTimeAgo, normalizeRace } from "@/lib/utils";
+import { cn, normalizeRace } from "@/lib/utils";
+import { useTheme } from "@/components/ThemeProvider";
+import { ExternalLink, Check, Circle, Crown } from "lucide-react";
+import { buildPlayerHref } from "@/lib/player-route";
 
 export type Player = Database['public']['Tables']['players']['Row'];
 
@@ -13,140 +17,215 @@ interface PlayerCardProps {
   player: Player
   layout?: 'default' | 'compact'
   className?: string
+  showQuickH2H?: boolean
+  variant?: 'default' | 'home'
+  isCaptain?: boolean
 }
 
-
-export function PlayerCard({ player, layout = 'default', className }: PlayerCardProps) {
+export function PlayerCard({
+  player,
+  layout = 'default',
+  className,
+  showQuickH2H = true,
+  variant = 'default',
+  isCaptain = false,
+}: PlayerCardProps) {
   const isCompact = layout === 'compact';
   const race = normalizeRace(player.race);
-  const timeAgo = formatTimeAgo(player.last_match_at);
+  const { theme } = useTheme();
+  
+  // 가상 데이터 (추후 API 연동 예정)
+  const isLive = player.is_live ?? false;
+  const profileUrl = player.photo_url || "";
+  
+  // Extract Afreeca SDK/ID from broadcast_url if available
+  const afreecaId = player.broadcast_url?.split('/').pop() || "";
 
-
-
-  // 종족별 테마 스타일 정의 (프리미엄 소프트 그라디언트 적용)
   const raceStyles = {
-    T: {
-      border: "hover:border-terran/30",
-      text: "group-hover:text-terran",
-      accent: "bg-terran",
-      glow: "rgba(74, 158, 255, 0.12)",
-      line: "bg-gradient-to-r from-transparent via-terran/80 to-transparent",
+    'Terran': {
+      border: "border-blue-500/20 group-hover:border-blue-500/60",
+      accent: "bg-blue-500",
+      text: "text-blue-500",
+      bg: "bg-blue-500/5",
+      glow: "shadow-[0_0_20px_rgba(59,130,246,0.15)]",
     },
-    Z: {
-      border: "hover:border-zerg/30",
-      text: "group-hover:text-zerg",
-      accent: "bg-zerg",
-      glow: "rgba(168, 85, 247, 0.12)",
-      line: "bg-gradient-to-r from-transparent via-zerg/80 to-transparent",
+    'Zerg': {
+      border: "border-purple-500/20 group-hover:border-purple-500/60",
+      accent: "bg-purple-500",
+      text: "text-purple-500",
+      bg: "bg-purple-500/5",
+      glow: "shadow-[0_0_20px_rgba(168,85,247,0.15)]",
     },
-    P: {
-      border: "hover:border-protoss/30",
-      text: "group-hover:text-protoss",
-      accent: "bg-protoss",
-      glow: "rgba(255, 215, 0, 0.12)",
-      line: "bg-gradient-to-r from-transparent via-protoss/80 to-transparent",
+    'Protoss': {
+      border: "border-yellow-500/20 group-hover:border-yellow-500/60",
+      accent: "bg-yellow-500",
+      text: "text-yellow-500",
+      bg: "bg-yellow-500/5",
+      glow: "shadow-[0_0_20px_rgba(255,215,0,0.15)]",
     },
-  }[race];
+    'Random': {
+      border: "border-gray-500/20 group-hover:border-gray-500/60",
+      accent: "bg-gray-500",
+      text: "text-gray-500",
+      bg: "bg-gray-500/5",
+      glow: "shadow-[0_0_20px_rgba(107,114,128,0.15)]",
+    }
+  } as const;
+
+  type RaceKey = keyof typeof raceStyles;
+  const raceMap: Record<string, RaceKey> = {
+    'T': 'Terran',
+    'P': 'Protoss',
+    'Z': 'Zerg',
+    'R': 'Random',
+    'Terran': 'Terran',
+    'Protoss': 'Protoss',
+    'Zerg': 'Zerg',
+    'Random': 'Random'
+  };
+
+  const currentRaceKey = raceMap[race] || 'Random';
+  const currentStyles = raceStyles[currentRaceKey];
+  const isHomeVariant = variant === "home";
 
   return (
-    <Link href={`/player/${player.id}`} className={cn("block group cursor-pointer", isCompact ? "w-full" : "", className)}>
-      <div className={cn(
-        "relative flex rounded-[2rem] border transition-all duration-700 overflow-hidden shadow-2xl group",
-        isCompact 
-          ? `bg-[#0A100D]/80 backdrop-blur-md border-white/5 ${raceStyles.border} p-3 items-center gap-4 flex-row h-24` 
-          : `bg-[#0F1412] flex-col border-white/5 ${raceStyles.border} hover:bg-[#121815] hover:-translate-y-2`
-      )}>
-        {/* === Premium Soft Glow Layer === */}
-        <div 
-          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"
-          style={{ 
-            background: `radial-gradient(circle at 50% 0%, ${raceStyles.glow} 0%, transparent 70%)` 
-          }} 
+    <div className={cn(
+      "group relative flex flex-col bg-card overflow-hidden border-2 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1",
+      isHomeVariant ? "rounded-[1.35rem]" : "rounded-2xl",
+      isHomeVariant ? "aspect-[3/4]" : "",
+      currentStyles.border,
+      currentStyles.glow,
+      isLive && "ring-2 ring-nzu-live ring-offset-2 ring-offset-background",
+      className
+    )}>
+      {/* 카드 상단: 이미지 & 필터 레이어 */}
+      <div
+        className={cn(
+          "relative overflow-hidden bg-muted",
+          isHomeVariant ? "aspect-[3/3.22]" : "aspect-[4/3]"
+        )}
+      >
+        <Image
+          src={profileUrl || "/placeholder-player.png"}
+          alt={player.name}
+          fill
+          unoptimized
+          className="object-cover transition-transform duration-700 group-hover:scale-110"
         />
+        
+        {/* Live Indicator overlay (Top Right) */}
+        {isLive && (
+          <div className="absolute top-3 right-3 px-3 py-1 bg-red-600 text-white text-[10px] font-black rounded-full flex items-center gap-1.5 shadow-lg z-10 animate-pulse">
+            <div className="w-1.5 h-1.5 bg-white rounded-full" />
+            방송중
+          </div>
+        )}
 
-        {/* Race Color Accent (Soft Fading Line) */}
-        <div className={cn(
-          "absolute top-0 left-0 w-full h-[2px] transition-all duration-700 opacity-0 group-hover:opacity-100 z-20",
-          raceStyles.line
-        )} />
-
-        {/* Profile Image Area */}
-        <div className={cn(
-          "relative bg-[#050706] overflow-hidden rounded-[1.5rem] z-10",
-          isCompact ? "w-16 h-16 shrink-0 aspect-square" : "aspect-[4/5] w-full"
-        )}>
-          {player.photo_url ? (
-            <Image
-              src={player.photo_url}
-              alt={player.name}
-              fill
-              className="object-cover object-top opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out"
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
-            />
+        {/* Hover Action Layer (Centering Buttons) */}
+        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 p-6 z-20">
+          <Link 
+            href={buildPlayerHref(player)}
+            className="w-full py-2.5 rounded-full bg-nzu-green text-black text-[12px] font-black uppercase tracking-tighter transition-all border border-nzu-green hover:bg-white hover:border-white backdrop-blur-md text-center transform translate-y-4 group-hover:translate-y-0"
+          >
+            전적 보기
+          </Link>
+          
+          {player.broadcast_url ? (
+            <a 
+              href={player.broadcast_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-2.5 rounded-full bg-white/10 text-white text-[12px] font-black uppercase tracking-tighter transition-all border border-white/20 hover:bg-white/30 backdrop-blur-md text-center transform translate-y-4 group-hover:translate-y-0 delay-75 flex items-center justify-center gap-1.5"
+            >
+              <span>방송국 이동</span>
+              <ExternalLink size={12} />
+            </a>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-black/40">
-               <span className="text-xl font-black text-white/5">{player.name[0]}</span>
-            </div>
-          )}
-          
-          {player.is_live && (
-            <div className={cn("absolute z-30", isCompact ? "top-1 right-1 scale-75" : "top-4 right-4")}>
-              <LiveBadge />
-            </div>
-          )}
-          
-          {!isCompact && <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#0F1412] to-transparent z-10" />}
-        </div>
-
-        {/* Info Content */}
-        <div className={cn(
-          "flex-1 flex flex-col justify-center",
-          isCompact ? "pr-4" : "p-6 gap-4"
-        )}>
-          <div className="flex items-center justify-between">
-            <span className={cn(
-              "font-black text-white transition-colors leading-tight",
-              raceStyles.text,
-              isCompact ? "text-base" : "text-2xl"
-            )}>{player.name}</span>
-            <div className="flex flex-col items-end gap-1">
-              <RaceTag race={race} size={isCompact ? "xs" : "sm"} />
-              {timeAgo && (
-                <span className="text-[9px] font-bold text-white/20 whitespace-nowrap">
-                  {timeAgo} 경기
-                </span>
-              )}
-
-            </div>
-          </div>
-
-          <div className={cn(
-            "flex items-center justify-between",
-            !isCompact && "border-t border-white/5 pt-4"
-          )}>
-            <TierBadge tier={player.tier} size={isCompact ? "xs" : "sm"} />
-            {player.elo_point !== null && (
-              <span className={cn(
-                "font-black text-nzu-gold tabular-nums",
-                isCompact ? "text-[11px]" : "text-base"
-              )}>
-                {player.elo_point.toLocaleString()} <span className="text-[10px] opacity-40 ml-0.5 tracking-tighter">점</span>
-              </span>
-            )}
-          </div>
-
-          {!isCompact && (
-            <div className="space-y-2 mt-2">
-              <div className="flex justify-between text-[11px] font-black uppercase tracking-widest text-white/20">
-                 <span>승률</span>
-                 <span className="text-white/60">{player.total_wins ?? 0}승 {player.total_losses ?? 0}패</span>
-              </div>
-              <WinRateBar wins={player.total_wins ?? 0} losses={player.total_losses ?? 0} />
+            <div className="w-full py-2.5 rounded-full bg-white/5 text-white/30 text-[12px] font-black uppercase tracking-tighter border border-white/5 cursor-not-allowed text-center transform translate-y-4 group-hover:translate-y-0 delay-75">
+              방송 준비중
             </div>
           )}
         </div>
       </div>
-    </Link>
+
+      {/* 카드 하단: 정보 영역 */}
+      <div
+        className={cn(
+          "flex flex-1 flex-col transition-colors",
+          currentStyles.bg,
+          isHomeVariant ? "gap-2.5 px-4 py-3.5" : "gap-3 p-4"
+        )}
+      >
+        {isHomeVariant ? (
+          <div className="space-y-2">
+            <div className="flex items-start gap-3">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <h3 className="min-w-0 flex-1 truncate text-[1.48rem] font-black tracking-tight text-foreground transition-colors">
+                  {player.name}
+                </h3>
+                {isCaptain ? (
+                  <span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-amber-200/45 bg-[linear-gradient(180deg,rgba(191,161,74,0.92),rgba(150,121,45,0.92))] px-3.5 text-[14px] font-black tracking-[0.08em] text-[#0f0b03] shadow-[0_8px_22px_rgba(191,161,74,0.24)]">
+                    <Crown size={14} className="shrink-0 text-[#120d03]" />
+                    팀장
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 overflow-hidden">
+              <RaceLetterBadge race={race} size="md" />
+              <TierBadge tier={player.tier || "미정"} />
+              <div className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/15 px-3 py-2 text-center">
+                <div className="truncate text-[13px] font-black tracking-tight text-white/84">
+                  {player.university || "무소속"}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <h3 className="min-w-0 flex-1 truncate text-[1.32rem] font-black tracking-tight text-foreground transition-colors">
+              {player.name}
+            </h3>
+            <div
+              className={cn(
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[12px] font-black",
+                currentStyles.border,
+                currentStyles.text,
+                "bg-background/50"
+              )}
+            >
+              {race[0]}
+            </div>
+            <span className="inline-flex h-7 shrink-0 items-center rounded-full border border-white/10 bg-black/15 px-3 text-[11px] font-[1000] tracking-tight text-white/72">
+                {player.university || "무소속"}
+            </span>
+          </div>
+        )}
+
+        {/* keep layout stable even when quick action is hidden */}
+        <div className="mt-auto">
+          {showQuickH2H ? (
+            <button 
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('add-h2h-player', { detail: player }));
+              }}
+              className={cn(
+                "w-full py-4 rounded-xl text-[14px] font-[900] uppercase tracking-tight flex items-center justify-center gap-2.5 transition-all border shadow-lg shadow-black/5 active:scale-95 group/h2h",
+                currentStyles.border,
+                "bg-foreground/5 hover:bg-foreground/10 text-foreground/80 hover:text-foreground"
+              )}
+            >
+              <div className="relative flex items-center justify-center w-5 h-5">
+                <Circle className="w-full h-full opacity-20 group-hover/h2h:opacity-40 transition-opacity" />
+                <div className="absolute inset-0 flex items-center justify-center scale-75 group-hover/h2h:scale-100 transition-transform">
+                  <Check className="w-3.5 h-3.5 text-nzu-green opacity-0 group-hover/h2h:opacity-100 transition-opacity drop-shadow-[0_0_8px_rgba(0,255,163,0.5)]" />
+                </div>
+              </div>
+              빠른 상대전적 추가
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }
-

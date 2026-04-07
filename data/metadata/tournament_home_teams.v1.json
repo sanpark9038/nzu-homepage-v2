@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-04-07T13:53:42.572Z",
+  "description": "Tournament home roster built from active 6/7/8 tier players. Each team currently uses 1x tier 6, 1x tier 7, 2x tier 8.",
+  "teams": [
+    {
+      "team_code": "t1",
+      "team_name": "KDF",
+      "captain_player_id": "9607ae88-c176-410c-ae66-1c6f6310e94e",
+      "player_ids": [
+        "9607ae88-c176-410c-ae66-1c6f6310e94e",
+        "531a8596-52fe-4c9e-b3c9-df659cef24f3",
+        "c87a2286-4964-49b5-b7da-96ff203d3eef",
+        "199064c8-cc4d-4d70-939e-64f54ae31b94"
+      ],
+      "captain_player_name": ""
+    },
+    {
+      "team_code": "t2",
+      "team_name": "임시 2팀",
+      "captain_player_id": "",
+      "player_ids": [
+        "50d958e8-31c9-4728-99ec-fb40eea79ac3",
+        "79b31d28-41ae-4f09-b20b-31be6e77d1d8",
+        "8c279233-3f53-4a2f-b0ac-7d4c48e34156",
+        "8321a430-efde-4cab-8886-f1209881784e"
+      ],
+      "captain_player_name": ""
+    },
+    {
+      "team_code": "t3",
+      "team_name": "임시 3팀",
+      "captain_player_id": "",
+      "player_ids": [
+        "10924777-04e0-434b-a1bb-211a4a0c3ee3",
+        "4941ee34-b978-4d9f-b495-9c41591333ba",
+        "f2ad82a5-5e57-4764-a910-b3081e8c8708",
+        "865fdc96-637a-469f-9e10-57423079e476"
+      ],
+      "captain_player_name": ""
+    },
+    {
+      "team_code": "t4",
+      "team_name": "임시 4팀",
+      "captain_player_id": "",
+      "player_ids": [
+        "118f0ed3-3dd7-41f8-812a-3265c99bc4eb",
+        "fa24d250-a2f3-4002-80ba-8ede76b8c0a5",
+        "4d905c6f-ae88-4562-8e33-a9168e66aaa1",
+        "33fd3c2c-b47f-44b8-ad65-dd2e499c7086"
+      ],
+      "captain_player_name": ""
+    },
+    {
+      "team_code": "t5",
+      "team_name": "임시 5팀",
+      "captain_player_id": "",
+      "player_ids": [
+        "ed140be2-9085-4bf8-a62a-1fe64d97c7a5",
+        "83ceb3bb-f5ff-4fd9-a057-bbdbea46357e",
+        "b056b59d-62f5-4a62-88e1-da3b388c5459",
+        "dbc6a4b5-3762-44a3-9537-c24d4b17e11b"
+      ],
+      "captain_player_name": ""
+    },
+    {
+      "team_code": "t6",
+      "team_name": "임시 6팀",
+      "captain_player_id": "",
+      "player_ids": [
+        "fbc987ae-7672-4748-bd0e-40ebb11264a4",
+        "39f5aebf-a2d5-4f48-bee7-693f59859bd5",
+        "ba8337c6-a3f9-452a-9c13-49595ca55b54",
+        "162baabf-2317-4b3b-a20d-490d791d8e75"
+      ],
+      "captain_player_name": ""
+    }
+  ]
+}

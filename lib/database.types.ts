@@ -138,6 +138,11 @@ export type Database = {
           university: string | null
           win_rate: number | null
           gender: string | null
+          last_checked_at: string | null
+          last_match_at: string | null
+          last_changed_at: string | null
+          check_priority: string | null
+          check_interval_days: number | null
         }
         Insert: {
           broadcast_title?: string | null
@@ -162,6 +167,11 @@ export type Database = {
           university?: string | null
           win_rate?: number | null
           gender?: string | null
+          last_checked_at?: string | null
+          last_match_at?: string | null
+          last_changed_at?: string | null
+          check_priority?: string | null
+          check_interval_days?: number | null
         }
         Update: {
           broadcast_title?: string | null
@@ -186,6 +196,11 @@ export type Database = {
           university?: string | null
           win_rate?: number | null
           gender?: string | null
+          last_checked_at?: string | null
+          last_match_at?: string | null
+          last_changed_at?: string | null
+          check_priority?: string | null
+          check_interval_days?: number | null
         }
         Relationships: []
       }

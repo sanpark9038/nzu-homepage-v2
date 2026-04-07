@@ -1,30 +1,38 @@
 
-import Navbar from "@/components/Navbar";
 import { TierGroup } from "@/components/players/TierGroup";
-import { PlayerRow } from "@/components/players/PlayerRow";
+import { PlayerCard } from "@/components/players/PlayerCard";
+import { H2HSelectorBar } from "@/components/players/H2HSelectorBar";
 import { playerService } from "@/lib/player-service";
 import { NZU_CONFIG } from "@/lib/constants";
-import { PlayerSearch, RaceFilter } from "@/components/players/Filters";
+import { PlayerSearch, RaceFilter, UnivFilter, RaceToggle } from "@/components/players/Filters";
 import Link from "next/link";
-
-export const revalidate = 60;
-
 import { normalizeTier } from "@/lib/utils";
 
 export default async function TierPage({
   searchParams,
 }: {
-  searchParams: { search?: string; race?: string };
+  searchParams: { search?: string; race?: string; univ?: string; tier?: string; raceToggle?: string };
 }) {
-  const { search, race } = await searchParams;
+  const params = await searchParams;
+  const search = params.search;
+  const race = params.race;
+  const univ = params.univ;
+  const tier = params.tier;
+  
   let playerList = await playerService.getAllPlayers();
 
-  // 필터링 적용
+  // Multi-Filter Logic (Intersection)
   if (search) {
     playerList = playerList.filter(p => p.name.includes(search));
   }
   if (race && race !== 'ALL') {
     playerList = playerList.filter(p => p.race === race);
+  }
+  if (univ && univ !== 'ALL') {
+    playerList = playerList.filter(p => p.university === univ);
+  }
+  if (tier && tier !== 'ALL') {
+    playerList = playerList.filter(p => normalizeTier(p.tier) === normalizeTier(tier));
   }
 
   // 티어별 그룹화 로직 (정규화된 값 기준)
@@ -32,110 +40,173 @@ export default async function TierPage({
   const kingPlayers = playerList.filter(p => normalizeTier(p.tier) === '킹');
   const jackPlayers = playerList.filter(p => normalizeTier(p.tier) === '잭');
   const jokerPlayers = playerList.filter(p => normalizeTier(p.tier) === '조커');
-  const numberedPlayers = playerList.filter(p => {
-    const norm = normalizeTier(p.tier);
-    return !isNaN(Number(norm)) && norm !== '미정';
-  }).sort((a, b) => Number(normalizeTier(a.tier)) - Number(normalizeTier(b.tier)));
+  const spadePlayers = playerList.filter(p => normalizeTier(p.tier) === '스페이드');
+  
+  // 0~8티어 세분화
+  const numericTiers = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+  const numericTierGroups = numericTiers.map(t => ({
+    tier: t,
+    name: `${t}티어`,
+    players: playerList.filter(p => normalizeTier(p.tier) === String(t))
+  })).filter(group => group.players.length > 0);
 
+  const babyPlayers = playerList.filter(p => normalizeTier(p.tier) === '베이비');
+
+  const tiers = [
+    { id: 'god', name: '갓' },
+    { id: 'king', name: '킹' },
+    { id: 'jack', name: '잭' },
+    { id: 'queen', name: '퀸' },
+    { id: 'joker', name: '조커' },
+    { id: 'spade', name: '스페이드' },
+    ...numericTiers.map(t => ({ id: String(t), name: `${t}티어` })),
+    { id: 'baby', name: '베이비' },
+  ];
 
   const hasResults = playerList.length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#020403]">
-      <Navbar />
+    <div className="min-h-screen flex flex-col bg-background">
+      <H2HSelectorBar />
 
-      <main className="flex-1 max-w-[1600px] mx-auto w-full px-12 py-16 fade-in">
-        {/* === 프리미엄 헤더 섹션 === */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-20 border-b border-white/5 pb-16 relative">
-          <div className="absolute -left-20 top-0 w-40 h-40 bg-nzu-green/10 blur-[100px] rounded-full pointer-events-none" />
-          
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-               <span className="px-3 py-1 bg-nzu-green/10 text-nzu-green text-[10px] font-black uppercase tracking-widest rounded-md border border-nzu-green/20">
-                 실시간 아카이브
-               </span>
-               <span className="text-white/20 text-[10px] font-bold tracking-widest uppercase">2025년 1분기 시즌</span>
+      <main className="flex-1 max-w-[1800px] mx-auto w-full px-4 lg:px-8 py-8 fade-in relative">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* 메인 리스트 영역 */}
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col gap-10 mb-12 border-b border-foreground/5 pb-10">
+               <div className="flex flex-col gap-8">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                    <div className="max-w-md w-full">
+                      <PlayerSearch />
+                    </div>
+                    <RaceToggle />
+                  </div>
+                  <div className="flex flex-col gap-6">
+                    <UnivFilter />
+                  </div>
+               </div>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase text-white leading-none mb-6">
-              실시간 <span className="text-nzu-green">티어 랭킹</span>
-            </h1>
-            <p className="text-white/40 text-lg font-medium tracking-tight">
-              NZU 통합 멤버들의 실시간 전적 및 ELO 기반 공식 티어표입니다.
+
+            {!hasResults ? (
+              <div className="py-32 text-center bg-foreground/[0.02] rounded-3xl border border-dashed border-foreground/10">
+                 <div className="text-4xl mb-6 opacity-30">🕵️‍♂️</div>
+                 <h2 className="text-xl font-bold mb-2 text-foreground">찾으시는 선수가 없습니다</h2>
+                 <p className="text-sm text-foreground/40 mb-8">검색어 혹은 필터를 변경해 보시겠습니까?</p>
+                 <Link href="/tier" className="px-10 py-4 bg-nzu-green text-black rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-nzu-green/20 transition-colors">초기화하기</Link>
+              </div>
+            ) : (
+              <div className="space-y-16">
+                {godPlayers.length > 0 && (
+                  <div id="tier-god">
+                    <TierGroup rankName="갓" players={godPlayers} startIndex={0} showRaceGroups={params.raceToggle === "true"} />
+                  </div>
+                )}
+                {kingPlayers.length > 0 && (
+                  <div id="tier-king">
+                    <TierGroup rankName="킹" players={kingPlayers} startIndex={godPlayers.length} showRaceGroups={params.raceToggle === "true"} />
+                  </div>
+                )}
+                {jackPlayers.length > 0 && (
+                  <div id="tier-jack">
+                    <TierGroup rankName="잭" players={jackPlayers} startIndex={godPlayers.length + kingPlayers.length} showRaceGroups={params.raceToggle === "true"} />
+                  </div>
+                )}
+                {jokerPlayers.length > 0 && (
+                  <div id="tier-joker">
+                    <TierGroup rankName="조커" players={jokerPlayers} startIndex={godPlayers.length + kingPlayers.length + jackPlayers.length} showRaceGroups={params.raceToggle === "true"} />
+                  </div>
+                )}
+                
+                {spadePlayers.length > 0 && (
+                  <div id="tier-spade">
+                    <TierGroup rankName="스페이드" players={spadePlayers} startIndex={godPlayers.length + kingPlayers.length + jackPlayers.length + jokerPlayers.length} showRaceGroups={params.raceToggle === "true"} />
+                  </div>
+                )}
+                
+                {/* 0~8티어 세분화 리스트 */}
+                {numericTierGroups.map((group, idx) => {
+                  const prevCount = godPlayers.length + kingPlayers.length + jackPlayers.length + jokerPlayers.length + spadePlayers.length + 
+                    numericTierGroups.slice(0, idx).reduce((acc, curr) => acc + curr.players.length, 0);
+                  
+                  return (
+                    <div key={group.tier} id={`tier-${group.tier}`}>
+                      <TierGroup 
+                        rankName={group.name} 
+                        players={group.players} 
+                        startIndex={prevCount} 
+                        showRaceGroups={params.raceToggle === "true"}
+                      />
+                    </div>
+                  );
+                })}
+
+                {/* 베이비 티어 (데이터가 없을 때도 섹션 유지를 원할 경우 필터 없이 항상 노출 가능하지만, 여기서는 데이터가 있을 때 확실히 노출되도록 보장) */}
+                <div id="tier-baby">
+                  <TierGroup 
+                    rankName="베이비" 
+                    players={babyPlayers} 
+                    startIndex={playerList.length - babyPlayers.length}
+                    showRaceGroups={params.raceToggle === "true"}
+                    emptyMessage="베이비 티어 선수가 아직 등록되지 않았습니다"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Sticky Sidebar (Tier Navigation) */}
+          <div className="hidden lg:block relative w-16">
+            <div className="sticky top-72 z-50 flex justify-end">
+              <div className="group relative flex flex-col items-center w-full">
+                {/* Default State: Vertical Label */}
+                <div className="bg-nzu-green/[0.08] backdrop-blur-md border border-nzu-green/30 px-4 py-8 rounded-2xl shadow-[0_0_24px_rgba(46,213,115,0.12)] vertical-rl text-[17px] font-[1000] tracking-[0.12em] text-nzu-green/95 cursor-pointer group-hover:opacity-0 group-hover:scale-95 transition-all duration-300 z-10 flex items-center justify-center text-center">
+                  티어 목록
+                </div>
+
+                {/* Hover State: Vertically Centered Expansion - Compact for NO scroll */}
+                <div className="absolute top-0 right-0 w-28 translate-y-[-36%] bg-[#0b1510]/95 backdrop-blur-xl border border-nzu-green/35 rounded-2xl shadow-[0_0_28px_rgba(46,213,115,0.14)] overflow-hidden opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto transition-all duration-300 z-20">
+                  <div className="p-2.5 border-b border-nzu-green/15 bg-nzu-green/[0.12]">
+                    <p className="text-[12px] font-[1000] text-nzu-green tracking-[0.18em] text-center">
+                      티어 목록
+                    </p>
+                  </div>
+                  <div className="flex flex-col p-1.5">
+                    {tiers.map((tier) => (
+                      <a
+                        key={tier.id}
+                        href={`#tier-${tier.id}`}
+                        className="px-3 py-2 rounded-lg text-[14px] font-black text-foreground/75 hover:text-black hover:bg-nzu-green transition-all text-center tracking-tight"
+                      >
+                        {tier.name}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer Attribution */}
+      <footer className="py-12 border-t border-white/5 relative z-10">
+        <div className="max-w-[1800px] mx-auto px-16 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col gap-1 items-center md:items-start text-center md:text-left">
+            <span className="text-[13px] font-black text-nzu-green uppercase tracking-widest transition-colors mb-2">
+              티어표 출처: 스타펨코
+            </span>
+            <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-[0.2em]">
+              © 2026 NZU UNIVERSITY. 모든 권리 보유.
             </p>
           </div>
           
-          <div className="flex flex-col gap-6 relative z-10">
-             <div className="flex items-center gap-6 text-right justify-end mb-2">
-                <div className="flex flex-col">
-                   <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">전체 선수 수</span>
-                   <span className="text-2xl font-black text-white">{playerList.length} <span className="text-xs font-bold text-white/40">명</span></span>
-                </div>
-                <div className="w-px h-8 bg-white/10" />
-                <div className="flex flex-col text-nzu-green">
-                   <span className="text-[10px] font-black opacity-60 uppercase tracking-widest">실시간 방송 중</span>
-                   <span className="text-2xl font-black">{playerList.filter(p => p.is_live).length} <span className="text-xs font-bold opacity-60">ON</span></span>
-                </div>
-             </div>
-             
-             <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/[0.03] p-2 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-sm">
-                <PlayerSearch />
-                <RaceFilter />
-             </div>
+          <div className="flex items-center gap-8">
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-[10px] font-black text-foreground/40 tracking-widest">구동</span>
+              <span className="text-sm font-black text-foreground tracking-tighter transition-colors">NZU 아카이브 엔진</span>
+            </div>
           </div>
         </div>
-
-        {!hasResults ? (
-          <div className="py-32 text-center bg-white/[0.02] rounded-3xl border border-dashed border-white/10">
-             <div className="text-4xl mb-6 opacity-30">🕵️‍♂️</div>
-             <h2 className="text-xl font-bold mb-2 text-white">찾으시는 선수가 없습니다</h2>
-             <p className="text-sm text-white/40 mb-8">검색어 혹은 필터를 변경해 보시겠습니까?</p>
-             <Link href="/tier" className="px-10 py-4 bg-nzu-green text-black rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-nzu-green/20 transition-colors">초기화하기</Link>
-          </div>
-        ) : (
-          <div className="space-y-12">
-            {godPlayers.length > 0 && <TierGroup rankName="신계 (GODS)" players={godPlayers} startIndex={0} />}
-            {kingPlayers.length > 0 && <TierGroup rankName="제왕 (KINGS)" players={kingPlayers} startIndex={godPlayers.length} />}
-            {(jackPlayers.length > 0 || jokerPlayers.length > 0) && (
-              <TierGroup rankName="상위권" players={[...jackPlayers, ...jokerPlayers]} startIndex={godPlayers.length + kingPlayers.length} />
-            )}
-            
-            {numberedPlayers.length > 0 && (
-              <div className="mb-4">
-                  <div className="flex items-center gap-3 mb-3 px-1">
-                    <span className="text-sm font-black text-white/20 uppercase tracking-widest">일반 활동 인원</span>
-                    <div className="flex-1 h-px bg-white/5" />
-                  </div>
-                  <div className="bg-white/[0.02] rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
-                    <div className="grid grid-cols-[3rem_2fr_1fr_1fr_1fr] px-4 py-4 border-b border-white/5 bg-white/[0.01] text-[9px] font-black text-white/20 uppercase tracking-widest">
-                      <span className="text-center">순위</span>
-                      <span>선수 정보</span>
-                      <span className="text-center">승률</span>
-                      <span className="text-center">ELO 점수</span>
-                      <span className="text-right">최근 전적</span>
-                    </div>
-                    <div className="divide-y divide-white/5">
-                      {numberedPlayers.map((player, index) => (
-                        <PlayerRow key={player.id} player={player} rank={godPlayers.length + kingPlayers.length + jackPlayers.length + jokerPlayers.length + index + 1} />
-                      ))}
-                    </div>
-                  </div>
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-
-      <footer className="border-t border-white/5 py-16 bg-black/40 backdrop-blur-md mt-24">
-          <div className="max-w-[1400px] mx-auto px-8 flex flex-col md:flex-row items-center justify-between gap-12">
-              <div className="flex items-center gap-3 text-xs text-white/40 font-bold tracking-tighter uppercase">
-                <span className="w-2 h-2 rounded-full bg-nzu-green shadow-[0_0_10px_#2ed573] animate-pulse" />
-                실시간 동기화 활성화
-              </div>
-              <div className="text-[10px] text-white/20 text-center md:text-right font-black uppercase tracking-widest">
-                © 2025 NZU · 늪지대 유니버시티 아카이브 시스템<br/>
-                <span className="text-nzu-green/40">산박 대표님의 부장, 엘레이드박 설계</span>
-              </div>
-          </div>
       </footer>
     </div>
   );

@@ -33,7 +33,7 @@ export default async function LivePage() {
   const totalViewers = mockLiveStreams.reduce((acc, curr) => acc + curr.viewer_count, 0);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#020403]">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
       <main className="flex-1 max-w-[1600px] mx-auto w-full px-6 md:px-12 py-10 md:py-16 fade-in">
