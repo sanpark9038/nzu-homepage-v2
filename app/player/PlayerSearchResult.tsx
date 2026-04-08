@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
 import { type Player } from "@/lib/player-service";
 import { cn, normalizeTier } from "@/lib/utils";
+import { resolveSoopWatchUrl } from "@/lib/soop";
 
 type RaceSummary = {
   race: Race;
@@ -96,6 +98,7 @@ export default function PlayerSearchResult({
   const hasRaceData = raceSummaries.some((item) => item.hasRecord);
   const hasRaceBestMaps = raceBestMaps.some((item) => item.bestMap);
   const hasSpawnPartner = Boolean(spawnPartner);
+  const soopWatchUrl = resolveSoopWatchUrl(player);
 
   useEffect(() => {
     setVisibleRecentCount(5);
@@ -119,14 +122,35 @@ export default function PlayerSearchResult({
       <div className="grid gap-5 md:grid-cols-[112px_minmax(0,1fr)_220px] md:grid-rows-[112px_auto]">
         <div className="md:row-span-2">
           <div className="w-28 shrink-0">
-            <div className="relative h-28 w-28 overflow-hidden rounded-[1.15rem] border border-white/10 bg-black/30">
-              <Image src={player.photo_url || "/placeholder-player.png"} alt={player.name} fill className="object-cover object-top" />
+            <div className="group relative h-28 w-28 overflow-hidden rounded-[1.15rem] border border-white/10 bg-black/30">
+              {soopWatchUrl ? (
+                <Link href={soopWatchUrl} target="_blank" rel="noreferrer" className="block h-full w-full">
+                  <Image src={player.photo_url || "/placeholder-player.png"} alt={player.name} fill className="object-cover object-top transition-transform duration-300 hover:scale-105" />
+                </Link>
+              ) : (
+                <Image src={player.photo_url || "/placeholder-player.png"} alt={player.name} fill className="object-cover object-top" />
+              )}
+              {player.is_live && player.live_thumbnail_url ? (
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  <Image src={player.live_thumbnail_url} alt={`${player.name} live thumbnail`} fill className="object-cover" />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-2 py-2">
+                    <p className="line-clamp-2 text-[10px] font-[1000] leading-tight text-white">
+                      {player.broadcast_title || `${player.name} 현재 방송`}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+              {player.is_live ? (
+                <div className="absolute right-2 top-2 inline-flex items-center rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
+                  LIVE
+                </div>
+              ) : null}
             </div>
             <div className="mt-3 text-center">
               <h2 className="text-[1.36rem] font-[1000] tracking-tight text-white md:text-[1.54rem] xl:text-[1.66rem]">{player.name}</h2>
               {player.nickname ? <p className="mt-1 text-[0.82rem] font-[1000] tracking-tight text-white/42 md:text-[0.86rem]">{player.nickname}</p> : null}
-              {player.broadcast_url ? (
-                <a href={player.broadcast_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[0.95rem] border border-sky-400/20 bg-sky-400/[0.09] px-3 text-[0.9rem] font-[1000] tracking-tight text-sky-300 transition-all hover:border-sky-300/36 hover:bg-sky-400/[0.16] hover:text-white md:h-10 md:text-[0.94rem]">
+              {soopWatchUrl ? (
+                <a href={soopWatchUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[0.95rem] border border-sky-400/20 bg-sky-400/[0.09] px-3 text-[0.9rem] font-[1000] tracking-tight text-sky-300 transition-all hover:border-sky-300/36 hover:bg-sky-400/[0.16] hover:text-white md:h-10 md:text-[0.94rem]">
                   방송국 이동
                 </a>
               ) : (

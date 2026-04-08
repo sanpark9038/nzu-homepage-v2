@@ -6,7 +6,7 @@ export type { Player };
 // Public pages should consume website-serving data from Supabase through this layer.
 // Local metadata and tmp reports remain admin / pipeline sources, not public page sources.
 const PLAYER_SERVING_SELECT = [
-  "broadcast_title, broadcast_url, created_at, detailed_stats, elo_point, eloboard_id, id, is_live, last_synced_at, name, nickname, photo_url, race, soop_id, tier, tier_rank, total_losses, total_wins, university, win_rate, gender, last_checked_at, last_match_at, last_changed_at, check_priority, check_interval_days",
+  "broadcast_title, broadcast_url, channel_profile_image_url, created_at, detailed_stats, elo_point, eloboard_id, id, is_live, last_synced_at, live_thumbnail_url, name, nickname, photo_url, race, soop_id, tier, tier_rank, total_losses, total_wins, university, win_rate, gender, last_checked_at, last_match_at, last_changed_at, check_priority, check_interval_days",
 ] as const;
 
 const PLAYER_HISTORY_SELECT =
@@ -19,6 +19,16 @@ type RosterPlayerOverride = {
   university?: string;
   tier?: string;
   race?: string;
+  display_name?: string;
+};
+
+type SoopLivePreview = {
+  isLive?: boolean;
+  thumbnail?: string;
+  title?: string;
+  viewers?: string;
+  nickname?: string;
+  broad_start?: string;
 };
 
 function normalizeEntityIdForPlayer(player: Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }) {
@@ -58,7 +68,7 @@ function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
 
   for (const code of projectDirs) {
     const filePath = path.join(projectsDir, code, `players.${code}.v1.json`);
-    const doc = readJson<{ roster?: Array<{ entity_id?: string; team_name?: string; tier?: string; race?: string }> }>(filePath);
+    const doc = readJson<{ roster?: Array<{ entity_id?: string; team_name?: string; tier?: string; race?: string; display_name?: string }> }>(filePath);
     const roster = Array.isArray(doc?.roster) ? doc.roster : [];
     for (const player of roster) {
       const entityId = String(player?.entity_id || "").trim();
@@ -67,6 +77,7 @@ function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
         university: String(player?.team_name || "").trim() || undefined,
         tier: String(player?.tier || "").trim() || undefined,
         race: String(player?.race || "").trim() || undefined,
+        display_name: String(player?.display_name || "").trim() || undefined,
       });
     }
   }
@@ -82,8 +93,15 @@ function applyRosterOverride<T extends Partial<Player> & { eloboard_id?: string 
   if (!entityId) return player;
   const override = overrides.get(entityId);
   if (!override) return player;
+  const canonicalName = String(player.name || "").trim();
+  const displayName = String(override.display_name || "").trim();
   return {
     ...player,
+    name: displayName || player.name,
+    nickname:
+      displayName && canonicalName && displayName !== canonicalName
+        ? canonicalName
+        : player.nickname,
     university: override.university ?? player.university,
     tier: override.tier ?? player.tier,
     race: override.race ?? player.race,
@@ -93,6 +111,53 @@ function applyRosterOverride<T extends Partial<Player> & { eloboard_id?: string 
 function applyRosterOverrides<T extends Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }>(players: T[]) {
   const overrides = loadRosterOverrides();
   return players.map((player) => applyRosterOverride(player, overrides));
+}
+
+function loadSoopLivePreview(): Map<string, SoopLivePreview> {
+  const previews = new Map<string, SoopLivePreview>();
+  if (typeof window !== "undefined") return previews;
+
+  const req = eval("require") as NodeRequire;
+  const fs = req("fs") as typeof import("fs");
+  const path = req("path") as typeof import("path");
+  const filePath = path.join(process.cwd(), "data", "metadata", "soop_live_preview.v1.json");
+  if (!fs.existsSync(filePath)) return previews;
+
+  try {
+    const json = JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as {
+      channels?: Record<string, SoopLivePreview>;
+    };
+    const channels = json && typeof json.channels === "object" ? json.channels : {};
+    for (const [soopId, preview] of Object.entries(channels)) {
+      const key = String(soopId || "").trim();
+      if (!key || !preview || typeof preview !== "object") continue;
+      previews.set(key, preview);
+    }
+  } catch {
+    return previews;
+  }
+
+  return previews;
+}
+
+function applySoopLivePreview<T extends Partial<Player> & { soop_id?: string | null }>(player: T): T {
+  const soopId = String(player?.soop_id || "").trim();
+  if (!soopId) return player;
+  const previews = loadSoopLivePreview();
+  const preview = previews.get(soopId);
+  if (!preview) return player;
+
+  return {
+    ...player,
+    is_live: typeof preview.isLive === "boolean" ? preview.isLive : player.is_live,
+    broadcast_title: String(preview.title || "").trim() || player.broadcast_title,
+    live_thumbnail_url: String(preview.thumbnail || "").trim() || player.live_thumbnail_url,
+    nickname: String(preview.nickname || "").trim() || player.nickname,
+  };
+}
+
+function applySoopLivePreviews<T extends Partial<Player> & { soop_id?: string | null }>(players: T[]) {
+  return players.map((player) => applySoopLivePreview(player));
 }
 
 type StoredMatchHistoryItem = {
@@ -193,7 +258,7 @@ export const playerService = {
       .order("tier", { ascending: true });
     
     if (error) throw error;
-    return applyRosterOverrides(data || []);
+    return applySoopLivePreviews(applyRosterOverrides(data || []));
   },
 
   /** 특정 ID의 선수 정보 가져오기 */
@@ -205,7 +270,7 @@ export const playerService = {
       .single();
     
     if (error) throw error;
-    return applyRosterOverride(data, loadRosterOverrides());
+    return applySoopLivePreview(applyRosterOverride(data, loadRosterOverrides()));
   },
 
   /** UUID 접두사(8자리 등)로 선수 정보 가져오기 */

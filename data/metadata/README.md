@@ -42,6 +42,7 @@ Recommended fields for richer consumers:
 - `display_name`
 - `profile_url`
 - `profile_kind`
+- provider-specific ids such as `soop_user_id`
 - freshness fields such as `last_checked_at`, `last_match_at`, `last_changed_at`
 
 ## Build
@@ -65,6 +66,7 @@ Build outputs:
 ## Source of Input
 
 - `scripts/player_metadata.json`
+- `data/metadata/soop_channel_mappings.v1.json`
 
 The build step normalizes source rows into a reusable schema and emits a report for conflicts and data quality checks.
 

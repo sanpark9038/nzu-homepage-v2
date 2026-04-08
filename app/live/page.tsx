@@ -2,7 +2,7 @@
 import Navbar from "@/components/Navbar";
 import { LiveStreamCard, type LiveStream } from "@/components/live/LiveStreamCard";
 import { playerService } from "@/lib/player-service";
-import { NZU_CONFIG } from "@/lib/constants";
+import { resolveSoopChannelImageUrl, resolveSoopLiveThumbnailUrl, resolveSoopWatchUrl } from "@/lib/soop";
 
 export const revalidate = 60;
 
@@ -22,12 +22,13 @@ export default async function LivePage() {
   const mockLiveStreams: LiveStream[] = livePlayers.map(p => ({
     id: p.id,
     streamer_name: p.name,
-    photo_url: p.photo_url || "",
-    stream_title: `${p.name} - 숲 스타크래프트 NZU 대학대전 연습중`,
+    photo_url: resolveSoopChannelImageUrl(p) || p.photo_url || "",
+    stream_title: p.broadcast_title || `${p.name} - 숲 스타크래프트 NZU 대학대전 연습중`,
     viewer_count: getMockViewerCount(p.id),
     category: "Starcraft",
     race: p.race || "T",
-    soop_url: p.broadcast_url || `https://ch.sooplive.co.kr`,
+    soop_url: resolveSoopWatchUrl(p) || `https://ch.sooplive.co.kr`,
+    thumbnail_url: resolveSoopLiveThumbnailUrl(p) || undefined,
   }));
 
   const totalViewers = mockLiveStreams.reduce((acc, curr) => acc + curr.viewer_count, 0);

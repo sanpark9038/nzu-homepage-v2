@@ -10,6 +10,7 @@ import { cn, normalizeRace } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 import { ExternalLink, Check, Circle, Crown } from "lucide-react";
 import { buildPlayerHref } from "@/lib/player-route";
+import { resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
 
 export type { Player };
 
@@ -38,8 +39,9 @@ export function PlayerCard({
   const isLive = player.is_live ?? false;
   const profileUrl = player.photo_url || "";
   
-  // Extract Afreeca SDK/ID from broadcast_url if available
-  const afreecaId = player.broadcast_url?.split('/').pop() || "";
+  const soopWatchUrl = resolveSoopWatchUrl(player);
+  const soopChannelUrl = resolveSoopChannelUrl(player);
+  const soopLinkLabel = soopChannelUrl ? "방송국 이동" : "";
 
   const raceStyles = {
     'Terran': {
@@ -130,14 +132,14 @@ export function PlayerCard({
             전적 보기
           </Link>
           
-          {player.broadcast_url ? (
+          {soopWatchUrl ? (
             <a 
-              href={player.broadcast_url}
+              href={soopWatchUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-2.5 rounded-full bg-white/10 text-white text-[12px] font-black uppercase tracking-tighter transition-all border border-white/20 hover:bg-white/30 backdrop-blur-md text-center transform translate-y-4 group-hover:translate-y-0 delay-75 flex items-center justify-center gap-1.5"
             >
-              <span>방송국 이동</span>
+              <span>{soopLinkLabel}</span>
               <ExternalLink size={12} />
             </a>
           ) : (

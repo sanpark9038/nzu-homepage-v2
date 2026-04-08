@@ -118,11 +118,8 @@ function main() {
         return idxDiff;
       })[0];
 
-    canonicalPreview.push({
-      wr_id: wrId,
-      name: chosen.name,
-      gender: chosen.gender,
-    });
+    const { __index, ...previewRow } = chosen;
+    canonicalPreview.push(previewRow);
   }
 
   canonicalPreview.sort((a, b) => a.wr_id - b.wr_id);

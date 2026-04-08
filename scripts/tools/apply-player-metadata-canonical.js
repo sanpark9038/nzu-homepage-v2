@@ -32,11 +32,7 @@ function main() {
     if (!row || typeof row.wr_id !== "number") continue;
     if (seen.has(row.wr_id)) continue;
     seen.add(row.wr_id);
-    dedup.push({
-      wr_id: row.wr_id,
-      name: row.name,
-      gender: row.gender,
-    });
+    dedup.push({ ...row });
   }
 
   dedup.sort((a, b) => a.wr_id - b.wr_id);

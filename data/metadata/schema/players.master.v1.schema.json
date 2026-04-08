@@ -77,6 +77,10 @@
           "type": "string",
           "enum": ["male", "female"]
         },
+        "soop_user_id": {
+          "type": "string",
+          "minLength": 1
+        },
         "profile_kind": {
           "type": "string",
           "enum": ["default", "mix"]
@@ -104,6 +108,10 @@
             "eloboard": {
               "type": "string",
               "pattern": "^https://eloboard\\.com/(men|women)/bbs/board\\.php\\?bo_table=bj(_m)?_list&wr_id=[0-9]+$"
+            },
+            "soop": {
+              "type": "string",
+              "pattern": "^https://ch\\.sooplive\\.co\\.kr/[A-Za-z0-9_]+$"
             }
           }
         },

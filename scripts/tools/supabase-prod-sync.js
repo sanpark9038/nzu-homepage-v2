@@ -8,6 +8,8 @@ const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
 const EXCLUSIONS_FILE = path.join(ROOT, 'data', 'metadata', 'pipeline_collection_exclusions.v1.json');
 const FACT_MATCHES_PATH = path.join(ROOT, 'data', 'warehouse', 'fact_matches.csv');
 const TMP_DIR = path.join(ROOT, 'tmp');
+const PLAYER_METADATA_PATH = path.join(ROOT, 'scripts', 'player_metadata.json');
+const DEBUG_PAYLOAD_PATH = path.join(TMP_DIR, 'supabase_prod_sync_payload_preview.json');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceRoleKey =
@@ -29,6 +31,24 @@ function normalizeName(value) {
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, ''));
+}
+
+function buildSoopLookup() {
+  if (!fs.existsSync(PLAYER_METADATA_PATH)) return new Map();
+  const rows = readJson(PLAYER_METADATA_PATH);
+  if (!Array.isArray(rows)) return new Map();
+  const lookup = new Map();
+  for (const row of rows) {
+    const wrId = Number(row && row.wr_id);
+    const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase();
+    const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
+    if (!Number.isFinite(wrId) || !gender || !soopUserId) continue;
+    lookup.set(`${wrId}:${gender}`, {
+      soop_id: soopUserId,
+      broadcast_url: `https://ch.sooplive.co.kr/${soopUserId}`,
+    });
+  }
+  return lookup;
 }
 
 function parseCsvLine(line) {
@@ -289,6 +309,7 @@ function loadExpectedLocalVisibleCount() {
 async function main() {
   console.log('--- Production Sync Started ---');
   const servingStatsByName = buildServingStatsByName();
+  const soopLookup = buildSoopLookup();
 
   // 1) Fetch source from staging
   const { data: stagingData, error: stagingErr } = await supabase
@@ -298,6 +319,12 @@ async function main() {
 
   const sanitized = (stagingData || [])
     .map((row) => ({
+      ...(() => {
+        const entityId = String(row.eloboard_id || '').trim();
+        const wrId = Number(entityId.split(':').pop());
+        const gender = String(row.gender || '').trim().toLowerCase();
+        return soopLookup.get(`${wrId}:${gender}`) || { soop_id: null, broadcast_url: null };
+      })(),
       ...(servingStatsByName.get(String(row.name || '').trim()) ? (() => {
         const stats = servingStatsByName.get(String(row.name || '').trim());
         const totalMatches = Number(stats.wins || 0) + Number(stats.losses || 0);
@@ -337,6 +364,10 @@ async function main() {
   if (!sanitized.length) {
     throw new Error('players_staging has no valid rows to sync.');
   }
+  try {
+    fs.mkdirSync(TMP_DIR, { recursive: true });
+    fs.writeFileSync(DEBUG_PAYLOAD_PATH, JSON.stringify(sanitized.slice(0, 50), null, 2), 'utf8');
+  } catch {}
   const expectedVisibleCount = loadExpectedLocalVisibleCount();
   if (expectedVisibleCount > 0 && sanitized.length < Math.floor(expectedVisibleCount * 0.8)) {
     throw new Error(

@@ -13,12 +13,14 @@ type Player = Pick<
   | "photo_url"
   | "broadcast_title"
   | "broadcast_url"
+  | "channel_profile_image_url"
   | "created_at"
   | "detailed_stats"
   | "elo_point"
   | "eloboard_id"
   | "is_live"
   | "last_synced_at"
+  | "live_thumbnail_url"
   | "nickname"
   | "soop_id"
   | "tier_rank"
@@ -121,12 +123,14 @@ function createPlaceholderPlayer(
     photo_url: null,
     broadcast_title: null,
     broadcast_url: null,
+    channel_profile_image_url: null,
     created_at: null,
     detailed_stats: null,
     elo_point: null,
     eloboard_id: null,
     is_live: false,
     last_synced_at: null,
+    live_thumbnail_url: null,
     match_history: null,
     nickname: null,
     soop_id: null,

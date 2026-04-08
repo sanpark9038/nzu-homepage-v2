@@ -83,6 +83,11 @@ function profileUrl(gender, wrId, name = "") {
   });
 }
 
+function soopChannelUrl(soopUserId) {
+  const value = String(soopUserId || "").trim();
+  return value ? `https://ch.sooplive.co.kr/${value}` : null;
+}
+
 function main() {
   if (!fs.existsSync(SOURCE_PATH)) {
     throw new Error(`Missing source: ${SOURCE_PATH}`);
@@ -140,6 +145,7 @@ function main() {
         provider_player_id: String(r.wr_id),
         wr_id: r.wr_id,
         gender: r.gender,
+        soop_user_id: String(r.soop_user_id || "").trim() || undefined,
         profile_kind: getEloboardProfileKind(profile),
         names: {
           display: r.name,
@@ -147,6 +153,7 @@ function main() {
         },
         profiles: {
           eloboard: profile,
+          ...(soopChannelUrl(r.soop_user_id) ? { soop: soopChannelUrl(r.soop_user_id) } : {}),
         },
         source: {
           kind: "manual_or_scraped_mapping",

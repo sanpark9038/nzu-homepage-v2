@@ -118,6 +118,7 @@ export type Database = {
         Row: {
           broadcast_title: string | null
           broadcast_url: string | null
+          channel_profile_image_url: string | null
           created_at: string | null
           detailed_stats: Json | null
           elo_point: number | null
@@ -125,6 +126,7 @@ export type Database = {
           id: string
           is_live: boolean | null
           last_synced_at: string | null
+          live_thumbnail_url: string | null
           match_history: Json | null
           name: string
           nickname: string | null
@@ -147,6 +149,7 @@ export type Database = {
         Insert: {
           broadcast_title?: string | null
           broadcast_url?: string | null
+          channel_profile_image_url?: string | null
           created_at?: string | null
           detailed_stats?: Json | null
           elo_point?: number | null
@@ -154,6 +157,7 @@ export type Database = {
           id?: string
           is_live?: boolean | null
           last_synced_at?: string | null
+          live_thumbnail_url?: string | null
           match_history?: Json | null
           name: string
           nickname?: string | null
@@ -176,6 +180,7 @@ export type Database = {
         Update: {
           broadcast_title?: string | null
           broadcast_url?: string | null
+          channel_profile_image_url?: string | null
           created_at?: string | null
           detailed_stats?: Json | null
           elo_point?: number | null
@@ -183,6 +188,7 @@ export type Database = {
           id?: string
           is_live?: boolean | null
           last_synced_at?: string | null
+          live_thumbnail_url?: string | null
           match_history?: Json | null
           name?: string
           nickname?: string | null

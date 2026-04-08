@@ -16,6 +16,7 @@
     "validate:metadata:projects": "node scripts/tools/validate-project-metadata.js",
     "normalize:metadata:projects": "node scripts/tools/normalize-project-metadata.js --write",
     "validate:pipeline-alert-rules": "node scripts/tools/validate-pipeline-alert-rules.js",
+    "apply:soop:mappings": "node scripts/tools/apply-soop-channel-mappings.js --write",
     "report:metadata:conflicts": "node scripts/tools/report-metadata-conflicts.js",
     "report:metadata:resolution": "node scripts/tools/propose-metadata-conflict-resolutions.js",
     "apply:metadata:resolution": "node scripts/tools/apply-metadata-conflict-resolutions.js --write",
