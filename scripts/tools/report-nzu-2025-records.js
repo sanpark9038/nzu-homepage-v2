@@ -520,7 +520,9 @@ async function collectPlayer(player, cacheEntry = null) {
   let usedIncrementalCache = false;
   if (hitAnchor && cacheEntry && Array.isArray(cacheEntry.matches) && cacheEntry.matches.length) {
     usedIncrementalCache = true;
+    const refreshedDates = new Set(matches.map((item) => String(item.date || "")).filter(Boolean));
     for (const old of cacheEntry.matches) {
+      if (refreshedDates.has(String(old.date || ""))) continue;
       const key = rowKey(old);
       if (seen.has(key)) continue;
       seen.add(key);
