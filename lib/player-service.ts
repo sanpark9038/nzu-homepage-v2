@@ -51,6 +51,15 @@ function normalizeHistoryRace(value: string | null | undefined) {
   return "T";
 }
 
+function buildHistoryOpponentId(playerId: string, opponentName: string, opponentRace: string) {
+  const nameKey = String(opponentName || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-");
+  const raceKey = normalizeHistoryRace(opponentRace);
+  return `history-opponent:${playerId}:${nameKey}:${raceKey}`;
+}
+
 function synthesizeMatchesFromHistory(player: StoredPlayerHistoryRecord, limit: number) {
   const history = normalizeStoredMatchHistory(player?.match_history);
   const playerId = String(player?.id || "");
@@ -61,7 +70,7 @@ function synthesizeMatchesFromHistory(player: StoredPlayerHistoryRecord, limit: 
   return history.slice(0, limit).map((item, index: number) => {
     const opponentName = String(item?.opponent_name || item?.opponentName || "알 수 없음").trim() || "알 수 없음";
     const opponentRace = normalizeHistoryRace(item?.opponent_race || item?.opponentRace);
-    const opponentId = `history:${playerId}:${opponentName}:${index}`;
+    const opponentId = buildHistoryOpponentId(playerId, opponentName, opponentRace);
     const isWin = Boolean(item?.is_win ?? item?.isWin);
     const winnerId = isWin ? playerId : opponentId;
     return {
