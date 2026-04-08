@@ -6,6 +6,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env.local') 
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
 const EXCLUSIONS_FILE = path.join(ROOT, 'data', 'metadata', 'pipeline_collection_exclusions.v1.json');
+const FACT_MATCHES_PATH = path.join(ROOT, 'data', 'warehouse', 'fact_matches.csv');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceRoleKey =
@@ -27,6 +28,148 @@ function normalizeName(value) {
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, ''));
+}
+
+function parseCsvLine(line) {
+  const out = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          cur += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cur += ch;
+      }
+    } else if (ch === ',') {
+      out.push(cur);
+      cur = '';
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else {
+      cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
+}
+
+function readCsv(filePath) {
+  if (!fs.existsSync(filePath)) return [];
+  const raw = fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, '');
+  const lines = raw.split(/\r?\n/).filter(Boolean);
+  if (!lines.length) return [];
+  const headers = parseCsvLine(lines[0]);
+  return lines.slice(1).map((line) => {
+    const cols = parseCsvLine(line);
+    const row = {};
+    headers.forEach((header, index) => {
+      row[header] = cols[index] ?? '';
+    });
+    return row;
+  });
+}
+
+function normalizeRaceCode(value) {
+  const raw = String(value || '').trim().toUpperCase();
+  if (raw.startsWith('Z')) return 'Z';
+  if (raw.startsWith('P')) return 'P';
+  if (raw.startsWith('T')) return 'T';
+  if (raw.startsWith('ZERG')) return 'Z';
+  if (raw.startsWith('PROTOSS')) return 'P';
+  if (raw.startsWith('TERRAN')) return 'T';
+  return null;
+}
+
+function toBool(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  return raw === 'true' || raw === '1';
+}
+
+function toPercent(wins, total) {
+  if (!total) return 0;
+  return Number(((wins / total) * 100).toFixed(2));
+}
+
+function buildDetailedStats(history) {
+  const race_stats = {
+    T: { w: 0, l: 0 },
+    Z: { w: 0, l: 0 },
+    P: { w: 0, l: 0 },
+  };
+  const map_stats = {};
+  const last_10 = history.slice(0, 10).map((item) => (item.is_win ? 'W' : 'L'));
+
+  for (const item of history) {
+    const race = normalizeRaceCode(item.opponent_race);
+    if (race && race_stats[race]) {
+      if (item.is_win) race_stats[race].w += 1;
+      else race_stats[race].l += 1;
+    }
+
+    const mapName = String(item.map_name || '').trim();
+    if (mapName) {
+      if (!map_stats[mapName]) map_stats[mapName] = { w: 0, l: 0 };
+      if (item.is_win) map_stats[mapName].w += 1;
+      else map_stats[mapName].l += 1;
+    }
+  }
+
+  const total = history.length;
+  const wins = history.filter((item) => item.is_win).length;
+
+  return {
+    race_stats,
+    map_stats,
+    last_10,
+    win_rate: toPercent(wins, total),
+  };
+}
+
+function buildServingStatsByName() {
+  const rows = readCsv(FACT_MATCHES_PATH);
+  const byName = new Map();
+
+  for (const row of rows) {
+    const name = normalizeName(row.player_name);
+    if (!name) continue;
+    const entry = byName.get(name) || {
+      wins: 0,
+      losses: 0,
+      history: [],
+    };
+    const isWin = toBool(row.is_win);
+    if (isWin) entry.wins += 1;
+    else entry.losses += 1;
+    entry.history.push({
+      match_date: row.match_date || null,
+      opponent_name: normalizeName(row.opponent_name),
+      opponent_race: normalizeRaceCode(row.opponent_race),
+      map_name: row.map_name || null,
+      is_win: isWin,
+      result_text: row.result || null,
+      note: row.memo || null,
+      source_file: row.source_file || null,
+      source_row_no: Number(row.source_row_no || 0) || null,
+    });
+    byName.set(name, entry);
+  }
+
+  for (const entry of byName.values()) {
+    entry.history.sort((a, b) => {
+      const byDate = String(b.match_date || '').localeCompare(String(a.match_date || ''));
+      if (byDate !== 0) return byDate;
+      return Number(a.source_row_no || 0) - Number(b.source_row_no || 0);
+    });
+  }
+
+  return byName;
 }
 
 function loadExpectedLocalVisibleCount() {
@@ -76,6 +219,7 @@ function loadExpectedLocalVisibleCount() {
 
 async function main() {
   console.log('--- Production Sync Started ---');
+  const servingStatsByName = buildServingStatsByName();
 
   // 1) Fetch source from staging
   const { data: stagingData, error: stagingErr } = await supabase
@@ -85,6 +229,26 @@ async function main() {
 
   const sanitized = (stagingData || [])
     .map((row) => ({
+      ...(servingStatsByName.get(String(row.name || '').trim()) ? (() => {
+        const stats = servingStatsByName.get(String(row.name || '').trim());
+        const totalMatches = Number(stats.wins || 0) + Number(stats.losses || 0);
+        const matchHistory = stats.history.slice(0, 100);
+        return {
+          detailed_stats: buildDetailedStats(matchHistory),
+          match_history: matchHistory,
+          total_wins: Number(stats.wins || 0),
+          total_losses: Number(stats.losses || 0),
+          win_rate: toPercent(Number(stats.wins || 0), totalMatches),
+          last_synced_at: new Date().toISOString(),
+        };
+      })() : {
+        detailed_stats: null,
+        match_history: null,
+        total_wins: 0,
+        total_losses: 0,
+        win_rate: 0,
+        last_synced_at: new Date().toISOString(),
+      }),
       eloboard_id: row.eloboard_id,
       name: String(row.name || '').trim(),
       tier: row.tier || '미정',

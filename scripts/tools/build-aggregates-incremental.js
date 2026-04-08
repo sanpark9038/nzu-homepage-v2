@@ -168,6 +168,7 @@ function hashMatch(parts) {
 
 function normalizePlayerNameFromFileName(fileName) {
   return fileName
+    .replace(/^eloboard_(?:male|female|male_mix)_\d+_/, "")
     .replace(/_상세전적_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$/, "")
     .replace(/_상세전적\.csv$/, "");
 }
@@ -377,12 +378,12 @@ function recalcPlayerAggForDates(factRows, dimRows, targetDates, existingRows) {
   );
 }
 
-function recalcTeamAggForDates(playerAggRows, targetDates, existingRows) {
+function recalcTeamAggForDates(factRows, targetDates, existingRows) {
   const dateSet = new Set(targetDates);
   const keep = existingRows.filter((r) => !dateSet.has(r.match_date));
   const grouped = new Map();
 
-  for (const row of playerAggRows) {
+  for (const row of factRows) {
     if (!dateSet.has(row.match_date)) continue;
     const key = `${row.match_date}|${row.team}`;
     if (!grouped.has(key)) {
@@ -396,9 +397,9 @@ function recalcTeamAggForDates(playerAggRows, targetDates, existingRows) {
       });
     }
     const g = grouped.get(key);
-    g.matches += toInt(row.matches);
-    g.wins += toInt(row.wins);
-    g.losses += toInt(row.losses);
+    g.matches += 1;
+    if (toBool(row.is_win)) g.wins += 1;
+    else g.losses += 1;
     g.unique_players_set.add(row.player_entity_id);
   }
 
@@ -546,7 +547,7 @@ function main() {
     ? recalcPlayerAggForDates(factRows, dimRows, fullRecalcDates, aggPlayerRows)
     : aggPlayerRows;
   const nextAggTeam = fullRecalcDates.length
-    ? recalcTeamAggForDates(nextAggPlayer, fullRecalcDates, aggTeamRows)
+    ? recalcTeamAggForDates(factRows, fullRecalcDates, aggTeamRows)
     : aggTeamRows;
 
   factRows.sort((a, b) => `${a.match_date}|${a.player_entity_id}|${a.match_key}`.localeCompare(`${b.match_date}|${b.player_entity_id}|${b.match_key}`));

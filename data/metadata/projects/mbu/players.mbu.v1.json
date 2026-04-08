@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-04-06T05:39:53.545Z",
+  "generated_at": "2026-04-07T16:32:36.352Z",
   "project": "mbu",
   "team_name": "엠비대",
   "team_code": "mbu",
@@ -39,11 +39,11 @@
       "role_priority": null,
       "tier_key": "king",
       "display_name": "이영한",
-      "last_checked_at": "2026-04-02T09:53:47.893Z",
+      "last_checked_at": "2026-04-07T16:09:24.848Z",
       "last_match_at": "2026-03-25T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.309Z",
+      "last_changed_at": "2026-04-07T16:27:24.132Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=6",
       "profile_kind": "default"
     },
@@ -78,9 +78,9 @@
       "display_name": "얍삽",
       "last_checked_at": "2026-04-02T09:53:59.135Z",
       "last_match_at": "2026-03-23T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.310Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-07T16:27:24.133Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=27",
       "profile_kind": "default"
     },
@@ -151,9 +151,9 @@
       "display_name": "이창우",
       "last_checked_at": "2026-04-02T09:54:11.653Z",
       "last_match_at": "2026-03-23T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.311Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-07T16:27:24.135Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=183",
       "profile_kind": "default"
     },
@@ -184,11 +184,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "last_checked_at": "2026-04-02T09:54:27.635Z",
-      "last_match_at": "2026-03-31T00:00:00.000Z",
+      "last_checked_at": "2026-04-07T16:09:39.949Z",
+      "last_match_at": "2026-04-07T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.313Z"
+      "last_changed_at": "2026-04-07T16:27:24.136Z"
     },
     {
       "team_name": "엠비대",
@@ -219,11 +219,11 @@
       "role_priority": null,
       "tier_key": "spade",
       "display_name": "빡죠스",
-      "last_checked_at": "2026-04-02T09:54:36.459Z",
-      "last_match_at": "2026-03-30T00:00:00.000Z",
+      "last_checked_at": "2026-04-07T16:09:50.731Z",
+      "last_match_at": "2026-04-05T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.314Z",
+      "last_changed_at": "2026-04-07T16:27:24.137Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=176",
       "profile_kind": "default"
     },
@@ -325,9 +325,9 @@
       "display_name": "구보라",
       "last_checked_at": "2026-04-02T09:54:44.105Z",
       "last_match_at": "2026-03-19T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.317Z"
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-07T16:27:24.142Z"
     },
     {
       "team_name": "엠비대",
@@ -392,11 +392,11 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "오하얀",
-      "last_checked_at": "2026-04-02T09:54:51.417Z",
-      "last_match_at": "2026-03-26T00:00:00.000Z",
+      "last_checked_at": "2026-04-07T16:09:59.227Z",
+      "last_match_at": "2026-04-07T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.320Z"
+      "last_changed_at": "2026-04-07T16:27:24.147Z"
     },
     {
       "team_name": "엠비대",
@@ -495,11 +495,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "정다닝",
-      "last_checked_at": "2026-04-02T09:55:03.330Z",
+      "last_checked_at": "2026-04-07T16:10:04.431Z",
       "last_match_at": "2026-03-28T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.325Z",
+      "last_changed_at": "2026-04-07T16:27:24.155Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=977",
       "profile_kind": "default"
     },
@@ -531,11 +531,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "권아온",
-      "last_checked_at": "2026-04-02T09:55:07.156Z",
-      "last_match_at": "2026-03-31T00:00:00.000Z",
+      "last_checked_at": "2026-04-07T16:10:09.597Z",
+      "last_match_at": "2026-04-07T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.326Z",
+      "last_changed_at": "2026-04-07T16:27:24.156Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1000",
       "profile_kind": "default"
     },
@@ -566,11 +566,11 @@
       "role_priority": null,
       "tier_key": "8",
       "display_name": "마예준",
-      "last_checked_at": "2026-04-02T09:55:10.820Z",
+      "last_checked_at": "2026-04-07T16:10:13.414Z",
       "last_match_at": "2026-03-28T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.327Z"
+      "last_changed_at": "2026-04-07T16:27:24.157Z"
     },
     {
       "team_name": "엠비대",
@@ -633,11 +633,11 @@
       "role_priority": null,
       "tier_key": "9",
       "display_name": "요정너구리",
-      "last_checked_at": "2026-04-02T09:55:14.371Z",
-      "last_match_at": "2026-03-30T00:00:00.000Z",
+      "last_checked_at": "2026-04-07T16:10:17.408Z",
+      "last_match_at": "2026-04-04T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.327Z",
+      "last_changed_at": "2026-04-07T16:27:24.159Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1021",
       "profile_kind": "default"
     },
@@ -669,11 +669,11 @@
       "role_priority": null,
       "tier_key": "9",
       "display_name": "햄희",
-      "last_checked_at": "2026-04-02T09:55:18.526Z",
-      "last_match_at": "2026-03-31T00:00:00.000Z",
+      "last_checked_at": "2026-04-07T16:10:21.195Z",
+      "last_match_at": "2026-04-06T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-02T10:04:50.328Z",
+      "last_changed_at": "2026-04-07T16:27:24.160Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1023",
       "profile_kind": "default"
     }

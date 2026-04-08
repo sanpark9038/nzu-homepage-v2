@@ -429,20 +429,6 @@ function appendRows(bucket, seen, rows, anchorKey = null) {
   return { unknownOutcomeRows, hitAnchor };
 }
 
-function compareMatchDesc(a, b) {
-  if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-  const ao = String(a.opponent || "");
-  const bo = String(b.opponent || "");
-  if (ao !== bo) return ao > bo ? 1 : -1;
-  const am = String(a.map || "");
-  const bm = String(b.map || "");
-  if (am !== bm) return am > bm ? 1 : -1;
-  const as = String(a.set_score || "");
-  const bs = String(b.set_score || "");
-  if (as !== bs) return as > bs ? 1 : -1;
-  return 0;
-}
-
 function totalDisplayCount(displayStats) {
   return Number(displayStats && displayStats.total && displayStats.total.total ? displayStats.total.total : 0) || 0;
 }
@@ -545,7 +531,6 @@ async function collectPlayer(player, cacheEntry = null) {
   const wins = matches.filter((m) => m.is_win).length;
   const losses = matches.length - wins;
   const winRate = matches.length ? Number(((wins / matches.length) * 100).toFixed(2)) : 0;
-  matches.sort(compareMatchDesc);
   const dates = matches.map((m) => m.date).sort();
   const outOfRange = matches.filter((m) => !inRange(m.date)).length;
   const validation = {

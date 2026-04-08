@@ -348,7 +348,12 @@ function main() {
         runStep("daily_pipeline", dailyArgs)
       );
       steps.push(
-        runStep("warehouse_verify", ["scripts/tools/verify-warehouse-integrity.js"])
+        runStep("warehouse_verify", [
+          "scripts/tools/verify-warehouse-integrity.js",
+          ...(String(argValue("--teams", "")).trim()
+            ? ["--teams", String(argValue("--teams", "")).trim()]
+            : []),
+        ])
       );
       if (!skipSupabase) {
         steps.push(

@@ -131,13 +131,7 @@ function main() {
     return;
   }
 
-  const rows = p.matches.slice().sort((a, b) => {
-    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-    const ao = String(a.opponent || "");
-    const bo = String(b.opponent || "");
-    if (ao !== bo) return ao > bo ? 1 : -1;
-    return 0;
-  });
+  const rows = p.matches.slice();
 
   for (const r of rows) {
     const opp = splitOpponent(r.opponent);

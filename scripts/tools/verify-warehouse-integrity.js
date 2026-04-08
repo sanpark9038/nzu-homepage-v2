@@ -10,6 +10,12 @@ const AGG_PLAYER_PATH = path.join(WAREHOUSE_DIR, "agg_daily_player.csv");
 const AGG_TEAM_PATH = path.join(WAREHOUSE_DIR, "agg_daily_team.csv");
 const REPORT_PATH = path.join(TMP_DIR, "warehouse_integrity_report.json");
 
+function argValue(flag, fallback = null) {
+  const idx = process.argv.indexOf(flag);
+  if (idx >= 0 && process.argv[idx + 1]) return process.argv[idx + 1];
+  return fallback;
+}
+
 function parseCsvLine(line) {
   const out = [];
   let cur = "";
@@ -71,6 +77,14 @@ function keyDatePlayer(row) {
 
 function keyDateTeam(row) {
   return `${row.match_date}|${row.team}`;
+}
+
+function parseTeamFilter() {
+  const raw = String(argValue("--teams", "") || "")
+    .split(",")
+    .map((v) => v.trim().toLowerCase())
+    .filter(Boolean);
+  return raw.length ? new Set(raw) : null;
 }
 
 function buildAggFromFacts(facts) {
@@ -135,7 +149,11 @@ function buildAggFromFacts(facts) {
 }
 
 function main() {
-  const facts = readCsv(FACT_PATH);
+  const teamFilter = parseTeamFilter();
+  const facts = readCsv(FACT_PATH).filter((row) => {
+    if (!teamFilter) return true;
+    return teamFilter.has(String(row.team || "").trim().toLowerCase());
+  });
   const aggPlayer = readCsv(AGG_PLAYER_PATH);
   const aggTeam = readCsv(AGG_TEAM_PATH);
 
@@ -159,8 +177,11 @@ function main() {
 
   const expected = buildAggFromFacts(facts);
 
-  const aggPlayerMap = new Map(aggPlayer.map((r) => [keyDatePlayer(r), r]));
   const expectedPlayerMap = new Map(expected.playerRows.map((r) => [keyDatePlayer(r), r]));
+  const aggPlayerRowsScoped = teamFilter
+    ? aggPlayer.filter((r) => expectedPlayerMap.has(keyDatePlayer(r)))
+    : aggPlayer;
+  const aggPlayerMap = new Map(aggPlayerRowsScoped.map((r) => [keyDatePlayer(r), r]));
 
   for (const [k, exp] of expectedPlayerMap.entries()) {
     const cur = aggPlayerMap.get(k);
@@ -178,12 +199,17 @@ function main() {
       );
     }
   }
-  for (const k of aggPlayerMap.keys()) {
-    if (!expectedPlayerMap.has(k)) warnings.push(`agg_daily_player extra key: ${k}`);
+  if (!teamFilter) {
+    for (const k of aggPlayerMap.keys()) {
+      if (!expectedPlayerMap.has(k)) warnings.push(`agg_daily_player extra key: ${k}`);
+    }
   }
 
-  const aggTeamMap = new Map(aggTeam.map((r) => [keyDateTeam(r), r]));
   const expectedTeamMap = new Map(expected.teamRows.map((r) => [keyDateTeam(r), r]));
+  const aggTeamRowsScoped = teamFilter
+    ? aggTeam.filter((r) => expectedTeamMap.has(keyDateTeam(r)))
+    : aggTeam;
+  const aggTeamMap = new Map(aggTeamRowsScoped.map((r) => [keyDateTeam(r), r]));
 
   for (const [k, exp] of expectedTeamMap.entries()) {
     const cur = aggTeamMap.get(k);
@@ -202,8 +228,10 @@ function main() {
       );
     }
   }
-  for (const k of aggTeamMap.keys()) {
-    if (!expectedTeamMap.has(k)) warnings.push(`agg_daily_team extra key: ${k}`);
+  if (!teamFilter) {
+    for (const k of aggTeamMap.keys()) {
+      if (!expectedTeamMap.has(k)) warnings.push(`agg_daily_team extra key: ${k}`);
+    }
   }
 
   const report = {
@@ -212,6 +240,9 @@ function main() {
       fact: FACT_PATH,
       agg_player: AGG_PLAYER_PATH,
       agg_team: AGG_TEAM_PATH,
+    },
+    scope: {
+      teams: teamFilter ? [...teamFilter] : null,
     },
     totals: {
       fact_rows: facts.length,
