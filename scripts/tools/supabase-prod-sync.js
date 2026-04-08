@@ -7,6 +7,7 @@ const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
 const EXCLUSIONS_FILE = path.join(ROOT, 'data', 'metadata', 'pipeline_collection_exclusions.v1.json');
 const FACT_MATCHES_PATH = path.join(ROOT, 'data', 'warehouse', 'fact_matches.csv');
+const TMP_DIR = path.join(ROOT, 'tmp');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceRoleKey =
@@ -76,6 +77,14 @@ function readCsv(filePath) {
   });
 }
 
+function sourceCsvPath(sourceFile) {
+  const name = String(sourceFile || '').trim();
+  if (!name) return null;
+  const fullPath = path.join(TMP_DIR, name);
+  if (!fs.existsSync(fullPath)) return null;
+  return fullPath;
+}
+
 function normalizeRaceCode(value) {
   const raw = String(value || '').trim().toUpperCase();
   if (raw.startsWith('Z')) return 'Z';
@@ -95,6 +104,27 @@ function toBool(value) {
 function toPercent(wins, total) {
   if (!total) return 0;
   return Number(((wins / total) * 100).toFixed(2));
+}
+
+function parseMatchHistoryFromStableCsv(sourceFile) {
+  const filePath = sourceCsvPath(sourceFile);
+  if (!filePath) return null;
+  const rows = readCsv(filePath);
+  if (!rows.length) return [];
+  return rows.map((row) => {
+    const result = String(row['경기결과(승/패)'] || '').trim();
+    return {
+      match_date: row['날짜'] || null,
+      opponent_name: normalizeName(row['상대명']),
+      opponent_race: normalizeRaceCode(row['상대종족']),
+      map_name: row['맵'] || null,
+      is_win: result === '승',
+      result_text: result || null,
+      note: row['메모'] || null,
+      source_file: String(sourceFile || '').trim() || null,
+      source_row_no: null,
+    };
+  });
 }
 
 function buildDetailedStats(history) {
@@ -135,10 +165,14 @@ function buildDetailedStats(history) {
 function buildServingStatsByName() {
   const rows = readCsv(FACT_MATCHES_PATH);
   const byName = new Map();
+  const sourceFileByName = new Map();
 
   for (const row of rows) {
     const name = normalizeName(row.player_name);
     if (!name) continue;
+    if (!sourceFileByName.has(name)) {
+      sourceFileByName.set(name, String(row.source_file || '').trim());
+    }
     const entry = byName.get(name) || {
       wins: 0,
       losses: 0,
@@ -161,7 +195,14 @@ function buildServingStatsByName() {
     byName.set(name, entry);
   }
 
-  for (const entry of byName.values()) {
+  for (const [name, entry] of byName.entries()) {
+    const stableHistory = parseMatchHistoryFromStableCsv(sourceFileByName.get(name));
+    if (Array.isArray(stableHistory) && stableHistory.length) {
+      entry.history = stableHistory;
+      entry.wins = stableHistory.filter((item) => item.is_win).length;
+      entry.losses = stableHistory.length - entry.wins;
+      continue;
+    }
     entry.history.sort((a, b) => {
       const byDate = String(b.match_date || '').localeCompare(String(a.match_date || ''));
       if (byDate !== 0) return byDate;
