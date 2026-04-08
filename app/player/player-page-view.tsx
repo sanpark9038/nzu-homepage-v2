@@ -201,7 +201,10 @@ function buildRecentSummary(matches: PlayerMatch[], playerId: string): RecentSum
   });
   const wins = recentWindow.filter((match) => match.winner_id === playerId).length;
   const losses = recentWindow.length - wins;
-  const form = matches.slice(0, 5).map((match) => (match.winner_id === playerId ? "승" : "패")) as ("승" | "패")[];
+  const form = matches
+    .slice(0, 5)
+    .reverse()
+    .map((match) => (match.winner_id === playerId ? "승" : "패")) as ("승" | "패")[];
   return {
     winRate: getWinRate(wins, recentWindow.length),
     wins,
