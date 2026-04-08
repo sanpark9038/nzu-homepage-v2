@@ -59,3 +59,42 @@ runTest("parseMatchHistoryFromStableCsv preserves same-day row order from stable
     } catch {}
   }
 });
+
+runTest("parseMatchHistoryFromStableCsv keeps multiline notes in a single record", () => {
+  const fileName = "__test__eloboard_female_953_아링_상세전적.csv";
+  try {
+    writeStableCsv(fileName, [
+      ["2026-02-19", "백원이야", "Z", "녹아웃", "승", "\"JSA VS 늪지대 미니 대학대전 2-5/3(3)\n최종 승리 늪지대\""],
+      ["2026-02-19", "백원이야", "Z", "네오실피드", "승", "JSA VS 늪지대 미니 대학대전 1-5/3(2)"],
+    ]);
+
+    const actual = parseMatchHistoryFromStableCsv(fileName);
+    assert.equal(actual.length, 2);
+    assert.deepEqual(
+      actual.map((row) => ({
+        match_date: row.match_date,
+        opponent_name: row.opponent_name,
+        map_name: row.map_name,
+        note: row.note,
+      })),
+      [
+        {
+          match_date: "2026-02-19",
+          opponent_name: "백원이야",
+          map_name: "녹아웃",
+          note: "JSA VS 늪지대 미니 대학대전 2-5/3(3)\n최종 승리 늪지대",
+        },
+        {
+          match_date: "2026-02-19",
+          opponent_name: "백원이야",
+          map_name: "네오실피드",
+          note: "JSA VS 늪지대 미니 대학대전 1-5/3(2)",
+        },
+      ]
+    );
+  } finally {
+    try {
+      fs.unlinkSync(path.join(TMP_DIR, fileName));
+    } catch {}
+  }
+});

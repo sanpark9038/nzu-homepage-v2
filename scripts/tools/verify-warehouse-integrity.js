@@ -46,13 +46,41 @@ function parseCsvLine(line) {
   return out;
 }
 
+function splitCsvRecords(raw) {
+  const records = [];
+  let cur = "";
+  let inQuotes = false;
+  for (let i = 0; i < raw.length; i += 1) {
+    const ch = raw[i];
+    if (ch === '"') {
+      cur += ch;
+      if (inQuotes && raw[i + 1] === '"') {
+        cur += raw[i + 1];
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+    if (!inQuotes && (ch === "\n" || ch === "\r")) {
+      if (cur.length > 0) records.push(cur);
+      cur = "";
+      if (ch === "\r" && raw[i + 1] === "\n") i += 1;
+      continue;
+    }
+    cur += ch;
+  }
+  if (cur.length > 0) records.push(cur);
+  return records.filter((record) => record.length > 0);
+}
+
 function readCsv(filePath) {
   if (!fs.existsSync(filePath)) return [];
   const raw = fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "");
-  const lines = raw.split(/\r?\n/).filter((l) => l.length > 0);
-  if (!lines.length) return [];
-  const headers = parseCsvLine(lines[0]);
-  return lines.slice(1).map((line) => {
+  const records = splitCsvRecords(raw);
+  if (!records.length) return [];
+  const headers = parseCsvLine(records[0]);
+  return records.slice(1).map((line) => {
     const cols = parseCsvLine(line);
     const row = {};
     headers.forEach((h, idx) => {
