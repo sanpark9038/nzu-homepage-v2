@@ -6,8 +6,11 @@ export type { Player };
 // Public pages should consume website-serving data from Supabase through this layer.
 // Local metadata and tmp reports remain admin / pipeline sources, not public page sources.
 const PLAYER_SERVING_SELECT = [
-  "broadcast_title, broadcast_url, created_at, detailed_stats, elo_point, eloboard_id, id, is_live, last_synced_at, match_history, name, nickname, photo_url, race, soop_id, tier, tier_rank, total_losses, total_wins, university, win_rate, gender, last_checked_at, last_match_at, last_changed_at, check_priority, check_interval_days",
+  "broadcast_title, broadcast_url, created_at, detailed_stats, elo_point, eloboard_id, id, is_live, last_synced_at, name, nickname, photo_url, race, soop_id, tier, tier_rank, total_losses, total_wins, university, win_rate, gender, last_checked_at, last_match_at, last_changed_at, check_priority, check_interval_days",
 ] as const;
+
+const PLAYER_HISTORY_SELECT =
+  "id, name, race, photo_url, created_at, last_synced_at, match_history" as const;
 
 const MATCH_SERVING_SELECT =
   "*, player1:players!player1_id(id, name, race, photo_url), player2:players!player2_id(id, name, race, photo_url), winner:players!winner_id(id, name)" as const;
@@ -156,7 +159,7 @@ export const playerService = {
 
     const { data: player, error: playerError } = await supabase
       .from("players")
-      .select("id, name, race, photo_url, created_at, last_synced_at, match_history")
+      .select(PLAYER_HISTORY_SELECT)
       .eq("id", playerId)
       .single();
 

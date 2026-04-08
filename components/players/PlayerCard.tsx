@@ -5,13 +5,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { TierBadge } from "../ui/nzu-badges";
 import { RaceLetterBadge } from "../ui/race-letter-badge";
-import { Database } from "@/lib/database.types";
+import type { Player } from "@/types";
 import { cn, normalizeRace } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 import { ExternalLink, Check, Circle, Crown } from "lucide-react";
 import { buildPlayerHref } from "@/lib/player-route";
 
-export type Player = Database['public']['Tables']['players']['Row'];
+export type { Player };
 
 interface PlayerCardProps {
   player: Player

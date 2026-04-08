@@ -273,7 +273,7 @@ async function main() {
       ...(servingStatsByName.get(String(row.name || '').trim()) ? (() => {
         const stats = servingStatsByName.get(String(row.name || '').trim());
         const totalMatches = Number(stats.wins || 0) + Number(stats.losses || 0);
-        const matchHistory = stats.history.slice(0, 100);
+        const matchHistory = stats.history.slice();
         return {
           detailed_stats: buildDetailedStats(matchHistory),
           match_history: matchHistory,
@@ -368,7 +368,17 @@ async function main() {
   console.log('Done.');
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.stack || error.message : String(error));
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.stack || error.message : String(error));
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  buildServingStatsByName,
+  parseCsvLine,
+  parseMatchHistoryFromStableCsv,
+  readCsv,
+  sourceCsvPath,
+};

@@ -3,7 +3,38 @@ import path from "node:path";
 import type { Database } from "@/lib/database.types";
 import { buildTournamentHomeTeams } from "@/lib/tournament-home";
 
-type Player = Database["public"]["Tables"]["players"]["Row"];
+type PlayerRow = Database["public"]["Tables"]["players"]["Row"];
+type Player = Pick<
+  PlayerRow,
+  | "id"
+  | "name"
+  | "race"
+  | "tier"
+  | "university"
+  | "photo_url"
+  | "broadcast_title"
+  | "broadcast_url"
+  | "created_at"
+  | "detailed_stats"
+  | "elo_point"
+  | "eloboard_id"
+  | "is_live"
+  | "last_synced_at"
+  | "nickname"
+  | "soop_id"
+  | "tier_rank"
+  | "total_losses"
+  | "total_wins"
+  | "win_rate"
+  | "gender"
+  | "last_checked_at"
+  | "last_match_at"
+  | "last_changed_at"
+  | "check_priority"
+  | "check_interval_days"
+> & {
+  match_history?: PlayerRow["match_history"] | null;
+};
 
 export type PredictionConfigMatch = {
   id?: string;

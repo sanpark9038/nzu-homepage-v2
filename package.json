@@ -32,6 +32,7 @@
     "pipeline:ops:with-sync": "node scripts/tools/run-ops-pipeline.js --with-supabase-sync",
     "pipeline:ops:freshness": "node scripts/tools/check-ops-pipeline-freshness.js",
     "test:pipeline:daily": "node scripts/tools/run-daily-pipeline.test.js",
+    "test:prod-sync": "node scripts/tools/supabase-prod-sync.test.js",
     "test:roster:sync": "node scripts/tools/sync-team-roster-metadata.test.js",
     "test:metadata:identity": "node scripts/tools/lib/eloboard-special-cases.test.js",
     "pipeline:collect-only": "node scripts/tools/run-ops-pipeline.js --skip-supabase",

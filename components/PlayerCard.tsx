@@ -1,10 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { LiveBadge, RaceTag, TierBadge, WinRateBar, type Race } from "./ui/nzu-badges";
-import { Database } from "@/lib/database.types";
+import type { Player } from "@/types";
 import { buildPlayerHref } from "@/lib/player-route";
-
-export type Player = Database['public']['Tables']['players']['Row'];
 
 export function PlayerCard({ player }: { player: Player }) {
   return (

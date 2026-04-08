@@ -1,6 +1,9 @@
 import type { Database } from "../lib/database.types";
 
-export type Player = Database["public"]["Tables"]["players"]["Row"];
+type PlayerRow = Database["public"]["Tables"]["players"]["Row"];
+export type Player = Omit<PlayerRow, "match_history"> & {
+  match_history?: PlayerRow["match_history"] | null;
+};
 export type Match = Database["public"]["Tables"]["matches"]["Row"];
 export type EloMatch = Database["public"]["Tables"]["eloboard_matches"]["Row"];
 
