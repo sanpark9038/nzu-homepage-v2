@@ -242,6 +242,15 @@ async function main() {
   const chunkSize = String(argValue("--chunk-size", "3")).trim() || "3";
   const inactiveSkipDays = String(argValue("--inactive-skip-days", "14")).trim() || "14";
   const withSupabaseSync = hasFlag("--with-supabase-sync");
+  const collectChunkedArgs = [
+    "--chunk-size",
+    chunkSize,
+    "--inactive-skip-days",
+    inactiveSkipDays,
+  ];
+  if (hasFlag("--no-use-existing-json")) {
+    collectChunkedArgs.push("--no-use-existing-json");
+  }
   const steps = [];
   let status = "pass";
   let errorMessage = null;
@@ -250,12 +259,9 @@ async function main() {
   captureRosterBaseline();
   try {
     steps.push(
-      await runStep("collect_chunked", "scripts/tools/run-ops-pipeline-chunked.js", [
-        "--chunk-size",
-        chunkSize,
-        "--inactive-skip-days",
-        inactiveSkipDays,
-      ], { timeoutMs: stepTimeoutFor("collect_chunked") })
+      await runStep("collect_chunked", "scripts/tools/run-ops-pipeline-chunked.js", collectChunkedArgs, {
+        timeoutMs: stepTimeoutFor("collect_chunked"),
+      })
     );
     if (withSupabaseSync) {
       steps.push(

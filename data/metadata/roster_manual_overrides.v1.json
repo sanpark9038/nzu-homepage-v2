@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-03-26T09:51:57.136Z",
+  "updated_at": "2026-04-08T06:24:40.411Z",
   "description": "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
   "overrides": [
     {
@@ -590,6 +590,86 @@
       "manual_lock": true,
       "manual_mode": "temporary",
       "updated_at": "2026-03-26T09:51:57.135Z"
+    },
+    {
+      "entity_id": "eloboard:male:28",
+      "name": "유승곤",
+      "team_code": "yb",
+      "tier": "킹",
+      "race": "Terran",
+      "manual_lock": true,
+      "manual_mode": "fixed",
+      "updated_at": "2026-04-08T06:22:45.139Z"
+    },
+    {
+      "entity_id": "eloboard:male:671",
+      "name": "쌍디",
+      "team_code": "fa",
+      "tier": "6",
+      "race": "Zerg",
+      "manual_lock": true,
+      "manual_mode": "temporary",
+      "updated_at": "2026-04-08T06:23:48.123Z"
+    },
+    {
+      "entity_id": "eloboard:male:150",
+      "name": "인치호",
+      "team_code": "fa",
+      "tier": "조커",
+      "race": "Zerg",
+      "manual_lock": true,
+      "manual_mode": "temporary",
+      "updated_at": "2026-04-08T06:24:08.846Z"
+    },
+    {
+      "entity_id": "eloboard:male:100",
+      "name": "전흥식",
+      "team_code": "fa",
+      "tier": "조커",
+      "race": "Protoss",
+      "manual_lock": true,
+      "manual_mode": "temporary",
+      "updated_at": "2026-04-08T06:24:14.381Z"
+    },
+    {
+      "entity_id": "eloboard:male:207",
+      "name": "김성제",
+      "team_code": "fa",
+      "tier": "스페이드",
+      "race": "Protoss",
+      "manual_lock": true,
+      "manual_mode": "temporary",
+      "updated_at": "2026-04-08T06:24:21.108Z"
+    },
+    {
+      "entity_id": "eloboard:male:208",
+      "name": "서기수",
+      "team_code": "fa",
+      "tier": "스페이드",
+      "race": "Protoss",
+      "manual_lock": true,
+      "manual_mode": "temporary",
+      "updated_at": "2026-04-08T06:24:27.040Z"
+    },
+    {
+      "entity_id": "eloboard:female:846",
+      "name": "예실",
+      "team_code": "fa",
+      "tier": "5",
+      "race": "Protoss",
+      "manual_lock": true,
+      "manual_mode": "temporary",
+      "updated_at": "2026-04-08T06:24:32.804Z"
+    },
+    {
+      "entity_id": "eloboard:female:627",
+      "name": "연블비",
+      "team_code": "fa",
+      "tier": "6",
+      "race": "Zerg",
+      "manual_lock": true,
+      "manual_mode": "temporary",
+      "updated_at": "2026-04-08T06:24:40.411Z"
     }
   ]
 }

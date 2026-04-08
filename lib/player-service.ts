@@ -15,6 +15,86 @@ const PLAYER_HISTORY_SELECT =
 const MATCH_SERVING_SELECT =
   "*, player1:players!player1_id(id, name, race, photo_url), player2:players!player2_id(id, name, race, photo_url), winner:players!winner_id(id, name)" as const;
 
+type RosterPlayerOverride = {
+  university?: string;
+  tier?: string;
+  race?: string;
+};
+
+function normalizeEntityIdForPlayer(player: Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }) {
+  const rawEloboardId = String(player.eloboard_id || "").trim();
+  if (/^eloboard:(male|female):/i.test(rawEloboardId)) {
+    return rawEloboardId.toLowerCase();
+  }
+  const rawGender = String(player.gender || "").trim().toLowerCase();
+  const gender = rawGender === "male" || rawGender === "female" ? rawGender : "";
+  const wrId = rawEloboardId;
+  if (!gender || !wrId) return null;
+  return `eloboard:${gender}:${wrId}`;
+}
+
+function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
+  const overrides = new Map<string, RosterPlayerOverride>();
+  if (typeof window !== "undefined") return overrides;
+
+  const req = eval("require") as NodeRequire;
+  const fs = req("fs") as typeof import("fs");
+  const path = req("path") as typeof import("path");
+  const projectsDir = path.join(process.cwd(), "data", "metadata", "projects");
+  if (!fs.existsSync(projectsDir)) return overrides;
+
+  const readJson = <T,>(filePath: string): T | null => {
+    try {
+      return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as T;
+    } catch {
+      return null;
+    }
+  };
+
+  const projectDirs = fs
+    .readdirSync(projectsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+
+  for (const code of projectDirs) {
+    const filePath = path.join(projectsDir, code, `players.${code}.v1.json`);
+    const doc = readJson<{ roster?: Array<{ entity_id?: string; team_name?: string; tier?: string; race?: string }> }>(filePath);
+    const roster = Array.isArray(doc?.roster) ? doc.roster : [];
+    for (const player of roster) {
+      const entityId = String(player?.entity_id || "").trim();
+      if (!entityId) continue;
+      overrides.set(entityId, {
+        university: String(player?.team_name || "").trim() || undefined,
+        tier: String(player?.tier || "").trim() || undefined,
+        race: String(player?.race || "").trim() || undefined,
+      });
+    }
+  }
+
+  return overrides;
+}
+
+function applyRosterOverride<T extends Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }>(
+  player: T,
+  overrides: Map<string, RosterPlayerOverride>
+): T {
+  const entityId = normalizeEntityIdForPlayer(player);
+  if (!entityId) return player;
+  const override = overrides.get(entityId);
+  if (!override) return player;
+  return {
+    ...player,
+    university: override.university ?? player.university,
+    tier: override.tier ?? player.tier,
+    race: override.race ?? player.race,
+  };
+}
+
+function applyRosterOverrides<T extends Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }>(players: T[]) {
+  const overrides = loadRosterOverrides();
+  return players.map((player) => applyRosterOverride(player, overrides));
+}
+
 type StoredMatchHistoryItem = {
   match_date?: string | null;
   matchDate?: string | null;
@@ -113,7 +193,7 @@ export const playerService = {
       .order("tier", { ascending: true });
     
     if (error) throw error;
-    return data || [];
+    return applyRosterOverrides(data || []);
   },
 
   /** 특정 ID의 선수 정보 가져오기 */
@@ -125,7 +205,7 @@ export const playerService = {
       .single();
     
     if (error) throw error;
-    return data;
+    return applyRosterOverride(data, loadRosterOverrides());
   },
 
   /** UUID 접두사(8자리 등)로 선수 정보 가져오기 */
@@ -139,7 +219,8 @@ export const playerService = {
       .order("elo_point", { ascending: false, nullsFirst: false });
 
     if (error) throw error;
-    return (data || []).find((player) => String(player.id || "").toLowerCase().startsWith(normalizedPrefix)) || null;
+    const player = (data || []).find((row) => String(row.id || "").toLowerCase().startsWith(normalizedPrefix)) || null;
+    return player ? applyRosterOverride(player, loadRosterOverrides()) : null;
   },
 
   /** 현재 방송 중인 선수들만 가져오기 */
@@ -151,7 +232,7 @@ export const playerService = {
       .order("elo_point", { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    return applyRosterOverrides(data || []);
   },
 
   /** 특정 선수의 매치 기록 가져오기 */
@@ -216,30 +297,21 @@ export const playerService = {
       .limit(10);
     
     if (error) throw error;
-    return data || [];
+    return applyRosterOverrides(data || []);
   },
 
   /** 모든 대학 목록 가져오기 */
   async getAllUniversities() {
-    const { data, error } = await supabase
-      .from("players")
-      .select("university")
-      .not("university", "is", null);
-    
-    if (error) throw error;
-    const univs = Array.from(new Set(data.map(item => item.university)));
+    const players = await this.getAllPlayers();
+    const univs = Array.from(new Set(players.map((item) => item.university)));
     return (univs as string[]).filter(Boolean).sort();
   },
 
   /** 특정 대학의 선수 목록 가져오기 */
   async getPlayersByUniversity(univ: string) {
-    const { data, error } = await supabase
-      .from("players")
-      .select(PLAYER_SERVING_SELECT[0])
-      .eq("university", univ)
-      .order("name", { ascending: true });
-    
-    if (error) throw error;
-    return data || [];
+    const players = await this.getAllPlayers();
+    return players
+      .filter((player) => String(player.university || "") === univ)
+      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ko"));
   }
 };
