@@ -32,7 +32,8 @@ export function PlayerCard({
   isCaptain = false,
 }: PlayerCardProps) {
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
-  const [tierPreviewAlign, setTierPreviewAlign] = useState<"center" | "left" | "right">("center");
+  const [isTierPreviewVisible, setIsTierPreviewVisible] = useState(false);
+  const [tierPreviewStyle, setTierPreviewStyle] = useState<{ left: number; top: number } | null>(null);
   const tierPreviewAnchorRef = useRef<HTMLDivElement | null>(null);
   const race = normalizeRace(player.race);
   const isLive = player.is_live ?? false;
@@ -51,7 +52,7 @@ export function PlayerCard({
     setThumbnailFailed(false);
   }, [player.id, player.live_thumbnail_url]);
 
-  function updateTierPreviewAlign() {
+  function updateTierPreviewPosition() {
     if (!isTierVariant || !isLive || typeof window === "undefined") return;
     const anchor = tierPreviewAnchorRef.current;
     if (!anchor) return;
@@ -60,20 +61,24 @@ export function PlayerCard({
     const viewportPadding = 20;
     const rect = anchor.getBoundingClientRect();
     const centeredLeft = rect.left + rect.width / 2 - previewWidth / 2;
-    const centeredRight = centeredLeft + previewWidth;
-
-    if (centeredLeft < viewportPadding) {
-      setTierPreviewAlign("left");
-      return;
-    }
-
-    if (centeredRight > window.innerWidth - viewportPadding) {
-      setTierPreviewAlign("right");
-      return;
-    }
-
-    setTierPreviewAlign("center");
+    const clampedLeft = Math.min(
+      Math.max(centeredLeft, viewportPadding),
+      window.innerWidth - previewWidth - viewportPadding
+    );
+    const top = Math.max(rect.top - 281 - 14, viewportPadding);
+    setTierPreviewStyle({ left: clampedLeft, top });
   }
+
+  useEffect(() => {
+    if (!isTierPreviewVisible) return;
+    const handleViewportChange = () => updateTierPreviewPosition();
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+    return () => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
+  }, [isTierPreviewVisible]);
 
   const raceStyles = {
     'Terran': {
@@ -149,7 +154,11 @@ export function PlayerCard({
           <div
             ref={tierPreviewAnchorRef}
             className="relative h-[140px] w-[132px]"
-            onMouseEnter={updateTierPreviewAlign}
+            onMouseEnter={() => {
+              updateTierPreviewPosition();
+              setIsTierPreviewVisible(true);
+            }}
+            onMouseLeave={() => setIsTierPreviewVisible(false)}
           >
             <div className="relative h-full w-full overflow-hidden rounded-xl bg-muted">
               <Image
@@ -183,12 +192,13 @@ export function PlayerCard({
                     </p>
                   </div>
                 </div>
-                <div className={cn(
-                  "pointer-events-none absolute bottom-[calc(100%+0.9rem)] z-30 hidden w-[31rem] overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#061015] opacity-0 shadow-[0_24px_52px_rgba(0,0,0,0.42)] transition-all duration-200 md:block md:translate-y-2 md:scale-[0.98] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100",
-                  tierPreviewAlign === "left" && "left-0",
-                  tierPreviewAlign === "center" && "left-1/2 -translate-x-1/2",
-                  tierPreviewAlign === "right" && "right-0"
-                )}>
+                <div
+                  className={cn(
+                    "pointer-events-none fixed z-[120] hidden w-[31rem] overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#061015] shadow-[0_24px_52px_rgba(0,0,0,0.42)] transition-all duration-200 md:block",
+                    isTierPreviewVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-[0.98] opacity-0"
+                  )}
+                  style={tierPreviewStyle ? { left: `${tierPreviewStyle.left}px`, top: `${tierPreviewStyle.top}px` } : undefined}
+                >
                   <div className="relative aspect-[16/9] w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
                     {player.live_thumbnail_url && !thumbnailFailed ? (
                       <Image
