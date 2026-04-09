@@ -153,7 +153,7 @@ export function PlayerCard({
                     </p>
                   </div>
                 </div>
-                <div className="pointer-events-none absolute bottom-[calc(100%+0.7rem)] left-1/2 z-30 hidden w-[18rem] -translate-x-1/2 overflow-hidden rounded-[1rem] border border-white/10 bg-[#061015] opacity-0 shadow-[0_20px_45px_rgba(0,0,0,0.38)] transition-all duration-200 md:block md:translate-y-2 md:scale-[0.98] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100">
+                <div className="pointer-events-none absolute bottom-[calc(100%+0.9rem)] left-1/2 z-30 hidden w-[24rem] -translate-x-1/2 overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#061015] opacity-0 shadow-[0_24px_52px_rgba(0,0,0,0.42)] transition-all duration-200 md:block md:translate-y-2 md:scale-[0.98] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100">
                   <div className="relative aspect-[16/9] w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
                     {player.live_thumbnail_url && !thumbnailFailed ? (
                       <Image
@@ -166,21 +166,21 @@ export function PlayerCard({
                       />
                     ) : null}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-                    <div className="absolute left-3 top-3 flex items-center gap-2">
-                      <div className="inline-flex items-center rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
+                    <div className="absolute left-4 top-4 flex items-center gap-2.5">
+                      <div className="inline-flex items-center rounded-full bg-red-600 px-2.5 py-0.5 text-[11px] font-black tracking-tight text-white shadow-lg">
                         LIVE
                       </div>
                       {player.live_viewers ? (
-                        <div className="inline-flex items-center rounded-full border border-white/12 bg-black/45 px-2 py-0.5 text-[10px] font-[1000] tracking-tight text-white">
+                        <div className="inline-flex items-center rounded-full border border-white/12 bg-black/45 px-2.5 py-0.5 text-[11px] font-[1000] tracking-tight text-white">
                           {player.live_viewers}명 시청 중
                         </div>
                       ) : null}
                     </div>
-                    <div className="absolute inset-x-0 bottom-0 p-3">
-                      <p className="line-clamp-2 text-[0.95rem] font-[1000] leading-snug text-white">
+                    <div className="absolute inset-x-0 bottom-0 p-4">
+                      <p className="line-clamp-2 text-[1.08rem] font-[1000] leading-snug text-white">
                         {liveTitle}
                       </p>
-                      <div className="mt-1 text-[0.72rem] font-[900] tracking-tight text-white/68">
+                      <div className="mt-1.5 text-[0.84rem] font-[900] tracking-tight text-white/68">
                         <span className="truncate">{player.name}</span>
                       </div>
                     </div>
