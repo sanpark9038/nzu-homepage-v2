@@ -39,6 +39,8 @@ function resolveProfileKind(entry) {
   const eloId = trim(entry.elo_id);
   const tierGroup = trim(entry.tier_group).toLowerCase();
   if (/bo_table=bj_m_list/i.test(customUrl)) return "mix";
+  if (/\/men\//i.test(customUrl)) return "male";
+  if (/\/women\//i.test(customUrl)) return "female";
   if (eloId && tierGroup === "women") return "female";
   if (eloId && tierGroup === "men") return "male";
   if (customUrl) return "custom";

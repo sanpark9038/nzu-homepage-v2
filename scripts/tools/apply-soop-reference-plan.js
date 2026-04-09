@@ -45,9 +45,17 @@ function main() {
     throw new Error("scripts/player_metadata.json must be an array");
   }
 
-  const byWrId = new Map(
-    metadata.map((row) => [Number(row && row.wr_id), row]).filter(([wrId]) => Number.isFinite(wrId))
-  );
+  const byWrId = new Map();
+  const byWrGender = new Map();
+  for (const row of metadata) {
+    const wrId = Number(row && row.wr_id);
+    const gender = trim(row && row.gender).toLowerCase();
+    if (!Number.isFinite(wrId)) continue;
+    const bucket = byWrId.get(wrId) || [];
+    bucket.push(row);
+    byWrId.set(wrId, bucket);
+    if (gender) byWrGender.set(`${wrId}:${gender}`, row);
+  }
 
   const applied = [];
   const skippedMissingRow = [];
@@ -55,13 +63,18 @@ function main() {
 
   for (const update of Array.isArray(plan.safe_metadata_updates) ? plan.safe_metadata_updates : []) {
     const wrId = Number(update && update.wr_id);
+    const metadataGender = trim(update && update.metadata_gender).toLowerCase();
     const incomingSoopId = trim(update && update.soop_user_id);
     if (!Number.isFinite(wrId) || !incomingSoopId) continue;
 
-    const row = byWrId.get(wrId) || null;
+    const wrCandidates = byWrId.get(wrId) || [];
+    const row =
+      (metadataGender && byWrGender.get(`${wrId}:${metadataGender}`)) ||
+      (wrCandidates.length === 1 ? wrCandidates[0] : null);
     if (!row) {
       skippedMissingRow.push({
         wr_id: wrId,
+        metadata_gender: metadataGender || null,
         soop_user_id: incomingSoopId,
         reason: "metadata_row_not_found",
       });

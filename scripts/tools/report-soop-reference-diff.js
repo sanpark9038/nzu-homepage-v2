@@ -47,16 +47,23 @@ function buildAliasMaps(mappingsDoc) {
 
 function buildMetadataIndexes(metadata) {
   const byWrId = new Map();
+  const byWrGender = new Map();
   const byName = new Map();
   const withSoop = [];
   for (const row of Array.isArray(metadata) ? metadata : []) {
     const wrId = Number(row && row.wr_id);
+    const gender = trim(row && row.gender).toLowerCase();
     const name = trim(row && row.name);
-    if (Number.isFinite(wrId)) byWrId.set(wrId, row);
+    if (Number.isFinite(wrId)) {
+      const bucket = byWrId.get(wrId) || [];
+      bucket.push(row);
+      byWrId.set(wrId, bucket);
+      if (gender) byWrGender.set(`${wrId}:${gender}`, row);
+    }
     if (name && !byName.has(name)) byName.set(name, row);
     if (trim(row && row.soop_user_id)) withSoop.push(row);
   }
-  return { byWrId, byName, withSoop };
+  return { byWrId, byWrGender, byName, withSoop };
 }
 
 function buildReferenceIndexes(records) {
@@ -116,6 +123,16 @@ function pickAliasTarget(row, aliasMaps, metadataIndexes) {
   return null;
 }
 
+function inferExpectedMetadataGender(row) {
+  const profileKind = trim(row && row.elo_ref && row.elo_ref.profile_kind).toLowerCase();
+  const customUrl = trim(row && row.elo_ref && row.elo_ref.custom_url).toLowerCase();
+  if (profileKind === "male" || profileKind === "mix") return "male";
+  if (profileKind === "female") return "female";
+  if (customUrl.includes("/men/")) return "male";
+  if (customUrl.includes("/women/")) return "female";
+  return null;
+}
+
 function summarize(report) {
   return {
     records_total: report.records_total,
@@ -164,7 +181,14 @@ function main() {
   for (const row of records) {
     const wrId = Number(row && row.elo_ref && row.elo_ref.wr_id);
     const sourceName = trim(row && row.source_name);
-    const directWrTarget = Number.isFinite(wrId) ? metadataIndexes.byWrId.get(wrId) || null : null;
+    const expectedGender = inferExpectedMetadataGender(row);
+    const wrCandidates = Number.isFinite(wrId) ? metadataIndexes.byWrId.get(wrId) || [] : [];
+    const directWrTarget = Number.isFinite(wrId)
+      ? (
+          (expectedGender && metadataIndexes.byWrGender.get(`${wrId}:${expectedGender}`)) ||
+          (wrCandidates.length === 1 ? wrCandidates[0] : null)
+        )
+      : null;
     const exactNameTarget = sourceName ? metadataIndexes.byName.get(sourceName) || null : null;
     const aliasTarget = pickAliasTarget(row, aliasMaps, metadataIndexes);
 
