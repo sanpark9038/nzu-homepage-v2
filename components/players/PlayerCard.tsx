@@ -129,6 +129,15 @@ export function PlayerCard({
   const isTierVariant = variant === "tier";
   const tierShellClass = "max-w-52 rounded-2xl border-[3px]";
   const tierContentClass = "gap-2 px-3.5 py-3";
+  const handleTierPreviewEnter = () => {
+    if (!isTierVariant || !isLive) return;
+    updateTierPreviewPosition();
+    setIsTierPreviewVisible(true);
+  };
+  const handleTierPreviewLeave = () => {
+    if (!isTierVariant || !isLive) return;
+    setIsTierPreviewVisible(false);
+  };
 
   return (
     <div className={cn(
@@ -141,7 +150,10 @@ export function PlayerCard({
       currentStyles.glow,
       isLive && "ring-2 ring-nzu-live ring-offset-2 ring-offset-background",
       className
-    )}>
+    )}
+      onMouseEnter={handleTierPreviewEnter}
+      onMouseLeave={handleTierPreviewLeave}
+    >
       {/* 카드 상단: 이미지 & 필터 레이어 */}
       <div
         className={cn(
@@ -154,11 +166,6 @@ export function PlayerCard({
           <div
             ref={tierPreviewAnchorRef}
             className="relative h-[140px] w-[132px]"
-            onMouseEnter={() => {
-              updateTierPreviewPosition();
-              setIsTierPreviewVisible(true);
-            }}
-            onMouseLeave={() => setIsTierPreviewVisible(false)}
           >
             <div className="relative h-full w-full overflow-hidden rounded-xl bg-muted">
               <Image
