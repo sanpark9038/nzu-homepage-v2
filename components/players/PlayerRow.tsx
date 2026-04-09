@@ -4,9 +4,11 @@ import Image from "next/image";
 import { RaceTag, TierBadge, WinRateBar, type Race } from "../ui/nzu-badges";
 import { Player } from "./PlayerCard";
 import { buildPlayerHref } from "@/lib/player-route";
+import { resolveSoopChannelImageUrl } from "@/lib/soop";
 
 /** 가로형 선수 행 (테이블/리스트용) */
 export function PlayerRow({ player, rank }: { player: Player; rank?: number }) {
+  const profileImageUrl = resolveSoopChannelImageUrl(player) || player.photo_url || null;
   return (
     <Link href={buildPlayerHref(player)}>
       <div className="
@@ -22,8 +24,8 @@ export function PlayerRow({ player, rank }: { player: Player; rank?: number }) {
         {/* 프로필 + 이름 */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="relative w-8 h-8 rounded-full overflow-hidden bg-muted/20 flex-shrink-0 border border-border/40">
-            {player.photo_url ? (
-              <Image src={player.photo_url} alt={player.name} fill className="object-cover" sizes="32px" />
+            {profileImageUrl ? (
+              <Image src={profileImageUrl} alt={player.name} fill className="object-cover" sizes="32px" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground/50">
                 {player.name[0]}

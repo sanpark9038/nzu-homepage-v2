@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'ssustar.iwinv.net' },
       { protocol: 'https', hostname: 'www.cnine.kr' },
       { protocol: 'https', hostname: 'liveimg.sooplive.com' },
+      { protocol: 'https', hostname: 'stimg.sooplive.com' },
+      { protocol: 'https', hostname: 'profile.img.sooplive.com' },
+      { protocol: 'https', hostname: 'profile.img.sooplive.co.kr' },
     ],
   },
 };

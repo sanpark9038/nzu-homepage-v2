@@ -6,7 +6,7 @@ import Link from "next/link";
 import { RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
 import { type Player } from "@/lib/player-service";
 import { cn, normalizeTier } from "@/lib/utils";
-import { resolveSoopWatchUrl } from "@/lib/soop";
+import { resolveSoopChannelImageUrl, resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
 
 type RaceSummary = {
   race: Race;
@@ -75,6 +75,19 @@ function normalizeRaceValue(race: string | null | undefined): Race {
   return "T";
 }
 
+function formatLiveElapsed(value: string | null | undefined) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const startedAt = new Date(raw.replace(" ", "T"));
+  if (Number.isNaN(startedAt.getTime())) return null;
+  const diffMs = Date.now() - startedAt.getTime();
+  if (diffMs < 0) return null;
+  const hours = Math.floor(diffMs / (60 * 60 * 1000));
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  return `${days}일 전`;
+}
+
 export default function PlayerSearchResult({
   player,
   raceSummaries,
@@ -88,6 +101,7 @@ export default function PlayerSearchResult({
 }: Props) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [visibleRecentCount, setVisibleRecentCount] = useState(5);
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const normTier = normalizeTier(player.tier);
   const isElite = ["갓", "킹"].includes(normTier);
   const themeColor = isElite ? "rgba(255, 215, 0, 0.28)" : "rgba(0, 255, 163, 0.22)";
@@ -98,7 +112,10 @@ export default function PlayerSearchResult({
   const hasRaceData = raceSummaries.some((item) => item.hasRecord);
   const hasRaceBestMaps = raceBestMaps.some((item) => item.bestMap);
   const hasSpawnPartner = Boolean(spawnPartner);
-  const soopWatchUrl = resolveSoopWatchUrl(player);
+  const channelUrl = resolveSoopChannelUrl(player);
+  const liveWatchUrl = player.is_live ? resolveSoopWatchUrl(player) : null;
+  const liveElapsedText = formatLiveElapsed(player.live_started_at);
+  const profileImageUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "/placeholder-player.png";
 
   useEffect(() => {
     setVisibleRecentCount(5);
@@ -107,6 +124,10 @@ export default function PlayerSearchResult({
   useEffect(() => {
     setIsExpanded(defaultExpanded);
   }, [defaultExpanded, player.id]);
+
+  useEffect(() => {
+    setThumbnailFailed(false);
+  }, [player.id, player.live_thumbnail_url]);
 
   function handleToggleExpanded() {
     setIsExpanded((prev) => {
@@ -118,21 +139,32 @@ export default function PlayerSearchResult({
   }
 
   return (
-    <div className="overflow-hidden rounded-[1.55rem] border border-white/8 bg-white/[0.03] px-4 py-4 md:px-6 md:py-5 xl:px-7 xl:py-6">
+    <div className="overflow-hidden rounded-[1.55rem] border border-white/8 bg-white/[0.03] px-4 py-4 md:overflow-visible md:px-6 md:py-5 xl:px-7 xl:py-6">
       <div className="grid gap-5 md:grid-cols-[112px_minmax(0,1fr)_220px] md:grid-rows-[112px_auto]">
         <div className="md:row-span-2">
-          <div className="w-28 shrink-0">
-            <div className="group relative h-28 w-28 overflow-hidden rounded-[1.15rem] border border-white/10 bg-black/30">
-              {soopWatchUrl ? (
-                <Link href={soopWatchUrl} target="_blank" rel="noreferrer" className="block h-full w-full">
-                  <Image src={player.photo_url || "/placeholder-player.png"} alt={player.name} fill className="object-cover object-top transition-transform duration-300 hover:scale-105" />
+          <div className="group relative w-28 shrink-0">
+            <div className="relative h-28 w-28 overflow-hidden rounded-[1.15rem] border border-white/10 bg-black/30">
+              {liveWatchUrl ? (
+                <Link href={liveWatchUrl} target="_blank" rel="noreferrer" className="block h-full w-full">
+                  <Image src={profileImageUrl} alt={player.name} fill className="object-cover object-top transition-transform duration-300 hover:scale-105" />
                 </Link>
               ) : (
-                <Image src={player.photo_url || "/placeholder-player.png"} alt={player.name} fill className="object-cover object-top" />
+                <Image src={profileImageUrl} alt={player.name} fill className="object-cover object-top" />
               )}
-              {player.is_live && player.live_thumbnail_url ? (
-                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                  <Image src={player.live_thumbnail_url} alt={`${player.name} live thumbnail`} fill className="object-cover" />
+              {player.is_live ? (
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:hidden">
+                  {player.live_thumbnail_url && !thumbnailFailed ? (
+                    <Image
+                      src={player.live_thumbnail_url}
+                      alt={`${player.name} live thumbnail`}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                      onError={() => setThumbnailFailed(true)}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,14,18,0.22),rgba(3,6,8,0.88))]" />
+                  )}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-2 py-2">
                     <p className="line-clamp-2 text-[10px] font-[1000] leading-tight text-white">
                       {player.broadcast_title || `${player.name} 현재 방송`}
@@ -146,16 +178,56 @@ export default function PlayerSearchResult({
                 </div>
               ) : null}
             </div>
+            {player.is_live ? (
+              <div className="pointer-events-none absolute bottom-[calc(100%+0.9rem)] left-[-1rem] z-20 hidden w-[29rem] overflow-hidden rounded-[1rem] border border-white/10 bg-[#061015] opacity-0 shadow-[0_20px_45px_rgba(0,0,0,0.38)] transition-all duration-200 md:block md:translate-y-2 md:scale-[0.98] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100">
+                <div className="relative aspect-[16/9] w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
+                  {player.live_thumbnail_url && !thumbnailFailed ? (
+                    <Image
+                      src={player.live_thumbnail_url}
+                      alt={`${player.name} live preview`}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                      onError={() => setThumbnailFailed(true)}
+                    />
+                  ) : null}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                  <div className="absolute left-4 top-4 flex items-center gap-2">
+                    <div className="inline-flex items-center rounded-full bg-red-600 px-2.5 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
+                      LIVE
+                    </div>
+                    {player.live_viewers ? (
+                      <div className="inline-flex items-center rounded-full border border-white/12 bg-black/45 px-2.5 py-0.5 text-[11px] font-[1000] tracking-tight text-white">
+                        {player.live_viewers}명 시청 중
+                      </div>
+                    ) : null}
+                    {liveElapsedText ? (
+                      <div className="inline-flex items-center rounded-full border border-white/12 bg-black/45 px-2.5 py-0.5 text-[11px] font-[1000] tracking-tight text-white">
+                        {liveElapsedText}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 p-4">
+                    <p className="line-clamp-2 text-[1.06rem] font-[1000] leading-snug text-white">
+                      {player.broadcast_title || `${player.name} 현재 방송`}
+                    </p>
+                    <div className="mt-2 text-[0.78rem] font-[900] tracking-tight text-white/68">
+                      <span className="truncate">{player.name}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             <div className="mt-3 text-center">
               <h2 className="text-[1.36rem] font-[1000] tracking-tight text-white md:text-[1.54rem] xl:text-[1.66rem]">{player.name}</h2>
               {player.nickname ? <p className="mt-1 text-[0.82rem] font-[1000] tracking-tight text-white/42 md:text-[0.86rem]">{player.nickname}</p> : null}
-              {soopWatchUrl ? (
-                <a href={soopWatchUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[0.95rem] border border-sky-400/20 bg-sky-400/[0.09] px-3 text-[0.9rem] font-[1000] tracking-tight text-sky-300 transition-all hover:border-sky-300/36 hover:bg-sky-400/[0.16] hover:text-white md:h-10 md:text-[0.94rem]">
+              {channelUrl ? (
+                <a href={channelUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[0.95rem] border border-sky-400/20 bg-sky-400/[0.09] px-3 text-[0.9rem] font-[1000] tracking-tight text-sky-300 transition-all hover:border-sky-300/36 hover:bg-sky-400/[0.16] hover:text-white md:h-10 md:text-[0.94rem]">
                   방송국 이동
                 </a>
               ) : (
-                <button type="button" disabled className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[0.95rem] border border-sky-400/10 bg-sky-400/[0.04] px-3 text-[0.9rem] font-[1000] tracking-tight text-sky-200/25 md:h-10 md:text-[0.94rem]">
-                  방송 링크 없음
+                <button type="button" disabled aria-disabled="true" className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-[0.95rem] border border-white/12 bg-white/[0.05] px-3 text-[0.9rem] font-[1000] tracking-tight text-white/50 md:h-10 md:text-[0.94rem]">
+                  방송국 이동
                 </button>
               )}
             </div>

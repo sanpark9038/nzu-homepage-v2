@@ -10,7 +10,7 @@ import { cn, normalizeRace } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 import { ExternalLink, Check, Circle, Crown } from "lucide-react";
 import { buildPlayerHref } from "@/lib/player-route";
-import { resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
+import { resolveSoopChannelImageUrl, resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
 
 export type { Player };
 
@@ -37,7 +37,7 @@ export function PlayerCard({
   
   // 가상 데이터 (추후 API 연동 예정)
   const isLive = player.is_live ?? false;
-  const profileUrl = player.photo_url || "";
+  const profileUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "";
   
   const soopWatchUrl = resolveSoopWatchUrl(player);
   const soopChannelUrl = resolveSoopChannelUrl(player);
