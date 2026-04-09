@@ -730,7 +730,7 @@
   {
     "wr_id": 304,
     "name": "라히",
-    "gender": "female",
+    "gender": "male",
     "soop_user_id": "khc2566"
   },
   {
@@ -926,9 +926,15 @@
     "soop_user_id": "s2appeal"
   },
   {
+    "wr_id": 76,
+    "name": "김쵸아",
+    "gender": "female",
+    "soop_user_id": "s1on0106"
+  },
+  {
     "wr_id": 486,
     "name": "팔레트",
-    "gender": "female",
+    "gender": "male",
     "soop_user_id": "skarbwhgc"
   },
   {
@@ -1237,10 +1243,22 @@
     "soop_user_id": "ftrudals"
   },
   {
+    "wr_id": 1009,
+    "name": "유녜",
+    "gender": "female",
+    "soop_user_id": "ktulsun00"
+  },
+  {
     "wr_id": 690,
     "name": "몽순",
     "gender": "female",
     "soop_user_id": "totlllsz"
+  },
+  {
+    "wr_id": 124,
+    "name": "박재현",
+    "gender": "male",
+    "soop_user_id": "parkjaehyeon"
   },
   {
     "wr_id": 772,
