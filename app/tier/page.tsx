@@ -193,7 +193,7 @@ export default async function TierPage({
         <div className="max-w-[1800px] mx-auto px-16 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex flex-col gap-1 items-center md:items-start text-center md:text-left">
             <span className="text-[13px] font-black text-nzu-green uppercase tracking-widest transition-colors mb-2">
-              티어표 출처: 스타펨코
+              티어표 출처: NZU ARCHIVE
             </span>
             <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-[0.2em]">
               © 2026 NZU UNIVERSITY. 모든 권리 보유.

@@ -41,7 +41,8 @@ export function PlayerCard({
   
   const soopWatchUrl = resolveSoopWatchUrl(player);
   const soopChannelUrl = resolveSoopChannelUrl(player);
-  const soopLinkLabel = soopChannelUrl ? "방송국 이동" : "";
+  const hoverSoopHref = isLive ? soopWatchUrl : soopChannelUrl;
+  const hoverSoopLabel = isLive ? "LIVE 시청" : soopChannelUrl ? "방송국 이동" : "";
 
   const raceStyles = {
     'Terran': {
@@ -132,14 +133,14 @@ export function PlayerCard({
             전적 보기
           </Link>
           
-          {soopWatchUrl ? (
+          {hoverSoopHref ? (
             <a 
-              href={soopWatchUrl}
+              href={hoverSoopHref}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full py-2.5 rounded-full bg-white/10 text-white text-[12px] font-black uppercase tracking-tighter transition-all border border-white/20 hover:bg-white/30 backdrop-blur-md text-center transform translate-y-4 group-hover:translate-y-0 delay-75 flex items-center justify-center gap-1.5"
             >
-              <span>{soopLinkLabel}</span>
+              <span>{hoverSoopLabel}</span>
               <ExternalLink size={12} />
             </a>
           ) : (
