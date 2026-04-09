@@ -541,6 +541,54 @@
       "decision": "include",
       "soop_requirement": "required",
       "elo_requirement": "required"
+    },
+    {
+      "source_name": "쿨지지",
+      "soop_user_id": "khy12088wsss",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "not_required",
+      "notes": "SOOP only"
+    },
+    {
+      "source_name": "킹봄",
+      "soop_user_id": "nbomichae7",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "pending_registration",
+      "notes": "ELO required but id does not exist yet"
+    },
+    {
+      "source_name": "하얀눈길",
+      "soop_user_id": "qksdy147",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "not_required",
+      "notes": "SOOP only"
+    },
+    {
+      "source_name": "하윤",
+      "soop_user_id": "tndkekdy",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "pending_registration",
+      "notes": "ELO required but id does not exist yet"
+    },
+    {
+      "source_name": "혁민",
+      "soop_user_id": "suhi370erw",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "not_required",
+      "notes": "SOOP only"
+    },
+    {
+      "source_name": "현설",
+      "soop_user_id": "hyeon22",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "pending_registration",
+      "notes": "ELO required but id does not exist yet"
     }
   ]
 }
