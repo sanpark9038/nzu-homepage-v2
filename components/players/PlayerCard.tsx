@@ -1,7 +1,8 @@
 
 'use client'
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { TierBadge } from "../ui/nzu-badges";
@@ -32,8 +33,13 @@ export function PlayerCard({
   isCaptain = false,
 }: PlayerCardProps) {
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
+  const [isTierPreviewVisible, setIsTierPreviewVisible] = useState(false);
+  const [tierPreviewStyle, setTierPreviewStyle] = useState<{ left: number; top: number } | null>(null);
+  const tierPreviewAnchorRef = useRef<HTMLDivElement | null>(null);
   const race = normalizeRace(player.race);
   const isLive = player.is_live ?? false;
+  const isHomeVariant = variant === "home";
+  const isTierVariant = variant === "tier";
   const profileUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "";
   
   const soopWatchUrl = resolveSoopWatchUrl(player);
@@ -48,6 +54,35 @@ export function PlayerCard({
   useEffect(() => {
     setThumbnailFailed(false);
   }, [player.id, player.live_thumbnail_url]);
+
+  function updateTierPreviewPosition() {
+    if (!isTierVariant || !isLive || typeof window === "undefined") return;
+    const anchor = tierPreviewAnchorRef.current;
+    if (!anchor) return;
+
+    const previewWidth = 496;
+    const previewHeight = 279;
+    const viewportPadding = 20;
+    const rect = anchor.getBoundingClientRect();
+    const centeredLeft = rect.left + rect.width / 2 - previewWidth / 2;
+    const left = Math.min(
+      Math.max(centeredLeft, viewportPadding),
+      window.innerWidth - previewWidth - viewportPadding
+    );
+    const top = Math.max(rect.top - previewHeight - 14, viewportPadding);
+    setTierPreviewStyle({ left, top });
+  }
+
+  useEffect(() => {
+    if (!isTierPreviewVisible || !isTierVariant || !isLive) return;
+    const handleViewportChange = () => updateTierPreviewPosition();
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+    return () => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
+  }, [isTierPreviewVisible, isTierVariant, isLive]);
 
   const raceStyles = {
     'Terran': {
@@ -94,12 +129,11 @@ export function PlayerCard({
 
   const currentRaceKey = raceMap[race] || 'Random';
   const currentStyles = raceStyles[currentRaceKey];
-  const isHomeVariant = variant === "home";
-  const isTierVariant = variant === "tier";
   const tierShellClass = "max-w-52 rounded-2xl border-[3px]";
   const tierContentClass = "gap-2 px-3.5 py-3";
 
   return (
+    <>
     <div className={cn(
       "group relative flex w-full flex-col bg-card border-2 transition-all duration-300 hover:-translate-y-1",
       isTierVariant ? "overflow-visible" : "overflow-hidden",
@@ -110,7 +144,17 @@ export function PlayerCard({
       currentStyles.glow,
       isLive && "ring-2 ring-nzu-live ring-offset-2 ring-offset-background",
       className
-    )}>
+    )}
+      onMouseEnter={() => {
+        if (!isTierVariant || !isLive) return;
+        updateTierPreviewPosition();
+        setIsTierPreviewVisible(true);
+      }}
+      onMouseLeave={() => {
+        if (!isTierVariant || !isLive) return;
+        setIsTierPreviewVisible(false);
+      }}
+    >
       {/* 카드 상단: 이미지 & 필터 레이어 */}
       <div
         className={cn(
@@ -120,43 +164,21 @@ export function PlayerCard({
         )}
       >
         {isTierVariant ? (
-          <div className="relative h-[140px] w-[132px]">
+          <div ref={tierPreviewAnchorRef} className="relative h-[140px] w-[132px]">
             <div className="relative h-full w-full overflow-hidden rounded-xl bg-muted">
               <Image
-                src={isLive && player.live_thumbnail_url && !thumbnailFailed ? player.live_thumbnail_url : (profileUrl || "/placeholder-player.png")}
+                src={profileUrl || "/placeholder-player.png"}
                 alt={player.name}
                 width={132}
                 height={140}
                 sizes="132px"
                 unoptimized
                 className="h-full w-full object-cover object-top"
-                onError={() => setThumbnailFailed(true)}
               />
               {isLive ? (
                 <>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/35 to-transparent" />
                   <div className="absolute left-2 top-2 inline-flex items-center rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
                     LIVE
-                  </div>
-                  <div className="absolute right-2 top-2 h-8 w-8 overflow-hidden rounded-full border border-white/20 bg-black/40">
-                    <Image
-                      src={profileUrl || "/placeholder-player.png"}
-                      alt={`${player.name} profile`}
-                      width={32}
-                      height={32}
-                      sizes="32px"
-                      unoptimized
-                      className="h-full w-full object-cover object-top"
-                    />
-                  </div>
-                  <div className="absolute inset-x-0 bottom-0 p-2.5">
-                    <p className="line-clamp-2 text-[0.88rem] font-[1000] leading-tight text-white">
-                      {liveTitle}
-                    </p>
-                    <div className="mt-1 flex items-center justify-between gap-2 text-[0.7rem] font-[900] tracking-tight text-white/72">
-                      <span className="truncate">{player.name}</span>
-                      {player.live_viewers ? <span className="shrink-0">{player.live_viewers}명</span> : null}
-                    </div>
                   </div>
                 </>
               ) : null}
@@ -337,5 +359,58 @@ export function PlayerCard({
         </div>
       </div>
     </div>
+    {isTierVariant && isLive && isTierPreviewVisible && tierPreviewStyle && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="pointer-events-none fixed z-[140] hidden w-[31rem] overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#061015] shadow-[0_24px_52px_rgba(0,0,0,0.42)] md:block"
+            style={{ left: `${tierPreviewStyle.left}px`, top: `${tierPreviewStyle.top}px` }}
+          >
+            <div className="relative aspect-[16/9] w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
+              {player.live_thumbnail_url && !thumbnailFailed ? (
+                <Image
+                  src={player.live_thumbnail_url}
+                  alt={`${player.name} live preview`}
+                  fill
+                  unoptimized
+                  className="object-cover"
+                  onError={() => setThumbnailFailed(true)}
+                />
+              ) : null}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+              <div className="absolute left-4 top-4 flex items-center gap-2.5">
+                <div className="inline-flex items-center rounded-full bg-red-600 px-3 py-1 text-[12px] font-black tracking-tight text-white shadow-lg">
+                  LIVE
+                </div>
+                {player.live_viewers ? (
+                  <div className="inline-flex items-center rounded-full border border-white/12 bg-black/45 px-3 py-1 text-[12px] font-[1000] tracking-tight text-white">
+                    {player.live_viewers}명 시청 중
+                  </div>
+                ) : null}
+              </div>
+              <div className="absolute right-4 top-4 h-10 w-10 overflow-hidden rounded-full border border-white/20 bg-black/40">
+                <Image
+                  src={profileUrl || "/placeholder-player.png"}
+                  alt={`${player.name} profile`}
+                  width={40}
+                  height={40}
+                  sizes="40px"
+                  unoptimized
+                  className="h-full w-full object-cover object-top"
+                />
+              </div>
+              <div className="absolute inset-x-0 bottom-0 p-4">
+                <p className="line-clamp-2 text-[1.16rem] font-[1000] leading-snug text-white">
+                  {liveTitle}
+                </p>
+                <div className="mt-1.5 text-[0.9rem] font-[900] tracking-tight text-white/68">
+                  <span className="truncate">{player.name}</span>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null}
+    </>
   );
 }
