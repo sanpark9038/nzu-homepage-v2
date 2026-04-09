@@ -13,7 +13,9 @@
     "오조은": "조은",
     "쿰신": "박재현",
     "초난강": "유규민",
-    "소윤": "정소윤"
+    "소윤": "정소윤",
+    "탱크": "박단원",
+    "빡죠스": "박종승"
   },
   "mappings": [
     { "name": "정중만", "soop_user_id": "ititit", "source": "ref11" },
@@ -51,6 +53,7 @@
     { "name": "지동원", "soop_user_id": "rondobba", "source": "ref22" },
     { "name": "배병우", "soop_user_id": "bwstar", "source": "ref22" },
     { "name": "어윤수", "soop_user_id": "djdbstn", "source": "ref22" },
+    { "name": "빡죠스", "soop_user_id": "askl021", "source": "manual_user_2026-04-09" },
     { "name": "구라미스", "soop_user_id": "ksmo54", "source": "ref22" },
     { "name": "오메킴", "soop_user_id": "rlatldgus", "source": "ref22" },
     { "name": "김범수", "soop_user_id": "bumsoo552", "source": "ref22" },
