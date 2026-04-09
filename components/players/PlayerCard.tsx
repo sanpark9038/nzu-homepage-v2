@@ -387,17 +387,6 @@ export function PlayerCard({
                   </div>
                 ) : null}
               </div>
-              <div className="absolute right-4 top-4 h-10 w-10 overflow-hidden rounded-full border border-white/20 bg-black/40">
-                <Image
-                  src={profileUrl || "/placeholder-player.png"}
-                  alt={`${player.name} profile`}
-                  width={40}
-                  height={40}
-                  sizes="40px"
-                  unoptimized
-                  className="h-full w-full object-cover object-top"
-                />
-              </div>
               <div className="absolute inset-x-0 bottom-0 p-4">
                 <p className="line-clamp-2 text-[1.16rem] font-[1000] leading-snug text-white">
                   {liveTitle}
