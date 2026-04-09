@@ -406,9 +406,9 @@
   },
   {
     "wr_id": 79,
-    "name": "소룡이",
+    "name": "박성용",
     "soop_user_id": "gjgj3274",
-    "gender": "female"
+    "gender": "male"
   },
   {
     "wr_id": 80,
@@ -646,7 +646,7 @@
   {
     "wr_id": 205,
     "name": "케이",
-    "gender": "female",
+    "gender": "male",
     "soop_user_id": "zpdl1313"
   },
   {
@@ -992,8 +992,8 @@
     "soop_user_id": "parkle1006"
   },
   {
-    "wr_id": 521,
-    "name": "구라미스",
+    "wr_id": 149,
+    "name": "김성민",
     "gender": "male",
     "soop_user_id": "ksmo54"
   },
@@ -1982,6 +1982,18 @@
     "name": "병하",
     "gender": "female",
     "soop_user_id": "dlqudgk1227"
+  },
+  {
+    "wr_id": 28,
+    "name": "다린",
+    "gender": "female",
+    "soop_user_id": "bijyu90"
+  },
+  {
+    "wr_id": 85,
+    "name": "유규민",
+    "gender": "male",
+    "soop_user_id": "dbrbals"
   },
   {
     "wr_id": 100,
