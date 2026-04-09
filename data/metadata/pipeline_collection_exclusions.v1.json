@@ -65,6 +65,20 @@
       "name": "단이",
       "reason": "user_excluded",
       "updated_at": "2026-04-09T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:female:998",
+      "wr_id": 998,
+      "name": "박쭈이",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-09T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:female:1003",
+      "wr_id": 1003,
+      "name": "우질",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-09T00:00:00.000Z"
     }
   ]
 }
