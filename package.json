@@ -70,6 +70,7 @@
     "test:pipeline:site:readiness": "node scripts/tools/check-site-integration-readiness.test.js",
     "schedule:daily:win": "powershell -ExecutionPolicy Bypass -File scripts/schedule-daily-pipeline.ps1",
     "schedule:ops:win": "powershell -ExecutionPolicy Bypass -File scripts/schedule-ops-pipeline.ps1",
+    "schedule:soop:live:win": "powershell -ExecutionPolicy Bypass -File scripts/schedule-soop-live-snapshot.ps1",
     "export:nzu:meta": "node scripts/tools/export-nzu-roster-metadata.js",
     "report:team:table": "node scripts/tools/report-team-roster-table.js",
     "report:team:table:all": "node scripts/tools/report-team-roster-table.js --all",

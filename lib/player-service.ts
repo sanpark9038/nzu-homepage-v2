@@ -274,15 +274,6 @@ function isFreshGeneratedSnapshot(updatedAt: string | null) {
 }
 
 function resolveSoopLiveEntry(soopId: string) {
-  const previewEntry = loadSoopLivePreview().get(soopId);
-  if (previewEntry) {
-    return {
-      entry: previewEntry,
-      mode: "preview" as const,
-      snapshotFresh: true,
-    };
-  }
-
   const generated = loadSoopGeneratedLiveSnapshot();
   const generatedEntry = generated.snapshots.get(soopId);
   if (generatedEntry) {
@@ -290,6 +281,15 @@ function resolveSoopLiveEntry(soopId: string) {
       entry: generatedEntry,
       mode: "generated" as const,
       snapshotFresh: isFreshGeneratedSnapshot(generated.updatedAt),
+    };
+  }
+
+  const previewEntry = loadSoopLivePreview().get(soopId);
+  if (previewEntry) {
+    return {
+      entry: previewEntry,
+      mode: "preview" as const,
+      snapshotFresh: true,
     };
   }
 
