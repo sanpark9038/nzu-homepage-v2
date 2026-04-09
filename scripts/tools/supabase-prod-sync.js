@@ -31,6 +31,10 @@ function normalizeName(value) {
   return String(value || '').trim();
 }
 
+function normalizeLookupName(value) {
+  return normalizeName(value).toLowerCase();
+}
+
 function extractWrId(value) {
   const raw = String(value || '').trim();
   if (!raw) return null;
@@ -52,6 +56,7 @@ function buildSoopLookup() {
     return {
       lookup: new Map(),
       byWrId: new Map(),
+      byNameGender: new Map(),
     };
   }
   const rows = readJson(PLAYER_METADATA_PATH);
@@ -59,36 +64,76 @@ function buildSoopLookup() {
     return {
       lookup: new Map(),
       byWrId: new Map(),
+      byNameGender: new Map(),
     };
   }
   const lookup = new Map();
   const byWrId = new Map();
+  const byNameGenderBuckets = new Map();
   for (const row of rows) {
     const wrId = Number(row && row.wr_id);
     const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase();
     const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
+    const name = normalizeLookupName(row && row.name ? row.name : '');
     if (!Number.isFinite(wrId) || !gender || !soopUserId) continue;
     const payload = {
+      name,
       soop_id: soopUserId,
       broadcast_url: `https://ch.sooplive.co.kr/${soopUserId}`,
     };
     lookup.set(`${wrId}:${gender}`, payload);
     byWrId.set(String(wrId), payload);
+    if (name) {
+      const key = `${name}:${gender}`;
+      const bucket = byNameGenderBuckets.get(key) || [];
+      bucket.push(payload);
+      byNameGenderBuckets.set(key, bucket);
+    }
   }
-  return { lookup, byWrId };
+  const byNameGender = new Map();
+  for (const [key, bucket] of byNameGenderBuckets.entries()) {
+    const uniquePayloads = bucket.filter(
+      (payload, index, arr) =>
+        arr.findIndex((candidate) => candidate.soop_id === payload.soop_id) === index
+    );
+    if (uniquePayloads.length === 1) {
+      byNameGender.set(key, uniquePayloads[0]);
+    }
+  }
+  return { lookup, byWrId, byNameGender };
 }
 
 function resolveSoopServingMetadata(row, soopLookup) {
   const entityId = String(row && row.eloboard_id ? row.eloboard_id : '').trim();
   const wrId = extractWrId(entityId);
   const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase();
+  const name = normalizeLookupName(row && row.name ? row.name : '');
   if (wrId && gender) {
     const exact = soopLookup.lookup.get(`${wrId}:${gender}`);
-    if (exact) return exact;
+    if (exact && (!name || exact.name === name)) {
+      return {
+        soop_id: exact.soop_id,
+        broadcast_url: exact.broadcast_url,
+      };
+    }
   }
   if (wrId && isMixEntityId(entityId)) {
     const mixFallback = soopLookup.byWrId.get(wrId);
-    if (mixFallback) return mixFallback;
+    if (mixFallback) {
+      return {
+        soop_id: mixFallback.soop_id,
+        broadcast_url: mixFallback.broadcast_url,
+      };
+    }
+  }
+  if (name && gender) {
+    const sameName = soopLookup.byNameGender.get(`${name}:${gender}`);
+    if (sameName) {
+      return {
+        soop_id: sameName.soop_id,
+        broadcast_url: sameName.broadcast_url,
+      };
+    }
   }
   return { soop_id: null, broadcast_url: null };
 }

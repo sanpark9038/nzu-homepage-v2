@@ -7,6 +7,32 @@ import { NZU_CONFIG } from "@/lib/constants";
 import { PlayerSearch, RaceFilter, UnivFilter, RaceToggle } from "@/components/players/Filters";
 import Link from "next/link";
 import { normalizeTier } from "@/lib/utils";
+import type { Player } from "@/types";
+
+const RACE_ORDER: Record<string, number> = {
+  T: 0,
+  Z: 1,
+  P: 2,
+};
+
+function normalizeRaceCode(value: string | null | undefined) {
+  const raw = String(value || "").trim().toUpperCase();
+  if (raw.startsWith("T")) return "T";
+  if (raw.startsWith("Z")) return "Z";
+  if (raw.startsWith("P")) return "P";
+  return raw;
+}
+
+function sortTierPlayers(players: Player[]) {
+  return [...players].sort((left, right) => {
+    const leftRace = normalizeRaceCode(left.race);
+    const rightRace = normalizeRaceCode(right.race);
+    const leftOrder = RACE_ORDER[leftRace] ?? 99;
+    const rightOrder = RACE_ORDER[rightRace] ?? 99;
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    return String(left.name || "").localeCompare(String(right.name || ""), "ko");
+  });
+}
 
 export default async function TierPage({
   searchParams,
@@ -36,21 +62,21 @@ export default async function TierPage({
   }
 
   // 티어별 그룹화 로직 (정규화된 값 기준)
-  const godPlayers = playerList.filter(p => normalizeTier(p.tier) === '갓');
-  const kingPlayers = playerList.filter(p => normalizeTier(p.tier) === '킹');
-  const jackPlayers = playerList.filter(p => normalizeTier(p.tier) === '잭');
-  const jokerPlayers = playerList.filter(p => normalizeTier(p.tier) === '조커');
-  const spadePlayers = playerList.filter(p => normalizeTier(p.tier) === '스페이드');
+  const godPlayers = sortTierPlayers(playerList.filter(p => normalizeTier(p.tier) === '갓'));
+  const kingPlayers = sortTierPlayers(playerList.filter(p => normalizeTier(p.tier) === '킹'));
+  const jackPlayers = sortTierPlayers(playerList.filter(p => normalizeTier(p.tier) === '잭'));
+  const jokerPlayers = sortTierPlayers(playerList.filter(p => normalizeTier(p.tier) === '조커'));
+  const spadePlayers = sortTierPlayers(playerList.filter(p => normalizeTier(p.tier) === '스페이드'));
   
   // 0~8티어 세분화
   const numericTiers = [0, 1, 2, 3, 4, 5, 6, 7, 8];
   const numericTierGroups = numericTiers.map(t => ({
     tier: t,
     name: `${t}티어`,
-    players: playerList.filter(p => normalizeTier(p.tier) === String(t))
+    players: sortTierPlayers(playerList.filter(p => normalizeTier(p.tier) === String(t)))
   })).filter(group => group.players.length > 0);
 
-  const babyPlayers = playerList.filter(p => normalizeTier(p.tier) === '베이비');
+  const babyPlayers = sortTierPlayers(playerList.filter(p => normalizeTier(p.tier) === '베이비'));
 
   const tiers = [
     { id: 'god', name: '갓' },
