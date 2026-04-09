@@ -79,6 +79,41 @@
       "name": "우질",
       "reason": "user_excluded",
       "updated_at": "2026-04-09T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:female:955",
+      "wr_id": 955,
+      "name": "찡찡시아",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-09T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:1068",
+      "wr_id": 1068,
+      "name": "두폴조합",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-09T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:192",
+      "wr_id": 192,
+      "name": "강만식",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-09T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:female:352",
+      "wr_id": 352,
+      "name": "김하선",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-09T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:395",
+      "wr_id": 395,
+      "name": "서도일",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-09T00:00:00.000Z"
     }
   ]
 }
