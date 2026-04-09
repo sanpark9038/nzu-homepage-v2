@@ -36,6 +36,7 @@
     "report:soop:reference-plan": "node scripts/tools/build-soop-reference-reconciliation-plan.js",
     "report:soop:reference-review": "node scripts/tools/build-soop-reference-review-decisions.js",
     "report:soop:reference-onboarding": "node scripts/tools/build-soop-reference-onboarding-candidates.js",
+    "report:soop:manual-plan": "node scripts/tools/build-soop-manual-onboarding-plan.js",
     "apply:soop:reference-plan": "node scripts/tools/apply-soop-reference-plan.js --write",
     "report:metadata:conflicts": "node scripts/tools/report-metadata-conflicts.js",
     "report:metadata:resolution": "node scripts/tools/propose-metadata-conflict-resolutions.js",
