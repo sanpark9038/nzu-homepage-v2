@@ -228,7 +228,7 @@ export function PlayerCard({
           className={cn(
             "flex flex-1 flex-col transition-colors",
             currentStyles.bg,
-          isHomeVariant ? "gap-2.5 px-4 py-3.5" : isTierVariant ? "gap-2.5 px-4 py-4" : "gap-3 p-4"
+          isHomeVariant ? "gap-2.5 px-4 py-3.5" : isTierVariant ? "gap-2 px-3.5 py-3" : "gap-3 p-4"
           )}
         >
         {isHomeVariant ? (
@@ -260,14 +260,14 @@ export function PlayerCard({
           <div className="flex items-center gap-1.5">
             <h3 className={cn(
               "min-w-0 flex-1 truncate font-black tracking-tight text-foreground transition-colors",
-              isTierVariant ? "text-[1.06rem]" : "text-[1.32rem]"
+              isTierVariant ? "text-[1.16rem]" : "text-[1.32rem]"
             )}>
               {player.name}
             </h3>
             <div
               className={cn(
                 "flex shrink-0 items-center justify-center rounded-full border font-black",
-                isTierVariant ? "h-6.5 w-6.5 text-[10px]" : "h-7 w-7 text-[12px]",
+                isTierVariant ? "h-7 w-7 text-[11px]" : "h-7 w-7 text-[12px]",
                 currentStyles.border,
                 currentStyles.text,
                 "bg-background/50"
@@ -277,7 +277,7 @@ export function PlayerCard({
             </div>
             <span className={cn(
               "inline-flex shrink-0 items-center rounded-full border border-white/10 bg-black/15 font-[1000] tracking-tight text-white/72",
-              isTierVariant ? "h-6.5 px-2.5 text-[9px]" : "h-7 px-3 text-[11px]"
+              isTierVariant ? "h-7 px-2.5 text-[10px]" : "h-7 px-3 text-[11px]"
             )}>
                 {player.university || "무소속"}
             </span>
@@ -293,7 +293,7 @@ export function PlayerCard({
               }}
               className={cn(
                 "w-full rounded-xl font-[900] uppercase tracking-tight flex items-center justify-center gap-2.5 transition-all border shadow-lg shadow-black/5 active:scale-95 group/h2h",
-                isTierVariant ? "gap-2 py-3 text-[11px]" : "py-4 text-[14px]",
+                isTierVariant ? "gap-2 py-3 text-[12px]" : "py-4 text-[14px]",
                 currentStyles.border,
                 "bg-foreground/5 hover:bg-foreground/10 text-foreground/80 hover:text-foreground"
               )}
