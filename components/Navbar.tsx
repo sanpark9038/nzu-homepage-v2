@@ -25,6 +25,7 @@ export default function Navbar() {
         <nav className="flex flex-1 items-center justify-center gap-2">
           {visibleNavbarLinks.map((item) => {
             const isActive = pathname === item.href;
+            const showTierLiveBadge = item.href === "/tier";
             return (
               <Link
                 key={item.href}
@@ -37,6 +38,18 @@ export default function Navbar() {
                 )}
               >
                 {item.label}
+                {showTierLiveBadge ? (
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em]",
+                      isActive
+                        ? "border-red-400/50 bg-red-500/18 text-red-200"
+                        : "border-red-400/30 bg-red-500/12 text-red-300"
+                    )}
+                  >
+                    LIVE
+                  </span>
+                ) : null}
               </Link>
             );
           })}
