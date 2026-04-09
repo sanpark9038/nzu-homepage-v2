@@ -1,6 +1,7 @@
 
 'use client'
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { TierBadge } from "../ui/nzu-badges";
@@ -30,6 +31,7 @@ export function PlayerCard({
   variant = 'default',
   isCaptain = false,
 }: PlayerCardProps) {
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const race = normalizeRace(player.race);
   const isLive = player.is_live ?? false;
   const profileUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "";
@@ -42,6 +44,10 @@ export function PlayerCard({
   const liveMeta = [player.live_viewers ? `${player.live_viewers}명 시청 중` : null, player.live_started_at ? "LIVE" : null]
     .filter(Boolean)
     .join(" · ");
+
+  useEffect(() => {
+    setThumbnailFailed(false);
+  }, [player.id, player.live_thumbnail_url]);
 
   const raceStyles = {
     'Terran': {
@@ -122,6 +128,62 @@ export function PlayerCard({
               unoptimized
               className="h-full w-full object-cover object-top"
             />
+            {isLive ? (
+              <>
+                <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:hidden">
+                  {player.live_thumbnail_url && !thumbnailFailed ? (
+                    <Image
+                      src={player.live_thumbnail_url}
+                      alt={`${player.name} live thumbnail`}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                      onError={() => setThumbnailFailed(true)}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,14,18,0.22),rgba(3,6,8,0.88))]" />
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-2 py-2">
+                    <p className="line-clamp-2 text-[10px] font-[1000] leading-tight text-white">
+                      {liveTitle}
+                    </p>
+                  </div>
+                </div>
+                <div className="pointer-events-none absolute bottom-[calc(100%+0.7rem)] left-1/2 z-20 hidden w-[18rem] -translate-x-1/2 overflow-hidden rounded-[1rem] border border-white/10 bg-[#061015] opacity-0 shadow-[0_20px_45px_rgba(0,0,0,0.38)] transition-all duration-200 md:block md:translate-y-2 md:scale-[0.98] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100">
+                  <div className="relative aspect-[16/9] w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
+                    {player.live_thumbnail_url && !thumbnailFailed ? (
+                      <Image
+                        src={player.live_thumbnail_url}
+                        alt={`${player.name} live preview`}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                        onError={() => setThumbnailFailed(true)}
+                      />
+                    ) : null}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                    <div className="absolute left-3 top-3 flex items-center gap-2">
+                      <div className="inline-flex items-center rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
+                        LIVE
+                      </div>
+                      {player.live_viewers ? (
+                        <div className="inline-flex items-center rounded-full border border-white/12 bg-black/45 px-2 py-0.5 text-[10px] font-[1000] tracking-tight text-white">
+                          {player.live_viewers}명 시청 중
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 p-3">
+                      <p className="line-clamp-2 text-[0.95rem] font-[1000] leading-snug text-white">
+                        {liveTitle}
+                      </p>
+                      <div className="mt-1 text-[0.72rem] font-[900] tracking-tight text-white/68">
+                        <span className="truncate">{player.name}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : null}
           </div>
         ) : (
           <Image
@@ -144,21 +206,19 @@ export function PlayerCard({
           </div>
         )}
 
-        {isLive ? (
+        {isLive && !isTierVariant ? (
           <div className={cn(
             "pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-[linear-gradient(180deg,rgba(2,6,7,0),rgba(2,6,7,0.78)_35%,rgba(2,6,7,0.94))]",
-            isTierVariant
-              ? "px-3 pb-3 pt-9 opacity-100"
-              : "translate-y-3 px-3 pb-3 pt-10 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
+            "translate-y-3 px-3 pb-3 pt-10 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
           )}>
             <div className={cn(
               "border border-red-400/25 bg-black/45 backdrop-blur-md",
-              isTierVariant ? "rounded-xl px-3 py-2.5" : "rounded-2xl px-3 py-2.5"
+              "rounded-2xl px-3 py-2.5"
             )}>
               <div className="flex items-center justify-between gap-3">
                 <span className={cn(
                   "inline-flex items-center gap-1.5 rounded-full bg-red-500/18 font-black uppercase text-red-200",
-                  isTierVariant ? "px-2 py-0.5 text-[8px] tracking-[0.14em]" : "px-2 py-1 text-[10px] tracking-[0.18em]"
+                  "px-2 py-1 text-[10px] tracking-[0.18em]"
                 )}>
                   <span className="h-1.5 w-1.5 rounded-full bg-red-300" />
                   LIVE
@@ -166,20 +226,20 @@ export function PlayerCard({
                 {player.live_viewers ? (
                   <span className={cn(
                     "font-black tracking-tight text-white/72",
-                    isTierVariant ? "text-[9px]" : "text-[10px]"
+                    "text-[10px]"
                   )}>{player.live_viewers}명</span>
                 ) : null}
               </div>
               <p className={cn(
                 "line-clamp-2 font-black tracking-tight text-white",
-                isTierVariant ? "mt-1.5 text-[11px] leading-4" : "mt-2 text-[12px] leading-4"
+                "mt-2 text-[12px] leading-4"
               )}>
                 {liveTitle}
               </p>
               {liveMeta ? (
                 <p className={cn(
                   "font-bold tracking-tight text-white/58",
-                  isTierVariant ? "mt-0.5 text-[8px]" : "mt-1 text-[10px]"
+                  "mt-1 text-[10px]"
                 )}>{liveMeta}</p>
               ) : null}
             </div>
