@@ -24,6 +24,8 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+const DEFAULT_UPSERT_CHUNK_SIZE = 25;
+const MIN_UPSERT_CHUNK_SIZE = 1;
 
 function normalizeName(value) {
   return String(value || '').trim();
@@ -192,6 +194,36 @@ function toBool(value) {
 function toPercent(wins, total) {
   if (!total) return 0;
   return Number(((wins / total) * 100).toFixed(2));
+}
+
+function resolveInitialChunkSize() {
+  const raw = Number(process.env.SUPABASE_PROD_SYNC_CHUNK_SIZE || DEFAULT_UPSERT_CHUNK_SIZE);
+  if (!Number.isInteger(raw) || raw <= 0) return DEFAULT_UPSERT_CHUNK_SIZE;
+  return raw;
+}
+
+function isStatementTimeout(error) {
+  const code = String(error && error.code ? error.code : '').trim();
+  const message = String(error && error.message ? error.message : '').toLowerCase();
+  return code === '57014' || message.includes('statement timeout') || message.includes('canceling statement due to statement timeout');
+}
+
+async function upsertPlayersChunkAdaptive(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return;
+
+  const { error } = await supabase.from('players').upsert(rows, { onConflict: 'name' });
+  if (!error) return;
+
+  if (!isStatementTimeout(error) || rows.length <= MIN_UPSERT_CHUNK_SIZE) {
+    throw new Error(`Error upserting to players: ${JSON.stringify(error)}`);
+  }
+
+  const mid = Math.ceil(rows.length / 2);
+  const left = rows.slice(0, mid);
+  const right = rows.slice(mid);
+  console.warn(`[retry] players upsert timeout on chunk=${rows.length}; splitting into ${left.length}+${right.length}`);
+  await upsertPlayersChunkAdaptive(left);
+  await upsertPlayersChunkAdaptive(right);
 }
 
 function parseMatchHistoryFromStableCsv(sourceFile) {
@@ -419,13 +451,10 @@ async function main() {
   const validNames = new Set(sanitized.map((p) => p.name));
 
   // 3) Upsert all staging rows by unique key (name). Do not pass id.
-  const chunkSize = 100;
+  const chunkSize = resolveInitialChunkSize();
   for (let i = 0; i < sanitized.length; i += chunkSize) {
     const chunk = sanitized.slice(i, i + chunkSize);
-    const { error } = await supabase.from('players').upsert(chunk, { onConflict: 'name' });
-    if (error) {
-      throw new Error(`Error upserting to players: ${JSON.stringify(error)}`);
-    }
+    await upsertPlayersChunkAdaptive(chunk);
   }
   console.log(`[+] Upserted ${sanitized.length} records to players`);
 
