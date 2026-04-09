@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { TierBadge } from "../ui/nzu-badges";
@@ -32,6 +32,8 @@ export function PlayerCard({
   isCaptain = false,
 }: PlayerCardProps) {
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
+  const [tierPreviewAlign, setTierPreviewAlign] = useState<"center" | "left" | "right">("center");
+  const tierPreviewAnchorRef = useRef<HTMLDivElement | null>(null);
   const race = normalizeRace(player.race);
   const isLive = player.is_live ?? false;
   const profileUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "";
@@ -48,6 +50,30 @@ export function PlayerCard({
   useEffect(() => {
     setThumbnailFailed(false);
   }, [player.id, player.live_thumbnail_url]);
+
+  function updateTierPreviewAlign() {
+    if (!isTierVariant || !isLive || typeof window === "undefined") return;
+    const anchor = tierPreviewAnchorRef.current;
+    if (!anchor) return;
+
+    const previewWidth = 496;
+    const viewportPadding = 20;
+    const rect = anchor.getBoundingClientRect();
+    const centeredLeft = rect.left + rect.width / 2 - previewWidth / 2;
+    const centeredRight = centeredLeft + previewWidth;
+
+    if (centeredLeft < viewportPadding) {
+      setTierPreviewAlign("left");
+      return;
+    }
+
+    if (centeredRight > window.innerWidth - viewportPadding) {
+      setTierPreviewAlign("right");
+      return;
+    }
+
+    setTierPreviewAlign("center");
+  }
 
   const raceStyles = {
     'Terran': {
@@ -120,7 +146,11 @@ export function PlayerCard({
         )}
       >
         {isTierVariant ? (
-          <div className="relative h-[140px] w-[132px]">
+          <div
+            ref={tierPreviewAnchorRef}
+            className="relative h-[140px] w-[132px]"
+            onMouseEnter={updateTierPreviewAlign}
+          >
             <div className="relative h-full w-full overflow-hidden rounded-xl bg-muted">
               <Image
                 src={profileUrl || "/placeholder-player.png"}
@@ -153,7 +183,12 @@ export function PlayerCard({
                     </p>
                   </div>
                 </div>
-                <div className="pointer-events-none absolute bottom-[calc(100%+0.9rem)] left-1/2 z-30 hidden w-[31rem] -translate-x-1/2 overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#061015] opacity-0 shadow-[0_24px_52px_rgba(0,0,0,0.42)] transition-all duration-200 md:block md:translate-y-2 md:scale-[0.98] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100">
+                <div className={cn(
+                  "pointer-events-none absolute bottom-[calc(100%+0.9rem)] z-30 hidden w-[31rem] overflow-hidden rounded-[1.1rem] border border-white/10 bg-[#061015] opacity-0 shadow-[0_24px_52px_rgba(0,0,0,0.42)] transition-all duration-200 md:block md:translate-y-2 md:scale-[0.98] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100",
+                  tierPreviewAlign === "left" && "left-0",
+                  tierPreviewAlign === "center" && "left-1/2 -translate-x-1/2",
+                  tierPreviewAlign === "right" && "right-0"
+                )}>
                   <div className="relative aspect-[16/9] w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
                     {player.live_thumbnail_url && !thumbnailFailed ? (
                       <Image
