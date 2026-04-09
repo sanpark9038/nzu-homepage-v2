@@ -26,6 +26,17 @@
       "reason": "mapping alias check"
     },
     {
+      "soop_id": "cksgmldbs",
+      "player_name": "윤찬희",
+      "search_name": "몽군",
+      "reason": "approved metadata onboarding check"
+    },
+    {
+      "soop_id": "superbsw123",
+      "player_name": "시조새",
+      "reason": "approved mix onboarding check"
+    },
+    {
       "soop_id": "tkdduddb06",
       "player_name": "와이퍼",
       "reason": "mix identity fallback check"
