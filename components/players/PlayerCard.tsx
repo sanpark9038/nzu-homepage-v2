@@ -101,7 +101,7 @@ export function PlayerCard({
       "group relative flex w-full flex-col bg-card overflow-hidden border-2 transition-all duration-300 hover:-translate-y-1",
       isHomeVariant ? "rounded-[1.35rem]" : "rounded-2xl",
       isHomeVariant ? "aspect-[3/4]" : "",
-      isTierVariant ? "max-w-[164px] rounded-[1rem] border-[3px]" : "hover:scale-[1.02]",
+      isTierVariant ? "max-w-[188px] rounded-[1rem] border-[3px]" : "hover:scale-[1.02]",
       currentStyles.border,
       currentStyles.glow,
       isLive && "ring-2 ring-nzu-live ring-offset-2 ring-offset-background",
@@ -111,7 +111,7 @@ export function PlayerCard({
       <div
         className={cn(
           "relative overflow-hidden bg-muted",
-          isHomeVariant ? "aspect-[3/3.22]" : isTierVariant ? "flex items-start justify-center bg-transparent px-3 pt-3" : "aspect-[4/3]"
+          isHomeVariant ? "aspect-[3/3.22]" : isTierVariant ? "flex items-start justify-center bg-transparent px-4 pt-4" : "aspect-[4/3]"
         )}
       >
         {isTierVariant ? (
@@ -143,7 +143,7 @@ export function PlayerCard({
         {isLive && (
           <div className={cn(
             "bg-red-600 text-white font-black rounded-full flex items-center gap-1.5 shadow-lg z-10 animate-pulse",
-            isTierVariant ? "absolute right-2.5 top-2.5 px-2 py-0.5 text-[9px]" : "absolute top-3 right-3 px-3 py-1 text-[10px]"
+            isTierVariant ? "absolute right-3 top-3 px-2.5 py-0.5 text-[9px]" : "absolute top-3 right-3 px-3 py-1 text-[10px]"
           )}>
             <div className="w-1.5 h-1.5 bg-white rounded-full" />
             방송중
@@ -153,16 +153,16 @@ export function PlayerCard({
         {isLive ? (
           <div className={cn(
             "pointer-events-none absolute inset-x-0 bottom-0 z-10 translate-y-3 bg-[linear-gradient(180deg,rgba(2,6,7,0),rgba(2,6,7,0.78)_35%,rgba(2,6,7,0.94))] opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100",
-            isTierVariant ? "px-2.5 pb-2.5 pt-8" : "px-3 pb-3 pt-10"
+            isTierVariant ? "px-3 pb-3 pt-9" : "px-3 pb-3 pt-10"
           )}>
             <div className={cn(
               "border border-red-400/25 bg-black/45 backdrop-blur-md",
-              isTierVariant ? "rounded-xl px-2.5 py-2" : "rounded-2xl px-3 py-2.5"
+              isTierVariant ? "rounded-xl px-3 py-2.5" : "rounded-2xl px-3 py-2.5"
             )}>
               <div className="flex items-center justify-between gap-3">
                 <span className={cn(
                   "inline-flex items-center gap-1.5 rounded-full bg-red-500/18 font-black uppercase text-red-200",
-                  isTierVariant ? "px-1.5 py-0.5 text-[8px] tracking-[0.14em]" : "px-2 py-1 text-[10px] tracking-[0.18em]"
+                  isTierVariant ? "px-2 py-0.5 text-[8px] tracking-[0.14em]" : "px-2 py-1 text-[10px] tracking-[0.18em]"
                 )}>
                   <span className="h-1.5 w-1.5 rounded-full bg-red-300" />
                   LIVE
@@ -176,7 +176,7 @@ export function PlayerCard({
               </div>
               <p className={cn(
                 "line-clamp-2 font-black tracking-tight text-white",
-                isTierVariant ? "mt-1.5 text-[10px] leading-3.5" : "mt-2 text-[12px] leading-4"
+                isTierVariant ? "mt-1.5 text-[11px] leading-4" : "mt-2 text-[12px] leading-4"
               )}>
                 {liveTitle}
               </p>
@@ -196,7 +196,7 @@ export function PlayerCard({
             href={buildPlayerHref(player)}
             className={cn(
               "w-full rounded-full bg-nzu-green text-black font-black uppercase tracking-tighter transition-all border border-nzu-green hover:bg-white hover:border-white backdrop-blur-md text-center transform translate-y-4 group-hover:translate-y-0",
-              isTierVariant ? "py-2 text-[10px]" : "py-2.5 text-[11px]"
+              isTierVariant ? "py-2.5 text-[11px]" : "py-2.5 text-[11px]"
             )}
           >
             전적 보기
@@ -209,7 +209,7 @@ export function PlayerCard({
               rel="noopener noreferrer"
               className={cn(
                 "w-full rounded-full bg-white/10 text-white font-black uppercase tracking-tighter transition-all border border-white/20 hover:bg-white/30 backdrop-blur-md text-center transform translate-y-4 group-hover:translate-y-0 delay-75 flex items-center justify-center gap-1.5",
-                isTierVariant ? "py-2 text-[10px]" : "py-2.5 text-[11px]"
+                isTierVariant ? "py-2.5 text-[11px]" : "py-2.5 text-[11px]"
               )}
             >
               <span>{hoverSoopLabel}</span>
@@ -228,7 +228,7 @@ export function PlayerCard({
           className={cn(
             "flex flex-1 flex-col transition-colors",
             currentStyles.bg,
-          isHomeVariant ? "gap-2.5 px-4 py-3.5" : isTierVariant ? "gap-1.5 px-3 py-2.5" : "gap-3 p-4"
+          isHomeVariant ? "gap-2.5 px-4 py-3.5" : isTierVariant ? "gap-2 px-3.5 py-3.5" : "gap-3 p-4"
           )}
         >
         {isHomeVariant ? (
@@ -257,17 +257,17 @@ export function PlayerCard({
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <h3 className={cn(
               "min-w-0 flex-1 truncate font-black tracking-tight text-foreground transition-colors",
-              isTierVariant ? "text-[0.88rem]" : "text-[1.32rem]"
+              isTierVariant ? "text-[1rem]" : "text-[1.32rem]"
             )}>
               {player.name}
             </h3>
             <div
               className={cn(
                 "flex shrink-0 items-center justify-center rounded-full border font-black",
-                isTierVariant ? "h-5 w-5 text-[9px]" : "h-7 w-7 text-[12px]",
+                isTierVariant ? "h-6 w-6 text-[10px]" : "h-7 w-7 text-[12px]",
                 currentStyles.border,
                 currentStyles.text,
                 "bg-background/50"
@@ -277,7 +277,7 @@ export function PlayerCard({
             </div>
             <span className={cn(
               "inline-flex shrink-0 items-center rounded-full border border-white/10 bg-black/15 font-[1000] tracking-tight text-white/72",
-              isTierVariant ? "h-5 px-1.5 text-[8px]" : "h-7 px-3 text-[11px]"
+              isTierVariant ? "h-6 px-2 text-[9px]" : "h-7 px-3 text-[11px]"
             )}>
                 {player.university || "무소속"}
             </span>
@@ -293,7 +293,7 @@ export function PlayerCard({
               }}
               className={cn(
                 "w-full rounded-xl font-[900] uppercase tracking-tight flex items-center justify-center gap-2.5 transition-all border shadow-lg shadow-black/5 active:scale-95 group/h2h",
-                isTierVariant ? "gap-2 py-2 text-[10px]" : "py-4 text-[14px]",
+                isTierVariant ? "gap-2 py-2.5 text-[11px]" : "py-4 text-[14px]",
                 currentStyles.border,
                 "bg-foreground/5 hover:bg-foreground/10 text-foreground/80 hover:text-foreground"
               )}
