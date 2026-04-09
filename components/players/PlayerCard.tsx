@@ -101,7 +101,8 @@ export function PlayerCard({
 
   return (
     <div className={cn(
-      "group relative flex w-full flex-col bg-card overflow-hidden border-2 transition-all duration-300 hover:-translate-y-1",
+      "group relative flex w-full flex-col bg-card border-2 transition-all duration-300 hover:-translate-y-1",
+      isTierVariant ? "overflow-visible" : "overflow-hidden",
       isHomeVariant ? "rounded-[1.35rem]" : "rounded-2xl",
       isHomeVariant ? "aspect-[3/4]" : "",
       isTierVariant ? tierShellClass : "hover:scale-[1.02]",
@@ -113,21 +114,24 @@ export function PlayerCard({
       {/* 카드 상단: 이미지 & 필터 레이어 */}
       <div
         className={cn(
-          "relative overflow-hidden bg-muted",
+          "relative bg-muted",
+          isTierVariant ? "overflow-visible" : "overflow-hidden",
           isHomeVariant ? "aspect-[3/3.22]" : isTierVariant ? "flex items-start justify-center bg-transparent px-5 pt-5" : "aspect-[4/3]"
         )}
       >
         {isTierVariant ? (
-          <div className="relative h-[140px] w-[132px] overflow-hidden rounded-xl bg-muted">
-            <Image
-              src={profileUrl || "/placeholder-player.png"}
-              alt={player.name}
-              width={132}
-              height={140}
-              sizes="132px"
-              unoptimized
-              className="h-full w-full object-cover object-top"
-            />
+          <div className="relative h-[140px] w-[132px]">
+            <div className="relative h-full w-full overflow-hidden rounded-xl bg-muted">
+              <Image
+                src={profileUrl || "/placeholder-player.png"}
+                alt={player.name}
+                width={132}
+                height={140}
+                sizes="132px"
+                unoptimized
+                className="h-full w-full object-cover object-top"
+              />
+            </div>
             {isLive ? (
               <>
                 <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:hidden">
@@ -149,7 +153,7 @@ export function PlayerCard({
                     </p>
                   </div>
                 </div>
-                <div className="pointer-events-none absolute bottom-[calc(100%+0.7rem)] left-1/2 z-20 hidden w-[18rem] -translate-x-1/2 overflow-hidden rounded-[1rem] border border-white/10 bg-[#061015] opacity-0 shadow-[0_20px_45px_rgba(0,0,0,0.38)] transition-all duration-200 md:block md:translate-y-2 md:scale-[0.98] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100">
+                <div className="pointer-events-none absolute bottom-[calc(100%+0.7rem)] left-1/2 z-30 hidden w-[18rem] -translate-x-1/2 overflow-hidden rounded-[1rem] border border-white/10 bg-[#061015] opacity-0 shadow-[0_20px_45px_rgba(0,0,0,0.38)] transition-all duration-200 md:block md:translate-y-2 md:scale-[0.98] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100">
                   <div className="relative aspect-[16/9] w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
                     {player.live_thumbnail_url && !thumbnailFailed ? (
                       <Image
