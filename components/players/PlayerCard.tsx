@@ -146,8 +146,10 @@ export function PlayerCard({
 
         {isLive ? (
           <div className={cn(
-            "pointer-events-none absolute inset-x-0 bottom-0 z-10 translate-y-3 bg-[linear-gradient(180deg,rgba(2,6,7,0),rgba(2,6,7,0.78)_35%,rgba(2,6,7,0.94))] opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100",
-            isTierVariant ? "px-3 pb-3 pt-9" : "px-3 pb-3 pt-10"
+            "pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-[linear-gradient(180deg,rgba(2,6,7,0),rgba(2,6,7,0.78)_35%,rgba(2,6,7,0.94))]",
+            isTierVariant
+              ? "px-3 pb-3 pt-9 opacity-100"
+              : "translate-y-3 px-3 pb-3 pt-10 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
           )}>
             <div className={cn(
               "border border-red-400/25 bg-black/45 backdrop-blur-md",
