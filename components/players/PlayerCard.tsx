@@ -7,7 +7,6 @@ import { TierBadge } from "../ui/nzu-badges";
 import { RaceLetterBadge } from "../ui/race-letter-badge";
 import type { Player } from "@/types";
 import { cn, normalizeRace } from "@/lib/utils";
-import { useTheme } from "@/components/ThemeProvider";
 import { ExternalLink, Check, Circle, Crown } from "lucide-react";
 import { buildPlayerHref } from "@/lib/player-route";
 import { resolveSoopChannelImageUrl, resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
@@ -31,11 +30,7 @@ export function PlayerCard({
   variant = 'default',
   isCaptain = false,
 }: PlayerCardProps) {
-  const isCompact = layout === 'compact';
   const race = normalizeRace(player.race);
-  const { theme } = useTheme();
-  
-  // 가상 데이터 (추후 API 연동 예정)
   const isLive = player.is_live ?? false;
   const profileUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "";
   
@@ -95,13 +90,15 @@ export function PlayerCard({
   const currentStyles = raceStyles[currentRaceKey];
   const isHomeVariant = variant === "home";
   const isTierVariant = variant === "tier";
+  const tierShellClass = "max-w-52 rounded-2xl border-[3px]";
+  const tierContentClass = "gap-2 px-3.5 py-3";
 
   return (
     <div className={cn(
       "group relative flex w-full flex-col bg-card overflow-hidden border-2 transition-all duration-300 hover:-translate-y-1",
       isHomeVariant ? "rounded-[1.35rem]" : "rounded-2xl",
       isHomeVariant ? "aspect-[3/4]" : "",
-      isTierVariant ? "max-w-[206px] rounded-[1rem] border-[3px]" : "hover:scale-[1.02]",
+      isTierVariant ? tierShellClass : "hover:scale-[1.02]",
       currentStyles.border,
       currentStyles.glow,
       isLive && "ring-2 ring-nzu-live ring-offset-2 ring-offset-background",
@@ -115,7 +112,7 @@ export function PlayerCard({
         )}
       >
         {isTierVariant ? (
-          <div className="relative h-[140px] w-[132px] overflow-hidden rounded-[0.85rem] bg-muted">
+          <div className="relative h-[140px] w-[132px] overflow-hidden rounded-xl bg-muted">
             <Image
               src={profileUrl || "/placeholder-player.png"}
               alt={player.name}
@@ -132,10 +129,7 @@ export function PlayerCard({
             alt={player.name}
             fill
             unoptimized
-            className={cn(
-              "object-cover object-top transition-transform duration-700",
-              "group-hover:scale-110"
-            )}
+            className="object-cover object-top transition-transform duration-700 group-hover:scale-110"
           />
         )}
         
@@ -194,10 +188,7 @@ export function PlayerCard({
         <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 p-4 z-20">
           <Link 
             href={buildPlayerHref(player)}
-            className={cn(
-              "w-full rounded-full bg-nzu-green text-black font-black uppercase tracking-tighter transition-all border border-nzu-green hover:bg-white hover:border-white backdrop-blur-md text-center transform translate-y-4 group-hover:translate-y-0",
-              isTierVariant ? "py-2.5 text-[11px]" : "py-2.5 text-[11px]"
-            )}
+            className="w-full transform rounded-full border border-nzu-green bg-nzu-green py-2.5 text-center text-[11px] font-black uppercase tracking-tighter text-black transition-all translate-y-4 backdrop-blur-md group-hover:translate-y-0 hover:border-white hover:bg-white"
           >
             전적 보기
           </Link>
@@ -207,10 +198,7 @@ export function PlayerCard({
               href={hoverSoopHref}
               target="_blank"
               rel="noopener noreferrer"
-              className={cn(
-                "w-full rounded-full bg-white/10 text-white font-black uppercase tracking-tighter transition-all border border-white/20 hover:bg-white/30 backdrop-blur-md text-center transform translate-y-4 group-hover:translate-y-0 delay-75 flex items-center justify-center gap-1.5",
-                isTierVariant ? "py-2.5 text-[11px]" : "py-2.5 text-[11px]"
-              )}
+              className="delay-75 flex w-full transform items-center justify-center gap-1.5 rounded-full border border-white/20 bg-white/10 py-2.5 text-center text-[11px] font-black uppercase tracking-tighter text-white transition-all translate-y-4 backdrop-blur-md group-hover:translate-y-0 hover:bg-white/30"
             >
               <span>{hoverSoopLabel}</span>
               <ExternalLink size={12} />
@@ -228,7 +216,7 @@ export function PlayerCard({
           className={cn(
             "flex flex-1 flex-col transition-colors",
             currentStyles.bg,
-          isHomeVariant ? "gap-2.5 px-4 py-3.5" : isTierVariant ? "gap-2 px-3.5 py-3" : "gap-3 p-4"
+            isHomeVariant ? "gap-2.5 px-4 py-3.5" : isTierVariant ? tierContentClass : "gap-3 p-4"
           )}
         >
         {isHomeVariant ? (
