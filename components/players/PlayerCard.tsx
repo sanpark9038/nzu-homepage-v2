@@ -101,7 +101,7 @@ export function PlayerCard({
       "group relative flex w-full flex-col bg-card overflow-hidden border-2 transition-all duration-300 hover:-translate-y-1",
       isHomeVariant ? "rounded-[1.35rem]" : "rounded-2xl",
       isHomeVariant ? "aspect-[3/4]" : "",
-      isTierVariant ? "max-w-[198px] rounded-[1rem] hover:scale-[1.01]" : "hover:scale-[1.02]",
+      isTierVariant ? "max-w-[186px] rounded-[1rem]" : "hover:scale-[1.02]",
       currentStyles.border,
       currentStyles.glow,
       isLive && "ring-2 ring-nzu-live ring-offset-2 ring-offset-background",
@@ -111,7 +111,7 @@ export function PlayerCard({
       <div
         className={cn(
           "relative overflow-hidden bg-muted",
-          isHomeVariant ? "aspect-[3/3.22]" : isTierVariant ? "aspect-[3/4]" : "aspect-[4/3]"
+          isHomeVariant ? "aspect-[3/3.22]" : isTierVariant ? "aspect-[33/35]" : "aspect-[4/3]"
         )}
       >
         <Image
@@ -121,7 +121,7 @@ export function PlayerCard({
           unoptimized
           className={cn(
             "object-cover object-top transition-transform duration-700",
-            isTierVariant ? "group-hover:scale-[1.02]" : "group-hover:scale-110"
+            isTierVariant ? "" : "group-hover:scale-110"
           )}
         />
         
