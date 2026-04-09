@@ -162,6 +162,16 @@ function firstPeriodTotal(parsed) {
   return Number.isFinite(total) ? total : null;
 }
 
+function readPeriodTotal(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+    return firstPeriodTotal(parsed);
+  } catch {
+    return null;
+  }
+}
+
 function readJsonIfExists(filePath, fallback) {
   if (!fs.existsSync(filePath)) return fallback;
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
@@ -359,6 +369,7 @@ function main() {
       }
 
       if (shouldFetch) {
+        const existingPeriodTotal = fs.existsSync(jsonPath) ? readPeriodTotal(jsonPath) : null;
         appendExportProgress(reportPath, "player_report_start", {
           player: playerName,
           wr_id: p.wr_id,
@@ -396,15 +407,34 @@ function main() {
             no_cache: true,
           });
         }
-        writeJson(jsonPath, parsed);
-        result.fetch_status = "ok";
+        const nextPeriodTotal = firstPeriodTotal(parsed);
+        if (
+          Number.isFinite(existingPeriodTotal) &&
+          Number.isFinite(nextPeriodTotal) &&
+          nextPeriodTotal < existingPeriodTotal
+        ) {
+          result.fetch_status = "used_existing_json_regression_guard";
+          result.fetch_warning = `period_total_regressed:${existingPeriodTotal}->${nextPeriodTotal}`;
+          appendExportProgress(reportPath, "player_report_regression_guard", {
+            player: playerName,
+            wr_id: p.wr_id,
+            existing_period_total: existingPeriodTotal,
+            next_period_total: nextPeriodTotal,
+          });
+        } else {
+          writeJson(jsonPath, parsed);
+          result.fetch_status = "ok";
+        }
         if (forceRefresh) {
           resumes = clearResumeMarker(p, resumes);
           writeCollectionResumes(resumes);
         }
       }
 
-      const reusedJson = result.fetch_status === "used_existing_json" || result.fetch_status === "used_existing_json_inactive";
+      const reusedJson =
+        result.fetch_status === "used_existing_json" ||
+        result.fetch_status === "used_existing_json_inactive" ||
+        result.fetch_status === "used_existing_json_regression_guard";
       if (reusedJson) {
         result.csv_path = expectedExportCsvPath(playerName, p);
         result.csv_status = "used_existing_csv";

@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-04-08T11:55:00.000Z",
+  "description": "Small fixed verification set for offline baselines and alias checks before broader rollout.",
+  "targets": [
+    {
+      "soop_id": "jk890202",
+      "player_name": "김윤중",
+      "reason": "offline baseline check"
+    },
+    {
+      "soop_id": "koreasbg",
+      "player_name": "송병구",
+      "reason": "offline baseline check"
+    },
+    {
+      "soop_id": "parkjaehyeon",
+      "player_name": "박재현",
+      "search_name": "쿰신",
+      "reason": "display alias check"
+    },
+    {
+      "soop_id": "thakzkf",
+      "player_name": "박상현",
+      "search_name": "짭제",
+      "reason": "mapping alias check"
+    },
+    {
+      "soop_id": "tkdduddb06",
+      "player_name": "와이퍼",
+      "reason": "mix identity fallback check"
+    }
+  ]
+}
