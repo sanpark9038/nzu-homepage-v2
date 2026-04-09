@@ -1000,7 +1000,7 @@
   {
     "wr_id": 531,
     "name": "파메",
-    "gender": "female",
+    "gender": "male",
     "soop_user_id": "heksd"
   },
   {
@@ -1951,7 +1951,7 @@
   {
     "wr_id": 1033,
     "name": "나도현",
-    "gender": "female",
+    "gender": "male",
     "soop_user_id": "dohyun83"
   },
   {
@@ -1982,6 +1982,18 @@
     "name": "병하",
     "gender": "female",
     "soop_user_id": "dlqudgk1227"
+  },
+  {
+    "wr_id": 175,
+    "name": "박준혁",
+    "gender": "male",
+    "soop_user_id": "jhyhlli123"
+  },
+  {
+    "wr_id": 71,
+    "name": "사랑e",
+    "gender": "female",
+    "soop_user_id": "sr629"
   },
   {
     "wr_id": 28,
