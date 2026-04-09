@@ -29,6 +29,7 @@
     "report:soop:live": "node scripts/tools/report-soop-live-coverage.js",
     "report:soop:summary": "node scripts/tools/report-soop-live-summary.js",
     "report:soop:ui-checklist": "node scripts/tools/report-soop-ui-checklist.js",
+    "report:player:live-audit": "node scripts/tools/report-player-page-live-audit.js",
     "report:soop:fallback-audit": "node scripts/tools/report-soop-fallback-audit.js",
     "soop:reference:normalize": "node scripts/tools/normalize-soop-reference-source.js",
     "report:soop:reference-diff": "node scripts/tools/report-soop-reference-diff.js",
