@@ -26,7 +26,7 @@
   {
     "wr_id": 5,
     "name": "임진묵",
-    "gender": "female",
+    "gender": "male",
     "soop_user_id": "organ333"
   },
   {
@@ -110,7 +110,7 @@
   {
     "wr_id": 20,
     "name": "김범수",
-    "gender": "female",
+    "gender": "male",
     "soop_user_id": "bumsoo552"
   },
   {
@@ -668,9 +668,15 @@
     "soop_user_id": "julyzerg"
   },
   {
+    "wr_id": 147,
+    "name": "최재성",
+    "gender": "male",
+    "soop_user_id": "byromantic"
+  },
+  {
     "wr_id": 213,
     "name": "어윤수",
-    "gender": "female",
+    "gender": "male",
     "soop_user_id": "djdbstn"
   },
   {
@@ -726,6 +732,12 @@
     "name": "킁식",
     "gender": "male",
     "soop_user_id": "zealotmaru"
+  },
+  {
+    "wr_id": 313,
+    "name": "빵훈",
+    "gender": "male",
+    "soop_user_id": "vlfvlf789"
   },
   {
     "wr_id": 304,
