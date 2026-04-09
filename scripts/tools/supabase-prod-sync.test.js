@@ -6,6 +6,7 @@ const ROOT = path.join(__dirname, "..", "..");
 const TMP_DIR = path.join(ROOT, "tmp");
 
 const {
+  resolveSoopServingMetadata,
   parseMatchHistoryFromStableCsv,
 } = require("./supabase-prod-sync");
 
@@ -97,4 +98,33 @@ runTest("parseMatchHistoryFromStableCsv keeps multiline notes in a single record
       fs.unlinkSync(path.join(TMP_DIR, fileName));
     } catch {}
   }
+});
+
+runTest("resolveSoopServingMetadata falls back by wr_id only for mix identities", () => {
+  const soopLookup = {
+    lookup: new Map([
+      ["57:female", { soop_id: "slia", broadcast_url: "https://ch.sooplive.co.kr/slia" }],
+      ["1055:female", { soop_id: "tkdduddb06", broadcast_url: "https://ch.sooplive.co.kr/tkdduddb06" }],
+    ]),
+    byWrId: new Map([
+      ["57", { soop_id: "slia", broadcast_url: "https://ch.sooplive.co.kr/slia" }],
+      ["1055", { soop_id: "tkdduddb06", broadcast_url: "https://ch.sooplive.co.kr/tkdduddb06" }],
+    ]),
+  };
+
+  assert.deepEqual(
+    resolveSoopServingMetadata(
+      { eloboard_id: "eloboard:male:mix:1055", gender: "male" },
+      soopLookup
+    ),
+    { soop_id: "tkdduddb06", broadcast_url: "https://ch.sooplive.co.kr/tkdduddb06" }
+  );
+
+  assert.deepEqual(
+    resolveSoopServingMetadata(
+      { eloboard_id: "eloboard:male:57", gender: "male" },
+      soopLookup
+    ),
+    { soop_id: null, broadcast_url: null }
+  );
 });

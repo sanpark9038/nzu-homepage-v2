@@ -29,26 +29,66 @@ function normalizeName(value) {
   return String(value || '').trim();
 }
 
+function extractWrId(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (/^\d+$/.test(raw)) return raw;
+  const match = raw.match(/(\d+)$/);
+  return match ? match[1] : null;
+}
+
+function isMixEntityId(value) {
+  return /^eloboard:(male|female):mix:\d+$/i.test(String(value || '').trim());
+}
+
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, ''));
 }
 
 function buildSoopLookup() {
-  if (!fs.existsSync(PLAYER_METADATA_PATH)) return new Map();
+  if (!fs.existsSync(PLAYER_METADATA_PATH)) {
+    return {
+      lookup: new Map(),
+      byWrId: new Map(),
+    };
+  }
   const rows = readJson(PLAYER_METADATA_PATH);
-  if (!Array.isArray(rows)) return new Map();
+  if (!Array.isArray(rows)) {
+    return {
+      lookup: new Map(),
+      byWrId: new Map(),
+    };
+  }
   const lookup = new Map();
+  const byWrId = new Map();
   for (const row of rows) {
     const wrId = Number(row && row.wr_id);
     const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase();
     const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
     if (!Number.isFinite(wrId) || !gender || !soopUserId) continue;
-    lookup.set(`${wrId}:${gender}`, {
+    const payload = {
       soop_id: soopUserId,
       broadcast_url: `https://ch.sooplive.co.kr/${soopUserId}`,
-    });
+    };
+    lookup.set(`${wrId}:${gender}`, payload);
+    byWrId.set(String(wrId), payload);
   }
-  return lookup;
+  return { lookup, byWrId };
+}
+
+function resolveSoopServingMetadata(row, soopLookup) {
+  const entityId = String(row && row.eloboard_id ? row.eloboard_id : '').trim();
+  const wrId = extractWrId(entityId);
+  const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase();
+  if (wrId && gender) {
+    const exact = soopLookup.lookup.get(`${wrId}:${gender}`);
+    if (exact) return exact;
+  }
+  if (wrId && isMixEntityId(entityId)) {
+    const mixFallback = soopLookup.byWrId.get(wrId);
+    if (mixFallback) return mixFallback;
+  }
+  return { soop_id: null, broadcast_url: null };
 }
 
 function parseCsvLine(line) {
@@ -319,12 +359,7 @@ async function main() {
 
   const sanitized = (stagingData || [])
     .map((row) => ({
-      ...(() => {
-        const entityId = String(row.eloboard_id || '').trim();
-        const wrId = Number(entityId.split(':').pop());
-        const gender = String(row.gender || '').trim().toLowerCase();
-        return soopLookup.get(`${wrId}:${gender}`) || { soop_id: null, broadcast_url: null };
-      })(),
+      ...resolveSoopServingMetadata(row, soopLookup),
       ...(servingStatsByName.get(String(row.name || '').trim()) ? (() => {
         const stats = servingStatsByName.get(String(row.name || '').trim());
         const totalMatches = Number(stats.wins || 0) + Number(stats.losses || 0);
@@ -435,9 +470,11 @@ if (require.main === module) {
 }
 
 module.exports = {
+  buildSoopLookup,
   buildServingStatsByName,
   parseCsvLine,
   parseMatchHistoryFromStableCsv,
+  resolveSoopServingMetadata,
   readCsv,
   sourceCsvPath,
 };

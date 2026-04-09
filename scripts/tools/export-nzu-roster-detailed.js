@@ -50,11 +50,26 @@ function daysBetween(a, b) {
   return Math.floor(ms / (24 * 60 * 60 * 1000));
 }
 
-function shouldSkipByPriorityWindow(player, to) {
+function readFileModifiedAt(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    const stat = fs.statSync(filePath);
+    return Number.isFinite(stat.mtimeMs) ? new Date(stat.mtimeMs) : null;
+  } catch {
+    return null;
+  }
+}
+
+function shouldSkipByPriorityWindow(player, to, jsonPath = null) {
   const lastChecked = asDate(player && player.last_checked_at ? player.last_checked_at : "");
   const checkIntervalDays = Number(player && player.check_interval_days ? player.check_interval_days : 0) || 0;
   const todayDate = asDate(to) || new Date();
   if (!lastChecked || checkIntervalDays <= 0) return false;
+  if (jsonPath) {
+    const lastCollected = readFileModifiedAt(jsonPath);
+    if (!lastCollected) return false;
+    if (daysBetween(todayDate, lastCollected) >= checkIntervalDays) return false;
+  }
   return daysBetween(todayDate, lastChecked) < checkIntervalDays;
 }
 
@@ -350,7 +365,7 @@ function main() {
       if (forceRefresh) {
         result.fetch_status = "forced_recollect_after_resume";
       } else if (useExisting && fs.existsSync(jsonPath)) {
-        if (shouldSkipByPriorityWindow(p, to)) {
+        if (shouldSkipByPriorityWindow(p, to, jsonPath)) {
           shouldFetch = false;
           result.fetch_status = "used_existing_json_priority_window";
         } else if (inactiveSkipDays > 0) {
@@ -500,4 +515,11 @@ function main() {
   console.log(`report: ${reportPath}`);
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  readFileModifiedAt,
+  shouldSkipByPriorityWindow,
+};
