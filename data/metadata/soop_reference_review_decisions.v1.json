@@ -1,0 +1,512 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-04-09T04:46:53.632Z",
+  "source_plan": "C:\\Users\\NZU\\Desktop\\nzu-homepage\\tmp\\reports\\soop_reference_reconciliation_plan_soop_reference_diff_soop_reference_44.normalized.json",
+  "policy": {
+    "reference_only_with_wr_id": "approve only when wr_id > 0 and profile_kind is male/female/mix; otherwise hold",
+    "conflict_review": "keep existing metadata on all soop_user_id conflicts"
+  },
+  "totals": {
+    "reference_only_with_wr_id": 64,
+    "approve": 35,
+    "hold": 29,
+    "conflict_review": 5
+  },
+  "reference_only_with_wr_id": [
+    {
+      "elo_wr_id": 24,
+      "source_name": "윤찬희",
+      "incoming_soop_user_id": "cksgmldbs",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 22,
+      "source_name": "박상현",
+      "incoming_soop_user_id": "thakzkf",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 2,
+      "source_name": "임홍규",
+      "incoming_soop_user_id": "dpfgc3",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 65,
+      "source_name": "박수범",
+      "incoming_soop_user_id": "jihoon002",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "쿨지지",
+      "incoming_soop_user_id": "khy12088wsss",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "박준혁",
+      "incoming_soop_user_id": "jhyhlli123",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "쿰신",
+      "incoming_soop_user_id": "parkjaehyeon",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "이윤열",
+      "incoming_soop_user_id": "nada11200",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "초난강",
+      "incoming_soop_user_id": "dbrbals",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "최재성",
+      "incoming_soop_user_id": "byromantic",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "저그맨박성준",
+      "incoming_soop_user_id": "jun10280",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "카권",
+      "incoming_soop_user_id": "khjkzzzz",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "김봉준",
+      "incoming_soop_user_id": "khm11903",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "하얀눈길",
+      "incoming_soop_user_id": "qksdy147",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "강구열",
+      "incoming_soop_user_id": "kuyol",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "클템",
+      "incoming_soop_user_id": "killgusdnk",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "오리3",
+      "incoming_soop_user_id": "cat123123",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "김인호",
+      "incoming_soop_user_id": "pookygamja",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "야리",
+      "incoming_soop_user_id": "yamimi00",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 332,
+      "source_name": "시조새",
+      "incoming_soop_user_id": "superbsw123",
+      "category": "approve",
+      "reason": "wr_id and mix profile are explicit in source"
+    },
+    {
+      "elo_wr_id": 565,
+      "source_name": "금선",
+      "incoming_soop_user_id": "kwbm123081",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 408,
+      "source_name": "조은",
+      "incoming_soop_user_id": "zalalz",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 425,
+      "source_name": "늑대채린",
+      "incoming_soop_user_id": "clclcl8888",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "앵지",
+      "incoming_soop_user_id": "gks2wl",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 770,
+      "source_name": "소주양",
+      "incoming_soop_user_id": "soju2022",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 430,
+      "source_name": "옆집뽀누나",
+      "incoming_soop_user_id": "hy4985",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 605,
+      "source_name": "아라미",
+      "incoming_soop_user_id": "aram1213",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 680,
+      "source_name": "려원님",
+      "incoming_soop_user_id": "fudnjs0235",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 825,
+      "source_name": "모리",
+      "incoming_soop_user_id": "moguleave",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 776,
+      "source_name": "밍도릿",
+      "incoming_soop_user_id": "chziaxz",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 878,
+      "source_name": "임조이",
+      "incoming_soop_user_id": "dlaguswl501",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 871,
+      "source_name": "엄보리",
+      "incoming_soop_user_id": "wlsdkd1",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 742,
+      "source_name": "하랑",
+      "incoming_soop_user_id": "candyrang00",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 750,
+      "source_name": "다뉴",
+      "incoming_soop_user_id": "danu619",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 956,
+      "source_name": "면추가",
+      "incoming_soop_user_id": "min030606",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 980,
+      "source_name": "퀸주",
+      "incoming_soop_user_id": "queenzu",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 936,
+      "source_name": "다예나",
+      "incoming_soop_user_id": "sa03030",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 925,
+      "source_name": "막내현진",
+      "incoming_soop_user_id": "diniowo",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 894,
+      "source_name": "사사삼",
+      "incoming_soop_user_id": "bangsong12",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 898,
+      "source_name": "하루묭",
+      "incoming_soop_user_id": "harumyong",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 693,
+      "source_name": "하리보나",
+      "incoming_soop_user_id": "do33ob",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 1002,
+      "source_name": "고요",
+      "incoming_soop_user_id": "goyo030",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 1015,
+      "source_name": "땃쥐",
+      "incoming_soop_user_id": "dlwjddls30",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 972,
+      "source_name": "백원이야",
+      "incoming_soop_user_id": "begoniah",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 961,
+      "source_name": "삼교",
+      "incoming_soop_user_id": "jsg0301",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 965,
+      "source_name": "뀨알",
+      "incoming_soop_user_id": "kus03125",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 937,
+      "source_name": "먹체토",
+      "incoming_soop_user_id": "cheto1206",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "연또",
+      "incoming_soop_user_id": "kjy3443",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 991,
+      "source_name": "있찌",
+      "incoming_soop_user_id": "wegogin7410",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 976,
+      "source_name": "헤요이",
+      "incoming_soop_user_id": "heyyo0123",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "이영숙",
+      "incoming_soop_user_id": "yeonvelyo3o",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "성예린",
+      "incoming_soop_user_id": "a27bjyngfmh",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "짐승녀",
+      "incoming_soop_user_id": "dntnals1224",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "킹봄",
+      "incoming_soop_user_id": "nbomichae7",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 1014,
+      "source_name": "멍라희",
+      "incoming_soop_user_id": "a4s5kzg7wmk",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "백노루",
+      "incoming_soop_user_id": "100noru",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "뽀현욱",
+      "incoming_soop_user_id": "jhw1729",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "서모",
+      "incoming_soop_user_id": "tjgus5570",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "유녜",
+      "incoming_soop_user_id": "ktulsun00",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 997,
+      "source_name": "윤하랑",
+      "incoming_soop_user_id": "xx00uxx",
+      "category": "approve",
+      "reason": "wr_id and profile kind are explicit in source"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "이아라",
+      "incoming_soop_user_id": "ara9687",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "하윤",
+      "incoming_soop_user_id": "tndkekdy",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "혁민",
+      "incoming_soop_user_id": "suhi370erw",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    },
+    {
+      "elo_wr_id": 0,
+      "source_name": "현설",
+      "incoming_soop_user_id": "hyeon22",
+      "category": "hold",
+      "reason": "wr_id is missing or zero, so onboarding stays manual"
+    }
+  ],
+  "conflict_review": [
+    {
+      "wr_id": 28,
+      "metadata_name": "유승곤",
+      "existing_soop_user_id": "scan1014",
+      "source_name": "다린",
+      "incoming_soop_user_id": "bijyu90",
+      "decision": "keep_metadata",
+      "reason": "existing metadata already has a conflicting soop_user_id"
+    },
+    {
+      "wr_id": 79,
+      "metadata_name": "소룡이",
+      "existing_soop_user_id": "gjgj3274",
+      "source_name": "은똥",
+      "incoming_soop_user_id": "ddd001",
+      "decision": "keep_metadata",
+      "reason": "existing metadata already has a conflicting soop_user_id"
+    },
+    {
+      "wr_id": 881,
+      "metadata_name": "황단비",
+      "existing_soop_user_id": "xzqwe1",
+      "source_name": "수니양",
+      "incoming_soop_user_id": "nasd06",
+      "decision": "keep_metadata",
+      "reason": "existing metadata already has a conflicting soop_user_id"
+    },
+    {
+      "wr_id": 880,
+      "metadata_name": "밍가",
+      "existing_soop_user_id": "tato1104",
+      "source_name": "효짱",
+      "incoming_soop_user_id": "queen030",
+      "decision": "keep_metadata",
+      "reason": "existing metadata already has a conflicting soop_user_id"
+    },
+    {
+      "wr_id": 955,
+      "metadata_name": "키링",
+      "existing_soop_user_id": "dbwjdcool1",
+      "source_name": "찡찡시아",
+      "incoming_soop_user_id": "siahag",
+      "decision": "keep_metadata",
+      "reason": "existing metadata already has a conflicting soop_user_id"
+    }
+  ]
+}

@@ -33,6 +33,7 @@
     "soop:reference:normalize": "node scripts/tools/normalize-soop-reference-source.js",
     "report:soop:reference-diff": "node scripts/tools/report-soop-reference-diff.js",
     "report:soop:reference-plan": "node scripts/tools/build-soop-reference-reconciliation-plan.js",
+    "report:soop:reference-review": "node scripts/tools/build-soop-reference-review-decisions.js",
     "apply:soop:reference-plan": "node scripts/tools/apply-soop-reference-plan.js --write",
     "report:metadata:conflicts": "node scripts/tools/report-metadata-conflicts.js",
     "report:metadata:resolution": "node scripts/tools/propose-metadata-conflict-resolutions.js",
