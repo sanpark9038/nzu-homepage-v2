@@ -1064,9 +1064,10 @@
     "soop_user_id": "aaaa7979"
   },
   {
-    "wr_id": 614,
+    "wr_id": 638,
     "name": "설둥이",
-    "gender": "female"
+    "gender": "female",
+    "soop_user_id": "snowssa"
   },
   {
     "wr_id": 619,
@@ -1137,7 +1138,7 @@
   {
     "wr_id": 671,
     "name": "쌍디",
-    "gender": "female",
+    "gender": "male",
     "soop_user_id": "dlrnf"
   },
   {
@@ -1536,8 +1537,8 @@
   },
   {
     "wr_id": 913,
-    "name": "빡재",
-    "gender": "female",
+    "name": "빡재TV",
+    "gender": "male",
     "soop_user_id": "jhpark7712"
   },
   {

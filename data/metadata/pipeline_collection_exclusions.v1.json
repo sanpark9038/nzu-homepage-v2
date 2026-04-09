@@ -58,6 +58,13 @@
       "name": "행복짱",
       "reason": "user_excluded",
       "updated_at": "2026-03-26T08:57:45.416Z"
+    },
+    {
+      "entity_id": "eloboard:female:951",
+      "wr_id": 951,
+      "name": "단이",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-09T00:00:00.000Z"
     }
   ]
 }
