@@ -111,19 +111,33 @@ export function PlayerCard({
       <div
         className={cn(
           "relative overflow-hidden bg-muted",
-          isHomeVariant ? "aspect-[3/3.22]" : isTierVariant ? "aspect-[33/35] max-h-[158px]" : "aspect-[4/3]"
+          isHomeVariant ? "aspect-[3/3.22]" : isTierVariant ? "flex items-start justify-center bg-transparent px-2 pt-2" : "aspect-[4/3]"
         )}
       >
-        <Image
-          src={profileUrl || "/placeholder-player.png"}
-          alt={player.name}
-          fill
-          unoptimized
-          className={cn(
-            "object-cover object-top transition-transform duration-700",
-            isTierVariant ? "" : "group-hover:scale-110"
-          )}
-        />
+        {isTierVariant ? (
+          <div className="relative h-[140px] w-[132px] overflow-hidden rounded-[0.85rem] bg-muted">
+            <Image
+              src={profileUrl || "/placeholder-player.png"}
+              alt={player.name}
+              width={132}
+              height={140}
+              sizes="132px"
+              unoptimized
+              className="h-full w-full object-cover object-top"
+            />
+          </div>
+        ) : (
+          <Image
+            src={profileUrl || "/placeholder-player.png"}
+            alt={player.name}
+            fill
+            unoptimized
+            className={cn(
+              "object-cover object-top transition-transform duration-700",
+              "group-hover:scale-110"
+            )}
+          />
+        )}
         
         {/* Live Indicator overlay (Top Right) */}
         {isLive && (
