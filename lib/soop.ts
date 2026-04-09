@@ -22,6 +22,13 @@ export function buildSoopStimgProfileImageUrl(soopId: string | null | undefined)
   return prefix ? `https://stimg.sooplive.com/LOGO/${prefix}/${value}/m/${value}.webp` : null;
 }
 
+export function buildSoopProfileImageUrlCoKr(soopId: string | null | undefined) {
+  const value = String(soopId || "").trim();
+  if (!value) return null;
+  const prefix = value.slice(0, 2).toLowerCase();
+  return prefix ? `https://profile.img.sooplive.co.kr/LOGO/${prefix}/${value}/${value}.jpg` : null;
+}
+
 export function buildSoopProfileImageUrl(soopId: string | null | undefined) {
   const value = String(soopId || "").trim();
   return value ? `https://profile.img.sooplive.com/LOGO/af/${value}/${value}.jpg` : null;
@@ -44,8 +51,9 @@ export function resolveSoopWatchUrl(player: SoopPlayerLike) {
 
 export function resolveSoopChannelImageUrl(player: SoopPlayerLike) {
   return (
-    buildSoopStimgProfileImageUrl(player?.soop_id) ||
+    buildSoopProfileImageUrlCoKr(player?.soop_id) ||
     normalizeSoopImageUrl(player?.channel_profile_image_url) ||
+    buildSoopStimgProfileImageUrl(player?.soop_id) ||
     buildSoopProfileImageUrl(player?.soop_id)
   );
 }
