@@ -1,12 +1,10 @@
 
 import { TierGroup } from "@/components/players/TierGroup";
-import { PlayerCard } from "@/components/players/PlayerCard";
 import { H2HSelectorBar } from "@/components/players/H2HSelectorBar";
 import { playerService } from "@/lib/player-service";
-import { NZU_CONFIG } from "@/lib/constants";
-import { PlayerSearch, RaceFilter, UnivFilter, RaceToggle } from "@/components/players/Filters";
+import { PlayerSearch, RaceFilter, UnivFilter, RaceToggle, LiveToggle, SmartStickyHeader } from "@/components/players/Filters";
 import Link from "next/link";
-import { normalizeTier } from "@/lib/utils";
+import { normalizeTier, normalizeRace } from "@/lib/utils";
 import type { Player } from "@/types";
 
 const RACE_ORDER: Record<string, number> = {
@@ -15,18 +13,10 @@ const RACE_ORDER: Record<string, number> = {
   P: 2,
 };
 
-function normalizeRaceCode(value: string | null | undefined) {
-  const raw = String(value || "").trim().toUpperCase();
-  if (raw.startsWith("T")) return "T";
-  if (raw.startsWith("Z")) return "Z";
-  if (raw.startsWith("P")) return "P";
-  return raw;
-}
-
 function sortTierPlayers(players: Player[]) {
   return [...players].sort((left, right) => {
-    const leftRace = normalizeRaceCode(left.race);
-    const rightRace = normalizeRaceCode(right.race);
+    const leftRace = normalizeRace(left.race);
+    const rightRace = normalizeRace(right.race);
     const leftOrder = RACE_ORDER[leftRace] ?? 99;
     const rightOrder = RACE_ORDER[rightRace] ?? 99;
     if (leftOrder !== rightOrder) return leftOrder - rightOrder;
@@ -37,19 +27,20 @@ function sortTierPlayers(players: Player[]) {
 export default async function TierPage({
   searchParams,
 }: {
-  searchParams: { search?: string; race?: string; univ?: string; tier?: string; raceToggle?: string };
+  searchParams: { search?: string; race?: string; univ?: string; tier?: string; raceToggle?: string; liveOnly?: string };
 }) {
   const params = await searchParams;
   const search = params.search;
   const race = params.race;
   const univ = params.univ;
   const tier = params.tier;
-  
-  let playerList = await playerService.getAllPlayers();
+  const liveOnly = params.liveOnly === "true";
+  const allPlayers = await playerService.getAllPlayers();
+  let playerList = [...allPlayers];
 
   // Multi-Filter Logic (Intersection)
-  if (search) {
-    playerList = playerList.filter(p => p.name.includes(search));
+  if (liveOnly) {
+    playerList = playerList.filter(p => p.is_live);
   }
   if (race && race !== 'ALL') {
     playerList = playerList.filter(p => p.race === race);
@@ -59,6 +50,17 @@ export default async function TierPage({
   }
   if (tier && tier !== 'ALL') {
     playerList = playerList.filter(p => normalizeTier(p.tier) === normalizeTier(tier));
+  }
+
+  // 대표님 UX 오더: 검색 과정 중(특히 한글 자모음 합성 등) 결과가 0명이 되는 순간 
+  // 텅 빈 화면이 나오는 것을 방지하기 위해, 검색 결과가 있을 때만 리스트를 갱신하고
+  // 없을 때는 기존의 꽉 찬 리스트를 유지.
+  if (search) {
+    const lowerSearch = search.toLowerCase();
+    const searchedList = playerList.filter(p => p.name.toLowerCase().includes(lowerSearch));
+    if (searchedList.length > 0) {
+      playerList = searchedList;
+    }
   }
 
   // 티어별 그룹화 로직 (정규화된 값 기준)
@@ -82,7 +84,6 @@ export default async function TierPage({
     { id: 'god', name: '갓' },
     { id: 'king', name: '킹' },
     { id: 'jack', name: '잭' },
-    { id: 'queen', name: '퀸' },
     { id: 'joker', name: '조커' },
     { id: 'spade', name: '스페이드' },
     ...numericTiers.map(t => ({ id: String(t), name: `${t}티어` })),
@@ -95,21 +96,26 @@ export default async function TierPage({
     <div className="min-h-screen flex flex-col bg-background">
       <H2HSelectorBar />
 
-      <main className="flex-1 max-w-[1800px] mx-auto w-full px-4 lg:px-8 py-8 fade-in relative">
+      <main className="flex-1 max-w-[1800px] mx-auto w-full px-4 lg:px-8 pb-8 fade-in relative">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* 메인 리스트 영역 */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 flex flex-col">
+            {/* Sticky 통합 필터바 (최상단 고정 및 간격 제거) */}
+            <SmartStickyHeader>
+              <div className="bg-background/95 backdrop-blur-xl border-b border-white/10 p-3 lg:p-4 -mx-4 lg:-mx-8 px-4 lg:px-8 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shadow-black/20">
+                <div className="w-full md:w-64 max-w-md">
+                  <PlayerSearch playerNames={allPlayers.map((p: Player) => p.name)} />
+                </div>
+                <div className="flex items-center gap-4 w-full md:w-auto justify-end overflow-x-auto hide-scrollbar shrink-0">
+                  <LiveToggle />
+                  <RaceToggle />
+                </div>
+              </div>
+            </SmartStickyHeader>
+
             <div className="flex flex-col gap-10 mb-12 border-b border-foreground/5 pb-10">
-               <div className="flex flex-col gap-8">
-                  <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-                    <div className="max-w-md w-full">
-                      <PlayerSearch />
-                    </div>
-                    <RaceToggle />
-                  </div>
-                  <div className="flex flex-col gap-6">
-                    <UnivFilter />
-                  </div>
+               <div className="flex flex-col gap-6">
+                 <UnivFilter />
                </div>
             </div>
 
@@ -166,16 +172,17 @@ export default async function TierPage({
                   );
                 })}
 
-                {/* 베이비 티어 (데이터가 없을 때도 섹션 유지를 원할 경우 필터 없이 항상 노출 가능하지만, 여기서는 데이터가 있을 때 확실히 노출되도록 보장) */}
-                <div id="tier-baby">
-                  <TierGroup 
-                    rankName="베이비" 
-                    players={babyPlayers} 
-                    startIndex={playerList.length - babyPlayers.length}
-                    showRaceGroups={params.raceToggle === "true"}
-                    emptyMessage="베이비 티어 선수가 아직 등록되지 않았습니다"
-                  />
-                </div>
+                {babyPlayers.length > 0 && (
+                  <div id="tier-baby">
+                    <TierGroup 
+                      rankName="베이비" 
+                      players={babyPlayers} 
+                      startIndex={playerList.length - babyPlayers.length}
+                      showRaceGroups={params.raceToggle === "true"}
+                      emptyMessage="베이비 티어 선수가 아직 등록되지 않았습니다"
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>

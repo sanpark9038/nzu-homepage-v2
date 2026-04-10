@@ -1,6 +1,7 @@
 
 import { supabase } from "./supabase";
 import { type Player } from "../types";
+import { normalizeUniversityKey } from "./university-config";
 export type { Player };
 
 // Public pages should consume website-serving data from Supabase through this layer.
@@ -20,6 +21,7 @@ type RosterPlayerOverride = {
   tier?: string;
   race?: string;
   display_name?: string;
+  profile_url?: string;
 };
 
 type SoopIdentityOverride = {
@@ -43,6 +45,8 @@ type SoopLiveSnapshotDoc = {
 
 let cachedSearchAliasesMtimeMs: number | null = null;
 let cachedSearchAliases = new Map<string, string[]>();
+let cachedDisplayAliasesMtimeMs: number | null = null;
+let cachedDisplayAliases = new Map<string, string>();
 
 const SOOP_PREVIEW_LIVE_WINDOW_MS = 8 * 60 * 60 * 1000;
 const SOOP_GENERATED_SNAPSHOT_MAX_AGE_MS = 15 * 60 * 1000;
@@ -89,7 +93,7 @@ function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
 
   for (const code of projectDirs) {
     const filePath = path.join(projectsDir, code, `players.${code}.v1.json`);
-    const doc = readJson<{ roster?: Array<{ entity_id?: string; team_name?: string; tier?: string; race?: string; display_name?: string }> }>(filePath);
+  const doc = readJson<{ roster?: Array<{ entity_id?: string; team_name?: string; tier?: string; race?: string; display_name?: string; profile_url?: string }> }>(filePath);
     const roster = Array.isArray(doc?.roster) ? doc.roster : [];
     for (const player of roster) {
       const entityId = String(player?.entity_id || "").trim();
@@ -99,11 +103,61 @@ function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
         tier: String(player?.tier || "").trim() || undefined,
         race: String(player?.race || "").trim() || undefined,
         display_name: String(player?.display_name || "").trim() || undefined,
+        profile_url: String(player?.profile_url || "").trim() || undefined,
       });
     }
   }
 
   return overrides;
+}
+
+function loadDisplayAliases(): Map<string, string> {
+  const aliases = new Map<string, string>();
+  if (typeof window !== "undefined") return aliases;
+
+  const req = eval("require") as NodeRequire;
+  const fs = req("fs") as typeof import("fs");
+  const path = req("path") as typeof import("path");
+  const filePath = path.join(process.cwd(), "data", "metadata", "player_display_aliases.v1.json");
+  if (!fs.existsSync(filePath)) return aliases;
+
+  try {
+    const stat = fs.statSync(filePath);
+    if (cachedDisplayAliasesMtimeMs === stat.mtimeMs) {
+      return cachedDisplayAliases;
+    }
+    cachedDisplayAliasesMtimeMs = stat.mtimeMs;
+  } catch {
+    cachedDisplayAliasesMtimeMs = null;
+  }
+
+  try {
+    const doc = JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as {
+      global?: Array<{ name?: string; display_name?: string }>;
+      teams?: Record<string, Array<{ name?: string; display_name?: string }>>;
+    };
+
+    const register = (nameValue: string | undefined, displayValue: string | undefined) => {
+      const name = String(nameValue || "").trim();
+      const displayName = String(displayValue || "").trim();
+      if (!name || !displayName) return;
+      aliases.set(name, displayName);
+    };
+
+    for (const row of Array.isArray(doc?.global) ? doc.global : []) {
+      register(row?.name, row?.display_name);
+    }
+    for (const rows of Object.values(doc?.teams || {})) {
+      for (const row of Array.isArray(rows) ? rows : []) {
+        register(row?.name, row?.display_name);
+      }
+    }
+  } catch {
+    return aliases;
+  }
+
+  cachedDisplayAliases = aliases;
+  return aliases;
 }
 
 function loadSoopIdentityOverrides(): Map<string, SoopIdentityOverride> {
@@ -153,15 +207,17 @@ function hasMixedEloboardIdentity(player: Partial<Player> & { eloboard_id?: stri
 function applyRosterOverride<T extends Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }>(
   player: T,
   overrides: Map<string, RosterPlayerOverride>,
-  soopIdentityOverrides: Map<string, SoopIdentityOverride>
+  soopIdentityOverrides: Map<string, SoopIdentityOverride>,
+  displayAliases: Map<string, string>
 ): T {
   const entityId = normalizeEntityIdForPlayer(player);
   const override = entityId ? overrides.get(entityId) : null;
   const wrId = extractWrId(player);
   const soopOverride = wrId && hasMixedEloboardIdentity(player) ? soopIdentityOverrides.get(wrId) : null;
-  if (!override && !soopOverride) return player;
   const canonicalName = String(player.name || "").trim();
-  const displayName = String(override?.display_name || "").trim();
+  const aliasedDisplayName = displayAliases.get(canonicalName) || "";
+  if (!override && !soopOverride && !aliasedDisplayName) return player;
+  const displayName = String(aliasedDisplayName || override?.display_name || "").trim();
   return {
     ...player,
     name: displayName || player.name,
@@ -173,13 +229,26 @@ function applyRosterOverride<T extends Partial<Player> & { eloboard_id?: string 
     tier: override?.tier ?? player.tier,
     race: override?.race ?? player.race,
     soop_id: soopOverride?.soop_id ?? player.soop_id,
+    profile_url: override?.profile_url ?? player.profile_url,
+  };
+}
+
+function applyUniversityNormalization<T extends Partial<Player> & { university?: string | null }>(player: T): T {
+  const normalizedUniversity = normalizeUniversityKey(player.university);
+  if (!normalizedUniversity) return player;
+  return {
+    ...player,
+    university: normalizedUniversity,
   };
 }
 
 function applyRosterOverrides<T extends Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }>(players: T[]) {
   const overrides = loadRosterOverrides();
   const soopIdentityOverrides = loadSoopIdentityOverrides();
-  return players.map((player) => applyRosterOverride(player, overrides, soopIdentityOverrides));
+  const displayAliases = loadDisplayAliases();
+  return players.map((player) =>
+    applyUniversityNormalization(applyRosterOverride(player, overrides, soopIdentityOverrides, displayAliases))
+  );
 }
 
 function loadSoopLiveSnapshotFile(filePath: string, cacheKey: "preview" | "generated") {
@@ -317,6 +386,10 @@ function applySoopLivePreview<T extends Partial<Player> & { soop_id?: string | n
   if (!soopId) return player;
   const resolved = resolveSoopLiveEntry(soopId);
   if (!resolved) return player;
+  if (resolved.mode === "generated" && !resolved.snapshotFresh) {
+    // A stale generated snapshot should never override fresher serving data.
+    return player;
+  }
   const preview = resolved.entry;
 
   const broadStartRaw = String(preview.broad_start || "").trim();
@@ -408,7 +481,11 @@ function loadSearchAliases(): Map<string, string[]> {
     pushAlias(String(canonicalName || ""), String(aliasName || ""));
   }
 
-  const displayDoc = readJson<{ teams?: Record<string, Array<{ name?: string; display_name?: string }>> }>(displayAliasPath);
+  const displayDoc = readJson<{ global?: Array<{ name?: string; display_name?: string }>; teams?: Record<string, Array<{ name?: string; display_name?: string }>> }>(displayAliasPath);
+  const globalRows = Array.isArray(displayDoc?.global) ? displayDoc.global : [];
+  for (const row of globalRows) {
+    pushAlias(String(row?.name || ""), String(row?.display_name || ""));
+  }
   const teams = displayDoc && typeof displayDoc.teams === "object" ? displayDoc.teams : {};
   for (const rows of Object.values(teams)) {
     for (const row of Array.isArray(rows) ? rows : []) {
@@ -549,7 +626,9 @@ export const playerService = {
     
     if (error) throw error;
     return applySoopLivePreview(
-      applyRosterOverride(data, loadRosterOverrides(), loadSoopIdentityOverrides())
+      applyUniversityNormalization(
+        applyRosterOverride(data, loadRosterOverrides(), loadSoopIdentityOverrides(), loadDisplayAliases())
+      )
     );
   },
 
@@ -567,7 +646,9 @@ export const playerService = {
     const player = (data || []).find((row) => String(row.id || "").toLowerCase().startsWith(normalizedPrefix)) || null;
     return player
       ? applySoopLivePreview(
-          applyRosterOverride(player, loadRosterOverrides(), loadSoopIdentityOverrides())
+          applyUniversityNormalization(
+            applyRosterOverride(player, loadRosterOverrides(), loadSoopIdentityOverrides(), loadDisplayAliases())
+          )
         )
       : null;
   },

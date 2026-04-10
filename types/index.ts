@@ -7,6 +7,7 @@ export type Player = Omit<PlayerRow, "match_history" | "channel_profile_image_ur
   live_viewers?: string | null;
   live_started_at?: string | null;
   match_history?: PlayerRow["match_history"] | null;
+  profile_url?: string | null;
 };
 export type Match = Database["public"]["Tables"]["matches"]["Row"];
 export type EloMatch = Database["public"]["Tables"]["eloboard_matches"]["Row"];
@@ -30,6 +31,5 @@ export interface H2HStats {
 
 export interface UniversityInfo {
   name: string;
-  logo: string;
-  color: string;
+  stars?: number;
 }

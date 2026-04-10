@@ -1,0 +1,412 @@
+const fs = require("fs");
+const path = require("path");
+const { createClient } = require("@supabase/supabase-js");
+require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local"), quiet: true });
+
+const ROOT = path.resolve(__dirname, "..", "..");
+const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
+const DISPLAY_ALIASES_PATH = path.join(ROOT, "data", "metadata", "player_display_aliases.v1.json");
+const PLAYER_METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
+const REVIEW_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "soop_manual_review_decisions.v1.json");
+const SNAPSHOT_PATH = path.join(ROOT, "data", "metadata", "soop_live_snapshot.generated.v1.json");
+const OUTPUT_PATH = path.join(ROOT, "tmp", "reports", "homepage_integrity_report.json");
+const SNAPSHOT_FRESH_MS = 15 * 60 * 1000;
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseServiceRoleKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_KEY ||
+  "";
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+}
+
+function writeJson(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, JSON.stringify(value, null, 2), "utf8");
+}
+
+function trim(value) {
+  return String(value || "").trim();
+}
+
+function lower(value) {
+  return trim(value).toLowerCase();
+}
+
+function loadDisplayAliases() {
+  if (!fs.existsSync(DISPLAY_ALIASES_PATH)) return { teams: {} };
+  return readJson(DISPLAY_ALIASES_PATH);
+}
+
+function loadProjectRosters() {
+  const rows = [];
+  if (!fs.existsSync(PROJECTS_DIR)) return rows;
+  const dirs = fs
+    .readdirSync(PROJECTS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+
+  for (const project of dirs) {
+    const filePath = path.join(PROJECTS_DIR, project, `players.${project}.v1.json`);
+    if (!fs.existsSync(filePath)) continue;
+    const doc = readJson(filePath);
+    const roster = Array.isArray(doc && doc.roster) ? doc.roster : [];
+    for (const row of roster) {
+      rows.push({
+        project,
+        file_path: filePath,
+        entity_id: trim(row && row.entity_id) || null,
+        wr_id: Number.isFinite(Number(row && row.wr_id)) ? Number(row.wr_id) : null,
+        gender: lower(row && row.gender) || null,
+        name: trim(row && row.name) || null,
+        display_name: trim(row && row.display_name) || null,
+      });
+    }
+  }
+  return rows;
+}
+
+function loadPlayerMetadata() {
+  if (!fs.existsSync(PLAYER_METADATA_PATH)) return [];
+  const rows = readJson(PLAYER_METADATA_PATH);
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row) => ({
+    wr_id: Number.isFinite(Number(row && row.wr_id)) ? Number(row.wr_id) : null,
+    name: trim(row && row.name) || null,
+    gender: lower(row && row.gender) || null,
+    soop_user_id: trim(row && row.soop_user_id) || null,
+  }));
+}
+
+function loadReviewDecisions() {
+  if (!fs.existsSync(REVIEW_DECISIONS_PATH)) return [];
+  const doc = readJson(REVIEW_DECISIONS_PATH);
+  const rows = Array.isArray(doc && doc.decisions) ? doc.decisions : [];
+  return rows.map((row) => ({
+    source_name: trim(row && row.source_name) || null,
+    canonical_name: trim(row && row.canonical_name) || null,
+    decision: lower(row && row.decision) || null,
+    elo_requirement: lower(row && row.elo_requirement) || null,
+    soop_user_id: trim(row && row.soop_user_id) || null,
+  }));
+}
+
+function loadSnapshotStatus() {
+  if (!fs.existsSync(SNAPSHOT_PATH)) {
+    return {
+      exists: false,
+      updated_at: null,
+      is_fresh: false,
+      live_count: 0,
+      channels: {},
+    };
+  }
+
+  const doc = readJson(SNAPSHOT_PATH);
+  const updatedAt = trim(doc && doc.updated_at) || null;
+  const updatedTime = updatedAt ? new Date(updatedAt) : null;
+  const isFresh =
+    updatedTime instanceof Date &&
+    !Number.isNaN(updatedTime.getTime()) &&
+    Date.now() - updatedTime.getTime() >= 0 &&
+    Date.now() - updatedTime.getTime() <= SNAPSHOT_FRESH_MS;
+  const channels = doc && typeof doc.channels === "object" ? doc.channels : {};
+  const liveCount = Object.values(channels).filter((row) => row && row.isLive === true).length;
+  return {
+    exists: true,
+    updated_at: updatedAt,
+    is_fresh: Boolean(isFresh),
+    live_count: liveCount,
+    channels,
+  };
+}
+
+async function fetchPlayersServing() {
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error(
+      "Homepage integrity report requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)."
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+  const { data, error } = await supabase
+    .from("players")
+    .select("name,nickname,eloboard_id,gender,soop_id,broadcast_url,channel_profile_image_url,is_live");
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
+function buildAliasSection(rosters, aliasDoc) {
+  const teams = aliasDoc && typeof aliasDoc.teams === "object" ? aliasDoc.teams : {};
+  const globalRows = Array.isArray(aliasDoc && aliasDoc.global) ? aliasDoc.global : [];
+  const rosterByProjectAndName = new Map(
+    rosters.filter((row) => row.project && row.name).map((row) => [`${row.project}:${row.name}`, row])
+  );
+  const rostersByName = new Map();
+  for (const row of rosters) {
+    const name = trim(row && row.name);
+    if (!name) continue;
+    const bucket = rostersByName.get(name) || [];
+    bucket.push(row);
+    rostersByName.set(name, bucket);
+  }
+
+  const expected = [];
+  const mismatches = [];
+
+  for (const row of globalRows) {
+    const canonicalName = trim(row && row.name);
+    const displayName = trim(row && row.display_name);
+    if (!canonicalName || !displayName) continue;
+    const matches = rostersByName.get(canonicalName) || [];
+    if (!matches.length) continue;
+    for (const roster of matches) {
+      const payload = {
+        project: roster.project,
+        canonical_name: canonicalName,
+        expected_display_name: displayName,
+        roster_display_name: roster ? roster.display_name : null,
+        entity_id: roster ? roster.entity_id : null,
+      };
+      expected.push(payload);
+      if (trim(roster.display_name) !== displayName) {
+        mismatches.push(payload);
+      }
+    }
+  }
+
+  for (const [project, rows] of Object.entries(teams)) {
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const canonicalName = trim(row && row.name);
+      const displayName = trim(row && row.display_name);
+      if (!canonicalName || !displayName) continue;
+      const roster = rosterByProjectAndName.get(`${project}:${canonicalName}`) || null;
+      const payload = {
+        project,
+        canonical_name: canonicalName,
+        expected_display_name: displayName,
+        roster_display_name: roster ? roster.display_name : null,
+        entity_id: roster ? roster.entity_id : null,
+      };
+      if (expected.some((item) => item.project === payload.project && item.canonical_name === payload.canonical_name)) {
+        continue;
+      }
+      expected.push(payload);
+      if (!roster || trim(roster.display_name) !== displayName) {
+        mismatches.push(payload);
+      }
+    }
+  }
+
+  return {
+    total_expected_aliases: expected.length,
+    applied: expected.length - mismatches.length,
+    missing_or_mismatched: mismatches.length,
+    mismatches: mismatches.sort((a, b) =>
+      `${a.project}:${a.canonical_name}`.localeCompare(`${b.project}:${b.canonical_name}`, "ko")
+    ),
+  };
+}
+
+function buildSoopSection(players, metadataRows, reviewDecisions) {
+  const byWrGender = new Map();
+  const byNameGender = new Map();
+  const decisionsByName = new Map();
+
+  for (const row of metadataRows) {
+    const wrId = Number(row && row.wr_id);
+    const gender = lower(row && row.gender);
+    const name = trim(row && row.name);
+    if (Number.isFinite(wrId) && gender) {
+      byWrGender.set(`${wrId}:${gender}`, row);
+    }
+    if (name && gender) {
+      byNameGender.set(`${name}:${gender}`, row);
+    }
+  }
+
+  for (const row of reviewDecisions) {
+    const names = [trim(row && row.source_name), trim(row && row.canonical_name)].filter(Boolean);
+    for (const name of names) {
+      decisionsByName.set(name, row);
+    }
+  }
+
+  const missingInPlayers = [];
+  const metadataBackedButPlayersMissing = [];
+  const missingActionable = [];
+  const missingExcluded = [];
+  const missingPendingRegistration = [];
+  const missingUnreviewed = [];
+
+  for (const player of players) {
+    const entityId = trim(player && player.eloboard_id);
+    const wrMatch = entityId.match(/(\d+)$/);
+    const wrId = wrMatch ? Number(wrMatch[1]) : null;
+    const gender = lower(player && player.gender);
+    const name = trim(player && player.name);
+    const soopId = trim(player && player.soop_id) || null;
+    const metadata =
+      (Number.isFinite(wrId) && gender ? byWrGender.get(`${wrId}:${gender}`) : null) ||
+      (name && gender ? byNameGender.get(`${name}:${gender}`) : null) ||
+      null;
+    const decision = name ? decisionsByName.get(name) || null : null;
+
+    if (!soopId) {
+      const payload = {
+        name,
+        gender: gender || null,
+        eloboard_id: entityId || null,
+        metadata_soop_user_id: metadata ? metadata.soop_user_id : null,
+        review_decision: decision ? decision.decision : null,
+        review_elo_requirement: decision ? decision.elo_requirement : null,
+        review_soop_user_id: decision ? decision.soop_user_id : null,
+      };
+      missingInPlayers.push(payload);
+      if (decision && decision.decision === "exclude") {
+        missingExcluded.push(payload);
+      } else if (decision && decision.elo_requirement === "pending_registration") {
+        missingPendingRegistration.push(payload);
+      } else if (decision && decision.decision === "include") {
+        missingActionable.push(payload);
+      } else {
+        missingUnreviewed.push(payload);
+      }
+      if (metadata && metadata.soop_user_id) {
+        metadataBackedButPlayersMissing.push({
+          name,
+          gender: gender || null,
+          eloboard_id: entityId || null,
+          metadata_soop_user_id: metadata.soop_user_id,
+        });
+      }
+    }
+  }
+
+  return {
+    players_total: players.length,
+    players_with_soop: players.filter((row) => trim(row && row.soop_id)).length,
+    players_missing_soop: missingInPlayers.length,
+    players_missing_soop_actionable: missingActionable.length,
+    players_missing_soop_excluded: missingExcluded.length,
+    players_missing_soop_pending_registration: missingPendingRegistration.length,
+    players_missing_soop_unreviewed: missingUnreviewed.length,
+    metadata_rows_with_soop: metadataRows.filter((row) => trim(row && row.soop_user_id)).length,
+    metadata_backed_but_players_missing: metadataBackedButPlayersMissing.length,
+    metadata_backed_but_players_missing_rows: metadataBackedButPlayersMissing.sort((a, b) =>
+      String(a.name).localeCompare(String(b.name), "ko")
+    ),
+    sample_missing_players: missingInPlayers
+      .sort((a, b) => String(a.name).localeCompare(String(b.name), "ko"))
+      .slice(0, 30),
+    actionable_missing_players: missingActionable
+      .sort((a, b) => String(a.name).localeCompare(String(b.name), "ko"))
+      .slice(0, 30),
+    excluded_missing_players: missingExcluded
+      .sort((a, b) => String(a.name).localeCompare(String(b.name), "ko"))
+      .slice(0, 30),
+    pending_registration_missing_players: missingPendingRegistration
+      .sort((a, b) => String(a.name).localeCompare(String(b.name), "ko"))
+      .slice(0, 30),
+    unreviewed_missing_players: missingUnreviewed
+      .sort((a, b) => String(a.name).localeCompare(String(b.name), "ko"))
+      .slice(0, 30),
+  };
+}
+
+function buildLiveSection(players, snapshot) {
+  const livePlayers = players.filter((row) => row && row.is_live === true);
+  const effectiveLiveRows = [];
+  if (snapshot.exists && snapshot.is_fresh) {
+    for (const player of players) {
+      const soopId = trim(player && player.soop_id);
+      if (!soopId) continue;
+      const channel = snapshot.channels[soopId];
+      if (channel && channel.isLive === true) {
+        effectiveLiveRows.push({
+          name: trim(player && player.name) || null,
+          soop_id: soopId,
+        });
+      }
+    }
+  }
+  const staleSnapshotOverrides = [];
+
+  if (snapshot.exists) {
+    for (const player of livePlayers) {
+      const soopId = trim(player && player.soop_id);
+      if (!soopId) continue;
+      const channel = snapshot.channels[soopId];
+      if (!channel) continue;
+      if (snapshot.is_fresh) continue;
+      if (channel.isLive === false) {
+        staleSnapshotOverrides.push({
+          name: trim(player && player.name) || null,
+          soop_id: soopId,
+          snapshot_updated_at: snapshot.updated_at,
+        });
+      }
+    }
+  }
+
+  return {
+    db_live_count: livePlayers.length,
+    effective_live_count: snapshot.exists && snapshot.is_fresh ? effectiveLiveRows.length : livePlayers.length,
+    snapshot_exists: snapshot.exists,
+    snapshot_updated_at: snapshot.updated_at,
+    snapshot_is_fresh: snapshot.is_fresh,
+    snapshot_live_count: snapshot.live_count,
+    stale_snapshot_can_override_live: staleSnapshotOverrides.length,
+    stale_snapshot_override_rows: staleSnapshotOverrides.sort((a, b) =>
+      String(a.name).localeCompare(String(b.name), "ko")
+    ),
+  };
+}
+
+async function main() {
+  const aliasDoc = loadDisplayAliases();
+  const rosters = loadProjectRosters();
+  const metadataRows = loadPlayerMetadata();
+  const reviewDecisions = loadReviewDecisions();
+  const snapshot = loadSnapshotStatus();
+  const players = await fetchPlayersServing();
+
+  const report = {
+    schema_version: "1.0.0",
+    generated_at: new Date().toISOString(),
+    summary: {
+      aliases: buildAliasSection(rosters, aliasDoc),
+      soop: buildSoopSection(players, metadataRows, reviewDecisions),
+      live: buildLiveSection(players, snapshot),
+    },
+  };
+
+  writeJson(OUTPUT_PATH, report);
+
+  console.log("Generated homepage integrity report.");
+  console.log(`- output: ${OUTPUT_PATH}`);
+  console.log(`- alias_missing_or_mismatched: ${report.summary.aliases.missing_or_mismatched}`);
+  console.log(`- players_missing_soop: ${report.summary.soop.players_missing_soop}`);
+  console.log(`- players_missing_soop_actionable: ${report.summary.soop.players_missing_soop_actionable}`);
+  console.log(`- players_missing_soop_excluded: ${report.summary.soop.players_missing_soop_excluded}`);
+  console.log(
+    `- players_missing_soop_pending_registration: ${report.summary.soop.players_missing_soop_pending_registration}`
+  );
+  console.log(`- players_missing_soop_unreviewed: ${report.summary.soop.players_missing_soop_unreviewed}`);
+  console.log(
+    `- metadata_backed_but_players_missing: ${report.summary.soop.metadata_backed_but_players_missing}`
+  );
+  console.log(`- db_live_count: ${report.summary.live.db_live_count}`);
+  console.log(`- effective_live_count: ${report.summary.live.effective_live_count}`);
+  console.log(`- snapshot_is_fresh: ${report.summary.live.snapshot_is_fresh}`);
+  console.log(
+    `- stale_snapshot_can_override_live: ${report.summary.live.stale_snapshot_can_override_live}`
+  );
+}
+
+main().catch((error) => {
+  console.error(error instanceof Error ? error.stack || error.message : String(error));
+  process.exit(1);
+});

@@ -1,16 +1,19 @@
 import { redirect } from "next/navigation";
+import { unstable_noStore as noStore } from "next/cache";
 import { PlayerPageView } from "../player-page-view";
 import { parsePlayerSlug } from "@/lib/player-route";
 import { buildPlayerHref } from "@/lib/player-route";
 import { playerService } from "@/lib/player-service";
 
-export const revalidate = 60;
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function PlayerProfileRedirectPage({
   params,
 }: {
   params: { id: string };
 }) {
+  noStore();
   const { id } = await params;
   const currentPath = `/player/${encodeURIComponent(id)}`;
   const parsed = parsePlayerSlug(id);

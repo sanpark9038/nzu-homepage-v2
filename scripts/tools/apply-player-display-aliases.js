@@ -29,8 +29,19 @@ function main() {
 
   const json = readJson(filePath);
   const aliases = readJson(ALIASES_PATH);
-  const rows = (aliases.teams && aliases.teams[project]) || [];
-  const byName = new Map(rows.map((r) => [String(r.name), String(r.display_name)]));
+  const globalRows = Array.isArray(aliases.global) ? aliases.global : [];
+  const projectRows = (aliases.teams && aliases.teams[project]) || [];
+  const byName = new Map();
+  for (const row of globalRows) {
+    const name = String(row && row.name ? row.name : "").trim();
+    const displayName = String(row && row.display_name ? row.display_name : "").trim();
+    if (name && displayName) byName.set(name, displayName);
+  }
+  for (const row of projectRows) {
+    const name = String(row && row.name ? row.name : "").trim();
+    const displayName = String(row && row.display_name ? row.display_name : "").trim();
+    if (name && displayName) byName.set(name, displayName);
+  }
 
   let aliased = 0;
   let passthrough = 0;

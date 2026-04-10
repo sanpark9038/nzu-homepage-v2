@@ -13,14 +13,12 @@ type Player = Pick<
   | "photo_url"
   | "broadcast_title"
   | "broadcast_url"
-  | "channel_profile_image_url"
   | "created_at"
   | "detailed_stats"
   | "elo_point"
   | "eloboard_id"
   | "is_live"
   | "last_synced_at"
-  | "live_thumbnail_url"
   | "nickname"
   | "soop_id"
   | "tier_rank"
@@ -34,6 +32,8 @@ type Player = Pick<
   | "check_priority"
   | "check_interval_days"
 > & {
+  channel_profile_image_url?: PlayerRow["channel_profile_image_url"] | null;
+  live_thumbnail_url?: PlayerRow["live_thumbnail_url"] | null;
   match_history?: PlayerRow["match_history"] | null;
 };
 

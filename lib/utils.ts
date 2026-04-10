@@ -27,8 +27,6 @@ export function normalizeTier(tier: string | null | undefined): string {
     '킹': '킹',
     'jack': '잭',
     '잭': '잭',
-    'queen': '퀸',
-    '퀸': '퀸',
     'joker': '조커',
     '조커': '조커',
     'spade': '스페이드',
@@ -56,7 +54,7 @@ export function getTierLabel(tier: string | null | undefined): string {
   const norm = normalizeTier(tier);
   
   if (norm === '미정') return '미정';
-  if (['갓', '킹', '잭', '퀸', '조커', '스페이드', '베이비'].includes(norm)) return norm;
+  if (['갓', '킹', '잭', '조커', '스페이드', '베이비'].includes(norm)) return norm;
   
   // 숫자 티어인 경우 "N티어" 붙임
   if (!isNaN(Number(norm))) return `${norm}티어`;

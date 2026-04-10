@@ -9,6 +9,7 @@ import { TierBadge } from "../ui/nzu-badges";
 import { RaceLetterBadge } from "../ui/race-letter-badge";
 import type { Player } from "@/types";
 import { cn, normalizeRace } from "@/lib/utils";
+import { getUniversityLabel } from "@/lib/university-config";
 import { ExternalLink, Check, Circle, Crown } from "lucide-react";
 import { buildPlayerHref } from "@/lib/player-route";
 import { resolveSoopChannelImageUrl, resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
@@ -41,15 +42,23 @@ export function PlayerCard({
   const isHomeVariant = variant === "home";
   const isTierVariant = variant === "tier";
   const profileUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "";
+  const fallbackProfileUrl = String(player.profile_url || "").trim();
   
   const soopWatchUrl = resolveSoopWatchUrl(player);
   const soopChannelUrl = resolveSoopChannelUrl(player);
-  const hoverSoopHref = isLive ? soopWatchUrl : soopChannelUrl;
-  const hoverSoopLabel = isLive ? "LIVE 시청" : soopChannelUrl ? "방송국 이동" : "";
+  const hoverSoopHref = (isLive ? soopWatchUrl : soopChannelUrl) || fallbackProfileUrl;
+  const hoverSoopLabel = isLive
+    ? "LIVE 시청"
+    : soopChannelUrl
+      ? "방송국 이동"
+      : fallbackProfileUrl
+        ? "선수 프로필"
+        : "";
   const liveTitle = player.broadcast_title || `${player.name} 현재 방송`;
   const liveMeta = [player.live_viewers ? `${player.live_viewers}명 시청 중` : null, player.live_started_at ? "LIVE" : null]
     .filter(Boolean)
     .join(" · ");
+  const universityLabel = getUniversityLabel(player.university);
 
   useEffect(() => {
     setThumbnailFailed(false);
@@ -91,6 +100,7 @@ export function PlayerCard({
       text: "text-blue-500",
       bg: "bg-blue-500/5",
       glow: "shadow-[0_0_20px_rgba(59,130,246,0.15)]",
+      liveRing: "ring-blue-500",
     },
     'Zerg': {
       border: "border-purple-500/20 group-hover:border-purple-500/60",
@@ -98,6 +108,7 @@ export function PlayerCard({
       text: "text-purple-500",
       bg: "bg-purple-500/5",
       glow: "shadow-[0_0_20px_rgba(168,85,247,0.15)]",
+      liveRing: "ring-purple-500",
     },
     'Protoss': {
       border: "border-yellow-500/20 group-hover:border-yellow-500/60",
@@ -105,6 +116,7 @@ export function PlayerCard({
       text: "text-yellow-500",
       bg: "bg-yellow-500/5",
       glow: "shadow-[0_0_20px_rgba(255,215,0,0.15)]",
+      liveRing: "ring-yellow-500",
     },
     'Random': {
       border: "border-gray-500/20 group-hover:border-gray-500/60",
@@ -112,6 +124,7 @@ export function PlayerCard({
       text: "text-gray-500",
       bg: "bg-gray-500/5",
       glow: "shadow-[0_0_20px_rgba(107,114,128,0.15)]",
+      liveRing: "ring-gray-500",
     }
   } as const;
 
@@ -142,7 +155,7 @@ export function PlayerCard({
       isTierVariant ? tierShellClass : "hover:scale-[1.02]",
       currentStyles.border,
       currentStyles.glow,
-      isLive && "ring-2 ring-nzu-live ring-offset-2 ring-offset-background",
+      isLive && cn("ring-2 ring-offset-2 ring-offset-background", currentStyles.liveRing),
       className
     )}
       onMouseEnter={() => {
@@ -300,7 +313,7 @@ export function PlayerCard({
               <TierBadge tier={player.tier || "미정"} />
               <div className="min-w-0 flex-1 rounded-full border border-white/10 bg-black/15 px-3 py-2 text-center">
                 <div className="truncate text-[13px] font-black tracking-tight text-white/84">
-                  {player.university || "무소속"}
+                  {universityLabel}
                 </div>
               </div>
             </div>
@@ -328,7 +341,7 @@ export function PlayerCard({
               "inline-flex shrink-0 items-center rounded-full border border-white/10 bg-black/15 font-[1000] tracking-tight text-white/72",
               isTierVariant ? "h-7 px-2.5 text-[10px]" : "h-7 px-3 text-[11px]"
             )}>
-                {player.university || "무소속"}
+                {universityLabel}
             </span>
           </div>
         )}

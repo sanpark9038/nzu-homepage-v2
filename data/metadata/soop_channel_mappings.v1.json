@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-04-08T00:00:00.000Z",
+  "updated_at": "2026-04-10T00:00:00.000Z",
   "description": "Manual SOOP channel mappings. Raw source names may be SOOP activity names and can be normalized through aliases.",
   "aliases": {
     "홍구": "임홍규",
@@ -17,7 +17,9 @@
     "소윤": "정소윤",
     "탱크": "박단원",
     "빡죠스": "박종승",
-    "소룡님": "박성용"
+    "소룡님": "박성용",
+    "프발": "이광용",
+    "쿨지지": "강민기"
   },
   "mappings": [
     { "name": "정중만", "soop_user_id": "ititit", "source": "ref11" },
@@ -56,6 +58,14 @@
     { "name": "배병우", "soop_user_id": "bwstar", "source": "ref22" },
     { "name": "어윤수", "soop_user_id": "djdbstn", "source": "ref22" },
     { "name": "빡죠스", "soop_user_id": "askl021", "source": "manual_user_2026-04-09" },
+    { "name": "김봉준", "soop_user_id": "khm11903", "source": "manual_user_2026-04-10" },
+    { "name": "박준오", "soop_user_id": "h78ert", "source": "manual_user_2026-04-10" },
+    { "name": "강민기", "soop_user_id": "khy12088wsss", "source": "manual_reconciled_2026-04-10" },
+    { "name": "이광용", "soop_user_id": "lky6407", "source": "manual_user_2026-04-10" },
+    { "name": "김건욱", "soop_user_id": "killkg2", "source": "manual_user_2026-04-10" },
+    { "name": "주하랑", "soop_user_id": "fpahsdltu1", "source": "manual_user_2026-04-10" },
+    { "name": "세월", "soop_user_id": "asdsa1113", "source": "manual_user_2026-04-10" },
+    { "name": "김인호", "soop_user_id": "pookygamja", "source": "manual_user_2026-04-10" },
     { "name": "구라미스", "soop_user_id": "ksmo54", "source": "ref22" },
     { "name": "오메킴", "soop_user_id": "rlatldgus", "source": "ref22" },
     { "name": "김범수", "soop_user_id": "bumsoo552", "source": "ref22" },
@@ -87,6 +97,9 @@
     { "name": "몽순", "soop_user_id": "totlllsz", "source": "manual_fix_2026-04-09" },
     { "name": "비재희", "soop_user_id": "hee4343", "source": "ref22" },
     { "name": "예실", "soop_user_id": "della2440", "source": "ref22" },
+    { "name": "꼬니부깅", "soop_user_id": "kitty1029", "source": "manual_reconciled_2026-04-10" },
+    { "name": "냥냥코기", "soop_user_id": "corgi1102", "source": "manual_user_2026-04-10" },
+    { "name": "박준혁", "soop_user_id": "jhyhlli123", "source": "manual_user_2026-04-10" },
     { "name": "엄보리", "soop_user_id": "wlsdkd1", "source": "ref22" },
     { "name": "태린", "soop_user_id": "jjjjeong", "source": "ref22" },
     { "name": "갱이다", "soop_user_id": "gangeda", "source": "ref22" },
@@ -105,6 +118,8 @@
     { "name": "이응씨", "soop_user_id": "onzzang", "source": "ref22" },
     { "name": "미진이", "soop_user_id": "kjhanna824", "source": "ref22" },
     { "name": "킹봄", "soop_user_id": "nbomichae7", "source": "ref22" },
+    { "name": "연또", "soop_user_id": "kjy3443", "source": "manual_user_2026-04-10" },
+    { "name": "수입뿌드", "soop_user_id": "by0529", "source": "manual_reconciled_2026-04-10" },
     { "name": "멍라희", "soop_user_id": "a4s5kzg7wmk", "source": "ref22" },
     { "name": "으니", "soop_user_id": "qwer1317", "source": "ref22" },
     { "name": "혁민", "soop_user_id": "suhi370erw", "source": "ref22" },

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-03-26T09:51:57.136Z",
+  "updated_at": "2026-04-10T00:30:00.000Z",
   "description": "Players excluded from match collection pipeline.",
   "players": [
     {
@@ -114,6 +114,28 @@
       "name": "서도일",
       "reason": "user_excluded",
       "updated_at": "2026-04-09T00:00:00.000Z"
+    },
+    {
+      "name": "저라뎃",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-10T00:00:00.000Z"
+    },
+    {
+      "name": "밍도릿",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-10T00:00:00.000Z"
+    },
+    {
+      "name": "뀨알",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-10T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:66",
+      "wr_id": 66,
+      "name": "박지수",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-10T00:30:00.000Z"
     }
   ]
 }

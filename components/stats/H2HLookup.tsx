@@ -8,7 +8,7 @@ import { getInstantH2H } from '@/lib/h2h-service'
 import type { H2HStats } from '@/types'
 import { cn, getTierLabel } from '@/lib/utils'
 import { Trophy, X, Swords, Plus, RotateCcw, Activity, Zap } from 'lucide-react'
-import { UNIVERSITY_MAP } from '@/lib/university-config'
+import { getUniversityLabel, UNIVERSITY_MAP } from '@/lib/university-config'
 import { REAL_NAME_MAP } from '@/lib/constants'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 
@@ -178,8 +178,10 @@ export default function H2HLookup({}: H2HLookupProps) {
 
   const sortedUniversities = useMemo(() => {
     return Object.keys(UNIVERSITY_MAP).sort((a, b) => {
+      const nameA = getUniversityLabel(a);
+      const nameB = getUniversityLabel(b);
       const isKorean = (s: string) => /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(s);
-      return (isKorean(a) && !isKorean(b)) ? -1 : (!isKorean(a) && isKorean(b)) ? 1 : a.localeCompare(b, 'ko');
+      return (isKorean(nameA) && !isKorean(nameB)) ? -1 : (!isKorean(nameA) && isKorean(nameB)) ? 1 : nameA.localeCompare(nameB, 'ko');
     });
   }, []);
 
@@ -280,7 +282,7 @@ export default function H2HLookup({}: H2HLookupProps) {
                       <select value={u1} onChange={(e) => setU1(e.target.value)}
                         className="w-full bg-black border-2 border-nzu-green/20 rounded-2xl px-6 py-4 text-base font-black text-white focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10 transition-all outline-none appearance-none cursor-pointer">
                         <option value="">좌측 대학 선택</option>
-                        {sortedUniversities.map(u => <option key={u} value={u}>{u}</option>)}
+                        {sortedUniversities.map(u => <option key={u} value={u}>{getUniversityLabel(u)}</option>)}
                       </select>
                       <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-nzu-green/40">▼</div>
                     </div>
@@ -307,7 +309,7 @@ export default function H2HLookup({}: H2HLookupProps) {
                       <select value={u2} onChange={(e) => setU2(e.target.value)}
                         className="w-full bg-black border-2 border-nzu-green/20 rounded-2xl px-6 py-4 text-base font-black text-white focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10 transition-all outline-none appearance-none cursor-pointer">
                         <option value="">우측 대학 선택</option>
-                        {sortedUniversities.map(u => <option key={u} value={u}>{u}</option>)}
+                        {sortedUniversities.map(u => <option key={u} value={u}>{getUniversityLabel(u)}</option>)}
                       </select>
                       <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-nzu-green/40">▼</div>
                     </div>
@@ -581,7 +583,7 @@ export default function H2HLookup({}: H2HLookupProps) {
                 <h4 className="text-4xl font-black text-white">{p1.name}</h4>
                 <div className="flex justify-center gap-3">
                   <span className="px-4 py-1.5 bg-terran/10 text-terran rounded-lg text-xs font-black border border-terran/20">{p1.race}</span>
-                  <span className="px-4 py-1.5 bg-white/5 text-white/40 rounded-lg text-xs font-black border border-white/10">{p1.university}</span>
+                  <span className="px-4 py-1.5 bg-white/5 text-white/40 rounded-lg text-xs font-black border border-white/10">{getUniversityLabel(p1.university)}</span>
                 </div>
               </div>
 
@@ -612,7 +614,7 @@ export default function H2HLookup({}: H2HLookupProps) {
                 <h4 className="text-4xl font-black text-white/60">{p2.name}</h4>
                 <div className="flex justify-center gap-3">
                   <span className="px-4 py-1.5 bg-zerg/10 text-zerg rounded-lg text-xs font-black border border-zerg/20">{p2.race}</span>
-                  <span className="px-4 py-1.5 bg-white/5 text-white/40 rounded-lg text-xs font-black border border-white/10">{p2.university}</span>
+                  <span className="px-4 py-1.5 bg-white/5 text-white/40 rounded-lg text-xs font-black border border-white/10">{getUniversityLabel(p2.university)}</span>
                 </div>
               </div>
             </div>

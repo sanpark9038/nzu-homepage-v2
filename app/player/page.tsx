@@ -1,19 +1,18 @@
 import { redirect } from "next/navigation";
+import { unstable_noStore as noStore } from "next/cache";
 import { PlayerPageView } from "./player-page-view";
-import { playerService } from "@/lib/player-service";
+import { isExactPlayerSearchMatch, playerService } from "@/lib/player-service";
 import { buildPlayerHref } from "@/lib/player-route";
 
-export const revalidate = 60;
-
-function normalizeText(value: string) {
-  return String(value || "").trim().toLowerCase();
-}
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function PlayerIndexPage({
   searchParams,
 }: {
   searchParams?: Promise<{ query?: string; id?: string }>;
 }) {
+  noStore();
   const params = searchParams ? await searchParams : undefined;
   const selectedId = String(params?.id || "").trim();
   const query = String(params?.query || "").trim();
@@ -32,7 +31,7 @@ export default async function PlayerIndexPage({
   if (query) {
     try {
       const results = await playerService.searchPlayers(query);
-      const exactMatch = results.find((player) => normalizeText(player.name) === normalizeText(query));
+      const exactMatch = results.find((player) => isExactPlayerSearchMatch(player, query));
       if (exactMatch) {
         redirect(buildPlayerHref(exactMatch));
       }

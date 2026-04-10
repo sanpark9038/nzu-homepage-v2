@@ -2,15 +2,93 @@
   "schema_version": "1.0.0",
   "updated_at": "2026-03-20T14:52:20.838Z",
   "description": "Homepage display aliases. Match data collection should keep canonical player name.",
+  "global": [
+    {
+      "name": "이성은",
+      "display_name": "흑운장"
+    },
+    {
+      "name": "윤찬희",
+      "display_name": "몽군"
+    },
+    {
+      "name": "이예준",
+      "display_name": "철구"
+    },
+    {
+      "name": "김준혁",
+      "display_name": "얍삽"
+    },
+    {
+      "name": "김호성",
+      "display_name": "만두호성"
+    },
+    {
+      "name": "박종승",
+      "display_name": "빡죠스"
+    },
+    {
+      "name": "박지호",
+      "display_name": "라박이"
+    },
+    {
+      "name": "강민기",
+      "display_name": "쿨지지"
+    },
+    {
+      "name": "이광용",
+      "display_name": "프발"
+    },
+    {
+      "name": "허유진",
+      "display_name": "허유"
+    },
+    {
+      "name": "박재현",
+      "display_name": "쿰신"
+    },
+    {
+      "name": "김태영",
+      "display_name": "사테"
+    },
+    {
+      "name": "김승현",
+      "display_name": "오메킴"
+    },
+    {
+      "name": "박단원",
+      "display_name": "탱크"
+    },
+    {
+      "name": "박현재",
+      "display_name": "기뉴다"
+    },
+    {
+      "name": "김재현",
+      "display_name": "샤이니"
+    },
+    {
+      "name": "김성민",
+      "display_name": "구라미스"
+    },
+    {
+      "name": "박준영",
+      "display_name": "미동미동"
+    },
+    {
+      "name": "김동민",
+      "display_name": "액션구드론"
+    },
+    {
+      "name": "유규민",
+      "display_name": "초난강"
+    }
+  ],
   "teams": {
     "black": [
       {
         "name": "이성은",
         "display_name": "흑운장"
-      },
-      {
-        "name": "윤찬희",
-        "display_name": "몽군"
       }
     ],
     "c9": [
@@ -39,26 +117,24 @@
         "display_name": "라박이"
       },
       {
-        "name": "강민기",
-        "display_name": "쿨지지"
-      },
-      {
         "name": "박재현",
         "display_name": "쿰신"
       }
     ],
-    "yb": [
+    "wfu": [
       {
-        "name": "김태영",
-        "display_name": "사테"
+        "name": "이광용",
+        "display_name": "프발"
       },
+      {
+        "name": "허유진",
+        "display_name": "허유"
+      }
+    ],
+    "yb": [
       {
         "name": "김승현",
         "display_name": "오메킴"
-      },
-      {
-        "name": "박단원",
-        "display_name": "탱크"
       }
     ],
     "ncs": [

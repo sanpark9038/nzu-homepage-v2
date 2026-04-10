@@ -24,7 +24,7 @@ export function TeamSelector({ universities, selectedTeam, onSelect, title = "Se
           const info = getUniversityInfo(univ);
           return (
             <option key={univ} value={univ}>
-              {info.logo} {info.name}
+              {info.name}
             </option>
           );
         })}
@@ -32,11 +32,6 @@ export function TeamSelector({ universities, selectedTeam, onSelect, title = "Se
       <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
         <ChevronDown className="h-5 w-5 text-muted-foreground" />
       </div>
-      {selectedInfo && (
-        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <span className="text-xl">{selectedInfo.logo}</span>
-        </div>
-      )}
     </div>
   );
 }

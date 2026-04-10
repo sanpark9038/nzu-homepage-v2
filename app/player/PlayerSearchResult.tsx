@@ -7,6 +7,7 @@ import { RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
 import { type Player } from "@/lib/player-service";
 import { cn, normalizeTier } from "@/lib/utils";
 import { resolveSoopChannelImageUrl, resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
+import { getUniversityLabel } from "@/lib/university-config";
 
 type RaceSummary = {
   race: Race;
@@ -116,6 +117,7 @@ export default function PlayerSearchResult({
   const liveWatchUrl = player.is_live ? resolveSoopWatchUrl(player) : null;
   const liveElapsedText = formatLiveElapsed(player.live_started_at);
   const profileImageUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "/placeholder-player.png";
+  const universityLabel = getUniversityLabel(player.university);
 
   useEffect(() => {
     setVisibleRecentCount(5);
@@ -236,7 +238,7 @@ export default function PlayerSearchResult({
 
         <div className="min-w-0 md:col-start-2 md:row-start-1 md:h-full">
           <div className="grid h-full gap-3 md:grid-cols-3">
-            <StatPanel label="소속">{player.university || "무소속"}</StatPanel>
+            <StatPanel label="소속">{universityLabel}</StatPanel>
             <StatPanel label="티어"><TierBadge tier={player.tier || "미정"} size="lg" /></StatPanel>
             <StatPanel label="종족"><RaceTag race={normalizeRaceValue(player.race)} size="lg" /></StatPanel>
           </div>

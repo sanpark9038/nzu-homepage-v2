@@ -1,7 +1,8 @@
 
 import { playerService } from "@/lib/player-service";
 import { buildTournamentHomeTeams } from "@/lib/tournament-home";
-import { TierBadge } from "@/components/ui/nzu-badges";
+import { TierBadge, RaceTag, type Race } from "@/components/ui/nzu-badges";
+import { getUniversityLabel } from "@/lib/university-config";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -94,7 +95,7 @@ export default async function RankingsPage() {
         id: p.id,
         name: p.name,
         teamName: t.teamName,
-        university: p.university || "미소속",
+        university: getUniversityLabel(p.university),
         race: p.race,
         tier: p.tier,
         wins: s.wins,
@@ -192,9 +193,9 @@ export default async function RankingsPage() {
                         <span className="text-sm font-bold tracking-tight text-muted-foreground/60">{p.university}</span>
                       </td>
                       <td className="px-8 py-5 text-center">
-                        <span className={`text-sm font-black uppercase
-                          ${p.race === 'T' ? 'text-blue-400' : p.race === 'P' ? 'text-yellow-400' : 'text-purple-400'}
-                        `}>{p.race}</span>
+                        <div className="flex justify-center">
+                          <RaceTag race={p.race as Race} size="sm" />
+                        </div>
                       </td>
                       <td className="px-8 py-5 text-center">
                         <div className="flex justify-center">

@@ -1,22 +1,87 @@
 import { type UniversityInfo } from "../types";
 
-export const UNIVERSITY_MAP: Record<string, { name: string; logo: string; color: string; stars?: number }> = {
-  'NZU': { name: '늪지대', logo: '🦎', color: 'from-nzu-green/20 to-nzu-green/5', stars: 0 },
-  'KU': { name: '케이대', logo: '🦁', color: 'from-blue-600/20 to-blue-600/5', stars: 2 },
-  'JSA': { name: 'JSA', logo: '🦅', color: 'from-red-600/20 to-red-600/5', stars: 2 },
-  'C9': { name: '씨나인', logo: '☁️', color: 'from-sky-400/20 to-sky-400/5', stars: 1 },
-  'TSUCALM': { name: '츠캄몬스타즈', logo: '👹', color: 'from-orange-600/20 to-orange-600/5', stars: 1 },
-  'YB': { name: 'YB', logo: '🐻', color: 'from-yellow-600/20 to-yellow-600/5', stars: 1 },
-  'SSU': { name: '수술대', logo: '🩺', color: 'from-emerald-600/20 to-emerald-600/5', stars: 0 },
-  'BGM': { name: 'BGM', logo: '🎵', color: 'from-purple-600/20 to-purple-600/5', stars: 0 },
-  'MBU': { name: '엠비대', logo: '🎙️', color: 'from-indigo-600/20 to-indigo-600/5', stars: 0 },
-  'B.A': { name: '흑카데미', logo: '🎓', color: 'from-gray-800/20 to-gray-800/5', stars: 0 },
-  'N.C.S': { name: '뉴캣슬', logo: '🏰', color: 'from-slate-600/20 to-slate-600/5', stars: 0 },
-  'WFU': { name: '와플대', logo: '🧇', color: 'from-amber-600/20 to-amber-600/5', stars: 0 },
-  'HM': { name: 'HM', logo: '⚔️', color: 'from-cyan-600/20 to-cyan-600/5', stars: 0 },
-  'FA': { name: '무소속', logo: '🕊️', color: 'from-white/10 to-white/5', stars: 0 },
+export const UNIVERSITY_MAP: Record<string, UniversityInfo> = {
+  KU: { name: "케이대", stars: 2 },
+  JSA: { name: "JSA", stars: 2 },
+  C9: { name: "씨나인", stars: 1 },
+  TSUCALM: { name: "츠캄몬스타즈", stars: 1 },
+  YB: { name: "YB", stars: 1 },
+  SSU: { name: "수술대" },
+  BGM: { name: "BGM" },
+  MBU: { name: "엠비대" },
+  "B.A": { name: "흑카데미" },
+  "N.C.S": { name: "뉴캣슬" },
+  WFU: { name: "와플대" },
+  HM: { name: "HM" },
+  FA: { name: "무소속" },
 };
 
-export const getUniversityInfo = (univ: string): UniversityInfo => {
-  return UNIVERSITY_MAP[univ] || { name: univ, logo: '🛡️', color: '#57606F' };
+export type UniversityKey = keyof typeof UNIVERSITY_MAP;
+
+const UNIVERSITY_ALIAS_MAP: Record<string, UniversityKey> = {
+  KU: "KU",
+  "케이대": "KU",
+  JSA: "JSA",
+  C9: "C9",
+  "씨나인": "C9",
+  TSUCALM: "TSUCALM",
+  "츠캄": "TSUCALM",
+  "츠캄몬스타즈": "TSUCALM",
+  YB: "YB",
+  SSU: "SSU",
+  "수술대": "SSU",
+  BGM: "BGM",
+  MBU: "MBU",
+  "엠비대": "MBU",
+  "B.A": "B.A",
+  BA: "B.A",
+  BLACK: "B.A",
+  "흑카데미": "B.A",
+  "N.C.S": "N.C.S",
+  NCS: "N.C.S",
+  "뉴캣슬": "N.C.S",
+  WFU: "WFU",
+  "와플대": "WFU",
+  HM: "HM",
+  FA: "FA",
+  "무소속": "FA",
+  "미소속": "FA",
 };
+
+function sanitizeUniversityToken(value: string | null | undefined) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/[.\-_/()[\]]+/g, "");
+}
+
+export function normalizeUniversityKey(univ: string | null | undefined): UniversityKey | null {
+  const raw = String(univ || "").trim();
+  if (!raw) return null;
+
+  const directMatch = UNIVERSITY_ALIAS_MAP[raw];
+  if (directMatch) return directMatch;
+
+  const normalized = sanitizeUniversityToken(raw);
+  if (!normalized) return null;
+
+  for (const [alias, code] of Object.entries(UNIVERSITY_ALIAS_MAP)) {
+    if (sanitizeUniversityToken(alias) === normalized) {
+      return code;
+    }
+  }
+
+  return null;
+}
+
+export function getUniversityInfo(univ: string | null | undefined): UniversityInfo {
+  const raw = String(univ || "").trim();
+  const normalizedKey = normalizeUniversityKey(raw);
+  if (normalizedKey) return UNIVERSITY_MAP[normalizedKey];
+  return { name: raw || "무소속" };
+}
+
+export function getUniversityLabel(univ: string | null | undefined) {
+  return getUniversityInfo(univ).name;
+}

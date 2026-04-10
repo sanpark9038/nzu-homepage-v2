@@ -1,6 +1,6 @@
 
 import { Player, PlayerCard } from "./PlayerCard";
-import { cn } from "@/lib/utils";
+import { cn, normalizeRace } from "@/lib/utils";
 
 interface TierGroupProps {
   rankName: string;
@@ -48,7 +48,7 @@ export function TierGroup({ rankName, players, startIndex, showRaceGroups, empty
             { id: 'Z', name: 'Zerg', label: '저그' },
             { id: 'P', name: 'Protoss', label: '토스' }
           ].map((race) => {
-            const racePlayers = players.filter(p => p.race === race.id);
+            const racePlayers = players.filter(p => normalizeRace(p.race) === race.id);
             return (
               <div key={race.id} className="flex flex-col gap-6">
                 <div className={cn(

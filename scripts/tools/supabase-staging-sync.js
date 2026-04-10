@@ -7,6 +7,11 @@ const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
 const EXCLUSIONS_FILE = path.join(ROOT, 'data', 'metadata', 'pipeline_collection_exclusions.v1.json');
 const OVERRIDES_FILE = path.join(ROOT, 'data', 'metadata', 'roster_manual_overrides.v1.json');
+const PLAYER_METADATA_PATH = path.join(ROOT, 'scripts', 'player_metadata.json');
+const SOOP_MAPPINGS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_channel_mappings.v1.json');
+const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_manual_review_decisions.v1.json');
+const SOOP_SNAPSHOT_PATH = path.join(ROOT, 'data', 'metadata', 'soop_live_snapshot.generated.v1.json');
+const SNAPSHOT_FRESH_MS = 15 * 60 * 1000;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceRoleKey =
@@ -24,6 +29,143 @@ const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 function normalizeName(value) {
   return String(value || '').trim();
+}
+
+function normalizeLookupName(value) {
+  return normalizeName(value).toLowerCase();
+}
+
+function readJson(filePath, fallback = null) {
+  if (!fs.existsSync(filePath)) return fallback;
+  return JSON.parse(fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, ''));
+}
+
+function extractWrId(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (/^\d+$/.test(raw)) return raw;
+  const match = raw.match(/(\d+)$/);
+  return match ? match[1] : null;
+}
+
+function loadSoopSnapshot() {
+  const doc = readJson(SOOP_SNAPSHOT_PATH, null);
+  if (!doc || typeof doc !== 'object') {
+    return { isFresh: false, channels: {} };
+  }
+  const updatedAt = String(doc.updated_at || '').trim();
+  const updatedTime = Date.parse(updatedAt);
+  const isFresh =
+    Number.isFinite(updatedTime) &&
+    Date.now() - updatedTime >= 0 &&
+    Date.now() - updatedTime <= SNAPSHOT_FRESH_MS;
+  return {
+    isFresh,
+    channels: doc && typeof doc.channels === 'object' ? doc.channels : {},
+  };
+}
+
+function buildSoopLookup() {
+  const rows = readJson(PLAYER_METADATA_PATH, []);
+  const lookup = new Map();
+  const byWrId = new Map();
+  const byNameGenderBuckets = new Map();
+  const byNameBuckets = new Map();
+
+  const registerNamePayload = (nameValue, payload) => {
+    const normalized = normalizeLookupName(nameValue);
+    if (!normalized || !payload || !payload.soop_id) return;
+    const bucket = byNameBuckets.get(normalized) || [];
+    bucket.push(payload);
+    byNameBuckets.set(normalized, bucket);
+  };
+
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const wrId = Number(row && row.wr_id);
+    const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase();
+    const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
+    const name = normalizeLookupName(row && row.name ? row.name : '');
+    if (!Number.isFinite(wrId) || !gender || !soopUserId) continue;
+    const payload = { soop_id: soopUserId };
+    lookup.set(`${wrId}:${gender}`, payload);
+    byWrId.set(String(wrId), payload);
+    if (name) {
+      const key = `${name}:${gender}`;
+      const bucket = byNameGenderBuckets.get(key) || [];
+      bucket.push(payload);
+      byNameGenderBuckets.set(key, bucket);
+    }
+    registerNamePayload(name, payload);
+  }
+
+  const mappingsDoc = readJson(SOOP_MAPPINGS_PATH, {});
+  const aliases = mappingsDoc && typeof mappingsDoc.aliases === 'object' ? mappingsDoc.aliases : {};
+  const mappings = Array.isArray(mappingsDoc && mappingsDoc.mappings) ? mappingsDoc.mappings : [];
+  for (const row of mappings) {
+    const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
+    const rawName = normalizeName(row && row.name ? row.name : '');
+    if (!rawName || !soopUserId) continue;
+    const payload = { soop_id: soopUserId };
+    registerNamePayload(rawName, payload);
+    registerNamePayload(aliases[rawName] || '', payload);
+  }
+
+  const reviewDoc = readJson(SOOP_REVIEW_DECISIONS_PATH, {});
+  const decisions = Array.isArray(reviewDoc && reviewDoc.decisions) ? reviewDoc.decisions : [];
+  for (const row of decisions) {
+    const decision = String(row && row.decision ? row.decision : '').trim().toLowerCase();
+    const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
+    if (decision !== 'include' || !soopUserId) continue;
+    const payload = { soop_id: soopUserId };
+    registerNamePayload(row && row.source_name ? row.source_name : '', payload);
+    registerNamePayload(row && row.canonical_name ? row.canonical_name : '', payload);
+    for (const alias of Array.isArray(row && row.alias_names) ? row.alias_names : []) {
+      registerNamePayload(alias, payload);
+    }
+  }
+
+  const byNameGender = new Map();
+  for (const [key, bucket] of byNameGenderBuckets.entries()) {
+    const uniquePayloads = bucket.filter(
+      (payload, index, arr) =>
+        arr.findIndex((candidate) => candidate.soop_id === payload.soop_id) === index
+    );
+    if (uniquePayloads.length === 1) {
+      byNameGender.set(key, uniquePayloads[0]);
+    }
+  }
+
+  const byName = new Map();
+  for (const [key, bucket] of byNameBuckets.entries()) {
+    const uniquePayloads = bucket.filter(
+      (payload, index, arr) =>
+        arr.findIndex((candidate) => candidate.soop_id === payload.soop_id) === index
+    );
+    if (uniquePayloads.length === 1) {
+      byName.set(key, uniquePayloads[0]);
+    }
+  }
+
+  return { lookup, byWrId, byNameGender, byName };
+}
+
+function resolveLiveState(player, soopLookup, snapshot) {
+  if (!snapshot.isFresh) return false;
+  const entityId = String(player && player.entity_id ? player.entity_id : '').trim();
+  const wrId = extractWrId(entityId);
+  const gender = String(player && player.gender ? player.gender : '').trim().toLowerCase();
+  const name = normalizeLookupName(player && player.name ? player.name : '');
+
+  const metadata =
+    (wrId && gender ? soopLookup.lookup.get(`${wrId}:${gender}`) : null) ||
+    (wrId && isMixEntityId(entityId) ? soopLookup.byWrId.get(String(wrId)) : null) ||
+    (name && gender ? soopLookup.byNameGender.get(`${name}:${gender}`) : null) ||
+    (name ? soopLookup.byName.get(name) : null) ||
+    null;
+
+  if (!metadata || !metadata.soop_id) return false;
+  const channel = snapshot.channels[metadata.soop_id];
+  return Boolean(channel && channel.isLive === true);
 }
 
 function uniqueUpsertKeyCount(players) {
@@ -87,9 +229,11 @@ function dedupePlayersByName(players) {
 
 async function main() {
   console.log('--- Supabase Staging Sync Started ---');
+  const soopLookup = buildSoopLookup();
+  const soopSnapshot = loadSoopSnapshot();
   
   // 1. Load Exclusions and Overrides
-  const exclusionsData = JSON.parse(fs.readFileSync(EXCLUSIONS_FILE, 'utf8').replace(/^\uFEFF/, ''));
+  const exclusionsData = readJson(EXCLUSIONS_FILE, { players: [] });
   const exclusionRules = (exclusionsData.players || []).map((p) => {
     const wrId = Number(p && p.wr_id);
     const name = String(p && p.name ? p.name : '').trim().toLowerCase();
@@ -101,7 +245,7 @@ async function main() {
     };
   });
   
-  const overridesData = fs.existsSync(OVERRIDES_FILE) ? JSON.parse(fs.readFileSync(OVERRIDES_FILE, 'utf8').replace(/^\uFEFF/, '')) : { overrides: [] };
+  const overridesData = readJson(OVERRIDES_FILE, { overrides: [] });
   const overridesMap = new Map();
   const overridesByName = new Map();
   (overridesData.overrides || []).forEach(o => {
@@ -118,7 +262,7 @@ async function main() {
   for (const d of dirs) {
     const filePath = path.join(PROJECTS_DIR, d.name, `players.${d.name}.v1.json`);
     if (fs.existsSync(filePath)) {
-      const data = JSON.parse(fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, ''));
+      const data = readJson(filePath, { roster: [] });
       const roster = Array.isArray(data.roster) ? data.roster : [];
       roster.forEach(p => {
         // Enforce the manual locks strictly
@@ -132,6 +276,7 @@ async function main() {
 
         const rMode = String(p.race || '').trim().toUpperCase();
         const shortRace = rMode.startsWith('T') ? 'T' : rMode.startsWith('Z') ? 'Z' : rMode.startsWith('P') ? 'P' : 'T';
+        const isLive = resolveLiveState(p, soopLookup, soopSnapshot);
 
         // Map to DB schema
         allPlayers.push({
@@ -148,7 +293,7 @@ async function main() {
           check_priority: p.check_priority || null,
           check_interval_days: Number.isFinite(Number(p.check_interval_days)) ? Number(p.check_interval_days) : null,
           created_at: new Date().toISOString(),
-          is_live: false,
+          is_live: isLive,
         });
       });
     }
@@ -210,6 +355,8 @@ async function main() {
   console.log(`[=] 이름 충돌 정규화: ${deduped.collisions.length}건`);
   console.log(`[=] Staging 적재 완료: ${stagingTotal}명\n`);
   console.log(`[=] 예상 Upsert Key 수(name 기준): ${expectedUpsertRows}명`);
+  console.log(`[=] SOOP snapshot fresh: ${soopSnapshot.isFresh}`);
+  console.log(`[=] staging live rows prepared: ${playersForUpsert.filter((row) => row.is_live === true).length}`);
 
   if (Number(stagingTotal || 0) < Math.floor(expectedUpsertRows * 0.8)) {
     throw new Error(

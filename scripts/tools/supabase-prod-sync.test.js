@@ -128,3 +128,33 @@ runTest("resolveSoopServingMetadata falls back by wr_id only for mix identities"
     { soop_id: null, broadcast_url: null }
   );
 });
+
+runTest("resolveSoopServingMetadata honors exact wr_id + gender even when serving name differs from metadata alias", () => {
+  const soopLookup = {
+    lookup: new Map([
+      ["48:male", { name: "오메킴", soop_id: "rlatldgus", broadcast_url: "https://ch.sooplive.co.kr/rlatldgus" }],
+      ["46:male", { name: "기뉴다", soop_id: "arinbbidol", broadcast_url: "https://ch.sooplive.co.kr/arinbbidol" }],
+    ]),
+    byWrId: new Map([
+      ["48", { name: "오메킴", soop_id: "rlatldgus", broadcast_url: "https://ch.sooplive.co.kr/rlatldgus" }],
+      ["46", { name: "기뉴다", soop_id: "arinbbidol", broadcast_url: "https://ch.sooplive.co.kr/arinbbidol" }],
+    ]),
+    byNameGender: new Map(),
+  };
+
+  assert.deepEqual(
+    resolveSoopServingMetadata(
+      { eloboard_id: "eloboard:male:48", gender: "male", name: "김승현" },
+      soopLookup
+    ),
+    { soop_id: "rlatldgus", broadcast_url: "https://ch.sooplive.co.kr/rlatldgus" }
+  );
+
+  assert.deepEqual(
+    resolveSoopServingMetadata(
+      { eloboard_id: "eloboard:male:46", gender: "male", name: "박현재" },
+      soopLookup
+    ),
+    { soop_id: "arinbbidol", broadcast_url: "https://ch.sooplive.co.kr/arinbbidol" }
+  );
+});

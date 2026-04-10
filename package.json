@@ -27,6 +27,7 @@
     "soop:ops:watch": "npm run soop:snapshot:watch",
     "soop:ops:check": "npm run soop:snapshot:check",
     "report:soop:live": "node scripts/tools/report-soop-live-coverage.js",
+    "report:homepage:integrity": "node scripts/tools/report-homepage-integrity.js",
     "report:soop:summary": "node scripts/tools/report-soop-live-summary.js",
     "report:soop:ui-checklist": "node scripts/tools/report-soop-ui-checklist.js",
     "report:player:live-audit": "node scripts/tools/report-player-page-live-audit.js",

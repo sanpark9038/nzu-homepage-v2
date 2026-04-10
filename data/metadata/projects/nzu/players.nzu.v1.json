@@ -1,34 +1,12 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-04-08T08:43:07.858Z",
+  "generated_at": "2026-04-10T10:56:11.902Z",
   "project": "nzu-homepage",
   "team_name": "늪지대",
   "team_code": "nzu",
   "team_name_en": "NZU",
-  "roster_count": 14,
+  "roster_count": 11,
   "roster": [
-    {
-      "team_name": "늪지대",
-      "entity_id": null,
-      "wr_id": 671,
-      "gender": "female",
-      "name": "쌍디",
-      "tier": "6",
-      "race": "Zerg",
-      "source": "nzu_seed_roster",
-      "meta_tags": [
-        "domain:player",
-        "project:nzu-homepage",
-        "team:nzu",
-        "team_code:nzu",
-        "team_ko:늪지대",
-        "team_en:nzu",
-        "gender:female",
-        "race:zerg",
-        "tier:6"
-      ],
-      "missing_in_master": true
-    },
     {
       "team_name": "늪지대",
       "entity_id": "eloboard:male:150",
@@ -49,7 +27,13 @@
         "race:zerg",
         "tier:joker"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "display_name": "인치호",
+      "last_checked_at": "2026-04-08T05:55:07.824Z",
+      "last_match_at": "2026-03-06T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-10T10:56:11.887Z"
     },
     {
       "team_name": "늪지대",
@@ -71,7 +55,13 @@
         "race:protoss",
         "tier:joker"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "display_name": "전흥식",
+      "last_checked_at": "2026-04-08T05:55:18.688Z",
+      "last_match_at": "2026-01-21T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-04-10T10:56:11.888Z"
     },
     {
       "team_name": "늪지대",
@@ -93,7 +83,13 @@
         "race:protoss",
         "tier:spade"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "display_name": "김성제",
+      "last_checked_at": "2026-04-08T05:55:27.981Z",
+      "last_match_at": "2025-10-16T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-04-10T10:56:11.889Z"
     },
     {
       "team_name": "늪지대",
@@ -115,7 +111,13 @@
         "race:protoss",
         "tier:spade"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "display_name": "서기수",
+      "last_checked_at": "2026-04-08T05:55:36.667Z",
+      "last_match_at": "2026-01-10T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-04-10T10:56:11.889Z"
     },
     {
       "team_name": "늪지대",
@@ -137,51 +139,13 @@
         "race:protoss",
         "tier:1"
       ],
-      "missing_in_master": false
-    },
-    {
-      "team_name": "늪지대",
-      "entity_id": "eloboard:female:57",
-      "wr_id": 57,
-      "gender": "female",
-      "name": "슬아",
-      "tier": "4",
-      "race": "Zerg",
-      "source": "nzu_seed_roster",
-      "meta_tags": [
-        "domain:player",
-        "project:nzu-homepage",
-        "team:nzu",
-        "team_code:nzu",
-        "team_ko:늪지대",
-        "team_en:nzu",
-        "gender:female",
-        "race:zerg",
-        "tier:4"
-      ],
-      "missing_in_master": false
-    },
-    {
-      "team_name": "늪지대",
-      "entity_id": "eloboard:female:668",
-      "wr_id": 668,
-      "gender": "female",
-      "name": "슈슈",
-      "tier": "5",
-      "race": "Zerg",
-      "source": "nzu_seed_roster",
-      "meta_tags": [
-        "domain:player",
-        "project:nzu-homepage",
-        "team:nzu",
-        "team_code:nzu",
-        "team_ko:늪지대",
-        "team_en:nzu",
-        "gender:female",
-        "race:zerg",
-        "tier:5"
-      ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "display_name": "애공",
+      "last_checked_at": "2026-04-02T09:57:20.920Z",
+      "last_match_at": "2026-03-26T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-10T10:56:11.890Z"
     },
     {
       "team_name": "늪지대",
@@ -203,7 +167,41 @@
         "race:protoss",
         "tier:5"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "display_name": "예실",
+      "last_checked_at": "2026-04-08T05:55:41.027Z",
+      "last_match_at": "2026-03-26T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-10T10:56:11.893Z"
+    },
+    {
+      "team_name": "늪지대",
+      "entity_id": null,
+      "wr_id": 671,
+      "gender": "female",
+      "name": "쌍디",
+      "tier": "6",
+      "race": "Zerg",
+      "source": "nzu_seed_roster",
+      "meta_tags": [
+        "domain:player",
+        "project:nzu-homepage",
+        "team:nzu",
+        "team_code:nzu",
+        "team_ko:늪지대",
+        "team_en:nzu",
+        "gender:female",
+        "race:zerg",
+        "tier:6"
+      ],
+      "missing_in_master": true,
+      "display_name": "쌍디",
+      "last_checked_at": "2026-04-10T10:39:16.022Z",
+      "last_match_at": "2026-04-04T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-04-10T10:56:11.894Z"
     },
     {
       "team_name": "늪지대",
@@ -225,7 +223,13 @@
         "race:zerg",
         "tier:6"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "display_name": "연블비",
+      "last_checked_at": "2026-04-08T05:55:49.562Z",
+      "last_match_at": "2026-03-09T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-10T10:56:11.895Z"
     },
     {
       "team_name": "늪지대",
@@ -247,7 +251,13 @@
         "race:zerg",
         "tier:8"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "display_name": "다라츄",
+      "last_checked_at": "2026-03-31T08:18:41.772Z",
+      "last_match_at": "2026-03-06T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-10T10:56:11.898Z"
     },
     {
       "team_name": "늪지대",
@@ -269,29 +279,13 @@
         "race:protoss",
         "tier:8"
       ],
-      "missing_in_master": false
-    },
-    {
-      "team_name": "늪지대",
-      "entity_id": "eloboard:female:424",
-      "wr_id": 424,
-      "gender": "female",
-      "name": "정연이",
-      "tier": "8",
-      "race": "Protoss",
-      "source": "nzu_seed_roster",
-      "meta_tags": [
-        "domain:player",
-        "project:nzu-homepage",
-        "team:nzu",
-        "team_code:nzu",
-        "team_ko:늪지대",
-        "team_en:nzu",
-        "gender:female",
-        "race:protoss",
-        "tier:8"
-      ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "display_name": "아링",
+      "last_checked_at": "2026-03-31T08:18:46.150Z",
+      "last_match_at": "2026-03-17T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-10T10:56:11.900Z"
     },
     {
       "team_name": "늪지대",
@@ -313,7 +307,13 @@
         "race:protoss",
         "tier:8"
       ],
-      "missing_in_master": false
+      "missing_in_master": false,
+      "display_name": "지아송",
+      "last_checked_at": "2026-04-02T09:57:44.118Z",
+      "last_match_at": "2026-03-20T00:00:00.000Z",
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-04-10T10:56:11.902Z"
     }
   ]
 }

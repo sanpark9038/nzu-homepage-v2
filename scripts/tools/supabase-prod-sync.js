@@ -9,6 +9,8 @@ const EXCLUSIONS_FILE = path.join(ROOT, 'data', 'metadata', 'pipeline_collection
 const FACT_MATCHES_PATH = path.join(ROOT, 'data', 'warehouse', 'fact_matches.csv');
 const TMP_DIR = path.join(ROOT, 'tmp');
 const PLAYER_METADATA_PATH = path.join(ROOT, 'scripts', 'player_metadata.json');
+const SOOP_MAPPINGS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_channel_mappings.v1.json');
+const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_manual_review_decisions.v1.json');
 const DEBUG_PAYLOAD_PATH = path.join(TMP_DIR, 'supabase_prod_sync_payload_preview.json');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -51,25 +53,34 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, ''));
 }
 
+function readJsonIfExists(filePath, fallback) {
+  if (!fs.existsSync(filePath)) return fallback;
+  return readJson(filePath);
+}
+
 function buildSoopLookup() {
-  if (!fs.existsSync(PLAYER_METADATA_PATH)) {
-    return {
-      lookup: new Map(),
-      byWrId: new Map(),
-      byNameGender: new Map(),
-    };
-  }
+  const empty = {
+    lookup: new Map(),
+    byWrId: new Map(),
+    byNameGender: new Map(),
+    byName: new Map(),
+  };
+  if (!fs.existsSync(PLAYER_METADATA_PATH)) return empty;
   const rows = readJson(PLAYER_METADATA_PATH);
-  if (!Array.isArray(rows)) {
-    return {
-      lookup: new Map(),
-      byWrId: new Map(),
-      byNameGender: new Map(),
-    };
-  }
+  if (!Array.isArray(rows)) return empty;
   const lookup = new Map();
   const byWrId = new Map();
   const byNameGenderBuckets = new Map();
+  const byNameBuckets = new Map();
+
+  const registerNamePayload = (nameValue, payload) => {
+    const normalized = normalizeLookupName(nameValue);
+    if (!normalized || !payload || !payload.soop_id) return;
+    const bucket = byNameBuckets.get(normalized) || [];
+    bucket.push(payload);
+    byNameBuckets.set(normalized, bucket);
+  };
+
   for (const row of rows) {
     const wrId = Number(row && row.wr_id);
     const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase();
@@ -89,7 +100,43 @@ function buildSoopLookup() {
       bucket.push(payload);
       byNameGenderBuckets.set(key, bucket);
     }
+    registerNamePayload(name, payload);
   }
+
+  const mappingsDoc = readJsonIfExists(SOOP_MAPPINGS_PATH, {});
+  const aliases = mappingsDoc && typeof mappingsDoc.aliases === 'object' ? mappingsDoc.aliases : {};
+  const mappings = Array.isArray(mappingsDoc && mappingsDoc.mappings) ? mappingsDoc.mappings : [];
+  for (const row of mappings) {
+    const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
+    const rawName = normalizeName(row && row.name ? row.name : '');
+    if (!rawName || !soopUserId) continue;
+    const payload = {
+      name: normalizeLookupName(aliases[rawName] || rawName),
+      soop_id: soopUserId,
+      broadcast_url: `https://ch.sooplive.co.kr/${soopUserId}`,
+    };
+    registerNamePayload(rawName, payload);
+    registerNamePayload(aliases[rawName] || '', payload);
+  }
+
+  const reviewDoc = readJsonIfExists(SOOP_REVIEW_DECISIONS_PATH, {});
+  const decisions = Array.isArray(reviewDoc && reviewDoc.decisions) ? reviewDoc.decisions : [];
+  for (const row of decisions) {
+    const decision = String(row && row.decision ? row.decision : '').trim().toLowerCase();
+    const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
+    if (decision !== 'include' || !soopUserId) continue;
+    const payload = {
+      name: normalizeLookupName(row && (row.canonical_name || row.source_name) ? (row.canonical_name || row.source_name) : ''),
+      soop_id: soopUserId,
+      broadcast_url: `https://ch.sooplive.co.kr/${soopUserId}`,
+    };
+    registerNamePayload(row && row.source_name ? row.source_name : '', payload);
+    registerNamePayload(row && row.canonical_name ? row.canonical_name : '', payload);
+    for (const alias of Array.isArray(row && row.alias_names) ? row.alias_names : []) {
+      registerNamePayload(alias, payload);
+    }
+  }
+
   const byNameGender = new Map();
   for (const [key, bucket] of byNameGenderBuckets.entries()) {
     const uniquePayloads = bucket.filter(
@@ -100,7 +147,17 @@ function buildSoopLookup() {
       byNameGender.set(key, uniquePayloads[0]);
     }
   }
-  return { lookup, byWrId, byNameGender };
+  const byName = new Map();
+  for (const [key, bucket] of byNameBuckets.entries()) {
+    const uniquePayloads = bucket.filter(
+      (payload, index, arr) =>
+        arr.findIndex((candidate) => candidate.soop_id === payload.soop_id) === index
+    );
+    if (uniquePayloads.length === 1) {
+      byName.set(key, uniquePayloads[0]);
+    }
+  }
+  return { lookup, byWrId, byNameGender, byName };
 }
 
 function resolveSoopServingMetadata(row, soopLookup) {
@@ -110,7 +167,7 @@ function resolveSoopServingMetadata(row, soopLookup) {
   const name = normalizeLookupName(row && row.name ? row.name : '');
   if (wrId && gender) {
     const exact = soopLookup.lookup.get(`${wrId}:${gender}`);
-    if (exact && (!name || exact.name === name)) {
+    if (exact) {
       return {
         soop_id: exact.soop_id,
         broadcast_url: exact.broadcast_url,
@@ -132,6 +189,15 @@ function resolveSoopServingMetadata(row, soopLookup) {
       return {
         soop_id: sameName.soop_id,
         broadcast_url: sameName.broadcast_url,
+      };
+    }
+  }
+  if (name) {
+    const byName = soopLookup.byName.get(name);
+    if (byName) {
+      return {
+        soop_id: byName.soop_id,
+        broadcast_url: byName.broadcast_url,
       };
     }
   }

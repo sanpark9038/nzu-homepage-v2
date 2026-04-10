@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-04-08T11:13:15.075Z",
+  "description": "Local SOOP live preview payload used for incremental UI verification before full API integration.",
+  "channels": {
+    "qndnd12": {
+      "isLive": false,
+      "thumbnail": "",
+      "title": "",
+      "viewers": "",
+      "nickname": "alen김기덕",
+      "broad_start": ""
+    },
+    "dmk1212": {
+      "isLive": false,
+      "thumbnail": "",
+      "title": "",
+      "viewers": "",
+      "nickname": "액션구드론",
+      "broad_start": ""
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-04-09T15:45:00+09:00",
+  "updated_at": "2026-04-10T15:45:00+09:00",
   "description": "User-reviewed SOOP onboarding decisions for ambiguous reference candidates.",
   "decisions": [
     {
@@ -14,6 +14,45 @@
     {
       "source_name": "김봉준",
       "soop_user_id": "khm11903",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "required"
+    },
+    {
+      "source_name": "박준오",
+      "soop_user_id": "h78ert",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "required"
+    },
+    {
+      "source_name": "쿨지지",
+      "soop_user_id": "khy12088wsss",
+      "decision": "include",
+      "canonical_name": "강민기",
+      "alias_names": ["쿨지지"],
+      "soop_requirement": "required",
+      "elo_requirement": "required"
+    },
+    {
+      "source_name": "프발",
+      "soop_user_id": "lky6407",
+      "decision": "include",
+      "canonical_name": "이광용",
+      "alias_names": ["프발"],
+      "soop_requirement": "required",
+      "elo_requirement": "required"
+    },
+    {
+      "source_name": "김건욱",
+      "soop_user_id": "killkg2",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "required"
+    },
+    {
+      "source_name": "꼬니부깅",
+      "soop_user_id": "kitty1029",
       "decision": "include",
       "soop_requirement": "required",
       "elo_requirement": "required"
@@ -187,9 +226,10 @@
     {
       "source_name": "밍도릿",
       "soop_user_id": "chziaxz",
-      "decision": "include",
-      "soop_requirement": "required",
-      "elo_requirement": "required"
+      "decision": "exclude",
+      "soop_requirement": "not_required",
+      "elo_requirement": "not_required",
+      "notes": "User requested operational exclusion."
     },
     {
       "source_name": "임조이",
@@ -233,6 +273,13 @@
     {
       "source_name": "하랑",
       "soop_user_id": "candyrang00",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "required"
+    },
+    {
+      "source_name": "주하랑",
+      "soop_user_id": "fpahsdltu1",
       "decision": "include",
       "soop_requirement": "required",
       "elo_requirement": "required"
@@ -324,9 +371,10 @@
     {
       "source_name": "뀨알",
       "soop_user_id": "kus03125",
-      "decision": "include",
-      "soop_requirement": "required",
-      "elo_requirement": "required"
+      "decision": "exclude",
+      "soop_requirement": "not_required",
+      "elo_requirement": "not_required",
+      "notes": "User requested SOOP exclusion because this player is no longer expected to do StarCraft streams."
     },
     {
       "source_name": "먹체토",
@@ -403,8 +451,22 @@
       "soop_user_id": "kjy3443",
       "decision": "include",
       "soop_requirement": "required",
-      "elo_requirement": "pending_registration",
-      "notes": "ELO required but id/url does not exist yet"
+      "elo_requirement": "required",
+      "notes": "User supplied SOOP station id."
+    },
+    {
+      "source_name": "수입뿌드",
+      "soop_user_id": "by0529",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "required"
+    },
+    {
+      "source_name": "세월",
+      "soop_user_id": "asdsa1113",
+      "decision": "include",
+      "soop_requirement": "required",
+      "elo_requirement": "required"
     },
     {
       "source_name": "오리3",
@@ -478,6 +540,14 @@
       "elo_requirement": "not_required"
     },
     {
+      "source_name": "져라뎃",
+      "soop_user_id": "",
+      "decision": "exclude",
+      "soop_requirement": "not_required",
+      "elo_requirement": "not_required",
+      "notes": "User requested removal."
+    },
+    {
       "source_name": "트슈",
       "soop_user_id": "ywww123",
       "decision": "include",
@@ -541,14 +611,6 @@
       "decision": "include",
       "soop_requirement": "required",
       "elo_requirement": "required"
-    },
-    {
-      "source_name": "쿨지지",
-      "soop_user_id": "khy12088wsss",
-      "decision": "include",
-      "soop_requirement": "required",
-      "elo_requirement": "not_required",
-      "notes": "SOOP only"
     },
     {
       "source_name": "킹봄",
