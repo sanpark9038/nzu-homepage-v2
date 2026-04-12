@@ -73,6 +73,7 @@
     "pipeline:site:readiness": "node scripts/tools/check-site-integration-readiness.js",
     "test:pipeline:ops:freshness": "node scripts/tools/check-ops-pipeline-freshness.test.js",
     "test:pipeline:site:readiness": "node scripts/tools/check-site-integration-readiness.test.js",
+    "test:player-serving-metadata": "node scripts/tools/player-serving-metadata.test.cjs",
     "schedule:daily:win": "powershell -ExecutionPolicy Bypass -File scripts/schedule-daily-pipeline.ps1",
     "schedule:ops:win": "powershell -ExecutionPolicy Bypass -File scripts/schedule-ops-pipeline.ps1",
     "schedule:soop:live:win": "powershell -ExecutionPolicy Bypass -File scripts/schedule-soop-live-snapshot.ps1",

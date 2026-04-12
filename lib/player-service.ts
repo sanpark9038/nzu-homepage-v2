@@ -48,6 +48,54 @@ type StoredPlayerHistoryRecord = {
   match_history: StoredMatchHistoryItem[] | null;
 };
 
+function applyServingMetadataLayer(players: Player[]) {
+  return applyPlayerServingMetadata(players);
+}
+
+function applyServingMetadataLayerToOne(player: Player) {
+  return applyPlayerServingMetadataToOne(player);
+}
+
+function applyLiveOverlayLayer(players: Player[]) {
+  return applySoopLivePreviews(players);
+}
+
+function applyLiveOverlayLayerToOne(player: Player) {
+  return applySoopLivePreviewToOne(player);
+}
+
+function applyPlayerServiceView(players: Player[]) {
+  return applyLiveOverlayLayer(applyServingMetadataLayer(players));
+}
+
+function applyPlayerServiceViewToOne(player: Player) {
+  return applyLiveOverlayLayerToOne(applyServingMetadataLayerToOne(player));
+}
+
+function hasPlayerSearchAliasMatch(player: Partial<Player>, normalizedQuery: string) {
+  return getPlayerSearchAliases(player).some((alias) => normalizeSearchText(alias).includes(normalizedQuery));
+}
+
+function hasExactPlayerSearchAliasMatch(player: Partial<Player>, normalizedQuery: string) {
+  return getPlayerSearchAliases(player).some((alias) => normalizeSearchText(alias) === normalizedQuery);
+}
+
+function rankPlayerSearchResults(a: Partial<Player>, b: Partial<Player>, normalizedQuery: string) {
+  const aAliasExact = hasExactPlayerSearchAliasMatch(a, normalizedQuery);
+  const bAliasExact = hasExactPlayerSearchAliasMatch(b, normalizedQuery);
+  if (aAliasExact !== bAliasExact) return aAliasExact ? -1 : 1;
+
+  const aName = normalizeSearchText(a.name);
+  const bName = normalizeSearchText(b.name);
+  const aNickname = normalizeSearchText(a.nickname);
+  const bNickname = normalizeSearchText(b.nickname);
+  const aExact = aName === normalizedQuery || aNickname === normalizedQuery;
+  const bExact = bName === normalizedQuery || bNickname === normalizedQuery;
+  if (aExact !== bExact) return aExact ? -1 : 1;
+
+  return Number(b.elo_point || 0) - Number(a.elo_point || 0);
+}
+
 function normalizeStoredMatchHistory(value: unknown): StoredMatchHistoryItem[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is StoredMatchHistoryItem => Boolean(item) && typeof item === "object");
@@ -122,7 +170,7 @@ export const playerService = {
       .order("tier", { ascending: true });
     
     if (error) throw error;
-    return applySoopLivePreviews(applyPlayerServingMetadata(data || []));
+    return applyPlayerServiceView((data || []) as Player[]);
   },
 
   /** 특정 ID의 선수 정보 가져오기 */
@@ -134,7 +182,7 @@ export const playerService = {
       .single();
     
     if (error) throw error;
-    return applySoopLivePreviewToOne(applyPlayerServingMetadataToOne(data));
+    return applyPlayerServiceViewToOne(data as Player);
   },
 
   /** UUID 접두사(8자리 등)로 선수 정보 가져오기 */
@@ -149,7 +197,7 @@ export const playerService = {
 
     if (error) throw error;
     const player = (data || []).find((row) => String(row.id || "").toLowerCase().startsWith(normalizedPrefix)) || null;
-    return player ? applySoopLivePreviewToOne(applyPlayerServingMetadataToOne(player)) : null;
+    return player ? applyPlayerServiceViewToOne(player as Player) : null;
   },
 
   /** 현재 방송 중인 선수들만 가져오기 */
@@ -161,7 +209,7 @@ export const playerService = {
       .order("elo_point", { ascending: false });
     
     if (error) throw error;
-    return applySoopLivePreviews(applyPlayerServingMetadata(data || []));
+    return applyPlayerServiceView((data || []) as Player[]);
   },
 
   /** 특정 선수의 매치 기록 가져오기 */
@@ -227,26 +275,10 @@ export const playerService = {
       .filter((player) => {
         const name = normalizeSearchText(player.name);
         const nickname = normalizeSearchText(player.nickname);
-        const aliasMatches = getPlayerSearchAliases(player).some((alias) =>
-          normalizeSearchText(alias).includes(normalizedQuery)
-        );
+        const aliasMatches = hasPlayerSearchAliasMatch(player, normalizedQuery);
         return name.includes(normalizedQuery) || nickname.includes(normalizedQuery) || aliasMatches;
       })
-      .sort((a, b) => {
-        const aAliasExact = getPlayerSearchAliases(a).some((alias) => normalizeSearchText(alias) === normalizedQuery);
-        const bAliasExact = getPlayerSearchAliases(b).some((alias) => normalizeSearchText(alias) === normalizedQuery);
-        if (aAliasExact !== bAliasExact) return aAliasExact ? -1 : 1;
-
-        const aName = normalizeSearchText(a.name);
-        const bName = normalizeSearchText(b.name);
-        const aNickname = normalizeSearchText(a.nickname);
-        const bNickname = normalizeSearchText(b.nickname);
-        const aExact = aName === normalizedQuery || aNickname === normalizedQuery;
-        const bExact = bName === normalizedQuery || bNickname === normalizedQuery;
-        if (aExact !== bExact) return aExact ? -1 : 1;
-
-        return Number(b.elo_point || 0) - Number(a.elo_point || 0);
-      })
+      .sort((a, b) => rankPlayerSearchResults(a, b, normalizedQuery))
       .slice(0, 10);
   },
 
