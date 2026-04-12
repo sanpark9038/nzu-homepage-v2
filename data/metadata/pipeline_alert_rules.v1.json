@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-03-27T00:00:00.000Z",
+  "updated_at": "2026-04-12T00:00:00.000Z",
   "blocking_severities": ["critical", "high"],
   "rules": {
     "pipeline_failure_severity": "critical",
@@ -13,6 +13,9 @@
     "negative_delta_matches_severity": "critical",
     "roster_size_changed_severity": "medium",
     "roster_size_changed_team_allowlist": ["fa"],
+    "stale_snapshot_disagreement_severity": "medium",
+    "stale_snapshot_disagreement_threshold": 1,
+    "homepage_integrity_report_max_age_minutes": 180,
     "no_new_matches_enabled": false,
     "no_new_matches_severity": "low"
   }

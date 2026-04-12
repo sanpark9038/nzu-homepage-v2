@@ -49,10 +49,27 @@ function main() {
     validateSeverity(errors, "rules.zero_record_players_severity", doc.rules.zero_record_players_severity);
     validateSeverity(errors, "rules.negative_delta_matches_severity", doc.rules.negative_delta_matches_severity);
     validateSeverity(errors, "rules.roster_size_changed_severity", doc.rules.roster_size_changed_severity);
+    validateSeverity(
+      errors,
+      "rules.stale_snapshot_disagreement_severity",
+      doc.rules.stale_snapshot_disagreement_severity
+    );
     validateSeverity(errors, "rules.no_new_matches_severity", doc.rules.no_new_matches_severity);
 
     if (typeof doc.rules.no_new_matches_enabled !== "boolean") {
       fail(errors, "rules.no_new_matches_enabled", "must be boolean");
+    }
+    if (
+      !Number.isFinite(Number(doc.rules.stale_snapshot_disagreement_threshold)) ||
+      Number(doc.rules.stale_snapshot_disagreement_threshold) < 0
+    ) {
+      fail(errors, "rules.stale_snapshot_disagreement_threshold", "must be a non-negative number");
+    }
+    if (
+      !Number.isFinite(Number(doc.rules.homepage_integrity_report_max_age_minutes)) ||
+      Number(doc.rules.homepage_integrity_report_max_age_minutes) < 0
+    ) {
+      fail(errors, "rules.homepage_integrity_report_max_age_minutes", "must be a non-negative number");
     }
 
     if (

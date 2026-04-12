@@ -11,6 +11,7 @@ const {
 const ROOT = path.resolve(__dirname, "..", "..");
 const TMP_DIR = path.join(ROOT, "tmp");
 const REPORTS_DIR = path.join(TMP_DIR, "reports");
+const HOMEPAGE_INTEGRITY_REPORT_PATH = path.join(REPORTS_DIR, "homepage_integrity_report.json");
 const NODE_BIN = process.execPath || "node";
 const ALERT_RULES_PATH = path.join(ROOT, "data", "metadata", "pipeline_alert_rules.v1.json");
 const EXPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "export-nzu-roster-detailed.js");
@@ -194,6 +195,9 @@ function defaultAlertConfig() {
       negative_delta_matches_severity: "critical",
       roster_size_changed_severity: "medium",
       roster_size_changed_team_allowlist: [],
+      stale_snapshot_disagreement_severity: "medium",
+      stale_snapshot_disagreement_threshold: 1,
+      homepage_integrity_report_max_age_minutes: 180,
       no_new_matches_enabled: false,
       no_new_matches_severity: "low",
     },
@@ -237,6 +241,54 @@ function sortedAlerts(alerts) {
     if (a.team_code !== b.team_code) return String(a.team_code).localeCompare(String(b.team_code));
     return String(a.rule).localeCompare(String(b.rule));
   });
+}
+
+function normalizePositiveNumber(value, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+  return parsed;
+}
+
+function buildHomepageIntegrityOperationalAlerts(homepageIntegrityReport, cfg, referenceTimeMs = Date.now()) {
+  const rules = cfg && cfg.rules && typeof cfg.rules === "object" ? cfg.rules : {};
+  if (!homepageIntegrityReport || typeof homepageIntegrityReport !== "object") return [];
+
+  const generatedAt = String(homepageIntegrityReport.generated_at || "").trim();
+  const generatedTime = generatedAt ? Date.parse(generatedAt) : Number.NaN;
+  if (!Number.isFinite(generatedTime)) return [];
+
+  const maxAgeMinutes = normalizePositiveNumber(rules.homepage_integrity_report_max_age_minutes, 180);
+  const reportAgeMs = referenceTimeMs - generatedTime;
+  if (!Number.isFinite(reportAgeMs) || reportAgeMs < 0 || reportAgeMs > maxAgeMinutes * 60 * 1000) {
+    return [];
+  }
+
+  const liveSummary =
+    homepageIntegrityReport.summary && homepageIntegrityReport.summary.live && typeof homepageIntegrityReport.summary.live === "object"
+      ? homepageIntegrityReport.summary.live
+      : null;
+  if (!liveSummary) return [];
+
+  const disagreementCount = Number(liveSummary.stale_snapshot_disagreement_count || 0);
+  const snapshotIsFresh = Boolean(liveSummary.snapshot_is_fresh);
+  const snapshotExists = Boolean(liveSummary.snapshot_exists);
+  const threshold = normalizePositiveNumber(rules.stale_snapshot_disagreement_threshold, 1);
+
+  if (!snapshotExists || snapshotIsFresh || !Number.isFinite(disagreementCount) || disagreementCount < threshold) {
+    return [];
+  }
+
+  return [
+    {
+      severity: rules.stale_snapshot_disagreement_severity || "medium",
+      team: "운영",
+      team_code: "ops",
+      rule: "stale_live_snapshot_disagreement",
+      message: `stale_snapshot_disagreement_count=${disagreementCount}, snapshot_updated_at=${String(
+        liveSummary.snapshot_updated_at || "-"
+      )}, report_generated_at=${generatedAt}`,
+    },
+  ];
 }
 
 function runNode(scriptPath, args, options = {}) {
@@ -756,7 +808,14 @@ function recoverTeamAnomalies(team, report, from, to, concurrency) {
   };
 }
 
-function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null, rosterTransitionSummary = []) {
+function buildAlerts(
+  rowsWithDelta,
+  cfg,
+  rosterSyncReport = null,
+  rosterTransitionSummary = [],
+  homepageIntegrityReport = null,
+  referenceTimeMs = Date.now()
+) {
   const rules = cfg.rules || {};
   const allowlist =
     rules && rules.zero_record_players_allowlist && typeof rules.zero_record_players_allowlist === "object"
@@ -854,6 +913,7 @@ function buildAlerts(rowsWithDelta, cfg, rosterSyncReport = null, rosterTransiti
       });
     }
   }
+  alerts.push(...buildHomepageIntegrityOperationalAlerts(homepageIntegrityReport, cfg, referenceTimeMs));
   return sortedAlerts(alerts);
 }
 
@@ -1040,7 +1100,38 @@ function main() {
   };
 
   const alertConfig = readAlertConfig();
-  const alerts = buildAlerts(rowsWithDelta, alertConfig, rosterSyncReport, snapshot.roster_transition_summary);
+  const homepageIntegrityReport = readJsonIfExists(HOMEPAGE_INTEGRITY_REPORT_PATH, null);
+  snapshot.homepage_integrity = homepageIntegrityReport
+    ? {
+        generated_at: String(homepageIntegrityReport.generated_at || "").trim() || null,
+        stale_snapshot_disagreement_count: Number(
+          homepageIntegrityReport.summary &&
+            homepageIntegrityReport.summary.live &&
+            homepageIntegrityReport.summary.live.stale_snapshot_disagreement_count
+            ? homepageIntegrityReport.summary.live.stale_snapshot_disagreement_count
+            : 0
+        ),
+        snapshot_is_fresh: Boolean(
+          homepageIntegrityReport.summary &&
+            homepageIntegrityReport.summary.live &&
+            homepageIntegrityReport.summary.live.snapshot_is_fresh
+        ),
+        report_path: path.relative(ROOT, HOMEPAGE_INTEGRITY_REPORT_PATH).replace(/\\/g, "/"),
+      }
+    : {
+        generated_at: null,
+        stale_snapshot_disagreement_count: 0,
+        snapshot_is_fresh: null,
+        report_path: null,
+      };
+  const alerts = buildAlerts(
+    rowsWithDelta,
+    alertConfig,
+    rosterSyncReport,
+    snapshot.roster_transition_summary,
+    homepageIntegrityReport,
+    Date.now()
+  );
   const zeroRecordReview = classifyZeroRecordPlayers(rowsWithDelta, alertConfig);
   const alertSummary = {
     generated_at: new Date().toISOString(),
@@ -1154,6 +1245,7 @@ if (require.main === module) {
 
 module.exports = {
   buildAlerts,
+  buildHomepageIntegrityOperationalAlerts,
   classifyZeroRecordPlayers,
   movedInPlayersByTeam,
   exportConcurrencyForTeam,

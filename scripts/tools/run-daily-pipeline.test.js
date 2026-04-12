@@ -8,7 +8,7 @@ const {
   latestPreviousSnapshotPath,
   parseDateTag,
 } = require("./lib/daily-pipeline-snapshot");
-const { buildAlerts, movedInPlayersByTeam } = require("./run-daily-pipeline");
+const { buildAlerts, buildHomepageIntegrityOperationalAlerts, movedInPlayersByTeam } = require("./run-daily-pipeline");
 const { classifyZeroRecordPlayers, exportConcurrencyForTeam, exportTimeoutForTeam } = require("./run-daily-pipeline");
 
 function makeTempReportsDir() {
@@ -323,6 +323,69 @@ runTest("buildAlerts suppresses zero-record alerts for team-allowlisted teams", 
       message: "delta_total_matches=-100",
     },
   ]);
+});
+
+runTest("buildHomepageIntegrityOperationalAlerts adds medium alert for fresh stale-snapshot disagreement reports", () => {
+  const referenceTime = Date.parse("2026-04-12T09:00:00.000Z");
+  const actual = buildHomepageIntegrityOperationalAlerts(
+    {
+      generated_at: "2026-04-12T08:15:00.000Z",
+      summary: {
+        live: {
+          snapshot_exists: true,
+          snapshot_is_fresh: false,
+          snapshot_updated_at: "2026-04-12T07:30:00.000Z",
+          stale_snapshot_disagreement_count: 103,
+        },
+      },
+    },
+    {
+      rules: {
+        stale_snapshot_disagreement_severity: "medium",
+        stale_snapshot_disagreement_threshold: 1,
+        homepage_integrity_report_max_age_minutes: 180,
+      },
+    },
+    referenceTime
+  );
+
+  assert.deepEqual(actual, [
+    {
+      severity: "medium",
+      team: "운영",
+      team_code: "ops",
+      rule: "stale_live_snapshot_disagreement",
+      message:
+        "stale_snapshot_disagreement_count=103, snapshot_updated_at=2026-04-12T07:30:00.000Z, report_generated_at=2026-04-12T08:15:00.000Z",
+    },
+  ]);
+});
+
+runTest("buildHomepageIntegrityOperationalAlerts ignores stale integrity reports", () => {
+  const referenceTime = Date.parse("2026-04-12T12:30:00.000Z");
+  const actual = buildHomepageIntegrityOperationalAlerts(
+    {
+      generated_at: "2026-04-12T08:15:00.000Z",
+      summary: {
+        live: {
+          snapshot_exists: true,
+          snapshot_is_fresh: false,
+          snapshot_updated_at: "2026-04-12T07:30:00.000Z",
+          stale_snapshot_disagreement_count: 103,
+        },
+      },
+    },
+    {
+      rules: {
+        stale_snapshot_disagreement_severity: "medium",
+        stale_snapshot_disagreement_threshold: 1,
+        homepage_integrity_report_max_age_minutes: 180,
+      },
+    },
+    referenceTime
+  );
+
+  assert.deepEqual(actual, []);
 });
 
 runTest("exportConcurrencyForTeam forces higher concurrency for fa", () => {
