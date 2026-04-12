@@ -123,6 +123,15 @@ runTest("compareRosterJoinersRemovals suppresses runtime identity-migration fals
   assert.deepEqual(actual, { joiners: [], removals: [] });
 });
 
+runTest("compareRosterJoinersRemovals suppresses same-name same-team identity-shape changes", () => {
+  const actual = compareRosterJoinersRemovals(
+    [{ entity_id: "eloboard:male:671", name: "쌍디", display_name: "쌍디", team_name: "무소속" }],
+    [{ entity_id: "eloboard:male:mix:671", name: "쌍디", display_name: "쌍디", team_name: "무소속" }]
+  );
+
+  assert.deepEqual(actual, { joiners: [], removals: [] });
+});
+
 runTest("buildDiscordSummaryCheck prefers saved roster snapshot over local projects dir", () => {
   const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-summary-snapshot-"));
   const baselinePath = path.join(reportsDir, "manual_refresh_baseline.json");

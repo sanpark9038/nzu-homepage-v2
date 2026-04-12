@@ -109,6 +109,19 @@ function buildPlayerKey(player, lookup = legacyEntityIdLookup()) {
   return `name:${String(player && player.name ? player.name : "").trim().toLowerCase()}`;
 }
 
+function buildNameTeamKey(player) {
+  const name = String(
+    player && (player.display_name || player.name) ? player.display_name || player.name : ""
+  )
+    .trim()
+    .toLowerCase();
+  const teamName = normalizeTeamName(player && player.team_name ? player.team_name : "")
+    .trim()
+    .toLowerCase();
+  if (!name || !teamName) return "";
+  return `${name}@@${teamName}`;
+}
+
 function toPlayerMap(players, lookup = legacyEntityIdLookup()) {
   return new Map(players.map((player) => [buildPlayerKey(player, lookup), player]));
 }
@@ -186,11 +199,14 @@ function writeCurrentRosterStateSnapshot(reportsDir, players) {
 function compareRosterJoinersRemovals(beforePlayers, afterPlayers, lookup = legacyEntityIdLookup()) {
   const beforeMap = toPlayerMap(beforePlayers, lookup);
   const afterMap = toPlayerMap(afterPlayers, lookup);
+  const beforeNameTeamKeys = new Set(beforePlayers.map((player) => buildNameTeamKey(player)).filter(Boolean));
+  const afterNameTeamKeys = new Set(afterPlayers.map((player) => buildNameTeamKey(player)).filter(Boolean));
   const joiners = [];
   const removals = [];
 
   for (const [key, current] of afterMap.entries()) {
     if (beforeMap.has(key)) continue;
+    if (beforeNameTeamKeys.has(buildNameTeamKey(current))) continue;
     joiners.push({
       player_name: current.display_name || current.name,
       team_name: normalizeTeamName(current.team_name),
@@ -199,6 +215,7 @@ function compareRosterJoinersRemovals(beforePlayers, afterPlayers, lookup = lega
 
   for (const [key, prev] of beforeMap.entries()) {
     if (afterMap.has(key)) continue;
+    if (afterNameTeamKeys.has(buildNameTeamKey(prev))) continue;
     removals.push({
       player_name: prev.display_name || prev.name,
       team_name: normalizeTeamName(prev.team_name),
