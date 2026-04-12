@@ -201,8 +201,11 @@ function main() {
   const outSnapshotCsv = path.join(REPORTS_DIR, `daily_pipeline_snapshot_${outputDate}.csv`);
   const outAlertsJson = path.join(REPORTS_DIR, `daily_pipeline_alerts_${outputDate}.json`);
   const outAlertsCsv = path.join(REPORTS_DIR, `daily_pipeline_alerts_${outputDate}.csv`);
+  const latestSnapshotJson = path.join(REPORTS_DIR, "daily_pipeline_snapshot_latest.json");
+  const latestAlertsJson = path.join(REPORTS_DIR, "daily_pipeline_alerts_latest.json");
 
   writeJson(outSnapshotJson, mergedSnapshot);
+  writeJson(latestSnapshotJson, mergedSnapshot);
   writeCsv(
     outSnapshotCsv,
     mergedTeams.map((r) => ({
@@ -226,6 +229,7 @@ function main() {
     }))
   );
   writeJson(outAlertsJson, mergedAlerts);
+  writeJson(latestAlertsJson, mergedAlerts);
   writeCsv(
     outAlertsCsv,
     alertRows.map((a) => ({

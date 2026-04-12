@@ -172,10 +172,14 @@ function toWinRate(wins: number, matches: number): number {
 }
 
 function loadWarehouse(): WarehouseCache {
-  const paths = [FACT_PATH, AGG_PLAYER_PATH, AGG_TEAM_PATH];
-  const mtimes = Object.fromEntries(
-    paths.map((p) => [p, fs.existsSync(p) ? fs.statSync(p).mtimeMs : 0])
-  );
+  const factMtime = fs.existsSync(FACT_PATH) ? fs.statSync(FACT_PATH).mtimeMs : 0;
+  const aggPlayerMtime = fs.existsSync(AGG_PLAYER_PATH) ? fs.statSync(AGG_PLAYER_PATH).mtimeMs : 0;
+  const aggTeamMtime = fs.existsSync(AGG_TEAM_PATH) ? fs.statSync(AGG_TEAM_PATH).mtimeMs : 0;
+  const mtimes = {
+    [FACT_PATH]: factMtime,
+    [AGG_PLAYER_PATH]: aggPlayerMtime,
+    [AGG_TEAM_PATH]: aggTeamMtime,
+  };
 
   if (
     cache &&

@@ -39,14 +39,14 @@ function isPidAlive(pid: number): boolean {
   }
 }
 
-function latestFileByPrefix(prefix: string): string | null {
-  if (!fs.existsSync(REPORTS_DIR)) return null;
-  const files = fs
-    .readdirSync(REPORTS_DIR)
-    .filter((n) => n.startsWith(prefix) && n.endsWith(".json"))
-    .sort();
-  if (!files.length) return null;
-  return path.join(REPORTS_DIR, files[files.length - 1]);
+function latestPipelineFiles() {
+  const snapshotPath = path.join(REPORTS_DIR, "daily_pipeline_snapshot_latest.json");
+  const alertsPath = path.join(REPORTS_DIR, "daily_pipeline_alerts_latest.json");
+
+  return {
+    latest_snapshot: snapshotPath && fs.existsSync(snapshotPath) ? snapshotPath : null,
+    latest_alerts: alertsPath && fs.existsSync(alertsPath) ? alertsPath : null,
+  };
 }
 
 export async function GET() {
@@ -60,11 +60,11 @@ export async function GET() {
     writeState(state);
   }
 
+  const latest = latestPipelineFiles();
   return NextResponse.json({
     ok: true,
     state,
-    latest_snapshot: latestFileByPrefix("daily_pipeline_snapshot_"),
-    latest_alerts: latestFileByPrefix("daily_pipeline_alerts_"),
+    latest_snapshot: latest.latest_snapshot,
+    latest_alerts: latest.latest_alerts,
   });
 }
-

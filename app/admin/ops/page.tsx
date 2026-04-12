@@ -41,21 +41,21 @@ type AlertsDoc = {
   alerts?: AlertRow[];
 };
 
-function latestJsonByPrefix(prefix: string): string | null {
-  const dir = path.join(process.cwd(), "tmp", "reports");
-  if (!fs.existsSync(dir)) return null;
-  const files = fs
-    .readdirSync(dir)
-    .filter((n) => n.startsWith(prefix) && n.endsWith(".json"))
-    .sort();
-  if (!files.length) return null;
-  return path.join(dir, files[files.length - 1]);
-}
-
 function readJson<T>(filePath: string | null): T | null {
   if (!filePath || !fs.existsSync(filePath)) return null;
   const raw = fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "");
   return JSON.parse(raw) as T;
+}
+
+function resolveLatestPipelineFiles() {
+  const reportsDir = path.join(process.cwd(), "tmp", "reports");
+  const snapshotPath = path.join(reportsDir, "daily_pipeline_snapshot_latest.json");
+  const alertsPath = path.join(reportsDir, "daily_pipeline_alerts_latest.json");
+
+  return {
+    snapshotPath: snapshotPath && fs.existsSync(snapshotPath) ? snapshotPath : null,
+    alertsPath: alertsPath && fs.existsSync(alertsPath) ? alertsPath : null,
+  };
 }
 
 function badgeColor(level: string): string {
@@ -72,8 +72,7 @@ export default async function AdminOpsPage() {
     redirect("/admin/login?next=/admin/ops");
   }
 
-  const snapshotPath = latestJsonByPrefix("daily_pipeline_snapshot_");
-  const alertsPath = latestJsonByPrefix("daily_pipeline_alerts_");
+  const { snapshotPath, alertsPath } = resolveLatestPipelineFiles();
   const snapshot = readJson<SnapshotDoc>(snapshotPath);
   const alerts = readJson<AlertsDoc>(alertsPath);
   const teams = Array.isArray(snapshot?.teams) ? snapshot!.teams : [];
