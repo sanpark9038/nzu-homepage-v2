@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-04-10T10:56:11.616Z",
+  "generated_at": "2026-04-12T07:28:37.968Z",
   "project": "fa",
   "team_name": "무소속",
   "team_code": "fa",
@@ -2306,7 +2306,7 @@
       "wr_id": 155,
       "gender": "male",
       "name": "강민기",
-      "display_name": "강민기",
+      "display_name": "쿨지지",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=155",
       "profile_kind": "default",
       "tier": "잭",
@@ -2321,7 +2321,8 @@
         "team_en:fa",
         "gender:male",
         "race:protoss",
-        "tier:jack"
+        "tier:jack",
+        "display_alias:true"
       ],
       "role_title": "",
       "role_priority": null,

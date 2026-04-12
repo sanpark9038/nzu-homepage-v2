@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-04-10T10:56:12.034Z",
+  "generated_at": "2026-04-12T07:28:38.014Z",
   "project": "wfu-validation",
   "team_name": "와플대",
   "team_code": "wfu",
@@ -26,13 +26,14 @@
         "team_ko:와플대",
         "team_en:wfu",
         "race:protoss",
-        "tier:jack"
+        "tier:jack",
+        "display_alias:true"
       ],
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "display_name": "이광용",
+      "display_name": "프발",
       "last_checked_at": "2026-04-10T10:44:53.101Z",
       "last_match_at": "2026-04-07T00:00:00.000Z",
       "check_priority": "high",
@@ -60,13 +61,14 @@
         "team_ko:와플대",
         "team_en:wfu",
         "race:zerg",
-        "tier:jack"
+        "tier:jack",
+        "display_alias:true"
       ],
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "display_name": "허유진",
+      "display_name": "허유",
       "last_checked_at": "2026-04-08T06:02:26.602Z",
       "last_match_at": "2026-03-23T00:00:00.000Z",
       "check_priority": "normal",

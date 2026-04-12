@@ -27,6 +27,18 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2), "utf8");
 }
 
+function formatError(error) {
+  if (error instanceof Error) {
+    return error.stack || error.message;
+  }
+  if (error && typeof error === "object") {
+    try {
+      return JSON.stringify(error, null, 2);
+    } catch {}
+  }
+  return String(error);
+}
+
 function trim(value) {
   return String(value || "").trim();
 }
@@ -332,7 +344,7 @@ function buildLiveSection(players, snapshot) {
       }
     }
   }
-  const staleSnapshotOverrides = [];
+  const staleSnapshotDisagreements = [];
 
   if (snapshot.exists) {
     for (const player of livePlayers) {
@@ -342,7 +354,7 @@ function buildLiveSection(players, snapshot) {
       if (!channel) continue;
       if (snapshot.is_fresh) continue;
       if (channel.isLive === false) {
-        staleSnapshotOverrides.push({
+        staleSnapshotDisagreements.push({
           name: trim(player && player.name) || null,
           soop_id: soopId,
           snapshot_updated_at: snapshot.updated_at,
@@ -358,8 +370,9 @@ function buildLiveSection(players, snapshot) {
     snapshot_updated_at: snapshot.updated_at,
     snapshot_is_fresh: snapshot.is_fresh,
     snapshot_live_count: snapshot.live_count,
-    stale_snapshot_can_override_live: staleSnapshotOverrides.length,
-    stale_snapshot_override_rows: staleSnapshotOverrides.sort((a, b) =>
+    stale_snapshot_override_risk: snapshot.is_fresh ? 0 : 0,
+    stale_snapshot_disagreement_count: staleSnapshotDisagreements.length,
+    stale_snapshot_disagreement_rows: staleSnapshotDisagreements.sort((a, b) =>
       String(a.name).localeCompare(String(b.name), "ko")
     ),
   };
@@ -401,12 +414,11 @@ async function main() {
   console.log(`- db_live_count: ${report.summary.live.db_live_count}`);
   console.log(`- effective_live_count: ${report.summary.live.effective_live_count}`);
   console.log(`- snapshot_is_fresh: ${report.summary.live.snapshot_is_fresh}`);
-  console.log(
-    `- stale_snapshot_can_override_live: ${report.summary.live.stale_snapshot_can_override_live}`
-  );
+  console.log(`- stale_snapshot_override_risk: ${report.summary.live.stale_snapshot_override_risk}`);
+  console.log(`- stale_snapshot_disagreement_count: ${report.summary.live.stale_snapshot_disagreement_count}`);
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.stack || error.message : String(error));
+  console.error(formatError(error));
   process.exit(1);
 });
