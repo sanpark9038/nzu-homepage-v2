@@ -8,6 +8,7 @@ const REPORT_DIR = path.join(ROOT, "tmp", "reports");
 const NODE_BIN = process.execPath || "node";
 const NODE_BIN_FALLBACK = "node";
 const DAILY_PIPELINE_TIMEOUT_MS = 60 * 60 * 1000;
+const HOMEPAGE_INTEGRITY_TIMEOUT_MS = 10 * 60 * 1000;
 const WAREHOUSE_VERIFY_TIMEOUT_MS = 5 * 60 * 1000;
 const SUPABASE_SYNC_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -35,10 +36,19 @@ function timestamp() {
 }
 
 function stepTimeoutFor(name) {
+  if (name === "homepage_integrity_report") return HOMEPAGE_INTEGRITY_TIMEOUT_MS;
   if (name === "daily_pipeline") return DAILY_PIPELINE_TIMEOUT_MS;
   if (name === "warehouse_verify") return WAREHOUSE_VERIFY_TIMEOUT_MS;
   if (name === "supabase_staging_sync" || name === "supabase_prod_sync") return SUPABASE_SYNC_TIMEOUT_MS;
   return 30 * 60 * 1000;
+}
+
+function hasHomepageIntegrityEnv() {
+  const supabaseUrl = String(process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  const serviceKey = String(
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ""
+  ).trim();
+  return Boolean(supabaseUrl && serviceKey);
 }
 
 function runStep(name, args, options = {}) {
@@ -295,6 +305,7 @@ function main() {
   try {
     ensureFile("scripts/tools/run-daily-pipeline.js");
     ensureFile("scripts/tools/verify-warehouse-integrity.js");
+    ensureFile("scripts/tools/report-homepage-integrity.js");
     if (!skipSupabase) {
       ensureFile("scripts/tools/supabase-staging-sync.js");
       ensureFile("scripts/tools/supabase-prod-sync.js");
@@ -344,6 +355,14 @@ function main() {
         });
       }
     } else {
+      if (hasHomepageIntegrityEnv()) {
+        steps.push(
+          runStep("homepage_integrity_report", ["scripts/tools/report-homepage-integrity.js"], {
+            timeoutMs: stepTimeoutFor("homepage_integrity_report"),
+            allowFailure: true,
+          })
+        );
+      }
       steps.push(
         runStep("daily_pipeline", dailyArgs)
       );

@@ -13,6 +13,7 @@ function runTest(name, fn) {
 }
 
 runTest("ops pipeline step timeouts are bounded by step type", () => {
+  assert.equal(stepTimeoutFor("homepage_integrity_report"), 10 * 60 * 1000);
   assert.equal(stepTimeoutFor("daily_pipeline"), 60 * 60 * 1000);
   assert.equal(stepTimeoutFor("warehouse_verify"), 5 * 60 * 1000);
   assert.equal(stepTimeoutFor("supabase_staging_sync"), 30 * 60 * 1000);
