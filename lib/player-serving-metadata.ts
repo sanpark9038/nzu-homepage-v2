@@ -14,6 +14,19 @@ type SoopIdentityOverride = {
   soop_id?: string;
 };
 
+type ServingMetadataPlayer = Partial<Player> & {
+  eloboard_id?: string | number | null;
+  gender?: string | null;
+  university?: string | null;
+};
+
+type IdentityResolution = {
+  canonicalName: string;
+  displayName: string;
+  rosterOverride: RosterPlayerOverride | null;
+  soopOverride: SoopIdentityOverride | null;
+};
+
 let cachedSearchAliasesMtimeMs: number | null = null;
 let cachedSearchAliases = new Map<string, string[]>();
 let cachedDisplayAliasesMtimeMs: number | null = null;
@@ -29,7 +42,7 @@ function readJsonFile<T>(filePath: string): T | null {
   }
 }
 
-function normalizeEntityIdForPlayer(player: Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }) {
+function normalizeEntityIdForPlayer(player: ServingMetadataPlayer) {
   const rawEloboardId = String(player.eloboard_id || "").trim();
   if (/^eloboard:(male|female):/i.test(rawEloboardId)) {
     return rawEloboardId.toLowerCase();
@@ -41,7 +54,7 @@ function normalizeEntityIdForPlayer(player: Partial<Player> & { eloboard_id?: st
   return `eloboard:${gender}:${wrId}`;
 }
 
-function extractWrId(player: Partial<Player> & { eloboard_id?: string | number | null }) {
+function extractWrId(player: ServingMetadataPlayer) {
   const rawEloboardId = String(player.eloboard_id || "").trim();
   if (!rawEloboardId) return null;
   if (/^\d+$/.test(rawEloboardId)) return rawEloboardId;
@@ -49,8 +62,45 @@ function extractWrId(player: Partial<Player> & { eloboard_id?: string | number |
   return match ? match[1] : null;
 }
 
-function hasMixedEloboardIdentity(player: Partial<Player> & { eloboard_id?: string | number | null }) {
+function hasMixedEloboardIdentity(player: ServingMetadataPlayer) {
   return /^eloboard:(male|female):mix:\d+$/i.test(String(player.eloboard_id || "").trim());
+}
+
+function registerDisplayAlias(aliases: Map<string, string>, nameValue: string | undefined, displayValue: string | undefined) {
+  const name = String(nameValue || "").trim();
+  const displayName = String(displayValue || "").trim();
+  if (!name || !displayName) return;
+  aliases.set(name, displayName);
+}
+
+function registerSearchAlias(aliases: Map<string, Set<string>>, canonicalName: string, aliasName: string) {
+  const canonical = String(canonicalName || "").trim();
+  const alias = String(aliasName || "").trim();
+  if (!canonical || !alias || canonical === alias) return;
+  const bucket = aliases.get(canonical) || new Set<string>();
+  bucket.add(alias);
+  aliases.set(canonical, bucket);
+}
+
+function resolveIdentityOverrides(
+  player: ServingMetadataPlayer,
+  overrides: Map<string, RosterPlayerOverride>,
+  soopIdentityOverrides: Map<string, SoopIdentityOverride>,
+  displayAliases: Map<string, string>
+): IdentityResolution {
+  const entityId = normalizeEntityIdForPlayer(player);
+  const wrId = extractWrId(player);
+  const canonicalName = String(player.name || "").trim();
+  const rosterOverride = entityId ? overrides.get(entityId) || null : null;
+  const soopOverride = wrId && hasMixedEloboardIdentity(player) ? soopIdentityOverrides.get(wrId) || null : null;
+  const displayName = String(displayAliases.get(canonicalName) || rosterOverride?.display_name || "").trim();
+
+  return {
+    canonicalName,
+    displayName,
+    rosterOverride,
+    soopOverride,
+  };
 }
 
 function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
@@ -123,19 +173,12 @@ function loadDisplayAliases(): Map<string, string> {
       teams?: Record<string, Array<{ name?: string; display_name?: string }>>;
     }>(filePath);
 
-    const register = (nameValue: string | undefined, displayValue: string | undefined) => {
-      const name = String(nameValue || "").trim();
-      const displayName = String(displayValue || "").trim();
-      if (!name || !displayName) return;
-      aliases.set(name, displayName);
-    };
-
     for (const row of Array.isArray(doc?.global) ? doc.global : []) {
-      register(row?.name, row?.display_name);
+      registerDisplayAlias(aliases, row?.name, row?.display_name);
     }
     for (const rows of Object.values(doc?.teams || {})) {
       for (const row of Array.isArray(rows) ? rows : []) {
-        register(row?.name, row?.display_name);
+        registerDisplayAlias(aliases, row?.name, row?.display_name);
       }
     }
   } catch {
@@ -176,7 +219,7 @@ function loadSoopIdentityOverrides(): Map<string, SoopIdentityOverride> {
   return overrides;
 }
 
-function applyUniversityNormalization<T extends Partial<Player> & { university?: string | null }>(player: T): T {
+function applyUniversityNormalization<T extends ServingMetadataPlayer>(player: T): T {
   const normalizedUniversity = normalizeUniversityKey(player.university);
   if (!normalizedUniversity) return player;
   return {
@@ -185,44 +228,35 @@ function applyUniversityNormalization<T extends Partial<Player> & { university?:
   };
 }
 
-function applyIdentityOverride<T extends Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }>(
+function applyIdentityOverride<T extends ServingMetadataPlayer>(
   player: T,
   overrides: Map<string, RosterPlayerOverride>,
   soopIdentityOverrides: Map<string, SoopIdentityOverride>,
   displayAliases: Map<string, string>
 ): T {
-  const entityId = normalizeEntityIdForPlayer(player);
-  const override = entityId ? overrides.get(entityId) : null;
-  const wrId = extractWrId(player);
-  const soopOverride = wrId && hasMixedEloboardIdentity(player) ? soopIdentityOverrides.get(wrId) : null;
-  const canonicalName = String(player.name || "").trim();
-  const aliasedDisplayName = displayAliases.get(canonicalName) || "";
-  if (!override && !soopOverride && !aliasedDisplayName) return player;
+  const resolved = resolveIdentityOverrides(player, overrides, soopIdentityOverrides, displayAliases);
+  if (!resolved.rosterOverride && !resolved.soopOverride && !resolved.displayName) return player;
 
   // Serving semantics:
   // - `name` is the homepage-facing label after display alias resolution.
   // - `nickname` stores the canonical source name when `name` is replaced.
   // - `soop_id` only accepts the explicit metadata override for mix identities.
-  const displayName = String(aliasedDisplayName || override?.display_name || "").trim();
-
   return {
     ...player,
-    name: displayName || player.name,
+    name: resolved.displayName || player.name,
     nickname:
-      displayName && canonicalName && displayName !== canonicalName
-        ? canonicalName
+      resolved.displayName && resolved.canonicalName && resolved.displayName !== resolved.canonicalName
+        ? resolved.canonicalName
         : player.nickname,
-    university: override?.university ?? player.university,
-    tier: override?.tier ?? player.tier,
-    race: override?.race ?? player.race,
-    soop_id: soopOverride?.soop_id ?? player.soop_id,
-    profile_url: override?.profile_url ?? player.profile_url,
+    university: resolved.rosterOverride?.university ?? player.university,
+    tier: resolved.rosterOverride?.tier ?? player.tier,
+    race: resolved.rosterOverride?.race ?? player.race,
+    soop_id: resolved.soopOverride?.soop_id ?? player.soop_id,
+    profile_url: resolved.rosterOverride?.profile_url ?? player.profile_url,
   };
 }
 
-export function applyPlayerServingMetadata<T extends Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }>(
-  players: T[]
-) {
+export function applyPlayerServingMetadata<T extends ServingMetadataPlayer>(players: T[]) {
   const overrides = loadRosterOverrides();
   const soopIdentityOverrides = loadSoopIdentityOverrides();
   const displayAliases = loadDisplayAliases();
@@ -231,9 +265,7 @@ export function applyPlayerServingMetadata<T extends Partial<Player> & { eloboar
   );
 }
 
-export function applyPlayerServingMetadataToOne<T extends Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }>(
-  player: T
-) {
+export function applyPlayerServingMetadataToOne<T extends ServingMetadataPlayer>(player: T) {
   const [resolved] = applyPlayerServingMetadata([player]);
   return resolved;
 }
@@ -268,19 +300,10 @@ function loadSearchAliases(): Map<string, string[]> {
     cachedSearchAliasesMtimeMs = null;
   }
 
-  const pushAlias = (canonicalName: string, aliasName: string) => {
-    const canonical = String(canonicalName || "").trim();
-    const alias = String(aliasName || "").trim();
-    if (!canonical || !alias || canonical === alias) return;
-    const bucket = aliases.get(canonical) || new Set<string>();
-    bucket.add(alias);
-    aliases.set(canonical, bucket);
-  };
-
   const mappingDoc = readJsonFile<{ aliases?: Record<string, string> }>(mappingPath);
   const mappingAliases = mappingDoc && typeof mappingDoc.aliases === "object" ? mappingDoc.aliases : {};
   for (const [aliasName, canonicalName] of Object.entries(mappingAliases)) {
-    pushAlias(String(canonicalName || ""), String(aliasName || ""));
+    registerSearchAlias(aliases, String(canonicalName || ""), String(aliasName || ""));
   }
 
   const displayDoc = readJsonFile<{
@@ -289,12 +312,12 @@ function loadSearchAliases(): Map<string, string[]> {
   }>(displayAliasPath);
   const globalRows = Array.isArray(displayDoc?.global) ? displayDoc.global : [];
   for (const row of globalRows) {
-    pushAlias(String(row?.name || ""), String(row?.display_name || ""));
+    registerSearchAlias(aliases, String(row?.name || ""), String(row?.display_name || ""));
   }
   const teams = displayDoc && typeof displayDoc.teams === "object" ? displayDoc.teams : {};
   for (const rows of Object.values(teams)) {
     for (const row of Array.isArray(rows) ? rows : []) {
-      pushAlias(String(row?.name || ""), String(row?.display_name || ""));
+      registerSearchAlias(aliases, String(row?.name || ""), String(row?.display_name || ""));
     }
   }
 
