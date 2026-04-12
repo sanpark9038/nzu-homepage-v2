@@ -64,4 +64,5 @@ build_error.txt
 # AI coordination (exclude UI-specific logic instruction files)
 MAIN_AI_UI_BRIEFING.md
 MAIN_AI_UI_ONLY_INSTRUCTION.md
+.planning/
 prod-sync.log
