@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { NextResponse } from "next/server";
 import { updateTournamentTeamCaptain, updateTournamentTeamName } from "@/lib/tournament-home";
+import { supabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
@@ -283,13 +284,75 @@ function baseTeamDoc(teamCode: string, teamName: string, teamNameEn?: string): P
   };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const sourceParam = searchParams.get("source");
+
+  const tournamentConfigPath = path.join(ROOT, "data", "metadata", "tournament_home_teams.v1.json");
+
+  if (sourceParam === "db") {
+    // DB상에 존재하는 모든 선수 정보를 가져옵니다. (JSON 로스터에 없는 선수 검색용)
+    const { data: dbPlayers, error } = await supabase
+      .from("players")
+      .select("id, name, nickname, race, tier, eloboard_id, gender, photo_url, elo_point")
+      .order("name", { ascending: true });
+    
+    if (error) {
+      return NextResponse.json({ ok: false, message: error.message }, { status: 500 });
+    }
+
+    let tournamentTeams: any[] = [];
+    if (fs.existsSync(tournamentConfigPath)) {
+      const doc = JSON.parse(fs.readFileSync(tournamentConfigPath, "utf8").replace(/^\uFEFF/, ""));
+      const allPlayersMapped = new Map((dbPlayers || []).map((p: any) => [p.id, p]));
+
+      tournamentTeams = (doc.teams || []).map((t: any, idx: number) => {
+        const slotPlayers = (t.player_ids || []).map((id: string) => allPlayersMapped.get(id)).filter(Boolean);
+        return {
+          code: t.team_code || `t${idx + 1}`,
+          name: t.team_name || `임시 ${idx + 1}팀`,
+          player_ids: t.player_ids || [],
+          players: slotPlayers, 
+          player_count: slotPlayers.length,
+          captainPlayerId: t.captain_player_id || "",
+          is_slot: true
+        };
+      });
+    }
+
+    return NextResponse.json({ ok: true, players: dbPlayers, tournament_teams: tournamentTeams });
+  }
+
+  // 대회 홈 설정(T1-T6 슬롯) 정보를 가져옵니다.
+  const { data: dbPlayers } = await supabase
+    .from("players")
+    .select("id, name, nickname, race, tier, eloboard_id, gender, photo_url, elo_point");
+
+  let tournamentTeams: any[] = [];
+  if (fs.existsSync(tournamentConfigPath)) {
+    const doc = JSON.parse(fs.readFileSync(tournamentConfigPath, "utf8").replace(/^\uFEFF/, ""));
+    const allPlayersMapped = new Map((dbPlayers || []).map((p: any) => [p.id, p]));
+
+    tournamentTeams = (doc.teams || []).map((t: any, idx: number) => {
+      const slotPlayers = (t.player_ids || []).map((id: string) => allPlayersMapped.get(id)).filter(Boolean);
+      return {
+        code: t.team_code || `t${idx + 1}`,
+        name: t.team_name || `임시 ${idx + 1}팀`,
+        player_ids: t.player_ids || [],
+        players: slotPlayers,
+        player_count: slotPlayers.length,
+        captainPlayerId: t.captain_player_id || "",
+        is_slot: true
+      };
+    });
+  }
+
   const projects = loadProjects();
   const overrides = readOverrides();
   const exclusions = readExclusions();
   const overrideMap = new Map(overrides.map((row) => [String(row.entity_id), row]));
 
-  const players = projects.flatMap((p) =>
+  const rawPlayers = projects.flatMap((p) =>
     (p.doc.roster || []).map((r) => {
       const override = overrideMap.get(String(r.entity_id));
       const exclusion = exclusionInfo(r, exclusions);
@@ -310,6 +373,15 @@ export async function GET() {
     })
   );
 
+  // entity_id 중복 제거 (여러 프로젝트 파일에 동일 인물이 있을 수 있음)
+  const playerMap = new Map();
+  for (const p of rawPlayers) {
+    if (!playerMap.has(p.entity_id)) {
+      playerMap.set(p.entity_id, p);
+    }
+  }
+  const players = Array.from(playerMap.values());
+
   const teams = projects.map((p) => ({
     code: p.doc.team_code,
     name: p.doc.team_name,
@@ -317,7 +389,7 @@ export async function GET() {
     manual_managed: Boolean(p.doc.manual_managed),
   }));
 
-  return NextResponse.json({ ok: true, players, teams });
+  return NextResponse.json({ ok: true, players, teams, tournament_teams: tournamentTeams });
 }
 
 export async function POST(req: Request) {
@@ -326,7 +398,76 @@ export async function POST(req: Request) {
     team_code?: string;
     team_name?: string;
     team_name_en?: string;
+    slot_code?: string; // 추가
+    player_id?: string; // 추가
+    player?: any; 
   };
+
+  if (body.action === "recruit_player") {
+    const { player, team_code } = body;
+    if (!player || !team_code) {
+      return NextResponse.json({ ok: false, message: "player and team_code are required" }, { status: 400 });
+    }
+
+    const configPath = path.join(ROOT, "data", "metadata", "tournament_home_teams.v1.json");
+    if (!fs.existsSync(configPath)) {
+      return NextResponse.json({ ok: false, message: "tournament config not found" }, { status: 404 });
+    }
+
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8").replace(/^\uFEFF/, ""));
+    const normalizedTeamCode = String(team_code).trim().toLowerCase();
+    const targetTeam = (config.teams || []).find((t: any) => String(t.team_code).trim().toLowerCase() === normalizedTeamCode);
+    
+    if (!targetTeam) {
+      return NextResponse.json({ ok: false, message: "target slot not found" }, { status: 404 });
+    }
+
+    // 1. 중복 체크 (해당 슬롯에 이미 있는지)
+    targetTeam.player_ids = targetTeam.player_ids || [];
+    if (targetTeam.player_ids.includes(player.id)) {
+      return NextResponse.json({ ok: false, message: "이미 이 팀에 소속된 선수입니다." }, { status: 409 });
+    }
+
+    // 2. 선수 추가 (ID 기반 영입)
+    targetTeam.player_ids.push(player.id);
+    config.updated_at = new Date().toISOString();
+    
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+    return NextResponse.json({ ok: true, recruited: player.name });
+  }
+
+  if (body.action === "remove_player_from_slot") {
+    const { slot_code, player_id } = body;
+    if (!slot_code || !player_id) {
+      return NextResponse.json({ ok: false, message: "slot_code and player_id are required" }, { status: 400 });
+    }
+
+    const configPath = path.join(ROOT, "data", "metadata", "tournament_home_teams.v1.json");
+    if (!fs.existsSync(configPath)) {
+      return NextResponse.json({ ok: false, message: "tournament config not found" }, { status: 404 });
+    }
+
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8").replace(/^\uFEFF/, ""));
+    const normalizedSlotCode = String(slot_code).trim().toLowerCase();
+    const targetTeam = (config.teams || []).find((t: any) => String(t.team_code).trim().toLowerCase() === normalizedSlotCode);
+    
+    if (!targetTeam) {
+      return NextResponse.json({ ok: false, message: "target slot not found" }, { status: 404 });
+    }
+
+    targetTeam.player_ids = (targetTeam.player_ids || []).filter((id: string) => String(id) !== String(player_id));
+    if (String(targetTeam.captain_player_id || "").trim() === String(player_id).trim()) {
+      targetTeam.captain_player_id = "";
+      targetTeam.captain_player_name = "";
+    }
+    config.updated_at = new Date().toISOString();
+    
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+
+    return NextResponse.json({ ok: true });
+  }
+
 
   if (body.action === "delete_team") {
     const teamCode = slug(String(body.team_code || ""));

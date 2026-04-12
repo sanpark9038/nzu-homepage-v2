@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { buildDiscordSummaryCheck, readJsonIfExists } = require("./lib/discord-summary");
+const { buildDiscordSummaryCheck, readJsonIfExists, resolveLatestReportFile } = require("./lib/discord-summary");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const DEFAULT_REPORTS_DIR = path.join(ROOT, "tmp", "reports");
@@ -14,19 +14,6 @@ function argValue(flag, fallback = null) {
 
 function hasFlag(flag) {
   return process.argv.includes(flag);
-}
-
-function latestFileByPrefix(reportsDir, prefix) {
-  if (!fs.existsSync(reportsDir)) return null;
-  const files = fs
-    .readdirSync(reportsDir)
-    .filter((name) => name.startsWith(prefix) && name.endsWith(".json"))
-    .map((name) => {
-      const full = path.join(reportsDir, name);
-      return { full, mtime: fs.statSync(full).mtimeMs };
-    })
-    .sort((a, b) => b.mtime - a.mtime);
-  return files.length ? files[0].full : null;
 }
 
 function relativePath(filePath) {
@@ -114,8 +101,8 @@ function main() {
   const reportsDir = path.resolve(String(argValue("--reports-dir", DEFAULT_REPORTS_DIR) || ""));
   const projectsDir = path.resolve(String(argValue("--projects-dir", DEFAULT_PROJECTS_DIR) || ""));
   const baselinePath = path.join(reportsDir, "manual_refresh_baseline.json");
-  const snapshotPath = latestFileByPrefix(reportsDir, "daily_pipeline_snapshot_");
-  const alertsPath = latestFileByPrefix(reportsDir, "daily_pipeline_alerts_");
+  const snapshotPath = resolveLatestReportFile(reportsDir, "daily_pipeline_snapshot_");
+  const alertsPath = resolveLatestReportFile(reportsDir, "daily_pipeline_alerts_");
   const opsPipelinePath = path.join(reportsDir, "ops_pipeline_latest.json");
   const manualRefreshPath = path.join(reportsDir, "manual_refresh_latest.json");
   const zeroRecordReviewPath = path.join(reportsDir, "zero_record_review_latest.json");

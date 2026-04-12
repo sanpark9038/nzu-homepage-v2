@@ -10,6 +10,38 @@ function readJsonIfExists(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
 }
 
+function isChunkedReportFile(name, prefix) {
+  const suffix = String(name || "").slice(String(prefix || "").length);
+  return /chunk\d+\.json$/i.test(suffix);
+}
+
+function resolveLatestReportFile(reportsDir, prefix) {
+  if (!reportsDir || !fs.existsSync(reportsDir)) return null;
+
+  const files = fs
+    .readdirSync(reportsDir)
+    .filter((name) => name.startsWith(prefix) && name.endsWith(".json"))
+    .map((name) => {
+      const full = path.join(reportsDir, name);
+      return {
+        full,
+        name,
+        isChunk: isChunkedReportFile(name, prefix),
+        mtime: fs.statSync(full).mtimeMs,
+      };
+    });
+
+  if (!files.length) return null;
+
+  files.sort((a, b) => {
+    if (a.isChunk !== b.isChunk) return a.isChunk ? 1 : -1;
+    if (a.mtime !== b.mtime) return b.mtime - a.mtime;
+    return String(b.name).localeCompare(String(a.name));
+  });
+
+  return files[0].full;
+}
+
 let cachedLegacyEntityIdLookup = null;
 
 function buildLegacyEntityIdLookup(manualOverrides) {
@@ -264,5 +296,6 @@ module.exports = {
   mergedEntityIdLookup,
   normalizeTeamName,
   readJsonIfExists,
+  resolveLatestReportFile,
   writeCurrentRosterStateSnapshot,
 };

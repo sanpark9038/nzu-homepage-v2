@@ -5,6 +5,7 @@ import { Player } from './PlayerCard'
 import { cn } from '@/lib/utils'
 import { X, ArrowLeftRight, Plus } from 'lucide-react'
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
+import { playerService } from "@/lib/player-service";
 
 interface MatchSlot {
   p1: Player | null;
@@ -15,10 +16,11 @@ interface MatchSlot {
 
 export function H2HSelectorBar() {
   const [matchups, setMatchups] = useState<MatchSlot[]>([{
-    p1: null, p2: null, overallScore: [12, 8], recentScore: [3, 1]
+    p1: null, p2: null, overallScore: [0, 0], recentScore: [0, 0]
   }])
   const [activeMatchIndex, setActiveMatchIndex] = useState(0)
   const [isVisible, setIsVisible] = useState(false)
+  const [isLoading, setIsLoading] = useState<Record<number, boolean>>({})
 
   useEffect(() => {
     const handleAddPlayer = (e: Event) => {
@@ -57,6 +59,32 @@ export function H2HSelectorBar() {
     window.addEventListener('add-h2h-player', handleAddPlayer)
     return () => window.removeEventListener('add-h2h-player', handleAddPlayer)
   }, [activeMatchIndex])
+
+  // Fetch real H2H stats when p1 and p2 are both set
+  useEffect(() => {
+    matchups.forEach(async (match, idx) => {
+      if (match.p1 && match.p2 && !isLoading[idx]) {
+        // Only fetch if scores are at zero or if we force it (e.g. after swap/remove)
+        // For simplicity, we fetch once when both slots are filled
+        const fetchKey = `${match.p1.id}-${match.p2.id}`;
+        
+        setIsLoading(prev => ({ ...prev, [idx]: true }));
+        try {
+          const stats = await playerService.getH2HStats(match.p1.id, match.p2.id);
+          setMatchups(prev => prev.map((m, i) => i === idx ? { 
+            ...m, 
+            overallScore: stats.overall as [number, number], 
+            recentScore: stats.recent as [number, number] 
+          } : m));
+        } catch (err) {
+          console.error("Failed to fetch H2H:", err);
+        } finally {
+          setIsLoading(prev => ({ ...prev, [idx]: false }));
+        }
+      }
+    });
+    // We only want to trigger this when the player combination changes
+  }, [matchups.map(m => `${m.p1?.id}-${m.p2?.id}`).join(',')])
 
   const removePlayer = (matchIdx: number, slot: 'p1' | 'p2') => {
     setMatchups(prev => {
@@ -99,7 +127,7 @@ export function H2HSelectorBar() {
   if (!isVisible) return null
 
   return (
-    <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-2xl px-4 animate-in fade-in slide-in-from-top-4 duration-500 overflow-y-auto max-h-[85vh] no-scrollbar">
+    <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[150] w-full max-w-2xl px-4 animate-in fade-in slide-in-from-top-4 duration-500 overflow-y-auto max-h-[85vh] no-scrollbar">
       <div className="bg-card/95 backdrop-blur-3xl rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.95)] border border-white/10 p-5 flex flex-col gap-4">
         
         {/* --- Header (Increased Font Size) --- */}
@@ -138,7 +166,8 @@ export function H2HSelectorBar() {
                 key={mIdx} 
                 className={cn(
                   "flex items-center justify-center gap-4 relative p-0.5 rounded-[1.75rem] transition-all group/match",
-                  isActive ? "ring-2 ring-nzu-green/20 bg-white/[0.02]" : "opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0"
+                  isActive ? "ring-2 ring-nzu-green/20 bg-white/[0.02]" : "opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0",
+                  isLoading[mIdx] && "opacity-40 pointer-events-none animate-pulse"
                 )}
                 onClick={() => setActiveMatchIndex(mIdx)}
               >

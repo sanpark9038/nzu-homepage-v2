@@ -12,6 +12,7 @@ const {
   canonicalEntityId,
   compareRosterJoinersRemovals,
   mergedEntityIdLookup,
+  resolveLatestReportFile,
   writeCurrentRosterStateSnapshot,
 } = require("./lib/discord-summary");
 
@@ -167,4 +168,32 @@ runTest("buildDiscordSummaryCheck prefers saved roster snapshot over local proje
 
   assert.equal(actual.roster_source, "current_roster_state.json");
   assert.deepEqual(actual.removals, []);
+});
+
+runTest("resolveLatestReportFile prefers merged daily snapshot over newer chunk snapshot", () => {
+  const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-latest-report-"));
+  const mergedPath = path.join(reportsDir, "daily_pipeline_snapshot_2026-04-12.json");
+  const chunkPath = path.join(reportsDir, "daily_pipeline_snapshot_2026-04-11_214821-chunk6.json");
+  fs.writeFileSync(mergedPath, JSON.stringify({ ok: true }));
+  fs.writeFileSync(chunkPath, JSON.stringify({ ok: true }));
+
+  const future = new Date(Date.now() + 10_000);
+  fs.utimesSync(chunkPath, future, future);
+
+  assert.equal(resolveLatestReportFile(reportsDir, "daily_pipeline_snapshot_"), mergedPath);
+});
+
+runTest("resolveLatestReportFile falls back to latest chunk when merged report is absent", () => {
+  const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-latest-chunk-"));
+  const olderChunkPath = path.join(reportsDir, "daily_pipeline_alerts_2026-04-11_214821-chunk5.json");
+  const newerChunkPath = path.join(reportsDir, "daily_pipeline_alerts_2026-04-11_214821-chunk6.json");
+  fs.writeFileSync(olderChunkPath, JSON.stringify({ ok: true }));
+  fs.writeFileSync(newerChunkPath, JSON.stringify({ ok: true }));
+
+  const past = new Date(Date.now() - 10_000);
+  const future = new Date(Date.now() + 10_000);
+  fs.utimesSync(olderChunkPath, past, past);
+  fs.utimesSync(newerChunkPath, future, future);
+
+  assert.equal(resolveLatestReportFile(reportsDir, "daily_pipeline_alerts_"), newerChunkPath);
 });

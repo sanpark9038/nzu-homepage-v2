@@ -1,35 +1,17 @@
 const fs = require("fs");
 const path = require("path");
+const { resolveLatestReportFile } = require("./lib/discord-summary");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
-
-function latestFileByPrefix(prefix) {
-  if (!fs.existsSync(REPORTS_DIR)) return null;
-  const files = fs
-    .readdirSync(REPORTS_DIR)
-    .filter((n) => n.startsWith(prefix) && n.endsWith(".json"));
-  if (!files.length) return null;
-  let latest = null;
-  let latestMtime = -1;
-  for (const name of files) {
-    const full = path.join(REPORTS_DIR, name);
-    const mtime = fs.statSync(full).mtimeMs;
-    if (mtime > latestMtime) {
-      latestMtime = mtime;
-      latest = full;
-    }
-  }
-  return latest;
-}
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
 }
 
 function main() {
-  const snapshotPath = latestFileByPrefix("daily_pipeline_snapshot_");
-  const alertsPath = latestFileByPrefix("daily_pipeline_alerts_");
+  const snapshotPath = resolveLatestReportFile(REPORTS_DIR, "daily_pipeline_snapshot_");
+  const alertsPath = resolveLatestReportFile(REPORTS_DIR, "daily_pipeline_alerts_");
   const manualRefreshPath = path.join(REPORTS_DIR, "manual_refresh_latest.json");
   if (!snapshotPath || !alertsPath) {
     console.error("Missing daily pipeline reports.");

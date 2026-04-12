@@ -3,6 +3,7 @@ const path = require("path");
 const {
   buildDiscordSummaryCheck,
   readJsonIfExists,
+  resolveLatestReportFile,
 } = require("./lib/discord-summary");
 
 const ROOT = path.resolve(__dirname, "..", "..");
@@ -29,19 +30,6 @@ function resolveFilePath(value, fallback) {
   const text = String(value || "").trim();
   if (!text) return fallback;
   return path.resolve(text);
-}
-
-function latestFileByPrefix(reportsDir, prefix) {
-  if (!fs.existsSync(reportsDir)) return null;
-  const files = fs
-    .readdirSync(reportsDir)
-    .filter((n) => n.startsWith(prefix) && n.endsWith(".json"))
-    .map((name) => {
-      const full = path.join(reportsDir, name);
-      return { full, mtime: fs.statSync(full).mtimeMs };
-    })
-    .sort((a, b) => b.mtime - a.mtime);
-  return files.length ? files[0].full : null;
 }
 
 function relativePath(filePath) {
@@ -114,11 +102,11 @@ function main() {
 
   const snapshotPath = resolveFilePath(
     argValue("--snapshot", ""),
-    latestFileByPrefix(reportsDir, "daily_pipeline_snapshot_")
+    resolveLatestReportFile(reportsDir, "daily_pipeline_snapshot_")
   );
   const alertsPath = resolveFilePath(
     argValue("--alerts", ""),
-    latestFileByPrefix(reportsDir, "daily_pipeline_alerts_")
+    resolveLatestReportFile(reportsDir, "daily_pipeline_alerts_")
   );
 
   if (!snapshotPath || !alertsPath) {

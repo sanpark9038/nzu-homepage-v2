@@ -9,6 +9,7 @@ const {
   loadCurrentRosterState,
   normalizeTeamName,
   readJsonIfExists,
+  resolveLatestReportFile,
   writeCurrentRosterStateSnapshot,
 } = require("./lib/discord-summary");
 
@@ -29,19 +30,6 @@ function argValue(flag, fallback = null) {
 
 function hasFlag(flag) {
   return process.argv.includes(flag);
-}
-
-function latestFileByPrefix(prefix) {
-  if (!fs.existsSync(REPORTS_DIR)) return null;
-  const files = fs
-    .readdirSync(REPORTS_DIR)
-    .filter((n) => n.startsWith(prefix) && n.endsWith(".json"))
-    .map((name) => {
-      const full = path.join(REPORTS_DIR, name);
-      return { full, name, mtime: fs.statSync(full).mtimeMs };
-    })
-    .sort((a, b) => b.mtime - a.mtime);
-  return files.length ? files[0].full : null;
 }
 
 function sumBy(rows, key) {
@@ -513,8 +501,8 @@ function buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport })
 }
 
 function buildMessage({ outcome, source, runUrl }) {
-  const snapshotPath = latestFileByPrefix("daily_pipeline_snapshot_");
-  const alertsPath = latestFileByPrefix("daily_pipeline_alerts_");
+  const snapshotPath = resolveLatestReportFile(REPORTS_DIR, "daily_pipeline_snapshot_");
+  const alertsPath = resolveLatestReportFile(REPORTS_DIR, "daily_pipeline_alerts_");
   const snapshot = readJsonIfExists(snapshotPath);
   const alertsDoc = readJsonIfExists(alertsPath);
   const opsPipelineReport = readJsonIfExists(OPS_PIPELINE_REPORT_PATH);

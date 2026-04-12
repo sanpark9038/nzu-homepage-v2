@@ -43,6 +43,8 @@
     "report:metadata:conflicts": "node scripts/tools/report-metadata-conflicts.js",
     "report:metadata:resolution": "node scripts/tools/propose-metadata-conflict-resolutions.js",
     "apply:metadata:resolution": "node scripts/tools/apply-metadata-conflict-resolutions.js --write",
+    "check:metadata:soop-id": "node scripts/tools/check-soop-id-collisions.js",
+    "check:metadata:roster-wr-id": "node scripts/tools/check-roster-wr-id-conflicts.js",
     "report:nzu:2025": "node scripts/tools/report-nzu-2025-records.js",
     "report:fa:tier-review": "node scripts/tools/report-fa-tier-review.js",
     "export:nzu:detailed": "node scripts/tools/export-nzu-roster-detailed.js",

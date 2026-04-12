@@ -1,35 +1,13 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import LogoutButton from "../ops/LogoutButton";
 import RosterEditor from "../ops/RosterEditor";
-import TeamCaptainEditor from "./TeamCaptainEditor";
-import TeamNameEditor from "./TeamNameEditor";
-import { playerService } from "@/lib/player-service";
-import { buildTournamentHomeTeams } from "@/lib/tournament-home";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminRosterPage() {
-  const cookieStore = await cookies();
-  const sessionValue = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-  if (!isValidAdminSession(sessionValue)) {
-    redirect("/admin/login?next=/admin/roster");
-  }
-
-  const allPlayers = await playerService.getAllPlayers();
-  const teams = buildTournamentHomeTeams(allPlayers).map((team) => ({
-    teamCode: team.teamCode,
-    teamName: team.teamName,
-    captainPlayerId: team.captainPlayerId,
-    players: team.players.map((player) => ({
-      id: player.id,
-      name: player.name,
-      isCaptain: player.isCaptain,
-    })),
-  }));
-
+export default function AdminRosterPage() {
   return (
     <main className="min-h-screen bg-background text-foreground p-6 md:p-10">
       <div className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -46,6 +24,10 @@ export default async function AdminRosterPage() {
           </div>
         </div>
 
+        <div className="rounded-lg border border-border bg-background px-4 py-3 text-xs text-muted-foreground">
+          1. 선수 검색  2. 값 선택  3. 저장
+        </div>
+
         <section className="grid gap-3 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground md:grid-cols-3">
           <div>
             <p className="font-semibold text-foreground">1. 선수 선택</p>
@@ -60,10 +42,6 @@ export default async function AdminRosterPage() {
             <p className="mt-1">임시 수동만 해제 가능하며 고정 수동은 유지됩니다.</p>
           </div>
         </section>
-
-        <TeamNameEditor initialTeams={teams.map(t => ({ teamCode: t.teamCode, teamName: t.teamName }))} />
-
-        <TeamCaptainEditor teams={teams} />
 
         <RosterEditor />
       </div>

@@ -1,29 +1,26 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-04-07T13:53:42.572Z",
+  "updated_at": "2026-04-10T14:50:24.827Z",
   "description": "Tournament home roster built from active 6/7/8 tier players. Each team currently uses 1x tier 6, 1x tier 7, 2x tier 8.",
   "teams": [
     {
       "team_code": "t1",
-      "team_name": "KDF",
-      "captain_player_id": "9607ae88-c176-410c-ae66-1c6f6310e94e",
+      "team_name": "ㅎㅁㅎㄷㅁㅎ",
+      "captain_player_id": "bd78f78a-3bea-441d-9999-f0070e332103",
       "player_ids": [
-        "9607ae88-c176-410c-ae66-1c6f6310e94e",
-        "531a8596-52fe-4c9e-b3c9-df659cef24f3",
-        "c87a2286-4964-49b5-b7da-96ff203d3eef",
-        "199064c8-cc4d-4d70-939e-64f54ae31b94"
+        "43593f14-05aa-449e-bea7-ec487ed72068",
+        "bd78f78a-3bea-441d-9999-f0070e332103"
       ],
       "captain_player_name": ""
     },
     {
       "team_code": "t2",
       "team_name": "임시 2팀",
-      "captain_player_id": "",
+      "captain_player_id": "5aee11bf-9641-4056-8290-8c4cae1efa49",
       "player_ids": [
-        "50d958e8-31c9-4728-99ec-fb40eea79ac3",
-        "79b31d28-41ae-4f09-b20b-31be6e77d1d8",
         "8c279233-3f53-4a2f-b0ac-7d4c48e34156",
-        "8321a430-efde-4cab-8886-f1209881784e"
+        "5aee11bf-9641-4056-8290-8c4cae1efa49",
+        "c402cbde-0c6d-454d-8083-3083d7974556"
       ],
       "captain_player_name": ""
     },
@@ -32,7 +29,6 @@
       "team_name": "임시 3팀",
       "captain_player_id": "",
       "player_ids": [
-        "10924777-04e0-434b-a1bb-211a4a0c3ee3",
         "4941ee34-b978-4d9f-b495-9c41591333ba",
         "f2ad82a5-5e57-4764-a910-b3081e8c8708",
         "865fdc96-637a-469f-9e10-57423079e476"

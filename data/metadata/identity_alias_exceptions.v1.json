@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-04-11T00:00:00.000Z",
+  "description": "Explicit alias-family exceptions for identity validation. These entries keep shared SOOP ids intentionally when the alias pair is verified.",
+  "soop_id_aliases": [
+    {
+      "soop_id": "zealotmaru",
+      "allowed_wr_ids": [100, 301],
+      "note": "전흥식 / 킁식"
+    },
+    {
+      "soop_id": "askl021",
+      "allowed_wr_ids": [176, 252],
+      "note": "박종승 / 빡죠스"
+    },
+    {
+      "soop_id": "dkwkal",
+      "allowed_wr_ids": [199, 570],
+      "note": "박단원 / 탱크"
+    }
+  ]
+}

@@ -132,6 +132,7 @@ export function TournamentPredictionClient({ initialMatches }: { initialMatches:
   async function submitVote(matchId: string, payload: { teamCode?: string; playerId?: string }) {
     const target = matchMap.get(matchId);
     if (!target) return;
+    if (!voterId) return;
     if (new Date(target.lockAt).getTime() <= nowMs) return;
 
     const busy = `${matchId}:${payload.teamCode || payload.playerId || "vote"}`;
@@ -212,7 +213,13 @@ export function TournamentPredictionClient({ initialMatches }: { initialMatches:
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
-      const json = (await res.json().catch(() => ({}))) as { matches?: PredictionMatch[] };
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        matches?: PredictionMatch[];
+      };
+      if (!res.ok || json.ok === false) {
+        throw new Error("failed to save vote");
+      }
       if (Array.isArray(json.matches)) {
         setMatches(json.matches);
       }

@@ -1,8 +1,16 @@
 
 import { supabase } from "./supabase";
 import { type Player } from "../types";
-import { normalizeUniversityKey } from "./university-config";
+import {
+  applyPlayerServingMetadata,
+  applyPlayerServingMetadataToOne,
+  getPlayerSearchAliases,
+  isExactPlayerSearchMatch,
+  normalizeSearchText,
+} from "./player-serving-metadata";
+import { applySoopLivePreviewToOne, applySoopLivePreviews } from "./player-live-overlay";
 export type { Player };
+export { isExactPlayerSearchMatch };
 
 // Public pages should consume website-serving data from Supabase through this layer.
 // Local metadata and tmp reports remain admin / pipeline sources, not public page sources.
@@ -15,505 +23,6 @@ const PLAYER_HISTORY_SELECT =
 
 const MATCH_SERVING_SELECT =
   "*, player1:players!player1_id(channel_profile_image_url, id, name, race, photo_url), player2:players!player2_id(channel_profile_image_url, id, name, race, photo_url), winner:players!winner_id(id, name)" as const;
-
-type RosterPlayerOverride = {
-  university?: string;
-  tier?: string;
-  race?: string;
-  display_name?: string;
-  profile_url?: string;
-};
-
-type SoopIdentityOverride = {
-  name?: string;
-  soop_id?: string;
-};
-
-type SoopLivePreview = {
-  isLive?: boolean;
-  thumbnail?: string;
-  title?: string;
-  viewers?: string;
-  nickname?: string;
-  broad_start?: string;
-};
-
-type SoopLiveSnapshotDoc = {
-  updated_at?: string;
-  channels?: Record<string, SoopLivePreview>;
-};
-
-let cachedSearchAliasesMtimeMs: number | null = null;
-let cachedSearchAliases = new Map<string, string[]>();
-let cachedDisplayAliasesMtimeMs: number | null = null;
-let cachedDisplayAliases = new Map<string, string>();
-
-const SOOP_PREVIEW_LIVE_WINDOW_MS = 8 * 60 * 60 * 1000;
-const SOOP_GENERATED_SNAPSHOT_MAX_AGE_MS = 15 * 60 * 1000;
-let cachedSoopLivePreviewMtimeMs: number | null = null;
-let cachedSoopLivePreview = new Map<string, SoopLivePreview>();
-let cachedSoopGeneratedSnapshotMtimeMs: number | null = null;
-let cachedSoopGeneratedSnapshot = new Map<string, SoopLivePreview>();
-let cachedSoopGeneratedSnapshotUpdatedAt: string | null = null;
-
-function normalizeEntityIdForPlayer(player: Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }) {
-  const rawEloboardId = String(player.eloboard_id || "").trim();
-  if (/^eloboard:(male|female):/i.test(rawEloboardId)) {
-    return rawEloboardId.toLowerCase();
-  }
-  const rawGender = String(player.gender || "").trim().toLowerCase();
-  const gender = rawGender === "male" || rawGender === "female" ? rawGender : "";
-  const wrId = rawEloboardId;
-  if (!gender || !wrId) return null;
-  return `eloboard:${gender}:${wrId}`;
-}
-
-function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
-  const overrides = new Map<string, RosterPlayerOverride>();
-  if (typeof window !== "undefined") return overrides;
-
-  const req = eval("require") as NodeRequire;
-  const fs = req("fs") as typeof import("fs");
-  const path = req("path") as typeof import("path");
-  const projectsDir = path.join(process.cwd(), "data", "metadata", "projects");
-  if (!fs.existsSync(projectsDir)) return overrides;
-
-  const readJson = <T,>(filePath: string): T | null => {
-    try {
-      return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as T;
-    } catch {
-      return null;
-    }
-  };
-
-  const projectDirs = fs
-    .readdirSync(projectsDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name);
-
-  for (const code of projectDirs) {
-    const filePath = path.join(projectsDir, code, `players.${code}.v1.json`);
-  const doc = readJson<{ roster?: Array<{ entity_id?: string; team_name?: string; tier?: string; race?: string; display_name?: string; profile_url?: string }> }>(filePath);
-    const roster = Array.isArray(doc?.roster) ? doc.roster : [];
-    for (const player of roster) {
-      const entityId = String(player?.entity_id || "").trim();
-      if (!entityId) continue;
-      overrides.set(entityId, {
-        university: String(player?.team_name || "").trim() || undefined,
-        tier: String(player?.tier || "").trim() || undefined,
-        race: String(player?.race || "").trim() || undefined,
-        display_name: String(player?.display_name || "").trim() || undefined,
-        profile_url: String(player?.profile_url || "").trim() || undefined,
-      });
-    }
-  }
-
-  return overrides;
-}
-
-function loadDisplayAliases(): Map<string, string> {
-  const aliases = new Map<string, string>();
-  if (typeof window !== "undefined") return aliases;
-
-  const req = eval("require") as NodeRequire;
-  const fs = req("fs") as typeof import("fs");
-  const path = req("path") as typeof import("path");
-  const filePath = path.join(process.cwd(), "data", "metadata", "player_display_aliases.v1.json");
-  if (!fs.existsSync(filePath)) return aliases;
-
-  try {
-    const stat = fs.statSync(filePath);
-    if (cachedDisplayAliasesMtimeMs === stat.mtimeMs) {
-      return cachedDisplayAliases;
-    }
-    cachedDisplayAliasesMtimeMs = stat.mtimeMs;
-  } catch {
-    cachedDisplayAliasesMtimeMs = null;
-  }
-
-  try {
-    const doc = JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as {
-      global?: Array<{ name?: string; display_name?: string }>;
-      teams?: Record<string, Array<{ name?: string; display_name?: string }>>;
-    };
-
-    const register = (nameValue: string | undefined, displayValue: string | undefined) => {
-      const name = String(nameValue || "").trim();
-      const displayName = String(displayValue || "").trim();
-      if (!name || !displayName) return;
-      aliases.set(name, displayName);
-    };
-
-    for (const row of Array.isArray(doc?.global) ? doc.global : []) {
-      register(row?.name, row?.display_name);
-    }
-    for (const rows of Object.values(doc?.teams || {})) {
-      for (const row of Array.isArray(rows) ? rows : []) {
-        register(row?.name, row?.display_name);
-      }
-    }
-  } catch {
-    return aliases;
-  }
-
-  cachedDisplayAliases = aliases;
-  return aliases;
-}
-
-function loadSoopIdentityOverrides(): Map<string, SoopIdentityOverride> {
-  const overrides = new Map<string, SoopIdentityOverride>();
-  if (typeof window !== "undefined") return overrides;
-
-  const req = eval("require") as NodeRequire;
-  const fs = req("fs") as typeof import("fs");
-  const path = req("path") as typeof import("path");
-  const filePath = path.join(process.cwd(), "scripts", "player_metadata.json");
-  if (!fs.existsSync(filePath)) return overrides;
-
-  try {
-    const rows = JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as Array<{
-      name?: string;
-      wr_id?: string | number;
-      soop_user_id?: string;
-    }>;
-    for (const row of Array.isArray(rows) ? rows : []) {
-      const wrId = String(row?.wr_id || "").trim();
-      const soopId = String(row?.soop_user_id || "").trim();
-      if (!wrId || !soopId) continue;
-      overrides.set(wrId, {
-        name: String(row?.name || "").trim() || undefined,
-        soop_id: soopId,
-      });
-    }
-  } catch {
-    return overrides;
-  }
-
-  return overrides;
-}
-
-function extractWrId(player: Partial<Player> & { eloboard_id?: string | number | null }) {
-  const rawEloboardId = String(player.eloboard_id || "").trim();
-  if (!rawEloboardId) return null;
-  if (/^\d+$/.test(rawEloboardId)) return rawEloboardId;
-  const match = rawEloboardId.match(/(\d+)$/);
-  return match ? match[1] : null;
-}
-
-function hasMixedEloboardIdentity(player: Partial<Player> & { eloboard_id?: string | number | null }) {
-  return /^eloboard:(male|female):mix:\d+$/i.test(String(player.eloboard_id || "").trim());
-}
-
-function applyRosterOverride<T extends Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }>(
-  player: T,
-  overrides: Map<string, RosterPlayerOverride>,
-  soopIdentityOverrides: Map<string, SoopIdentityOverride>,
-  displayAliases: Map<string, string>
-): T {
-  const entityId = normalizeEntityIdForPlayer(player);
-  const override = entityId ? overrides.get(entityId) : null;
-  const wrId = extractWrId(player);
-  const soopOverride = wrId && hasMixedEloboardIdentity(player) ? soopIdentityOverrides.get(wrId) : null;
-  const canonicalName = String(player.name || "").trim();
-  const aliasedDisplayName = displayAliases.get(canonicalName) || "";
-  if (!override && !soopOverride && !aliasedDisplayName) return player;
-  const displayName = String(aliasedDisplayName || override?.display_name || "").trim();
-  return {
-    ...player,
-    name: displayName || player.name,
-    nickname:
-      displayName && canonicalName && displayName !== canonicalName
-        ? canonicalName
-        : player.nickname,
-    university: override?.university ?? player.university,
-    tier: override?.tier ?? player.tier,
-    race: override?.race ?? player.race,
-    soop_id: soopOverride?.soop_id ?? player.soop_id,
-    profile_url: override?.profile_url ?? player.profile_url,
-  };
-}
-
-function applyUniversityNormalization<T extends Partial<Player> & { university?: string | null }>(player: T): T {
-  const normalizedUniversity = normalizeUniversityKey(player.university);
-  if (!normalizedUniversity) return player;
-  return {
-    ...player,
-    university: normalizedUniversity,
-  };
-}
-
-function applyRosterOverrides<T extends Partial<Player> & { eloboard_id?: string | number | null; gender?: string | null }>(players: T[]) {
-  const overrides = loadRosterOverrides();
-  const soopIdentityOverrides = loadSoopIdentityOverrides();
-  const displayAliases = loadDisplayAliases();
-  return players.map((player) =>
-    applyUniversityNormalization(applyRosterOverride(player, overrides, soopIdentityOverrides, displayAliases))
-  );
-}
-
-function loadSoopLiveSnapshotFile(filePath: string, cacheKey: "preview" | "generated") {
-  const snapshots = new Map<string, SoopLivePreview>();
-  let updatedAt: string | null = null;
-  if (typeof window !== "undefined") return { snapshots, updatedAt };
-
-  const req = eval("require") as NodeRequire;
-  const fs = req("fs") as typeof import("fs");
-  if (!fs.existsSync(filePath)) {
-    if (cacheKey === "preview") {
-      cachedSoopLivePreviewMtimeMs = null;
-      cachedSoopLivePreview = snapshots;
-    } else {
-      cachedSoopGeneratedSnapshotMtimeMs = null;
-      cachedSoopGeneratedSnapshot = snapshots;
-      cachedSoopGeneratedSnapshotUpdatedAt = null;
-    }
-    return { snapshots, updatedAt };
-  }
-
-  try {
-    const stat = fs.statSync(filePath);
-    if (cacheKey === "preview" && cachedSoopLivePreviewMtimeMs === stat.mtimeMs) {
-      return { snapshots: cachedSoopLivePreview, updatedAt: null };
-    }
-    if (cacheKey === "generated" && cachedSoopGeneratedSnapshotMtimeMs === stat.mtimeMs) {
-      return { snapshots: cachedSoopGeneratedSnapshot, updatedAt: cachedSoopGeneratedSnapshotUpdatedAt };
-    }
-    if (cacheKey === "preview") {
-      cachedSoopLivePreviewMtimeMs = stat.mtimeMs;
-    } else {
-      cachedSoopGeneratedSnapshotMtimeMs = stat.mtimeMs;
-    }
-  } catch {
-    if (cacheKey === "preview") {
-      cachedSoopLivePreviewMtimeMs = null;
-    } else {
-      cachedSoopGeneratedSnapshotMtimeMs = null;
-    }
-  }
-
-  try {
-    const json = JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as SoopLiveSnapshotDoc;
-    updatedAt = String(json?.updated_at || "").trim() || null;
-    const channels = json && typeof json.channels === "object" ? json.channels : {};
-    for (const [soopId, preview] of Object.entries(channels)) {
-      const key = String(soopId || "").trim();
-      if (!key || !preview || typeof preview !== "object") continue;
-      snapshots.set(key, preview);
-    }
-  } catch {
-    if (cacheKey === "preview") {
-      cachedSoopLivePreview = snapshots;
-    } else {
-      cachedSoopGeneratedSnapshot = snapshots;
-      cachedSoopGeneratedSnapshotUpdatedAt = updatedAt;
-    }
-    return { snapshots, updatedAt };
-  }
-
-  if (cacheKey === "preview") {
-    cachedSoopLivePreview = snapshots;
-  } else {
-    cachedSoopGeneratedSnapshot = snapshots;
-    cachedSoopGeneratedSnapshotUpdatedAt = updatedAt;
-  }
-  return { snapshots, updatedAt };
-}
-
-function loadSoopLivePreview() {
-  const req = eval("require") as NodeRequire;
-  const path = req("path") as typeof import("path");
-  const filePath = path.join(process.cwd(), "data", "metadata", "soop_live_preview.v1.json");
-  return loadSoopLiveSnapshotFile(filePath, "preview").snapshots;
-}
-
-function loadSoopGeneratedLiveSnapshot() {
-  const req = eval("require") as NodeRequire;
-  const path = req("path") as typeof import("path");
-  const filePath = path.join(process.cwd(), "data", "metadata", "soop_live_snapshot.generated.v1.json");
-  return loadSoopLiveSnapshotFile(filePath, "generated");
-}
-
-function isFreshGeneratedSnapshot(updatedAt: string | null) {
-  const raw = String(updatedAt || "").trim();
-  if (!raw) return false;
-  const snapshotTime = new Date(raw);
-  if (Number.isNaN(snapshotTime.getTime())) return false;
-  const ageMs = Date.now() - snapshotTime.getTime();
-  return ageMs >= 0 && ageMs <= SOOP_GENERATED_SNAPSHOT_MAX_AGE_MS;
-}
-
-function resolveSoopLiveEntry(soopId: string) {
-  const generated = loadSoopGeneratedLiveSnapshot();
-  const generatedFresh = isFreshGeneratedSnapshot(generated.updatedAt);
-  const generatedEntry = generated.snapshots.get(soopId);
-  if (generatedEntry && generatedFresh) {
-    return {
-      entry: generatedEntry,
-      mode: "generated" as const,
-      snapshotFresh: true,
-    };
-  }
-
-  const previewEntry = loadSoopLivePreview().get(soopId);
-  if (previewEntry) {
-    return {
-      entry: previewEntry,
-      mode: "preview" as const,
-      snapshotFresh: true,
-    };
-  }
-
-  if (generatedEntry) {
-    return {
-      entry: generatedEntry,
-      mode: "generated" as const,
-      snapshotFresh: false,
-    };
-  }
-
-  return null;
-}
-
-function normalizeSoopAssetUrl(value: string | null | undefined) {
-  const raw = String(value || "").trim();
-  if (!raw) return null;
-  if (raw.startsWith("//")) return `https:${raw}`;
-  return raw;
-}
-
-function applySoopLivePreview<T extends Partial<Player> & { soop_id?: string | null }>(player: T): T {
-  const soopId = String(player?.soop_id || "").trim();
-  if (!soopId) return player;
-  const resolved = resolveSoopLiveEntry(soopId);
-  if (!resolved) return player;
-  if (resolved.mode === "generated" && !resolved.snapshotFresh) {
-    // A stale generated snapshot should never override fresher serving data.
-    return player;
-  }
-  const preview = resolved.entry;
-
-  const broadStartRaw = String(preview.broad_start || "").trim();
-  const broadStart = broadStartRaw ? new Date(broadStartRaw.replace(" ", "T")) : null;
-  const isFreshPreviewWindow =
-    Boolean(preview.isLive) &&
-    broadStart instanceof Date &&
-    !Number.isNaN(broadStart.getTime()) &&
-    Date.now() - broadStart.getTime() >= 0 &&
-    Date.now() - broadStart.getTime() <= SOOP_PREVIEW_LIVE_WINDOW_MS;
-
-  const hasExplicitSnapshot = true;
-  const shouldApplyLivePreview =
-    resolved.mode === "generated"
-      ? Boolean(preview.isLive)
-      : isFreshPreviewWindow || Boolean(preview.isLive);
-  const fallbackIsLive = hasExplicitSnapshot ? false : player.is_live === true;
-  const effectiveIsLive = shouldApplyLivePreview || fallbackIsLive;
-
-  return {
-    ...player,
-    is_live: effectiveIsLive,
-    broadcast_title: effectiveIsLive
-      ? String(preview.title || "").trim() || player.broadcast_title
-      : player.broadcast_title,
-    live_thumbnail_url: effectiveIsLive
-      ? normalizeSoopAssetUrl(preview.thumbnail) || player.live_thumbnail_url
-      : null,
-    live_viewers: effectiveIsLive ? String(preview.viewers || "").trim() || null : null,
-    live_started_at: effectiveIsLive ? broadStartRaw || null : null,
-    nickname: String(preview.nickname || "").trim() || player.nickname,
-  };
-}
-
-function applySoopLivePreviews<T extends Partial<Player> & { soop_id?: string | null }>(players: T[]) {
-  return players.map((player) => applySoopLivePreview(player));
-}
-
-function normalizeSearchText(value: string | null | undefined) {
-  return String(value || "").trim().toLowerCase();
-}
-
-function loadSearchAliases(): Map<string, string[]> {
-  const aliases = new Map<string, Set<string>>();
-  if (typeof window !== "undefined") return new Map();
-
-  const req = eval("require") as NodeRequire;
-  const fs = req("fs") as typeof import("fs");
-  const path = req("path") as typeof import("path");
-  const mappingPath = path.join(process.cwd(), "data", "metadata", "soop_channel_mappings.v1.json");
-  const displayAliasPath = path.join(process.cwd(), "data", "metadata", "player_display_aliases.v1.json");
-
-  const existingFiles = [mappingPath, displayAliasPath].filter((filePath) => fs.existsSync(filePath));
-  if (!existingFiles.length) return new Map();
-
-  try {
-    const mtimeKey = existingFiles
-      .map((filePath) => `${filePath}:${fs.statSync(filePath).mtimeMs}`)
-      .join("|");
-    const numericKey = Array.from(mtimeKey).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-    if (cachedSearchAliasesMtimeMs === numericKey) {
-      return cachedSearchAliases;
-    }
-    cachedSearchAliasesMtimeMs = numericKey;
-  } catch {
-    cachedSearchAliasesMtimeMs = null;
-  }
-
-  const pushAlias = (canonicalName: string, aliasName: string) => {
-    const canonical = String(canonicalName || "").trim();
-    const alias = String(aliasName || "").trim();
-    if (!canonical || !alias || canonical === alias) return;
-    const bucket = aliases.get(canonical) || new Set<string>();
-    bucket.add(alias);
-    aliases.set(canonical, bucket);
-  };
-
-  const readJson = <T,>(filePath: string): T | null => {
-    try {
-      return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as T;
-    } catch {
-      return null;
-    }
-  };
-
-  const mappingDoc = readJson<{ aliases?: Record<string, string> }>(mappingPath);
-  const mappingAliases = mappingDoc && typeof mappingDoc.aliases === "object" ? mappingDoc.aliases : {};
-  for (const [aliasName, canonicalName] of Object.entries(mappingAliases)) {
-    pushAlias(String(canonicalName || ""), String(aliasName || ""));
-  }
-
-  const displayDoc = readJson<{ global?: Array<{ name?: string; display_name?: string }>; teams?: Record<string, Array<{ name?: string; display_name?: string }>> }>(displayAliasPath);
-  const globalRows = Array.isArray(displayDoc?.global) ? displayDoc.global : [];
-  for (const row of globalRows) {
-    pushAlias(String(row?.name || ""), String(row?.display_name || ""));
-  }
-  const teams = displayDoc && typeof displayDoc.teams === "object" ? displayDoc.teams : {};
-  for (const rows of Object.values(teams)) {
-    for (const row of Array.isArray(rows) ? rows : []) {
-      pushAlias(String(row?.name || ""), String(row?.display_name || ""));
-    }
-  }
-
-  cachedSearchAliases = new Map(
-    Array.from(aliases.entries()).map(([canonicalName, values]) => [canonicalName, Array.from(values)])
-  );
-  return cachedSearchAliases;
-}
-
-function getPlayerSearchAliases(player: Partial<Player>) {
-  const canonicalName = String(player?.nickname || "").trim() || String(player?.name || "").trim();
-  if (!canonicalName) return [];
-  const aliases = loadSearchAliases();
-  return aliases.get(canonicalName) || [];
-}
-
-export function isExactPlayerSearchMatch(player: Partial<Player>, query: string) {
-  const normalizedQuery = normalizeSearchText(query);
-  if (!normalizedQuery) return false;
-
-  if (normalizeSearchText(player?.name) === normalizedQuery) return true;
-  if (normalizeSearchText(player?.nickname) === normalizedQuery) return true;
-  return getPlayerSearchAliases(player).some((alias) => normalizeSearchText(alias) === normalizedQuery);
-}
 
 type StoredMatchHistoryItem = {
   match_date?: string | null;
@@ -613,7 +122,7 @@ export const playerService = {
       .order("tier", { ascending: true });
     
     if (error) throw error;
-    return applySoopLivePreviews(applyRosterOverrides(data || []));
+    return applySoopLivePreviews(applyPlayerServingMetadata(data || []));
   },
 
   /** 특정 ID의 선수 정보 가져오기 */
@@ -625,11 +134,7 @@ export const playerService = {
       .single();
     
     if (error) throw error;
-    return applySoopLivePreview(
-      applyUniversityNormalization(
-        applyRosterOverride(data, loadRosterOverrides(), loadSoopIdentityOverrides(), loadDisplayAliases())
-      )
-    );
+    return applySoopLivePreviewToOne(applyPlayerServingMetadataToOne(data));
   },
 
   /** UUID 접두사(8자리 등)로 선수 정보 가져오기 */
@@ -644,13 +149,7 @@ export const playerService = {
 
     if (error) throw error;
     const player = (data || []).find((row) => String(row.id || "").toLowerCase().startsWith(normalizedPrefix)) || null;
-    return player
-      ? applySoopLivePreview(
-          applyUniversityNormalization(
-            applyRosterOverride(player, loadRosterOverrides(), loadSoopIdentityOverrides(), loadDisplayAliases())
-          )
-        )
-      : null;
+    return player ? applySoopLivePreviewToOne(applyPlayerServingMetadataToOne(player)) : null;
   },
 
   /** 현재 방송 중인 선수들만 가져오기 */
@@ -662,7 +161,7 @@ export const playerService = {
       .order("elo_point", { ascending: false });
     
     if (error) throw error;
-    return applySoopLivePreviews(applyRosterOverrides(data || []));
+    return applySoopLivePreviews(applyPlayerServingMetadata(data || []));
   },
 
   /** 특정 선수의 매치 기록 가져오기 */
@@ -764,5 +263,52 @@ export const playerService = {
     return players
       .filter((player) => String(player.university || "") === univ)
       .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ko"));
+  },
+
+  /** 두 선수 간의 상대 전적 가져오기 (전체 및 최근 3개월) */
+  async getH2HStats(p1Id: string, p2Id: string) {
+    if (!p1Id || !p2Id) return { overall: [0, 0], recent: [0, 0] };
+
+    // 두 선수의 이름과 P1의 경기 기록을 가져옴
+    const { data: players, error } = await supabase
+      .from('players')
+      .select('id, name, match_history')
+      .in('id', [p1Id, p2Id]);
+
+    if (error || !players || players.length < 2) {
+      console.error('Error fetching players for H2H:', error);
+      return { overall: [0, 0], recent: [0, 0] };
+    }
+
+    const p1 = players.find(p => p.id === p1Id);
+    const p2 = players.find(p => p.id === p2Id);
+
+    if (!p1 || !p2 || !p1.match_history || !Array.isArray(p1.match_history)) {
+      return { overall: [0, 0], recent: [0, 0] };
+    }
+
+    const p2Name = p2.name;
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    const stats = (p1.match_history as any[]).reduce((acc, m) => {
+      // 상대방 이름이 매칭되는지 확인 (불필요한 공백 제거)
+      if (m.opponent_name?.trim() === p2Name.trim()) {
+        const matchDate = m.match_date ? new Date(m.match_date) : null;
+        const isRecent = matchDate ? matchDate > threeMonthsAgo : false;
+
+        if (m.is_win) {
+          acc.overall[0]++;
+          if (isRecent) acc.recent[0]++;
+        } else {
+          // P1이 졌다면 P2가 이긴 것 (1v1 기준)
+          acc.overall[1]++;
+          if (isRecent) acc.recent[1]++;
+        }
+      }
+      return acc;
+    }, { overall: [0, 0], recent: [0, 0] });
+
+    return stats;
   }
 };

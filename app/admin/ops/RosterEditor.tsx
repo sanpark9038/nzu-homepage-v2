@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 type ManualMode = "temporary" | "fixed";
-type AdminTab = "move" | "exclude" | "team";
+type AdminTab = "move" | "exclude" | "team"; // recruit 제거
+
 
 type PlayerRow = {
   entity_id: string;
@@ -35,7 +36,7 @@ type ApiResponse = {
 
 const TIER_OPTIONS = ["갓", "킹", "잭", "조커", "스페이드", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
-export default function RosterEditor() {
+export default function RosterEditor({ onRosterChange }: { onRosterChange?: () => void }) {
   const [tab, setTab] = useState<AdminTab>("move");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,6 +52,7 @@ export default function RosterEditor() {
   const [exclusionReason, setExclusionReason] = useState("user_excluded");
   const [newTeamName, setNewTeamName] = useState("");
   const [newTeamCode, setNewTeamCode] = useState("");
+
 
   const selected = useMemo(() => players.find((p) => p.entity_id === selectedId) || null, [players, selectedId]);
   const selectedTeam = useMemo(() => teams.find((t) => t.code === teamCode) || null, [teams, teamCode]);
@@ -90,7 +92,7 @@ export default function RosterEditor() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/roster", { cache: "no-store" });
-      const json = (await res.json()) as ApiResponse;
+      const json = (await res.json()) as any;
       setPlayers(Array.isArray(json.players) ? json.players : []);
       setTeams(Array.isArray(json.teams) ? json.teams : []);
     } finally {
@@ -145,6 +147,8 @@ export default function RosterEditor() {
       setSaving(false);
     }
   }
+  
+
 
   async function releaseOverride(kind: ManualMode) {
     if (!selected) return;
