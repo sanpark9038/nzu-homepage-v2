@@ -10,6 +10,7 @@ const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 const REPORT_LATEST_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.json");
 const REPORT_LATEST_MD_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.md");
 const COLLECT_CHUNKED_TIMEOUT_MS = 110 * 60 * 1000;
+const HOMEPAGE_INTEGRITY_TIMEOUT_MS = 10 * 60 * 1000;
 const SUPABASE_PUSH_TIMEOUT_MS = 30 * 60 * 1000;
 
 function argValue(flag, fallback = null) {
@@ -97,9 +98,18 @@ function spawnNode(scriptRelPath, args = []) {
 }
 
 function stepTimeoutFor(name) {
+  if (name === "homepage_integrity_report") return HOMEPAGE_INTEGRITY_TIMEOUT_MS;
   if (name === "collect_chunked") return COLLECT_CHUNKED_TIMEOUT_MS;
   if (name === "supabase_push") return SUPABASE_PUSH_TIMEOUT_MS;
   return 30 * 60 * 1000;
+}
+
+function hasHomepageIntegrityEnv() {
+  const supabaseUrl = String(process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  const serviceKey = String(
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ""
+  ).trim();
+  return Boolean(supabaseUrl && serviceKey);
 }
 
 async function runStep(name, scriptRelPath, args = [], options = {}) {
@@ -158,6 +168,10 @@ async function runStep(name, scriptRelPath, args = [], options = {}) {
     stderr_tail: tailLines(stderr),
   };
   if (exitCode !== 0) {
+    if (options.allowFailure) {
+      console.warn(`[WARN] ${name} failed but is allowed to continue`);
+      return step;
+    }
     throw Object.assign(new Error(`${name} failed (exit=${exitCode}) ${startedAt} -> ${endedAt}`), { step });
   }
   console.log(`[OK] ${name}`);
@@ -258,6 +272,14 @@ async function main() {
 
   captureRosterBaseline();
   try {
+    if (hasHomepageIntegrityEnv()) {
+      steps.push(
+        await runStep("homepage_integrity_report", "scripts/tools/report-homepage-integrity.js", [], {
+          timeoutMs: stepTimeoutFor("homepage_integrity_report"),
+          allowFailure: true,
+        })
+      );
+    }
     steps.push(
       await runStep("collect_chunked", "scripts/tools/run-ops-pipeline-chunked.js", collectChunkedArgs, {
         timeoutMs: stepTimeoutFor("collect_chunked"),
