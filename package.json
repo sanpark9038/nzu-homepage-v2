@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "verify:env": "node scripts/tools/verify-env-encoding.js",
+    "verify:predeploy": "npm run verify:env && npx tsc --noEmit && npm run test:player-serving-metadata && npm run check:metadata:soop-id && npm run check:metadata:roster-wr-id && npm run build",
     "build:metadata": "node scripts/tools/build-metadata-db.js",
     "build:project:metadata": "node scripts/tools/build-project-metadata-from-roster-record.js",
     "build:aggregates": "node scripts/tools/build-aggregates-incremental.js",
