@@ -72,6 +72,29 @@ function ensureConsistentAlertSettings(snapshots) {
   }
 }
 
+function normalizeAlertMessage(alert) {
+  const rule = String(alert && alert.rule ? alert.rule : "").trim();
+  const message = String(alert && alert.message ? alert.message : "").trim();
+  if (rule === "stale_live_snapshot_disagreement") {
+    return message.replace(/,?\s*report_generated_at=[^,]+$/i, "").trim();
+  }
+  return message;
+}
+
+function dedupeAlerts(alertRows) {
+  const deduped = new Map();
+  for (const alert of Array.isArray(alertRows) ? alertRows : []) {
+    const key = [
+      String(alert && alert.severity ? alert.severity : "").trim(),
+      String(alert && alert.team_code ? alert.team_code : "").trim(),
+      String(alert && alert.rule ? alert.rule : "").trim(),
+      normalizeAlertMessage(alert),
+    ].join("::");
+    deduped.set(key, alert);
+  }
+  return Array.from(deduped.values());
+}
+
 function main() {
   const outputDate = argValue("--output-date", "");
   const tagsRaw = argValue("--chunk-date-tags", "");
@@ -175,12 +198,14 @@ function main() {
     previous_snapshot: first.previous_snapshot || null,
   };
 
+  const mergedAlertRows = dedupeAlerts(alertRows);
+
   const counts = {
-    critical: alertRows.filter((a) => a.severity === "critical").length,
-    high: alertRows.filter((a) => a.severity === "high").length,
-    medium: alertRows.filter((a) => a.severity === "medium").length,
-    low: alertRows.filter((a) => a.severity === "low").length,
-    total: alertRows.length,
+    critical: mergedAlertRows.filter((a) => a.severity === "critical").length,
+    high: mergedAlertRows.filter((a) => a.severity === "high").length,
+    medium: mergedAlertRows.filter((a) => a.severity === "medium").length,
+    low: mergedAlertRows.filter((a) => a.severity === "low").length,
+    total: mergedAlertRows.length,
   };
 
   const mergedAlerts = {
@@ -194,7 +219,7 @@ function main() {
     blocking_severities: snapshots[0].alerts.blocking_severities || ["critical", "high"],
     applied_rules: snapshots[0].alerts.applied_rules || {},
     counts,
-    alerts: alertRows,
+    alerts: mergedAlertRows,
   };
 
   const outSnapshotJson = path.join(REPORTS_DIR, `daily_pipeline_snapshot_${outputDate}.json`);
@@ -232,7 +257,7 @@ function main() {
   writeJson(latestAlertsJson, mergedAlerts);
   writeCsv(
     outAlertsCsv,
-    alertRows.map((a) => ({
+    mergedAlertRows.map((a) => ({
       severity: a.severity,
       team: a.team,
       team_code: a.team_code,

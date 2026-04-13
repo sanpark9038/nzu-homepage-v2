@@ -367,6 +367,7 @@ function summarizeTeamFromReport(team, report) {
       "used_existing_json",
       "used_existing_json_inactive",
       "used_existing_json_priority_window",
+      "used_existing_json_regression_guard",
     ].includes(String(row.fetch_status || ""))
   ).length;
   let totalMatches = 0;
@@ -381,6 +382,7 @@ function summarizeTeamFromReport(team, report) {
       "used_existing_json",
       "used_existing_json_inactive",
       "used_existing_json_priority_window",
+      "used_existing_json_regression_guard",
     ]);
     const fetchFail = !fetchOkStates.has(String(row.fetch_status || ""));
     const csvFail = !["ok", "used_existing_csv"].includes(String(row.csv_status || ""));
@@ -421,6 +423,7 @@ function summarizeTeamFromReport(team, report) {
           "used_existing_json",
           "used_existing_json_inactive",
           "used_existing_json_priority_window",
+          "used_existing_json_regression_guard",
         ].includes(String(f.fetch_status || ""))
     ).length,
     csv_fail: failures.filter((f) => !["ok", "used_existing_csv"].includes(String(f.csv_status || ""))).length,

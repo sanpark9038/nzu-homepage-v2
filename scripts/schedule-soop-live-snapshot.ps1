@@ -1,7 +1,7 @@
 param(
   [string]$TaskName = "NZU_SOOP_Live_Snapshot_5min",
   [int]$IntervalMinutes = 5,
-  [switch]$RunAsSystem = $true,
+  [switch]$RunAsSystem = $false,
   [string]$RunAsUser = "",
   [string]$RunAsPassword = ""
 )
@@ -23,17 +23,27 @@ if (!(Test-Path $WatchScript)) {
   throw "Missing file: $WatchScript"
 }
 
-$TaskCommand = "cmd /c cd /d `"$Root`" && `"$NodeExe`" `"$WatchScript`" --interval-sec $($IntervalMinutes * 60)"
+$LauncherScript = Join-Path $Root "scripts\run-soop-live-snapshot.cmd"
+if (!(Test-Path $LauncherScript)) {
+  throw "Missing file: $LauncherScript"
+}
+
+$TaskCommand = "`"$LauncherScript`" --interval-sec $($IntervalMinutes * 60)"
 
 if ($RunAsSystem) {
   schtasks /Create /F /SC MINUTE /MO $IntervalMinutes /TN $TaskName /TR $TaskCommand /RU "SYSTEM" /RL HIGHEST | Out-Null
   $accountText = "SYSTEM"
 } else {
-  if ([string]::IsNullOrWhiteSpace($RunAsUser) -or [string]::IsNullOrWhiteSpace($RunAsPassword)) {
-    throw "When -RunAsSystem is disabled, both -RunAsUser and -RunAsPassword are required."
+  if ([string]::IsNullOrWhiteSpace($RunAsUser) -and [string]::IsNullOrWhiteSpace($RunAsPassword)) {
+    schtasks /Create /F /SC MINUTE /MO $IntervalMinutes /TN $TaskName /TR $TaskCommand /RL HIGHEST | Out-Null
+    $accountText = "current-user"
+  } else {
+    if ([string]::IsNullOrWhiteSpace($RunAsUser) -or [string]::IsNullOrWhiteSpace($RunAsPassword)) {
+      throw "When providing explicit account credentials, both -RunAsUser and -RunAsPassword are required."
+    }
+    schtasks /Create /F /SC MINUTE /MO $IntervalMinutes /TN $TaskName /TR $TaskCommand /RU $RunAsUser /RP $RunAsPassword /RL HIGHEST | Out-Null
+    $accountText = $RunAsUser
   }
-  schtasks /Create /F /SC MINUTE /MO $IntervalMinutes /TN $TaskName /TR $TaskCommand /RU $RunAsUser /RP $RunAsPassword /RL HIGHEST | Out-Null
-  $accountText = $RunAsUser
 }
 
 Write-Output "Task registered: $TaskName"

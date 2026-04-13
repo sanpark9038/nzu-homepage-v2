@@ -4,10 +4,24 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..", "..", "..");
 const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const CURRENT_ROSTER_STATE_FILE = "current_roster_state.json";
+const PLAYER_METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 
 function readJsonIfExists(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return null;
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+}
+
+function buildTrackedEntityIdSet() {
+  const rows = readJsonIfExists(PLAYER_METADATA_PATH);
+  if (!Array.isArray(rows)) return new Set();
+  const tracked = new Set();
+  for (const row of rows) {
+    const wrId = Number(row && row.wr_id ? row.wr_id : 0);
+    const gender = String(row && row.gender ? row.gender : "").trim().toLowerCase();
+    if (!Number.isFinite(wrId) || wrId <= 0 || !gender) continue;
+    tracked.add(`eloboard:${gender}:${wrId}`);
+  }
+  return tracked;
 }
 
 function isChunkedReportFile(name, prefix) {
@@ -201,6 +215,7 @@ function compareRosterJoinersRemovals(beforePlayers, afterPlayers, lookup = lega
   const afterMap = toPlayerMap(afterPlayers, lookup);
   const beforeNameTeamKeys = new Set(beforePlayers.map((player) => buildNameTeamKey(player)).filter(Boolean));
   const afterNameTeamKeys = new Set(afterPlayers.map((player) => buildNameTeamKey(player)).filter(Boolean));
+  const trackedEntityIds = buildTrackedEntityIdSet();
   const joiners = [];
   const removals = [];
 
@@ -216,7 +231,10 @@ function compareRosterJoinersRemovals(beforePlayers, afterPlayers, lookup = lega
   for (const [key, prev] of beforeMap.entries()) {
     if (afterMap.has(key)) continue;
     if (afterNameTeamKeys.has(buildNameTeamKey(prev))) continue;
+    const entityId = canonicalEntityId(prev && prev.entity_id ? prev.entity_id : "", lookup);
+    if (entityId && trackedEntityIds.has(entityId)) continue;
     removals.push({
+      entity_id: entityId,
       player_name: prev.display_name || prev.name,
       team_name: normalizeTeamName(prev.team_name),
     });

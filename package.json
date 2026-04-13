@@ -25,6 +25,8 @@
     "soop:snapshot:generate": "node scripts/tools/generate-soop-live-snapshot.js",
     "soop:snapshot:watch": "node scripts/tools/watch-soop-live-snapshot.js",
     "soop:snapshot:check": "npm run soop:snapshot:generate && npm run report:soop:summary",
+    "soop:snapshot:sync:supabase": "node scripts/tools/sync-soop-live-state-to-supabase.js",
+    "soop:snapshot:deploy:sync": "npm run soop:snapshot:generate && npm run soop:snapshot:sync:supabase",
     "soop:ops:watch": "npm run soop:snapshot:watch",
     "soop:ops:check": "npm run soop:snapshot:check",
     "report:soop:live": "node scripts/tools/report-soop-live-coverage.js",
