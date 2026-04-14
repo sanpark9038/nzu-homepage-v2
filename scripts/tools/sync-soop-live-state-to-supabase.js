@@ -5,6 +5,7 @@ require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local"),
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PLAYER_METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
+const MASTER_METADATA_PATH = path.join(ROOT, "data", "metadata", "players.master.v1.json");
 const SOOP_MAPPINGS_PATH = path.join(ROOT, "data", "metadata", "soop_channel_mappings.v1.json");
 const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "soop_manual_review_decisions.v1.json");
 const SNAPSHOT_PATH = path.join(ROOT, "data", "metadata", "soop_live_snapshot.generated.v1.json");
@@ -70,23 +71,40 @@ function buildSoopLookup() {
     byNameBuckets.set(normalized, bucket);
   };
 
-  const metadataRows = readJsonIfExists(PLAYER_METADATA_PATH, []);
-  for (const row of Array.isArray(metadataRows) ? metadataRows : []) {
-    const wrId = Number(row && row.wr_id);
-    const gender = trim(row && row.gender).toLowerCase();
-    const soopUserId = trim(row && row.soop_user_id);
-    const name = normalizeLookupName(row && row.name);
-    if (!Number.isFinite(wrId) || !gender || !soopUserId) continue;
+  const registerIdentityPayload = ({ wrId, gender, soopUserId, name }) => {
+    if (!Number.isFinite(wrId) || !gender || !soopUserId) return;
+    const normalizedName = normalizeLookupName(name);
     const payload = { soop_id: soopUserId };
     lookup.set(`${wrId}:${gender}`, payload);
     byWrId.set(String(wrId), payload);
-    if (name) {
-      const key = `${name}:${gender}`;
+    if (normalizedName) {
+      const key = `${normalizedName}:${gender}`;
       const bucket = byNameGenderBuckets.get(key) || [];
       bucket.push(payload);
       byNameGenderBuckets.set(key, bucket);
     }
-    registerNamePayload(name, payload);
+    registerNamePayload(normalizedName, payload);
+  };
+
+  const masterDoc = readJsonIfExists(MASTER_METADATA_PATH, {});
+  const masterPlayers = Array.isArray(masterDoc && masterDoc.players) ? masterDoc.players : [];
+  for (const row of masterPlayers) {
+    registerIdentityPayload({
+      wrId: Number(row && row.wr_id),
+      gender: trim(row && row.gender).toLowerCase(),
+      soopUserId: trim(row && row.soop_user_id),
+      name: row && row.names ? row.names.display : "",
+    });
+  }
+
+  const metadataRows = readJsonIfExists(PLAYER_METADATA_PATH, []);
+  for (const row of Array.isArray(metadataRows) ? metadataRows : []) {
+    registerIdentityPayload({
+      wrId: Number(row && row.wr_id),
+      gender: trim(row && row.gender).toLowerCase(),
+      soopUserId: trim(row && row.soop_user_id),
+      name: row && row.name,
+    });
   }
 
   const mappingsDoc = readJsonIfExists(SOOP_MAPPINGS_PATH, {});
@@ -183,6 +201,7 @@ function buildUpdatePayloads(players, snapshot, soopLookup) {
   let liveCount = 0;
   let offlineCount = 0;
   let unresolvedCount = 0;
+  const unresolvedPlayers = [];
 
   for (const player of Array.isArray(players) ? players : []) {
     const soopId = resolveSoopIdForPlayer(player, soopLookup);
@@ -190,7 +209,15 @@ function buildUpdatePayloads(players, snapshot, soopLookup) {
     const isLive = Boolean(channel && channel.isLive === true);
     if (isLive) liveCount += 1;
     else offlineCount += 1;
-    if (!soopId) unresolvedCount += 1;
+    if (!soopId) {
+      unresolvedCount += 1;
+      unresolvedPlayers.push({
+        id: player.id,
+        name: trim(player.name) || null,
+        eloboard_id: trim(player.eloboard_id) || null,
+        gender: trim(player.gender) || null,
+      });
+    }
 
     updates.push({
       id: player.id,
@@ -208,6 +235,7 @@ function buildUpdatePayloads(players, snapshot, soopLookup) {
     liveCount,
     offlineCount,
     unresolvedCount,
+    unresolvedPlayers,
   };
 }
 
@@ -235,7 +263,7 @@ async function main() {
   const soopLookup = buildSoopLookup();
   const snapshot = loadFreshSnapshot();
   const players = await fetchServingPlayers();
-  const { updates, checkedAt, liveCount, offlineCount, unresolvedCount } = buildUpdatePayloads(
+  const { updates, checkedAt, liveCount, offlineCount, unresolvedCount, unresolvedPlayers } = buildUpdatePayloads(
     players,
     snapshot,
     soopLookup
@@ -248,6 +276,9 @@ async function main() {
   console.log(`- live_count: ${liveCount}`);
   console.log(`- offline_count: ${offlineCount}`);
   console.log(`- unresolved_soop_id_count: ${unresolvedCount}`);
+  if (unresolvedPlayers.length > 0) {
+    console.log(`- unresolved_players: ${JSON.stringify(unresolvedPlayers)}`);
+  }
   console.log(`- snapshot_updated_at: ${snapshot.updated_at}`);
   console.log(`- checked_at: ${checkedAt}`);
 }
