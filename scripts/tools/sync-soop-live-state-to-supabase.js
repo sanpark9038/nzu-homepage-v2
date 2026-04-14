@@ -219,11 +219,15 @@ async function fetchServingPlayers() {
   return Array.isArray(data) ? data : [];
 }
 
-async function upsertUpdates(rows) {
+async function applyUpdates(rows) {
   for (let index = 0; index < rows.length; index += UPDATE_CHUNK_SIZE) {
     const chunk = rows.slice(index, index + UPDATE_CHUNK_SIZE);
-    const { error } = await supabase.from("players").upsert(chunk, { onConflict: "id" });
-    if (error) throw error;
+    await Promise.all(
+      chunk.map(async ({ id, ...patch }) => {
+        const { error } = await supabase.from("players").update(patch).eq("id", id);
+        if (error) throw error;
+      })
+    );
   }
 }
 
@@ -237,7 +241,7 @@ async function main() {
     soopLookup
   );
 
-  await upsertUpdates(updates);
+  await applyUpdates(updates);
 
   console.log("SOOP live state synced to Supabase.");
   console.log(`- players_total: ${players.length}`);
@@ -249,6 +253,16 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.stack || error.message : String(error));
+  if (error instanceof Error) {
+    console.error(error.stack || error.message);
+  } else if (error && typeof error === "object") {
+    try {
+      console.error(JSON.stringify(error, null, 2));
+    } catch {
+      console.error(String(error));
+    }
+  } else {
+    console.error(String(error));
+  }
   process.exit(1);
 });
