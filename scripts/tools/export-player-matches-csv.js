@@ -8,7 +8,7 @@ function argValue(flag, fallback = null) {
   return fallback;
 }
 
-const univ = argValue("--univ", "늪지대");
+const univ = argValue("--univ", "team");
 const player = argValue("--player", null);
 if (!player) {
   console.error("Missing required arg: --player <name>");
@@ -23,8 +23,8 @@ const explicitCsvPath = argValue("--csv-path", null);
 
 const reportPath = explicitReportPath || path.join(process.cwd(), "tmp", `${univ}_${player}_matches.json`);
 const csvFileName = stableName
-  ? `${player}_상세전적.csv`
-  : `${player}_상세전적_${from}_${to}.csv`;
+  ? `${player}_matches.csv`
+  : `${player}_matches_${from}_${to}.csv`;
 const csvPath = explicitCsvPath || path.join(process.cwd(), "tmp", csvFileName);
 
 function splitOpponent(text) {
@@ -121,10 +121,9 @@ function main() {
   const raw = fs.readFileSync(reportPath, "utf8").replace(/^\uFEFF/, "");
   const json = JSON.parse(raw);
   const p = (json.players || [])[0];
-  const header = ["날짜", "상대명", "상대종족", "맵", "경기결과(승/패)", "메모"];
+  const header = ["date", "opponent_name", "opponent_race", "map", "result", "note"];
   const lines = [header.join(",")];
   if (!p || !Array.isArray(p.matches)) {
-    // Keep pipeline stable: write an empty CSV (header only) for 0-match players.
     const bom = "\uFEFF";
     const finalPath = writeCsvWithFallback(csvPath, bom + lines.join("\n"));
     console.log(finalPath);
@@ -140,13 +139,12 @@ function main() {
       opp.name,
       opp.race,
       r.map || "",
-      r.is_win ? "승" : "패",
+      r.is_win ? "win" : "loss",
       r.note || "",
     ].map(csvEscape);
     lines.push(values.join(","));
   }
 
-  // UTF-8 BOM for Excel compatibility on Windows
   const bom = "\uFEFF";
   const finalPath = writeCsvWithFallback(csvPath, bom + lines.join("\n"));
   console.log(finalPath);

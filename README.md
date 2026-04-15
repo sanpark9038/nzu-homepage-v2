@@ -1,34 +1,29 @@
-# NZU Homepage
+# HOSAGA Homepage
 
-NZU 홈페이지와 운영 파이프라인이 함께 있는 저장소입니다.
+HOSAGA public site and operations pipeline live in this repository.
 
-현재 구조의 핵심은 다음과 같습니다.
+This repo contains:
 
-- 수집/검증의 소스 오브 트루스: `data/metadata/`, `scripts/tools/`
-- 웹사이트 서빙 레이어: Supabase `players`, `matches`, `eloboard_matches`
-- 운영 자동화: GitHub Actions `NZU Ops Pipeline`
+- Next.js website code under `app/`, `components/`, and `lib/`
+- Metadata, roster, and sync tooling under `data/metadata/` and `scripts/tools/`
+- Supabase-backed serving data for `players`, `matches`, and related tables
+- GitHub Actions workflows for the HOSAGA ops pipeline
 
 ## Current Architecture
 
-1. Pipeline collects and validates roster / match changes.
+1. Pipeline collects and validates roster and match changes.
 2. Local metadata evolves under `data/metadata/`.
 3. Approved sync pushes serving data into Supabase.
-4. The public site reads from Supabase, not from runtime scraping.
+4. The public site reads from Supabase instead of runtime scraping.
 
 ## Important Directories
 
 - `app/`
-  - Next.js App Router pages
 - `components/`
-  - UI and page components
 - `lib/`
-  - Supabase client, typed DB contract, service layer
 - `scripts/tools/`
-  - Pipeline, metadata, sync, validation scripts
 - `data/metadata/`
-  - Reusable metadata DB for current and future projects
 - `.github/workflows/`
-  - GitHub Actions workflow definitions
 
 ## Key Commands
 
@@ -37,7 +32,7 @@ npm install
 npm run dev
 ```
 
-Validation / pipeline:
+Validation and pipeline:
 
 ```bash
 npm run test:pipeline:daily
