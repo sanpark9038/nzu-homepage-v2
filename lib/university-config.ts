@@ -48,7 +48,6 @@ const UNIVERSITY_ALIAS_MAP: Record<string, UniversityKey> = {
   "미소속": "FA",
   "연합팀": "FA",
   "늪지대": "FA",
-  NZU: "FA",
 };
 
 function sanitizeUniversityToken(value: string | null | undefined) {

@@ -114,7 +114,7 @@ runTest("university normalization collapses roster aliases into FA", () => {
     }).university
   );
 
-  assert.deepEqual(actual, ["FA", "FA", "FA", "FA"]);
+  assert.deepEqual(actual, ["FA", "FA", "NZU", "FA"]);
 });
 
 runTest("exact search matches serving name, canonical nickname, and configured aliases", () => {
