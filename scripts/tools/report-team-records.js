@@ -22,7 +22,7 @@ const profileUrlArgIndex = argv.indexOf("--profile-url");
 const wrIdArgIndex = argv.indexOf("--wr-id");
 const genderArgIndex = argv.indexOf("--gender");
 const tierArgIndex = argv.indexOf("--tier");
-const TEAM_NAME = univArgIndex >= 0 && argv[univArgIndex + 1] ? argv[univArgIndex + 1] : "\uB2AA\uC9C0\uB300";
+const TEAM_NAME = univArgIndex >= 0 && argv[univArgIndex + 1] ? argv[univArgIndex + 1] : "";
 const PLAYER_NAME = playerArgIndex >= 0 && argv[playerArgIndex + 1] ? argv[playerArgIndex + 1] : null;
 const PROFILE_URL_ARG =
   profileUrlArgIndex >= 0 && argv[profileUrlArgIndex + 1] ? argv[profileUrlArgIndex + 1] : null;
@@ -41,6 +41,10 @@ const ROSTER_URL = `https://eloboard.com/univ/bbs/board.php?bo_table=all_bj_list
 const CACHE_PATH = path.join(process.cwd(), "tmp", ".cache", "roster_report_cache.json");
 const MAX_RETRIES = 3;
 const RETRY_BASE_MS = 500;
+
+if (!TEAM_NAME) {
+  throw new Error("Missing required arg: --univ <teamName>");
+}
 
 const K_WIN = "\uC2B9";
 const K_LOSS = "\uD328";

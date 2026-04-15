@@ -4,15 +4,7 @@ const { execFileSync } = require("child_process");
 const { defaultProfileUrlForPlayer } = require("./lib/eloboard-special-cases");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const DEFAULT_ROSTER_PATH = path.join(
-  ROOT,
-  "data",
-  "metadata",
-  "projects",
-  "nzu",
-  "players.nzu.v1.json"
-);
-const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-nzu-2025-records.js");
+const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-team-records.js");
 const CSV_SCRIPT = path.join(ROOT, "scripts", "tools", "export-player-matches-csv.js");
 const TMP_DIR = path.join(ROOT, "tmp");
 const EXCLUSIONS_PATH = path.join(
@@ -286,7 +278,10 @@ function clearResumeMarker(player, resumes) {
 }
 
 function main() {
-  const rosterPath = argValue("--roster-path", DEFAULT_ROSTER_PATH);
+  const rosterPath = argValue("--roster-path", "");
+  if (!rosterPath) {
+    throw new Error("Missing --roster-path. Provide a team roster metadata file.");
+  }
   if (!fs.existsSync(rosterPath)) {
     throw new Error(`Missing roster metadata file: ${rosterPath}`);
   }
@@ -297,10 +292,7 @@ function main() {
   const to = argValue("--to", new Date().toISOString().slice(0, 10));
   const useExisting = hasFlag("--use-existing-json");
   const inactiveSkipDays = Number(argValue("--inactive-skip-days", "0")) || 0;
-  const reportPath = argValue(
-    "--report-path",
-    path.join(TMP_DIR, "nzu_roster_batch_export_report.json")
-  );
+  const reportPath = argValue("--report-path", path.join(TMP_DIR, "team_roster_batch_export_report.json"));
 
   const rosterJson = JSON.parse(fs.readFileSync(rosterPath, "utf8").replace(/^\uFEFF/, ""));
   const teamName = argValue("--univ", rosterJson.team_name || "늪지대");

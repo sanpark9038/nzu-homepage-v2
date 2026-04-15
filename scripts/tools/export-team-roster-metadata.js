@@ -3,20 +3,24 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 
 const ROOT = process.cwd();
-const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-nzu-2025-records.js");
+const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-team-records.js");
 
 const argv = process.argv.slice(2);
 const univArgIndex = argv.indexOf("--univ");
 const TEAM_NAME =
   univArgIndex >= 0 && argv[univArgIndex + 1]
     ? argv[univArgIndex + 1]
-    : "\uB2AA\uC9C0\uB300";
+    : "";
 const TEAM_KEY = encodeURIComponent(TEAM_NAME).toLowerCase();
 const allowEmpty = argv.includes("--allow-empty");
 const maxAttemptsRaw = argv.includes("--max-attempts")
   ? Number(argv[argv.indexOf("--max-attempts") + 1] || 3)
   : 3;
 const MAX_ATTEMPTS = Number.isFinite(maxAttemptsRaw) && maxAttemptsRaw > 0 ? Math.floor(maxAttemptsRaw) : 3;
+
+if (!TEAM_NAME) {
+  throw new Error("Missing required arg: --univ <teamName>");
+}
 
 function makeTeamSlug(name) {
   const slug = String(name)

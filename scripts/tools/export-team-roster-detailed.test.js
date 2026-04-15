@@ -7,7 +7,7 @@ const TMP_DIR = path.join(ROOT, "tmp");
 
 const {
   shouldSkipByPriorityWindow,
-} = require("./export-nzu-roster-detailed");
+} = require("./export-team-roster-detailed");
 
 function runTest(name, fn) {
   try {

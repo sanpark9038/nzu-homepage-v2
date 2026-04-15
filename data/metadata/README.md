@@ -1,6 +1,6 @@
 # Metadata DB
 
-This directory is the reusable metadata layer for NZU and future projects.
+This directory is the reusable metadata layer for HOSAGA and future projects.
 
 The intended separation is:
 
@@ -17,7 +17,7 @@ The intended separation is:
   - Use this when a project needs a current roster snapshot rather than the full identity DB.
 
 - Supabase `players`
-  - Serving layer for the current NZU website.
+  - Serving layer for the current HOSAGA website.
   - This is not the canonical source of identity.
   - Website projects may consume it directly, but upstream logic should still treat local metadata as the source of truth.
 
@@ -60,7 +60,6 @@ npm run build:metadata
 Build outputs:
 
 - `data/metadata/players.master.v1.json`
-- `data/metadata/projects/nzu/players.nzu.v1.json`
 - `tmp/metadata_db_build_report.json`
 
 ## Source of Input

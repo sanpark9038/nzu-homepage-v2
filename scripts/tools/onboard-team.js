@@ -125,7 +125,7 @@ function main() {
     );
   }
 
-  const exportScript = path.join(ROOT, "scripts", "tools", "export-nzu-roster-metadata.js");
+  const exportScript = path.join(ROOT, "scripts", "tools", "export-team-roster-metadata.js");
   const buildProjectScript = path.join(ROOT, "scripts", "tools", "build-project-metadata-from-roster-record.js");
   const enrichScript = path.join(ROOT, "scripts", "tools", "enrich-team-metadata.js");
   const orderScript = path.join(ROOT, "scripts", "tools", "apply-team-roster-order.js");
@@ -189,4 +189,3 @@ function main() {
 }
 
 main();
-

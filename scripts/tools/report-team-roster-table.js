@@ -66,7 +66,7 @@ function resolvePaths(teamCodeArg, rosterPathArg, recordPathArg) {
   if (!fs.existsSync(recordPath)) {
     throw new Error(
       `Missing roster record metadata file. Tried:\n- ${candidates.join("\n- ")}\n` +
-        `Run: node scripts/tools/export-nzu-roster-metadata.js --univ ${teamName}`
+        `Run: node scripts/tools/export-team-roster-metadata.js --univ ${teamName}`
     );
   }
 
