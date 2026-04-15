@@ -11,6 +11,7 @@ const MERGE_SCRIPT = "scripts/tools/merge-chunked-daily-reports.js";
 const ROSTER_SYNC_SCRIPT = "scripts/tools/sync-team-roster-metadata.js";
 const DISPLAY_ALIAS_SCRIPT = "scripts/tools/apply-player-display-aliases.js";
 const PRIORITY_SCRIPT = "scripts/tools/update-player-check-priority.js";
+const { ensureAutoDiscoveredTeamProjects } = require("./lib/team-project-discovery");
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -221,6 +222,18 @@ async function runCommonPreparation(teamCodes, allTeamCodes) {
 
 async function main() {
   ensureDir(REPORT_DIR);
+  try {
+    const discovery = await ensureAutoDiscoveredTeamProjects();
+    if (discovery.created_projects_count > 0) {
+      console.log(
+        `[DISCOVERY] auto-created team projects: ${discovery.created_projects
+          .map((item) => `${item.team_code}:${item.team_name}`)
+          .join(", ")}`
+      );
+    }
+  } catch (error) {
+    console.error(`[WARN] team auto discovery failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
   const chunkSize = Math.max(1, Number(argValue("--chunk-size", "3")) || 3);
   const continueOnError = hasFlag("--continue-on-error");
   const strict = !hasFlag("--no-strict");

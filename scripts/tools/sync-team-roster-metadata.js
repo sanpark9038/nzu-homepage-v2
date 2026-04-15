@@ -10,6 +10,7 @@ const {
   getEloboardProfileKind,
   normalizeProfileUrl,
 } = require("./lib/eloboard-special-cases");
+const { ensureAutoDiscoveredTeamProjects } = require("./lib/team-project-discovery");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
@@ -513,6 +514,19 @@ function shouldGuardObservedRoster(existingCount, observedCount) {
 }
 
 async function main() {
+  let autoDiscovery = {
+    created_projects_count: 0,
+    created_projects: [],
+  };
+  try {
+    autoDiscovery = await ensureAutoDiscoveredTeamProjects({
+      projectsDir: PROJECTS_DIR,
+      reportDir: REPORT_DIR,
+    });
+  } catch (error) {
+    console.error(`[WARN] team auto discovery failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
   const teamsArg = argValue("--teams", "");
   const faUnivArg = argValue("--fa-univ", "");
   const allowPartial = hasFlag("--allow-partial");
@@ -789,6 +803,7 @@ async function main() {
 
   const report = {
     generated_at: new Date().toISOString(),
+    auto_discovery: autoDiscovery,
     teams: teams.map((t) => t.code),
     fa_source_univ: faSourceUniv,
     fa_observed_count: faObservedCount,

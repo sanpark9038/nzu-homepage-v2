@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-04-10T10:56:11.902Z",
-  "project": "nzu-homepage",
+  "generated_at": "2026-04-15T08:32:09.677Z",
+  "project": "nzu",
   "team_name": "늪지대",
   "team_code": "nzu",
   "team_name_en": "NZU",
@@ -18,7 +18,7 @@
       "source": "nzu_seed_roster",
       "meta_tags": [
         "domain:player",
-        "project:nzu-homepage",
+        "project:nzu",
         "team:nzu",
         "team_code:nzu",
         "team_ko:늪지대",
@@ -33,7 +33,10 @@
       "last_match_at": "2026-03-06T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-04-10T10:56:11.887Z"
+      "last_changed_at": "2026-04-10T10:56:11.887Z",
+      "team_code": "nzu",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=150",
+      "profile_kind": "default"
     },
     {
       "team_name": "늪지대",
@@ -46,7 +49,7 @@
       "source": "nzu_seed_roster",
       "meta_tags": [
         "domain:player",
-        "project:nzu-homepage",
+        "project:nzu",
         "team:nzu",
         "team_code:nzu",
         "team_ko:늪지대",
@@ -61,7 +64,10 @@
       "last_match_at": "2026-01-21T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-04-10T10:56:11.888Z"
+      "last_changed_at": "2026-04-10T10:56:11.888Z",
+      "team_code": "nzu",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=100",
+      "profile_kind": "default"
     },
     {
       "team_name": "늪지대",
@@ -74,7 +80,7 @@
       "source": "nzu_seed_roster",
       "meta_tags": [
         "domain:player",
-        "project:nzu-homepage",
+        "project:nzu",
         "team:nzu",
         "team_code:nzu",
         "team_ko:늪지대",
@@ -89,7 +95,10 @@
       "last_match_at": "2025-10-16T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-04-10T10:56:11.889Z"
+      "last_changed_at": "2026-04-10T10:56:11.889Z",
+      "team_code": "nzu",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=207",
+      "profile_kind": "default"
     },
     {
       "team_name": "늪지대",
@@ -102,7 +111,7 @@
       "source": "nzu_seed_roster",
       "meta_tags": [
         "domain:player",
-        "project:nzu-homepage",
+        "project:nzu",
         "team:nzu",
         "team_code:nzu",
         "team_ko:늪지대",
@@ -117,7 +126,10 @@
       "last_match_at": "2026-01-10T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-04-10T10:56:11.889Z"
+      "last_changed_at": "2026-04-10T10:56:11.889Z",
+      "team_code": "nzu",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=208",
+      "profile_kind": "default"
     },
     {
       "team_name": "늪지대",
@@ -130,7 +142,7 @@
       "source": "nzu_seed_roster",
       "meta_tags": [
         "domain:player",
-        "project:nzu-homepage",
+        "project:nzu",
         "team:nzu",
         "team_code:nzu",
         "team_ko:늪지대",
@@ -145,7 +157,10 @@
       "last_match_at": "2026-03-26T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-04-10T10:56:11.890Z"
+      "last_changed_at": "2026-04-10T10:56:11.890Z",
+      "team_code": "nzu",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=223",
+      "profile_kind": "default"
     },
     {
       "team_name": "늪지대",
@@ -158,7 +173,7 @@
       "source": "nzu_seed_roster",
       "meta_tags": [
         "domain:player",
-        "project:nzu-homepage",
+        "project:nzu",
         "team:nzu",
         "team_code:nzu",
         "team_ko:늪지대",
@@ -173,11 +188,14 @@
       "last_match_at": "2026-03-26T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-04-10T10:56:11.893Z"
+      "last_changed_at": "2026-04-10T10:56:11.893Z",
+      "team_code": "nzu",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=846",
+      "profile_kind": "default"
     },
     {
       "team_name": "늪지대",
-      "entity_id": null,
+      "entity_id": "eloboard:female:671",
       "wr_id": 671,
       "gender": "female",
       "name": "쌍디",
@@ -186,7 +204,7 @@
       "source": "nzu_seed_roster",
       "meta_tags": [
         "domain:player",
-        "project:nzu-homepage",
+        "project:nzu",
         "team:nzu",
         "team_code:nzu",
         "team_ko:늪지대",
@@ -197,11 +215,14 @@
       ],
       "missing_in_master": true,
       "display_name": "쌍디",
-      "last_checked_at": "2026-04-10T10:39:16.022Z",
+      "last_checked_at": "2026-04-13T07:14:21.075Z",
       "last_match_at": "2026-04-04T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-10T10:56:11.894Z"
+      "last_changed_at": "2026-04-13T07:30:46.590Z",
+      "team_code": "nzu",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=671",
+      "profile_kind": "mix"
     },
     {
       "team_name": "늪지대",
@@ -214,7 +235,7 @@
       "source": "nzu_seed_roster",
       "meta_tags": [
         "domain:player",
-        "project:nzu-homepage",
+        "project:nzu",
         "team:nzu",
         "team_code:nzu",
         "team_ko:늪지대",
@@ -229,7 +250,10 @@
       "last_match_at": "2026-03-09T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-04-10T10:56:11.895Z"
+      "last_changed_at": "2026-04-10T10:56:11.895Z",
+      "team_code": "nzu",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=627",
+      "profile_kind": "default"
     },
     {
       "team_name": "늪지대",
@@ -242,7 +266,7 @@
       "source": "nzu_seed_roster",
       "meta_tags": [
         "domain:player",
-        "project:nzu-homepage",
+        "project:nzu",
         "team:nzu",
         "team_code:nzu",
         "team_ko:늪지대",
@@ -257,7 +281,10 @@
       "last_match_at": "2026-03-06T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-04-10T10:56:11.898Z"
+      "last_changed_at": "2026-04-10T10:56:11.898Z",
+      "team_code": "nzu",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=927",
+      "profile_kind": "default"
     },
     {
       "team_name": "늪지대",
@@ -270,7 +297,7 @@
       "source": "nzu_seed_roster",
       "meta_tags": [
         "domain:player",
-        "project:nzu-homepage",
+        "project:nzu",
         "team:nzu",
         "team_code:nzu",
         "team_ko:늪지대",
@@ -285,7 +312,10 @@
       "last_match_at": "2026-03-17T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-04-10T10:56:11.900Z"
+      "last_changed_at": "2026-04-10T10:56:11.900Z",
+      "team_code": "nzu",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=953",
+      "profile_kind": "default"
     },
     {
       "team_name": "늪지대",
@@ -298,7 +328,7 @@
       "source": "nzu_seed_roster",
       "meta_tags": [
         "domain:player",
-        "project:nzu-homepage",
+        "project:nzu",
         "team:nzu",
         "team_code:nzu",
         "team_ko:늪지대",
@@ -313,7 +343,10 @@
       "last_match_at": "2026-03-20T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-04-10T10:56:11.902Z"
+      "last_changed_at": "2026-04-10T10:56:11.902Z",
+      "team_code": "nzu",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=981",
+      "profile_kind": "default"
     }
   ]
 }

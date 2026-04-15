@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-04-10T10:56:11.389Z",
+  "generated_at": "2026-04-15T08:32:09.307Z",
   "project": "black",
   "team_name": "흑카데미",
   "team_code": "black",
@@ -37,11 +37,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "jack",
-      "last_checked_at": "2026-04-10T10:25:20.338Z",
+      "last_checked_at": "2026-04-13T07:00:53.995Z",
       "last_match_at": "2026-04-07T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-10T10:56:11.337Z"
+      "last_changed_at": "2026-04-13T07:30:45.971Z"
     },
     {
       "team_name": "흑카데미",
@@ -105,11 +105,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "joker",
-      "last_checked_at": "2026-04-10T10:25:31.530Z",
+      "last_checked_at": "2026-04-13T07:01:04.880Z",
       "last_match_at": "2026-04-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-10T10:56:11.339Z"
+      "last_changed_at": "2026-04-13T07:30:45.973Z"
     },
     {
       "team_name": "흑카데미",
@@ -272,11 +272,11 @@
       "role_priority": null,
       "tier_key": "2",
       "display_name": "히엉",
-      "last_checked_at": "2026-04-10T10:25:39.472Z",
+      "last_checked_at": "2026-04-13T07:01:13.177Z",
       "last_match_at": "2026-04-09T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-10T10:56:11.349Z",
+      "last_changed_at": "2026-04-13T07:30:45.983Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=418",
       "profile_kind": "default"
     },
@@ -307,11 +307,11 @@
       "role_priority": null,
       "tier_key": "3",
       "display_name": "뚜미",
-      "last_checked_at": "2026-04-10T10:25:47.419Z",
+      "last_checked_at": "2026-04-13T07:01:21.697Z",
       "last_match_at": "2026-04-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-10T10:56:11.354Z",
+      "last_changed_at": "2026-04-13T07:30:45.988Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=555",
       "profile_kind": "default"
     },
@@ -377,11 +377,11 @@
       "role_priority": null,
       "tier_key": "5",
       "display_name": "유이",
-      "last_checked_at": "2026-04-10T10:25:56.172Z",
-      "last_match_at": "2026-04-10T00:00:00.000Z",
+      "last_checked_at": "2026-04-13T07:01:29.316Z",
+      "last_match_at": "2026-04-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-10T10:56:11.365Z"
+      "last_changed_at": "2026-04-13T07:30:45.997Z"
     },
     {
       "team_name": "흑카데미",
@@ -445,11 +445,11 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "6",
-      "last_checked_at": "2026-04-10T10:26:02.929Z",
-      "last_match_at": "2026-04-09T00:00:00.000Z",
+      "last_checked_at": "2026-04-13T07:01:35.774Z",
+      "last_match_at": "2026-04-11T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-10T10:56:11.373Z"
+      "last_changed_at": "2026-04-13T07:30:46.003Z"
     },
     {
       "team_name": "흑카데미",
@@ -478,11 +478,11 @@
       "role_priority": null,
       "tier_key": "6",
       "display_name": "이아깽",
-      "last_checked_at": "2026-04-10T10:26:10.001Z",
-      "last_match_at": "2026-04-09T00:00:00.000Z",
+      "last_checked_at": "2026-04-13T07:01:42.774Z",
+      "last_match_at": "2026-04-11T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-10T10:56:11.378Z",
+      "last_changed_at": "2026-04-13T07:30:46.007Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=780",
       "profile_kind": "default"
     },
@@ -548,11 +548,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "경콩",
-      "last_checked_at": "2026-04-10T10:26:16.324Z",
+      "last_checked_at": "2026-04-13T07:01:48.221Z",
       "last_match_at": "2026-04-05T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-10T10:56:11.384Z",
+      "last_changed_at": "2026-04-13T07:30:46.013Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=928",
       "profile_kind": "default"
     },
@@ -583,11 +583,11 @@
       "role_priority": null,
       "tier_key": "7",
       "display_name": "제갈츄빈",
-      "last_checked_at": "2026-04-10T10:26:21.199Z",
+      "last_checked_at": "2026-04-13T07:01:53.250Z",
       "last_match_at": "2026-04-07T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-10T10:56:11.387Z",
+      "last_changed_at": "2026-04-13T07:30:46.015Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=983",
       "profile_kind": "default"
     },
@@ -598,7 +598,7 @@
       "wr_id": 1025,
       "gender": "female",
       "name": "김유나",
-      "tier": "9",
+      "tier": "8",
       "race": "Terran",
       "source": "roster_sync",
       "meta_tags": [
@@ -611,18 +611,18 @@
         "team_ko:흑카데미",
         "team_en:b-a",
         "race:terran",
-        "tier:9"
+        "tier:8"
       ],
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
-      "tier_key": "9",
+      "tier_key": "8",
       "display_name": "김유나",
-      "last_checked_at": "2026-04-10T10:26:24.433Z",
-      "last_match_at": "2026-04-10T00:00:00.000Z",
+      "last_checked_at": "2026-04-13T07:01:56.591Z",
+      "last_match_at": "2026-04-11T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-04-10T10:56:11.388Z",
+      "last_changed_at": "2026-04-13T07:30:46.016Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1025",
       "profile_kind": "default"
     },

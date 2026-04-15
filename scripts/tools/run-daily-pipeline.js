@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const { defaultProfileUrlForPlayer } = require("./lib/eloboard-special-cases");
+const { ensureAutoDiscoveredTeamProjects } = require("./lib/team-project-discovery");
 const {
   isComparablePriorSnapshot,
   latestPreviousSnapshotPath,
@@ -920,7 +921,7 @@ function buildAlerts(
   return sortedAlerts(alerts);
 }
 
-function main() {
+async function main() {
   const from = argValue("--from", "2025-01-01");
   const to = argValue("--to", today());
   const concurrency = String(argValue("--concurrency", "1"));
@@ -940,6 +941,18 @@ function main() {
       .map((v) => v.trim().toLowerCase())
       .filter(Boolean)
   );
+  try {
+    const discovery = await ensureAutoDiscoveredTeamProjects();
+    if (discovery.created_projects_count > 0) {
+      console.log(
+        `[DISCOVERY] auto-created team projects: ${discovery.created_projects
+          .map((item) => `${item.team_code}:${item.team_name}`)
+          .join(", ")}`
+      );
+    }
+  } catch (error) {
+    console.error(`[WARN] team auto discovery failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
   const teamConfig = loadTeamConfig();
   const teams = teamSet.size ? teamConfig.filter((t) => teamSet.has(t.code)) : teamConfig;
   if (!teams.length) {
@@ -1243,7 +1256,10 @@ function main() {
 }
 
 if (require.main === module) {
-  main();
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.stack || error.message : String(error));
+    process.exit(1);
+  });
 }
 
 module.exports = {
