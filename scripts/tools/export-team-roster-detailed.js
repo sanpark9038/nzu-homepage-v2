@@ -92,15 +92,21 @@ function playerJsonPath(teamName, player) {
 }
 
 function playerCsvPath(playerName, player) {
-  return path.join(TMP_DIR, `${playerArtifactKey(player)}_${safeFileName(playerName)}_상세전적.csv`);
+  return path.join(TMP_DIR, `${playerArtifactKey(player)}_${safeFileName(playerName)}_matches.csv`);
 }
 
 function expectedExportCsvPath(playerName, player) {
   const preferred = playerCsvPath(playerName, player);
   if (fs.existsSync(preferred)) return preferred;
   const safeName = safeFileName(playerName);
-  const direct = path.join(TMP_DIR, `${safeName}_상세전적.csv`);
-  const teamScoped = path.join(TMP_DIR, "exports", String(player && player.team_code ? player.team_code : ""), "csv", `${safeName}_상세전적.csv`);
+  const direct = path.join(TMP_DIR, `${safeName}_matches.csv`);
+  const teamScoped = path.join(
+    TMP_DIR,
+    "exports",
+    String(player && player.team_code ? player.team_code : ""),
+    "csv",
+    `${safeName}_matches.csv`
+  );
   if (fs.existsSync(teamScoped)) return teamScoped;
   return direct;
 }
@@ -295,7 +301,7 @@ function main() {
   const reportPath = argValue("--report-path", path.join(TMP_DIR, "team_roster_batch_export_report.json"));
 
   const rosterJson = JSON.parse(fs.readFileSync(rosterPath, "utf8").replace(/^\uFEFF/, ""));
-  const teamName = argValue("--univ", rosterJson.team_name || "늪지대");
+  const teamName = argValue("--univ", rosterJson.team_name || "team");
   const roster = Array.isArray(rosterJson.roster) ? rosterJson.roster : [];
   const players = limit > 0 ? roster.slice(0, limit) : roster;
   const exclusions = loadCollectionExclusions();
@@ -450,21 +456,25 @@ function main() {
           player: playerName,
           wr_id: p.wr_id,
         });
-        const csvOutput = runNode(CSV_SCRIPT, [
-          "--report-path",
-          jsonPath,
-          "--csv-path",
-          playerCsvPath(playerName, p),
-          "--player",
-          playerName,
-          "--stable-name",
-          "--from",
-          from,
-          "--to",
-          to,
-        ], {
-          timeoutMs: 120000,
-        }).trim();
+        const csvOutput = runNode(
+          CSV_SCRIPT,
+          [
+            "--report-path",
+            jsonPath,
+            "--csv-path",
+            playerCsvPath(playerName, p),
+            "--player",
+            playerName,
+            "--stable-name",
+            "--from",
+            from,
+            "--to",
+            to,
+          ],
+          {
+            timeoutMs: 120000,
+          }
+        ).trim();
 
         result.csv_path = csvOutput;
         result.csv_status = "ok";
