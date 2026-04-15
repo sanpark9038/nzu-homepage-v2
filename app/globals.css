@@ -8,7 +8,7 @@
 }
 
 /* ============================================
-   NZU 디자인 시스템 — 롤렉스 그린 다크테마
+   HOSAGA 디자인 시스템 — 롤렉스 그린 다크테마
    ============================================ */
 
 @theme inline {
@@ -52,7 +52,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
 
-  /* === NZU 브랜드 컬러 === */
+  /* === HOSAGA 브랜드 컬러 === */
   --color-nzu-green:       var(--nzu-green);
   --color-nzu-green-dim:   var(--nzu-green-dim);
   --color-nzu-green-glow:  var(--nzu-green-glow);
@@ -89,7 +89,7 @@
   --ring: #00A86B;
   --radius: 0.75rem;
 
-  /* === NZU 브랜드 컬러 (Common) === */
+  /* === HOSAGA 브랜드 컬러 (Common) === */
   --nzu-green:       #00A86B;
   --nzu-green-dim:   #007A4E;
   --nzu-green-glow:  rgba(0, 168, 107, 0.15);
@@ -146,7 +146,7 @@
   }
 }
 
-/* === NZU 유틸리티 === */
+/* === HOSAGA 유틸리티 === */
 @layer utilities {
   /* 그린 텍스트 */
   .text-nzu-green  { color: var(--nzu-green); }

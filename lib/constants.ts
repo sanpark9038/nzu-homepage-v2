@@ -1,5 +1,5 @@
 
-export const NZU_CONFIG = {
+export const SITE_CONFIG = {
   REVALIDATE_TIME: 60, // 60초마다 데이터 재생성 (ISR)
   SEASON: "시즌 1",
   UNIVERSITY_NAME: "호사가 (HOSAGA)",

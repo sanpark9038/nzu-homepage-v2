@@ -215,7 +215,7 @@ async function postDiscord(message) {
 function buildDiscordMessage(summary, meta) {
   const icon = summary.ok ? "✅" : "⚠️";
   const lines = [
-    `${icon} NZU Ops Freshness Check ${summary.ok ? "OK" : "FAIL"}`,
+    `${icon} HOSAGA Ops Freshness Check ${summary.ok ? "OK" : "FAIL"}`,
     `- source: ${meta.source}`,
     `- now_kst: ${meta.now_kst}`,
     `- expected_date: ${meta.expected_date}, min_time: ${meta.min_time}`,
