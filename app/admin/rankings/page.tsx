@@ -10,7 +10,7 @@ import LogoutButton from "../ops/LogoutButton";
 import StandingAdmin from "./StandingAdmin";
 
 export const metadata = {
-  title: "NZU Admin - 순위 설정",
+  title: "HOSAGA Admin - 순위 설정",
 };
 
 const STANDINGS_PATH = path.join(

@@ -17,7 +17,7 @@ export default function Navbar() {
         {/* --- Left Brand Logo (Text Only) --- */}
         <Link href="/" className="flex items-center group shrink-0">
           <span className="text-xl font-black text-white tracking-tighter group-hover:text-nzu-green transition-colors duration-300">
-            N.Z.U
+            HOSAGA
           </span>
         </Link>
 

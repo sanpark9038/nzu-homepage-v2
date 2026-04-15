@@ -7,8 +7,8 @@ import { ko } from "date-fns/locale";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "NZU - 대회 일정",
-  description: "늪지대 NZU 대회 경기 일정 및 상태 안내",
+  title: "HOSAGA - 대회 일정",
+  description: "호사가 HOSAGA 대회 경기 일정 및 상태 안내",
 };
 
 function getMatchStatus(startAt: string, lockAt: string) {

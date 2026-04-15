@@ -2,7 +2,7 @@
 export const NZU_CONFIG = {
   REVALIDATE_TIME: 60, // 60초마다 데이터 재생성 (ISR)
   SEASON: "시즌 1",
-  UNIVERSITY_NAME: "늪지대 (NZU)",
+  UNIVERSITY_NAME: "호사가 (HOSAGA)",
   SOOP_CH_URL: "https://ch.sooplive.co.kr",
   ELOBOARD_URL: "https://eloboard.com",
 };

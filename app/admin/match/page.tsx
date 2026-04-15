@@ -4,7 +4,7 @@ import { playerService } from "@/lib/player-service";
 import { MatchForm } from "./MatchForm";
 
 export const metadata = {
-  title: "NZU Admin - 전적 입력",
+  title: "HOSAGA Admin - 전적 입력",
 };
 
 export default async function AdminMatchPage() {
@@ -24,7 +24,7 @@ export default async function AdminMatchPage() {
           <h1 className="text-4xl font-black tracking-tighter uppercase italic">
              Match <span className="gradient-text">Entry</span>
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">NZU 대학대전 및 연습 경기 전적 공식 기록 도구</p>
+          <p className="text-muted-foreground text-sm mt-1">HOSAGA 대학대전 및 연습 경기 전적 공식 기록 도구</p>
         </header>
 
         <section className="bg-card border border-border/40 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden">

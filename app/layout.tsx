@@ -3,14 +3,14 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "늪지대 (NZU) — 스타크래프트 대학대전",
-    template: "%s | 늪지대 NZU",
+    default: "호사가 (HOSAGA) — 스타크래프트 대학대전",
+    template: "%s | 호사가 HOSAGA",
   },
-  description: "숲 스타크래프트 대학대전 늪지대(NZU) 공식 홈페이지. 선수 프로필, 티어표, 전적 조회를 제공합니다.",
-  keywords: ["늪지대", "NZU", "스타크래프트", "대학대전", "SC2", "StarCraft", "늪지대홈페이지"],
+  description: "숲 스타크래프트 대학대전 호사가(HOSAGA) 공식 홈페이지. 선수 프로필, 티어표, 전적 조회를 제공합니다.",
+  keywords: ["호사가", "HOSAGA", "스타크래프트", "대학대전", "SC2", "StarCraft", "호사가홈페이지"],
   openGraph: {
-    title: "늪지대 (NZU) — 스타크래프트 대학대전",
-    description: "숲 스타크래프트 대학대전 늪지대(NZU) 공식 홈페이지",
+    title: "호사가 (HOSAGA) — 스타크래프트 대학대전",
+    description: "숲 스타크래프트 대학대전 호사가(HOSAGA) 공식 홈페이지",
     type: "website",
     locale: "ko_KR",
   },

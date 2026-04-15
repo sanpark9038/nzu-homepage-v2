@@ -21,7 +21,7 @@ export function MatchForm({ players }: { players: MatchFormPlayer[] }) {
     player2_id: "",
     winner_id: "",
     map_name: "",
-    event_name: "NZU 대학대전",
+    event_name: "HOSAGA 대학대전",
     match_date: new Date().toISOString().split('T')[0],
     is_university_battle: true
   });

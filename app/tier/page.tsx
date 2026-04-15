@@ -226,17 +226,17 @@ export default async function TierPage({
         <div className="max-w-[1800px] mx-auto px-16 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex flex-col gap-1 items-center md:items-start text-center md:text-left">
             <span className="text-[13px] font-black text-nzu-green uppercase tracking-widest transition-colors mb-2">
-              티어표 출처: NZU ARCHIVE
+              티어표 출처: HOSAGA ARCHIVE
             </span>
             <p className="text-[10px] text-foreground/30 font-bold uppercase tracking-[0.2em]">
-              © 2026 NZU UNIVERSITY. 모든 권리 보유.
+              © 2026 HOSAGA UNIVERSITY. 모든 권리 보유.
             </p>
           </div>
           
           <div className="flex items-center gap-8">
             <div className="flex flex-col items-end gap-1">
               <span className="text-[10px] font-black text-foreground/40 tracking-widest">구동</span>
-              <span className="text-sm font-black text-foreground tracking-tighter transition-colors">NZU 아카이브 엔진</span>
+              <span className="text-sm font-black text-foreground tracking-tighter transition-colors">HOSAGA 아카이브 엔진</span>
             </div>
           </div>
         </div>

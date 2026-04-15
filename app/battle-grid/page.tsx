@@ -44,7 +44,7 @@ export default async function BattleGridPage({
               The Battle Grid: Mirror Arena
             </div>
             <div className="text-xs text-muted-foreground text-center md:text-right">
-              © 2025 늪지대 NZU · Presented by Sanpark CEO<br/>
+              © 2025 호사가 HOSAGA · Presented by Sanpark CEO<br/>
               <span className="opacity-60">Architected by El-Rade Park</span>
             </div>
         </div>

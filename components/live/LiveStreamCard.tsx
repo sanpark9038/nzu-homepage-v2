@@ -29,7 +29,7 @@ export function LiveStreamCard({ stream }: { stream: LiveStream }) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-nzu-green/5 to-card">
-            <span className="text-nzu-green/20 font-black text-2xl italic">NZU LIVE</span>
+            <span className="text-nzu-green/20 font-black text-2xl italic">HOSAGA LIVE</span>
           </div>
         )}
         

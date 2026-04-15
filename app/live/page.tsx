@@ -23,7 +23,7 @@ export default async function LivePage() {
     id: p.id,
     streamer_name: p.name,
     photo_url: resolveSoopChannelImageUrl(p) || p.photo_url || "",
-    stream_title: p.broadcast_title || `${p.name} - 숲 스타크래프트 NZU 대학대전 연습중`,
+    stream_title: p.broadcast_title || `${p.name} - 숲 스타크래프트 HOSAGA 대학대전 연습중`,
     viewer_count: getMockViewerCount(p.id),
     category: "Starcraft",
     race: p.race || "T",
@@ -56,7 +56,7 @@ export default async function LivePage() {
                실황 <span className="text-nzu-live">중계 센터</span>
             </h1>
             <p className="text-white/40 text-sm md:text-xl font-medium tracking-tight max-w-2xl mx-auto lg:mx-0">
-               NZU 멤버들의 실시간 전장 브로드캐스트를 한곳에서 통제합니다.
+               HOSAGA 멤버들의 실시간 전장 브로드캐스트를 한곳에서 통제합니다.
             </p>
           </div>
           
@@ -87,7 +87,7 @@ export default async function LivePage() {
              <div className="w-24 h-24 rounded-full bg-nzu-live/5 flex items-center justify-center mb-8 text-4xl border border-nzu-live/10">📡</div>
              <h2 className="text-2xl font-black mb-4 text-white uppercase tracking-tight">현재 방송 중인 멤버가 없습니다</h2>
              <p className="text-sm text-white/40 max-w-xs font-medium leading-relaxed">
-                NZU 멤버들이 방송을 시작하면<br/>이곳에 실시간으로 표시됩니다.
+                HOSAGA 멤버들이 방송을 시작하면<br/>이곳에 실시간으로 표시됩니다.
              </p>
           </div>
         ) : (

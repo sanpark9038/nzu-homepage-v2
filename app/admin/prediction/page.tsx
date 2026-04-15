@@ -9,7 +9,7 @@ import { PredictionMatchAdmin } from "./PredictionMatchAdmin";
 import LogoutButton from "../ops/LogoutButton";
 
 export const metadata = {
-  title: "NZU Admin - 승부예측 설정",
+  title: "HOSAGA Admin - 승부예측 설정",
 };
 
 export default async function AdminPredictionPage() {

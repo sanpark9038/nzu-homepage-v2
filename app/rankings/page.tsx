@@ -9,8 +9,8 @@ import path from "node:path";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "NZU - 순위",
-  description: "늪지대 NZU 대회 팀 및 선수 순위",
+  title: "HOSAGA - 순위",
+  description: "호사가 HOSAGA 대회 팀 및 선수 순위",
 };
 
 const STANDINGS_PATH = path.join(

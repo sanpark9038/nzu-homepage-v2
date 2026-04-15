@@ -9,7 +9,7 @@ import RecentEloMatches from "@/components/stats/RecentEloMatches";
 export const revalidate = 60;
 
 export const metadata = {
-  title: "엔트리 전적 — NZU",
+  title: "엔트리 전적 — HOSAGA",
 };
 
 export default async function EntryPage() {
@@ -62,12 +62,12 @@ export default async function EntryPage() {
               <div className="flex flex-col gap-3">
                  <div className="flex items-center gap-3">
                     <div className="w-2 h-2 rounded-full bg-nzu-green shadow-[0_0_10px_#2ed573]" />
-                    <span className="text-[10px] text-nzu-green font-black tracking-[0.5em] uppercase leading-none">NZU 코어 시스템</span>
+                    <span className="text-[10px] text-nzu-green font-black tracking-[0.5em] uppercase leading-none">HOSAGA 코어 시스템</span>
                  </div>
                  <p className="text-[10px] text-white/20 font-bold uppercase tracking-widest leading-none ml-5">데이터 인프라 가동 중</p>
               </div>
               <div className="flex flex-col items-center md:items-end gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
-                <p>© 2025 NZU · 글로벌 아카이브 모듈</p>
+                <p>© 2025 HOSAGA · 글로벌 아카이브 모듈</p>
                 <p className="text-nzu-green/40">산박 대표님을 위한 박부장의 명품 설계</p>
               </div>
           </div>
