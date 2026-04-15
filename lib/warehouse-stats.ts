@@ -252,7 +252,7 @@ function byPlayer<T extends { playerEntityId: string; playerName: string }>(
 export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStatsResult {
   const from = filters.from || "2025-01-01";
   const to = filters.to || new Date().toISOString().slice(0, 10);
-  const team = filters.team || "nzu";
+  const team = filters.team || "all";
   const playerEntityId = filters.playerEntityId || "";
   const playerName = filters.playerName || "";
   const includeDaily = filters.includeDaily !== false;
