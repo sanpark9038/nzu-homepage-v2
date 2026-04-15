@@ -1,212 +1,35 @@
-# NZU Data Pipeline Brief
+# HOSAGA Data Pipeline Brief
 
 ## Purpose
-- Collect accurate player metadata and match records from ELOBoard-derived sources.
-- Keep the website fast by serving stored data from Supabase instead of scraping at request time.
-- Support both scheduled GitHub Actions execution and manual refresh when needed.
+
+- Collect accurate player metadata and match records from source sites.
+- Keep the website fast by serving validated stored data instead of runtime scraping.
+- Support both scheduled execution and manual operator refresh.
 
 ## Current Operating Model
-- Primary daily execution runs in GitHub Actions (`NZU Ops Pipeline`).
-- Manual refresh still exists as an operator fallback and verification path.
-- The pipeline collects updates, validates them, updates local metadata, and pushes the approved result to Supabase.
-- The website reads from Supabase only.
 
-## Primary Command Set
-1. Manual refresh:
+- Primary execution runs in GitHub Actions for the HOSAGA ops pipeline.
+- Manual refresh exists as an operator fallback and verification path.
+- The pipeline collects updates, validates them, updates local metadata, and can push approved data to Supabase.
+- The public site reads from Supabase.
+
+## Primary Commands
+
 ```bash
 npm run pipeline:manual:refresh
-```
-
-2. Check latest status:
-```bash
 npm run pipeline:status
-```
-
-3. Verify Discord summary locally:
-```bash
 npm run pipeline:verify:discord
 ```
 
-## Primary Scheduled Workflow
+## Main Workflow Pieces
 
-- Workflow: `NZU Ops Pipeline`
-- File:
-  - `.github/workflows/ops-pipeline-cache.yml`
-- Trigger:
-  - scheduled daily run
-  - manual `workflow_dispatch`
+- Roster sync: `scripts/tools/sync-team-roster-metadata.js`
+- Chunked collection: `scripts/tools/run-ops-pipeline-chunked.js`
+- Manual refresh wrapper: `scripts/tools/run-manual-refresh.js`
+- Approved push: `scripts/tools/push-supabase-approved.js`
 
-The workflow currently runs:
-1. `npm ci`
-2. `npm run test:pipeline:daily`
-3. `npm run validate:pipeline-alert-rules`
-4. `npm run pipeline:manual:refresh`
-5. `npm run pipeline:status`
-6. Discord summary send
-7. Discord summary verification to GitHub Actions Summary
-8. artifact upload + cache save
+## Main Outputs
 
-## What `pipeline:manual:refresh` Does
-`pipeline:manual:refresh` runs [scripts/tools/run-manual-refresh.js](/C:/Users/NZU/Desktop/nzu-homepage/scripts/tools/run-manual-refresh.js).
-
-That script runs these two steps in sequence:
-
-1. Chunked collection:
-```bash
-node scripts/tools/run-ops-pipeline-chunked.js --chunk-size 3 --inactive-skip-days 14
-```
-
-2. Approved Supabase push:
-```bash
-node scripts/tools/push-supabase-approved.js --approved
-```
-
-## Collection Pipeline Flow
-The chunked collector is [scripts/tools/run-ops-pipeline-chunked.js](/C:/Users/NZU/Desktop/nzu-homepage/scripts/tools/run-ops-pipeline-chunked.js).
-
-Its flow is:
-
-1. Run roster sync once:
-```bash
-node scripts/tools/sync-team-roster-metadata.js
-```
-
-2. Run display alias normalization once per team:
-```bash
-node scripts/tools/apply-player-display-aliases.js --project <team>
-```
-
-3. Split teams into chunks of 3.
-
-4. For each chunk, call:
-```bash
-node scripts/tools/run-ops-pipeline.js --skip-supabase --no-discord --teams <chunk teams> --date-tag <run_tag> --no-roster-sync --no-display-alias --no-team-table --no-organize --inactive-skip-days 14
-```
-
-5. Merge chunk outputs into one daily snapshot:
-```bash
-node scripts/tools/merge-chunked-daily-reports.js --output-date <YYYY-MM-DD> --chunk-date-tags <chunk tags>
-```
-
-6. Update player check-priority metadata:
-```bash
-node scripts/tools/update-player-check-priority.js --teams <all teams>
-```
-
-7. Push local results to Supabase staging and then production:
-```bash
-node scripts/tools/supabase-staging-sync.js
-node scripts/tools/supabase-prod-sync.js
-```
-
-## Incremental Collection Strategy
-The pipeline is not designed to fully rebuild every player every time.
-
-It uses incremental collection based on player-level metadata:
-- `last_checked_at`
-- `last_match_at`
-- `last_changed_at`
-- `check_priority`
-- `check_interval_days`
-
-Current priority rules:
-- Recent match within 14 days: `high`, check every 1 day
-- Last match 15-45 days ago: `normal`, check every 3 days
-- Last match 46+ days ago: `low`, check every 7 days
-
-If a player is still inside the priority window and previous exported JSON exists, the pipeline reuses the existing record instead of refetching it.
-
-## Identity / Collision Handling
-The pipeline does not rely on raw `wr_id` alone.
-
-It uses `entity_id` as the primary identity key.
-
-This is important because identical numeric IDs can refer to different people depending on source section:
-- female player page
-- male player page within the women site
-- male site player page
-
-Therefore exclusions and lookups follow:
-1. `entity_id` exact match first
-2. fallback to `wr_id + name` only when needed
-
-This prevents false exclusions such as players sharing the same numeric ID across different source namespaces.
-
-## Data Sources and Storage
-### Local metadata
-- Player metadata:
-  - `data/metadata/projects/*/players.*.v1.json`
-
-### Local exported match artifacts
-- Detailed match JSON:
-  - `tmp/exports/*/json/*_matches.json`
-- Detailed match CSV:
-  - `tmp/exports/*/csv/*_상세전적*.csv`
-
-### Local reports
-- Daily snapshots and alerts:
-  - `tmp/reports/*`
-
-### Remote storage
-- Supabase `players_staging`
-- Supabase `players`
-
-## Supabase Fields Currently Synced
-Each player sync includes:
-- `eloboard_id`
-- `name`
-- `tier`
-- `race`
-- `university`
-- `gender`
-- `photo_url`
-- `last_checked_at`
-- `last_match_at`
-- `last_changed_at`
-- `check_priority`
-- `check_interval_days`
-
-## Website Behavior
-The website is expected to:
-- read from Supabase only
-- avoid runtime scraping
-- render player and match data from stored records
-
-This keeps the site light and fast even if collection takes minutes or tens of minutes offline.
-
-## Current Strengths
-- Identity collision handling is already implemented.
-- Incremental refresh exists.
-- Detailed match metadata is accumulated and reused through cache/artifacts.
-- Supabase sync path is operational.
-- Scheduled GitHub Actions execution is operational.
-- Manual refresh mode is still available as fallback.
-- The website can stay fast because it only consumes stored data.
-
-## Current Limitations
-- GitHub Actions state still depends on cache/artifact continuity.
-- If cache/rules drift occurs, alert/snapshot consistency can be affected.
-- Manual refresh is fallback, not the primary daily path.
-- Current operation prioritizes accuracy over minimal runtime.
-- `pipeline:status` is mainly an operational summary, not a full player-by-player diff report.
-
-## Latest Validation Summary
-Latest validated pipeline runs produced:
-- chunked collection report
-- merged daily snapshot
-- Discord daily summary
-- GitHub Actions Summary verification output
-- successful Supabase staging and production sync
-
-This means:
-- the command chain works in current GitHub Actions operation
-- Supabase receives refreshed data
-- the deployed website can show new data after scheduled or manual refresh, as long as it reads from Supabase
-
-## Recommended Interpretation
-This system should be understood as:
-- a stateful ETL pipeline with GitHub Actions as the primary runner
-- feeding Supabase as the serving database
-- with the website acting as a read-only consumer of the stored dataset
-
-It is not a real-time scraper. It is also not a stateless batch job, because it still depends on persisted cache, reports, and evolving metadata state.
+- `tmp/reports/daily_pipeline_snapshot_YYYY-MM-DD.json`
+- `tmp/reports/daily_pipeline_alerts_YYYY-MM-DD.json`
+- `tmp/reports/team_roster_sync_report.json`

@@ -7,8 +7,8 @@ const CONFLICT_JSON_PATH = path.join(ROOT, "tmp", "metadata_gender_conflicts.jso
 const OUT_JSON = path.join(ROOT, "tmp", "metadata_conflict_resolution_proposal.json");
 const OUT_CSV = path.join(ROOT, "tmp", "metadata_conflict_resolution_proposal.csv");
 
-// Live-verified NZU roster mapping snapshot (2026-03-20)
-const VERIFIED_NZU = {
+// Live-verified historical roster mapping snapshot (2026-03-20)
+const VERIFIED_HISTORICAL_ROSTER = {
   "671:female": "쌍디",
   "150:male": "인치호",
   "100:male": "전흥식",
@@ -64,10 +64,10 @@ function main() {
       reason: "default_policy_keep_composite_key",
     }));
 
-    // If same name appears on both genders and NZU verified mapping provides exact side, drop opposite side.
+    // If same name appears on both genders and the verified mapping provides exact side, drop the opposite side.
     const sameNameBothGenders = names.length === 1 && genders.length > 1;
     if (sameNameBothGenders) {
-      const preferredKey = Object.keys(VERIFIED_NZU).find((k) => k.startsWith(`${wrId}:`));
+      const preferredKey = Object.keys(VERIFIED_HISTORICAL_ROSTER).find((k) => k.startsWith(`${wrId}:`));
       if (preferredKey) {
         for (const item of rowActions) {
           const isPreferred = keyOf(item.wr_id, item.gender) === preferredKey;

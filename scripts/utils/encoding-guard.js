@@ -1,5 +1,5 @@
 /**
- * NZU 인코딩 가드
+ * HOSAGA encoding guard
  * ---
  * 터미널(CP949) vs IDE(UTF-8) 혼용 환경에서 한글 데이터 깨짐을 방지합니다.
  * 

@@ -1,8 +1,7 @@
-# TMP 운영 규칙 (NZU)
+# TMP Operation Rules
 
-1. 디버깅용 HTML 추출 파일(`tmp/*.html`)은 1회성 확인 후 즉시 삭제한다.
-2. `tmp` 내 텍스트/로그 파일(`*.txt`, `*.log`)이 100KB를 초과하면 장기 보관하지 않는다.
-3. 분석 중간 산출물은 가능한 JSON으로 저장하고, 최종 보존본만 유지한다.
-4. 커밋 전 `tmp` 폴더를 점검해 대용량 디버깅 파일이 남아 있지 않은지 확인한다.
-5. 보존 대상 파일은 명시적으로 관리한다.
-   - 예: `tmp/final_clean.json`
+1. Temporary HTML captures under `tmp/` should be treated as short-lived debugging artifacts.
+2. Large temporary text and log files should be cleaned when they are no longer needed.
+3. JSON outputs kept under `tmp/` should support report inspection or debugging only.
+4. Do not rely on `tmp/` artifacts as long-term source-of-truth data.
+5. Promote anything durable into `data/metadata/` or documented pipeline outputs.

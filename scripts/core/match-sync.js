@@ -3,7 +3,7 @@ const cheerio = require('cheerio');
 const { supabase } = require('../utils/db');
 
 /**
- * NZU Match Sync Core (Clean Start Edition)
+ * HOSAGA Match Sync Core (Clean Start Edition)
  * 최적화:
  * 1. 한 경기를 P1, P2 양쪽 관점에서 넣을 때 발생하는 중복 삽입 에러(ON CONFLICT) 방지
  * 2. UNIQUE 인덱스 충돌 방지를 위해 메모리 내에서 1차 중복 제거 후 삽입
@@ -29,7 +29,7 @@ async function scrapeMatches() {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
 
-    console.log(`🚀 NZU Clean Match Sync Starting...`);
+    console.log(`🚀 HOSAGA Clean Match Sync Starting...`);
     let totalMatchesStored = 0;
 
     try {

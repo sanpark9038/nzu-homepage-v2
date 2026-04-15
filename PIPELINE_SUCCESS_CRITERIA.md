@@ -1,4 +1,4 @@
-# NZU Pipeline Success Criteria
+# HOSAGA Pipeline Success Criteria
 
 ## Goal
 - Stable collection
