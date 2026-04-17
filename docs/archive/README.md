@@ -42,3 +42,13 @@ These files were moved out of the repo root on 2026-04-17 to keep the root focus
 Loose root artifacts that were not part of the live app or doc flow were moved to:
 
 - `tmp/archive/root-artifacts/`
+
+## Archived Docs Folder Notes
+
+The following `docs/` files were moved here on 2026-04-17 because they were no longer referenced by active runbooks or contracts:
+
+- `admin-routes.md`
+- `CURRENT_SYSTEM_PROBLEMS.md`
+- `EXPERT_HELP_BRIEF.md`
+- `navigation-menu-log.md`
+- `tournament-ops-checklist.md`

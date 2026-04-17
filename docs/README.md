@@ -13,6 +13,7 @@ This folder is the entry point for living documentation.
 - [data/metadata/README.md](../data/metadata/README.md): reusable metadata contract
 - [DOCS_CLEANUP_PLAN.md](../DOCS_CLEANUP_PLAN.md): cleanup sequencing and archive policy
 - [archive/README.md](./archive/README.md): archived handoffs, reviews, and one-off notes
+- [screenshots/README.md](./screenshots/README.md): local screenshot policy for ad hoc captures
 
 ## Archive Policy
 
