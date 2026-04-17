@@ -15,9 +15,20 @@ Use this when resuming work the next day.
 npm run pipeline:health
 npm run pipeline:status
 npm run pipeline:verify:discord
+npm run ops:watchlist
 npm run test:pipeline:daily
 npm run validate:pipeline-alert-rules
 ```
+
+## Observation Mode
+
+Use this when the system is stable and the goal is to watch for regressions rather than make changes.
+
+1. Confirm the latest `SOOP Live Sync` run is `success`.
+2. Confirm the latest `NZU Ops Pipeline` run is `success`.
+3. Check Discord summary tone and ordering.
+4. Spot-check `/tier`, `/player`, and `/match`.
+5. Review latest local reports only if an anomaly appears.
 
 ## Manual Recovery Path
 

@@ -97,6 +97,7 @@
     "pipeline:discord-alerts": "node scripts/tools/report-pipeline-discord-alerts.js",
     "pipeline:inventory": "node scripts/tools/report-pipeline-script-inventory.js",
     "pipeline:runtime-flow": "node scripts/tools/report-pipeline-runtime-flow.js",
+    "ops:watchlist": "node scripts/tools/print-ops-watch-checklist.js",
     "reports:prune:artifact-dirs": "node scripts/tools/prune-tmp-report-artifact-dirs.js",
     "reports:prune:artifact-zips": "node scripts/tools/prune-tmp-report-artifact-zips.js",
     "reports:prune": "node scripts/tools/prune-tmp-reports.js",

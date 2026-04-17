@@ -21,6 +21,7 @@ npm run pipeline:manual:refresh
 npm run pipeline:manual:refresh:with-sync
 npm run pipeline:status
 npm run pipeline:verify:discord
+npm run ops:watchlist
 ```
 
 ## Core Scripts
@@ -62,6 +63,13 @@ npm run pipeline:verify:discord
 - `npm run validate:pipeline-alert-rules`
 - `npm run pipeline:status`
 - `npm run pipeline:verify:discord`
+
+## Observation Mode
+
+- Prefer monitoring over intervention when recent builds, tests, and workflows are green.
+- Watch `SOOP Live Sync` and `NZU Ops Pipeline` first.
+- Only inspect local reports when the Discord summary or a UI page looks wrong.
+- Use `npm run ops:watchlist` for the current watch checklist.
 
 ## Local Maintenance
 
