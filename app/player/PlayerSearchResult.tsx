@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
 import { type Player } from "@/lib/player-service";
 import { cn, normalizeTier } from "@/lib/utils";
-import { resolveSoopChannelImageUrl, resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
+import { buildSoopThumbnailProxyUrl, resolveSoopChannelImageUrl, resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
 import { getUniversityLabel } from "@/lib/university-config";
 
 type RaceSummary = {
@@ -38,8 +38,6 @@ type SpawnPartnerSummary = {
   wins: number;
   losses: number;
 } | null;
-
-type SpawnPartnerCard = NonNullable<SpawnPartnerSummary>;
 
 type RecentLog = {
   id: string;
@@ -90,6 +88,13 @@ function formatLiveElapsed(value: string | null | undefined) {
 }
 
 export default function PlayerSearchResult({
+  defaultExpanded = false,
+  ...props
+}: Props) {
+  return <PlayerSearchResultInner key={`${props.player.id}:${props.player.live_thumbnail_url || ""}:${props.recentLogs.length}:${defaultExpanded ? "1" : "0"}`} defaultExpanded={defaultExpanded} {...props} />;
+}
+
+function PlayerSearchResultInner({
   player,
   raceSummaries,
   strongestMap,
@@ -102,7 +107,7 @@ export default function PlayerSearchResult({
 }: Props) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [visibleRecentCount, setVisibleRecentCount] = useState(5);
-  const [thumbnailFailed, setThumbnailFailed] = useState(false);
+  const [failedThumbnailSrc, setFailedThumbnailSrc] = useState<string | null>(null);
   const normTier = normalizeTier(player.tier);
   const isElite = ["갓", "킹"].includes(normTier);
   const themeColor = isElite ? "rgba(255, 215, 0, 0.28)" : "rgba(0, 255, 163, 0.22)";
@@ -115,21 +120,11 @@ export default function PlayerSearchResult({
   const hasSpawnPartner = Boolean(spawnPartner);
   const channelUrl = resolveSoopChannelUrl(player);
   const liveWatchUrl = player.is_live ? resolveSoopWatchUrl(player) : null;
+  const liveThumbnailUrl = buildSoopThumbnailProxyUrl(player.live_thumbnail_url) || player.live_thumbnail_url || "";
+  const canShowLiveThumbnail = Boolean(liveThumbnailUrl) && failedThumbnailSrc !== liveThumbnailUrl;
   const liveElapsedText = formatLiveElapsed(player.live_started_at);
   const profileImageUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "/placeholder-player.png";
   const universityLabel = getUniversityLabel(player.university);
-
-  useEffect(() => {
-    setVisibleRecentCount(5);
-  }, [player.id, recentLogs.length]);
-
-  useEffect(() => {
-    setIsExpanded(defaultExpanded);
-  }, [defaultExpanded, player.id]);
-
-  useEffect(() => {
-    setThumbnailFailed(false);
-  }, [player.id, player.live_thumbnail_url]);
 
   function handleToggleExpanded() {
     setIsExpanded((prev) => {
@@ -155,14 +150,14 @@ export default function PlayerSearchResult({
               )}
               {player.is_live ? (
                 <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:hidden">
-                  {player.live_thumbnail_url && !thumbnailFailed ? (
+                  {canShowLiveThumbnail ? (
                     <Image
-                      src={player.live_thumbnail_url}
+                      src={liveThumbnailUrl}
                       alt={`${player.name} live thumbnail`}
                       fill
                       unoptimized
                       className="object-cover"
-                      onError={() => setThumbnailFailed(true)}
+                      onError={() => setFailedThumbnailSrc(liveThumbnailUrl)}
                     />
                   ) : (
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,14,18,0.22),rgba(3,6,8,0.88))]" />
@@ -183,14 +178,14 @@ export default function PlayerSearchResult({
             {player.is_live ? (
               <div className="pointer-events-none absolute bottom-[calc(100%+0.9rem)] left-[-1rem] z-20 hidden w-[29rem] overflow-hidden rounded-[1rem] border border-white/10 bg-[#061015] opacity-0 shadow-[0_20px_45px_rgba(0,0,0,0.38)] transition-all duration-200 md:block md:translate-y-2 md:scale-[0.98] group-hover:translate-y-0 group-hover:scale-100 group-hover:opacity-100">
                 <div className="relative aspect-[16/9] w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
-                  {player.live_thumbnail_url && !thumbnailFailed ? (
+                  {canShowLiveThumbnail ? (
                     <Image
-                      src={player.live_thumbnail_url}
+                      src={liveThumbnailUrl}
                       alt={`${player.name} live preview`}
                       fill
                       unoptimized
                       className="object-cover"
-                      onError={() => setThumbnailFailed(true)}
+                      onError={() => setFailedThumbnailSrc(liveThumbnailUrl)}
                     />
                   ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />

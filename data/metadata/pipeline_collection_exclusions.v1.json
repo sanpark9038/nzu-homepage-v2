@@ -131,11 +131,52 @@
       "updated_at": "2026-04-10T00:00:00.000Z"
     },
     {
+      "name": "뀨알",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
       "entity_id": "eloboard:male:66",
       "wr_id": 66,
       "name": "박지수",
       "reason": "user_excluded",
       "updated_at": "2026-04-10T00:30:00.000Z"
+    }
+    ,
+    {
+      "entity_id": "eloboard:male:118",
+      "wr_id": 118,
+      "name": "\uAE40\uC218\uD658",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:256",
+      "wr_id": 256,
+      "name": "\uC218\uC785\uBFCC\uB4DC",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:329",
+      "wr_id": 329,
+      "name": "\uCE74\uB9AC\uC2A4",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:347",
+      "wr_id": 347,
+      "name": "\uD2B8\uD560",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:female:856",
+      "wr_id": 856,
+      "name": "\uD55C\uC18C\uB054",
+      "reason": "user_excluded",
+      "updated_at": "2026-04-17T00:00:00.000Z"
     }
   ]
 }

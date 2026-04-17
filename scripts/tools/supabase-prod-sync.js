@@ -358,6 +358,46 @@ function parseMatchHistoryFromStableCsv(sourceFile) {
   });
 }
 
+function buildStableCsvIndex() {
+  if (!fs.existsSync(TMP_DIR)) return new Map();
+  const byWrId = new Map();
+  for (const fileName of fs.readdirSync(TMP_DIR)) {
+    const mixMatch = fileName.match(/^eloboard_(male|female)_mix_(\d+)_/i);
+    const defaultMatch = fileName.match(/^eloboard_(male|female)_(\d+)_/i);
+    const match = mixMatch || defaultMatch;
+    if (!match || !fileName.toLowerCase().endsWith('.csv')) continue;
+    const entry = {
+      fileName,
+      gender: String(match[1] || '').toLowerCase(),
+      wrId: String(match[2] || ''),
+      isMix: Boolean(mixMatch),
+    };
+    const bucket = byWrId.get(entry.wrId) || [];
+    bucket.push(entry);
+    byWrId.set(entry.wrId, bucket);
+  }
+  return byWrId;
+}
+
+function findStableCsvSourceFile(playerRow, stableCsvIndex) {
+  const wrId = extractWrId(playerRow && playerRow.eloboard_id);
+  if (!wrId) return null;
+  const candidates = stableCsvIndex.get(String(wrId)) || [];
+  if (!candidates.length) return null;
+
+  const entityId = String(playerRow && playerRow.eloboard_id ? playerRow.eloboard_id : '').trim();
+  const gender = String(playerRow && playerRow.gender ? playerRow.gender : '').trim().toLowerCase();
+  const wantsMix = isMixEntityId(entityId);
+
+  const exact = candidates.find((candidate) => candidate.gender === gender && candidate.isMix === wantsMix);
+  if (exact) return exact.fileName;
+
+  const sameGender = candidates.find((candidate) => candidate.gender === gender);
+  if (sameGender) return sameGender.fileName;
+
+  return candidates[0].fileName;
+}
+
 function buildDetailedStats(history) {
   const race_stats = {
     T: { w: 0, l: 0 },
@@ -393,10 +433,11 @@ function buildDetailedStats(history) {
   };
 }
 
-function buildServingStatsByName() {
+function buildServingStatsByName(players = []) {
   const rows = readCsv(FACT_MATCHES_PATH);
   const byName = new Map();
   const sourceFileByName = new Map();
+  const stableCsvIndex = buildStableCsvIndex();
 
   for (const row of rows) {
     const name = normalizeName(row.player_name);
@@ -438,6 +479,20 @@ function buildServingStatsByName() {
       const byDate = String(b.match_date || '').localeCompare(String(a.match_date || ''));
       if (byDate !== 0) return byDate;
       return Number(a.source_row_no || 0) - Number(b.source_row_no || 0);
+    });
+  }
+
+  for (const player of Array.isArray(players) ? players : []) {
+    const name = normalizeName(player && player.name ? player.name : '');
+    if (!name || byName.has(name)) continue;
+    const stableSourceFile = findStableCsvSourceFile(player, stableCsvIndex);
+    const stableHistory = parseMatchHistoryFromStableCsv(stableSourceFile);
+    if (!Array.isArray(stableHistory) || !stableHistory.length) continue;
+    const wins = stableHistory.filter((item) => item.is_win).length;
+    byName.set(name, {
+      wins,
+      losses: stableHistory.length - wins,
+      history: stableHistory,
     });
   }
 
@@ -491,7 +546,6 @@ function loadExpectedLocalVisibleCount() {
 
 async function main() {
   console.log('--- Production Sync Started ---');
-  const servingStatsByName = buildServingStatsByName();
   const soopLookup = buildSoopLookup();
 
   // 1) Fetch source from staging
@@ -499,6 +553,7 @@ async function main() {
     .from('players_staging')
     .select('eloboard_id,name,tier,race,university,gender,photo_url,is_live,last_checked_at,last_match_at,last_changed_at,check_priority,check_interval_days');
   if (stagingErr) throw stagingErr;
+  const servingStatsByName = buildServingStatsByName(stagingData || []);
 
   const sanitized = (stagingData || [])
     .map((row) => ({

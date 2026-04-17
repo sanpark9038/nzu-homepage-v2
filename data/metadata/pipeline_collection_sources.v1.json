@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "description": "Primary external pages and collection methods used by the NZU pipeline.",
+  "sources": [
+    {
+      "id": "team_index",
+      "role": "team auto-discovery",
+      "url": "https://eloboard.com/univ/bbs/board.php?bo_table=all_bj_list",
+      "consumed_by": [
+        "scripts/tools/lib/team-project-discovery.js"
+      ],
+      "method": "Fetch HTML, decode UTF-8 or EUC-KR, regex-scan links containing univ_name, create missing project roster files.",
+      "outputs": [
+        "data/metadata/projects/*/players.*.v1.json",
+        "tmp/reports/team_auto_discovery_report.json"
+      ]
+    },
+    {
+      "id": "team_roster_page",
+      "role": "per-team roster snapshot",
+      "url_pattern": "https://eloboard.com/univ/bbs/board.php?bo_table=all_bj_list&univ_name=<team_name>",
+      "consumed_by": [
+        "scripts/tools/report-team-records.js"
+      ],
+      "method": "Fetch roster page HTML, parse player rows and profile links, resolve wr_id/profile_url/tier per player.",
+      "outputs": [
+        "in-memory roster for collection",
+        "tmp/.cache/roster_report_cache.json"
+      ]
+    },
+    {
+      "id": "player_profile_page",
+      "role": "player summary and paginated match history bootstrap",
+      "url_pattern": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=<wr_id> or mix/men variants",
+      "consumed_by": [
+        "scripts/tools/report-team-records.js"
+      ],
+      "method": "Fetch profile page HTML, parse display stats, resolve p_name, inspect initial list-board rows and next last_id anchor.",
+      "outputs": [
+        "player period stats",
+        "initial match rows",
+        "scan metadata such as endpoint, mode, validation flags"
+      ]
+    },
+    {
+      "id": "player_paginated_history",
+      "role": "full match history collection",
+      "url_pattern": "https://eloboard.com/<women|men>/bbs/<view_list.php|mix_view_list.php>",
+      "consumed_by": [
+        "scripts/tools/report-team-records.js"
+      ],
+      "method": "POST p_name and last_id, parse paginated rows, continue until exhausted, older than start date, or cache anchor is reached.",
+      "outputs": [
+        "tmp/<team>_<player>_matches.json via export-team-roster-detailed.js",
+        "period_total / wins / losses / min_date / max_date"
+      ]
+    },
+    {
+      "id": "player_match_csv_export",
+      "role": "player-level CSV export from collected JSON",
+      "consumed_by": [
+        "scripts/tools/export-player-matches-csv.js",
+        "scripts/tools/export-team-roster-detailed.js"
+      ],
+      "method": "Transform collected per-player JSON into stable CSV export files.",
+      "outputs": [
+        "tmp/*_matches.csv"
+      ]
+    },
+    {
+      "id": "soop_live_state",
+      "role": "live thumbnail/live-state enrichment",
+      "consumed_by": [
+        "scripts/tools/generate-soop-live-snapshot.js",
+        "scripts/tools/sync-soop-live-state-to-supabase.js"
+      ],
+      "method": "Separate SOOP live-state collection path used for live sync, not for core match-history collection.",
+      "outputs": [
+        "data/metadata/soop_live_snapshot.generated.v1.json"
+      ]
+    }
+  ]
+}

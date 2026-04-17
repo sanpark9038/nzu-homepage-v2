@@ -12,6 +12,7 @@ This folder is the entry point for living documentation.
 - [PIPELINE_DATA_CONTRACT.md](../PIPELINE_DATA_CONTRACT.md): serving contract for current and future sites
 - [data/metadata/README.md](../data/metadata/README.md): reusable metadata contract
 - [DOCS_CLEANUP_PLAN.md](../DOCS_CLEANUP_PLAN.md): cleanup sequencing and archive policy
+- [archive/README.md](./archive/README.md): archived handoffs, reviews, and one-off notes
 
 ## Archive Policy
 

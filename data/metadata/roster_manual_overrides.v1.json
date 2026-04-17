@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-04-08T06:24:40.411Z",
+  "updated_at": "2026-04-17T00:00:00.000Z",
   "description": "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
   "overrides": [
     {
@@ -670,6 +670,108 @@
       "manual_lock": true,
       "manual_mode": "temporary",
       "updated_at": "2026-04-08T06:24:40.411Z"
+    },
+    {
+      "entity_id": "eloboard:male:75",
+      "name": "김봉준",
+      "team_code": "fa",
+      "tier": "스페이드",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review.",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:180",
+      "name": "김기덕",
+      "team_code": "fa",
+      "tier": "조커",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review.",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:171",
+      "name": "김수식",
+      "team_code": "fa",
+      "tier": "잭",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review.",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:136",
+      "name": "김인호",
+      "team_code": "fa",
+      "tier": "3",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review.",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:26",
+      "name": "원선재",
+      "team_code": "fa",
+      "tier": "킹",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review.",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:17",
+      "name": "이영웅",
+      "team_code": "fa",
+      "tier": "킹",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review.",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:122",
+      "name": "이윤열",
+      "team_code": "fa",
+      "tier": "스페이드",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review.",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:69",
+      "name": "클템",
+      "team_code": "fa",
+      "tier": "2",
+      "race": "Terran",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review.",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:female:466",
+      "name": "서윤",
+      "team_code": "fa",
+      "tier": "6",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Confirmed FA tier from manual review.",
+      "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:male:205",
+      "name": "??",
+      "team_code": "ku",
+      "tier": "8",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Canonical identity mapping: keep ku/?? on male:205 and retire duplicate mix entity from roster sync alerts.",
+      "legacy_entity_ids": [
+        "eloboard:male:mix:205"
+      ]
     }
   ]
 }

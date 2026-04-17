@@ -78,8 +78,8 @@ The assistant could directly:
 
 Examples already created:
 - [ops-pipeline-cache.yml](/C:/Users/NZU/Desktop/nzu-homepage/.github/workflows/ops-pipeline-cache.yml)
-- [GITHUB_ACTIONS_PIPELINE_REVIEW.md](/C:/Users/NZU/Desktop/nzu-homepage/GITHUB_ACTIONS_PIPELINE_REVIEW.md)
-- [GITHUB_ACTIONS_CACHE_REVIEW.md](/C:/Users/NZU/Desktop/nzu-homepage/GITHUB_ACTIONS_CACHE_REVIEW.md)
+- [GITHUB_ACTIONS_PIPELINE_REVIEW.md](./GITHUB_ACTIONS_PIPELINE_REVIEW.md)
+- [GITHUB_ACTIONS_CACHE_REVIEW.md](./GITHUB_ACTIONS_CACHE_REVIEW.md)
 
 ## What The Assistant Could Not Fully Do Directly
 The assistant could not fully complete external GitHub-side operations that require repository account actions outside the local workspace, such as:

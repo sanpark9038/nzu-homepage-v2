@@ -20,7 +20,13 @@ The right order is:
 
 ## Likely Archive Candidates
 
-These look useful as historical notes, but should not remain top-level forever.
+These still need classification, but do not have to stay top-level forever.
+
+- none at the repo root right now
+
+## Archived On 2026-04-17
+
+The first archive pass moved these root-level notes into `docs/archive/`:
 
 - `GITHUB_ACTIONS_CACHE_REVIEW.md`
 - `GITHUB_ACTIONS_DEBUG_CHUNK1_SUCCESS.md`
@@ -29,15 +35,13 @@ These look useful as historical notes, but should not remain top-level forever.
 - `GITHUB_ACTIONS_PIPELINE_REVIEW.md`
 - `GITHUB_ACTIONS_RECONSIDERATION_NOTE.md`
 - `HANDOFF_PHASE2_SUPABASE_INTEGRATION_2026-03-23.md`
-- `MAIN_AI_DIRECT_INSTRUCTION_2026-03-23.md`
-- `MAIN_AI_EXECUTION_GUARDRAILS_2026-03-23.md`
-- `MAIN_AI_HOMEPAGE_SUPABASE_INTEGRATION_HANDOFF_2026-03-23.md`
 - `MAIN_AI_SUPABASE_AUTOMATION_HANDOFF.md`
 - `MAIN_AI_UI_BRIEFING.md`
 - `MAIN_AI_UI_ONLY_INSTRUCTION.md`
-- `MAIN_AI_UI_REDESIGN_BRIEF_2026-03-23.md`
-- `NEXT_DAY_WORK_PLAN_2026-03-19.md`
-- `NZU_TOMORROW_PLAN.md`
+- `MATCH_FEATURE_IDEAS.md`
+- `MATCH_NEXT_SESSION_BRIEF.md`
+- `SITE_SMOKE_TEST_CHECKLIST.md`
+- `TASK.md`
 - `PHASE2_WALKTHROUGH.md`
 - `SUPABASE_HANDOFF.md`
 
@@ -51,10 +55,9 @@ Only remove these after confirming they are fully superseded.
 
 ## Recommended Next Cleanup Step
 
-Do not delete documents yet.
+The next cleanup pass should:
 
-First move archive candidates into a single folder such as:
-
-- `docs/archive/`
-
-After that, update internal references and then remove anything truly obsolete.
+- review whether any new temporary notes start accumulating at the repo root again
+- fold any still-useful guidance into active docs before further moves
+- remove or archive duplicate notes only after references are verified
+- remove obsolete debug-only workflow paths once the main workflow fully supersedes them

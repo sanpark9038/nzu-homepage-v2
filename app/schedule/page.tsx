@@ -4,7 +4,7 @@ import { buildTournamentPredictionMatches } from "@/lib/tournament-prediction";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata = {
   title: "HOSAGA - 대회 일정",
@@ -31,7 +31,7 @@ function toKstDate(dateLike: string | Date) {
 }
 
 export default async function SchedulePage() {
-  const players = await playerService.getAllPlayers();
+  const players = await playerService.getCachedPlayersList();
   const matches = buildTournamentPredictionMatches(players);
 
   // 날짜별로 그룹화

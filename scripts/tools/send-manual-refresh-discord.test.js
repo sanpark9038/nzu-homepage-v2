@@ -3,7 +3,11 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const { describeAlertTone } = require("./send-manual-refresh-discord");
+const {
+  buildCollectionSourceHealthSummary,
+  comparePlayerChanges,
+  describeAlertTone,
+} = require("./send-manual-refresh-discord");
 const {
   buildIdentityMigrationLookup,
   buildLegacyEntityIdLookup,
@@ -44,6 +48,50 @@ runTest("describeAlertTone stays neutral when no alerts exist", () => {
   const actual = describeAlertTone({ critical: 0, high: 0, medium: 0, low: 0, total: 0 });
   assert.equal(actual.headlineSuffix, "");
   assert.equal(actual.followup, "");
+});
+
+runTest("buildCollectionSourceHealthSummary returns simple ok message", () => {
+  const actual = buildCollectionSourceHealthSummary({
+    checks: {
+      team_index: { ok: true },
+      team_roster_page: { ok: true },
+      player_profile_page: { ok: true },
+      player_paginated_history: { ok: true },
+    },
+  });
+  assert.equal(actual, "수집 경로 확인: 정상");
+});
+
+runTest("buildCollectionSourceHealthSummary names failed stages simply", () => {
+  const actual = buildCollectionSourceHealthSummary({
+    checks: {
+      team_index: { ok: true },
+      team_roster_page: { ok: false },
+      player_profile_page: { ok: false },
+      player_paginated_history: { ok: true },
+    },
+  });
+  assert.equal(actual, "수집 경로 확인: 팀 로스터, 선수 프로필 확인 필요");
+});
+
+runTest("comparePlayerChanges prioritizes unknown-tier resolution and FA affiliation changes", () => {
+  const ordered = comparePlayerChanges(
+    [
+      { entity_id: "a", name: "Alpha", team_name: "무소속", tier: "미정" },
+      { entity_id: "b", name: "Beta", team_name: "A팀", tier: "3티어" },
+      { entity_id: "c", name: "Gamma", team_name: "무소속", tier: "2티어" },
+      { entity_id: "d", name: "Delta", team_name: "B팀", tier: "4티어" },
+    ],
+    [
+      { entity_id: "a", name: "Alpha", team_name: "무소속", tier: "잭" },
+      { entity_id: "b", name: "Beta", team_name: "A팀", tier: "2티어" },
+      { entity_id: "c", name: "Gamma", team_name: "C팀", tier: "2티어" },
+      { entity_id: "d", name: "Delta", team_name: "E팀", tier: "4티어" },
+    ]
+  );
+
+  assert.deepEqual(ordered.tierChanges.map((row) => row.player_name), ["Alpha", "Beta"]);
+  assert.deepEqual(ordered.affiliationChanges.map((row) => row.player_name), ["Gamma", "Delta"]);
 });
 
 runTest("canonicalEntityId collapses legacy ids into the current manual-override id", () => {

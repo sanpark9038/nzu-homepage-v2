@@ -7,6 +7,8 @@ import Link from "next/link";
 import { normalizeTier, normalizeRace } from "@/lib/utils";
 import type { Player } from "@/types";
 
+export const revalidate = 300;
+
 const RACE_ORDER: Record<string, number> = {
   T: 0,
   Z: 1,
@@ -35,7 +37,7 @@ export default async function TierPage({
   const univ = params.univ;
   const tier = params.tier;
   const liveOnly = params.liveOnly === "true";
-  const allPlayers = await playerService.getAllPlayers();
+  const allPlayers = await playerService.getCachedPlayersList();
   let playerList = [...allPlayers];
 
   // Multi-Filter Logic (Intersection)

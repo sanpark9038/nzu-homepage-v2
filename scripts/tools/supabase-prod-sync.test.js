@@ -8,6 +8,7 @@ const TMP_DIR = path.join(ROOT, "tmp");
 const {
   resolveSoopServingMetadata,
   parseMatchHistoryFromStableCsv,
+  buildServingStatsByName,
 } = require("./supabase-prod-sync");
 
 function runTest(name, fn) {
@@ -92,6 +93,39 @@ runTest("parseMatchHistoryFromStableCsv keeps multiline notes in a single record
           note: "JSA VS 늪지대 미니 대학대전 1-5/3(2)",
         },
       ]
+    );
+  } finally {
+    try {
+      fs.unlinkSync(path.join(TMP_DIR, fileName));
+    } catch {}
+  }
+});
+
+runTest("buildServingStatsByName seeds players from stable csv even when fact rows are missing", () => {
+  const fileName = "eloboard_male_99999___stable_only_player__.csv";
+  try {
+    writeStableCsv(fileName, [
+      ["2026-04-10", "상대A", "T", "투혼", "승", "3/2(1)"],
+      ["2026-04-09", "상대B", "Z", "폴리포이드", "패", "3/2(2)"],
+      ["2026-04-08", "상대C", "P", "실피드", "승", "3/2(3)"],
+    ]);
+
+    const actual = buildServingStatsByName([
+      {
+        name: "__stable_only_player__",
+        eloboard_id: "eloboard:male:99999",
+        gender: "male",
+      },
+    ]);
+
+    const stats = actual.get("__stable_only_player__");
+    assert.ok(stats);
+    assert.equal(stats.wins, 2);
+    assert.equal(stats.losses, 1);
+    assert.equal(stats.history.length, 3);
+    assert.deepEqual(
+      stats.history.map((row) => row.match_date),
+      ["2026-04-10", "2026-04-09", "2026-04-08"]
     );
   } finally {
     try {

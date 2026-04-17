@@ -16,7 +16,9 @@ This folder is for historical notes that are useful for audit or context, but sh
 - active pipeline contracts
 - reusable metadata contracts
 
-## Current Root-Level Archive Candidates
+## Archived Root-Level Notes
+
+These files were moved out of the repo root on 2026-04-17 to keep the root focused on living operational docs.
 
 - `GITHUB_ACTIONS_CACHE_REVIEW.md`
 - `GITHUB_ACTIONS_DEBUG_CHUNK1_SUCCESS.md`
@@ -25,14 +27,18 @@ This folder is for historical notes that are useful for audit or context, but sh
 - `GITHUB_ACTIONS_PIPELINE_REVIEW.md`
 - `GITHUB_ACTIONS_RECONSIDERATION_NOTE.md`
 - `HANDOFF_PHASE2_SUPABASE_INTEGRATION_2026-03-23.md`
-- `MAIN_AI_DIRECT_INSTRUCTION_2026-03-23.md`
-- `MAIN_AI_EXECUTION_GUARDRAILS_2026-03-23.md`
-- `MAIN_AI_HOMEPAGE_SUPABASE_INTEGRATION_HANDOFF_2026-03-23.md`
 - `MAIN_AI_SUPABASE_AUTOMATION_HANDOFF.md`
 - `MAIN_AI_UI_BRIEFING.md`
 - `MAIN_AI_UI_ONLY_INSTRUCTION.md`
-- `MAIN_AI_UI_REDESIGN_BRIEF_2026-03-23.md`
-- `NEXT_DAY_WORK_PLAN_2026-03-19.md`
-- `NZU_TOMORROW_PLAN.md`
+- `MATCH_FEATURE_IDEAS.md`
+- `MATCH_NEXT_SESSION_BRIEF.md`
+- `SITE_SMOKE_TEST_CHECKLIST.md`
+- `TASK.md`
 - `PHASE2_WALKTHROUGH.md`
 - `SUPABASE_HANDOFF.md`
+
+## Adjacent Non-Code Artifact Archive
+
+Loose root artifacts that were not part of the live app or doc flow were moved to:
+
+- `tmp/archive/root-artifacts/`

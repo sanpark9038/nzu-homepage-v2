@@ -20,6 +20,7 @@ const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual
 const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 const MANUAL_REFRESH_REPORT_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.json");
 const OPS_PIPELINE_REPORT_PATH = path.join(REPORTS_DIR, "ops_pipeline_latest.json");
+const COLLECTION_SOURCES_HEALTH_PATH = path.join(REPORTS_DIR, "pipeline_collection_sources_health_latest.json");
 const TMP_DIR = path.join(ROOT, "tmp");
 
 function argValue(flag, fallback = null) {
@@ -151,12 +152,61 @@ function comparePlayerChanges(beforePlayers, afterPlayers) {
     });
   }
 
-  tierChanges.sort((a, b) => String(a.player_name).localeCompare(String(b.player_name), "ko"));
-  affiliationChanges.sort((a, b) => String(a.player_name).localeCompare(String(b.player_name), "ko"));
-  joiners.sort((a, b) => String(a.player_name).localeCompare(String(b.player_name), "ko"));
-  removals.sort((a, b) => String(a.player_name).localeCompare(String(b.player_name), "ko"));
+  tierChanges.sort(compareTierChangeRows);
+  affiliationChanges.sort(compareAffiliationChangeRows);
+  joiners.sort(compareRosterPresenceRows);
+  removals.sort(compareRosterPresenceRows);
 
   return { tierChanges, affiliationChanges, joiners, removals };
+}
+
+function isUnknownTierValue(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return !normalized || normalized === "미정" || normalized === "unknown" || normalized === "?";
+}
+
+function isFreeAgentTeamName(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return !normalized || normalized === "무소속" || normalized === "fa";
+}
+
+function compareKoreanText(a, b) {
+  return String(a || "").localeCompare(String(b || ""), "ko");
+}
+
+function compareTierChangeRows(a, b) {
+  const aPriority =
+    (isUnknownTierValue(a.old_tier) && !isUnknownTierValue(a.new_tier) ? 0 : 1) +
+    (isFreeAgentTeamName(a.team_name) ? 1 : 0);
+  const bPriority =
+    (isUnknownTierValue(b.old_tier) && !isUnknownTierValue(b.new_tier) ? 0 : 1) +
+    (isFreeAgentTeamName(b.team_name) ? 1 : 0);
+  if (aPriority !== bPriority) return aPriority - bPriority;
+  const teamCompare = compareKoreanText(a.team_name, b.team_name);
+  if (teamCompare !== 0) return teamCompare;
+  return compareKoreanText(a.player_name, b.player_name);
+}
+
+function compareAffiliationChangeRows(a, b) {
+  const aOldFree = isFreeAgentTeamName(a.old_team);
+  const aNewFree = isFreeAgentTeamName(a.new_team);
+  const bOldFree = isFreeAgentTeamName(b.old_team);
+  const bNewFree = isFreeAgentTeamName(b.new_team);
+  const aPriority = aOldFree !== aNewFree ? 0 : (aNewFree ? 2 : 1);
+  const bPriority = bOldFree !== bNewFree ? 0 : (bNewFree ? 2 : 1);
+  if (aPriority !== bPriority) return aPriority - bPriority;
+  const nextTeamCompare = compareKoreanText(a.new_team, b.new_team);
+  if (nextTeamCompare !== 0) return nextTeamCompare;
+  return compareKoreanText(a.player_name, b.player_name);
+}
+
+function compareRosterPresenceRows(a, b) {
+  const aPriority = isFreeAgentTeamName(a.team_name) ? 1 : 0;
+  const bPriority = isFreeAgentTeamName(b.team_name) ? 1 : 0;
+  if (aPriority !== bPriority) return aPriority - bPriority;
+  const teamCompare = compareKoreanText(a.team_name, b.team_name);
+  if (teamCompare !== 0) return teamCompare;
+  return compareKoreanText(a.player_name, b.player_name);
 }
 
 function matchFilePathForPlayer(player) {
@@ -326,9 +376,45 @@ function workflowSyncWarning() {
   return String(process.env.WORKFLOW_SYNC_WARNING || "").trim();
 }
 
+function collectionHealthCheckLabel(id) {
+  const labels = {
+    team_index: "팀 목록",
+    team_roster_page: "팀 로스터",
+    player_profile_page: "선수 프로필",
+    player_paginated_history: "전적 페이지",
+  };
+  return labels[id] || String(id || "").trim();
+}
+
+function buildCollectionSourceHealthSummary(doc) {
+  if (!doc || typeof doc !== "object") return "";
+  const checks = doc.checks && typeof doc.checks === "object" ? doc.checks : {};
+  const entries = Object.entries(checks);
+  if (!entries.length) return "";
+
+  const failed = entries.filter(([, check]) => check && !check.ok && !check.skipped);
+  if (!failed.length) {
+    return "수집 경로 확인: 정상";
+  }
+
+  const names = failed.map(([id]) => collectionHealthCheckLabel(id));
+  return `수집 경로 확인: ${names.join(", ")} 확인 필요`;
+}
+
+function pushLimitedRows(lines, rows, formatter, limit = 5) {
+  const list = Array.isArray(rows) ? rows : [];
+  for (const row of list.slice(0, limit)) {
+    lines.push(formatter(row));
+  }
+  if (list.length > limit) {
+    lines.push(`- ì™¸ ${list.length - limit}ëª…`);
+  }
+}
+
 function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const beforePlayers = loadBaselinePlayers(BASELINE_PATH);
   const afterPlayers = loadCurrentRosterState(PROJECTS_DIR);
+  const collectionHealth = readJsonIfExists(COLLECTION_SOURCES_HEALTH_PATH);
   writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
   const { tierChanges, affiliationChanges, joiners, removals } = comparePlayerChanges(beforePlayers, afterPlayers);
   const todayTop = buildTodayTopPlayers(afterPlayers);
@@ -364,6 +450,11 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     }
     lines.push("");
   }
+  const collectionHealthSummary = buildCollectionSourceHealthSummary(collectionHealth);
+  if (collectionHealthSummary) {
+    lines.push(collectionHealthSummary);
+    lines.push("");
+  }
 
   if (
     !tierChanges.length &&
@@ -382,34 +473,42 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   } else {
     if (tierChanges.length) {
       lines.push("📊 티어 변동");
-      for (const item of tierChanges) {
-        lines.push(`- ${item.player_name} (${item.team_name}) : ${item.old_tier} -> ${item.new_tier}`);
-      }
+      pushLimitedRows(
+        lines,
+        tierChanges,
+        (item) => `- ${item.player_name} (${item.team_name}) : ${item.old_tier} -> ${item.new_tier}`
+      );
       lines.push("");
     }
 
     if (affiliationChanges.length) {
       lines.push("🏠 소속 변동");
-      for (const item of affiliationChanges) {
-        lines.push(`- ${item.player_name} : ${item.old_team} -> ${item.new_team}`);
-      }
+      pushLimitedRows(
+        lines,
+        affiliationChanges,
+        (item) => `- ${item.player_name} : ${item.old_team} -> ${item.new_team}`
+      );
       lines.push("");
     }
 
     if (joinersForMessage.length) {
       lines.push("🆕 로스터 신규 편입");
-      for (const item of joinersForMessage) {
-        lines.push(`- ${item.player_name} (${item.team_name})`);
-      }
+      pushLimitedRows(
+        lines,
+        joinersForMessage,
+        (item) => `- ${item.player_name} (${item.team_name})`
+      );
       lines.push("- 기준선 대비 이번 실행에서 새로 로스터에 포함된 선수입니다.");
       lines.push("");
     }
 
     if (removals.length) {
       lines.push("📤 로스터 제외");
-      for (const item of removals) {
-        lines.push(`- ${item.player_name} (${item.team_name})`);
-      }
+      pushLimitedRows(
+        lines,
+        removals,
+        (item) => `- ${item.player_name} (${item.team_name})`
+      );
       lines.push("");
     }
 
@@ -424,9 +523,11 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     if (todayTop.players.length) {
       lines.push("");
       lines.push(`🔥 오늘 경기 수 상위 선수 (${todayTop.targetDate})`);
-      for (const item of todayTop.players) {
-        lines.push(`- ${item.player_name} (${item.team_name}) : ${item.today_matches}경기`);
-      }
+      pushLimitedRows(
+        lines,
+        todayTop.players,
+        (item) => `- ${item.player_name} (${item.team_name}) : ${item.today_matches}??`
+      );
     }
   }
 
@@ -449,6 +550,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
 
 function buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport }) {
   const report = readJsonIfExists(MANUAL_REFRESH_REPORT_PATH);
+  const collectionHealth = readJsonIfExists(COLLECTION_SOURCES_HEALTH_PATH);
   const dateLabel = dateLabelFromManualRefreshReport(report) || dateLabelFromSnapshot(snapshot);
   const opsFailureStep =
     opsPipelineReport && opsPipelineReport.failure_step && typeof opsPipelineReport.failure_step === "object"
@@ -467,6 +569,10 @@ function buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport })
   const syncWarning = workflowSyncWarning();
   if (syncWarning) {
     lines.push(`동기화 안내: ${syncWarning}`);
+  }
+  const collectionHealthSummary = buildCollectionSourceHealthSummary(collectionHealth);
+  if (collectionHealthSummary) {
+    lines.push(collectionHealthSummary);
   }
   if (report && report.failure_step && report.failure_step.name) {
     lines.push(`실패 단계: ${report.failure_step.name}`);
@@ -500,6 +606,140 @@ function buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport })
   return lines.join("\n");
 }
 
+function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
+  const beforePlayers = loadBaselinePlayers(BASELINE_PATH);
+  const afterPlayers = loadCurrentRosterState(PROJECTS_DIR);
+  const collectionHealth = readJsonIfExists(COLLECTION_SOURCES_HEALTH_PATH);
+  writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
+
+  const { tierChanges, affiliationChanges, joiners, removals } = comparePlayerChanges(beforePlayers, afterPlayers);
+  const todayTop = buildTodayTopPlayers(afterPlayers);
+  const summaryCheck = buildDiscordSummaryCheck({
+    reportsDir: REPORTS_DIR,
+    baselinePath: BASELINE_PATH,
+    projectsDir: PROJECTS_DIR,
+    snapshot,
+    alertsDoc,
+  });
+
+  const alertCounts = summaryCheck.alerts.counts || countAlertsBySeverity([]);
+  const alertTone = describeAlertTone(alertCounts);
+  const deltaComparable = Boolean(
+    snapshot &&
+      snapshot.delta_reference &&
+      snapshot.delta_reference.comparable
+  );
+  const newMatches = summaryCheck.new_matches_total;
+  const joinersForMessage = Array.isArray(summaryCheck.joiners) && summaryCheck.joiners.length
+    ? summaryCheck.joiners
+    : joiners;
+  const hasPrimaryChanges =
+    tierChanges.length ||
+    affiliationChanges.length ||
+    joinersForMessage.length ||
+    removals.length ||
+    (deltaComparable ? newMatches > 0 : false);
+
+  const lines = [
+    `산박대표님.일일 업데이트보고입니다. ${alertTone.headlineSuffix} (${dateLabelFromSnapshot(snapshot)})`.trim(),
+    "",
+  ];
+
+  const syncModeLabel = supabaseSyncModeLabel();
+  if (syncModeLabel) {
+    lines.push(syncModeLabel);
+    const syncWarning = workflowSyncWarning();
+    if (syncWarning) {
+      lines.push(`- ${syncWarning}`);
+    }
+    lines.push("");
+  }
+
+  const collectionHealthSummary = buildCollectionSourceHealthSummary(collectionHealth);
+  if (collectionHealthSummary) {
+    lines.push(collectionHealthSummary);
+    lines.push("");
+  }
+
+  if (!hasPrimaryChanges && !todayTop.players.length) {
+    lines.push("주요 변동 없음");
+    if (!deltaComparable) {
+      lines.push("이번 실행은 기준선 비교가 없어 신규 전적 증감은 판단하지 않았습니다.");
+    }
+  } else {
+    if (tierChanges.length) {
+      lines.push(`티어 변동: ${tierChanges.length}명`);
+      pushLimitedRows(
+        lines,
+        tierChanges,
+        (item) => `- ${item.player_name} (${item.team_name}) : ${item.old_tier} -> ${item.new_tier}`
+      );
+      lines.push("");
+    }
+
+    if (affiliationChanges.length) {
+      lines.push(`소속 변동: ${affiliationChanges.length}명`);
+      pushLimitedRows(
+        lines,
+        affiliationChanges,
+        (item) => `- ${item.player_name} : ${item.old_team} -> ${item.new_team}`
+      );
+      lines.push("");
+    }
+
+    if (joinersForMessage.length) {
+      lines.push(`신규 편입: ${joinersForMessage.length}명`);
+      pushLimitedRows(
+        lines,
+        joinersForMessage,
+        (item) => `- ${item.player_name} (${item.team_name})`
+      );
+      lines.push("");
+    }
+
+    if (removals.length) {
+      lines.push(`로스터 제외: ${removals.length}명`);
+      pushLimitedRows(
+        lines,
+        removals,
+        (item) => `- ${item.player_name} (${item.team_name})`
+      );
+      lines.push("");
+    }
+
+    lines.push("신규 전적");
+    if (deltaComparable) {
+      lines.push(`- 직전 실행 대비 새로 반영된 경기: ${newMatches}건`);
+    } else {
+      lines.push("- 이번 실행은 기준선 비교가 없어 신규 전적 증감은 판단하지 않았습니다.");
+    }
+
+    if (todayTop.players.length) {
+      lines.push("");
+      lines.push(`오늘 경기 많은 선수 (${todayTop.targetDate})`);
+      pushLimitedRows(
+        lines,
+        todayTop.players,
+        (item) => `- ${item.player_name} (${item.team_name}) : ${item.today_matches}??`
+      );
+    }
+  }
+
+  if ((alertCounts.total || 0) > 0) {
+    lines.push("");
+    lines.push(
+      `변동 알림: ${alertCounts.total}건 (critical ${alertCounts.critical}, high ${alertCounts.high}, medium ${alertCounts.medium}, low ${alertCounts.low})`
+    );
+    lines.push("반영은 정상 완료되었고, 아래 항목은 운영상 참고용입니다.");
+  }
+  if (runUrl) {
+    lines.push("");
+    lines.push(`실행 링크: <${runUrl}>`);
+  }
+
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function buildMessage({ outcome, source, runUrl }) {
   const snapshotPath = resolveLatestReportFile(REPORTS_DIR, "daily_pipeline_snapshot_");
   const alertsPath = resolveLatestReportFile(REPORTS_DIR, "daily_pipeline_alerts_");
@@ -509,7 +749,7 @@ function buildMessage({ outcome, source, runUrl }) {
   if (outcome !== "success") {
     return buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport, source });
   }
-  return buildSuccessMessage({ snapshot, alertsDoc, runUrl, source });
+  return buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl, source });
 }
 
 async function postDiscordWebhook(content) {
@@ -554,6 +794,9 @@ if (require.main === module) {
 }
 
 module.exports = {
+  buildCollectionSourceHealthSummary,
+  buildReadableSuccessMessage,
+  comparePlayerChanges,
   describeAlertTone,
   buildSuccessMessage,
 };

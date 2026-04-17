@@ -31,6 +31,8 @@ let cachedSearchAliasesMtimeMs: number | null = null;
 let cachedSearchAliases = new Map<string, string[]>();
 let cachedDisplayAliasesMtimeMs: number | null = null;
 let cachedDisplayAliases = new Map<string, string>();
+let cachedManualOverridesMtimeMs: number | null = null;
+let cachedManualOverrides = new Map<string, RosterPlayerOverride>();
 
 function readJsonFile<T>(filePath: string): T | null {
   const req = eval("require") as NodeRequire;
@@ -147,6 +149,52 @@ function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
   return overrides;
 }
 
+function loadManualRosterOverrides(): Map<string, RosterPlayerOverride> {
+  const overrides = new Map<string, RosterPlayerOverride>();
+  if (typeof window !== "undefined") return overrides;
+
+  const req = eval("require") as NodeRequire;
+  const fs = req("fs") as typeof import("fs");
+  const path = req("path") as typeof import("path");
+  const filePath = path.join(process.cwd(), "data", "metadata", "roster_manual_overrides.v1.json");
+  if (!fs.existsSync(filePath)) return overrides;
+
+  try {
+    const stat = fs.statSync(filePath);
+    if (cachedManualOverridesMtimeMs === stat.mtimeMs) {
+      return cachedManualOverrides;
+    }
+    cachedManualOverridesMtimeMs = stat.mtimeMs;
+  } catch {
+    cachedManualOverridesMtimeMs = null;
+  }
+
+  const doc = readJsonFile<{
+    overrides?: Array<{
+      entity_id?: string;
+      team_code?: string;
+      team_name?: string;
+      tier?: string;
+      race?: string;
+      name?: string;
+    }>;
+  }>(filePath);
+
+  for (const row of Array.isArray(doc?.overrides) ? doc.overrides : []) {
+    const entityId = String(row?.entity_id || "").trim();
+    if (!entityId) continue;
+    overrides.set(entityId, {
+      university: String(row?.team_name || row?.team_code || "").trim() || undefined,
+      tier: String(row?.tier || "").trim() || undefined,
+      race: String(row?.race || "").trim() || undefined,
+      display_name: String(row?.name || "").trim() || undefined,
+    });
+  }
+
+  cachedManualOverrides = overrides;
+  return overrides;
+}
+
 function loadDisplayAliases(): Map<string, string> {
   const aliases = new Map<string, string>();
   if (typeof window !== "undefined") return aliases;
@@ -258,10 +306,18 @@ function applyIdentityOverride<T extends ServingMetadataPlayer>(
 
 export function applyPlayerServingMetadata<T extends ServingMetadataPlayer>(players: T[]) {
   const overrides = loadRosterOverrides();
+  const manualOverrides = loadManualRosterOverrides();
+  const mergedOverrides = new Map(overrides);
+  for (const [entityId, override] of manualOverrides.entries()) {
+    mergedOverrides.set(entityId, {
+      ...(mergedOverrides.get(entityId) || {}),
+      ...override,
+    });
+  }
   const soopIdentityOverrides = loadSoopIdentityOverrides();
   const displayAliases = loadDisplayAliases();
   return players.map((player) =>
-    applyUniversityNormalization(applyIdentityOverride(player, overrides, soopIdentityOverrides, displayAliases))
+    applyUniversityNormalization(applyIdentityOverride(player, mergedOverrides, soopIdentityOverrides, displayAliases))
   );
 }
 

@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "updated_at": "2026-04-17T00:00:00.000Z",
+  "description": "Classification of pipeline-related scripts by operational importance and maintenance status.",
+  "groups": [
+    {
+      "id": "active_core",
+      "label": "Active Core Pipeline",
+      "description": "Main orchestration path used by current daily/manual pipeline operations.",
+      "scripts": [
+        "scripts/tools/run-manual-refresh.js",
+        "scripts/tools/run-ops-pipeline-chunked.js",
+        "scripts/tools/run-ops-pipeline.js",
+        "scripts/tools/run-daily-pipeline.js",
+        "scripts/tools/merge-chunked-daily-reports.js",
+        "scripts/tools/sync-team-roster-metadata.js",
+        "scripts/tools/push-supabase-approved.js"
+      ]
+    },
+    {
+      "id": "active_operational_checks",
+      "label": "Active Operational Checks",
+      "description": "Scripts that validate freshness, readiness, discord summaries, and homepage integrity around the pipeline.",
+      "scripts": [
+        "scripts/tools/check-daily-status.js",
+        "scripts/tools/verify-discord-summary.js",
+        "scripts/tools/check-ops-pipeline-freshness.js",
+        "scripts/tools/check-site-integration-readiness.js",
+        "scripts/tools/validate-pipeline-alert-rules.js",
+        "scripts/tools/report-homepage-integrity.js"
+      ]
+    },
+    {
+      "id": "active_live_sync",
+      "label": "Active Live Sync",
+      "description": "SOOP live snapshot generation and serving sync used by the live workflow.",
+      "scripts": [
+        "scripts/tools/generate-soop-live-snapshot.js",
+        "scripts/tools/sync-soop-live-state-to-supabase.js",
+        "scripts/tools/watch-soop-live-snapshot.js"
+      ]
+    },
+    {
+      "id": "active_maintenance",
+      "label": "Active Maintenance",
+      "description": "Housekeeping and local maintenance helpers that support pipeline operations without changing serving behavior.",
+      "scripts": [
+        "scripts/tools/prune-tmp-reports.js",
+        "scripts/tools/prune-tmp-report-artifact-dirs.js",
+        "scripts/tools/prune-tmp-report-artifact-zips.js",
+        "scripts/tools/report-tmp-reports-footprint.js",
+        "scripts/tools/run-local-maintenance-check.js"
+      ]
+    },
+    {
+      "id": "review_candidates",
+      "label": "Review Candidates",
+      "description": "Pipeline-adjacent scripts that appear useful but are not part of the main live path and should be reviewed before future cleanup.",
+      "scripts": [
+        "scripts/tools/organize-generated-artifacts.js",
+        "scripts/tools/report-team-roster-table.js",
+        "scripts/tools/export-team-roster-detailed.js",
+        "scripts/tools/export-team-roster-metadata.js",
+        "scripts/tools/export-player-matches-csv.js",
+        "scripts/tools/apply-player-display-aliases.js"
+      ]
+    },
+    {
+      "id": "debug_or_manual_investigation",
+      "label": "Debug / Manual Investigation",
+      "description": "One-off investigation helpers that should not be treated as part of the production pipeline path.",
+      "scripts": [
+        "scripts/tools/debug-aring-gap.js",
+        "scripts/tools/debug-men-view-list.js",
+        "scripts/tools/debug-viewlist-nextid.js",
+        "scripts/tools/diagnose-aring-name.js",
+        "scripts/tools/report-aring-fast.js",
+        "scripts/tools/report-aring-from-eloboard.js",
+        "scripts/tools/report-aring-record.js",
+        "scripts/tools/resolve-aring-pname.js"
+      ]
+    }
+  ]
+}

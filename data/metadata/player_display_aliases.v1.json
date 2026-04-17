@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-03-20T14:52:20.838Z",
+  "updated_at": "2026-04-17T00:00:00.000Z",
   "description": "Homepage display aliases. Match data collection should keep canonical player name.",
   "global": [
     {
@@ -82,6 +82,10 @@
     {
       "name": "유규민",
       "display_name": "초난강"
+    },
+    {
+      "name": "???",
+      "display_name": "???"
     }
   ],
   "teams": {
@@ -161,6 +165,12 @@
       {
         "name": "유규민",
         "display_name": "초난강"
+      }
+    ],
+    "ssu": [
+      {
+        "name": "???",
+        "display_name": "???"
       }
     ]
   }

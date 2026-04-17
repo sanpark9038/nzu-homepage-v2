@@ -1,18 +1,30 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-04-12T00:00:00.000Z",
-  "blocking_severities": ["critical", "high"],
+  "updated_at": "2026-04-17T00:00:00.000Z",
+  "blocking_severities": [
+    "critical",
+    "high"
+  ],
   "rules": {
     "pipeline_failure_severity": "critical",
     "zero_record_players_severity": "medium",
     "zero_record_players_allowlist": {
-      "ku": ["케이"],
-      "ncs": ["트슈"]
+      "ku": [
+        "??",
+        "케이"
+      ],
+      "ncs": [
+        "트슈"
+      ]
     },
-    "zero_record_players_team_allowlist": ["fa"],
+    "zero_record_players_team_allowlist": [
+      "fa"
+    ],
     "negative_delta_matches_severity": "critical",
     "roster_size_changed_severity": "medium",
-    "roster_size_changed_team_allowlist": ["fa"],
+    "roster_size_changed_team_allowlist": [
+      "fa"
+    ],
     "stale_snapshot_disagreement_severity": "medium",
     "stale_snapshot_disagreement_threshold": 1,
     "homepage_integrity_report_max_age_minutes": 180,

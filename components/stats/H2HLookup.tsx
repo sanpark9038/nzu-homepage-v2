@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { playerService } from '@/lib/player-service'
 import type { Player } from '@/types'
 import { TierBadge, getTierTone } from '@/components/ui/nzu-badges'
 import { getInstantH2H } from '@/lib/h2h-service'
@@ -53,7 +52,7 @@ interface H2HLookupProps {
   recentMatches?: unknown[]
 }
 
-export default function H2HLookup({}: H2HLookupProps) {
+export default function H2HLookup({ players: initialPlayers = [] }: H2HLookupProps) {
   // Selection State (Historical)
   const [p1, setP1] = useState<Player | null>(null)
   const [p2, setP2] = useState<Player | null>(null)
@@ -64,9 +63,6 @@ export default function H2HLookup({}: H2HLookupProps) {
   const [u2, setU2] = useState<string>('')
   const [q1] = useState('')
   const [q2] = useState('')
-  
-  const [players1, setPlayers1] = useState<Player[]>([])
-  const [players2, setPlayers2] = useState<Player[]>([])
   
   // Filter logic: Default to ON (true)
   const [hideEmptyTiers, setHideEmptyTiers] = useState(true)
@@ -121,35 +117,35 @@ export default function H2HLookup({}: H2HLookupProps) {
     return `m_${matchIdCounter.current}`;
   }
 
-  // Load Players for Side 1
-  useEffect(() => {
-    const load = async () => {
-      try {
-        let res: Player[] = [];
-        if (u1) {
-          res = await playerService.getPlayersByUniversity(u1) as Player[];
-          if (q1) res = res.filter(p => p.name?.toLowerCase().includes(q1.toLowerCase()));
-        } else if (q1) res = await playerService.searchPlayers(q1) as Player[];
-        setPlayers1(res);
-      } catch (err) { console.error(err) }
+  const players1 = useMemo(() => {
+    let res: Player[] = [];
+    if (u1) {
+      res = initialPlayers.filter((player) => String(player.university || '') === u1);
+      if (q1) {
+        const needle = q1.toLowerCase();
+        res = res.filter((player) => String(player.name || '').toLowerCase().includes(needle));
+      }
+    } else if (q1) {
+      const needle = q1.toLowerCase();
+      res = initialPlayers.filter((player) => String(player.name || '').toLowerCase().includes(needle));
     }
-    load()
-  }, [u1, q1])
+    return res;
+  }, [initialPlayers, u1, q1])
 
-  // Load Players for Side 2
-  useEffect(() => {
-    const load = async () => {
-      try {
-        let res: Player[] = [];
-        if (u2) {
-          res = await playerService.getPlayersByUniversity(u2) as Player[];
-          if (q2) res = res.filter(p => p.name?.toLowerCase().includes(q2.toLowerCase()));
-        } else if (q2) res = await playerService.searchPlayers(q2) as Player[];
-        setPlayers2(res);
-      } catch (err) { console.error(err) }
+  const players2 = useMemo(() => {
+    let res: Player[] = [];
+    if (u2) {
+      res = initialPlayers.filter((player) => String(player.university || '') === u2);
+      if (q2) {
+        const needle = q2.toLowerCase();
+        res = res.filter((player) => String(player.name || '').toLowerCase().includes(needle));
+      }
+    } else if (q2) {
+      const needle = q2.toLowerCase();
+      res = initialPlayers.filter((player) => String(player.name || '').toLowerCase().includes(needle));
     }
-    load()
-  }, [u2, q2])
+    return res;
+  }, [initialPlayers, u2, q2])
 
   // Detailed Analysis for Manual Selection
   useEffect(() => {

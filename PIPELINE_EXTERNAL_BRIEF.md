@@ -28,6 +28,23 @@ npm run pipeline:verify:discord
 - Manual refresh wrapper: `scripts/tools/run-manual-refresh.js`
 - Approved push: `scripts/tools/push-supabase-approved.js`
 
+## Integration Boundary
+
+For another project, the safest reuse boundary is one of these:
+
+- local metadata:
+  - `data/metadata/players.master.v1.json`
+  - `data/metadata/projects/*/players.*.v1.json`
+- latest operational reports:
+  - `tmp/reports/daily_pipeline_snapshot_latest.json`
+  - `tmp/reports/daily_pipeline_alerts_latest.json`
+- current Supabase serving tables:
+  - `players`
+  - `matches`
+  - `eloboard_matches`
+
+The scraper and provider-enrichment scripts are more project-specific than those output contracts.
+
 ## Main Outputs
 
 - `tmp/reports/daily_pipeline_snapshot_YYYY-MM-DD.json`

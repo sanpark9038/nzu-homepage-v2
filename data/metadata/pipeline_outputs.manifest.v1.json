@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "description": "Stable handoff points and operational outputs for the NZU data pipeline.",
+  "outputs": [
+    {
+      "id": "players_master",
+      "path": "data/metadata/players.master.v1.json",
+      "layer": "metadata",
+      "durability": "durable",
+      "producer": "npm run build:metadata",
+      "primary_consumers": ["metadata tools", "future projects", "identity joins"],
+      "reusable_in_other_projects": true,
+      "notes": "Canonical player identity source. Durable join key is entity_id."
+    },
+    {
+      "id": "project_rosters",
+      "path": "data/metadata/projects/*/players.*.v1.json",
+      "layer": "metadata",
+      "durability": "durable",
+      "producer": "npm run sync:team:roster",
+      "primary_consumers": ["roster sync", "future projects", "pipeline collection"],
+      "reusable_in_other_projects": true,
+      "notes": "Project-specific roster views that reference players.master.v1.json."
+    },
+    {
+      "id": "pipeline_alert_rules",
+      "path": "data/metadata/pipeline_alert_rules.v1.json",
+      "layer": "metadata",
+      "durability": "durable",
+      "producer": "manual maintenance",
+      "primary_consumers": ["daily pipeline", "discord summary", "readiness checks"],
+      "reusable_in_other_projects": true,
+      "notes": "Controls blocking severities, allowlists, and homepage integrity freshness rules."
+    },
+    {
+      "id": "manual_refresh_baseline",
+      "path": "tmp/reports/manual_refresh_baseline.json",
+      "layer": "report",
+      "durability": "pinned-operational",
+      "producer": "npm run pipeline:manual:refresh",
+      "primary_consumers": ["discord summary", "readiness checks", "roster delta analysis"],
+      "reusable_in_other_projects": true,
+      "notes": "Baseline roster snapshot used to compare joiners and departures within the current run."
+    },
+    {
+      "id": "team_roster_sync_report",
+      "path": "tmp/reports/team_roster_sync_report.json",
+      "layer": "report",
+      "durability": "pinned-operational",
+      "producer": "npm run sync:team:roster",
+      "primary_consumers": ["discord summary", "ops review"],
+      "reusable_in_other_projects": true,
+      "notes": "Tracks roster additions, removals, and metadata sync outcomes."
+    },
+    {
+      "id": "team_auto_discovery_report",
+      "path": "tmp/reports/team_auto_discovery_report.json",
+      "layer": "report",
+      "durability": "pinned-operational",
+      "producer": "team discovery inside pipeline refresh",
+      "primary_consumers": ["ops review"],
+      "reusable_in_other_projects": false,
+      "notes": "Useful operationally, but currently tied to the Eloboard university roster source."
+    },
+    {
+      "id": "daily_pipeline_snapshot_latest",
+      "path": "tmp/reports/daily_pipeline_snapshot_latest.json",
+      "layer": "report",
+      "durability": "latest-alias",
+      "producer": "npm run pipeline:merge:chunked",
+      "primary_consumers": ["pipeline status", "external integrations", "ops review"],
+      "reusable_in_other_projects": true,
+      "notes": "Main machine-readable summary of the latest pipeline run."
+    },
+    {
+      "id": "daily_pipeline_alerts_latest",
+      "path": "tmp/reports/daily_pipeline_alerts_latest.json",
+      "layer": "report",
+      "durability": "latest-alias",
+      "producer": "npm run pipeline:merge:chunked",
+      "primary_consumers": ["pipeline status", "discord summary", "external integrations"],
+      "reusable_in_other_projects": true,
+      "notes": "Main machine-readable alert list for the latest pipeline run."
+    },
+    {
+      "id": "pipeline_collection_sources_health_latest",
+      "path": "tmp/reports/pipeline_collection_sources_health_latest.json",
+      "layer": "report",
+      "durability": "latest-alias",
+      "producer": "npm run pipeline:collection-sources:health -- --write",
+      "primary_consumers": ["ops review", "GitHub Actions summary", "source monitoring"],
+      "reusable_in_other_projects": true,
+      "notes": "Latest health probe against the live Eloboard collection entrypoints the pipeline depends on."
+    },
+    {
+      "id": "homepage_integrity_report",
+      "path": "tmp/reports/homepage_integrity_report.json",
+      "layer": "report",
+      "durability": "pinned-operational",
+      "producer": "npm run report:homepage:integrity",
+      "primary_consumers": ["site readiness checks", "live sync workflow"],
+      "reusable_in_other_projects": false,
+      "notes": "Current checks are shaped around the existing homepage integration path."
+    },
+    {
+      "id": "supabase_players",
+      "path": "Supabase public.players",
+      "layer": "serving",
+      "durability": "delivery-surface",
+      "producer": "approved Supabase sync",
+      "primary_consumers": ["public Next.js pages"],
+      "reusable_in_other_projects": true,
+      "notes": "Serving layer only. Not the canonical identity source."
+    }
+  ]
+}

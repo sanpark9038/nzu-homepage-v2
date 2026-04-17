@@ -22,6 +22,19 @@ runTest("normalizeProfileUrl keeps bj_m_list on women namespace", () => {
   assert.equal(actual, "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=73");
 });
 
+runTest("buildEloboardCompositeKey preserves explicit canonical entity_id even for special-case mix profiles", () => {
+  assert.equal(
+    buildEloboardCompositeKey({
+      entity_id: "eloboard:male:205",
+      wr_id: 205,
+      gender: "male",
+      name: "케이",
+      profile_url: "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=205",
+    }),
+    "eloboard:male:205"
+  );
+});
+
 runTest("getEloboardProfileKind distinguishes mix board", () => {
   assert.equal(getEloboardProfileKind("https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=73"), "default");
   assert.equal(getEloboardProfileKind("https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=73"), "mix");

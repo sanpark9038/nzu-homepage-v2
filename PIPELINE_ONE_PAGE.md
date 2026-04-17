@@ -35,10 +35,49 @@ npm run pipeline:verify:discord
 - `tmp/reports/daily_pipeline_snapshot_YYYY-MM-DD.json`
 - `tmp/reports/daily_pipeline_alerts_YYYY-MM-DD.json`
 - `tmp/reports/team_roster_sync_report.json`
+- `data/metadata/pipeline_outputs.manifest.v1.json`
+- `data/metadata/pipeline_script_inventory.v1.json`
+- `data/metadata/pipeline_runtime_flow.v1.json`
+- `data/metadata/pipeline_collection_sources.v1.json`
+- `data/metadata/pipeline_discord_alerts.v1.json`
+- `tmp/reports/pipeline_collection_sources_health_latest.json`
+- `tmp/reports/pipeline_collection_sources_health_latest.md`
+
+## Temporary Artifact Policy
+
+- `tmp/` is for short-lived debugging, report inspection, and pipeline scratch outputs only.
+- Do not treat `tmp/` files as long-term source-of-truth data.
+- Promote anything durable into `data/metadata/` or a documented pipeline output.
+- Keep artifact uploads focused on latest reports rather than the full `tmp/reports/` history.
 
 ## Health Checks
 
 - `npm run test:pipeline:daily`
+- `npm run pipeline:health`
+- `npm run pipeline:collection-sources`
+- `npm run pipeline:collection-sources:health`
+- `npm run pipeline:discord-alerts`
+- `npm run pipeline:inventory`
+- `npm run pipeline:runtime-flow`
 - `npm run validate:pipeline-alert-rules`
 - `npm run pipeline:status`
 - `npm run pipeline:verify:discord`
+
+## Local Maintenance
+
+- `npm run maintenance:check`
+  - one-shot dry-run summary for `tmp/reports` size, root prune candidates, artifact directory prune candidates, and manifest presence
+- `npm run reports:footprint`
+  - summarize `tmp/reports/` file count, total size, nested artifact buckets, and prune candidates
+- `npm run reports:prune:artifact-dirs`
+  - dry-run cleanup for old `gha_*`, `gh-run-*`, and `run_*_job_logs` artifact directories under `tmp/reports`
+- `npm run reports:prune:artifact-zips`
+  - dry-run cleanup for old root `gha_*_artifact.zip` and `*_logs.zip` files under `tmp/reports`
+- `npm run reports:prune`
+  - dry-run report cleanup for `tmp/reports`
+- `npm run reports:prune -- --apply`
+  - delete stale report files while keeping latest aliases and pinned operational reports
+- `npm run reports:prune:artifact-dirs -- --apply`
+  - delete stale artifact directories while leaving non-ephemeral folders such as manual exports alone
+- `npm run reports:prune:artifact-zips -- --apply`
+  - delete stale root artifact zip files while leaving non-ephemeral zip exports alone

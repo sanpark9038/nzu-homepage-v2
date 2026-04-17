@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
@@ -12,7 +12,7 @@ import { cn, normalizeRace } from "@/lib/utils";
 import { getUniversityLabel } from "@/lib/university-config";
 import { ExternalLink, Check, Circle, Crown } from "lucide-react";
 import { buildPlayerHref } from "@/lib/player-route";
-import { resolveSoopChannelImageUrl, resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
+import { buildSoopThumbnailProxyUrl, resolveSoopChannelImageUrl, resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
 
 export type { Player };
 
@@ -33,7 +33,7 @@ export function PlayerCard({
   variant = 'default',
   isCaptain = false,
 }: PlayerCardProps) {
-  const [thumbnailFailed, setThumbnailFailed] = useState(false);
+  const [failedThumbnailSrc, setFailedThumbnailSrc] = useState<string | null>(null);
   const [isTierPreviewVisible, setIsTierPreviewVisible] = useState(false);
   const [tierPreviewStyle, setTierPreviewStyle] = useState<{ left: number; top: number } | null>(null);
   const tierPreviewAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -46,6 +46,8 @@ export function PlayerCard({
   
   const soopWatchUrl = resolveSoopWatchUrl(player);
   const soopChannelUrl = resolveSoopChannelUrl(player);
+  const liveThumbnailUrl = buildSoopThumbnailProxyUrl(player.live_thumbnail_url) || player.live_thumbnail_url || "";
+  const canShowLiveThumbnail = Boolean(liveThumbnailUrl) && failedThumbnailSrc !== liveThumbnailUrl;
   const hoverSoopHref = (isLive ? soopWatchUrl : soopChannelUrl) || fallbackProfileUrl;
   const hoverSoopLabel = isLive
     ? "LIVE 시청"
@@ -60,11 +62,7 @@ export function PlayerCard({
     .join(" · ");
   const universityLabel = getUniversityLabel(player.university);
 
-  useEffect(() => {
-    setThumbnailFailed(false);
-  }, [player.id, player.live_thumbnail_url]);
-
-  function updateTierPreviewPosition() {
+  const updateTierPreviewPosition = useCallback(() => {
     if (!isTierVariant || !isLive || typeof window === "undefined") return;
     const anchor = tierPreviewAnchorRef.current;
     if (!anchor) return;
@@ -80,7 +78,7 @@ export function PlayerCard({
     );
     const top = Math.max(rect.top - previewHeight - 14, viewportPadding);
     setTierPreviewStyle({ left, top });
-  }
+  }, [isLive, isTierVariant]);
 
   useEffect(() => {
     if (!isTierPreviewVisible || !isTierVariant || !isLive) return;
@@ -91,7 +89,7 @@ export function PlayerCard({
       window.removeEventListener("resize", handleViewportChange);
       window.removeEventListener("scroll", handleViewportChange, true);
     };
-  }, [isTierPreviewVisible, isTierVariant, isLive]);
+  }, [isTierPreviewVisible, isTierVariant, isLive, updateTierPreviewPosition]);
 
   const raceStyles = {
     'Terran': {
@@ -150,7 +148,7 @@ export function PlayerCard({
     <div className={cn(
       "group relative flex w-full flex-col bg-card border-2 transition-all duration-300 hover:-translate-y-1",
       isTierVariant ? "overflow-visible" : "overflow-hidden",
-      isHomeVariant ? "rounded-[1.35rem]" : "rounded-2xl",
+      layout === "compact" ? "rounded-xl" : isHomeVariant ? "rounded-[1.35rem]" : "rounded-2xl",
       isHomeVariant ? "aspect-[3/4]" : "",
       isTierVariant ? tierShellClass : "hover:scale-[1.02]",
       currentStyles.border,
@@ -379,14 +377,14 @@ export function PlayerCard({
             style={{ left: `${tierPreviewStyle.left}px`, top: `${tierPreviewStyle.top}px` }}
           >
             <div className="relative aspect-[16/9] w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
-              {player.live_thumbnail_url && !thumbnailFailed ? (
+              {canShowLiveThumbnail ? (
                 <Image
-                  src={player.live_thumbnail_url}
+                  src={liveThumbnailUrl}
                   alt={`${player.name} live preview`}
                   fill
                   unoptimized
                   className="object-cover"
-                  onError={() => setThumbnailFailed(true)}
+                  onError={() => setFailedThumbnailSrc(liveThumbnailUrl)}
                 />
               ) : null}
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />

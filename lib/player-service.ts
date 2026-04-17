@@ -1,4 +1,5 @@
 
+import { unstable_cache } from "next/cache";
 import { supabase } from "./supabase";
 import { type Player } from "../types";
 import {
@@ -14,8 +15,12 @@ export { isExactPlayerSearchMatch };
 
 // Public pages should consume website-serving data from Supabase through this layer.
 // Local metadata and tmp reports remain admin / pipeline sources, not public page sources.
-const PLAYER_SERVING_SELECT = [
-  "broadcast_title, broadcast_url, channel_profile_image_url, created_at, detailed_stats, elo_point, eloboard_id, id, is_live, last_synced_at, name, nickname, photo_url, race, soop_id, tier, tier_rank, total_losses, total_wins, university, win_rate, gender, last_checked_at, last_match_at, last_changed_at, check_priority, check_interval_days",
+const PLAYER_LIST_SELECT = [
+  "broadcast_title, broadcast_url, channel_profile_image_url, elo_point, eloboard_id, id, is_live, live_thumbnail_url, name, nickname, photo_url, race, soop_id, tier, tier_rank, total_losses, total_wins, university, win_rate, gender, last_checked_at, last_match_at, last_changed_at, check_priority, check_interval_days",
+] as const;
+
+const PLAYER_DETAIL_SELECT = [
+  "broadcast_title, broadcast_url, channel_profile_image_url, created_at, detailed_stats, elo_point, eloboard_id, id, is_live, last_synced_at, live_thumbnail_url, name, nickname, photo_url, race, soop_id, tier, tier_rank, total_losses, total_wins, university, win_rate, gender, last_checked_at, last_match_at, last_changed_at, check_priority, check_interval_days",
 ] as const;
 
 const PLAYER_HISTORY_SELECT =
@@ -71,6 +76,22 @@ function applyPlayerServiceView(players: Player[]) {
 function applyPlayerServiceViewToOne(player: Player) {
   return applyLiveOverlayLayerToOne(applyServingMetadataLayerToOne(player));
 }
+
+async function fetchPlayersForList() {
+  const { data, error } = await supabase
+    .from("players")
+    .select(PLAYER_LIST_SELECT[0])
+    .order("elo_point", { ascending: false, nullsFirst: false })
+    .order("tier", { ascending: true });
+
+  if (error) throw error;
+  return applyPlayerServiceView((data || []) as Player[]);
+}
+
+const fetchCachedPlayersForList = unstable_cache(fetchPlayersForList, ["public-players-list-v1"], {
+  revalidate: 300,
+  tags: ["public-players-list"],
+});
 
 function hasPlayerSearchAliasMatch(player: Partial<Player>, normalizedQuery: string) {
   return getPlayerSearchAliases(player).some((alias) => normalizeSearchText(alias).includes(normalizedQuery));
@@ -161,23 +182,19 @@ function synthesizeMatchesFromHistory(player: StoredPlayerHistoryRecord, limit: 
 }
 
 export const playerService = {
+  async getCachedPlayersList() {
+    return fetchCachedPlayersForList();
+  },
   /** 전적(ELO) 순으로 모든 선수 가져오기 */
   async getAllPlayers() {
-    const { data, error } = await supabase
-      .from("players")
-      .select(PLAYER_SERVING_SELECT[0])
-      .order("elo_point", { ascending: false, nullsFirst: false })
-      .order("tier", { ascending: true });
-    
-    if (error) throw error;
-    return applyPlayerServiceView((data || []) as Player[]);
+    return fetchPlayersForList();
   },
 
   /** 특정 ID의 선수 정보 가져오기 */
   async getPlayerById(id: string) {
     const { data, error } = await supabase
       .from("players")
-      .select(PLAYER_SERVING_SELECT[0])
+      .select(PLAYER_DETAIL_SELECT[0])
       .eq("id", id)
       .single();
     
@@ -192,7 +209,7 @@ export const playerService = {
 
     const { data, error } = await supabase
       .from("players")
-      .select(PLAYER_SERVING_SELECT[0])
+      .select(PLAYER_LIST_SELECT[0])
       .order("elo_point", { ascending: false, nullsFirst: false });
 
     if (error) throw error;
@@ -204,7 +221,7 @@ export const playerService = {
   async getLivePlayers() {
     const { data, error } = await supabase
       .from("players")
-      .select(PLAYER_SERVING_SELECT[0])
+      .select(PLAYER_LIST_SELECT[0])
       .eq("is_live", true)
       .order("elo_point", { ascending: false });
     
@@ -270,7 +287,7 @@ export const playerService = {
     const normalizedQuery = normalizeSearchText(query);
     if (!normalizedQuery) return [];
 
-    const players = await this.getAllPlayers();
+    const players = await this.getCachedPlayersList();
     return players
       .filter((player) => {
         const name = normalizeSearchText(player.name);
@@ -284,14 +301,14 @@ export const playerService = {
 
   /** 모든 대학 목록 가져오기 */
   async getAllUniversities() {
-    const players = await this.getAllPlayers();
+    const players = await this.getCachedPlayersList();
     const univs = Array.from(new Set(players.map((item) => item.university)));
     return (univs as string[]).filter(Boolean).sort();
   },
 
   /** 특정 대학의 선수 목록 가져오기 */
   async getPlayersByUniversity(univ: string) {
-    const players = await this.getAllPlayers();
+    const players = await this.getCachedPlayersList();
     return players
       .filter((player) => String(player.university || "") === univ)
       .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ko"));

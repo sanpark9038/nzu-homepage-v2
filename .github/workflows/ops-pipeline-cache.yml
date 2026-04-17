@@ -90,6 +90,11 @@ jobs:
         shell: bash
         run: ${{ steps.workflow_mode.outputs.run_command }}
 
+      - name: Check collection sources health
+        if: always()
+        continue-on-error: true
+        run: npm run pipeline:collection-sources:health -- --write
+
       - name: Print pipeline status
         if: always()
         run: npm run pipeline:status
@@ -116,6 +121,11 @@ jobs:
           if [ -n "${{ steps.workflow_mode.outputs.sync_warning }}" ]; then
             echo "- Sync Warning: ${{ steps.workflow_mode.outputs.sync_warning }}" >> "$GITHUB_STEP_SUMMARY"
           fi
+          if [ -f tmp/reports/pipeline_collection_sources_health_latest.md ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            cat tmp/reports/pipeline_collection_sources_health_latest.md >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
           npm run pipeline:verify:discord -- --markdown >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload reports artifact
@@ -124,7 +134,14 @@ jobs:
         with:
           name: pipeline-reports-${{ github.run_id }}
           path: |
-            tmp/reports/
+            tmp/reports/*latest.json
+            tmp/reports/*latest.md
+            tmp/reports/homepage_integrity_report.json
+            tmp/reports/team_roster_sync_report.json
+            tmp/reports/team_auto_discovery_report.json
+            tmp/reports/manual_refresh_baseline.json
+            tmp/reports/pipeline_collection_sources_health_latest.json
+            tmp/reports/pipeline_collection_sources_health_latest.md
           if-no-files-found: warn
           retention-days: 14
 

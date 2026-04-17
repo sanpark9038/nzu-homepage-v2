@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "description": "Normalized description of the current NZU pipeline runtime flow based on live code paths.",
+  "flows": [
+    {
+      "id": "github_actions_collect_only",
+      "entrypoint": ".github/workflows/ops-pipeline-cache.yml",
+      "mode": "collect-only",
+      "steps": [
+        "npm run test:pipeline:daily",
+        "npm run validate:pipeline-alert-rules",
+        "npm run pipeline:manual:refresh",
+        "npm run pipeline:status",
+        "node scripts/tools/send-manual-refresh-discord.js --outcome success|failure --source github-actions",
+        "npm run pipeline:verify:discord -- --markdown"
+      ],
+      "outputs": [
+        "tmp/reports/manual_refresh_baseline.json",
+        "tmp/reports/manual_refresh_latest.json",
+        "tmp/reports/manual_refresh_latest.md",
+        "tmp/reports/daily_pipeline_snapshot_latest.json",
+        "tmp/reports/daily_pipeline_alerts_latest.json",
+        "tmp/reports/ops_pipeline_chunked_latest.json"
+      ]
+    },
+    {
+      "id": "manual_refresh_local",
+      "entrypoint": "scripts/tools/run-manual-refresh.js",
+      "mode": "local-manual",
+      "steps": [
+        "capture roster baseline from data/metadata/projects/*/players.*.v1.json",
+        "optional: report-homepage-integrity.js",
+        "run-ops-pipeline-chunked.js",
+        "optional: push-supabase-approved.js when --with-supabase-sync is present"
+      ],
+      "outputs": [
+        "tmp/reports/manual_refresh_baseline.json",
+        "tmp/reports/manual_refresh_report_*.json",
+        "tmp/reports/manual_refresh_latest.json",
+        "tmp/reports/manual_refresh_latest.md"
+      ]
+    },
+    {
+      "id": "chunked_pipeline_orchestration",
+      "entrypoint": "scripts/tools/run-ops-pipeline-chunked.js",
+      "mode": "chunked-collection",
+      "steps": [
+        "ensureAutoDiscoveredTeamProjects()",
+        "runCommonPreparation(): sync-team-roster-metadata.js",
+        "runCommonPreparation(): apply-player-display-aliases.js for non-fa teams",
+        "split teams into chunks with fa dedicated",
+        "run-ops-pipeline.js --skip-supabase --no-discord per chunk",
+        "merge-chunked-daily-reports.js",
+        "update-player-check-priority.js"
+      ],
+      "strict_failure_points": [
+        "common preparation step failure",
+        "chunk failure when continue-on-error is not enabled",
+        "merged alerts contain blocking severities in strict mode",
+        "priority update failure"
+      ],
+      "outputs": [
+        "tmp/reports/ops_pipeline_chunked_*.json",
+        "tmp/reports/ops_pipeline_chunked_latest.json",
+        "tmp/reports/daily_pipeline_snapshot_<chunk-tag>.json",
+        "tmp/reports/daily_pipeline_alerts_<chunk-tag>.json",
+        "tmp/reports/daily_pipeline_snapshot_<output-date>.json",
+        "tmp/reports/daily_pipeline_alerts_<output-date>.json",
+        "tmp/reports/daily_pipeline_snapshot_latest.json",
+        "tmp/reports/daily_pipeline_alerts_latest.json"
+      ]
+    },
+    {
+      "id": "single_chunk_pipeline",
+      "entrypoint": "scripts/tools/run-ops-pipeline.js",
+      "mode": "single-run-or-wrapper",
+      "steps": [
+        "optional: report-homepage-integrity.js when Supabase env exists",
+        "run-daily-pipeline.js",
+        "verify-warehouse-integrity.js",
+        "optional: supabase-staging-sync.js",
+        "optional: supabase-prod-sync.js",
+        "optional: Discord webhook"
+      ],
+      "outputs": [
+        "tmp/reports/ops_pipeline_report_*.json",
+        "tmp/reports/ops_pipeline_latest.json",
+        "tmp/reports/ops_pipeline_latest.md"
+      ]
+    },
+    {
+      "id": "daily_pipeline_core",
+      "entrypoint": "scripts/tools/run-daily-pipeline.js",
+      "mode": "collection-core",
+      "steps": [
+        "ensureAutoDiscoveredTeamProjects()",
+        "load team config from data/metadata/projects/*/players.*.v1.json",
+        "optional roster sync",
+        "optional display alias apply",
+        "per-team export-team-roster-detailed.js",
+        "summarize team reports and failures",
+        "optional report-team-roster-table.js",
+        "build alerts using pipeline_alert_rules.v1.json and homepage_integrity_report.json",
+        "write snapshot, alerts, zero_record_review outputs",
+        "optional organize-generated-artifacts.js",
+        "strict mode exits non-zero on blocking alerts"
+      ],
+      "primary_inputs": [
+        "data/metadata/projects/*/players.*.v1.json",
+        "data/metadata/pipeline_alert_rules.v1.json",
+        "data/metadata/pipeline_collection_exclusions.v1.json",
+        "data/metadata/roster_manual_overrides.v1.json",
+        "tmp/reports/manual_refresh_baseline.json",
+        "tmp/reports/homepage_integrity_report.json"
+      ],
+      "primary_outputs": [
+        "tmp/reports/daily_pipeline_snapshot_<date-tag>.json",
+        "tmp/reports/daily_pipeline_snapshot_latest.json",
+        "tmp/reports/daily_pipeline_alerts_<date-tag>.json",
+        "tmp/reports/daily_pipeline_alerts_latest.json",
+        "tmp/reports/zero_record_review_<date-tag>.json",
+        "tmp/reports/zero_record_review_latest.json"
+      ]
+    },
+    {
+      "id": "approved_serving_sync",
+      "entrypoint": "scripts/tools/push-supabase-approved.js",
+      "mode": "explicit-approved-sync",
+      "guard": "--approved is mandatory",
+      "steps": [
+        "supabase-staging-sync.js",
+        "supabase-prod-sync.js"
+      ],
+      "notes": "Serving sync is intentionally separated from collection and requires explicit operator approval."
+    }
+  ]
+}

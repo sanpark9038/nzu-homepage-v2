@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "description": "Operational description of Discord notifications emitted by the NZU pipeline.",
+  "channels": [
+    {
+      "id": "ops_pipeline_summary",
+      "entrypoint": "scripts/tools/send-manual-refresh-discord.js",
+      "triggered_by": [
+        ".github/workflows/ops-pipeline-cache.yml",
+        "manual local invocation"
+      ],
+      "message_types": [
+        {
+          "id": "success_clean",
+          "condition": "manual refresh outcome is success and alert counts are all zero",
+          "headline_tone": "neutral-success",
+          "includes": [
+            "execution mode label",
+            "roster joiners/removals if present",
+            "new match count or note that comparison is unavailable",
+            "optional top players by today's matches",
+            "run link"
+          ]
+        },
+        {
+          "id": "success_with_operational_alerts",
+          "condition": "manual refresh outcome is success and medium or low alerts are present",
+          "headline_tone": "change-notice",
+          "includes": [
+            "execution mode label",
+            "roster joiners/removals if present",
+            "new match count",
+            "alert summary counts by severity",
+            "run link"
+          ]
+        },
+        {
+          "id": "failure_or_blocking",
+          "condition": "manual refresh outcome is failure or pipeline report is failed",
+          "headline_tone": "warning-failure",
+          "includes": [
+            "failed step name if available",
+            "error message or stderr tail",
+            "blocking alert summary if present",
+            "run link"
+          ]
+        }
+      ],
+      "severity_tone_mapping": {
+        "critical_or_high": {
+          "headline_suffix": "blocking warning",
+          "summary_label": "blocking alerts",
+          "behavior": "treated as warning/failure tone"
+        },
+        "medium_or_low": {
+          "headline_suffix": "change notice",
+          "summary_label": "operational change alerts",
+          "behavior": "reported as non-blocking operational notice"
+        },
+        "none": {
+          "headline_suffix": "",
+          "summary_label": "alerts",
+          "behavior": "clean success message"
+        }
+      }
+    }
+  ],
+  "alert_rule_relationship": {
+    "blocking_severities_source": "data/metadata/pipeline_alert_rules.v1.json",
+    "current_blocking_severities": [
+      "critical",
+      "high"
+    ],
+    "notes": [
+      "medium and low alerts are still included in the Discord success summary as operational change notices",
+      "critical or high alerts are treated as blocking warnings and shift the message tone"
+    ]
+  }
+}

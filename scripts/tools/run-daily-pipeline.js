@@ -39,6 +39,10 @@ function argValue(flag, fallback = null) {
   return fallback;
 }
 
+function isChunkedDateTag(value) {
+  return /-chunk\d+$/i.test(String(value || "").trim());
+}
+
 function hasFlag(flag) {
   return process.argv.includes(flag);
 }
@@ -1173,6 +1177,7 @@ async function main() {
   const latestAlertsJson = path.join(REPORTS_DIR, "daily_pipeline_alerts_latest.json");
   const zeroRecordReviewPath = path.join(REPORTS_DIR, `zero_record_review_${dateTag}.json`);
   const zeroRecordReviewLatestPath = path.join(REPORTS_DIR, "zero_record_review_latest.json");
+  const shouldWriteLatestAliases = !isChunkedDateTag(dateTag);
   snapshot.zero_record_review = {
     total: zeroRecordReview.total,
     counts: zeroRecordReview.counts,
@@ -1180,7 +1185,9 @@ async function main() {
     report_path: path.relative(ROOT, zeroRecordReviewPath).replace(/\\/g, "/"),
   };
   writeJson(outJson, snapshot);
-  writeJson(latestSnapshotJson, snapshot);
+  if (shouldWriteLatestAliases) {
+    writeJson(latestSnapshotJson, snapshot);
+  }
   writeCsv(
     outCsv,
     snapshot.teams.map((r) => ({
@@ -1204,7 +1211,9 @@ async function main() {
     }))
   );
   writeJson(outAlertJson, alertSummary);
-  writeJson(latestAlertsJson, alertSummary);
+  if (shouldWriteLatestAliases) {
+    writeJson(latestAlertsJson, alertSummary);
+  }
   writeCsv(
     outAlertCsv,
     alerts.map((a) => ({
@@ -1216,7 +1225,9 @@ async function main() {
     }))
   );
   writeJson(zeroRecordReviewPath, zeroRecordReview);
-  writeJson(zeroRecordReviewLatestPath, zeroRecordReview);
+  if (shouldWriteLatestAliases) {
+    writeJson(zeroRecordReviewLatestPath, zeroRecordReview);
+  }
 
   if (organize) {
     runNode(ORGANIZE_SCRIPT, [], {

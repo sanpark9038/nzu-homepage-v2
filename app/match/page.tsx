@@ -1,9 +1,11 @@
-'use client'
+﻿'use client'
 
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, X, GripVertical, ArrowLeftRight, MonitorUp, RadioTower, LayoutPanelLeft, Link2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge"
+import { REAL_NAME_MAP } from "@/lib/constants"
+import type { H2HStats } from "@/types"
 import { 
   DndContext, 
   closestCenter,
@@ -28,6 +30,7 @@ interface Player {
   id: string;
   name: string;
   race: string;
+  gender?: string | null;
 }
 
 interface MatchRow {
@@ -38,19 +41,6 @@ interface MatchRow {
   p2Input: string;
 }
 
-const DUMMY_PLAYERS: Player[] = [
-  { id: '1', name: '이영호', race: 'T' },
-  { id: '2', name: '김택용', race: 'P' },
-  { id: '3', name: '이제동', race: 'Z' },
-  { id: '4', name: '송병구', race: 'T' },
-  { id: '5', name: '허영무', race: 'P' },
-  { id: '6', name: '박성준', race: 'Z' },
-  { id: '7', name: '윤용태', race: 'T' },
-  { id: '8', name: '김명운', race: 'Z' },
-  { id: '9', name: '강민', race: 'P' },
-  { id: '10', name: '홍진호', race: 'Z' },
-];
-
 const SHOW_ENTRY_BOARD_PANEL = false;
 
 function normalizeRaceCode(race: string) {
@@ -60,6 +50,10 @@ function normalizeRaceCode(race: string) {
   if (raw.startsWith('Z')) return 'Z';
   if (raw.startsWith('P')) return 'P';
   return 'R';
+}
+
+function normalizeSearchText(value: string) {
+  return String(value || '').trim().toLowerCase();
 }
 
 function raceToneClasses(race: string, side: 1 | 2) {
@@ -86,50 +80,138 @@ function raceToneClasses(race: string, side: 1 | 2) {
   return base;
 }
 
-function getMockStats(p1: Player | null, p2: Player | null) {
-  if (!p1 || !p2) return null;
+type MatchupStats = {
+  overall: [number, number];
+  recent: [number, number];
+};
 
-  const leftId = Number(p1.id);
-  const rightId = Number(p2.id);
-  const lowId = Math.min(leftId, rightId);
-  const highId = Math.max(leftId, rightId);
-  const seed = lowId * 13 + highId * 7;
-  const baseOverall: [number, number] = [10 + (seed % 4), 9 + ((seed * 3) % 4)];
-  const baseRecent: [number, number] = [2 + (seed % 2), 1 + ((seed * 5) % 2)];
+type MomentumInsight = {
+  strongMap: string;
+  mapRecord: string;
+  raceTarget: string;
+  recentRecord: string;
+  recentTone: string;
+  recentSummary: string;
+  formLabel: string;
+  overallSampleCount: number;
+  recentSampleCount: number;
+  recentWinRateLabel: string;
+  mapSampleCount: number;
+  latestMatchLabel: string;
+  isRecentSampleThin: boolean;
+  isMapSampleThin: boolean;
+};
 
-  if (leftId <= rightId) {
-    return { overall: baseOverall, recent: baseRecent };
+function formatMatchDateLabel(value: string | null | undefined) {
+  const raw = String(value || "").trim();
+  if (!raw) return "최근 맞대결 없음";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "최근 맞대결 없음";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}.${month}.${day}`;
+}
+
+function getFormToneClasses(label: string, side: 'left' | 'right') {
+  if (label === '우세') {
+    return side === 'left'
+      ? 'text-nzu-green'
+      : 'text-red-200';
   }
+  if (label === '열세') {
+    return side === 'left'
+      ? 'text-white/58'
+      : 'text-white/58';
+  }
+  if (label === '접전') {
+    return 'text-white/78';
+  }
+  return 'text-white/42';
+}
 
+function getH2HMatchupStats(stats: H2HStats | null): MatchupStats | null {
+  if (!stats) return null;
   return {
-    overall: [baseOverall[1], baseOverall[0]] as [number, number],
-    recent: [baseRecent[1], baseRecent[0]] as [number, number],
+    overall: [stats.summary.wins, stats.summary.losses],
+    recent: [stats.summary.momentum90.wins, stats.summary.momentum90.losses],
   };
 }
 
-function getMockInsights(player: Player, opponent: Player) {
-  const playerId = Number(player.id);
-  const opponentId = Number(opponent.id);
-  const seed = playerId * 17 + opponentId * 11;
-  const maps = ["투혼", "폴리포이드", "실피드", "네오문글레이브", "녹아웃"];
-  const strongMap = maps[seed % maps.length];
-  const mapWins = 3 + (seed % 4);
-  const mapLosses = seed % 3;
-  const recentWins = 4 + ((seed * 3) % 4);
-  const recentLosses = 1 + ((seed * 5) % 3);
-  const recentTone = recentWins > recentLosses ? "상승 흐름" : "주춤한 흐름";
-  const recentSummary =
-    recentWins > recentLosses
-      ? `${opponent.race} 상대로 최근 흐름이 좋습니다.`
-      : `${opponent.race} 상대로 최근 흐름은 조금 더 확인이 필요합니다.`;
+function pickBestMap(
+  stats: H2HStats | null,
+  perspective: 'left' | 'right'
+) {
+  if (!stats) return null;
+
+  const rows = Object.entries(stats.mapStats)
+    .map(([mapName, record]) => {
+      const wins = perspective === 'left' ? record.w : record.l;
+      const losses = perspective === 'left' ? record.l : record.w;
+      const matches = wins + losses;
+      const winRate = matches > 0 ? wins / matches : -1;
+      return { mapName, wins, losses, matches, winRate };
+    })
+    .filter((row) => row.matches > 0)
+    .sort((left, right) => {
+      if (right.winRate !== left.winRate) return right.winRate - left.winRate;
+      if (right.matches !== left.matches) return right.matches - left.matches;
+      if (right.wins !== left.wins) return right.wins - left.wins;
+      return left.mapName.localeCompare(right.mapName, 'ko');
+    });
+
+  return rows[0] || null;
+}
+
+function buildMomentumInsight(
+  player: Player,
+  opponent: Player,
+  stats: H2HStats | null,
+  perspective: 'left' | 'right'
+): MomentumInsight {
+  const recent = stats?.summary.momentum90;
+  const recentWins = perspective === 'left' ? (recent?.wins ?? 0) : (recent?.losses ?? 0);
+  const recentLosses = perspective === 'left' ? (recent?.losses ?? 0) : (recent?.wins ?? 0);
+  const recentTotal = recentWins + recentLosses;
+  const recentWinRate = recentTotal > 0 ? (recentWins / recentTotal) * 100 : 0;
+  const bestMap = pickBestMap(stats, perspective);
+  const mapSampleCount = bestMap?.matches ?? 0;
+  const isRecentSampleThin = recentTotal > 0 && recentTotal < 3;
+  const isMapSampleThin = mapSampleCount > 0 && mapSampleCount < 3;
+
+  let recentTone = "표본 부족";
+  let formLabel = "데이터 없음";
+  if (recentTotal > 0) {
+    if (recentWinRate >= 60) {
+      recentTone = "상승 흐름";
+      formLabel = "우세";
+    } else if (recentWinRate <= 40) {
+      recentTone = "열세 흐름";
+      formLabel = "열세";
+    } else {
+      recentTone = "백중 흐름";
+      formLabel = "접전";
+    }
+  }
 
   return {
-    strongMap,
-    mapRecord: `${mapWins}승 ${mapLosses}패`,
+    strongMap: bestMap?.mapName || "표본 부족",
+    mapRecord: bestMap ? `${bestMap.wins}승 ${bestMap.losses}패` : "데이터 없음",
     raceTarget: `vs ${opponent.race}`,
-    recentRecord: `${recentWins}승 ${recentLosses}패`,
+    recentRecord: recentTotal > 0 ? `${recentWins}승 ${recentLosses}패` : "데이터 없음",
     recentTone,
-    recentSummary,
+    recentSummary:
+      recentTotal > 0
+        ? `${opponent.race} 상대로 최근 90일 ${recentWins}승 ${recentLosses}패`
+        : `${opponent.race} 상대로 최근 90일 표본이 없습니다.`,
+    formLabel,
+    overallSampleCount: stats?.summary.total ?? 0,
+    recentSampleCount: recentTotal,
+    recentWinRateLabel: recentTotal > 0 ? `${recentWinRate.toFixed(1)}%` : "데이터 없음",
+    mapSampleCount,
+    latestMatchLabel: formatMatchDateLabel(stats?.recentMatches?.[0]?.match_date),
+    isRecentSampleThin,
+    isMapSampleThin,
   };
 }
 
@@ -154,9 +236,51 @@ function EntryBoardSidePanel({ rows }: { rows: MatchRow[] }) {
   const confirmedRows = rows.filter((row) => row.p1 && row.p2) as Array<MatchRow & { p1: Player; p2: Player }>;
   const teamAPlayers = confirmedRows.map((row) => row.p1);
   const teamBPlayers = confirmedRows.map((row) => row.p2);
+  const [panelStats, setPanelStats] = useState<Record<string, H2HStats | null>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPanelStats() {
+      const nextEntries = await Promise.all(
+        confirmedRows.map(async (row) => {
+          try {
+            const params = new URLSearchParams({
+              p1: REAL_NAME_MAP[row.p1.name] || row.p1.name,
+              p2: REAL_NAME_MAP[row.p2.name] || row.p2.name,
+            });
+            if (row.p1.gender && row.p1.gender === row.p2.gender) {
+              params.set("gender", row.p1.gender);
+            }
+
+            const response = await fetch(`/api/stats/h2h?${params.toString()}`, { cache: "no-store" });
+            if (!response.ok) return [row.id, null] as const;
+            const payload = (await response.json()) as H2HStats;
+            return [row.id, payload] as const;
+          } catch {
+            return [row.id, null] as const;
+          }
+        })
+      );
+
+      if (cancelled) return;
+      setPanelStats(Object.fromEntries(nextEntries));
+    }
+
+    if (confirmedRows.length === 0) return () => {
+      cancelled = true;
+    };
+
+    loadPanelStats();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [confirmedRows]);
+
   const aggregate = confirmedRows.reduce(
     (acc, row) => {
-      const stats = getMockStats(row.p1, row.p2);
+      const stats = getH2HMatchupStats(panelStats[row.id] || null);
       if (!stats) return acc;
       acc.left += stats.overall[0];
       acc.right += stats.overall[1];
@@ -167,6 +291,8 @@ function EntryBoardSidePanel({ rows }: { rows: MatchRow[] }) {
   const balanceText =
     confirmedRows.length === 0
       ? '선수 선택 후 밸런스 계산'
+      : aggregate.left === 0 && aggregate.right === 0
+        ? '실제 상대전적 표본 확인 중'
       : aggregate.left === aggregate.right
         ? '현재 기준 완전 균형'
         : aggregate.left > aggregate.right
@@ -370,16 +496,19 @@ interface SortableItemProps {
   removeRow: (id: string) => void;
   swapPlayers: (id: string) => void;
   allPlayers: Player[];
+  isPlayersLoading: boolean;
   matchNumber: number;
 }
 
-const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, matchNumber }: SortableItemProps) => {
+const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, isPlayersLoading, matchNumber }: SortableItemProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.id });
   const [s1, setS1] = useState<Player[]>([]);
   const [s2, setS2] = useState<Player[]>([]);
   const [show1, setShow1] = useState(false);
   const [show2, setShow2] = useState(false);
   const [showMomentum, setShowMomentum] = useState(false);
+  const [h2hStats, setH2hStats] = useState<H2HStats | null>(null);
+  const [isH2HLoading, setIsH2HLoading] = useState(false);
   const p1InputRef = useRef<HTMLInputElement | null>(null);
   const p2InputRef = useRef<HTMLInputElement | null>(null);
   const hasOpenDropdown = show1 || show2;
@@ -388,6 +517,19 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
     transform: CSS.Translate.toString(transform),
     transition: transition || 'transform 150ms cubic-bezier(0.2, 0, 0, 1)',
     zIndex: isDragging ? 60 : hasOpenDropdown ? 40 : 0,
+  };
+
+  const filterCandidates = (value: string, side: 1 | 2) => {
+    const needle = normalizeSearchText(value);
+    if (!needle) return [];
+
+    const oppositePlayer = side === 1 ? row.p2 : row.p1;
+    return allPlayers
+      .filter((player) => {
+        if (oppositePlayer && player.id === oppositePlayer.id) return false;
+        return normalizeSearchText(player.name).includes(needle);
+      })
+      .slice(0, 8);
   };
 
   const handleSearch = (val: string, side: 1 | 2) => {
@@ -401,7 +543,7 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
       }
       return;
     }
-    const filtered = allPlayers.filter(p => p.name.includes(val)).slice(0, 5);
+    const filtered = filterCandidates(val, side);
     if (side === 1) {
       setS1(filtered);
       setShow1(filtered.length > 0);
@@ -442,10 +584,55 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
   };
 
   const isConfirmed = row.p1 && row.p2;
-  const mockStats = getMockStats(row.p1, row.p2);
-  const leftInsight = row.p1 && row.p2 ? getMockInsights(row.p1, row.p2) : null;
-  const rightInsight = row.p1 && row.p2 ? getMockInsights(row.p2, row.p1) : null;
+  const matchupStats = useMemo(() => getH2HMatchupStats(h2hStats), [h2hStats]);
+  const leftInsight = row.p1 && row.p2 ? buildMomentumInsight(row.p1, row.p2, h2hStats, 'left') : null;
+  const rightInsight = row.p1 && row.p2 ? buildMomentumInsight(row.p2, row.p1, h2hStats, 'right') : null;
   const isMomentumVisible = showMomentum && isConfirmed && leftInsight && rightInsight;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadH2H() {
+      if (!row.p1 || !row.p2) {
+        setH2hStats(null);
+        setIsH2HLoading(false);
+        return;
+      }
+
+      setIsH2HLoading(true);
+      try {
+        const params = new URLSearchParams({
+          p1: REAL_NAME_MAP[row.p1.name] || row.p1.name,
+          p2: REAL_NAME_MAP[row.p2.name] || row.p2.name,
+        });
+        if (row.p1.gender && row.p1.gender === row.p2.gender) {
+          params.set('gender', row.p1.gender);
+        }
+
+        const response = await fetch(`/api/stats/h2h?${params.toString()}`, { cache: 'no-store' });
+        const payload = await response.json().catch(() => null);
+        if (cancelled) return;
+
+        if (!response.ok) {
+          setH2hStats(null);
+          return;
+        }
+
+        setH2hStats(payload as H2HStats);
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) setH2hStats(null);
+      } finally {
+        if (!cancelled) setIsH2HLoading(false);
+      }
+    }
+
+    loadH2H();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [row.p1, row.p2]);
 
   return (
     <div ref={setNodeRef} style={style} className={cn("group relative flex flex-col gap-2 overflow-visible bg-white/[0.02] backdrop-blur-xl p-2 rounded-[2rem] border transition-all", isDragging ? "border-nzu-green/40 shadow-2xl scale-[1.01]" : "border-white/5 hover:border-white/10")}>
@@ -518,11 +705,15 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
                    <RaceLetterBadge race={p.race} size="sm" />
                  </button>
                ))}
-               {s1.length === 0 && row.p1Input.trim() && (
+               {isPlayersLoading ? (
+                 <div className="px-4 py-3 text-[0.92rem] font-[1000] text-white/32">
+                   선수 목록 불러오는 중...
+                 </div>
+               ) : s1.length === 0 && row.p1Input.trim() ? (
                  <div className="px-4 py-3 text-[0.92rem] font-[1000] text-white/32">
                    일치하는 선수가 없습니다.
                  </div>
-               )}
+               ) : null}
             </div>
           )}
         </div>
@@ -532,26 +723,39 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
            <button onClick={() => swapPlayers(row.id)} className="absolute top-0 bg-[#101718]/95 border border-white/15 p-1.5 rounded-full text-white/40 hover:text-nzu-green hover:border-nzu-green/40 transition-all active:scale-90 group/swap shadow-[0_10px_24px_rgba(0,0,0,0.45)] z-20 backdrop-blur-sm">
               <ArrowLeftRight size={13} strokeWidth={3.5} className="group-hover/swap:rotate-180 transition-transform duration-500" />
            </button>
-           {isConfirmed && mockStats ? (
-             <div className="flex flex-col items-center animate-in fade-in zoom-in-90 duration-300">
+           {isConfirmed && matchupStats ? (
+             <div className={cn(
+               "flex flex-col items-center animate-in fade-in zoom-in-90 duration-300",
+               (leftInsight?.isRecentSampleThin || rightInsight?.isRecentSampleThin) && "opacity-90"
+             )}>
                 <div className="flex min-w-[104px] items-center justify-center gap-2">
-                   <span className="min-w-[26px] text-right text-[1.65rem] font-[1000] italic text-nzu-green leading-none tabular-nums">{mockStats.overall[0]}</span>
+                   <span className="min-w-[26px] text-right text-[1.65rem] font-[1000] italic text-nzu-green leading-none tabular-nums">{matchupStats.overall[0]}</span>
                    <span className="min-w-[34px] px-1 text-center text-[11px] font-[1000] italic text-nzu-green/68">전체</span>
-                   <span className="min-w-[26px] text-left text-[1.65rem] font-[1000] italic text-nzu-green leading-none tabular-nums">{mockStats.overall[1]}</span>
+                   <span className="min-w-[26px] text-left text-[1.65rem] font-[1000] italic text-nzu-green leading-none tabular-nums">{matchupStats.overall[1]}</span>
                 </div>
                 <div className="my-1 h-px w-[92px] bg-gradient-to-r from-transparent via-white/7 to-transparent" />
                 <div className="flex min-w-[104px] items-center justify-center gap-2 opacity-75">
-                   <span className="min-w-[22px] text-right text-[1.28rem] font-[1000] italic text-red-500/85 leading-none tabular-nums">{mockStats.recent[0]}</span>
+                   <span className="min-w-[22px] text-right text-[1.28rem] font-[1000] italic text-red-500/85 leading-none tabular-nums">{matchupStats.recent[0]}</span>
                    <span className="min-w-[34px] text-center text-[11px] font-[1000] italic text-red-500/45">최근</span>
-                   <span className="min-w-[22px] text-left text-[1.28rem] font-[1000] italic text-red-500/85 leading-none tabular-nums">{mockStats.recent[1]}</span>
+                   <span className="min-w-[22px] text-left text-[1.28rem] font-[1000] italic text-red-500/85 leading-none tabular-nums">{matchupStats.recent[1]}</span>
                 </div>
+                {leftInsight?.isRecentSampleThin || rightInsight?.isRecentSampleThin ? (
+                  <div className="mt-1 rounded-full border border-amber-300/14 bg-amber-300/[0.06] px-2 py-0.5 text-[0.62rem] font-[1000] uppercase tracking-[0.18em] text-amber-100/70">
+                    최근 표본 얇음
+                  </div>
+                ) : null}
+             </div>
+           ) : isConfirmed && isH2HLoading ? (
+             <div className="flex flex-col items-center gap-2">
+               <div className="h-7 w-24 animate-pulse rounded-full bg-white/8" />
+               <div className="h-5 w-20 animate-pulse rounded-full bg-white/6" />
              </div>
            ) : (
              <div className="flex flex-col items-center gap-1.5 pt-1">
                <div className="h-[1px] w-[92px] bg-gradient-to-r from-transparent via-white/6 to-transparent group-hover:via-nzu-green/20 transition-colors" />
                <div className="flex min-w-[104px] items-center justify-center gap-3 opacity-60">
-                 <span className="text-[12px] font-[1000] italic text-white/12">전체</span>
-                 <span className="text-[11px] font-[1000] italic text-white/10">최근</span>
+                 <span className="text-[12px] font-[1000] italic text-white/16">{isConfirmed ? '표본' : '전체'}</span>
+                 <span className="text-[11px] font-[1000] italic text-white/12">{isConfirmed ? '없음' : '최근'}</span>
                </div>
              </div>
            )}
@@ -603,11 +807,15 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
                    <span className="truncate pl-3 text-right">{p.name}</span>
                  </button>
                ))}
-               {s2.length === 0 && row.p2Input.trim() && (
+               {isPlayersLoading ? (
+                 <div className="px-4 py-3 text-right text-[0.92rem] font-[1000] text-white/32">
+                   선수 목록 불러오는 중...
+                 </div>
+               ) : s2.length === 0 && row.p2Input.trim() ? (
                  <div className="px-4 py-3 text-right text-[0.92rem] font-[1000] text-white/32">
                    일치하는 선수가 없습니다.
                  </div>
-               )}
+               ) : null}
             </div>
           )}
         </div>
@@ -645,41 +853,122 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
             </button>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_104px_minmax(0,1fr)]">
-            <div className="rounded-[1.1rem] border border-nzu-green/12 bg-nzu-green/[0.04] px-4 py-3">
-              <div className="text-[1rem] font-[1000] text-white">{row.p1?.name}</div>
-              <div className="mt-2 space-y-2">
-                <div>
-                  <div className="text-[0.84rem] font-[1000] text-white/35">강한 맵</div>
-                  <div className="mt-1 text-[0.98rem] font-[1000] text-white">{leftInsight.strongMap} · {leftInsight.mapRecord}</div>
-                  <div className="text-[0.88rem] text-white/55">{leftInsight.raceTarget}</div>
+          <div className="rounded-[1.2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-3 py-3 md:px-4">
+            <div className="grid items-center gap-2 border-b border-white/7 pb-3 md:grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)]">
+              <div className="text-center md:text-right">
+                <div className="text-[1.08rem] font-[1000] tracking-tight text-white">{row.p1?.name}</div>
+                <div className="mt-1 text-[0.82rem] font-[1000] tracking-[0.18em] text-nzu-green/62 uppercase">Left Side</div>
+              </div>
+              <div className="text-center text-[0.76rem] font-[1000] uppercase tracking-[0.22em] text-white/26">Mirror Compare</div>
+              <div className="text-center md:text-left">
+                <div className="text-[1.08rem] font-[1000] tracking-tight text-white">{row.p2?.name}</div>
+                <div className="mt-1 text-[0.82rem] font-[1000] tracking-[0.18em] text-red-300/58 uppercase">Right Side</div>
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-2 rounded-[1rem] border border-white/7 bg-white/[0.025] px-3 py-3 md:grid-cols-3 md:px-4">
+              <div className="text-center md:text-left">
+                <div className="text-[0.7rem] font-[1000] uppercase tracking-[0.18em] text-white/28">전체 표본</div>
+                <div className="mt-1 text-[0.94rem] font-[1000] tracking-tight text-white">
+                  {leftInsight.overallSampleCount}경기
                 </div>
-                <div>
-                  <div className="text-[0.84rem] font-[1000] text-white/35">최근 폼</div>
-                  <div className="mt-1 text-[0.98rem] font-[1000] text-white">{leftInsight.recentTone} · {leftInsight.recentRecord}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[0.7rem] font-[1000] uppercase tracking-[0.18em] text-white/28">최근 90일 승률</div>
+                <div className="mt-1 text-[0.94rem] font-[1000] tracking-tight text-white">
+                  {leftInsight.recentWinRateLabel}
+                </div>
+              </div>
+              <div className="text-center md:text-right">
+                <div className="text-[0.7rem] font-[1000] uppercase tracking-[0.18em] text-white/28">최근 맞대결</div>
+                <div className="mt-1 text-[0.94rem] font-[1000] tracking-tight text-white">
+                  {leftInsight.latestMatchLabel}
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-row items-center justify-center gap-3 rounded-[1.1rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] px-3 py-3 text-center md:flex-col md:gap-2 md:px-2">
-              <div className="text-[1.2rem] font-[1000] tracking-tight text-nzu-green drop-shadow-[0_0_12px_rgba(0,255,163,0.22)]">기세</div>
-              <div className="h-px w-10 bg-nzu-green/18 md:w-12" />
-              <div className="text-[0.92rem] font-[1000] tracking-tight text-white/78">강한 맵</div>
-              <div className="hidden h-px w-6 bg-white/8 md:block" />
-              <div className="text-[0.92rem] font-[1000] tracking-tight text-white/78">최근 폼</div>
-            </div>
-
-            <div className="rounded-[1.1rem] border border-red-500/12 bg-red-500/[0.04] px-4 py-3">
-              <div className="text-[1rem] font-[1000] text-white text-right">{row.p2?.name}</div>
-              <div className="mt-2 space-y-2 text-right">
-                <div>
-                  <div className="text-[0.84rem] font-[1000] text-white/35">강한 맵</div>
-                  <div className="mt-1 text-[0.98rem] font-[1000] text-white">{rightInsight.strongMap} · {rightInsight.mapRecord}</div>
-                  <div className="text-[0.88rem] text-white/55">{rightInsight.raceTarget}</div>
+            <div className="mt-3 grid gap-2.5">
+              <div className="grid items-center gap-2 md:grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)]">
+                <div className="rounded-[1rem] border border-nzu-green/14 bg-nzu-green/[0.05] px-4 py-3 text-center md:text-right">
+                  <div className="flex items-center justify-center gap-2 md:justify-end">
+                    {leftInsight.isRecentSampleThin ? (
+                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-[1000] uppercase tracking-[0.18em] text-amber-100/85">
+                        표본 부족
+                      </span>
+                    ) : null}
+                    <div className={cn("text-[1.02rem] font-[1000] tracking-tight", getFormToneClasses(leftInsight.formLabel, 'left'))}>{leftInsight.recentTone}</div>
+                  </div>
+                  <div className="mt-1 text-[1.18rem] font-[1000] italic tracking-tight text-white">{leftInsight.recentRecord}</div>
+                  <div className="mt-1 text-[0.84rem] text-white/46">{leftInsight.recentSummary}</div>
+                  <div className="mt-1 text-[0.76rem] font-[1000] uppercase tracking-[0.16em] text-white/26">최근 90일 표본 {leftInsight.recentSampleCount}경기</div>
                 </div>
-                <div>
-                  <div className="text-[0.84rem] font-[1000] text-white/35">최근 폼</div>
-                  <div className="mt-1 text-[0.98rem] font-[1000] text-white">{rightInsight.recentTone} · {rightInsight.recentRecord}</div>
+                <div className="rounded-[1rem] border border-white/8 bg-white/[0.04] px-3 py-3 text-center">
+                  <div className="text-[0.78rem] font-[1000] uppercase tracking-[0.22em] text-white/32">기세</div>
+                </div>
+                <div className="rounded-[1rem] border border-red-500/14 bg-red-500/[0.05] px-4 py-3 text-center md:text-left">
+                  <div className="flex items-center justify-center gap-2 md:justify-start">
+                    <div className={cn("text-[1.02rem] font-[1000] tracking-tight", getFormToneClasses(rightInsight.formLabel, 'right'))}>{rightInsight.recentTone}</div>
+                    {rightInsight.isRecentSampleThin ? (
+                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-[1000] uppercase tracking-[0.18em] text-amber-100/85">
+                        표본 부족
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-1 text-[1.18rem] font-[1000] italic tracking-tight text-white">{rightInsight.recentRecord}</div>
+                  <div className="mt-1 text-[0.84rem] text-white/46">{rightInsight.recentSummary}</div>
+                  <div className="mt-1 text-[0.76rem] font-[1000] uppercase tracking-[0.16em] text-white/26">최근 90일 표본 {rightInsight.recentSampleCount}경기</div>
+                </div>
+              </div>
+
+              <div className="grid items-center gap-2 md:grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)]">
+                <div className="rounded-[1rem] border border-nzu-green/14 bg-white/[0.03] px-4 py-3 text-center md:text-right">
+                  <div className="flex items-center justify-center gap-2 md:justify-end">
+                    {leftInsight.isMapSampleThin ? (
+                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-[1000] uppercase tracking-[0.18em] text-amber-100/85">
+                        표본 부족
+                      </span>
+                    ) : null}
+                    <div className="text-[1.12rem] font-[1000] tracking-tight text-white">{leftInsight.strongMap}</div>
+                  </div>
+                  <div className="mt-1 text-[0.96rem] font-[1000] text-nzu-green">{leftInsight.mapRecord}</div>
+                  <div className="mt-1 text-[0.84rem] text-white/46">{leftInsight.raceTarget}</div>
+                  <div className="mt-1 text-[0.76rem] font-[1000] uppercase tracking-[0.16em] text-white/26">맵 표본 {leftInsight.mapSampleCount}경기</div>
+                </div>
+                <div className="rounded-[1rem] border border-white/8 bg-white/[0.04] px-3 py-3 text-center">
+                  <div className="text-[0.78rem] font-[1000] uppercase tracking-[0.22em] text-white/32">강한 맵</div>
+                </div>
+                <div className="rounded-[1rem] border border-red-500/14 bg-white/[0.03] px-4 py-3 text-center md:text-left">
+                  <div className="flex items-center justify-center gap-2 md:justify-start">
+                    <div className="text-[1.12rem] font-[1000] tracking-tight text-white">{rightInsight.strongMap}</div>
+                    {rightInsight.isMapSampleThin ? (
+                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-[1000] uppercase tracking-[0.18em] text-amber-100/85">
+                        표본 부족
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-1 text-[0.96rem] font-[1000] text-red-300">{rightInsight.mapRecord}</div>
+                  <div className="mt-1 text-[0.84rem] text-white/46">{rightInsight.raceTarget}</div>
+                  <div className="mt-1 text-[0.76rem] font-[1000] uppercase tracking-[0.16em] text-white/26">맵 표본 {rightInsight.mapSampleCount}경기</div>
+                </div>
+              </div>
+
+              <div className="grid items-center gap-2 md:grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)]">
+                <div className="rounded-[1rem] border border-nzu-green/14 bg-black/20 px-4 py-3 text-center md:text-right">
+                  <div className="text-[0.82rem] font-[1000] uppercase tracking-[0.18em] text-white/34">요약</div>
+                  <div className="mt-1 text-[1rem] font-[1000] tracking-tight text-white">
+                    {leftInsight.strongMap} 중심 운영
+                  </div>
+                  <div className={cn("mt-1 text-[0.9rem]", getFormToneClasses(leftInsight.formLabel, 'left'))}>{leftInsight.formLabel}</div>
+                </div>
+                <div className="rounded-[1rem] border border-white/8 bg-white/[0.04] px-3 py-3 text-center">
+                  <div className="text-[0.78rem] font-[1000] uppercase tracking-[0.22em] text-white/32">최근 폼</div>
+                </div>
+                <div className="rounded-[1rem] border border-red-500/14 bg-black/20 px-4 py-3 text-center md:text-left">
+                  <div className="text-[0.82rem] font-[1000] uppercase tracking-[0.18em] text-white/34">요약</div>
+                  <div className="mt-1 text-[1rem] font-[1000] tracking-tight text-white">
+                    {rightInsight.strongMap} 중심 운영
+                  </div>
+                  <div className={cn("mt-1 text-[0.9rem]", getFormToneClasses(rightInsight.formLabel, 'right'))}>{rightInsight.formLabel}</div>
                 </div>
               </div>
             </div>
@@ -693,8 +982,43 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
 // --- Page ---
 export default function MultiH2HPage() {
   const [rows, setRows] = useState<MatchRow[]>([{ id: crypto.randomUUID(), p1: null, p2: null, p1Input: '', p2Input: '' }]);
-  const [allPlayers] = useState<Player[]>(DUMMY_PLAYERS);
+  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
+  const [isPlayersLoading, setIsPlayersLoading] = useState(true);
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPlayers() {
+      try {
+        setIsPlayersLoading(true);
+        const response = await fetch("/api/players", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(`Failed to load players: ${response.status}`);
+        }
+
+        const payload = (await response.json()) as { players?: Player[] };
+        if (!cancelled) {
+          setAllPlayers(Array.isArray(payload.players) ? payload.players : []);
+        }
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) {
+          setAllPlayers([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsPlayersLoading(false);
+        }
+      }
+    }
+
+    loadPlayers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const addRow = () => setRows([...rows, { id: crypto.randomUUID(), p1: null, p2: null, p1Input: '', p2Input: '' }]);
   const removeRow = (id: string) => rows.length > 1 ? setRows(rows.filter(r => r.id !== id)) : setRows([{ id: crypto.randomUUID(), p1: null, p2: null, p1Input: '', p2Input: '' }]);
@@ -740,6 +1064,12 @@ export default function MultiH2HPage() {
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]" />
             <span className="text-[13px] font-black text-red-500 tracking-wide">최근: 최근 3개월 전적</span>
           </div>
+          <div className="flex items-center gap-2.5">
+            <span className={cn("w-2.5 h-2.5 rounded-full", isPlayersLoading ? "bg-white/28" : "bg-nzu-green shadow-[0_0_12px_rgba(0,255,163,0.45)]")} />
+            <span className="text-[13px] font-black text-white/45 tracking-wide">
+              {isPlayersLoading ? "선수 목록 불러오는 중" : `${allPlayers.length.toLocaleString()}명 로드 완료`}
+            </span>
+          </div>
         </div>
         <div className={cn("grid gap-4", SHOW_ENTRY_BOARD_PANEL ? "xl:grid-cols-[minmax(0,1fr)_400px]" : "")}>
           <section className="min-w-0">
@@ -747,7 +1077,7 @@ export default function MultiH2HPage() {
               <div className="flex flex-col gap-2.5">
                 <SortableContext items={rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
                   {rows.map((row, index) => (
-                    <SortableMatchRow key={row.id} row={row} updateRow={updateRow} removeRow={removeRow} swapPlayers={swapPlayers} allPlayers={allPlayers} matchNumber={index + 1} />
+                    <SortableMatchRow key={row.id} row={row} updateRow={updateRow} removeRow={removeRow} swapPlayers={swapPlayers} allPlayers={allPlayers} isPlayersLoading={isPlayersLoading} matchNumber={index + 1} />
                   ))}
                 </SortableContext>
                 

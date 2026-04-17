@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const {
   buildLegacyEntityIdsBySuccessor,
   buildRetainedFaEntityIds,
+  collapseObservedLegacyDuplicates,
   effectiveTier,
   effectiveRace,
   findBaselineIdentityMigrationCandidate,
@@ -26,6 +27,48 @@ runTest("effectiveTier preserves prior confirmed tier when observed tier is 미�
   assert.equal(effectiveTier("미정", "8"), "8");
   assert.equal(effectiveTier("", "킹"), "킹");
   assert.equal(effectiveTier("3", "8"), "3");
+});
+
+runTest("collapseObservedLegacyDuplicates removes manual legacy duplicates when both ids are observed", () => {
+  const observedByEntity = new Map([
+    [
+      "eloboard:male:205",
+      {
+        entity_id: "eloboard:male:205",
+        wr_id: 205,
+        gender: "male",
+        name: "케이",
+        team_code: "ku",
+      },
+    ],
+    [
+      "eloboard:male:mix:205",
+      {
+        entity_id: "eloboard:male:mix:205",
+        wr_id: 205,
+        gender: "male",
+        name: "케이",
+        team_code: "ku",
+        profile_kind: "mix",
+      },
+    ],
+  ]);
+
+  const actual = collapseObservedLegacyDuplicates(
+    observedByEntity,
+    new Map([["eloboard:male:205", ["eloboard:male:mix:205"]]])
+  );
+
+  assert.equal(actual.observedByEntity.has("eloboard:male:205"), true);
+  assert.equal(actual.observedByEntity.has("eloboard:male:mix:205"), false);
+  assert.deepEqual(actual.deduped, [
+    {
+      canonical_entity_id: "eloboard:male:205",
+      legacy_entity_id: "eloboard:male:mix:205",
+      name: "케이",
+      team_code: "ku",
+    },
+  ]);
 });
 
 runTest("effectiveRace preserves prior confirmed race when observed race is Unknown", () => {

@@ -479,6 +479,47 @@ function reconcileObservedIdentityMigrations(observedByEntity, beforeByEntity) {
   return { observedByEntity: reconciled, migrations };
 }
 
+function canCollapseManualLegacyDuplicate(canonicalObserved, legacyObserved) {
+  if (!canonicalObserved || !legacyObserved) return false;
+  const canonicalTeam = String(canonicalObserved.team_code || "").trim();
+  const legacyTeam = String(legacyObserved.team_code || "").trim();
+  if (!canonicalTeam || canonicalTeam !== legacyTeam) return false;
+
+  const canonicalGender = String(canonicalObserved.gender || "").trim();
+  const legacyGender = String(legacyObserved.gender || "").trim();
+  if (!canonicalGender || canonicalGender !== legacyGender) return false;
+
+  const canonicalWrId = Number(canonicalObserved.wr_id || 0);
+  const legacyWrId = Number(legacyObserved.wr_id || 0);
+  if (!Number.isFinite(canonicalWrId) || canonicalWrId <= 0 || canonicalWrId !== legacyWrId) return false;
+
+  return true;
+}
+
+function collapseObservedLegacyDuplicates(observedByEntity, legacyEntityIdsBySuccessor) {
+  const collapsed = new Map(observedByEntity);
+  const deduped = [];
+
+  for (const [canonicalEntityId, legacyEntityIds] of legacyEntityIdsBySuccessor.entries()) {
+    const canonicalObserved = collapsed.get(canonicalEntityId);
+    if (!canonicalObserved) continue;
+    for (const legacyEntityId of legacyEntityIds) {
+      if (!collapsed.has(legacyEntityId)) continue;
+      const legacyObserved = collapsed.get(legacyEntityId);
+      if (!canCollapseManualLegacyDuplicate(canonicalObserved, legacyObserved)) continue;
+      collapsed.delete(legacyEntityId);
+      deduped.push({
+        canonical_entity_id: String(canonicalEntityId),
+        legacy_entity_id: String(legacyEntityId),
+        name: String(canonicalObserved.name || canonicalObserved.display_name || ""),
+        team_code: String(canonicalObserved.team_code || ""),
+      });
+    }
+  }
+
+  return { observedByEntity: collapsed, deduped };
+}
+
 function removeEntityFromAllDocs(docs, entityId, keepTeamCode, skipTeamCodes = new Set()) {
   for (const d of docs) {
     if (String(d.team.code) === String(keepTeamCode)) continue;
@@ -688,6 +729,11 @@ async function main() {
   for (const [entityId, observed] of identityReconciliation.observedByEntity.entries()) {
     observedByEntity.set(entityId, observed);
   }
+  const manualLegacyCollapse = collapseObservedLegacyDuplicates(observedByEntity, legacyEntityIdsBySuccessor);
+  observedByEntity.clear();
+  for (const [entityId, observed] of manualLegacyCollapse.observedByEntity.entries()) {
+    observedByEntity.set(entityId, observed);
+  }
 
   const moved = [];
   const added = [];
@@ -695,6 +741,21 @@ async function main() {
   const raceChanged = [];
   const dedupRemovals = [];
   const faFallbackEntityIds = new Set();
+  const collapsedLegacyEntityIds = new Set(
+    manualLegacyCollapse.deduped.map((row) => String(row.legacy_entity_id || "")).filter(Boolean)
+  );
+
+  for (const collapsedRow of manualLegacyCollapse.deduped) {
+    for (const d of allDocs) {
+      removeRosterEntry(d.json, collapsedRow.legacy_entity_id);
+    }
+    dedupRemovals.push({
+      entity_id: collapsedRow.canonical_entity_id,
+      name: collapsedRow.name,
+      kept_team: collapsedRow.team_code,
+      removed_from_teams: [collapsedRow.team_code],
+    });
+  }
 
   for (const [entityId, observed] of observedByEntity.entries()) {
     const prev = beforeByEntity.get(entityId);
@@ -761,6 +822,7 @@ async function main() {
     for (const [entityId, prev] of beforeByEntity.entries()) {
       if (prev.team_code === "fa") continue;
       if (observedByEntity.has(entityId)) continue;
+      if (collapsedLegacyEntityIds.has(String(entityId))) continue;
       if (guardedTeamCodes.has(String(prev.team_code))) continue;
       const prevDoc = teamDocs.get(prev.team_code);
       if (!prevDoc) continue;
@@ -815,8 +877,17 @@ async function main() {
     guarded_teams: guardedTeams,
     observed_conflicts_count: observedConflicts.length,
     observed_conflicts: observedConflicts,
-    identity_migrations_count: identityReconciliation.migrations.length,
-    identity_migrations: identityReconciliation.migrations,
+    identity_migrations_count: identityReconciliation.migrations.length + manualLegacyCollapse.deduped.length,
+    identity_migrations: [
+      ...identityReconciliation.migrations,
+      ...manualLegacyCollapse.deduped.map((row) => ({
+        name: row.name,
+        team_code: row.team_code,
+        previous_entity_id: row.canonical_entity_id,
+        observed_entity_id: row.legacy_entity_id,
+        reason: "manual_legacy_collapse",
+      })),
+    ],
     dedup_removals_count: dedupRemovals.length,
     dedup_removals: dedupRemovals,
     changed_teams: changedTeams,
@@ -837,6 +908,7 @@ async function main() {
 module.exports = {
   buildLegacyEntityIdsBySuccessor,
   buildRetainedFaEntityIds,
+  collapseObservedLegacyDuplicates,
   effectiveRace,
   effectiveTier,
   fallbackValue,

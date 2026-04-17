@@ -62,3 +62,10 @@ export function resolveSoopLiveThumbnailUrl(player: SoopPlayerLike) {
   const value = String(player?.live_thumbnail_url || "").trim();
   return value || null;
 }
+
+export function buildSoopThumbnailProxyUrl(value: string | null | undefined) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const params = new URLSearchParams({ src: raw });
+  return `/api/soop/thumbnail?${params.toString()}`;
+}

@@ -6,7 +6,7 @@ import { getUniversityLabel } from "@/lib/university-config";
 import fs from "node:fs";
 import path from "node:path";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata = {
   title: "HOSAGA - 순위",
@@ -68,7 +68,7 @@ function calculateRank<T extends { wins: number; losses: number }>(items: T[]) {
 }
 
 export default async function RankingsPage() {
-  const players = await playerService.getAllPlayers();
+  const players = await playerService.getCachedPlayersList();
   const teams = buildTournamentHomeTeams(players);
   const standings = readStandings();
 

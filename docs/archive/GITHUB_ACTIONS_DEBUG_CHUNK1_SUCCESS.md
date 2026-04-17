@@ -22,8 +22,8 @@ This was implemented in:
 - [sync-team-roster-metadata.js](/C:/Users/NZU/Desktop/nzu-homepage/scripts/tools/sync-team-roster-metadata.js)
 
 ## Debug Workflow Used
-Workflow:
-- [ops-pipeline-debug-chunk1.yml](/C:/Users/NZU/Desktop/nzu-homepage/.github/workflows/ops-pipeline-debug-chunk1.yml)
+Workflow at the time:
+- `ops-pipeline-debug-chunk1.yml`
 
 Scope:
 - only `bgm`, `black`, `c9`
@@ -34,8 +34,10 @@ Scope:
 This isolated the actual collection behavior from unrelated reporting steps.
 
 Current note:
-- the debug workflow has since been adjusted
-- if re-validating today, read the current workflow file first instead of assuming this exact flag set still applies
+- the debug workflow was later removed during repository cleanup
+- this note remains only as historical context for that isolated validation run
+- if re-validating today, use the main workflow instead:
+  - [ops-pipeline-cache.yml](/C:/Users/NZU/Desktop/nzu-homepage/.github/workflows/ops-pipeline-cache.yml)
 
 ## Result
 The debug run succeeded at the data-quality level.
