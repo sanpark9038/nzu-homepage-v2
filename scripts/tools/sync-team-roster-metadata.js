@@ -771,9 +771,20 @@ async function main() {
     if (prevInfo && prevInfo.team_code !== observed.team_code) {
       const prevDoc = prevInfo.team_code === "fa" ? faDoc : teamDocs.get(prevInfo.team_code);
       if (prevDoc) removeRosterEntry(prevDoc.json, prevEntityId);
-      moved.push({ entity_id: entityId, name: observed.name, from: prevInfo.team_code, to: observed.team_code });
+      moved.push({
+        entity_id: entityId,
+        name: observed.name,
+        from: prevInfo.team_code,
+        to: observed.team_code,
+        change_confidence: "confirmed",
+      });
     } else if (!prevInfo) {
-      added.push({ entity_id: entityId, name: observed.name, to: observed.team_code });
+      added.push({
+        entity_id: entityId,
+        name: observed.name,
+        to: observed.team_code,
+        change_confidence: "confirmed",
+      });
     }
 
     const oldTier = prevInfo && prevInfo.player ? String(prevInfo.player.tier || "") : "";
@@ -836,7 +847,13 @@ async function main() {
         race: String(prev.player.race || "Unknown"),
         profile_url: String(prev.player.profile_url || ""),
       }, "roster_sync_fa");
-      moved.push({ entity_id: entityId, name: prev.player.name, from: prev.team_code, to: "fa" });
+      moved.push({
+        entity_id: entityId,
+        name: prev.player.name,
+        from: prev.team_code,
+        to: "fa",
+        change_confidence: "fallback",
+      });
       faFallbackEntityIds.add(String(entityId));
     }
   }

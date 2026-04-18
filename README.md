@@ -60,7 +60,13 @@ SUPABASE_SERVICE_ROLE_KEY=...
 
 ## Reference Docs
 
+- `AGENTS.md`
+- `ARCHITECTURE.md`
 - `docs/README.md`
+- `docs/DESIGN.md`
+- `docs/PLANS.md`
+- `docs/RELIABILITY.md`
+- `docs/harness/README.md`
 - `PIPELINE_ONE_PAGE.md`
 - `PIPELINE_SUCCESS_CRITERIA.md`
 - `PIPELINE_INCIDENT_PLAYBOOK.md`

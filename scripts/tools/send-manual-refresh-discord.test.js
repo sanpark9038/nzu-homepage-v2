@@ -4,9 +4,11 @@ const os = require("os");
 const path = require("path");
 
 const {
+  buildAffiliationConfidenceLookup,
   buildCollectionSourceHealthSummary,
   comparePlayerChanges,
   describeAlertTone,
+  formatAffiliationChangeRow,
 } = require("./send-manual-refresh-discord");
 const {
   buildIdentityMigrationLookup,
@@ -92,6 +94,68 @@ runTest("comparePlayerChanges prioritizes unknown-tier resolution and FA affilia
 
   assert.deepEqual(ordered.tierChanges.map((row) => row.player_name), ["Alpha", "Beta"]);
   assert.deepEqual(ordered.affiliationChanges.map((row) => row.player_name), ["Gamma", "Delta"]);
+  assert.equal(ordered.affiliationChanges[0].change_confidence, "inferred");
+});
+
+runTest("buildAffiliationConfidenceLookup reads fallback confidence from roster sync report", () => {
+  const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-confidence-"));
+  fs.writeFileSync(
+    path.join(reportsDir, "team_roster_sync_report.json"),
+    JSON.stringify(
+      {
+        moved: [
+          {
+            entity_id: "eloboard:male:913",
+            name: "빡재TV",
+            from: "black",
+            to: "fa",
+            change_confidence: "fallback",
+          },
+        ],
+      },
+      null,
+      2
+    )
+  );
+
+  const originalReportsDir = path.join(process.cwd(), "tmp", "reports");
+  const reportTarget = path.join(originalReportsDir, "team_roster_sync_report.json");
+  const prior = fs.existsSync(reportTarget) ? fs.readFileSync(reportTarget, "utf8") : null;
+  fs.mkdirSync(originalReportsDir, { recursive: true });
+  fs.copyFileSync(path.join(reportsDir, "team_roster_sync_report.json"), reportTarget);
+
+  try {
+    const actual = buildAffiliationConfidenceLookup();
+    assert.equal(actual.get("entity:eloboard:male:913"), "fallback");
+  } finally {
+    if (prior === null) {
+      fs.unlinkSync(reportTarget);
+    } else {
+      fs.writeFileSync(reportTarget, prior, "utf8");
+    }
+  }
+});
+
+runTest("formatAffiliationChangeRow avoids definitive wording for fallback and inferred changes", () => {
+  assert.equal(
+    formatAffiliationChangeRow({
+      player_name: "빡재TV",
+      old_team: "흑카데미",
+      new_team: "무소속",
+      change_confidence: "fallback",
+    }),
+    "- 빡재TV : 소속 미확인, 연속성 보정으로 흑카데미 -> 무소속 처리"
+  );
+
+  assert.equal(
+    formatAffiliationChangeRow({
+      player_name: "감마",
+      old_team: "무소속",
+      new_team: "C팀",
+      change_confidence: "inferred",
+    }),
+    "- 감마 : 무소속 -> C팀 (관측 기반 추정)"
+  );
 });
 
 runTest("canonicalEntityId collapses legacy ids into the current manual-override id", () => {

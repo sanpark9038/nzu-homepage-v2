@@ -1,10 +1,19 @@
 const fs = require("fs");
 const path = require("path");
 const {
+  mergedEntityIdLookup,
   buildDiscordSummaryCheck,
+  loadBaselinePlayers,
+  loadCurrentRosterState,
+  loadCurrentRosterStateSnapshot,
   readJsonIfExists,
   resolveLatestReportFile,
 } = require("./lib/discord-summary");
+const {
+  buildAffiliationConfidenceLookup,
+  comparePlayerChanges,
+  formatAffiliationChangeRow,
+} = require("./send-manual-refresh-discord");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const DEFAULT_REPORTS_DIR = path.join(ROOT, "tmp", "reports");
@@ -58,14 +67,30 @@ function toMarkdown(summary) {
   const joiners = Array.isArray(summary.discord_summary_check.joiners)
     ? summary.discord_summary_check.joiners
     : [];
+  const affiliationChanges = Array.isArray(summary.discord_summary_check.affiliation_changes)
+    ? summary.discord_summary_check.affiliation_changes
+    : [];
   const alerts = summary.discord_summary_check.alerts || { counts: {}, alerts: [] };
   const topTeamDeltas = Array.isArray(summary.discord_summary_check.top_team_deltas)
     ? summary.discord_summary_check.top_team_deltas
+    : [];
+  const violations = Array.isArray(summary.discord_summary_check.harness_violations)
+    ? summary.discord_summary_check.harness_violations
     : [];
 
   lines.push(
     `- Alerts Count: critical ${alerts.counts.critical || 0}, high ${alerts.counts.high || 0}, medium ${alerts.counts.medium || 0}, low ${alerts.counts.low || 0}`
   );
+  lines.push(`- Affiliation Changes: ${affiliationChanges.length}`);
+  lines.push(`- Harness Violations: ${violations.length}`);
+
+  if (affiliationChanges.length) {
+    lines.push("");
+    lines.push("### Affiliation Changes");
+    for (const row of affiliationChanges) {
+      lines.push(`${formatAffiliationChangeRow(row)} [${row.change_confidence || "unknown"}]`);
+    }
+  }
 
   if (joiners.length) {
     lines.push("");
@@ -91,7 +116,73 @@ function toMarkdown(summary) {
     }
   }
 
+  if (violations.length) {
+    lines.push("");
+    lines.push("### Harness Violations");
+    for (const row of violations) {
+      lines.push(`- ${row.code}: ${row.message}`);
+    }
+  }
+
   return lines.join("\n");
+}
+
+function buildHarnessViolations(affiliationChanges) {
+  const rows = Array.isArray(affiliationChanges) ? affiliationChanges : [];
+  const violations = [];
+
+  for (const row of rows) {
+    const confidence = String(row && row.change_confidence ? row.change_confidence : "").trim().toLowerCase();
+    if (!confidence) {
+      violations.push({
+        code: "missing_change_confidence",
+        message: `${row.player_name || "unknown"} affiliation change is missing change_confidence`,
+      });
+      continue;
+    }
+
+    if (!["confirmed", "inferred", "fallback"].includes(confidence)) {
+      violations.push({
+        code: "invalid_change_confidence",
+        message: `${row.player_name || "unknown"} affiliation change has invalid change_confidence: ${confidence}`,
+      });
+      continue;
+    }
+
+    const formatted = formatAffiliationChangeRow(row);
+    const definitive = `- ${row.player_name} : ${row.old_team} -> ${row.new_team}`;
+    if ((confidence === "fallback" || confidence === "inferred") && formatted === definitive) {
+      violations.push({
+        code: `unsafe_${confidence}_wording`,
+        message: `${row.player_name || "unknown"} ${confidence} move is missing non-definitive wording`,
+      });
+    }
+  }
+
+  return violations;
+}
+
+function buildAffiliationChangeCheck({ reportsDir, baselinePath, projectsDir }) {
+  const beforePlayers = loadBaselinePlayers(baselinePath);
+  const snapshotPlayers = loadCurrentRosterStateSnapshot(reportsDir);
+  const afterPlayers = snapshotPlayers.length ? snapshotPlayers : loadCurrentRosterState(projectsDir);
+  const identityLookup = mergedEntityIdLookup({ reportsDir });
+  const affiliationConfidenceLookup = buildAffiliationConfidenceLookup({
+    reportsDir,
+    identityLookup,
+  });
+  const changes = comparePlayerChanges(beforePlayers, afterPlayers, {
+    identityLookup,
+    affiliationConfidenceLookup,
+  });
+  const affiliationChanges = Array.isArray(changes && changes.affiliationChanges) ? changes.affiliationChanges : [];
+  const harnessViolations = buildHarnessViolations(affiliationChanges);
+
+  return {
+    roster_source: snapshotPlayers.length ? "current_roster_state.json" : "projects_dir",
+    affiliation_changes: affiliationChanges,
+    harness_violations: harnessViolations,
+  };
 }
 
 function main() {
@@ -133,6 +224,11 @@ function main() {
     snapshot,
     alertsDoc,
   });
+  const affiliationCheck = buildAffiliationChangeCheck({
+    reportsDir,
+    baselinePath,
+    projectsDir,
+  });
 
   const output = {
     snapshot: relativePath(snapshotPath),
@@ -147,15 +243,34 @@ function main() {
     period_to: snapshot.period_to || null,
     previous_snapshot: snapshot.previous_snapshot || null,
     delta_reference: deltaReference,
-    discord_summary_check: summaryCheck,
+    discord_summary_check: {
+      ...summaryCheck,
+      roster_source: affiliationCheck.roster_source,
+      affiliation_changes: affiliationCheck.affiliation_changes,
+      harness_violations: affiliationCheck.harness_violations,
+    },
   };
 
   if (hasFlag("--markdown")) {
     console.log(toMarkdown(output));
+    if (affiliationCheck.harness_violations.length && !hasFlag("--no-fail")) {
+      process.exit(1);
+    }
     return;
   }
 
   console.log(JSON.stringify(output, null, 2));
+  if (affiliationCheck.harness_violations.length && !hasFlag("--no-fail")) {
+    process.exit(1);
+  }
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  buildAffiliationChangeCheck,
+  buildHarnessViolations,
+  toMarkdown,
+};

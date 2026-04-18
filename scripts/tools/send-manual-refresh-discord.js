@@ -46,8 +46,7 @@ function todayInSeoul() {
   }).format(new Date());
 }
 
-function toPlayerMap(players) {
-  const lookup = mergedEntityIdLookup({ reportsDir: REPORTS_DIR });
+function toPlayerMap(players, lookup = mergedEntityIdLookup({ reportsDir: REPORTS_DIR })) {
   return new Map(players.map((player) => [buildPlayerKey(player, lookup), player]));
 }
 
@@ -98,10 +97,54 @@ function resolveManualOverrideForPlayer(player, lookup) {
   return null;
 }
 
-function comparePlayerChanges(beforePlayers, afterPlayers) {
-  const beforeMap = toPlayerMap(beforePlayers);
-  const afterMap = toPlayerMap(afterPlayers);
+function buildAffiliationConfidenceLookup(options = {}) {
+  const reportsDir =
+    options && String(options.reportsDir || "").trim()
+      ? path.resolve(String(options.reportsDir).trim())
+      : REPORTS_DIR;
+  const syncReport = readJsonIfExists(path.join(reportsDir, "team_roster_sync_report.json"));
+  const lookup =
+    options && options.identityLookup instanceof Map
+      ? options.identityLookup
+      : mergedEntityIdLookup({ reportsDir });
+  const rows = Array.isArray(syncReport && syncReport.moved) ? syncReport.moved : [];
+  const result = new Map();
+  for (const row of rows) {
+    const key = buildPlayerKey(
+      {
+        entity_id: String(row && row.entity_id ? row.entity_id : ""),
+        name: String(row && row.name ? row.name : ""),
+      },
+      lookup
+    );
+    if (!key) continue;
+    result.set(key, String(row && row.change_confidence ? row.change_confidence : "inferred").trim() || "inferred");
+  }
+  return result;
+}
+
+function formatAffiliationChangeRow(item) {
+  const confidence = String(item && item.change_confidence ? item.change_confidence : "inferred").trim().toLowerCase();
+  if (confidence === "fallback") {
+    return `- ${item.player_name} : 소속 미확인, 연속성 보정으로 ${item.old_team} -> ${item.new_team} 처리`;
+  }
+  if (confidence === "inferred") {
+    return `- ${item.player_name} : ${item.old_team} -> ${item.new_team} (관측 기반 추정)`;
+  }
+  return `- ${item.player_name} : ${item.old_team} -> ${item.new_team}`;
+}
+
+function comparePlayerChanges(beforePlayers, afterPlayers, options = {}) {
+  const identityLookup = options && options.identityLookup instanceof Map
+    ? options.identityLookup
+    : mergedEntityIdLookup({ reportsDir: REPORTS_DIR });
+  const beforeMap = toPlayerMap(beforePlayers, identityLookup);
+  const afterMap = toPlayerMap(afterPlayers, identityLookup);
   const manualOverrideLookup = buildManualOverrideLookup();
+  const affiliationConfidenceLookup =
+    options && options.affiliationConfidenceLookup instanceof Map
+      ? options.affiliationConfidenceLookup
+      : buildAffiliationConfidenceLookup({ identityLookup });
   const tierChanges = [];
   const affiliationChanges = [];
   const joiners = [];
@@ -136,10 +179,12 @@ function comparePlayerChanges(beforePlayers, afterPlayers) {
     const prevTeam = normalizeTeamName(prev.team_name);
     const currentTeam = normalizeTeamName(current.team_name);
     if (prevTeam !== currentTeam) {
+      const playerKey = buildPlayerKey(current, identityLookup);
       affiliationChanges.push({
         player_name: current.display_name || current.name,
         old_team: prevTeam,
         new_team: currentTeam,
+        change_confidence: affiliationConfidenceLookup.get(playerKey) || "inferred",
       });
     }
   }
@@ -486,7 +531,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
       pushLimitedRows(
         lines,
         affiliationChanges,
-        (item) => `- ${item.player_name} : ${item.old_team} -> ${item.new_team}`
+        formatAffiliationChangeRow
       );
       lines.push("");
     }
@@ -682,7 +727,7 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
       pushLimitedRows(
         lines,
         affiliationChanges,
-        (item) => `- ${item.player_name} : ${item.old_team} -> ${item.new_team}`
+        formatAffiliationChangeRow
       );
       lines.push("");
     }
@@ -794,9 +839,11 @@ if (require.main === module) {
 }
 
 module.exports = {
+  buildAffiliationConfidenceLookup,
   buildCollectionSourceHealthSummary,
   buildReadableSuccessMessage,
   comparePlayerChanges,
   describeAlertTone,
   buildSuccessMessage,
+  formatAffiliationChangeRow,
 };

@@ -206,6 +206,19 @@ runTest("restoreMissingFaBaselinePlayers rehydrates FA players missing from curr
   assert.equal(faDoc.json.roster[0].source, "roster_sync_fa_baseline");
 });
 
+runTest("fallback FA move rows are intended to be labeled as fallback confidence", () => {
+  const moved = [];
+  moved.push({
+    entity_id: "eloboard:male:913",
+    name: "빡재TV",
+    from: "black",
+    to: "fa",
+    change_confidence: "fallback",
+  });
+
+  assert.equal(moved[0].change_confidence, "fallback");
+});
+
 runTest("findBaselineIdentityMigrationCandidate matches same-team same-player profile-kind migrations", () => {
   const beforeByEntity = new Map([
     [
