@@ -49,6 +49,7 @@
     "check:metadata:soop-id": "node scripts/tools/check-soop-id-collisions.js",
     "check:metadata:roster-wr-id": "node scripts/tools/check-roster-wr-id-conflicts.js",
     "check:metadata:identity-aliases": "node scripts/tools/check-identity-alias-exceptions.js",
+    "check:metadata:university-labels": "node scripts/tools/check-university-label-contract.js",
     "report:team:records": "node scripts/tools/report-team-records.js",
     "report:fa:tier-review": "node scripts/tools/report-fa-tier-review.js",
     "report:low-sample": "node scripts/tools/report-low-sample-players.js --write",

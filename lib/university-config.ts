@@ -1,7 +1,7 @@
 import { type UniversityInfo } from "../types";
 
 export const UNIVERSITY_MAP: Record<string, UniversityInfo> = {
-  KU: { name: "뉴캐슬", stars: 2 },
+  KU: { name: "케이대", stars: 2 },
   JSA: { name: "JSA", stars: 2 },
   C9: { name: "씨나인", stars: 1 },
   TSUCALM: { name: "츠캄몬스타즈", stars: 1 },
@@ -10,8 +10,8 @@ export const UNIVERSITY_MAP: Record<string, UniversityInfo> = {
   BGM: { name: "BGM" },
   MBU: { name: "엠비대" },
   "B.A": { name: "흑카데미" },
-  "N.C.S": { name: "와플대" },
-  WFU: { name: "초캄몬스타즈" },
+  "N.C.S": { name: "뉴캣슬" },
+  WFU: { name: "와플대" },
   HM: { name: "HM" },
   DM: { name: "DM" },
   FA: { name: "무소속" },
@@ -21,7 +21,8 @@ export type UniversityKey = keyof typeof UNIVERSITY_MAP;
 
 export const UNIVERSITY_ALIAS_MAP: Record<string, UniversityKey> = {
   KU: "KU",
-  뉴캐슬: "KU",
+  "K.U": "KU",
+  케이대: "KU",
   JSA: "JSA",
   C9: "C9",
   씨나인: "C9",
@@ -38,18 +39,20 @@ export const UNIVERSITY_ALIAS_MAP: Record<string, UniversityKey> = {
   BA: "B.A",
   BLACK: "B.A",
   흑카데미: "B.A",
-  "N.C.S": "N.C.S",
+  블랙아카데미: "B.A",
   NCS: "N.C.S",
-  와플대: "N.C.S",
+  뉴캣슬: "N.C.S",
+  "N.C.S": "N.C.S",
+  뉴캐슬: "N.C.S",
   WFU: "WFU",
-  초캄몬스타즈: "WFU",
+  와플대: "WFU",
   HM: "HM",
   DM: "DM",
   FA: "FA",
   무소속: "FA",
-  연합팀: "FA",
   고정없음: "FA",
-  기타: "FA",
+  무팀: "FA",
+  개인: "FA",
 };
 
 function sanitizeUniversityToken(value: string | null | undefined) {

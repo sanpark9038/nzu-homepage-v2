@@ -185,7 +185,13 @@ export function UnivFilter({ options }: { options?: UniversityOption[] }) {
             {starCount > 0 && (
               <div className="absolute left-1/2 top-[-8px] flex -translate-x-1/2 gap-0.5">
                 {[...Array(starCount)].map((_, index) => (
-                  <span key={index} className="text-[14px] text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]">
+                  <span
+                    key={index}
+                    className={cn(
+                      "text-[14px] text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]",
+                      option.code === "C9" && "animate-pulse"
+                    )}
+                  >
                     ★
                   </span>
                 ))}
