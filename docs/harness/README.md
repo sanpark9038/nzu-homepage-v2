@@ -12,11 +12,14 @@ It adapts the harness-engineering ideas from OpenAI's February 11, 2026 article 
 ## Start Here
 
 - [SESSION_ENTRY.md](./SESSION_ENTRY.md): mandatory start-of-session checklist
+- [MULTI_AGENT_WORKFLOW.md](./MULTI_AGENT_WORKFLOW.md): fixed role boundaries for Codex, Codex CLI, and Gemini
+- [DRIFT_HOOKS.md](./DRIFT_HOOKS.md): in-session hooks that stop scope, feature, evidence, and ownership drift
 - [CONFIDENCE_RULES.md](./CONFIDENCE_RULES.md): confidence semantics for moves and alerts
 - [OPENAI_HARNESS_MAPPING.md](./OPENAI_HARNESS_MAPPING.md): what the OpenAI article says and how we apply it here
 - [CORE_BELIEFS.md](./CORE_BELIEFS.md): project-specific harness principles
 - [RELIABILITY_RULES.md](./RELIABILITY_RULES.md): hard rules for pipeline and alert behavior
 - [FAILURE_MODES.md](./FAILURE_MODES.md): known pipeline failure patterns, including the `빡재TV` false move
+- [SERVING_IDENTITY_NOTES.md](./SERVING_IDENTITY_NOTES.md): current write-key reality and the contract needed before identifier-based sync
 - [STRUCTURE_DECISION.md](./STRUCTURE_DECISION.md): why the harness files live where they do
 - [PROJECT_SPEC.md](./PROJECT_SPEC.md): detailed technical specification for handing this repo to another AI system
 
@@ -39,9 +42,11 @@ Instead:
 1. `README.md` explains the repo at a high level.
 2. `docs/README.md` points to active operational docs.
 3. `SESSION_ENTRY.md` defines how every meaningful session must begin.
-4. `CONFIDENCE_RULES.md` defines how uncertain pipeline states must be handled.
-5. This folder stores agent-first rules, failure analyses, and execution-plan context.
-6. Concrete work tracking lives under `exec-plans/`.
+4. `MULTI_AGENT_WORKFLOW.md` defines how Codex, Codex CLI, and Gemini must be split.
+5. `DRIFT_HOOKS.md` defines what to do when the session starts wandering away from the current task.
+6. `CONFIDENCE_RULES.md` defines how uncertain pipeline states must be handled.
+7. This folder stores agent-first rules, failure analyses, and execution-plan context.
+8. Concrete work tracking lives under `exec-plans/`.
 
 ## Structure
 
@@ -55,8 +60,9 @@ When the session is fresh:
 
 1. start with `SESSION_ENTRY.md`
 2. inspect the active plan folder
-3. check `FAILURE_MODES.md` before risky pipeline work
-4. apply `CONFIDENCE_RULES.md` before any change that could affect alerts or affiliation output
+3. keep `DRIFT_HOOKS.md` available if the task starts branching or expanding
+4. check `FAILURE_MODES.md` before risky pipeline work
+5. apply `CONFIDENCE_RULES.md` before any change that could affect alerts or affiliation output
 
 When the session gets noisy or drifts:
 

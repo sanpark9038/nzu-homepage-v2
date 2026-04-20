@@ -10,6 +10,8 @@ Do not treat this file as an encyclopedia. Read it first, then follow the linked
 2. Run the required orient commands.
 3. Check [docs/harness/exec-plans/active/](docs/harness/exec-plans/active/).
 4. If the work can affect roster state, alerts, or reports, read [docs/RELIABILITY.md](docs/RELIABILITY.md).
+5. If using `Codex CLI` or `Gemini`, read [docs/harness/MULTI_AGENT_WORKFLOW.md](docs/harness/MULTI_AGENT_WORKFLOW.md) and restate the role split before delegating.
+6. Keep [docs/harness/DRIFT_HOOKS.md](docs/harness/DRIFT_HOOKS.md) in mind whenever the work starts expanding, branching, or losing a clear next step.
 
 ## Repo Map
 
@@ -27,6 +29,8 @@ Do not treat this file as an encyclopedia. Read it first, then follow the linked
 - Pipeline contract: [PIPELINE_DATA_CONTRACT.md](PIPELINE_DATA_CONTRACT.md)
 - Daily pipeline overview: [PIPELINE_ONE_PAGE.md](PIPELINE_ONE_PAGE.md)
 - Current harness rules: [docs/harness/README.md](docs/harness/README.md)
+- Multi-agent role split: [docs/harness/MULTI_AGENT_WORKFLOW.md](docs/harness/MULTI_AGENT_WORKFLOW.md)
+- Drift prevention hooks: [docs/harness/DRIFT_HOOKS.md](docs/harness/DRIFT_HOOKS.md)
 
 ## Operating Rules
 
@@ -34,6 +38,7 @@ Do not treat this file as an encyclopedia. Read it first, then follow the linked
 - Encode important decisions into repo-visible markdown. Hidden chat context is not durable.
 - Prefer identifier-based reasoning over name-based reasoning for players and rosters.
 - Treat fallback or inferred roster state as lower-confidence output until verified.
+- Do not rename existing visible page, button, or filter labels unless the user explicitly asks for that wording change.
 - Use active execution plans for multi-step work.
 
 ## Drift Recovery
