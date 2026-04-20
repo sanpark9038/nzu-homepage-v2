@@ -1,49 +1,57 @@
-
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState, useEffect, useRef } from "react";
-import { cn } from "@/lib/utils";
+
 import { UNIVERSITY_MAP } from "@/lib/university-config";
+import { cn } from "@/lib/utils";
+
+type UniversityOption = {
+  code: string;
+  name: string;
+  stars?: number;
+};
 
 export function PlayerSearch({ playerNames = [] }: { playerNames?: string[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const debounceRef = useRef<NodeJS.Timeout>(undefined);
 
-  const handleSearch = useCallback((term: string) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+  const handleSearch = useCallback(
+    (term: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    debounceRef.current = setTimeout(() => {
-      const lowerTerm = term.trim().toLowerCase();
-      
-      // 입력된 문자열(term)이 존재하고, 일치하는 선수가 단 한 명이라도 있는지 클라이언트 사이드 검증
-      const hasMatch = lowerTerm ? playerNames.some(name => name.toLowerCase().includes(lowerTerm)) : false;
+      debounceRef.current = setTimeout(() => {
+        const lowerTerm = term.trim().toLowerCase();
+        const hasMatch = lowerTerm ? playerNames.some((name) => name.toLowerCase().includes(lowerTerm)) : false;
+        const params = new URLSearchParams(searchParams.toString());
 
-      const params = new URLSearchParams(searchParams.toString());
-      
-      if (lowerTerm && hasMatch) {
-        params.set("search", lowerTerm);
-      } else {
-        // 일치하는 선수가 없거나 빈 문자열일 경우, 아무 조건 없는 기본 URL로 복원하여 기존 리스트 유지
-        params.delete("search");
-      }
-      
-      router.push(`?${params.toString()}`, { scroll: false });
-    }, 200); // 0.2초로 반응속도 한 단계 더 최적화
-  }, [router, searchParams, playerNames]);
+        if (lowerTerm && hasMatch) {
+          params.set("search", lowerTerm);
+        } else {
+          params.delete("search");
+        }
+
+        router.push(`?${params.toString()}`, { scroll: false });
+      }, 200);
+    },
+    [playerNames, router, searchParams]
+  );
 
   return (
-    <div className="relative group w-full md:w-64">
-      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/20 group-focus-within:text-nzu-green transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <div className="group relative w-full md:w-64">
+      <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/20 transition-colors group-focus-within:text-nzu-green">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
       </div>
       <input
         type="text"
         placeholder="선수 검색..."
         defaultValue={searchParams.get("search") || ""}
-        onChange={(e) => handleSearch(e.target.value)}
-        className="w-full bg-white/5 border border-white/10 rounded-2xl py-2 pl-9 pr-4 text-[11px] font-bold text-white placeholder:text-white/10 focus:outline-none focus:border-nzu-green/40 focus:bg-white/10 transition-all tracking-wider"
+        onChange={(event) => handleSearch(event.target.value)}
+        className="w-full rounded-2xl border border-white/10 bg-white/5 py-2 pl-9 pr-4 text-[11px] font-bold tracking-wider text-white placeholder:text-white/10 transition-all focus:border-nzu-green/40 focus:bg-white/10 focus:outline-none"
       />
     </div>
   );
@@ -56,7 +64,7 @@ export function RaceFilter() {
 
   const handleRace = (race: string) => {
     const params = new URLSearchParams(searchParams);
-    if (race === "ALL") {
+    if (currentRace === race || race === "ALL") {
       params.delete("race");
     } else {
       params.set("race", race);
@@ -66,36 +74,39 @@ export function RaceFilter() {
 
   const races = [
     { id: "ALL", label: "전체" },
-    { id: "T",   label: "테란" },
-    { id: "Z",   label: "저그" },
-    { id: "P",   label: "토스" },
+    { id: "T", label: "테란" },
+    { id: "Z", label: "저그" },
+    { id: "P", label: "프로토스" },
   ];
 
   const getRaceGradient = (raceId: string) => {
     switch (raceId) {
-      case "T":   return "bg-gradient-to-br from-blue-600 to-blue-400 text-white shadow-lg shadow-blue-500/20";
-      case "Z":   return "bg-gradient-to-br from-purple-600 to-purple-400 text-white shadow-lg shadow-purple-500/20";
-      case "P":   return "bg-gradient-to-br from-yellow-500 to-yellow-300 text-black shadow-lg shadow-yellow-500/10";
-      default:    return "bg-nzu-green text-black shadow-lg shadow-nzu-green/20";
+      case "T":
+        return "bg-gradient-to-br from-blue-600 to-blue-400 text-white shadow-lg shadow-blue-500/20";
+      case "Z":
+        return "bg-gradient-to-br from-purple-600 to-purple-400 text-white shadow-lg shadow-purple-500/20";
+      case "P":
+        return "bg-gradient-to-br from-yellow-500 to-yellow-300 text-black shadow-lg shadow-yellow-500/10";
+      default:
+        return "bg-nzu-green text-black shadow-lg shadow-nzu-green/20";
     }
   };
 
   return (
-    <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl p-1 gap-1">
-      {races.map((r) => {
-        const isActive = currentRace === r.id;
+    <div className="flex items-center gap-1 rounded-2xl border border-white/10 bg-white/5 p-1">
+      {races.map((race) => {
+        const isActive = currentRace === race.id;
+
         return (
           <button
-            key={r.id}
-            onClick={() => handleRace(r.id)}
+            key={race.id}
+            onClick={() => handleRace(race.id)}
             className={cn(
-              "px-4 py-2 rounded-2xl text-xs font-bold transition-all tracking-tight min-w-[64px] flex items-center justify-center",
-              isActive 
-                ? getRaceGradient(r.id)
-                : "text-white/30 hover:text-white hover:bg-white/5"
+              "flex min-w-[64px] items-center justify-center rounded-2xl px-4 py-2 text-xs font-bold tracking-tight transition-all",
+              isActive ? getRaceGradient(race.id) : "text-white/30 hover:bg-white/5 hover:text-white"
             )}
           >
-            {r.label}
+            {race.label}
           </button>
         );
       })}
@@ -103,14 +114,25 @@ export function RaceFilter() {
   );
 }
 
-export function UnivFilter() {
+function sortUniversityOptions(options: UniversityOption[]) {
+  return [...options].sort((left, right) => {
+    const isFaLeft = left.name === "무소속" || left.code === "FA";
+    const isFaRight = right.name === "무소속" || right.code === "FA";
+    if (isFaLeft !== isFaRight) return isFaLeft ? 1 : -1;
+
+    const isKorean = (value: string) => /[\u3131-\u314e\u314f-\u3163\uac00-\ud7a3]/.test(value);
+    if (isKorean(left.name) !== isKorean(right.name)) return isKorean(left.name) ? -1 : 1;
+    return left.name.localeCompare(right.name, "ko");
+  });
+}
+
+export function UnivFilter({ options }: { options?: UniversityOption[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentUniv = searchParams.get("univ") || "ALL";
 
   const handleUniv = (univ: string) => {
     const params = new URLSearchParams(searchParams);
-    // [Toggle Logic] 같은 버튼 누르면 해제
     if (currentUniv === univ || univ === "ALL") {
       params.delete("univ");
     } else {
@@ -119,76 +141,57 @@ export function UnivFilter() {
     router.push(`?${params.toString()}`, { scroll: false });
   };
 
-  const getSortedUnivs = () => {
-    const keys = Object.keys(UNIVERSITY_MAP) as string[];
-    
-    return keys.sort((a, b) => {
-      if (a === 'FA') return 1;
-      if (b === 'FA') return -1;
+  const sortedOptions = (() => {
+    if (Array.isArray(options) && options.length > 0) {
+      return sortUniversityOptions(options);
+    }
 
-      const nameA = UNIVERSITY_MAP[a].name;
-      const nameB = UNIVERSITY_MAP[b].name;
-
-      // 한글 여부 체크 (가나다 순 우선)
-      const isKoA = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(nameA);
-      const isKoB = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(nameB);
-
-      if (isKoA && !isKoB) return -1;
-      if (!isKoA && isKoB) return 1;
-
-      return nameA.localeCompare(nameB, 'ko');
-    });
-  };
-
-  const sortedKeys = getSortedUnivs();
+    return sortUniversityOptions(
+      Object.entries(UNIVERSITY_MAP).map(([code, info]) => ({
+        code,
+        name: info.name,
+        stars: info.stars,
+      }))
+    );
+  })();
 
   return (
-    <div className="flex flex-wrap items-center gap-4 bg-white/[0.03] p-4 rounded-3xl border border-white/10 backdrop-blur-sm">
+    <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm">
       <button
         onClick={() => handleUniv("ALL")}
         className={cn(
-          "px-8 py-4 rounded-2xl text-sm font-black transition-all border border-transparent whitespace-nowrap",
-          currentUniv === "ALL"
-            ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105"
-            : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
+          "whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-black transition-all",
+          currentUniv === "ALL" ? "scale-105 bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
         )}
       >
-        전체 대학
+        전체 학교
       </button>
 
-      {sortedKeys.map((key) => {
-        const u = UNIVERSITY_MAP[key];
-        const isActive = currentUniv === key;
-        const starCount = u.stars ?? 0;
+      {sortedOptions.map((option) => {
+        const isActive = currentUniv === option.code;
+        const starCount = option.stars ?? 0;
 
         return (
           <button
-            key={key}
-            onClick={() => handleUniv(key)}
+            key={option.code}
+            onClick={() => handleUniv(option.code)}
             className={cn(
-              "relative px-8 py-4 rounded-2xl text-sm font-black transition-all border border-transparent whitespace-nowrap group",
-              isActive 
-                ? "bg-gradient-to-br from-nzu-green/80 to-nzu-green text-black shadow-[0_0_25px_rgba(46,213,115,0.4)] border-white/20 scale-105"
+              "group relative whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-black transition-all",
+              isActive
+                ? "scale-105 border-white/20 bg-gradient-to-br from-nzu-green/80 to-nzu-green text-black shadow-[0_0_25px_rgba(46,213,115,0.4)]"
                 : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
             )}
           >
-            {/* --- Stars (우승 횟수) --- */}
             {starCount > 0 && (
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex gap-0.5">
-                {[...Array(starCount)].map((_, i) => (
-                  <span 
-                    key={i} 
-                    className={cn(
-                      "text-yellow-400 text-[14px] drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]",
-                      key === 'C9' && "animate-pulse"
-                    )}
-                  >
+              <div className="absolute left-1/2 top-[-8px] flex -translate-x-1/2 gap-0.5">
+                {[...Array(starCount)].map((_, index) => (
+                  <span key={index} className="text-[14px] text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]">
                     ★
                   </span>
                 ))}
               </div>
             )}
-            {u.name}
+            {option.name}
           </button>
         );
       })}
@@ -200,8 +203,6 @@ export function RaceToggle() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const paramToggled = searchParams.get("raceToggle") === "true";
-  
-  // 낙관적 UI(Optimistic UI) 적용: 클릭 즉시 로컬 상태를 변경해 버벅임 제거
   const [isToggled, setIsToggled] = useState(paramToggled);
 
   useEffect(() => {
@@ -210,7 +211,7 @@ export function RaceToggle() {
 
   const handleToggle = () => {
     const newState = !isToggled;
-    setIsToggled(newState); // 즉각적인 UI 반응
+    setIsToggled(newState);
 
     const params = new URLSearchParams(searchParams);
     if (newState) {
@@ -222,23 +223,13 @@ export function RaceToggle() {
   };
 
   return (
-    <div className="flex items-center gap-4 bg-white/[0.03] px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-sm">
-      <span className="text-sm font-black text-white/60 uppercase tracking-widest transition-colors mb-0.5">
-        종족 구분
-      </span>
-      <button 
+    <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-3 backdrop-blur-sm">
+      <span className="mb-0.5 text-sm font-black uppercase tracking-widest text-white/60">종족 구분</span>
+      <button
         onClick={handleToggle}
-        className={cn(
-          "relative inline-flex items-center h-7 w-14 rounded-full transition-all duration-300 focus:outline-none shadow-inner",
-          isToggled ? "bg-nzu-green" : "bg-white/10"
-        )}
+        className={cn("relative inline-flex h-7 w-14 items-center rounded-full shadow-inner transition-all duration-300 focus:outline-none", isToggled ? "bg-nzu-green" : "bg-white/10")}
       >
-        <span
-          className={cn(
-            "inline-block w-5 h-5 transform bg-white rounded-full transition-transform duration-300 shadow-lg",
-            isToggled ? "translate-x-8" : "translate-x-1"
-          )}
-        />
+        <span className={cn("inline-block h-5 w-5 rounded-full bg-white shadow-lg transition-transform duration-300", isToggled ? "translate-x-8" : "translate-x-1")} />
       </button>
     </div>
   );
@@ -248,8 +239,6 @@ export function LiveToggle() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const paramToggled = searchParams.get("liveOnly") === "true";
-  
-  // 낙관적 UI(Optimistic UI) 적용
   const [isToggled, setIsToggled] = useState(paramToggled);
 
   useEffect(() => {
@@ -258,7 +247,7 @@ export function LiveToggle() {
 
   const handleToggle = () => {
     const newState = !isToggled;
-    setIsToggled(newState); // 즉각적인 UI 반응
+    setIsToggled(newState);
 
     const params = new URLSearchParams(searchParams);
     if (newState) {
@@ -270,26 +259,16 @@ export function LiveToggle() {
   };
 
   return (
-    <div className="flex items-center gap-4 bg-red-500/[0.05] px-6 py-3 rounded-2xl border border-red-500/20 backdrop-blur-sm">
+    <div className="flex items-center gap-4 rounded-2xl border border-red-500/20 bg-red-500/[0.05] px-6 py-3 backdrop-blur-sm">
       <div className="flex items-center gap-2">
-        <div className={cn("w-2 h-2 rounded-full", isToggled ? "bg-red-500 animate-pulse" : "bg-white/20")} />
-        <span className={cn("text-sm font-black uppercase tracking-widest transition-colors mb-0.5", isToggled ? "text-red-500" : "text-white/60")}>
-          방송 중
-        </span>
+        <div className={cn("h-2 w-2 rounded-full", isToggled ? "animate-pulse bg-red-500" : "bg-white/20")} />
+        <span className={cn("mb-0.5 text-sm font-black uppercase tracking-widest transition-colors", isToggled ? "text-red-500" : "text-white/60")}>방송중</span>
       </div>
-      <button 
+      <button
         onClick={handleToggle}
-        className={cn(
-          "relative inline-flex items-center h-7 w-14 rounded-full transition-all duration-300 focus:outline-none shadow-inner",
-          isToggled ? "bg-red-500" : "bg-white/10"
-        )}
+        className={cn("relative inline-flex h-7 w-14 items-center rounded-full shadow-inner transition-all duration-300 focus:outline-none", isToggled ? "bg-red-500" : "bg-white/10")}
       >
-        <span
-          className={cn(
-            "inline-block w-5 h-5 transform bg-white rounded-full transition-transform duration-300 shadow-lg",
-            isToggled ? "translate-x-8" : "translate-x-1"
-          )}
-        />
+        <span className={cn("inline-block h-5 w-5 rounded-full bg-white shadow-lg transition-transform duration-300", isToggled ? "translate-x-8" : "translate-x-1")} />
       </button>
     </div>
   );
@@ -302,27 +281,22 @@ export function SmartStickyHeader({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
+
       if (currentScrollY > lastScrollY && currentScrollY > 100) {
         setIsVisible(false);
       } else if (currentScrollY < lastScrollY || currentScrollY < 50) {
         setIsVisible(true);
       }
-      
+
       setLastScrollY(currentScrollY);
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
   return (
-    <div 
-      className={cn(
-        "sticky z-40 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]",
-        isVisible ? "top-0 translate-y-0 opacity-100" : "top-0 -translate-y-[120%] opacity-0 pointer-events-none"
-      )}
-    >
+    <div className={cn("sticky z-40 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]", isVisible ? "top-0 translate-y-0 opacity-100" : "pointer-events-none top-0 -translate-y-[120%] opacity-0")}>
       {children}
     </div>
   );
