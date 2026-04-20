@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-04-20T00:00:00.000Z",
+  "universities": [
+    { "code": "KU", "name": "뉴캐슬", "stars": 2, "aliases": ["KU", "뉴캐슬"], "hidden": false },
+    { "code": "JSA", "name": "JSA", "stars": 2, "aliases": ["JSA"], "hidden": false },
+    { "code": "C9", "name": "씨나인", "stars": 1, "aliases": ["C9", "씨나인"], "hidden": false },
+    { "code": "TSUCALM", "name": "츠캄몬스타즈", "stars": 1, "aliases": ["TSUCALM", "츠캄", "츠캄몬스타즈"], "hidden": false },
+    { "code": "YB", "name": "YB", "stars": 1, "aliases": ["YB"], "hidden": false },
+    { "code": "SSU", "name": "수술대", "aliases": ["SSU", "수술대"], "hidden": false },
+    { "code": "BGM", "name": "BGM", "aliases": ["BGM"], "hidden": false },
+    { "code": "MBU", "name": "엠비대", "aliases": ["MBU", "엠비대"], "hidden": false },
+    { "code": "B.A", "name": "흑카데미", "aliases": ["B.A", "BA", "BLACK", "흑카데미"], "hidden": false },
+    { "code": "N.C.S", "name": "와플대", "aliases": ["N.C.S", "NCS", "와플대"], "hidden": false },
+    { "code": "WFU", "name": "초캄몬스타즈", "aliases": ["WFU", "초캄몬스타즈"], "hidden": false },
+    { "code": "HM", "name": "HM", "aliases": ["HM"], "hidden": false },
+    { "code": "DM", "name": "DM", "aliases": ["DM"], "hidden": false },
+    { "code": "FA", "name": "무소속", "aliases": ["FA", "무소속", "연합팀"], "hidden": false }
+  ]
+}
