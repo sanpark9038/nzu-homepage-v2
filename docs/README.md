@@ -25,7 +25,7 @@ This folder is the entry point for living documentation.
 - [PIPELINE_ONE_PAGE.md](../PIPELINE_ONE_PAGE.md): short operational overview
 - [PIPELINE_SUCCESS_CRITERIA.md](../PIPELINE_SUCCESS_CRITERIA.md): release and pipeline acceptance bar
 - [PIPELINE_INCIDENT_PLAYBOOK.md](../PIPELINE_INCIDENT_PLAYBOOK.md): incident response guide
-- [TOMORROW_RUNBOOK.md](../TOMORROW_RUNBOOK.md): day-to-day runbook
+- [RUNBOOK.md](../RUNBOOK.md): day-to-day runbook
 - [PIPELINE_DATA_CONTRACT.md](../PIPELINE_DATA_CONTRACT.md): serving contract for current and future sites
 - [data/metadata/README.md](../data/metadata/README.md): reusable metadata contract
 - [DOCS_CLEANUP_PLAN.md](../DOCS_CLEANUP_PLAN.md): cleanup sequencing and archive policy

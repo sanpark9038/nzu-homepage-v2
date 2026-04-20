@@ -13,4 +13,4 @@ Reliability beats novelty when a change can affect public data, roster truth, or
 
 - [harness/PROJECT_SPEC.md](./harness/PROJECT_SPEC.md)
 - [../PIPELINE_SUCCESS_CRITERIA.md](../PIPELINE_SUCCESS_CRITERIA.md)
-- [../TOMORROW_RUNBOOK.md](../TOMORROW_RUNBOOK.md)
+- [../RUNBOOK.md](../RUNBOOK.md)
