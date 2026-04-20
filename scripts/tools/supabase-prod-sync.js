@@ -45,6 +45,11 @@ function extractWrId(value) {
   return match ? match[1] : null;
 }
 
+function inferGenderFromEntityId(value) {
+  const match = String(value || '').trim().match(/^eloboard:(male|female)(:mix)?:\d+$/i);
+  return match ? String(match[1] || '').toLowerCase() : '';
+}
+
 function isMixEntityId(value) {
   return /^eloboard:(male|female):mix:\d+$/i.test(String(value || '').trim());
 }
@@ -398,6 +403,12 @@ function findStableCsvSourceFile(playerRow, stableCsvIndex) {
   return candidates[0].fileName;
 }
 
+function attachServingStatsAlias(map, aliasKey, entry) {
+  const key = String(aliasKey || '').trim();
+  if (!key || map.has(key)) return;
+  map.set(key, entry);
+}
+
 function buildDetailedStats(history) {
   const race_stats = {
     T: { w: 0, l: 0 },
@@ -433,19 +444,28 @@ function buildDetailedStats(history) {
   };
 }
 
-function buildServingStatsByName(players = []) {
+function buildServingStatsByIdentity(players = []) {
   const rows = readCsv(FACT_MATCHES_PATH);
-  const byName = new Map();
-  const sourceFileByName = new Map();
+  const byIdentity = new Map();
+  const sourceFileByIdentity = new Map();
   const stableCsvIndex = buildStableCsvIndex();
+  const playerIdentityByName = new Map(
+    (Array.isArray(players) ? players : [])
+      .map((player) => [normalizeName(player && player.name ? player.name : ''), buildSyncIdentityKey(player)])
+      .filter(([name, identityKey]) => name && identityKey && identityKey !== 'unknown')
+  );
 
   for (const row of rows) {
-    const name = normalizeName(row.player_name);
-    if (!name) continue;
-    if (!sourceFileByName.has(name)) {
-      sourceFileByName.set(name, String(row.source_file || '').trim());
+    const playerName = normalizeName(row.player_name);
+    const identityKey =
+      buildSyncIdentityKey({ eloboard_id: row.player_entity_id, gender: inferGenderFromEntityId(row.player_entity_id) }) ||
+      playerIdentityByName.get(playerName) ||
+      (playerName ? `name:${playerName}` : '');
+    if (!identityKey || identityKey === 'unknown') continue;
+    if (!sourceFileByIdentity.has(identityKey)) {
+      sourceFileByIdentity.set(identityKey, String(row.source_file || '').trim());
     }
-    const entry = byName.get(name) || {
+    const entry = byIdentity.get(identityKey) || {
       wins: 0,
       losses: 0,
       history: [],
@@ -464,11 +484,13 @@ function buildServingStatsByName(players = []) {
       source_file: row.source_file || null,
       source_row_no: Number(row.source_row_no || 0) || null,
     });
-    byName.set(name, entry);
+    byIdentity.set(identityKey, entry);
+    attachServingStatsAlias(byIdentity, playerName, entry);
+    attachServingStatsAlias(byIdentity, playerName ? `name:${playerName}` : '', entry);
   }
 
-  for (const [name, entry] of byName.entries()) {
-    const stableHistory = parseMatchHistoryFromStableCsv(sourceFileByName.get(name));
+  for (const [identityKey, entry] of byIdentity.entries()) {
+    const stableHistory = parseMatchHistoryFromStableCsv(sourceFileByIdentity.get(identityKey));
     if (Array.isArray(stableHistory) && stableHistory.length) {
       entry.history = stableHistory;
       entry.wins = stableHistory.filter((item) => item.is_win).length;
@@ -484,19 +506,147 @@ function buildServingStatsByName(players = []) {
 
   for (const player of Array.isArray(players) ? players : []) {
     const name = normalizeName(player && player.name ? player.name : '');
-    if (!name || byName.has(name)) continue;
+    const identityKey = buildSyncIdentityKey(player);
+    if (!identityKey || identityKey === 'unknown' || byIdentity.has(identityKey)) continue;
     const stableSourceFile = findStableCsvSourceFile(player, stableCsvIndex);
     const stableHistory = parseMatchHistoryFromStableCsv(stableSourceFile);
     if (!Array.isArray(stableHistory) || !stableHistory.length) continue;
     const wins = stableHistory.filter((item) => item.is_win).length;
-    byName.set(name, {
+    const entry = {
       wins,
       losses: stableHistory.length - wins,
       history: stableHistory,
-    });
+    };
+    byIdentity.set(identityKey, entry);
+    attachServingStatsAlias(byIdentity, name, entry);
+    attachServingStatsAlias(byIdentity, name ? `name:${name}` : '', entry);
   }
 
-  return byName;
+  return byIdentity;
+}
+
+const buildServingStatsByName = buildServingStatsByIdentity;
+
+function buildSyncIdentityKey(row) {
+  const entityId = String(row && row.eloboard_id ? row.eloboard_id : '').trim();
+  const wrId = extractWrId(entityId);
+  const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase() || inferGenderFromEntityId(entityId);
+  if (wrId && gender) return `${gender}:${wrId}`;
+  if (wrId) return `wr:${wrId}`;
+  if (entityId) return `entity:${entityId.toLowerCase()}`;
+  const name = normalizeLookupName(row && row.name ? row.name : '');
+  return name ? `name:${name}` : 'unknown';
+}
+
+function findProductionIdentityConflicts(prodRows = [], sanitizedRows = []) {
+  const prodByName = new Map();
+  for (const row of Array.isArray(prodRows) ? prodRows : []) {
+    const name = normalizeName(row && row.name ? row.name : '');
+    if (!name) continue;
+    prodByName.set(name, row);
+  }
+
+  const conflicts = [];
+  for (const row of Array.isArray(sanitizedRows) ? sanitizedRows : []) {
+    const name = normalizeName(row && row.name ? row.name : '');
+    if (!name) continue;
+    const existing = prodByName.get(name);
+    if (!existing) continue;
+    const incomingIdentity = buildSyncIdentityKey(row);
+    const existingIdentity = buildSyncIdentityKey(existing);
+    if (incomingIdentity !== existingIdentity) {
+      conflicts.push({
+        name,
+        existing_identity: existingIdentity,
+        incoming_identity: incomingIdentity,
+        existing_eloboard_id: String(existing && existing.eloboard_id ? existing.eloboard_id : ''),
+        incoming_eloboard_id: String(row && row.eloboard_id ? row.eloboard_id : ''),
+      });
+    }
+  }
+
+  return conflicts;
+}
+
+function selectStaleProductionRows(prodRows = [], sanitizedRows = []) {
+  const validNames = new Set(
+    (Array.isArray(sanitizedRows) ? sanitizedRows : [])
+      .map((row) => normalizeName(row && row.name ? row.name : ''))
+      .filter(Boolean)
+  );
+  const validNameByEntity = new Map(
+    (Array.isArray(sanitizedRows) ? sanitizedRows : [])
+      .map((row) => [String(row && row.eloboard_id ? row.eloboard_id : '').trim(), normalizeName(row && row.name ? row.name : '')])
+      .filter(([entityId, name]) => entityId && name)
+  );
+
+  return (Array.isArray(prodRows) ? prodRows : []).filter((row) => {
+    const name = normalizeName(row && row.name ? row.name : '');
+    if (validNames.has(name)) return false;
+
+    const entityId = String(row && row.eloboard_id ? row.eloboard_id : '').trim();
+    if (!entityId) return true;
+
+    const currentNameForEntity = validNameByEntity.get(entityId);
+    if (!currentNameForEntity) return true;
+
+    return currentNameForEntity !== name;
+  });
+}
+
+function findUnsafeStaleDeleteRows(rows = []) {
+  return (Array.isArray(rows) ? rows : []).filter((row) => {
+    const name = normalizeName(row && row.name ? row.name : '');
+    const identityKey = buildSyncIdentityKey(row);
+    return !name || !identityKey || identityKey === 'unknown' || identityKey.startsWith('name:');
+  });
+}
+
+function buildServingPayload(playerOrName, servingStatsByIdentity, existingPlayer) {
+  const stats =
+    (playerOrName && typeof playerOrName === 'object'
+      ? servingStatsByIdentity.get(buildSyncIdentityKey(playerOrName)) ||
+        servingStatsByIdentity.get(normalizeName(playerOrName && playerOrName.name ? playerOrName.name : '')) ||
+        servingStatsByIdentity.get(
+          normalizeName(playerOrName && playerOrName.name ? playerOrName.name : '')
+            ? `name:${normalizeName(playerOrName && playerOrName.name ? playerOrName.name : '')}`
+            : ''
+        )
+      : servingStatsByIdentity.get(String(playerOrName || '').trim()) ||
+        servingStatsByIdentity.get(String(playerOrName || '').trim() ? `name:${String(playerOrName || '').trim()}` : '')) ||
+    null;
+  if (stats) {
+    const totalMatches = Number(stats.wins || 0) + Number(stats.losses || 0);
+    const matchHistory = stats.history.slice();
+    return {
+      detailed_stats: buildDetailedStats(matchHistory),
+      match_history: matchHistory,
+      total_wins: Number(stats.wins || 0),
+      total_losses: Number(stats.losses || 0),
+      win_rate: toPercent(Number(stats.wins || 0), totalMatches),
+      last_synced_at: new Date().toISOString(),
+    };
+  }
+
+  if (existingPlayer) {
+    return {
+      detailed_stats: existingPlayer.detailed_stats || null,
+      match_history: Array.isArray(existingPlayer.match_history) ? existingPlayer.match_history : null,
+      total_wins: Number(existingPlayer.total_wins || 0),
+      total_losses: Number(existingPlayer.total_losses || 0),
+      win_rate: Number(existingPlayer.win_rate || 0),
+      last_synced_at: existingPlayer.last_synced_at || null,
+    };
+  }
+
+  return {
+    detailed_stats: null,
+    match_history: null,
+    total_wins: 0,
+    total_losses: 0,
+    win_rate: 0,
+    last_synced_at: null,
+  };
 }
 
 function loadExpectedLocalVisibleCount() {
@@ -548,36 +698,31 @@ async function main() {
   console.log('--- Production Sync Started ---');
   const soopLookup = buildSoopLookup();
 
+  const { data: prodData, error: prodErr } = await supabase
+    .from('players')
+    .select('name,eloboard_id,gender,detailed_stats,match_history,total_wins,total_losses,win_rate,last_synced_at');
+  if (prodErr) throw prodErr;
+  const currentProdByName = new Map(
+    (prodData || [])
+      .map((row) => [String(row && row.name ? row.name : '').trim(), row])
+      .filter(([name]) => name.length > 0)
+  );
+
   // 1) Fetch source from staging
   const { data: stagingData, error: stagingErr } = await supabase
     .from('players_staging')
     .select('eloboard_id,name,tier,race,university,gender,photo_url,is_live,last_checked_at,last_match_at,last_changed_at,check_priority,check_interval_days');
   if (stagingErr) throw stagingErr;
-  const servingStatsByName = buildServingStatsByName(stagingData || []);
+  const servingStatsByIdentity = buildServingStatsByIdentity(stagingData || []);
 
   const sanitized = (stagingData || [])
     .map((row) => ({
       ...resolveSoopServingMetadata(row, soopLookup),
-      ...(servingStatsByName.get(String(row.name || '').trim()) ? (() => {
-        const stats = servingStatsByName.get(String(row.name || '').trim());
-        const totalMatches = Number(stats.wins || 0) + Number(stats.losses || 0);
-        const matchHistory = stats.history.slice();
-        return {
-          detailed_stats: buildDetailedStats(matchHistory),
-          match_history: matchHistory,
-          total_wins: Number(stats.wins || 0),
-          total_losses: Number(stats.losses || 0),
-          win_rate: toPercent(Number(stats.wins || 0), totalMatches),
-          last_synced_at: new Date().toISOString(),
-        };
-      })() : {
-        detailed_stats: null,
-        match_history: null,
-        total_wins: 0,
-        total_losses: 0,
-        win_rate: 0,
-        last_synced_at: new Date().toISOString(),
-      }),
+      ...buildServingPayload(
+        row,
+        servingStatsByIdentity,
+        currentProdByName.get(String(row.name || '').trim()) || null
+      ),
       eloboard_id: row.eloboard_id,
       name: String(row.name || '').trim(),
       tier: row.tier || '미정',
@@ -608,14 +753,20 @@ async function main() {
     );
   }
 
+  const identityConflicts = findProductionIdentityConflicts(prodData || [], sanitized);
+  if (identityConflicts.length > 0) {
+    const preview = identityConflicts
+      .slice(0, 5)
+      .map((row) => `${row.name} [prod=${row.existing_identity}, incoming=${row.incoming_identity}]`)
+      .join('; ');
+    throw new Error(
+      `Production identity conflicts detected before players sync (${identityConflicts.length}). ${preview}`
+    );
+  }
+
   console.log(`[+] Fetched ${sanitized.length} valid records from players_staging`);
 
-  // 2) Fetch current production names for stale-delete phase
-  const { data: prodData, error: prodErr } = await supabase.from('players').select('name');
-  if (prodErr) throw prodErr;
-
-  const validNames = new Set(sanitized.map((p) => p.name));
-
+  // 2) Use the current production snapshot for stale-delete phase
   // 3) Upsert all staging rows by unique key (name). Do not pass id.
   const chunkSize = resolveInitialChunkSize();
   for (let i = 0; i < sanitized.length; i += chunkSize) {
@@ -625,7 +776,17 @@ async function main() {
   console.log(`[+] Upserted ${sanitized.length} records to players`);
 
   // 4) Delete stale rows not present in staging snapshot
-  const toDelete = (prodData || []).filter((p) => !validNames.has(String(p.name || '')));
+  const toDelete = selectStaleProductionRows(prodData || [], sanitized);
+  const unsafeStaleDeletes = findUnsafeStaleDeleteRows(toDelete);
+  if (unsafeStaleDeletes.length > 0) {
+    const preview = unsafeStaleDeletes
+      .slice(0, 5)
+      .map((row) => `${String(row && row.name ? row.name : '').trim() || '<missing-name>'} [identity=${buildSyncIdentityKey(row)}]`)
+      .join('; ');
+    throw new Error(
+      `Refusing stale delete because ${unsafeStaleDeletes.length} candidate rows do not have a durable sync identity. ${preview}`
+    );
+  }
   console.log(`[!] Found ${toDelete.length} stale players not in local pipeline.`);
 
   if (toDelete.length > 0) {
@@ -665,6 +826,13 @@ if (require.main === module) {
 }
 
 module.exports = {
+  buildSyncIdentityKey,
+  buildServingStatsByIdentity,
+  buildServingStatsByName: buildServingStatsByIdentity,
+  findProductionIdentityConflicts,
+  selectStaleProductionRows,
+  findUnsafeStaleDeleteRows,
+  buildServingPayload,
   buildSoopLookup,
   buildServingStatsByName,
   parseCsvLine,

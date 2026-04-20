@@ -22,6 +22,7 @@ export type Database = {
           map: string | null
           match_date: string | null
           note: string | null
+          opponent_entity_id: string | null
           opponent_name: string
           opponent_race: string | null
           player_name: string
@@ -35,6 +36,7 @@ export type Database = {
           map?: string | null
           match_date?: string | null
           note?: string | null
+          opponent_entity_id?: string | null
           opponent_name: string
           opponent_race?: string | null
           player_name: string
@@ -48,6 +50,7 @@ export type Database = {
           map?: string | null
           match_date?: string | null
           note?: string | null
+          opponent_entity_id?: string | null
           opponent_name?: string
           opponent_race?: string | null
           player_name?: string
@@ -113,6 +116,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      hero_media: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          type: string
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          type: string
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          type?: string
+          url?: string
+        }
+        Relationships: []
       }
       players: {
         Row: {

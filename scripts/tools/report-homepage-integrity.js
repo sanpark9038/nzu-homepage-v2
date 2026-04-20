@@ -17,6 +17,7 @@ const supabaseServiceRoleKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_SERVICE_KEY ||
   "";
+let cachedSupabase = null;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
@@ -45,6 +46,18 @@ function trim(value) {
 
 function lower(value) {
   return trim(value).toLowerCase();
+}
+
+function createSupabaseAdminClient() {
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error(
+      "Homepage integrity report requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)."
+    );
+  }
+  if (!cachedSupabase) {
+    cachedSupabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+  }
+  return cachedSupabase;
 }
 
 function loadDisplayAliases() {
@@ -136,17 +149,28 @@ function loadSnapshotStatus() {
 }
 
 async function fetchPlayersServing() {
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
-    throw new Error(
-      "Homepage integrity report requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)."
-    );
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+  const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("players")
     .select("name,nickname,eloboard_id,gender,soop_id,broadcast_url,channel_profile_image_url,is_live");
   if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+
+async function fetchHeroMediaServing() {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("hero_media")
+    .select("id,url,type,is_active,created_at")
+    .order("is_active", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (error.code === "PGRST205") {
+      return [];
+    }
+    throw error;
+  }
   return Array.isArray(data) ? data : [];
 }
 
@@ -378,6 +402,62 @@ function buildLiveSection(players, snapshot) {
   };
 }
 
+function buildHeroMediaSection(rows) {
+  const activeRows = rows.filter((row) => row && row.is_active === true);
+  const supportedTypes = new Set(["image", "video"]);
+  const activeRow = activeRows[0] || null;
+  const issueRows = [];
+
+  for (const row of rows) {
+    const type = lower(row && row.type);
+    const url = trim(row && row.url);
+    const isActive = row && row.is_active === true;
+    const issues = [];
+    if (!url) issues.push("missing_url");
+    if (url && !url.includes("/storage/v1/object/public/hero-media/")) issues.push("unexpected_public_url");
+    if (!supportedTypes.has(type)) issues.push("invalid_type");
+    if (issues.length) {
+      issueRows.push({
+        id: trim(row && row.id) || null,
+        is_active: isActive,
+        type: trim(row && row.type) || null,
+        url,
+        issues,
+      });
+    }
+  }
+
+  const activeIssues = [];
+  if (!activeRows.length) activeIssues.push("missing_active");
+  if (activeRows.length > 1) activeIssues.push("multiple_active");
+  if (activeRow) {
+    const activeType = lower(activeRow.type);
+    const activeUrl = trim(activeRow.url);
+    if (!activeUrl) activeIssues.push("active_missing_url");
+    if (activeUrl && !activeUrl.includes("/storage/v1/object/public/hero-media/")) {
+      activeIssues.push("active_unexpected_public_url");
+    }
+    if (!supportedTypes.has(activeType)) activeIssues.push("active_invalid_type");
+  }
+
+  return {
+    total_rows: rows.length,
+    active_count: activeRows.length,
+    active_ok: activeIssues.length === 0,
+    active_issues: activeIssues,
+    invalid_rows_count: issueRows.length,
+    invalid_rows: issueRows,
+    active_row: activeRow
+      ? {
+          id: trim(activeRow.id) || null,
+          type: trim(activeRow.type) || null,
+          url: trim(activeRow.url) || null,
+          created_at: trim(activeRow.created_at) || null,
+        }
+      : null,
+  };
+}
+
 async function main() {
   const aliasDoc = loadDisplayAliases();
   const rosters = loadProjectRosters();
@@ -385,6 +465,7 @@ async function main() {
   const reviewDecisions = loadReviewDecisions();
   const snapshot = loadSnapshotStatus();
   const players = await fetchPlayersServing();
+  const heroMediaRows = await fetchHeroMediaServing();
 
   const report = {
     schema_version: "1.0.0",
@@ -393,6 +474,7 @@ async function main() {
       aliases: buildAliasSection(rosters, aliasDoc),
       soop: buildSoopSection(players, metadataRows, reviewDecisions),
       live: buildLiveSection(players, snapshot),
+      hero_media: buildHeroMediaSection(heroMediaRows),
     },
   };
 
@@ -416,6 +498,10 @@ async function main() {
   console.log(`- snapshot_is_fresh: ${report.summary.live.snapshot_is_fresh}`);
   console.log(`- stale_snapshot_override_risk: ${report.summary.live.stale_snapshot_override_risk}`);
   console.log(`- stale_snapshot_disagreement_count: ${report.summary.live.stale_snapshot_disagreement_count}`);
+  console.log(`- hero_media_total_rows: ${report.summary.hero_media.total_rows}`);
+  console.log(`- hero_media_active_count: ${report.summary.hero_media.active_count}`);
+  console.log(`- hero_media_active_ok: ${report.summary.hero_media.active_ok}`);
+  console.log(`- hero_media_invalid_rows_count: ${report.summary.hero_media.invalid_rows_count}`);
 }
 
 main().catch((error) => {

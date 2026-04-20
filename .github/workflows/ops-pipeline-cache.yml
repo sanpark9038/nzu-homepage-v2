@@ -64,10 +64,27 @@ jobs:
           sync_warning=""
           sync_requested="false"
           sync_enabled="false"
+          has_supabase_secrets="false"
+
+          if [ -n "${NEXT_PUBLIC_SUPABASE_URL}" ] && { [ -n "${SUPABASE_SERVICE_ROLE_KEY}" ] || [ -n "${SUPABASE_SERVICE_KEY}" ]; }; then
+            has_supabase_secrets="true"
+          fi
+
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            sync_requested="true"
+            if [ "$has_supabase_secrets" = "true" ]; then
+              run_command="npm run pipeline:manual:refresh:with-sync"
+              mode_label="scheduled auto-sync"
+              sync_enabled="true"
+            else
+              mode_label="scheduled auto-sync unavailable, downgraded to collect-only"
+              sync_warning="Supabase service-role secret is not configured in GitHub Actions, so homepage serving sync was skipped."
+            fi
+          fi
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.with_supabase_sync }}" = "true" ]; then
             sync_requested="true"
-            if [ -n "${NEXT_PUBLIC_SUPABASE_URL}" ] && { [ -n "${SUPABASE_SERVICE_ROLE_KEY}" ] || [ -n "${SUPABASE_SERVICE_KEY}" ]; }; then
+            if [ "$has_supabase_secrets" = "true" ]; then
               run_command="npm run pipeline:manual:refresh:with-sync"
               mode_label="manual dispatch with Supabase sync"
               sync_enabled="true"
@@ -83,11 +100,16 @@ jobs:
             echo "sync_requested=$sync_requested"
             echo "sync_enabled=$sync_enabled"
             echo "sync_warning=$sync_warning"
+            echo "has_supabase_secrets=$has_supabase_secrets"
           } >> "$GITHUB_OUTPUT"
 
       - name: Run manual refresh
         id: manual_refresh
         shell: bash
+        env:
+          WORKFLOW_SYNC_REQUESTED: ${{ steps.workflow_mode.outputs.sync_requested }}
+          WORKFLOW_SYNC_ENABLED: ${{ steps.workflow_mode.outputs.sync_enabled }}
+          WORKFLOW_SYNC_WARNING: ${{ steps.workflow_mode.outputs.sync_warning }}
         run: ${{ steps.workflow_mode.outputs.run_command }}
 
       - name: Check collection sources health

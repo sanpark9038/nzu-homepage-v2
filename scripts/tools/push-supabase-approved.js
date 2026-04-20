@@ -8,8 +8,12 @@ function hasFlag(flag) {
   return process.argv.includes(flag);
 }
 
-function runStep(name, scriptRelPath) {
-  const res = spawnSync(NODE_BIN, [scriptRelPath], {
+function logCacheRevalidationResult(result) {
+  console.log(`CACHE_REVALIDATION_RESULT ${JSON.stringify(result)}`);
+}
+
+function runStep(name, scriptRelPath, args = [], options = {}) {
+  const res = spawnSync(NODE_BIN, [scriptRelPath, ...args], {
     cwd: ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -19,6 +23,16 @@ function runStep(name, scriptRelPath) {
   const out = String(res.stdout || "").trim();
   const err = String(res.stderr || "").trim();
   if (!ok) {
+    if (options.allowFailure) {
+      console.warn(`[WARN] ${name}`);
+      if (out) console.warn(out);
+      if (err) console.warn(err);
+      return {
+        ok: false,
+        out,
+        err,
+      };
+    }
     console.error(`[FAIL] ${name}`);
     if (out) console.error(out);
     if (err) console.error(err);
@@ -26,6 +40,11 @@ function runStep(name, scriptRelPath) {
   }
   console.log(`[OK] ${name}`);
   if (out) console.log(out);
+  return {
+    ok: true,
+    out,
+    err,
+  };
 }
 
 function main() {
@@ -39,8 +58,36 @@ function main() {
 
   runStep("supabase_staging_sync", "scripts/tools/supabase-staging-sync.js");
   runStep("supabase_prod_sync", "scripts/tools/supabase-prod-sync.js");
+  const revalidate = runStep("revalidate_public_cache", "scripts/tools/revalidate-public-cache.js", [], {
+    allowFailure: true,
+  });
+  if (!revalidate) {
+    logCacheRevalidationResult({
+      status: "unknown",
+      reason: "missing_step_result",
+    });
+  } else if (revalidate.ok) {
+    logCacheRevalidationResult({
+      status: "completed",
+    });
+  } else {
+    const stderr = String(revalidate.err || "").trim();
+    const stdout = String(revalidate.out || "").trim();
+    const combined = stderr || stdout;
+    const skipMatch = combined.match(/\[SKIP\]\s+revalidate_public_cache\s+missing\s+(.+)$/m);
+    if (skipMatch) {
+      logCacheRevalidationResult({
+        status: "skipped",
+        reason: `missing_${String(skipMatch[1] || "").trim().replace(/,\s*/g, "_and_")}`,
+      });
+    } else {
+      logCacheRevalidationResult({
+        status: "failed",
+        reason: combined.split(/\r?\n/).filter(Boolean).slice(-1)[0] || "unknown_error",
+      });
+    }
+  }
   console.log("Done: Supabase staging+prod sync completed.");
 }
 
 main();
-

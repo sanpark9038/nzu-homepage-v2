@@ -45,6 +45,60 @@ function relativePath(filePath) {
   return path.relative(ROOT, filePath).replace(/\\/g, "/");
 }
 
+function describeSupabaseSync(manualRefresh) {
+  if (!manualRefresh || typeof manualRefresh !== "object") {
+    return { enabled: null, label: "unknown" };
+  }
+
+  const details =
+    manualRefresh.supabase_sync && typeof manualRefresh.supabase_sync === "object"
+      ? manualRefresh.supabase_sync
+      : null;
+
+  if (!details) {
+    if (typeof manualRefresh.with_supabase_sync === "boolean") {
+      return {
+        enabled: manualRefresh.with_supabase_sync,
+        label: manualRefresh.with_supabase_sync ? "enabled" : "disabled (collect-only)",
+      };
+    }
+    return { enabled: null, label: "unknown" };
+  }
+
+  const status = String(details.status || "").trim() || "unknown";
+  if (status === "completed") {
+    const cache = details.cache_revalidation && typeof details.cache_revalidation === "object"
+      ? details.cache_revalidation
+      : null;
+    const cacheStatus = String(cache && cache.status ? cache.status : "").trim();
+    const cacheReason = String(cache && cache.reason ? cache.reason : "").trim();
+    if (!cacheStatus || cacheStatus === "completed") {
+      return { enabled: true, label: "completed" };
+    }
+    return {
+      enabled: true,
+      label: cacheReason
+        ? `completed, cache_revalidation=${cacheStatus} (${cacheReason})`
+        : `completed, cache_revalidation=${cacheStatus}`,
+    };
+  }
+  if (status === "disabled") {
+    return { enabled: false, label: "disabled (not requested)" };
+  }
+  if (status === "skipped") {
+    const reason = String(details.skip_reason || "").trim() || "unspecified";
+    const total = Number(details.blocking_alerts_total || 0);
+    const warning = String(details.warning || "").trim();
+    const detail = total > 0 ? `${reason}, blocking_alerts=${total}` : reason;
+    return {
+      enabled: false,
+      label: warning ? `skipped (${detail}): ${warning}` : `skipped (${detail})`,
+    };
+  }
+
+  return { enabled: null, label: status };
+}
+
 function toMarkdown(summary) {
   const lines = [
     "## Discord Summary Check",
@@ -52,11 +106,13 @@ function toMarkdown(summary) {
     `- Snapshot: \`${summary.snapshot}\``,
     `- Alerts: \`${summary.alerts}\``,
     `- Supabase Sync: ${
-      summary.supabase_sync === true
-        ? "enabled"
-        : summary.supabase_sync === false
-          ? "disabled (collect-only)"
-          : "unknown"
+      summary.supabase_sync_label || (
+        summary.supabase_sync === true
+          ? "enabled"
+          : summary.supabase_sync === false
+            ? "disabled (collect-only)"
+            : "unknown"
+      )
     }`,
     `- Period: ${summary.period_from || "-"} ~ ${summary.period_to || "-"}`,
     `- Previous Snapshot: ${summary.previous_snapshot || "-"}`,
@@ -229,16 +285,15 @@ function main() {
     baselinePath,
     projectsDir,
   });
+  const supabaseSync = describeSupabaseSync(manualRefresh);
 
   const output = {
     snapshot: relativePath(snapshotPath),
     alerts: relativePath(alertsPath),
     baseline: fs.existsSync(baselinePath) ? relativePath(baselinePath) : null,
     generated_at: snapshot.generated_at || null,
-    supabase_sync:
-      manualRefresh && typeof manualRefresh.with_supabase_sync === "boolean"
-        ? manualRefresh.with_supabase_sync
-        : null,
+    supabase_sync: supabaseSync.enabled,
+    supabase_sync_label: supabaseSync.label,
     period_from: snapshot.period_from || null,
     period_to: snapshot.period_to || null,
     previous_snapshot: snapshot.previous_snapshot || null,

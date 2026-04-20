@@ -177,6 +177,13 @@
       "name": "\uD55C\uC18C\uB054",
       "reason": "user_excluded",
       "updated_at": "2026-04-17T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:female:999",
+      "wr_id": 999,
+      "name": "\uC5F0\uB610",
+      "reason": "retired_profile_after_race_change",
+      "updated_at": "2026-04-20T00:00:00.000Z"
     }
   ]
 }

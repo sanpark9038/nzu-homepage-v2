@@ -4,6 +4,19 @@
   "description": "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
   "overrides": [
     {
+      "entity_id": "eloboard:male:79",
+      "name": "이소룡",
+      "manual_lock": true,
+      "note": "Homepage display override: show 박성용 as 이소룡."
+    },
+    {
+      "entity_id": "eloboard:male:mix:398",
+      "name": "토스봇",
+      "soop_id": "kalmian",
+      "manual_lock": true,
+      "note": "Homepage serving override: keep male mix 토스봇 on SOOP id kalmian instead of female wr_id=398 channel mapping."
+    },
+    {
       "entity_id": "eloboard:female:1028",
       "legacy_entity_ids": [
         "eloboard:female:1026"
@@ -232,16 +245,27 @@
       "name": "수니양",
       "tier": "6",
       "race": "Terran",
+      "soop_id": "nasd06",
       "manual_lock": true,
       "note": "Confirmed FA tier from manual review."
     },
     {
       "entity_id": "eloboard:female:999",
+      "retired": true,
       "name": "연또",
       "tier": "8",
       "race": "Zerg",
       "manual_lock": true,
-      "note": "Confirmed FA tier from manual review."
+      "note": "Retired legacy profile. Ignore for current roster and sync."
+    },
+    {
+      "entity_id": "eloboard:female:1029",
+      "name": "연또",
+      "team_code": "ku",
+      "tier": "8",
+      "race": "Protoss",
+      "manual_lock": true,
+      "note": "Current canonical profile for 연또."
     },
     {
       "entity_id": "eloboard:male:9",

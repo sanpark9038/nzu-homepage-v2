@@ -4,11 +4,13 @@ const {
   buildLegacyEntityIdsBySuccessor,
   buildRetainedFaEntityIds,
   collapseObservedLegacyDuplicates,
+  collapseStalePreviousDuplicateEntities,
   effectiveTier,
   effectiveRace,
   findBaselineIdentityMigrationCandidate,
   reconcileObservedIdentityMigrations,
   restoreMissingFaBaselinePlayers,
+  shouldRetainPreviousAffiliation,
   shouldGuardObservedRoster,
   upsertRosterEntry,
 } = require("./sync-team-roster-metadata");
@@ -67,6 +69,61 @@ runTest("collapseObservedLegacyDuplicates removes manual legacy duplicates when 
       legacy_entity_id: "eloboard:male:mix:205",
       name: "케이",
       team_code: "ku",
+    },
+  ]);
+});
+
+runTest("collapseStalePreviousDuplicateEntities suppresses stale duplicate ids when one variant remains observed", () => {
+  const beforeByEntity = new Map([
+    [
+      "eloboard:male:913",
+      {
+        team_code: "black",
+        player: {
+          entity_id: "eloboard:male:913",
+          wr_id: 913,
+          gender: "male",
+          name: "é®â‰ªì˜±TV",
+          display_name: "é®â‰ªì˜±TV",
+        },
+      },
+    ],
+    [
+      "eloboard:male:mix:913",
+      {
+        team_code: "black",
+        player: {
+          entity_id: "eloboard:male:mix:913",
+          wr_id: 913,
+          gender: "male",
+          name: "é®â‰ªì˜±TV",
+          display_name: "é®â‰ªì˜±TV",
+        },
+      },
+    ],
+  ]);
+  const observedByEntity = new Map([
+    [
+      "eloboard:male:mix:913",
+      {
+        entity_id: "eloboard:male:mix:913",
+        wr_id: 913,
+        gender: "male",
+        name: "é®â‰ªì˜±TV",
+        team_code: "black",
+        profile_kind: "mix",
+      },
+    ],
+  ]);
+
+  const actual = collapseStalePreviousDuplicateEntities(beforeByEntity, observedByEntity);
+
+  assert.deepEqual(actual, [
+    {
+      canonical_entity_id: "eloboard:male:mix:913",
+      legacy_entity_id: "eloboard:male:913",
+      name: "é®â‰ªì˜±TV",
+      team_code: "black",
     },
   ]);
 });
@@ -186,8 +243,8 @@ runTest("restoreMissingFaBaselinePlayers rehydrates FA players missing from curr
         profile_url: "https://example.com/998",
       },
       {
-        entity_id: "eloboard:female:999",
-        wr_id: 999,
+        entity_id: "eloboard:female:1001",
+        wr_id: 1001,
         gender: "female",
         name: "타팀행",
         display_name: "타팀행",
@@ -196,7 +253,7 @@ runTest("restoreMissingFaBaselinePlayers rehydrates FA players missing from curr
       },
     ],
     new Map(),
-    new Map([["eloboard:female:999", { team_code: "black", player: { entity_id: "eloboard:female:999" } }]]),
+    new Map([["eloboard:female:1001", { team_code: "black", player: { entity_id: "eloboard:female:1001" } }]]),
     new Set()
   );
 
@@ -217,6 +274,42 @@ runTest("fallback FA move rows are intended to be labeled as fallback confidence
   });
 
   assert.equal(moved[0].change_confidence, "fallback");
+});
+
+runTest("shouldRetainPreviousAffiliation keeps prior team when a player disappears from the current scrape", () => {
+  const actual = shouldRetainPreviousAffiliation(
+    "eloboard:male:913",
+    {
+      team_code: "black",
+      player: {
+        entity_id: "eloboard:male:913",
+        name: "é®â‰ªì˜±TV",
+      },
+    },
+    new Map(),
+    new Set(),
+    new Set()
+  );
+
+  assert.equal(actual, true);
+});
+
+runTest("shouldRetainPreviousAffiliation does not retain when the player is already observed this run", () => {
+  const actual = shouldRetainPreviousAffiliation(
+    "eloboard:male:913",
+    {
+      team_code: "black",
+      player: {
+        entity_id: "eloboard:male:913",
+        name: "é®â‰ªì˜±TV",
+      },
+    },
+    new Map([["eloboard:male:913", { team_code: "black" }]]),
+    new Set(),
+    new Set()
+  );
+
+  assert.equal(actual, false);
 });
 
 runTest("findBaselineIdentityMigrationCandidate matches same-team same-player profile-kind migrations", () => {

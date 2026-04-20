@@ -78,14 +78,29 @@ function evaluateReadiness(input) {
       detail: input.manualRefreshStatus || "missing",
     },
     {
-      key: "supabase_sync_enabled",
-      ok: input.supabaseSyncEnabled === true,
-      detail: input.supabaseSyncEnabled ? "enabled" : "disabled",
+      key: "supabase_sync_completed",
+      ok: input.supabaseSyncStatus === "completed",
+      detail: input.supabaseSyncStatus || "missing",
+    },
+    {
+      key: "cache_revalidation_completed",
+      ok: input.cacheRevalidationStatus === "completed",
+      detail: input.cacheRevalidationDetail || input.cacheRevalidationStatus || "missing",
     },
     {
       key: "homepage_integrity_fresh",
       ok: input.homepageIntegrityFresh === true,
       detail: input.homepageIntegrityDetail || "missing",
+    },
+    {
+      key: "live_snapshot_fresh",
+      ok: input.liveSnapshotFresh === true,
+      detail: input.liveSnapshotDetail || "missing",
+    },
+    {
+      key: "stale_snapshot_disagreement_zero",
+      ok: Number(input.staleSnapshotDisagreementCount || 0) === 0,
+      detail: String(Number(input.staleSnapshotDisagreementCount || 0)),
     },
     {
       key: "blocking_alerts_zero",
@@ -112,6 +127,20 @@ function evaluateReadiness(input) {
   };
 }
 
+function summarizeNextAction(summary) {
+  const failed = new Set(Array.isArray(summary.failed_checks) ? summary.failed_checks : []);
+  if (failed.has("supabase_sync_completed") || failed.has("cache_revalidation_completed")) {
+    return "\u006D\u0061\u006E\u0075\u0061\u006C\u0020\u0072\u0065\u0066\u0072\u0065\u0073\u0068\u0020\u0077\u0069\u0074\u0068\u0020\u0073\u0079\u006E\u0063\uB97C \uB2E4\uC2DC \uC2E4\uD589\uD558\uACE0 Supabase sync / cache revalidation \uC0C1\uD0DC\uB97C \uD655\uC778\uD558\uC138\uC694.";
+  }
+  if (failed.has("homepage_integrity_fresh") || failed.has("live_snapshot_fresh") || failed.has("stale_snapshot_disagreement_zero")) {
+    return "latest snapshot freshness\uC640 homepage integrity report\uB97C \uC7AC\uC0DD\uC131\uD55C \uB4A4 disagreement count\uAC00 0\uC778\uC9C0 \uD655\uC778\uD558\uC138\uC694.";
+  }
+  if (failed.has("discord_removals_zero")) {
+    return "Discord removals \uC6D0\uC778\uC744 \uD655\uC778\uD558\uACE0 current_roster_state \uAE30\uC900 \uBCC0\uACBD\uC774 \uC758\uB3C4\uB41C \uAC83\uC778\uC9C0 \uAC80\uD1A0\uD558\uC138\uC694.";
+  }
+  return "\uC2E4\uD328\uD55C readiness check\uC758 detail\uC744 \uD655\uC778\uD558\uACE0 \uD574\uB2F9 \uC6B4\uC601 \uB2E8\uACC4\uB9CC \uB2E4\uC2DC \uC810\uAC80\uD558\uC138\uC694.";
+}
+
 function toMarkdown(summary) {
   const lines = [
     "## Site Integration Readiness",
@@ -119,16 +148,23 @@ function toMarkdown(summary) {
     `- Ready: ${summary.ready ? "yes" : "no"}`,
     `- Ops Pipeline: ${summary.ops_pipeline_status || "-"}`,
     `- Manual Refresh: ${summary.manual_refresh_status || "-"}`,
-    `- Supabase Sync: ${summary.supabase_sync_enabled ? "enabled" : "disabled"}`,
+    `- Supabase Sync: ${summary.supabase_sync_status || "-"}`,
+    `- Cache Revalidation: ${summary.cache_revalidation_status || "-"}`,
     `- Homepage Integrity: ${summary.homepage_integrity_fresh ? "fresh" : "stale"}`,
+    `- Live Snapshot Fresh: ${summary.live_snapshot_fresh ? "fresh" : "stale"}`,
     `- Blocking Alerts: ${summary.blocking_alerts}`,
     `- Stale Snapshot Operational Alerts: ${summary.stale_snapshot_operational_alerts}`,
+    `- Stale Snapshot Disagreement Count: ${summary.stale_snapshot_disagreement_count}`,
     `- Discord Removals: ${summary.discord_removals}`,
     `- Zero-Record Needs Review: ${summary.zero_record_needs_review}`,
   ];
 
   if (summary.discord_roster_source) {
     lines.push(`- Discord Roster Source: ${summary.discord_roster_source}`);
+  }
+
+  if (!summary.ready) {
+    lines.push(`- Next Action: ${summarizeNextAction(summary)}`);
   }
 
   lines.push("");
@@ -141,7 +177,8 @@ function toMarkdown(summary) {
     lines.push("");
     lines.push("### Blockers");
     for (const key of summary.failed_checks) {
-      lines.push(`- ${key}`);
+      const check = summary.checks.find((item) => item.key === key);
+      lines.push(`- ${key}: ${check ? check.detail : "missing"}`);
     }
   }
 
@@ -191,15 +228,43 @@ function main() {
     zeroRecordReview && zeroRecordReview.needs_review_count ? zeroRecordReview.needs_review_count : 0
   );
   const homepageIntegrityFreshness = evaluateHomepageIntegrityFreshness(homepageIntegrity);
+  const liveSummary =
+    homepageIntegrity && homepageIntegrity.summary && homepageIntegrity.summary.live && typeof homepageIntegrity.summary.live === "object"
+      ? homepageIntegrity.summary.live
+      : null;
+  const liveSnapshotFresh = Boolean(liveSummary && liveSummary.snapshot_is_fresh === true);
+  const staleSnapshotDisagreementCount = Number(
+    liveSummary && liveSummary.stale_snapshot_disagreement_count ? liveSummary.stale_snapshot_disagreement_count : 0
+  );
+  const supabaseSyncDetails =
+    manualRefresh && manualRefresh.supabase_sync && typeof manualRefresh.supabase_sync === "object"
+      ? manualRefresh.supabase_sync
+      : null;
+  const supabaseSyncStatus = String(supabaseSyncDetails && supabaseSyncDetails.status ? supabaseSyncDetails.status : "").trim() || null;
+  const cacheRevalidation =
+    supabaseSyncDetails && supabaseSyncDetails.cache_revalidation && typeof supabaseSyncDetails.cache_revalidation === "object"
+      ? supabaseSyncDetails.cache_revalidation
+      : null;
+  const cacheRevalidationStatus = String(cacheRevalidation && cacheRevalidation.status ? cacheRevalidation.status : "").trim() || null;
+  const cacheRevalidationReason = String(cacheRevalidation && cacheRevalidation.reason ? cacheRevalidation.reason : "").trim() || null;
 
   const evaluation = evaluateReadiness({
     opsPipelinePass: String(opsPipeline && opsPipeline.status ? opsPipeline.status : "").trim().toLowerCase() === "pass",
     opsPipelineStatus: String(opsPipeline && opsPipeline.status ? opsPipeline.status : "").trim() || null,
     manualRefreshPass: String(manualRefresh && manualRefresh.status ? manualRefresh.status : "").trim().toLowerCase() === "pass",
     manualRefreshStatus: String(manualRefresh && manualRefresh.status ? manualRefresh.status : "").trim() || null,
-    supabaseSyncEnabled: Boolean(manualRefresh && manualRefresh.with_supabase_sync === true),
+    supabaseSyncStatus,
+    cacheRevalidationStatus,
+    cacheRevalidationDetail: cacheRevalidationReason ? `${cacheRevalidationStatus} (${cacheRevalidationReason})` : cacheRevalidationStatus,
     homepageIntegrityFresh: homepageIntegrityFreshness.fresh,
     homepageIntegrityDetail: homepageIntegrityFreshness.detail,
+    liveSnapshotFresh,
+    liveSnapshotDetail: liveSummary
+      ? liveSnapshotFresh
+        ? `fresh (${String(liveSummary.snapshot_updated_at || "-")})`
+        : `stale (${String(liveSummary.snapshot_updated_at || "-")})`
+      : "missing",
+    staleSnapshotDisagreementCount,
     blockingAlerts,
     discordRemovals: Array.isArray(summaryCheck.removals) ? summaryCheck.removals.length : 0,
     zeroRecordNeedsReview,
@@ -220,9 +285,14 @@ function main() {
     ops_pipeline_status: String(opsPipeline && opsPipeline.status ? opsPipeline.status : "").trim() || null,
     manual_refresh_status: String(manualRefresh && manualRefresh.status ? manualRefresh.status : "").trim() || null,
     supabase_sync_enabled: Boolean(manualRefresh && manualRefresh.with_supabase_sync === true),
+    supabase_sync_status: supabaseSyncStatus,
+    cache_revalidation_status: cacheRevalidationStatus,
+    cache_revalidation_reason: cacheRevalidationReason,
     homepage_integrity_fresh: homepageIntegrityFreshness.fresh,
     homepage_integrity_detail: homepageIntegrityFreshness.detail,
     homepage_integrity_generated_at: homepageIntegrityFreshness.generated_at,
+    live_snapshot_fresh: liveSnapshotFresh,
+    stale_snapshot_disagreement_count: staleSnapshotDisagreementCount,
     blocking_alerts: blockingAlerts,
     stale_snapshot_operational_alerts: staleSnapshotOperationalAlerts,
     discord_removals: Array.isArray(summaryCheck.removals) ? summaryCheck.removals.length : 0,

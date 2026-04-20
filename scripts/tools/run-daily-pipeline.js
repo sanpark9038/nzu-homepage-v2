@@ -200,6 +200,8 @@ function defaultAlertConfig() {
       negative_delta_matches_severity: "critical",
       roster_size_changed_severity: "medium",
       roster_size_changed_team_allowlist: [],
+      clustered_uncertain_affiliation_changes_severity: "medium",
+      clustered_uncertain_affiliation_changes_threshold: 3,
       stale_snapshot_disagreement_severity: "medium",
       stale_snapshot_disagreement_threshold: 1,
       homepage_integrity_report_max_age_minutes: 180,
@@ -254,6 +256,79 @@ function normalizePositiveNumber(value, fallback) {
   return parsed;
 }
 
+function buildHomepageIntegrityOperationalAlertsLegacy(homepageIntegrityReport, cfg, referenceTimeMs = Date.now()) {
+  return buildHomepageIntegrityOperationalAlerts(homepageIntegrityReport, cfg, referenceTimeMs);
+  const rules = cfg && cfg.rules && typeof cfg.rules === "object" ? cfg.rules : {};
+  if (!homepageIntegrityReport || typeof homepageIntegrityReport !== "object") return [];
+
+  const generatedAt = String(homepageIntegrityReport.generated_at || "").trim();
+  const generatedTime = generatedAt ? Date.parse(generatedAt) : Number.NaN;
+  if (!Number.isFinite(generatedTime)) return [];
+
+  const maxAgeMinutes = normalizePositiveNumber(rules.homepage_integrity_report_max_age_minutes, 180);
+  const reportAgeMs = referenceTimeMs - generatedTime;
+  if (!Number.isFinite(reportAgeMs) || reportAgeMs < 0 || reportAgeMs > maxAgeMinutes * 60 * 1000) {
+    return [];
+  }
+
+  const liveSummary =
+    homepageIntegrityReport.summary && homepageIntegrityReport.summary.live && typeof homepageIntegrityReport.summary.live === "object"
+      ? homepageIntegrityReport.summary.live
+      : null;
+  if (!liveSummary) return [];
+
+  const disagreementCount = Number(liveSummary.stale_snapshot_disagreement_count || 0);
+  const snapshotIsFresh = Boolean(liveSummary.snapshot_is_fresh);
+  const snapshotExists = Boolean(liveSummary.snapshot_exists);
+  const threshold = normalizePositiveNumber(rules.stale_snapshot_disagreement_threshold, 1);
+
+  const alerts = [];
+
+  if (snapshotExists && !snapshotIsFresh && Number.isFinite(disagreementCount) && disagreementCount >= threshold) {
+    alerts.push({
+      severity: rules.stale_snapshot_disagreement_severity || "medium",
+      team: "운영",
+      team_code: "ops",
+      rule: "stale_live_snapshot_disagreement",
+      message: `stale_snapshot_disagreement_count=${disagreementCount}, snapshot_updated_at=${String(
+        liveSummary.snapshot_updated_at || "-"
+      )}, report_generated_at=${generatedAt}`,
+    });
+  }
+
+  const heroMediaSummary =
+    homepageIntegrityReport.summary &&
+    homepageIntegrityReport.summary.hero_media &&
+    typeof homepageIntegrityReport.summary.hero_media === "object"
+      ? homepageIntegrityReport.summary.hero_media
+      : null;
+
+  if (heroMediaSummary) {
+    const activeOk = Boolean(heroMediaSummary.active_ok);
+    const activeCount = Number(heroMediaSummary.active_count || 0);
+    const invalidRowsCount = Number(heroMediaSummary.invalid_rows_count || 0);
+    const activeIssues = Array.isArray(heroMediaSummary.active_issues)
+      ? heroMediaSummary.active_issues
+          .map((item) => String(item || "").trim())
+          .filter(Boolean)
+      : [];
+
+    if (!activeOk || (Number.isFinite(invalidRowsCount) && invalidRowsCount > 0)) {
+      alerts.push({
+        severity: rules.hero_media_integrity_severity || "medium",
+        team: "운영팀",
+        team_code: "ops",
+        rule: "hero_media_integrity_issue",
+        message: `active_count=${Number.isFinite(activeCount) ? activeCount : 0}, invalid_rows=${Number.isFinite(
+          invalidRowsCount
+        ) ? invalidRowsCount : 0}, issues=${activeIssues.length ? activeIssues.join(",") : "-"}`,
+      });
+    }
+  }
+
+  return alerts;
+}
+
 function buildHomepageIntegrityOperationalAlerts(homepageIntegrityReport, cfg, referenceTimeMs = Date.now()) {
   const rules = cfg && cfg.rules && typeof cfg.rules === "object" ? cfg.rules : {};
   if (!homepageIntegrityReport || typeof homepageIntegrityReport !== "object") return [];
@@ -286,12 +361,58 @@ function buildHomepageIntegrityOperationalAlerts(homepageIntegrityReport, cfg, r
   return [
     {
       severity: rules.stale_snapshot_disagreement_severity || "medium",
-      team: "운영",
+      team: "ìš´ì˜",
       team_code: "ops",
       rule: "stale_live_snapshot_disagreement",
       message: `stale_snapshot_disagreement_count=${disagreementCount}, snapshot_updated_at=${String(
         liveSummary.snapshot_updated_at || "-"
       )}, report_generated_at=${generatedAt}`,
+    },
+  ];
+}
+
+function buildClusteredUncertainAffiliationAlerts(rosterSyncReport, cfg) {
+  const rules = cfg && cfg.rules && typeof cfg.rules === "object" ? cfg.rules : {};
+  const threshold = normalizePositiveNumber(rules.clustered_uncertain_affiliation_changes_threshold, 3);
+  if (!Number.isFinite(threshold) || threshold <= 0) return [];
+
+  const moved =
+    rosterSyncReport &&
+    rosterSyncReport.summary &&
+    Array.isArray(rosterSyncReport.summary.moved)
+      ? rosterSyncReport.summary.moved
+      : [];
+  const uncertainRows = moved.filter((row) => {
+    const confidence = String(row && row.change_confidence ? row.change_confidence : "").trim().toLowerCase();
+    return confidence === "fallback" || confidence === "inferred";
+  });
+
+  if (uncertainRows.length < threshold) return [];
+
+  const counts = { fallback: 0, inferred: 0 };
+  const previousTeams = new Map();
+  for (const row of uncertainRows) {
+    const confidence = String(row && row.change_confidence ? row.change_confidence : "").trim().toLowerCase();
+    if (confidence === "fallback" || confidence === "inferred") {
+      counts[confidence] += 1;
+    }
+    const previousTeam = String(row && row.from ? row.from : "").trim() || "unknown";
+    previousTeams.set(previousTeam, Number(previousTeams.get(previousTeam) || 0) + 1);
+  }
+
+  const previousTeamsSummary = Array.from(previousTeams.entries())
+    .sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))
+    .slice(0, 3)
+    .map(([teamCode, count]) => `${teamCode}:${count}`)
+    .join(", ");
+
+  return [
+    {
+      severity: rules.clustered_uncertain_affiliation_changes_severity || "medium",
+      team: "?댁쁺",
+      team_code: "ops",
+      rule: "clustered_uncertain_affiliation_changes",
+      message: `count=${uncertainRows.length}, fallback=${counts.fallback}, inferred=${counts.inferred}, previous_teams=${previousTeamsSummary || "-"}`,
     },
   ];
 }
@@ -922,6 +1043,7 @@ function buildAlerts(
     }
   }
   alerts.push(...buildHomepageIntegrityOperationalAlerts(homepageIntegrityReport, cfg, referenceTimeMs));
+  alerts.push(...buildClusteredUncertainAffiliationAlerts(rosterSyncReport, cfg));
   return sortedAlerts(alerts);
 }
 
@@ -1275,6 +1397,7 @@ if (require.main === module) {
 
 module.exports = {
   buildAlerts,
+  buildClusteredUncertainAffiliationAlerts,
   buildHomepageIntegrityOperationalAlerts,
   classifyZeroRecordPlayers,
   movedInPlayersByTeam,

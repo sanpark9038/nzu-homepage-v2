@@ -10,6 +10,7 @@ type FactRow = {
   team: string;
   tier: string;
   race: string;
+  opponentEntityId?: string;
   opponentName: string;
   opponentRace: string;
   mapName: string;
@@ -197,6 +198,7 @@ function loadWarehouse(): WarehouseCache {
     team: r.team,
     tier: r.tier,
     race: r.race,
+    opponentEntityId: r.opponent_entity_id || "",
     opponentName: r.opponent_name,
     opponentRace: r.opponent_race,
     mapName: r.map_name,

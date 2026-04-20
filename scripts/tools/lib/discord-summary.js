@@ -299,6 +299,46 @@ function loadRosterSyncJoiners(reportsDir) {
     .filter((row) => row.player_name);
 }
 
+function loadRosterSyncAffiliationChanges(reportsDir) {
+  const syncReport = readJsonIfExists(path.join(reportsDir, "team_roster_sync_report.json"));
+  const moved = Array.isArray(syncReport && syncReport.moved) ? syncReport.moved : [];
+  return moved
+    .map((row) => ({
+      player_name: String(row && row.name ? row.name : "").trim(),
+      old_team: normalizeTeamName(row && row.from ? row.from : "fa"),
+      new_team: normalizeTeamName(row && row.to ? row.to : "fa"),
+      change_confidence: String(row && row.change_confidence ? row.change_confidence : "inferred").trim() || "inferred",
+    }))
+    .filter((row) => row.player_name);
+}
+
+function summarizeAffiliationChanges(affiliationChanges) {
+  const rows = Array.isArray(affiliationChanges) ? affiliationChanges : [];
+  const counts = {
+    confirmed: 0,
+    inferred: 0,
+    fallback: 0,
+    total: rows.length,
+  };
+  const byPreviousTeam = new Map();
+
+  for (const row of rows) {
+    const confidence = String(row && row.change_confidence ? row.change_confidence : "inferred").trim().toLowerCase();
+    if (confidence === "confirmed" || confidence === "inferred" || confidence === "fallback") {
+      counts[confidence] += 1;
+    }
+    const oldTeam = normalizeTeamName(row && row.old_team ? row.old_team : "");
+    byPreviousTeam.set(oldTeam, Number(byPreviousTeam.get(oldTeam) || 0) + 1);
+  }
+
+  return {
+    counts,
+    by_previous_team: Array.from(byPreviousTeam.entries())
+      .map(([team_name, count]) => ({ team_name, count }))
+      .sort((a, b) => b.count - a.count || String(a.team_name).localeCompare(String(b.team_name), "ko")),
+  };
+}
+
 function buildDiscordSummaryCheck({ reportsDir, baselinePath, projectsDir, snapshot, alertsDoc }) {
   const beforePlayers = loadBaselinePlayers(baselinePath);
   const snapshotPlayers = loadCurrentRosterStateSnapshot(reportsDir);
@@ -306,12 +346,15 @@ function buildDiscordSummaryCheck({ reportsDir, baselinePath, projectsDir, snaps
   const lookup = mergedEntityIdLookup({ reportsDir });
   const rosterChanges = compareRosterJoinersRemovals(beforePlayers, afterPlayers, lookup);
   const rosterSyncJoiners = loadRosterSyncJoiners(reportsDir);
+  const affiliationChanges = loadRosterSyncAffiliationChanges(reportsDir);
 
   return {
     joiners: rosterSyncJoiners.length ? rosterSyncJoiners : rosterChanges.joiners,
     joiners_source: rosterSyncJoiners.length ? "team_roster_sync_report" : "baseline_vs_current_roster",
     roster_source: snapshotPlayers.length ? CURRENT_ROSTER_STATE_FILE : "projects_dir",
     removals: rosterChanges.removals,
+    affiliation_changes: affiliationChanges,
+    affiliation_change_summary: summarizeAffiliationChanges(affiliationChanges),
     new_matches_total: sumNewMatches(snapshot),
     top_team_deltas: topTeamDeltas(snapshot),
     alerts: summarizeAlerts(alertsDoc),

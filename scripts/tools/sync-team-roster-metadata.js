@@ -56,6 +56,16 @@ function buildLegacyEntityIdsBySuccessor(manualOverrides) {
   return lookup;
 }
 
+function buildRetiredEntityIds(manualOverrides) {
+  const retired = new Set();
+  for (const row of Array.isArray(manualOverrides) ? manualOverrides : []) {
+    if (!row || row.retired !== true) continue;
+    const entityId = String(row && row.entity_id ? row.entity_id : "").trim();
+    if (entityId) retired.add(entityId);
+  }
+  return retired;
+}
+
 function readManualRefreshBaselinePlayers(teamCode) {
   if (!fs.existsSync(MANUAL_REFRESH_BASELINE_PATH)) return [];
   try {
@@ -353,6 +363,14 @@ function buildRetainedFaEntityIds(faObservedEntityIds, observedByEntity, fallbac
   return retained;
 }
 
+function shouldRetainPreviousAffiliation(entityId, prev, observedByEntity, collapsedLegacyEntityIds, guardedTeamCodes) {
+  if (!prev || String(prev.team_code || "") === "fa") return false;
+  if (observedByEntity.has(entityId)) return false;
+  if (collapsedLegacyEntityIds.has(String(entityId))) return false;
+  if (guardedTeamCodes.has(String(prev.team_code))) return false;
+  return true;
+}
+
 function restoreMissingFaBaselinePlayers(faDoc, baselinePlayers, observedByEntity, beforeByEntity, guardedTeamCodes) {
   const restored = [];
   const currentFaIds = new Set(
@@ -417,6 +435,19 @@ function effectiveRace(observedRace, baseRace) {
 
 function normalizePlayerNameForIdentity(value) {
   return String(value || "").trim();
+}
+
+function buildIdentitySignature(teamCode, player) {
+  const safeTeamCode = String(teamCode || "").trim();
+  const safeGender = String(player && player.gender ? player.gender : "").trim();
+  const safeWrId = Number(player && player.wr_id ? player.wr_id : 0);
+  const safeName = normalizePlayerNameForIdentity(
+    player && (player.name || player.display_name) ? player.name || player.display_name : ""
+  );
+  if (!safeTeamCode || !safeGender || !Number.isFinite(safeWrId) || safeWrId <= 0 || !safeName) {
+    return "";
+  }
+  return `${safeTeamCode}::${safeGender}::${safeWrId}::${safeName}`;
 }
 
 function findBaselineIdentityMigrationCandidate(beforeByEntity, observed, claimedEntityIds = new Set()) {
@@ -518,6 +549,51 @@ function collapseObservedLegacyDuplicates(observedByEntity, legacyEntityIdsBySuc
   }
 
   return { observedByEntity: collapsed, deduped };
+}
+
+function collapseStalePreviousDuplicateEntities(beforeByEntity, observedByEntity) {
+  const previousBySignature = new Map();
+  for (const [entityId, prev] of beforeByEntity.entries()) {
+    const player = prev && prev.player ? prev.player : null;
+    const signature = buildIdentitySignature(prev && prev.team_code ? prev.team_code : "", player);
+    if (!signature) continue;
+    if (!previousBySignature.has(signature)) previousBySignature.set(signature, []);
+    previousBySignature.get(signature).push({
+      entity_id: String(entityId),
+      team_code: String(prev && prev.team_code ? prev.team_code : ""),
+      name: String(
+        player && (player.name || player.display_name) ? player.name || player.display_name : ""
+      ),
+    });
+  }
+
+  const observedBySignature = new Map();
+  for (const [entityId, observed] of observedByEntity.entries()) {
+    const signature = buildIdentitySignature(observed && observed.team_code ? observed.team_code : "", observed);
+    if (!signature) continue;
+    if (!observedBySignature.has(signature)) observedBySignature.set(signature, []);
+    observedBySignature.get(signature).push(String(entityId));
+  }
+
+  const deduped = [];
+  for (const [signature, previousRows] of previousBySignature.entries()) {
+    if (previousRows.length < 2) continue;
+    const observedIds = observedBySignature.get(signature) || [];
+    if (observedIds.length !== 1) continue;
+    const canonicalEntityId = observedIds[0];
+    if (!previousRows.some((row) => row.entity_id === canonicalEntityId)) continue;
+    for (const row of previousRows) {
+      if (row.entity_id === canonicalEntityId) continue;
+      deduped.push({
+        canonical_entity_id: canonicalEntityId,
+        legacy_entity_id: row.entity_id,
+        name: row.name,
+        team_code: row.team_code,
+      });
+    }
+  }
+
+  return deduped;
 }
 
 function removeEntityFromAllDocs(docs, entityId, keepTeamCode, skipTeamCodes = new Set()) {
@@ -700,10 +776,18 @@ async function main() {
   }
 
   const manualOverrides = readManualOverrides();
+  const retiredEntityIds = buildRetiredEntityIds(manualOverrides);
   const legacyEntityIdsBySuccessor = buildLegacyEntityIdsBySuccessor(manualOverrides);
   const appliedManualOverrides = [];
+  for (const retiredEntityId of retiredEntityIds) {
+    for (const d of allDocs) {
+      removeRosterEntry(d.json, retiredEntityId);
+    }
+    observedByEntity.delete(retiredEntityId);
+  }
   for (const ov of manualOverrides) {
     if (!ov) continue;
+    if (ov.retired === true) continue;
     const entityId = resolveOverrideEntityId(ov, observedByEntity, beforeByEntity);
     if (!entityId) continue;
     const prev = beforeByEntity.get(entityId);
@@ -734,6 +818,7 @@ async function main() {
   for (const [entityId, observed] of manualLegacyCollapse.observedByEntity.entries()) {
     observedByEntity.set(entityId, observed);
   }
+  const stalePreviousDuplicateCollapse = collapseStalePreviousDuplicateEntities(beforeByEntity, observedByEntity);
 
   const moved = [];
   const added = [];
@@ -741,11 +826,12 @@ async function main() {
   const raceChanged = [];
   const dedupRemovals = [];
   const faFallbackEntityIds = new Set();
+  const collapsedLegacyRows = [...manualLegacyCollapse.deduped, ...stalePreviousDuplicateCollapse];
   const collapsedLegacyEntityIds = new Set(
-    manualLegacyCollapse.deduped.map((row) => String(row.legacy_entity_id || "")).filter(Boolean)
+    collapsedLegacyRows.map((row) => String(row.legacy_entity_id || "")).filter(Boolean)
   );
 
-  for (const collapsedRow of manualLegacyCollapse.deduped) {
+  for (const collapsedRow of collapsedLegacyRows) {
     for (const d of allDocs) {
       removeRosterEntry(d.json, collapsedRow.legacy_entity_id);
     }
@@ -831,6 +917,19 @@ async function main() {
   const faFallbackAllowed = Boolean(faSourceUniv);
   if (faFallbackAllowed) {
     for (const [entityId, prev] of beforeByEntity.entries()) {
+      if (
+        shouldRetainPreviousAffiliation(
+          entityId,
+          prev,
+          observedByEntity,
+          collapsedLegacyEntityIds,
+          guardedTeamCodes
+        )
+      ) {
+        // Missing from the current scrape is not enough evidence to convert a rostered player into FA.
+        // Keep the prior team assignment until a later run directly observes the affiliation change.
+        continue;
+      }
       if (prev.team_code === "fa") continue;
       if (observedByEntity.has(entityId)) continue;
       if (collapsedLegacyEntityIds.has(String(entityId))) continue;
@@ -926,6 +1025,7 @@ module.exports = {
   buildLegacyEntityIdsBySuccessor,
   buildRetainedFaEntityIds,
   collapseObservedLegacyDuplicates,
+  collapseStalePreviousDuplicateEntities,
   effectiveRace,
   effectiveTier,
   fallbackValue,
@@ -933,6 +1033,7 @@ module.exports = {
   reconcileObservedIdentityMigrations,
   restoreMissingFaBaselinePlayers,
   readManualRefreshBaselinePlayers,
+  shouldRetainPreviousAffiliation,
   shouldGuardObservedRoster,
   tierKey,
   upsertRosterEntry,

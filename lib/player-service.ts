@@ -32,6 +32,8 @@ const MATCH_SERVING_SELECT =
 type StoredMatchHistoryItem = {
   match_date?: string | null;
   matchDate?: string | null;
+  opponent_entity_id?: string | null;
+  opponentEntityId?: string | null;
   opponent_name?: string | null;
   opponentName?: string | null;
   opponent_race?: string | null;
@@ -42,7 +44,6 @@ type StoredMatchHistoryItem = {
   isWin?: boolean | null;
   note?: string | null;
 };
-
 type StoredPlayerHistoryRecord = {
   id: string;
   name: string;
@@ -138,17 +139,27 @@ function buildHistoryOpponentId(playerId: string, opponentName: string, opponent
   return `history-opponent:${playerId}:${nameKey}:${raceKey}`;
 }
 
+function resolveHistoryOpponentId(playerId: string, item: StoredMatchHistoryItem) {
+  const directId = String(item?.opponent_entity_id || item?.opponentEntityId || "").trim();
+  if (directId) return directId;
+  return buildHistoryOpponentId(
+    playerId,
+    String(item?.opponent_name || item?.opponentName || ""),
+    String(item?.opponent_race || item?.opponentRace || "")
+  );
+}
+
 function synthesizeMatchesFromHistory(player: StoredPlayerHistoryRecord, limit: number) {
   const history = normalizeStoredMatchHistory(player?.match_history);
   const playerId = String(player?.id || "");
-  const playerName = String(player?.name || "알 수 없음");
+  const playerName = String(player?.name || "?????놁쓬");
   const playerRace = String(player?.race || "");
   const playerPhoto = player?.photo_url || null;
 
   return history.slice(0, limit).map((item, index: number) => {
-    const opponentName = String(item?.opponent_name || item?.opponentName || "알 수 없음").trim() || "알 수 없음";
+    const opponentName = String(item?.opponent_name || item?.opponentName || "?????놁쓬").trim() || "?????놁쓬";
     const opponentRace = normalizeHistoryRace(item?.opponent_race || item?.opponentRace);
-    const opponentId = buildHistoryOpponentId(playerId, opponentName, opponentRace);
+    const opponentId = resolveHistoryOpponentId(playerId, item);
     const isWin = Boolean(item?.is_win ?? item?.isWin);
     const winnerId = isWin ? playerId : opponentId;
     return {
@@ -185,12 +196,12 @@ export const playerService = {
   async getCachedPlayersList() {
     return fetchCachedPlayersForList();
   },
-  /** 전적(ELO) 순으로 모든 선수 가져오기 */
+  /** ?꾩쟻(ELO) ?쒖쑝濡?紐⑤뱺 ?좎닔 媛?몄삤湲?*/
   async getAllPlayers() {
     return fetchPlayersForList();
   },
 
-  /** 특정 ID의 선수 정보 가져오기 */
+  /** ?뱀젙 ID???좎닔 ?뺣낫 媛?몄삤湲?*/
   async getPlayerById(id: string) {
     const { data, error } = await supabase
       .from("players")
@@ -202,7 +213,7 @@ export const playerService = {
     return applyPlayerServiceViewToOne(data as Player);
   },
 
-  /** UUID 접두사(8자리 등)로 선수 정보 가져오기 */
+  /** UUID ?묐몢??8?먮━ ??濡??좎닔 ?뺣낫 媛?몄삤湲?*/
   async getPlayerByIdPrefix(prefix: string) {
     const normalizedPrefix = String(prefix || "").trim().toLowerCase();
     if (!normalizedPrefix) return null;
@@ -217,7 +228,7 @@ export const playerService = {
     return player ? applyPlayerServiceViewToOne(player as Player) : null;
   },
 
-  /** 현재 방송 중인 선수들만 가져오기 */
+  /** ?꾩옱 諛⑹넚 以묒씤 ?좎닔?ㅻ쭔 媛?몄삤湲?*/
   async getLivePlayers() {
     const { data, error } = await supabase
       .from("players")
@@ -229,7 +240,7 @@ export const playerService = {
     return applyPlayerServiceView((data || []) as Player[]);
   },
 
-  /** 특정 선수의 매치 기록 가져오기 */
+  /** ?뱀젙 ?좎닔??留ㅼ튂 湲곕줉 媛?몄삤湲?*/
   async getPlayerMatches(playerId: string, limit = 10) {
     const { data, error } = await supabase
       .from('matches')
@@ -257,7 +268,7 @@ export const playerService = {
     );
   },
 
-  /** 최근 매치 기록 가져오기 (전역) */
+  /** 理쒓렐 留ㅼ튂 湲곕줉 媛?몄삤湲?(?꾩뿭) */
   async getRecentMatches(limit = 10) {
     const { data, error } = await supabase
       .from("matches")
@@ -269,7 +280,7 @@ export const playerService = {
     return data || [];
   },
 
-  /** 최근 Eloboard 매치 기록 가져오기 (전역) */
+  /** 理쒓렐 Eloboard 留ㅼ튂 湲곕줉 媛?몄삤湲?(?꾩뿭) */
   async getRecentEloMatches(limit = 20) {
     const { data, error } = await supabase
       .from("eloboard_matches")
@@ -282,7 +293,7 @@ export const playerService = {
     return data || [];
   },
 
-  /** 모든 선수 검색 (이름 기준) */
+  /** 紐⑤뱺 ?좎닔 寃??(?대쫫 湲곗?) */
   async searchPlayers(query: string) {
     const normalizedQuery = normalizeSearchText(query);
     if (!normalizedQuery) return [];
@@ -299,14 +310,14 @@ export const playerService = {
       .slice(0, 10);
   },
 
-  /** 모든 대학 목록 가져오기 */
+  /** 紐⑤뱺 ???紐⑸줉 媛?몄삤湲?*/
   async getAllUniversities() {
     const players = await this.getCachedPlayersList();
     const univs = Array.from(new Set(players.map((item) => item.university)));
     return (univs as string[]).filter(Boolean).sort();
   },
 
-  /** 특정 대학의 선수 목록 가져오기 */
+  /** ?뱀젙 ??숈쓽 ?좎닔 紐⑸줉 媛?몄삤湲?*/
   async getPlayersByUniversity(univ: string) {
     const players = await this.getCachedPlayersList();
     return players
@@ -314,14 +325,14 @@ export const playerService = {
       .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ko"));
   },
 
-  /** 두 선수 간의 상대 전적 가져오기 (전체 및 최근 3개월) */
+  /** ???좎닔 媛꾩쓽 ?곷? ?꾩쟻 媛?몄삤湲?(?꾩껜 諛?理쒓렐 3媛쒖썡) */
   async getH2HStats(p1Id: string, p2Id: string) {
     if (!p1Id || !p2Id) return { overall: [0, 0], recent: [0, 0] };
 
-    // 두 선수의 이름과 P1의 경기 기록을 가져옴
+    // ???좎닔???대쫫怨?P1??寃쎄린 湲곕줉??媛?몄샂
     const { data: players, error } = await supabase
       .from('players')
-      .select('id, name, match_history')
+      .select('id, eloboard_id, name, nickname, match_history')
       .in('id', [p1Id, p2Id]);
 
     if (error || !players || players.length < 2) {
@@ -336,13 +347,36 @@ export const playerService = {
       return { overall: [0, 0], recent: [0, 0] };
     }
 
-    const p2Name = p2.name;
+    const p2IdentityCandidates = new Set<string>(
+      [
+        String(p2.id || "").trim(),
+        String((p2 as { eloboard_id?: string | null }).eloboard_id || "").trim(),
+      ].filter(Boolean)
+    );
+    const p2Candidates = new Set<string>(
+      [
+        String(p2.name || "").trim(),
+        String(p2.nickname || "").trim(),
+      ]
+        .map((value) => normalizeSearchText(value))
+        .filter(Boolean)
+    );
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
-    const stats = (p1.match_history as any[]).reduce((acc, m) => {
-      // 상대방 이름이 매칭되는지 확인 (불필요한 공백 제거)
-      if (m.opponent_name?.trim() === p2Name.trim()) {
+    const stats = (p1.match_history as Array<{
+      opponent_entity_id?: string | null;
+      opponentEntityId?: string | null;
+      opponent_name?: string | null;
+      match_date?: string | null;
+      is_win?: boolean | null;
+    }>).reduce((acc, m) => {
+      // ?곷?諛??대쫫??留ㅼ묶?섎뒗吏 ?뺤씤 (遺덊븘?뷀븳 怨듬갚 ?쒓굅)
+      const historyOpponentEntityId = String(m.opponent_entity_id || m.opponentEntityId || "").trim();
+      const opponentMatched = historyOpponentEntityId
+        ? p2IdentityCandidates.has(historyOpponentEntityId)
+        : p2Candidates.has(normalizeSearchText(m.opponent_name));
+      if (opponentMatched) {
         const matchDate = m.match_date ? new Date(m.match_date) : null;
         const isRecent = matchDate ? matchDate > threeMonthsAgo : false;
 
@@ -350,7 +384,7 @@ export const playerService = {
           acc.overall[0]++;
           if (isRecent) acc.recent[0]++;
         } else {
-          // P1이 졌다면 P2가 이긴 것 (1v1 기준)
+          // P1??議뚮떎硫?P2媛 ?닿릿 寃?(1v1 湲곗?)
           acc.overall[1]++;
           if (isRecent) acc.recent[1]++;
         }

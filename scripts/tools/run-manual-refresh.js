@@ -9,6 +9,7 @@ const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 const REPORT_LATEST_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.json");
 const REPORT_LATEST_MD_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.md");
+const ALERTS_LATEST_PATH = path.join(REPORTS_DIR, "daily_pipeline_alerts_latest.json");
 const COLLECT_CHUNKED_TIMEOUT_MS = 110 * 60 * 1000;
 const HOMEPAGE_INTEGRITY_TIMEOUT_MS = 10 * 60 * 1000;
 const SUPABASE_PUSH_TIMEOUT_MS = 30 * 60 * 1000;
@@ -29,6 +30,15 @@ function ensureDir(dirPath) {
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+}
+
+function readJsonIfExists(filePath, fallback = null) {
+  if (!fs.existsSync(filePath)) return fallback;
+  try {
+    return readJson(filePath);
+  } catch {
+    return fallback;
+  }
 }
 
 function captureRosterBaseline() {
@@ -112,6 +122,11 @@ function hasHomepageIntegrityEnv() {
   return Boolean(supabaseUrl && serviceKey);
 }
 
+function envFlag(name) {
+  const value = String(process.env[name] || "").trim().toLowerCase();
+  return value === "true" || value === "1" || value === "yes";
+}
+
 async function runStep(name, scriptRelPath, args = [], options = {}) {
   const startedAt = new Date().toISOString();
   const timeoutMs = Number(options.timeoutMs || stepTimeoutFor(name));
@@ -186,6 +201,70 @@ function tailLines(text, count = 20) {
     .slice(-count);
 }
 
+function summarizeBlockingAlerts(alertsDoc, limit = 3) {
+  const blockingSeverities = new Set(
+    Array.isArray(alertsDoc && alertsDoc.blocking_severities) && alertsDoc.blocking_severities.length
+      ? alertsDoc.blocking_severities.map((value) => String(value || "").trim())
+      : ["critical", "high"]
+  );
+  const rows = Array.isArray(alertsDoc && alertsDoc.alerts) ? alertsDoc.alerts : [];
+  const blocking = rows.filter((row) => blockingSeverities.has(String(row && row.severity ? row.severity : "").trim()));
+  return {
+    total: blocking.length,
+    preview: blocking.slice(0, limit).map((row) => ({
+      severity: String(row && row.severity ? row.severity : "").trim(),
+      team: String(row && row.team ? row.team : row && row.team_code ? row.team_code : "").trim(),
+      rule: String(row && row.rule ? row.rule : "").trim(),
+      message: String(row && row.message ? row.message : "").trim(),
+    })),
+  };
+}
+
+function parseCacheRevalidationResult(step) {
+  const tails = [
+    ...(Array.isArray(step && step.stdout_tail) ? step.stdout_tail : []),
+    ...(Array.isArray(step && step.stderr_tail) ? step.stderr_tail : []),
+  ];
+  const markerLine = tails.find((line) => String(line || "").includes("CACHE_REVALIDATION_RESULT "));
+  if (!markerLine) return null;
+  const jsonText = String(markerLine).split("CACHE_REVALIDATION_RESULT ")[1];
+  if (!jsonText) return null;
+  try {
+    const parsed = JSON.parse(jsonText);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function evaluateSupabaseSyncGate(alertsDoc) {
+  if (!alertsDoc || typeof alertsDoc !== "object") {
+    return {
+      allowed: false,
+      reason: "missing_latest_alert_report",
+      blocking_alerts_total: 0,
+      blocking_alerts_preview: [],
+    };
+  }
+
+  const blocking = summarizeBlockingAlerts(alertsDoc);
+  if (blocking.total > 0) {
+    return {
+      allowed: false,
+      reason: "blocking_alerts_present",
+      blocking_alerts_total: blocking.total,
+      blocking_alerts_preview: blocking.preview,
+    };
+  }
+
+  return {
+    allowed: true,
+    reason: null,
+    blocking_alerts_total: 0,
+    blocking_alerts_preview: [],
+  };
+}
+
 function timestampInSeoul() {
   const formatter = new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Asia/Seoul",
@@ -219,12 +298,42 @@ function writeReport(report) {
 }
 
 function buildMarkdownSummary(report, reportPath) {
+  const syncDetails =
+    report && report.supabase_sync && typeof report.supabase_sync === "object"
+      ? report.supabase_sync
+      : null;
+  const syncLabel = syncDetails
+    ? syncDetails.status === "completed"
+      ? (() => {
+          const cache = syncDetails.cache_revalidation;
+          if (!cache || typeof cache !== "object") return "completed";
+          const cacheStatus = String(cache.status || "").trim();
+          if (!cacheStatus || cacheStatus === "completed") return "completed";
+          const reason = String(cache.reason || "").trim();
+          return reason
+            ? `completed, cache_revalidation=${cacheStatus} (${reason})`
+            : `completed, cache_revalidation=${cacheStatus}`;
+        })()
+      : syncDetails.status === "disabled"
+        ? "disabled (not requested)"
+        : syncDetails.status === "skipped"
+          ? (() => {
+              const reason = String(syncDetails.skip_reason || "").trim() || "unspecified";
+              const total = Number(syncDetails.blocking_alerts_total || 0);
+              const warning = String(syncDetails.warning || "").trim();
+              const detail = total > 0 ? `${reason}, blocking_alerts=${total}` : reason;
+              return warning ? `skipped (${detail}): ${warning}` : `skipped (${detail})`;
+            })()
+          : String(syncDetails.status || "unknown")
+    : report.with_supabase_sync
+      ? "enabled"
+      : "disabled";
   const lines = [
     "# Manual Refresh Report",
     "",
     `- Generated: ${report.generated_at}`,
     `- Status: **${String(report.status || "").toUpperCase()}**`,
-    `- Supabase Sync: ${report.with_supabase_sync ? "enabled" : "disabled"}`,
+    `- Supabase Sync: ${syncLabel}`,
     `- JSON Report: ${reportPath}`,
     "",
     "## Steps",
@@ -256,6 +365,9 @@ async function main() {
   const chunkSize = String(argValue("--chunk-size", "3")).trim() || "3";
   const inactiveSkipDays = String(argValue("--inactive-skip-days", "14")).trim() || "14";
   const withSupabaseSync = hasFlag("--with-supabase-sync");
+  const workflowSyncRequested = envFlag("WORKFLOW_SYNC_REQUESTED");
+  const workflowSyncEnabled = envFlag("WORKFLOW_SYNC_ENABLED");
+  const workflowSyncWarning = String(process.env.WORKFLOW_SYNC_WARNING || "").trim();
   const collectChunkedArgs = [
     "--chunk-size",
     chunkSize,
@@ -269,6 +381,22 @@ async function main() {
   let status = "pass";
   let errorMessage = null;
   let failureStep = null;
+  const supabaseSync = {
+    requested: withSupabaseSync || workflowSyncRequested,
+    attempted: false,
+    status: withSupabaseSync ? "pending" : workflowSyncRequested ? "skipped" : "disabled",
+    skip_reason: withSupabaseSync
+      ? null
+      : workflowSyncRequested
+        ? workflowSyncEnabled
+          ? "requested_without_runtime_flag"
+          : "missing_supabase_secrets"
+        : "not_requested",
+    warning: workflowSyncWarning || null,
+    blocking_alerts_total: 0,
+    blocking_alerts_preview: [],
+    cache_revalidation: null,
+  };
 
   captureRosterBaseline();
   try {
@@ -286,11 +414,32 @@ async function main() {
       })
     );
     if (withSupabaseSync) {
-      steps.push(
-        await runStep("supabase_push", "scripts/tools/push-supabase-approved.js", ["--approved"], {
-          timeoutMs: stepTimeoutFor("supabase_push"),
-        })
-      );
+      const alertsDoc = readJsonIfExists(ALERTS_LATEST_PATH, null);
+      const syncGate = evaluateSupabaseSyncGate(alertsDoc);
+      supabaseSync.blocking_alerts_total = syncGate.blocking_alerts_total;
+      supabaseSync.blocking_alerts_preview = syncGate.blocking_alerts_preview;
+
+      if (syncGate.allowed) {
+        supabaseSync.attempted = true;
+        steps.push(
+          await runStep("supabase_push", "scripts/tools/push-supabase-approved.js", ["--approved"], {
+            timeoutMs: stepTimeoutFor("supabase_push"),
+          })
+        );
+        supabaseSync.status = "completed";
+        supabaseSync.skip_reason = null;
+        supabaseSync.cache_revalidation =
+          parseCacheRevalidationResult(steps[steps.length - 1]) || {
+            status: "unknown",
+            reason: "missing_push_revalidation_marker",
+          };
+      } else {
+        supabaseSync.status = "skipped";
+        supabaseSync.skip_reason = syncGate.reason;
+        console.warn(
+          `[SKIP] supabase_push skipped (${syncGate.reason}) blocking_alerts=${syncGate.blocking_alerts_total}`
+        );
+      }
     }
     console.log("Done: manual refresh completed.");
   } catch (error) {
@@ -305,6 +454,7 @@ async function main() {
     status,
     error: errorMessage,
     with_supabase_sync: withSupabaseSync,
+    supabase_sync: supabaseSync,
     steps,
     failure_step: failureStep,
     baseline_path: path.relative(ROOT, BASELINE_PATH).replace(/\\/g, "/"),
@@ -323,5 +473,8 @@ if (require.main === module) {
 }
 
 module.exports = {
+  evaluateSupabaseSyncGate,
+  parseCacheRevalidationResult,
   stepTimeoutFor,
+  summarizeBlockingAlerts,
 };

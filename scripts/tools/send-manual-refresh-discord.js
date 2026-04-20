@@ -254,6 +254,22 @@ function compareRosterPresenceRows(a, b) {
   return compareKoreanText(a.player_name, b.player_name);
 }
 
+function partitionAffiliationChanges(rows) {
+  const primary = [];
+  const fallback = [];
+
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const confidence = String(row && row.change_confidence ? row.change_confidence : "inferred").trim().toLowerCase();
+    if (confidence === "fallback") {
+      fallback.push(row);
+    } else {
+      primary.push(row);
+    }
+  }
+
+  return { primary, fallback };
+}
+
 function matchFilePathForPlayer(player) {
   const teamName = String(player && player.team_name ? player.team_name : "").trim();
   const playerName = String(player && player.name ? player.name : "").trim();
@@ -404,21 +420,80 @@ function describeAlertTone(alertCounts) {
 function supabaseSyncModeLabel() {
   const workflowModeLabel = String(process.env.WORKFLOW_MODE_LABEL || "").trim();
   if (workflowModeLabel) {
-    return workflowModeLabel.startsWith("실행 모드:")
+    return workflowModeLabel.startsWith("?ㅽ뻾 紐⑤뱶:")
       ? workflowModeLabel
-      : `실행 모드: ${workflowModeLabel}`;
+      : `?ㅽ뻾 紐⑤뱶: ${workflowModeLabel}`;
   }
+
   const report = readJsonIfExists(MANUAL_REFRESH_REPORT_PATH);
+  const syncDetails =
+    report && report.supabase_sync && typeof report.supabase_sync === "object"
+      ? report.supabase_sync
+      : null;
+
+  if (syncDetails) {
+    const status = String(syncDetails.status || "").trim();
+    if (status === "completed") {
+      const cache =
+        syncDetails.cache_revalidation && typeof syncDetails.cache_revalidation === "object"
+          ? syncDetails.cache_revalidation
+          : null;
+      if (!cache || String(cache.status || "").trim() === "completed") {
+        return "Supabase sync completed";
+      }
+      const cacheStatus = String(cache.status || "").trim() || "unknown";
+      return `Supabase sync completed (cache revalidation: ${cacheStatus})`;
+    }
+    if (status === "completed") return "?ㅽ뻾 紐⑤뱶: Supabase sync completed";
+    if (status === "skipped") return "?ㅽ뻾 紐⑤뱶: Supabase sync skipped";
+    if (status === "disabled") return "?ㅽ뻾 紐⑤뱶: Collect-only (Supabase sync not requested)";
+  }
+
   if (report && typeof report.with_supabase_sync === "boolean") {
     return report.with_supabase_sync
-      ? "실행 모드: Supabase sync enabled"
-      : "실행 모드: Collect-only (Supabase sync skipped)";
+      ? "?ㅽ뻾 紐⑤뱶: Supabase sync requested"
+      : "?ㅽ뻾 紐⑤뱶: Collect-only (Supabase sync skipped)";
   }
+
   return "";
 }
 
 function workflowSyncWarning() {
-  return String(process.env.WORKFLOW_SYNC_WARNING || "").trim();
+  const warning = String(process.env.WORKFLOW_SYNC_WARNING || "").trim();
+  if (warning) return warning;
+
+  const report = readJsonIfExists(MANUAL_REFRESH_REPORT_PATH);
+  const syncDetails =
+    report && report.supabase_sync && typeof report.supabase_sync === "object"
+      ? report.supabase_sync
+      : null;
+  if (!syncDetails || String(syncDetails.status || "").trim() !== "skipped") {
+    const cache =
+      syncDetails && syncDetails.cache_revalidation && typeof syncDetails.cache_revalidation === "object"
+        ? syncDetails.cache_revalidation
+        : null;
+    if (!cache) return "";
+    const cacheStatus = String(cache.status || "").trim();
+    const cacheReason = String(cache.reason || "").trim();
+    if (!cacheStatus || cacheStatus === "completed") return "";
+    return cacheReason
+      ? `Cache revalidation ${cacheStatus}: ${cacheReason}`
+      : `Cache revalidation ${cacheStatus}`;
+    return "";
+  }
+
+  const reason = String(syncDetails.skip_reason || "").trim();
+  const blockingTotal = Number(syncDetails.blocking_alerts_total || 0);
+  if (reason === "blocking_alerts_present") {
+    return blockingTotal > 0
+      ? `Supabase sync skipped because blocking alerts are present (${blockingTotal}).`
+      : "Supabase sync skipped because blocking alerts are present.";
+  }
+  if (reason === "missing_latest_alert_report") {
+    return "Supabase sync skipped because the latest alert report was missing.";
+  }
+
+  return reason ? `Supabase sync skipped: ${reason}` : "";
 }
 
 function collectionHealthCheckLabel(id) {
@@ -456,6 +531,16 @@ function pushLimitedRows(lines, rows, formatter, limit = 5) {
   }
 }
 
+function pushLimitedRows(lines, rows, formatter, limit = 5) {
+  const list = Array.isArray(rows) ? rows : [];
+  for (const row of list.slice(0, limit)) {
+    lines.push(formatter(row));
+  }
+  if (list.length > limit) {
+    lines.push(`- 외 ${list.length - limit}명`);
+  }
+}
+
 function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const beforePlayers = loadBaselinePlayers(BASELINE_PATH);
   const afterPlayers = loadCurrentRosterState(PROJECTS_DIR);
@@ -481,6 +566,14 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const joinersForMessage = Array.isArray(summaryCheck.joiners) && summaryCheck.joiners.length
     ? summaryCheck.joiners
     : joiners;
+  const affiliationChangesForMessage =
+    Array.isArray(summaryCheck.affiliation_changes) && summaryCheck.affiliation_changes.length
+      ? summaryCheck.affiliation_changes
+      : affiliationChanges;
+  const partitionedAffiliationChanges = partitionAffiliationChanges(affiliationChangesForMessage);
+  const fallbackAffiliationChanges = partitionedAffiliationChanges.fallback;
+  affiliationChanges.length = 0;
+  affiliationChanges.push(...partitionedAffiliationChanges.primary);
 
   const lines = [
     `산박대표님.일일 업데이트보고입니다. ${alertTone.headlineSuffix} (${dateLabelFromSnapshot(snapshot)})`.trim(),
@@ -503,7 +596,7 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
 
   if (
     !tierChanges.length &&
-    !affiliationChanges.length &&
+    !affiliationChangesForMessage.length &&
     !joinersForMessage.length &&
     !removals.length &&
     (deltaComparable ? newMatches <= 0 : true) &&
@@ -531,6 +624,15 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
       pushLimitedRows(
         lines,
         affiliationChanges,
+        formatAffiliationChangeRow
+      );
+      lines.push("");
+    }
+    if (fallbackAffiliationChanges.length) {
+      lines.push(`Fallback affiliation changes: ${fallbackAffiliationChanges.length}`);
+      pushLimitedRows(
+        lines,
+        fallbackAffiliationChanges,
         formatAffiliationChangeRow
       );
       lines.push("");
@@ -678,9 +780,17 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const joinersForMessage = Array.isArray(summaryCheck.joiners) && summaryCheck.joiners.length
     ? summaryCheck.joiners
     : joiners;
+  const affiliationChangesForMessage =
+    Array.isArray(summaryCheck.affiliation_changes) && summaryCheck.affiliation_changes.length
+      ? summaryCheck.affiliation_changes
+      : affiliationChanges;
+  const partitionedAffiliationChanges = partitionAffiliationChanges(affiliationChangesForMessage);
+  const fallbackAffiliationChanges = partitionedAffiliationChanges.fallback;
+  affiliationChanges.length = 0;
+  affiliationChanges.push(...partitionedAffiliationChanges.primary);
   const hasPrimaryChanges =
     tierChanges.length ||
-    affiliationChanges.length ||
+    affiliationChangesForMessage.length ||
     joinersForMessage.length ||
     removals.length ||
     (deltaComparable ? newMatches > 0 : false);
@@ -727,6 +837,16 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
       pushLimitedRows(
         lines,
         affiliationChanges,
+        formatAffiliationChangeRow
+      );
+      lines.push("");
+    }
+
+    if (fallbackAffiliationChanges.length) {
+      lines.push(`Fallback affiliation changes: ${fallbackAffiliationChanges.length}`);
+      pushLimitedRows(
+        lines,
+        fallbackAffiliationChanges,
         formatAffiliationChangeRow
       );
       lines.push("");
@@ -846,4 +966,5 @@ module.exports = {
   describeAlertTone,
   buildSuccessMessage,
   formatAffiliationChangeRow,
+  partitionAffiliationChanges,
 };

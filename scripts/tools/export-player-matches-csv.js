@@ -1,31 +1,28 @@
 const fs = require("fs");
 const path = require("path");
-const argv = process.argv.slice(2);
 
-function argValue(flag, fallback = null) {
+function argValue(argv, flag, fallback = null) {
   const idx = argv.indexOf(flag);
   if (idx >= 0 && argv[idx + 1]) return argv[idx + 1];
   return fallback;
 }
 
-const univ = argValue("--univ", "team");
-const player = argValue("--player", null);
-if (!player) {
-  console.error("Missing required arg: --player <name>");
-  process.exit(1);
+function safeFileName(name) {
+  const sanitized = String(name || "").replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
+  const nonPlaceholder = sanitized.replace(/[_\s.-]/g, "");
+  return nonPlaceholder ? sanitized : "unknown_player";
 }
 
-const from = argValue("--from", "2025-01-01");
-const to = argValue("--to", new Date().toISOString().slice(0, 10));
-const stableName = process.argv.includes("--stable-name");
-const explicitReportPath = argValue("--report-path", null);
-const explicitCsvPath = argValue("--csv-path", null);
-
-const reportPath = explicitReportPath || path.join(process.cwd(), "tmp", `${univ}_${player}_matches.json`);
-const csvFileName = stableName
-  ? `${player}_matches.csv`
-  : `${player}_matches_${from}_${to}.csv`;
-const csvPath = explicitCsvPath || path.join(process.cwd(), "tmp", csvFileName);
+function buildOutputPaths({ univ, player, from, to, stableName, explicitReportPath, explicitCsvPath }) {
+  const safePlayer = safeFileName(player);
+  const reportPath =
+    explicitReportPath || path.join(process.cwd(), "tmp", `${univ}_${safePlayer}_matches.json`);
+  const csvFileName = stableName
+    ? `${safePlayer}_matches.csv`
+    : `${safePlayer}_matches_${from}_${to}.csv`;
+  const csvPath = explicitCsvPath || path.join(process.cwd(), "tmp", csvFileName);
+  return { reportPath, csvPath };
+}
 
 function splitOpponent(text) {
   const raw = String(text || "").trim();
@@ -113,7 +110,29 @@ function writeCsvWithFallback(filePath, content) {
   }
 }
 
-function main() {
+function main(rawArgv = process.argv.slice(2)) {
+  const univ = argValue(rawArgv, "--univ", "team");
+  const player = argValue(rawArgv, "--player", null);
+  if (!player) {
+    console.error("Missing required arg: --player <name>");
+    process.exit(1);
+  }
+
+  const from = argValue(rawArgv, "--from", "2025-01-01");
+  const to = argValue(rawArgv, "--to", new Date().toISOString().slice(0, 10));
+  const stableName = rawArgv.includes("--stable-name");
+  const explicitReportPath = argValue(rawArgv, "--report-path", null);
+  const explicitCsvPath = argValue(rawArgv, "--csv-path", null);
+  const { reportPath, csvPath } = buildOutputPaths({
+    univ,
+    player,
+    from,
+    to,
+    stableName,
+    explicitReportPath,
+    explicitCsvPath,
+  });
+
   if (!fs.existsSync(reportPath)) {
     console.error(`Missing source JSON: ${reportPath}`);
     process.exit(1);
@@ -150,4 +169,12 @@ function main() {
   console.log(finalPath);
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  safeFileName,
+  buildOutputPaths,
+  writeCsvWithFallback,
+};

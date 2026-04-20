@@ -94,6 +94,17 @@ Across current and future projects, the durable player identity key is:
 - `entity_id` in metadata
 - `eloboard_id` in Supabase serving tables
 
+For the current serving-sync transition notes, including the still-name-keyed write paths
+and the mix/non-mix collapse rule, see:
+
+- [docs/harness/SERVING_IDENTITY_NOTES.md](docs/harness/SERVING_IDENTITY_NOTES.md)
+
+Opponent durable identity is an optional extension to the current contract:
+
+- player-side durable identity remains `eloboard_id`
+- opponent-side durable identity such as `opponent_entity_id` may be added where available
+- absence of opponent durable identity is not a contract violation for the current deployment
+
 When building a new project on top of this pipeline, assume:
 
 1. `players.master.v1.json` is the shared identity DB.
@@ -122,6 +133,7 @@ When building a new project on top of this pipeline, assume:
 - `last_changed_at`
 - `check_priority`
 - `check_interval_days`
+- optional opponent durable identity fields such as `opponent_entity_id` in warehouse/history outputs
 
 ## Reuse Assessment
 

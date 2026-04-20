@@ -13,19 +13,21 @@ const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_man
 const SOOP_SNAPSHOT_PATH = path.join(ROOT, 'data', 'metadata', 'soop_live_snapshot.generated.v1.json');
 const SNAPSHOT_FRESH_MS = 15 * 60 * 1000;
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseServiceRoleKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.SUPABASE_SERVICE_KEY ||
-  '';
+function createSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseServiceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    '';
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  throw new Error(
-    'Supabase staging sync requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY).'
-  );
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error(
+      'Supabase staging sync requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY).'
+    );
+  }
+
+  return createClient(supabaseUrl, supabaseServiceRoleKey);
 }
-
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 function normalizeName(value) {
   return String(value || '').trim();
@@ -176,6 +178,51 @@ function uniqueUpsertKeyCount(players) {
   ).size;
 }
 
+function buildStableIdentityKey(player) {
+  const entityId = String(player && (player.eloboard_id || player.entity_id) ? (player.eloboard_id || player.entity_id) : '').trim();
+  const wrId = extractWrId(entityId);
+  const gender = String(player && player.gender ? player.gender : '').trim().toLowerCase();
+  if (wrId && gender) return `${gender}:${wrId}`;
+  if (wrId) return `wr:${wrId}`;
+  if (entityId) return `entity:${entityId.toLowerCase()}`;
+  const name = normalizeLookupName(player && player.name ? player.name : '');
+  return name ? `name:${name}` : 'unknown';
+}
+
+function findHarmfulNameIdentityCollisions(players) {
+  const byName = new Map();
+
+  for (const player of Array.isArray(players) ? players : []) {
+    const name = normalizeName(player && player.name ? player.name : '');
+    if (!name) continue;
+    const identityKey = buildStableIdentityKey(player);
+    const bucket = byName.get(name) || new Map();
+    if (!bucket.has(identityKey)) {
+      bucket.set(identityKey, {
+        identity_key: identityKey,
+        eloboard_id: String(player && (player.eloboard_id || player.entity_id) ? (player.eloboard_id || player.entity_id) : ''),
+        gender: String(player && player.gender ? player.gender : '').trim().toLowerCase() || null,
+      });
+    }
+    byName.set(name, bucket);
+  }
+
+  return [...byName.entries()]
+    .filter(([, identities]) => identities.size > 1)
+    .map(([name, identities]) => ({
+      name,
+      identities: [...identities.values()],
+    }));
+}
+
+function findUnsafeUpsertIdentityRows(players) {
+  return (Array.isArray(players) ? players : []).filter((player) => {
+    const name = normalizeName(player && player.name ? player.name : '');
+    const identityKey = buildStableIdentityKey(player);
+    return !name || !identityKey || identityKey === 'unknown' || identityKey.startsWith('name:');
+  });
+}
+
 function isMixEntityId(entityId) {
   return /:mix:\d+$/i.test(String(entityId || '').trim());
 }
@@ -229,6 +276,7 @@ function dedupePlayersByName(players) {
 
 async function main() {
   console.log('--- Supabase Staging Sync Started ---');
+  const supabase = createSupabaseClient();
   const soopLookup = buildSoopLookup();
   const soopSnapshot = loadSoopSnapshot();
   
@@ -315,9 +363,29 @@ async function main() {
   };
   const validPlayers = allPlayers.filter(p => !shouldExclude(p));
   const excludedCount = allPlayers.length - validPlayers.length;
+  const harmfulNameCollisions = findHarmfulNameIdentityCollisions(validPlayers);
+  if (harmfulNameCollisions.length > 0) {
+    const preview = harmfulNameCollisions
+      .slice(0, 5)
+      .map((row) => `${row.name} [${row.identities.map((identity) => identity.identity_key).join(', ')}]`)
+      .join('; ');
+    throw new Error(
+      `Harmful name-based identity collisions detected before staging sync (${harmfulNameCollisions.length}). ${preview}`
+    );
+  }
   const deduped = dedupePlayersByName(validPlayers);
   const playersForUpsert = deduped.players;
   const expectedUpsertRows = uniqueUpsertKeyCount(playersForUpsert);
+  const unsafeUpsertIdentityRows = findUnsafeUpsertIdentityRows(playersForUpsert);
+  if (unsafeUpsertIdentityRows.length > 0) {
+    const preview = unsafeUpsertIdentityRows
+      .slice(0, 5)
+      .map((row) => `${String(row && row.name ? row.name : '').trim() || '<missing-name>'} [identity=${buildStableIdentityKey(row)}]`)
+      .join('; ');
+    throw new Error(
+      `Refusing staging sync because ${unsafeUpsertIdentityRows.length} rows do not have a durable upsert identity. ${preview}`
+    );
+  }
 
   // 4. Truncate staging table safely
   console.log('Truncating players_staging...');
@@ -379,7 +447,17 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.stack || error.message : String(error));
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.stack || error.message : String(error));
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  buildStableIdentityKey,
+  choosePreferredNameRow,
+  dedupePlayersByName,
+  findHarmfulNameIdentityCollisions,
+  findUnsafeUpsertIdentityRows,
+};
