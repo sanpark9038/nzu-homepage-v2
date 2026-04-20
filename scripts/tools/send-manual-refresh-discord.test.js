@@ -9,6 +9,7 @@ const {
   comparePlayerChanges,
   describeAlertTone,
   formatAffiliationChangeRow,
+  partitionAffiliationChanges,
 } = require("./send-manual-refresh-discord");
 const {
   buildIdentityMigrationLookup,
@@ -158,6 +159,32 @@ runTest("formatAffiliationChangeRow avoids definitive wording for fallback and i
   );
 });
 
+runTest("partitionAffiliationChanges separates fallback rows for dedicated Discord sections", () => {
+  const actual = partitionAffiliationChanges([
+    {
+      player_name: "鍮≪옱TV",
+      old_team: "?묒뭅?곕?",
+      new_team: "臾댁냼??",
+      change_confidence: "fallback",
+    },
+    {
+      player_name: "留먯쭏",
+      old_team: "臾댁냼??",
+      new_team: "BGM",
+      change_confidence: "confirmed",
+    },
+    {
+      player_name: "媛먮쭏",
+      old_team: "臾댁냼??",
+      new_team: "C?",
+      change_confidence: "inferred",
+    },
+  ]);
+
+  assert.deepEqual(actual.fallback.map((row) => row.player_name), ["鍮≪옱TV"]);
+  assert.deepEqual(actual.primary.map((row) => row.player_name), ["留먯쭏", "媛먮쭏"]);
+});
+
 runTest("canonicalEntityId collapses legacy ids into the current manual-override id", () => {
   const lookup = buildLegacyEntityIdLookup([
     {
@@ -289,6 +316,66 @@ runTest("buildDiscordSummaryCheck prefers saved roster snapshot over local proje
 
   assert.equal(actual.roster_source, "current_roster_state.json");
   assert.deepEqual(actual.removals, []);
+});
+
+runTest("buildDiscordSummaryCheck exposes affiliation confidence summary from roster sync", () => {
+  const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-affiliation-summary-"));
+  const baselinePath = path.join(reportsDir, "manual_refresh_baseline.json");
+  fs.writeFileSync(
+    baselinePath,
+    JSON.stringify(
+      {
+        teams: [],
+      },
+      null,
+      2
+    )
+  );
+  fs.writeFileSync(
+    path.join(reportsDir, "team_roster_sync_report.json"),
+    JSON.stringify(
+      {
+        moved: [
+          {
+            entity_id: "eloboard:male:913",
+            name: "鍮≪옱TV",
+            from: "black",
+            to: "fa",
+            change_confidence: "fallback",
+          },
+          {
+            entity_id: "eloboard:female:177",
+            name: "?섏삁由?",
+            from: "ssu",
+            to: "fa",
+            change_confidence: "confirmed",
+          },
+        ],
+      },
+      null,
+      2
+    )
+  );
+
+  const actual = buildDiscordSummaryCheck({
+    reportsDir,
+    baselinePath,
+    projectsDir: path.join(reportsDir, "missing-projects"),
+    snapshot: { teams: [] },
+    alertsDoc: { counts: { critical: 0, high: 0, medium: 0, low: 0, total: 0 }, alerts: [] },
+  });
+
+  assert.equal(actual.affiliation_changes.length, 2);
+  assert.deepEqual(actual.affiliation_change_summary.counts, {
+    confirmed: 1,
+    inferred: 0,
+    fallback: 1,
+    total: 2,
+  });
+  assert.deepEqual(actual.affiliation_change_summary.by_previous_team, [
+    { team_name: "black", count: 1 },
+    { team_name: "ssu", count: 1 },
+  ]);
 });
 
 runTest("resolveLatestReportFile prefers merged daily snapshot over newer chunk snapshot", () => {

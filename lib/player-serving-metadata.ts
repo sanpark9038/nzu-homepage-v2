@@ -7,6 +7,7 @@ type RosterPlayerOverride = {
   race?: string;
   display_name?: string;
   profile_url?: string;
+  soop_id?: string;
 };
 
 type SoopIdentityOverride = {
@@ -177,6 +178,7 @@ function loadManualRosterOverrides(): Map<string, RosterPlayerOverride> {
       tier?: string;
       race?: string;
       name?: string;
+      soop_id?: string;
     }>;
   }>(filePath);
 
@@ -188,6 +190,7 @@ function loadManualRosterOverrides(): Map<string, RosterPlayerOverride> {
       tier: String(row?.tier || "").trim() || undefined,
       race: String(row?.race || "").trim() || undefined,
       display_name: String(row?.name || "").trim() || undefined,
+      soop_id: String(row?.soop_id || "").trim() || undefined,
     });
   }
 
@@ -299,7 +302,7 @@ function applyIdentityOverride<T extends ServingMetadataPlayer>(
     university: resolved.rosterOverride?.university ?? player.university,
     tier: resolved.rosterOverride?.tier ?? player.tier,
     race: resolved.rosterOverride?.race ?? player.race,
-    soop_id: resolved.soopOverride?.soop_id ?? player.soop_id,
+    soop_id: resolved.rosterOverride?.soop_id ?? resolved.soopOverride?.soop_id ?? player.soop_id,
     profile_url: resolved.rosterOverride?.profile_url ?? player.profile_url,
   };
 }

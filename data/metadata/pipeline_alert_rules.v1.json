@@ -25,6 +25,8 @@
     "roster_size_changed_team_allowlist": [
       "fa"
     ],
+    "clustered_uncertain_affiliation_changes_severity": "medium",
+    "clustered_uncertain_affiliation_changes_threshold": 3,
     "stale_snapshot_disagreement_severity": "medium",
     "stale_snapshot_disagreement_threshold": 1,
     "homepage_integrity_report_max_age_minutes": 180,

@@ -92,6 +92,7 @@
     "test:reports:prune": "node scripts/tools/prune-tmp-reports.test.js",
     "test:reports:footprint": "node scripts/tools/report-tmp-reports-footprint.test.js",
     "test:player-serving-metadata": "node scripts/tools/player-serving-metadata.test.cjs",
+    "test:matchup-helpers": "node --test scripts/tools/matchup-helpers.test.mjs",
     "maintenance:check": "node scripts/tools/run-local-maintenance-check.js",
     "pipeline:collection-sources:health": "node scripts/tools/check-pipeline-collection-sources-health.js",
     "pipeline:collection-sources": "node scripts/tools/report-pipeline-collection-sources.js",

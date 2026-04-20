@@ -8,7 +8,12 @@ const {
   latestPreviousSnapshotPath,
   parseDateTag,
 } = require("./lib/daily-pipeline-snapshot");
-const { buildAlerts, buildHomepageIntegrityOperationalAlerts, movedInPlayersByTeam } = require("./run-daily-pipeline");
+const {
+  buildAlerts,
+  buildClusteredUncertainAffiliationAlerts,
+  buildHomepageIntegrityOperationalAlerts,
+  movedInPlayersByTeam,
+} = require("./run-daily-pipeline");
 const { classifyZeroRecordPlayers, exportConcurrencyForTeam, exportTimeoutForTeam } = require("./run-daily-pipeline");
 
 function makeTempReportsDir() {
@@ -386,6 +391,67 @@ runTest("buildHomepageIntegrityOperationalAlerts ignores stale integrity reports
   );
 
   assert.deepEqual(actual, []);
+});
+
+runTest("buildClusteredUncertainAffiliationAlerts raises a medium ops alert for clustered fallback moves", () => {
+  const actual = buildClusteredUncertainAffiliationAlerts(
+    {
+      summary: {
+        moved: [
+          { from: "black", to: "fa", change_confidence: "fallback" },
+          { from: "wfu", to: "fa", change_confidence: "fallback" },
+          { from: "ssu", to: "fa", change_confidence: "fallback" },
+        ],
+      },
+    },
+    {
+      rules: {
+        clustered_uncertain_affiliation_changes_severity: "medium",
+        clustered_uncertain_affiliation_changes_threshold: 3,
+      },
+    }
+  );
+
+  assert.deepEqual(actual, [
+    {
+      severity: "medium",
+      team: "?댁쁺",
+      team_code: "ops",
+      rule: "clustered_uncertain_affiliation_changes",
+      message: "count=3, fallback=3, inferred=0, previous_teams=black:1, ssu:1, wfu:1",
+    },
+  ]);
+});
+
+runTest("buildAlerts includes clustered uncertain-affiliation review alerts", () => {
+  const actual = buildAlerts(
+    [],
+    {
+      rules: {
+        clustered_uncertain_affiliation_changes_severity: "medium",
+        clustered_uncertain_affiliation_changes_threshold: 2,
+      },
+    },
+    {
+      summary: {
+        moved: [
+          { from: "black", to: "fa", change_confidence: "fallback" },
+          { from: "wfu", to: "fa", change_confidence: "inferred" },
+        ],
+      },
+    },
+    []
+  );
+
+  assert.deepEqual(actual, [
+    {
+      severity: "medium",
+      team: "?댁쁺",
+      team_code: "ops",
+      rule: "clustered_uncertain_affiliation_changes",
+      message: "count=2, fallback=1, inferred=1, previous_teams=black:1, wfu:1",
+    },
+  ]);
 });
 
 runTest("exportConcurrencyForTeam forces higher concurrency for fa", () => {
