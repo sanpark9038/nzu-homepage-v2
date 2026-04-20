@@ -4,8 +4,15 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, X, GripVertical, ArrowLeftRight, MonitorUp, RadioTower, LayoutPanelLeft, Link2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge"
-import { REAL_NAME_MAP } from "@/lib/constants"
 import type { H2HStats } from "@/types"
+import {
+  fetchH2HStats,
+  fetchMatchupPlayers,
+  filterMatchupPlayers,
+  normalizeMatchupSearchText,
+  reportMatchupRuntimeIssue,
+  type MatchupPlayerSummary,
+} from "@/lib/matchup-helpers"
 import { 
   DndContext, 
   closestCenter,
@@ -26,12 +33,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
 // --- Types ---
-interface Player {
-  id: string;
-  name: string;
-  race: string;
-  gender?: string | null;
-}
+type Player = MatchupPlayerSummary;
 
 interface MatchRow {
   id: string;
@@ -50,10 +52,6 @@ function normalizeRaceCode(race: string) {
   if (raw.startsWith('Z')) return 'Z';
   if (raw.startsWith('P')) return 'P';
   return 'R';
-}
-
-function normalizeSearchText(value: string) {
-  return String(value || '').trim().toLowerCase();
 }
 
 function raceToneClasses(race: string, side: 1 | 2) {
@@ -245,17 +243,7 @@ function EntryBoardSidePanel({ rows }: { rows: MatchRow[] }) {
       const nextEntries = await Promise.all(
         confirmedRows.map(async (row) => {
           try {
-            const params = new URLSearchParams({
-              p1: REAL_NAME_MAP[row.p1.name] || row.p1.name,
-              p2: REAL_NAME_MAP[row.p2.name] || row.p2.name,
-            });
-            if (row.p1.gender && row.p1.gender === row.p2.gender) {
-              params.set("gender", row.p1.gender);
-            }
-
-            const response = await fetch(`/api/stats/h2h?${params.toString()}`, { cache: "no-store" });
-            if (!response.ok) return [row.id, null] as const;
-            const payload = (await response.json()) as H2HStats;
+            const payload = await fetchH2HStats(row.p1, row.p2);
             return [row.id, payload] as const;
           } catch {
             return [row.id, null] as const;
@@ -520,15 +508,14 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
   };
 
   const filterCandidates = (value: string, side: 1 | 2) => {
-    const needle = normalizeSearchText(value);
+    const needle = normalizeMatchupSearchText(value);
     if (!needle) return [];
 
     const oppositePlayer = side === 1 ? row.p2 : row.p1;
-    return allPlayers
-      .filter((player) => {
-        if (oppositePlayer && player.id === oppositePlayer.id) return false;
-        return normalizeSearchText(player.name).includes(needle);
-      })
+    return filterMatchupPlayers(allPlayers, {
+      query: needle,
+      excludePlayerId: oppositePlayer?.id || "",
+    })
       .slice(0, 8);
   };
 
@@ -601,26 +588,17 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
 
       setIsH2HLoading(true);
       try {
-        const params = new URLSearchParams({
-          p1: REAL_NAME_MAP[row.p1.name] || row.p1.name,
-          p2: REAL_NAME_MAP[row.p2.name] || row.p2.name,
-        });
-        if (row.p1.gender && row.p1.gender === row.p2.gender) {
-          params.set('gender', row.p1.gender);
-        }
-
-        const response = await fetch(`/api/stats/h2h?${params.toString()}`, { cache: 'no-store' });
-        const payload = await response.json().catch(() => null);
+        const payload = await fetchH2HStats(row.p1, row.p2);
         if (cancelled) return;
 
-        if (!response.ok) {
+        if (!payload) {
           setH2hStats(null);
           return;
         }
 
-        setH2hStats(payload as H2HStats);
+        setH2hStats(payload);
       } catch (error) {
-        console.error(error);
+        reportMatchupRuntimeIssue("Match row H2H fetch failed", error);
         if (!cancelled) setH2hStats(null);
       } finally {
         if (!cancelled) setIsH2HLoading(false);
@@ -992,17 +970,11 @@ export default function MultiH2HPage() {
     async function loadPlayers() {
       try {
         setIsPlayersLoading(true);
-        const response = await fetch("/api/players", { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error(`Failed to load players: ${response.status}`);
-        }
-
-        const payload = (await response.json()) as { players?: Player[] };
         if (!cancelled) {
-          setAllPlayers(Array.isArray(payload.players) ? payload.players : []);
+          setAllPlayers(await fetchMatchupPlayers());
         }
       } catch (error) {
-        console.error(error);
+        reportMatchupRuntimeIssue("Match page player list fetch failed", error);
         if (!cancelled) {
           setAllPlayers([]);
         }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { mapPlayersToMatchupSummaries } from "@/lib/matchup-helpers";
 import { playerService } from "@/lib/player-service";
 
 export const runtime = "nodejs";
@@ -10,10 +11,6 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    players: players.map((player) => ({
-      id: player.id,
-      name: player.name,
-      race: player.race || "R",
-    })),
+    players: mapPlayersToMatchupSummaries(players),
   });
 }

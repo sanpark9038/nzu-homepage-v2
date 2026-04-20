@@ -1,8 +1,8 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 export function calculateWinRate(wins: number | null, losses: number | null): number {
@@ -11,94 +11,87 @@ export function calculateWinRate(wins: number | null, losses: number | null): nu
   return Math.round(((wins ?? 0) / total) * 100);
 }
 
-/**
- * 티어 문자열을 내부 로직용(비교, 정렬, 매핑 키)으로 정규화합니다.
- * 'god' -> '갓', '1' -> '1', '미정' -> '미정' 등
- */
+export const UNKNOWN_TIER = "미정";
+
+const TIER_ALIASES: Record<string, string> = {
+  god: "갓",
+  갓: "갓",
+  king: "킹",
+  킹: "킹",
+  jack: "잭",
+  잭: "잭",
+  queen: "조커",
+  joker: "조커",
+  조커: "조커",
+  spade: "스페이드",
+  스페이드: "스페이드",
+  baby: "9",
+  베이비: "9",
+  "9티어": "9",
+  "n/a": UNKNOWN_TIER,
+  unknown: UNKNOWN_TIER,
+  미정: UNKNOWN_TIER,
+};
+
 export function normalizeTier(tier: string | null | undefined): string {
-  if (!tier || tier === '미정' || tier === 'N/A' || tier === 'null') return '미정';
-  
-  const t = tier.toLowerCase().trim();
-  
-  const logicalMap: Record<string, string> = {
-    'god': '갓',
-    '갓': '갓',
-    'king': '킹',
-    '킹': '킹',
-    'jack': '잭',
-    '잭': '잭',
-    'joker': '조커',
-    '조커': '조커',
-    'spade': '스페이드',
-    '스페이드': '스페이드',
-    '9': '베이비',
-    'baby': '베이비',
-    '아기': '베이비',
-    '베이비': '베이비'
-  };
+  if (!tier || tier === "null") return UNKNOWN_TIER;
 
-  if (logicalMap[t]) return logicalMap[t];
-  
-  // 숫자 티어는 "1", "2" 등 순순 숫자 문자열만 반환 ( Number() 변환 및 소팅용 )
-  const numMatch = t.match(/^\d+$/);
-  if (numMatch) return numMatch[0];
+  const raw = String(tier).trim();
+  const normalized = raw.toLowerCase();
 
+  if (TIER_ALIASES[normalized]) return TIER_ALIASES[normalized];
 
-  return t;
+  const numericTier = normalized.match(/^\d+$/);
+  if (numericTier) return numericTier[0];
+
+  return raw;
 }
 
-/**
- * 화면 표시용 한글 티어 라벨을 반환합니다.
- */
 export function getTierLabel(tier: string | null | undefined): string {
-  const norm = normalizeTier(tier);
-  
-  if (norm === '미정') return '미정';
-  if (['갓', '킹', '잭', '조커', '스페이드', '베이비'].includes(norm)) return norm;
-  
-  // 숫자 티어인 경우 "N티어" 붙임
-  if (!isNaN(Number(norm))) return `${norm}티어`;
-  
-  return norm;
+  const normalized = normalizeTier(tier);
+
+  if (normalized === UNKNOWN_TIER) return UNKNOWN_TIER;
+  if (["갓", "킹", "잭", "조커", "스페이드"].includes(normalized)) return normalized;
+  if (normalized === "9") return "베이비";
+  if (!Number.isNaN(Number(normalized))) return `${normalized}티어`;
+
+  return normalized;
 }
 
-
-/**
- * 종족 코드를 표준 대문자로 정규화합니다.
- */
 export function normalizeRace(race: string | null | undefined): "T" | "Z" | "P" {
-  if (!race) return "T"; // 기본값
-  const r = race.toUpperCase().substring(0, 1);
-  if (r === "T" || r === "Z" || r === "P") return r as "T" | "Z" | "P";
+  if (!race) return "T";
+
+  const normalized = race.toUpperCase().substring(0, 1);
+  if (normalized === "T" || normalized === "Z" || normalized === "P") {
+    return normalized as "T" | "Z" | "P";
+  }
+
   return "T";
 }
 
-/**
- * 인자로 받은 날짜부터 현재까지의 시간을 '방금 전', 'n분 전' 등으로 반환합니다.
- */
 export function formatTimeAgo(dateString: string | null | undefined): string {
-  if (!dateString) return '';
-  
+  if (!dateString) return "";
+
   try {
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '';
-    
+    if (Number.isNaN(date.getTime())) return "";
+
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) return '방금 전';
-    
+
+    if (diffInSeconds < 60) return "방금 전";
+
     const diffInMinutes = Math.floor(diffInSeconds / 60);
     if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}시간 전`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 30) return `${diffInDays}일 전`;
-    
-    return date.toLocaleDateString('ko-KR').replace(/\. /g, '.').replace(/\.$/, '');
-  } catch (e) {
-    return '';
+
+    return date.toLocaleDateString("ko-KR").replace(/\. /g, ".").replace(/\.$/, "");
+  } catch {
+    return "";
   }
 }

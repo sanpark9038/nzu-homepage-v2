@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Player } from './PlayerCard'
 import { cn } from '@/lib/utils'
 import { X, ArrowLeftRight, Plus } from 'lucide-react'
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
-import { playerService } from "@/lib/player-service";
+import type { H2HStats } from "@/types";
+import { buildH2HCacheKey, fetchH2HStats, reportMatchupRuntimeIssue } from "@/lib/matchup-helpers";
 
 interface MatchSlot {
   p1: Player | null;
@@ -21,6 +22,8 @@ export function H2HSelectorBar() {
   const [activeMatchIndex, setActiveMatchIndex] = useState(0)
   const [isVisible, setIsVisible] = useState(false)
   const [isLoading, setIsLoading] = useState<Record<number, boolean>>({})
+  const h2hRequestCacheRef = useRef<Map<string, Promise<H2HStats | null>>>(new Map())
+  const resolvedMatchupKeyRef = useRef<Record<number, string>>({})
 
   useEffect(() => {
     const handleAddPlayer = (e: Event) => {
@@ -60,33 +63,61 @@ export function H2HSelectorBar() {
     return () => window.removeEventListener('add-h2h-player', handleAddPlayer)
   }, [activeMatchIndex])
 
-  // Fetch real H2H stats when p1 and p2 are both set
+  const matchupSignature = useMemo(
+    () => matchups.map((match) => `${match.p1?.id || ""}-${match.p2?.id || ""}`).join(","),
+    [matchups]
+  );
+
   useEffect(() => {
-    matchups.forEach(async (match, idx) => {
-      if (match.p1 && match.p2 && !isLoading[idx]) {
-        // Only fetch if scores are at zero or if we force it (e.g. after swap/remove)
-        // For simplicity, we fetch once when both slots are filled
-        const fetchKey = `${match.p1.id}-${match.p2.id}`;
-        
-        setIsLoading(prev => ({ ...prev, [idx]: true }));
-        try {
-          const stats = await playerService.getH2HStats(match.p1.id, match.p2.id);
-          setMatchups(prev => prev.map((m, i) => i === idx ? { 
-            ...m, 
-            overallScore: stats.overall as [number, number], 
-            recentScore: stats.recent as [number, number] 
-          } : m));
-        } catch (err) {
-          console.error("Failed to fetch H2H:", err);
-        } finally {
-          setIsLoading(prev => ({ ...prev, [idx]: false }));
-        }
-      }
+    const requestH2H = (player1: Player, player2: Player) => {
+      const queryKey = buildH2HCacheKey(player1, player2);
+      const cached = h2hRequestCacheRef.current.get(queryKey);
+      if (cached) return cached;
+
+      const promise = fetchH2HStats(player1, player2);
+      h2hRequestCacheRef.current.set(queryKey, promise);
+      promise.catch(() => {
+        h2hRequestCacheRef.current.delete(queryKey);
+      });
+      return promise;
+    };
+
+    matchups.forEach((match, idx) => {
+      if (!match.p1 || !match.p2 || isLoading[idx]) return;
+      const queryKey = buildH2HCacheKey(match.p1, match.p2);
+      if (resolvedMatchupKeyRef.current[idx] === queryKey) return;
+
+      setIsLoading((prev) => ({ ...prev, [idx]: true }));
+      requestH2H(match.p1, match.p2)
+        .then((stats) => {
+          resolvedMatchupKeyRef.current[idx] = queryKey;
+          setMatchups((prev) =>
+            prev.map((slot, slotIdx) =>
+              slotIdx === idx
+                ? {
+                    ...slot,
+                    overallScore: stats
+                      ? [stats.summary.wins, stats.summary.losses]
+                      : [0, 0],
+                    recentScore: stats
+                      ? [stats.summary.momentum90.wins, stats.summary.momentum90.losses]
+                      : [0, 0],
+                  }
+                : slot
+            )
+          );
+        })
+        .catch((err) => {
+          reportMatchupRuntimeIssue("Tier H2H selector fetch failed", err);
+        })
+        .finally(() => {
+          setIsLoading((prev) => ({ ...prev, [idx]: false }));
+        });
     });
-    // We only want to trigger this when the player combination changes
-  }, [matchups.map(m => `${m.p1?.id}-${m.p2?.id}`).join(',')])
+  }, [isLoading, matchupSignature, matchups])
 
   const removePlayer = (matchIdx: number, slot: 'p1' | 'p2') => {
+    delete resolvedMatchupKeyRef.current[matchIdx]
     setMatchups(prev => {
       const next = prev.map((m, i) => i === matchIdx ? { ...m, [slot]: null } : m)
       if (next.every(m => !m.p1 && !m.p2)) {
@@ -98,6 +129,7 @@ export function H2HSelectorBar() {
   }
 
   const removeMatch = (idx: number) => {
+    delete resolvedMatchupKeyRef.current[idx]
     setMatchups(prev => {
       const next = prev.filter((_, i) => i !== idx)
       if (next.length === 0) {
@@ -110,6 +142,7 @@ export function H2HSelectorBar() {
   }
 
   const swapMatch = (idx: number) => {
+    delete resolvedMatchupKeyRef.current[idx]
     setMatchups(prev => prev.map((m, i) => {
       if (i === idx) {
         return {
