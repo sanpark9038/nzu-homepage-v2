@@ -243,7 +243,7 @@ function PlayerSearchResultInner({
         <section className="relative mt-5 overflow-hidden rounded-[1.2rem] border border-white/8 bg-[#0a0f0d] px-3 py-3 shadow-[0_18px_42px_rgba(0,0,0,0.24)] md:px-3.5 md:py-3.5 xl:px-4 xl:py-4">
           <div className="pointer-events-none absolute -right-16 -top-16 h-[180px] w-[180px] rounded-full blur-[90px] opacity-20" style={{ backgroundColor: themeColor }} />
           <div className="relative space-y-3">
-            <Section title="가장 많이 만난 상대">
+            <Section title="스폰 깐부">
               <div className="rounded-[1rem] border border-nzu-green/14 bg-[linear-gradient(180deg,rgba(0,255,163,0.08),rgba(255,255,255,0.02))] px-3 py-3.5">
                 {spawnPartner ? (
                   <div className="space-y-2.5">
@@ -296,7 +296,7 @@ function PlayerSearchResultInner({
               </Section>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <Section title="최고 맵" titleClassName="text-nzu-green">
+                <Section title="강한 맵" titleClassName="text-nzu-green">
                   <DataTile
                     headline={strongestMap ? strongestMap.mapName : "표본 부족"}
                     lines={strongestMap ? [strongestMap.winRate, `${strongestMap.matches}전 중 ${strongestMap.wins}승 ${strongestMap.losses}패`] : ["표본 부족"]}
@@ -304,7 +304,7 @@ function PlayerSearchResultInner({
                     headlineClassName="md:text-[1.24rem] xl:text-[1.28rem]"
                   />
                 </Section>
-                <Section title="주의 맵" titleClassName="text-red-300">
+                <Section title="약한 맵" titleClassName="text-red-300">
                   <DataTile
                     headline={weakestMap ? weakestMap.mapName : "표본 부족"}
                     lines={weakestMap ? [weakestMap.winRate, `${weakestMap.matches}전 중 ${weakestMap.wins}승 ${weakestMap.losses}패`] : ["표본 부족"]}
