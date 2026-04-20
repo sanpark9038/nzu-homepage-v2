@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 
 const ADMIN_LINKS = [
   { href: "/admin/ops", label: "운영 대시보드" },
-  { href: "/admin/tournament", label: "대회 관리" }, // 추가
+  { href: "/admin/tournament", label: "대회 관리" },
   { href: "/admin/roster", label: "로스터 관리" },
+  { href: "/admin/hero-media", label: "히어로 미디어" },
   { href: "/admin/prediction", label: "승부예측 설정" },
   { href: "/admin/rankings", label: "순위 관리" },
   { href: "/", label: "홈으로" },

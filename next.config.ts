@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    proxyClientMaxBodySize: 64 * 1024 * 1024,
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'eloboard.com' },
