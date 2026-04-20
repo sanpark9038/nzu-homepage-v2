@@ -1,0 +1,22 @@
+{
+  "Runbook Prompt": {
+    "prefix": "rb",
+    "body": [
+      "RB 기준으로 진행해줘.",
+      "",
+      "이번 작업:",
+      "$1"
+    ],
+    "description": "Insert the short nzu-homepage runbook prompt"
+  },
+  "Runbook Prompt With Agents": {
+    "prefix": "rba",
+    "body": [
+      "RB 기준으로 진행해줘. 필요하면 서브에이전트도 알아서 써줘.",
+      "",
+      "이번 작업:",
+      "$1"
+    ],
+    "description": "Insert the runbook prompt with optional sub-agent permission"
+  }
+}

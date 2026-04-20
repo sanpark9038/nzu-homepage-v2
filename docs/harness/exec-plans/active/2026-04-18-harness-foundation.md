@@ -24,13 +24,16 @@ Install a durable harness entry flow so future sessions stay aligned to repo con
 - [x] Add duplicate-root cleanup automation for canonical-vs-fallback `tmp/` artifacts
 - [x] Add short top-level harness maps (`AGENTS.md`, `ARCHITECTURE.md`) instead of growing one giant instruction file
 - [x] Add layered docs entry points for design, plans, reliability, product sense, frontend, references, and generated material
+- [x] Surface fallback affiliation changes in a separate Discord summary section and add a clustered uncertain-affiliation ops alert
+- [x] Stop roster sync from converting single-player non-observation into an FA fallback move
 
 ## Next steps
 
+- [ ] Prevent stale duplicate entity ids from surfacing as fallback FA moves when one identity variant is still directly observed
 - [ ] Extend confidence semantics to any remaining affiliation-change producers beyond Discord summary formatting
 - [ ] Add a plan-completion flow that moves finished plans into `completed/`
-- [ ] Add mutation-time or alert-time escalation for clustered inferred affiliation changes from the same roster/source anomaly
-- [ ] Decide whether `TOMORROW_RUNBOOK.md` should stay separate or fold into the newer harness layer
+- [ ] Decide whether clustered uncertain affiliation alerts should become blocking under a stricter ops mode
+- [ ] Decide whether `RUNBOOK.md` should stay separate or fold into the newer harness layer
 
 ## Blockers
 
@@ -75,6 +78,12 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 - `scripts/tools/sync-team-roster-metadata.test.js`
 - `scripts/tools/verify-discord-summary.js`
 - `scripts/tools/verify-discord-summary.test.js`
+- `scripts/tools/run-daily-pipeline.js`
+- `scripts/tools/run-daily-pipeline.test.js`
+- `scripts/tools/lib/discord-summary.js`
+- `data/metadata/pipeline_alert_rules.v1.json`
+- `scripts/tools/sync-team-roster-metadata.js`
+- `scripts/tools/sync-team-roster-metadata.test.js`
 
 ## New failure modes found
 

@@ -45,3 +45,4 @@ These are not implemented yet, but they are the most valuable next enforcement p
 2. Fail or downgrade alerts when a move is produced only by FA fallback.
 3. Add tests for single-player disappearance from an otherwise healthy team scrape.
 4. Surface fallback-driven moves in a separate section of the Discord report.
+5. Add an operational review alert when uncertain affiliation changes cluster in one run.

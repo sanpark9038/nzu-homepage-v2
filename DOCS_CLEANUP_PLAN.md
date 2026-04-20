@@ -14,7 +14,7 @@ The right order is:
 - `PIPELINE_ONE_PAGE.md`
 - `PIPELINE_SUCCESS_CRITERIA.md`
 - `PIPELINE_INCIDENT_PLAYBOOK.md`
-- `TOMORROW_RUNBOOK.md`
+- `RUNBOOK.md`
 - `PIPELINE_DATA_CONTRACT.md`
 - `data/metadata/README.md`
 
