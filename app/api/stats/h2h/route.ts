@@ -83,18 +83,28 @@ export async function GET(req: NextRequest) {
     ])
 
     let stats = null
+    let byIdStats: H2HStats | null = null
 
-    for (const leftName of player1Candidates) {
-      for (const rightName of player2Candidates) {
-        const result = await getInstantH2H(leftName, rightName, gender || undefined)
-        if (!result) continue
-        if (!stats) stats = result
-        if ((result.summary?.total || 0) > 0) {
-          stats = result
-          break
-        }
+    if (p1Id && p2Id) {
+      byIdStats = await playerService.getDetailedH2HStats(p1Id, p2Id)
+      if ((byIdStats.summary?.total || 0) > 0) {
+        stats = byIdStats
       }
-      if ((stats?.summary?.total || 0) > 0) break
+    }
+
+    if (!stats || (stats.summary?.total || 0) === 0) {
+      for (const leftName of player1Candidates) {
+        for (const rightName of player2Candidates) {
+          const result = await getInstantH2H(leftName, rightName, gender || undefined)
+          if (!result) continue
+          if (!stats) stats = result
+          if ((result.summary?.total || 0) > 0) {
+            stats = result
+            break
+          }
+        }
+        if ((stats?.summary?.total || 0) > 0) break
+      }
     }
 
     if ((!stats || (stats.summary?.total || 0) === 0) && gender) {
@@ -112,7 +122,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if ((!stats || (stats.summary?.total || 0) === 0) && p1Id && p2Id) {
+    if ((!stats || (stats.summary?.total || 0) === 0) && byIdStats) {
+      stats = byIdStats
+    }
+
+    if ((!stats || (stats.summary?.total || 0) === 0) && p1Id && p2Id && !byIdStats) {
       const byId = await playerService.getH2HStats(p1Id, p2Id)
       if ((byId.overall[0] + byId.overall[1]) > 0 || (byId.recent[0] + byId.recent[1]) > 0) {
         stats = toH2HStatsFromPlayerService(byId)

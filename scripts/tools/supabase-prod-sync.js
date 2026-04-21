@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env.local') });
@@ -348,15 +348,20 @@ function parseMatchHistoryFromStableCsv(sourceFile) {
   const rows = readCsv(filePath);
   if (!rows.length) return [];
   return rows.map((row) => {
-    const result = String(row['경기결과(승/패)'] || '').trim();
+    const result = String(
+      row.result ||
+        row['ê²½ê¸°ê²°ê³¼(ìŠ¹/íŒ¨)'] ||
+        row['ÃªÂ²Â½ÃªÂ¸Â°ÃªÂ²Â°ÃªÂ³Â¼(Ã¬Å Â¹/Ã­Å’Â¨)'] ||
+        ''
+    ).trim();
     return {
-      match_date: row['날짜'] || null,
-      opponent_name: normalizeName(row['상대명']),
-      opponent_race: normalizeRaceCode(row['상대종족']),
-      map_name: row['맵'] || null,
-      is_win: result === '승',
+      match_date: row.date || row['ë‚ ì§œ'] || row['Ã«â€šÂ Ã¬Â§Å“'] || null,
+      opponent_name: normalizeName(row.opponent_name || row['ìƒëŒ€ëª…'] || row['Ã¬Æ’ÂÃ«Å’â‚¬Ã«Âªâ€¦']),
+      opponent_race: normalizeRaceCode(row.opponent_race || row['ìƒëŒ€ì¢…ì¡±'] || row['Ã¬Æ’ÂÃ«Å’â‚¬Ã¬Â¢â€¦Ã¬Â¡Â±']),
+      map_name: row.map || row['ë§µ'] || row['Ã«Â§Âµ'] || null,
+      is_win: result === 'ìŠ¹' || result === 'Ã¬Å Â¹' || result.toLowerCase() === 'win',
       result_text: result || null,
-      note: row['메모'] || null,
+      note: row.note || row['ë©”ëª¨'] || row['Ã«Â©â€Ã«ÂªÂ¨'] || null,
       source_file: String(sourceFile || '').trim() || null,
       source_row_no: null,
     };
@@ -725,7 +730,7 @@ async function main() {
       ),
       eloboard_id: row.eloboard_id,
       name: String(row.name || '').trim(),
-      tier: row.tier || '미정',
+      tier: row.tier || '誘몄젙',
       race: row.race || null,
       university: row.university || '',
       gender: row.gender || null,
@@ -807,8 +812,8 @@ async function main() {
     .select('*', { count: 'exact', head: true });
   if (countErr) throw countErr;
 
-  console.log(`\n=== 본 반영 리포트 (Production Report) ===`);
-  console.log(`[=] Production 'players' 최종 Row 수: ${finalCount}`);
+  console.log(`\n=== 蹂?諛섏쁺 由ы룷??(Production Report) ===`);
+  console.log(`[=] Production 'players' 理쒖쥌 Row ?? ${finalCount}`);
   if (Number(finalCount) !== sanitized.length) {
     throw new Error(
       `Final count mismatch. expected=${sanitized.length}, actual=${finalCount}.`
@@ -841,3 +846,4 @@ module.exports = {
   readCsv,
   sourceCsvPath,
 };
+

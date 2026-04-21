@@ -54,6 +54,21 @@ type StoredPlayerHistoryRecord = {
   match_history: StoredMatchHistoryItem[] | null;
 };
 
+type H2HHistoryEntry = {
+  match_date: string | null;
+  map_name: string | null;
+  is_win: boolean;
+};
+
+type MinimalH2HPlayerRow = {
+  id: string;
+  eloboard_id?: string | null;
+  name: string | null;
+  nickname?: string | null;
+  race?: string | null;
+  match_history?: StoredMatchHistoryItem[] | null;
+};
+
 function applyServingMetadataLayer(players: Player[]) {
   return applyPlayerServingMetadata(players);
 }
@@ -192,6 +207,119 @@ function synthesizeMatchesFromHistory(player: StoredPlayerHistoryRecord, limit: 
   });
 }
 
+function buildDetailedH2HStats(
+  p1: Pick<MinimalH2HPlayerRow, "name">,
+  p2: Pick<MinimalH2HPlayerRow, "name">,
+  entries: H2HHistoryEntry[]
+) {
+  const total = entries.length;
+  const wins = entries.filter((entry) => entry.is_win).length;
+  const losses = total - wins;
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  const recentEntries = entries.filter((entry) => {
+    if (!entry.match_date) return false;
+    const matchDate = new Date(entry.match_date);
+    return !Number.isNaN(matchDate.getTime()) && matchDate >= ninetyDaysAgo;
+  });
+  const recentWins = recentEntries.filter((entry) => entry.is_win).length;
+  const recentLosses = recentEntries.length - recentWins;
+
+  const mapStats = entries.reduce<Record<string, { w: number; l: number }>>((acc, entry) => {
+    const mapName = String(entry.map_name || "").trim() || "Unknown Map";
+    if (!acc[mapName]) acc[mapName] = { w: 0, l: 0 };
+    if (entry.is_win) acc[mapName].w += 1;
+    else acc[mapName].l += 1;
+    return acc;
+  }, {});
+
+  const recentMatches = entries.slice(0, 10).map((entry, index) => ({
+    id: `h2h-${index}`,
+    player_name: String(p1.name || ""),
+    opponent_name: String(p2.name || ""),
+    match_date: entry.match_date,
+    map: entry.map_name,
+    is_win: entry.is_win,
+    result_text: entry.is_win ? "+" : "-",
+    note: null,
+  })) as unknown as import("../types").EloMatch[];
+
+  return {
+    summary: {
+      total,
+      wins,
+      losses,
+      winRate: total > 0 ? ((wins / total) * 100).toFixed(1) : "0.0",
+      momentum90: {
+        total: recentEntries.length,
+        wins: recentWins,
+        losses: recentLosses,
+        winRate: recentEntries.length > 0 ? ((recentWins / recentEntries.length) * 100).toFixed(1) : "0.0",
+      },
+    },
+    mapStats,
+    recentMatches,
+  };
+}
+
+function buildDetailedHistoryEntries(
+  p1: MinimalH2HPlayerRow,
+  p2: MinimalH2HPlayerRow
+): H2HHistoryEntry[] {
+  const history = normalizeStoredMatchHistory(p1.match_history);
+  if (history.length === 0) return [];
+
+  const p2IdentityCandidates = new Set<string>(
+    [String(p2.id || "").trim(), String(p2.eloboard_id || "").trim()].filter(Boolean)
+  );
+  const p2NameCandidates = new Set<string>(
+    [String(p2.name || "").trim(), String(p2.nickname || "").trim()]
+      .map((value) => normalizeSearchText(value))
+      .filter(Boolean)
+  );
+
+  return history
+    .filter((item) => {
+      const historyOpponentEntityId = String(item.opponent_entity_id || item.opponentEntityId || "").trim();
+      if (historyOpponentEntityId) {
+        return p2IdentityCandidates.has(historyOpponentEntityId);
+      }
+      return p2NameCandidates.has(normalizeSearchText(item.opponent_name || item.opponentName));
+    })
+    .map((item) => ({
+      match_date: item.match_date || item.matchDate || null,
+      map_name: item.map_name || item.mapName || null,
+      is_win: Boolean(item.is_win ?? item.isWin),
+    }))
+    .sort((left, right) => String(right.match_date || "").localeCompare(String(left.match_date || "")));
+}
+
+function buildDetailedServingEntries(
+  p1Id: string,
+  p2Id: string,
+  matches: Array<{
+    match_date?: string | null;
+    map_name?: string | null;
+    player1_id?: string | null;
+    player2_id?: string | null;
+    winner_id?: string | null;
+  }>
+): H2HHistoryEntry[] {
+  return matches
+    .filter((match) => {
+      const left = String(match.player1_id || "");
+      const right = String(match.player2_id || "");
+      return (left === p1Id && right === p2Id) || (left === p2Id && right === p1Id);
+    })
+    .map((match) => ({
+      match_date: match.match_date || null,
+      map_name: match.map_name || null,
+      is_win: String(match.winner_id || "") === p1Id,
+    }))
+    .sort((left, right) => String(right.match_date || "").localeCompare(String(left.match_date || "")));
+}
+
 export const playerService = {
   async getCachedPlayersList() {
     return fetchCachedPlayersForList();
@@ -326,6 +454,57 @@ export const playerService = {
   },
 
   /** ???좎닔 媛꾩쓽 ?곷? ?꾩쟻 媛?몄삤湲?(?꾩껜 諛?理쒓렐 3媛쒖썡) */
+  async getDetailedH2HStats(p1Id: string, p2Id: string) {
+    if (!p1Id || !p2Id) {
+      return buildDetailedH2HStats({ name: "" }, { name: "" }, []);
+    }
+
+    const { data: players, error: playersError } = await supabase
+      .from("players")
+      .select("id, eloboard_id, name, nickname, race, match_history")
+      .in("id", [p1Id, p2Id]);
+
+    if (playersError || !players || players.length < 2) {
+      console.error("Error fetching players for detailed H2H:", playersError);
+      return buildDetailedH2HStats({ name: "" }, { name: "" }, []);
+    }
+
+    const p1 = players.find((player) => player.id === p1Id) as MinimalH2HPlayerRow | undefined;
+    const p2 = players.find((player) => player.id === p2Id) as MinimalH2HPlayerRow | undefined;
+
+    if (!p1 || !p2) {
+      return buildDetailedH2HStats({ name: "" }, { name: "" }, []);
+    }
+
+    const { data: matches, error: matchesError } = await supabase
+      .from("matches")
+      .select("match_date, map_name, player1_id, player2_id, winner_id")
+      .or(`and(player1_id.eq.${p1Id},player2_id.eq.${p2Id}),and(player1_id.eq.${p2Id},player2_id.eq.${p1Id})`)
+      .order("match_date", { ascending: false });
+
+    if (matchesError) {
+      console.error("Error fetching serving matches for detailed H2H:", matchesError);
+    }
+
+    const servingEntries = buildDetailedServingEntries(
+      p1Id,
+      p2Id,
+      (matches || []) as Array<{
+        match_date?: string | null;
+        map_name?: string | null;
+        player1_id?: string | null;
+        player2_id?: string | null;
+        winner_id?: string | null;
+      }>
+    );
+
+    if (servingEntries.length > 0) {
+      return buildDetailedH2HStats(p1, p2, servingEntries);
+    }
+
+    return buildDetailedH2HStats(p1, p2, buildDetailedHistoryEntries(p1, p2));
+  },
+
   async getH2HStats(p1Id: string, p2Id: string) {
     if (!p1Id || !p2Id) return { overall: [0, 0], recent: [0, 0] };
 
