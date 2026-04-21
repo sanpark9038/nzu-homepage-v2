@@ -970,6 +970,264 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function describeAlertTone(alertCounts) {
+  const counts = alertCounts || {};
+  const critical = Number(counts.critical || 0);
+  const high = Number(counts.high || 0);
+  const medium = Number(counts.medium || 0);
+  const low = Number(counts.low || 0);
+  const total = Number(counts.total || 0);
+  if (critical > 0 || high > 0) {
+    return {
+      headlineSuffix: "(경고 포함)",
+      summaryLabel: "주의 알림",
+      followup: "경고가 있었으므로 세부 항목을 확인해야 합니다.",
+      isWarning: true,
+    };
+  }
+  if (medium > 0 || low > 0 || total > 0) {
+    return {
+      headlineSuffix: "(변동 알림)",
+      summaryLabel: "변동 알림",
+      followup: "반영은 정상 완료되었고, 아래 항목은 운영상 참고용입니다.",
+      isWarning: false,
+    };
+  }
+  return {
+    headlineSuffix: "",
+    summaryLabel: "알림",
+    followup: "",
+    isWarning: false,
+  };
+}
+
+function supabaseSyncModeLabel() {
+  const workflowModeLabel = String(process.env.WORKFLOW_MODE_LABEL || "").trim();
+  if (workflowModeLabel) {
+    return workflowModeLabel.startsWith("실행 모드:")
+      ? workflowModeLabel
+      : `실행 모드: ${workflowModeLabel}`;
+  }
+
+  const report = readJsonIfExists(MANUAL_REFRESH_REPORT_PATH);
+  const syncDetails =
+    report && report.supabase_sync && typeof report.supabase_sync === "object"
+      ? report.supabase_sync
+      : null;
+
+  if (syncDetails) {
+    const status = String(syncDetails.status || "").trim();
+    if (status === "completed") {
+      const cache =
+        syncDetails.cache_revalidation && typeof syncDetails.cache_revalidation === "object"
+          ? syncDetails.cache_revalidation
+          : null;
+      if (!cache || String(cache.status || "").trim() === "completed") {
+        return "실행 모드: Supabase sync completed";
+      }
+      const cacheStatus = String(cache.status || "").trim() || "unknown";
+      return `실행 모드: Supabase sync completed (cache revalidation: ${cacheStatus})`;
+    }
+    if (status === "skipped") return "실행 모드: Supabase sync skipped";
+    if (status === "disabled") return "실행 모드: Collect-only (Supabase sync not requested)";
+  }
+
+  if (report && typeof report.with_supabase_sync === "boolean") {
+    return report.with_supabase_sync
+      ? "실행 모드: Supabase sync requested"
+      : "실행 모드: Collect-only (Supabase sync skipped)";
+  }
+
+  return "";
+}
+
+function collectionHealthCheckLabel(id) {
+  const labels = {
+    team_index: "팀 인덱스",
+    team_roster_page: "팀 로스터",
+    player_profile_page: "선수 프로필",
+    player_paginated_history: "경기 내역",
+  };
+  return labels[id] || String(id || "").trim();
+}
+
+function buildCollectionSourceHealthSummary(doc) {
+  if (!doc || typeof doc !== "object") return "";
+  const checks = doc.checks && typeof doc.checks === "object" ? doc.checks : {};
+  const entries = Object.entries(checks);
+  if (!entries.length) return "";
+
+  const failed = entries.filter(([, check]) => check && !check.ok && !check.skipped);
+  if (!failed.length) {
+    return "수집 경로 확인: 정상";
+  }
+
+  const names = failed.map(([id]) => collectionHealthCheckLabel(id));
+  return `수집 경로 확인: ${names.join(", ")} 확인 필요`;
+}
+
+function pushLimitedRows(lines, rows, formatter, limit = 5) {
+  const list = Array.isArray(rows) ? rows : [];
+  for (const row of list.slice(0, limit)) {
+    lines.push(formatter(row));
+  }
+  if (list.length > limit) {
+    lines.push(`- 외 ${list.length - limit}건`);
+  }
+}
+
+function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
+  const beforePlayers = loadBaselinePlayers(BASELINE_PATH);
+  const afterPlayers = loadCurrentRosterState(PROJECTS_DIR);
+  const collectionHealth = readJsonIfExists(COLLECTION_SOURCES_HEALTH_PATH);
+  writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
+
+  const { tierChanges, affiliationChanges, joiners, removals } = comparePlayerChanges(beforePlayers, afterPlayers);
+  const todayTop = buildTodayTopPlayers(afterPlayers);
+  const summaryCheck = buildDiscordSummaryCheck({
+    reportsDir: REPORTS_DIR,
+    baselinePath: BASELINE_PATH,
+    projectsDir: PROJECTS_DIR,
+    snapshot,
+    alertsDoc,
+  });
+
+  const alertCounts = summaryCheck.alerts.counts || countAlertsBySeverity([]);
+  const alertTone = describeAlertTone(alertCounts);
+  const deltaComparable = Boolean(
+    snapshot &&
+      snapshot.delta_reference &&
+      snapshot.delta_reference.comparable
+  );
+  const newMatches = summaryCheck.new_matches_total;
+  const joinersForMessage = Array.isArray(summaryCheck.joiners) && summaryCheck.joiners.length
+    ? summaryCheck.joiners
+    : joiners;
+  const affiliationChangesForMessage =
+    Array.isArray(summaryCheck.affiliation_changes) && summaryCheck.affiliation_changes.length
+      ? summaryCheck.affiliation_changes
+      : affiliationChanges;
+  const partitionedAffiliationChanges = partitionAffiliationChanges(affiliationChangesForMessage);
+  const fallbackAffiliationChanges = partitionedAffiliationChanges.fallback;
+  affiliationChanges.length = 0;
+  affiliationChanges.push(...partitionedAffiliationChanges.primary);
+  const hasPrimaryChanges =
+    tierChanges.length ||
+    affiliationChangesForMessage.length ||
+    joinersForMessage.length ||
+    removals.length ||
+    (deltaComparable ? newMatches > 0 : false);
+
+  const lines = [
+    `산박대표님.일일 업데이트보고입니다. ${alertTone.headlineSuffix} (${dateLabelFromSnapshot(snapshot)})`.trim(),
+    "",
+  ];
+
+  const syncModeLabel = supabaseSyncModeLabel();
+  if (syncModeLabel) {
+    lines.push(syncModeLabel);
+    const syncWarning = workflowSyncWarning();
+    if (syncWarning) {
+      lines.push(`- ${syncWarning}`);
+    }
+    lines.push("");
+  }
+
+  const collectionHealthSummary = buildCollectionSourceHealthSummary(collectionHealth);
+  if (collectionHealthSummary) {
+    lines.push(collectionHealthSummary);
+    lines.push("");
+  }
+
+  if (!hasPrimaryChanges && !todayTop.players.length) {
+    lines.push("특이 변동 없음");
+    if (!deltaComparable) {
+      lines.push("이번 실행은 기준선 비교가 없어 신규 전적 증감은 판단하지 않았습니다.");
+    }
+  } else {
+    if (tierChanges.length) {
+      lines.push(`티어 변동: ${tierChanges.length}건`);
+      pushLimitedRows(
+        lines,
+        tierChanges,
+        (item) => `- ${item.player_name} (${item.team_name}) : ${item.old_tier} -> ${item.new_tier}`
+      );
+      lines.push("");
+    }
+
+    if (affiliationChanges.length) {
+      lines.push(`소속 변동: ${affiliationChanges.length}건`);
+      pushLimitedRows(
+        lines,
+        affiliationChanges,
+        formatAffiliationChangeRow
+      );
+      lines.push("");
+    }
+
+    if (fallbackAffiliationChanges.length) {
+      lines.push(`Fallback affiliation changes: ${fallbackAffiliationChanges.length}`);
+      pushLimitedRows(
+        lines,
+        fallbackAffiliationChanges,
+        formatAffiliationChangeRow
+      );
+      lines.push("");
+    }
+
+    if (joinersForMessage.length) {
+      lines.push(`신규 합류: ${joinersForMessage.length}건`);
+      pushLimitedRows(
+        lines,
+        joinersForMessage,
+        (item) => `- ${item.player_name} (${item.team_name})`
+      );
+      lines.push("");
+    }
+
+    if (removals.length) {
+      lines.push(`명단 제외: ${removals.length}건`);
+      pushLimitedRows(
+        lines,
+        removals,
+        (item) => `- ${item.player_name} (${item.team_name})`
+      );
+      lines.push("");
+    }
+
+    lines.push("신규 전적");
+    if (deltaComparable) {
+      lines.push(`- 직전 실행 대비 새로 반영된 경기: ${newMatches}건`);
+    } else {
+      lines.push("- 이번 실행은 기준선 비교가 없어 신규 전적 증감은 판단하지 않았습니다.");
+    }
+
+    if (todayTop.players.length) {
+      lines.push("");
+      lines.push(`오늘 경기 많은 선수 (${todayTop.targetDate})`);
+      pushLimitedRows(
+        lines,
+        todayTop.players,
+        (item) => `- ${item.player_name} (${item.team_name}) : ${item.today_matches}판`
+      );
+    }
+  }
+
+  if ((alertCounts.total || 0) > 0) {
+    lines.push("");
+    lines.push(
+      `변동 알림: ${alertCounts.total}건 (critical ${alertCounts.critical}, high ${alertCounts.high}, medium ${alertCounts.medium}, low ${alertCounts.low})`
+    );
+    lines.push("반영은 정상 완료되었고, 아래 항목은 운영상 참고용입니다.");
+  }
+  if (runUrl) {
+    lines.push("");
+    lines.push(`실행 링크: <${runUrl}>`);
+  }
+
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function buildMessage({ outcome, source, runUrl }) {
   const snapshotPath = resolveLatestReportFile(REPORTS_DIR, "daily_pipeline_snapshot_");
   const alertsPath = resolveLatestReportFile(REPORTS_DIR, "daily_pipeline_alerts_");
