@@ -376,6 +376,71 @@ function blockingAlertsSummary(alertsDoc, limit = 3) {
   };
 }
 
+function describeFailureStage(report, opsPipelineReport) {
+  const failureStepName =
+    report && report.failure_step && typeof report.failure_step === "object"
+      ? String(report.failure_step.name || "").trim()
+      : "";
+  const opsFailureStepName =
+    opsPipelineReport && opsPipelineReport.failure_step && typeof opsPipelineReport.failure_step === "object"
+      ? String(opsPipelineReport.failure_step.name || "").trim()
+      : "";
+
+  if (failureStepName === "collect_chunked") {
+    return {
+      headline: "\uC218\uC9D1 \uB2E8\uACC4\uC5D0\uC11C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.",
+      detail: "",
+    };
+  }
+
+  if (failureStepName === "supabase_push") {
+    return {
+      headline: "\uBC18\uC601 \uB2E8\uACC4\uC5D0\uC11C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.",
+      detail: "",
+    };
+  }
+
+  if (failureStepName) {
+    return {
+      headline: `\uD30C\uC774\uD504\uB77C\uC778 \uB2E8\uACC4(${failureStepName})\uC5D0\uC11C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.`,
+      detail: "",
+    };
+  }
+
+  if (opsFailureStepName === "Run daily pipeline regression tests") {
+    return {
+      headline: "\uC0AC\uC804 \uAC80\uC99D \uB2E8\uACC4(\uD68C\uADC0 \uD14C\uC2A4\uD2B8)\uC5D0\uC11C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.",
+      detail: "\uC77C\uC77C \uC218\uC9D1\uC740 \uC2DC\uC791\uB418\uAE30 \uC804\uC5D0 \uC911\uB2E8\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    };
+  }
+
+  if (opsFailureStepName) {
+    return {
+      headline: `\uC6CC\uD06C\uD50C\uB85C \uB2E8\uACC4(${opsFailureStepName})\uC5D0\uC11C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.`,
+      detail: "\uC77C\uC77C \uB9AC\uD3EC\uD2B8 \uD30C\uC77C\uC774 \uC5C6\uC5B4 \uC138\uBD80 \uC9D1\uACC4\uB294 \uC0DD\uB7B5\uD588\uC2B5\uB2C8\uB2E4.",
+    };
+  }
+
+  return {
+    headline: "\uC77C\uC77C \uB9AC\uD3EC\uD2B8 \uC0DD\uC131 \uC804 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.",
+    detail: "\uC218\uC9D1/\uBC18\uC601 \uB2E8\uACC4 \uC5EC\uBD80\uB294 \uCD94\uAC00 \uD655\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.",
+  };
+}
+
+function applyFailureStageToMessage(message, report, opsPipelineReport) {
+  const failureStage = describeFailureStage(report, opsPipelineReport);
+  const lines = String(message || "").split("\n");
+  if (lines.length >= 3) {
+    lines[2] = failureStage.headline;
+  } else {
+    lines.push(failureStage.headline);
+  }
+  if (failureStage.detail) {
+    lines.splice(Math.min(3, lines.length), 0, failureStage.detail);
+  }
+  return lines.join("\n");
+}
+
 function countAlertsBySeverity(alerts) {
   return {
     critical: alerts.filter((a) => a.severity === "critical").length,
@@ -910,9 +975,14 @@ function buildMessage({ outcome, source, runUrl }) {
   const alertsPath = resolveLatestReportFile(REPORTS_DIR, "daily_pipeline_alerts_");
   const snapshot = readJsonIfExists(snapshotPath);
   const alertsDoc = readJsonIfExists(alertsPath);
+  const report = readJsonIfExists(MANUAL_REFRESH_REPORT_PATH);
   const opsPipelineReport = readJsonIfExists(OPS_PIPELINE_REPORT_PATH);
   if (outcome !== "success") {
-    return buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport, source });
+    return applyFailureStageToMessage(
+      buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport, source }),
+      report,
+      opsPipelineReport
+    );
   }
   return buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl, source });
 }
@@ -960,7 +1030,9 @@ if (require.main === module) {
 
 module.exports = {
   buildAffiliationConfidenceLookup,
+  applyFailureStageToMessage,
   buildCollectionSourceHealthSummary,
+  describeFailureStage,
   buildReadableSuccessMessage,
   comparePlayerChanges,
   describeAlertTone,

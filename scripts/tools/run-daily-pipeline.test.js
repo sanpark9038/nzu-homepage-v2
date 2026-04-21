@@ -15,6 +15,7 @@ const {
   movedInPlayersByTeam,
 } = require("./run-daily-pipeline");
 const { classifyZeroRecordPlayers, exportConcurrencyForTeam, exportTimeoutForTeam } = require("./run-daily-pipeline");
+const OPS_TEAM_LABEL = "\uC6B4\uC601";
 
 function makeTempReportsDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "nzu-daily-pipeline-"));

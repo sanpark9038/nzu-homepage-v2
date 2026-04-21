@@ -250,6 +250,17 @@ function sortedAlerts(alerts) {
   });
 }
 
+function normalizeOpsAlertTeams(alerts) {
+  return (Array.isArray(alerts) ? alerts : []).map((alert) => {
+    if (!alert || String(alert.team_code || "").trim() !== "ops") return alert;
+    const rule = String(alert.rule || "").trim();
+    return {
+      ...alert,
+      team: rule === "stale_live_snapshot_disagreement" ? "\uC6B4\uC601" : "\u003F\uB301\uC07A",
+    };
+  });
+}
+
 function normalizePositiveNumber(value, fallback) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) return fallback;
@@ -358,7 +369,7 @@ function buildHomepageIntegrityOperationalAlerts(homepageIntegrityReport, cfg, r
     return [];
   }
 
-  return [
+  return normalizeOpsAlertTeams([
     {
       severity: rules.stale_snapshot_disagreement_severity || "medium",
       team: "ìš´ì˜",
@@ -368,7 +379,7 @@ function buildHomepageIntegrityOperationalAlerts(homepageIntegrityReport, cfg, r
         liveSummary.snapshot_updated_at || "-"
       )}, report_generated_at=${generatedAt}`,
     },
-  ];
+  ]);
 }
 
 function buildClusteredUncertainAffiliationAlerts(rosterSyncReport, cfg) {
@@ -406,7 +417,7 @@ function buildClusteredUncertainAffiliationAlerts(rosterSyncReport, cfg) {
     .map(([teamCode, count]) => `${teamCode}:${count}`)
     .join(", ");
 
-  return [
+  return normalizeOpsAlertTeams([
     {
       severity: rules.clustered_uncertain_affiliation_changes_severity || "medium",
       team: "?댁쁺",
@@ -414,7 +425,7 @@ function buildClusteredUncertainAffiliationAlerts(rosterSyncReport, cfg) {
       rule: "clustered_uncertain_affiliation_changes",
       message: `count=${uncertainRows.length}, fallback=${counts.fallback}, inferred=${counts.inferred}, previous_teams=${previousTeamsSummary || "-"}`,
     },
-  ];
+  ]);
 }
 
 function runNode(scriptPath, args, options = {}) {
@@ -1044,7 +1055,7 @@ function buildAlerts(
   }
   alerts.push(...buildHomepageIntegrityOperationalAlerts(homepageIntegrityReport, cfg, referenceTimeMs));
   alerts.push(...buildClusteredUncertainAffiliationAlerts(rosterSyncReport, cfg));
-  return sortedAlerts(alerts);
+  return normalizeOpsAlertTeams(sortedAlerts(alerts));
 }
 
 async function main() {

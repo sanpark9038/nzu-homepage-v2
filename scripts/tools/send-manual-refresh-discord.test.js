@@ -4,9 +4,11 @@ const os = require("os");
 const path = require("path");
 
 const {
+  applyFailureStageToMessage,
   buildAffiliationConfidenceLookup,
   buildCollectionSourceHealthSummary,
   comparePlayerChanges,
+  describeFailureStage,
   describeAlertTone,
   formatAffiliationChangeRow,
   partitionAffiliationChanges,
@@ -51,6 +53,73 @@ runTest("describeAlertTone stays neutral when no alerts exist", () => {
   const actual = describeAlertTone({ critical: 0, high: 0, medium: 0, low: 0, total: 0 });
   assert.equal(actual.headlineSuffix, "");
   assert.equal(actual.followup, "");
+});
+
+runTest("describeFailureStage distinguishes preflight test failures from collection failures", () => {
+  const actual = describeFailureStage(
+    null,
+    {
+      failure_step: {
+        name: "Run daily pipeline regression tests",
+      },
+    }
+  );
+
+  assert.deepEqual(actual, {
+    headline: "사전 검증 단계(회귀 테스트)에서 오류가 발생했습니다.",
+    detail: "일일 수집은 시작되기 전에 중단되었습니다.",
+  });
+});
+
+runTest("describeFailureStage keeps collection and sync failures specific", () => {
+  assert.deepEqual(
+    describeFailureStage(
+      {
+        failure_step: {
+          name: "collect_chunked",
+        },
+      },
+      null
+    ),
+    {
+      headline: "수집 단계에서 오류가 발생했습니다.",
+      detail: "",
+    }
+  );
+
+  assert.deepEqual(
+    describeFailureStage(
+      {
+        failure_step: {
+          name: "supabase_push",
+        },
+      },
+      null
+    ),
+    {
+      headline: "반영 단계에서 오류가 발생했습니다.",
+      detail: "",
+    }
+  );
+});
+
+runTest("applyFailureStageToMessage rewrites the generic failure line", () => {
+  const actual = applyFailureStageToMessage(
+    ["헤더", "", "기존 일반 실패 문구", "실행 링크: test"].join("\n"),
+    null,
+    {
+      failure_step: {
+        name: "Run daily pipeline regression tests",
+      },
+    }
+  );
+
+  assert.deepEqual(actual.split("\n").slice(0, 4), [
+    "헤더",
+    "",
+    "사전 검증 단계(회귀 테스트)에서 오류가 발생했습니다.",
+    "일일 수집은 시작되기 전에 중단되었습니다.",
+  ]);
 });
 
 runTest("buildCollectionSourceHealthSummary returns simple ok message", () => {
