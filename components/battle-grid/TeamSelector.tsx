@@ -1,5 +1,4 @@
-
-import { getUniversityInfo, UNIVERSITY_MAP } from "@/lib/university-config";
+import { getUniversityInfo } from "@/lib/university-config";
 import { ChevronDown } from "lucide-react";
 
 interface TeamSelectorProps {
@@ -10,8 +9,6 @@ interface TeamSelectorProps {
 }
 
 export function TeamSelector({ universities, selectedTeam, onSelect, title = "Select Team" }: TeamSelectorProps) {
-  const selectedInfo = selectedTeam ? getUniversityInfo(selectedTeam) : null;
-
   return (
     <div className="relative w-full">
       <select

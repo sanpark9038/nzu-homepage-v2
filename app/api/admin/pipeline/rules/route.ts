@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { NextResponse } from "next/server";
+import { getAdminWriteDisabledMessage, isAdminWriteDisabled } from "@/lib/admin-runtime";
 
 export const runtime = "nodejs";
 
@@ -51,6 +52,13 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (isAdminWriteDisabled()) {
+    return NextResponse.json(
+      { ok: false, message: getAdminWriteDisabledMessage("파이프라인 알림 규칙 수정") },
+      { status: 403 }
+    );
+  }
+
   const body = (await req.json().catch(() => ({}))) as ReturnType<typeof defaultRules>;
   const next = {
     ...defaultRules(),
@@ -64,4 +72,3 @@ export async function POST(req: Request) {
   writeRules(next);
   return NextResponse.json({ ok: true, rules: next });
 }
-

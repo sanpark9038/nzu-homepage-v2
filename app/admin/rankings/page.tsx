@@ -13,12 +13,7 @@ export const metadata = {
   title: "HOSAGA Admin - 순위 설정",
 };
 
-const STANDINGS_PATH = path.join(
-  process.cwd(),
-  "data",
-  "metadata",
-  "tournament_standings.v1.json"
-);
+const STANDINGS_PATH = path.join(process.cwd(), "data", "metadata", "tournament_standings.v1.json");
 
 function readStandings() {
   if (!fs.existsSync(STANDINGS_PATH)) return {};
@@ -44,23 +39,23 @@ export default async function AdminRankingPage() {
     <div className="min-h-screen bg-background">
       <main className="mx-auto w-full max-w-5xl px-4 py-12">
         <AdminNav />
-        <header className="mb-12 flex justify-between items-start">
+        <header className="mb-12 flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2 py-0.5 bg-nzu-green/10 text-nzu-green border border-nzu-green/20 rounded text-[10px] font-black uppercase tracking-widest">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="rounded border border-nzu-green/20 bg-nzu-green/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-nzu-green">
                 Admin Control
               </span>
             </div>
-            <h1 className="text-4xl font-black tracking-tighter uppercase italic">
+            <h1 className="text-4xl font-black uppercase italic tracking-tighter">
               Rankings <span className="gradient-text">Admin</span>
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">대회 승패 및 순위 데이터 관리</p>
+            <p className="mt-1 text-sm text-muted-foreground">대회 승패 및 순위 데이터를 관리합니다.</p>
           </div>
           <LogoutButton />
         </header>
 
-        <section className="bg-card border border-border/40 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-nzu-green/5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
+        <section className="relative overflow-hidden rounded-[2.5rem] border border-border/40 bg-card p-8 shadow-2xl md:p-12">
+          <div className="absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-nzu-green/5 blur-[100px]" />
 
           <div className="relative">
             <StandingAdmin teams={teams} initialStandings={standings} />

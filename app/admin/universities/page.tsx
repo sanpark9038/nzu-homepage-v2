@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminReadonlyNotice } from "@/components/admin/AdminReadonlyNotice";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
+import { isAdminWriteDisabled } from "@/lib/admin-runtime";
 import { getUniversityOptions } from "@/lib/university-metadata";
 import LogoutButton from "../ops/LogoutButton";
 import UniversityAdmin from "./UniversityAdmin";
@@ -16,9 +18,10 @@ export default async function AdminUniversitiesPage() {
   }
 
   const universities = getUniversityOptions(true);
+  const readOnly = isAdminWriteDisabled();
 
   return (
-    <main className="min-h-screen bg-background text-foreground p-6 md:p-10">
+    <main className="min-h-screen bg-background p-6 text-foreground md:p-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <div className="flex items-center justify-between">
           <AdminNav />
@@ -32,7 +35,8 @@ export default async function AdminUniversitiesPage() {
           </p>
         </div>
 
-        <UniversityAdmin initialUniversities={universities} />
+        {readOnly ? <AdminReadonlyNotice /> : null}
+        <UniversityAdmin initialUniversities={universities} readOnly={readOnly} />
       </div>
     </main>
   );

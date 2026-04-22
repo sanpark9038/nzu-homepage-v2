@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local") });
+const { shouldApplyManualTierOverride } = require("./lib/roster-admin-store");
 const {
   buildDiscordSummaryCheck,
   buildPlayerKey,
@@ -164,7 +165,7 @@ function comparePlayerChanges(beforePlayers, afterPlayers, options = {}) {
     const currentTier = String(current.tier || "").trim();
     if (prevTier && currentTier && prevTier !== currentTier) {
       const override = resolveManualOverrideForPlayer(current, manualOverrideLookup);
-      const overrideTier = normalizeName(override && override.tier);
+      const overrideTier = shouldApplyManualTierOverride(override) ? normalizeName(override && override.tier) : "";
       if (overrideTier && overrideTier === currentTier) {
         continue;
       }

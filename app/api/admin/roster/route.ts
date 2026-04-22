@@ -1,6 +1,14 @@
 import fs from "fs";
 import path from "path";
 import { NextResponse } from "next/server";
+import { getAdminWriteDisabledMessage, isAdminWriteDisabled } from "@/lib/admin-runtime";
+import {
+  loadMergedRosterAdminState,
+  saveRemoteRosterAdminCorrection,
+  shouldApplyManualAffiliationOverride,
+  shouldApplyManualRaceOverride,
+  shouldApplyManualTierOverride,
+} from "@/lib/roster-admin-store";
 import { updateTournamentTeamCaptain, updateTournamentTeamName } from "@/lib/tournament-home";
 import { supabase } from "@/lib/supabase";
 
@@ -46,9 +54,40 @@ type ProjectRef = {
   doc: ProjectDoc;
 };
 
+type DbTournamentPlayer = {
+  id: string;
+  name: string;
+  nickname?: string | null;
+  race?: string | null;
+  tier?: string | null;
+  eloboard_id?: string | null;
+  gender?: string | null;
+  photo_url?: string | null;
+  elo_point?: number | null;
+};
+
+type TournamentHomeTeamConfig = {
+  team_code?: string;
+  team_name?: string;
+  player_ids?: string[];
+  captain_player_id?: string;
+  captain_player_name?: string;
+};
+
+type TournamentHomeConfig = {
+  teams?: TournamentHomeTeamConfig[];
+  updated_at?: string;
+};
+
+type RecruitablePlayer = {
+  id: string;
+  name: string;
+};
+
 type OverrideRow = {
   entity_id: string;
   team_code?: string;
+  team_name?: string;
   tier?: string;
   race?: string;
   name?: string;
@@ -284,6 +323,12 @@ function baseTeamDoc(teamCode: string, teamName: string, teamNameEn?: string): P
   };
 }
 
+function findPlayerInProjects(projects: ProjectRef[], entityId: string) {
+  const source = projects.find((p) => (p.doc.roster || []).some((r) => r.entity_id === entityId));
+  const player = source?.doc.roster.find((r) => r.entity_id === entityId) || null;
+  return { source, player };
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const sourceParam = searchParams.get("source");
@@ -301,13 +346,27 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: false, message: error.message }, { status: 500 });
     }
 
-    let tournamentTeams: any[] = [];
+    let tournamentTeams: Array<{
+      code: string;
+      name: string;
+      player_ids: string[];
+      players: DbTournamentPlayer[];
+      player_count: number;
+      captainPlayerId: string;
+      is_slot: boolean;
+    }> = [];
     if (fs.existsSync(tournamentConfigPath)) {
-      const doc = JSON.parse(fs.readFileSync(tournamentConfigPath, "utf8").replace(/^\uFEFF/, ""));
-      const allPlayersMapped = new Map((dbPlayers || []).map((p: any) => [p.id, p]));
+      const doc = JSON.parse(
+        fs.readFileSync(tournamentConfigPath, "utf8").replace(/^\uFEFF/, "")
+      ) as TournamentHomeConfig;
+      const allPlayersMapped = new Map((dbPlayers || []).map((p) => [p.id, p]));
 
-      tournamentTeams = (doc.teams || []).map((t: any, idx: number) => {
-        const slotPlayers = (t.player_ids || []).map((id: string) => allPlayersMapped.get(id)).filter(Boolean);
+      tournamentTeams = (doc.teams || []).map((t, idx: number) => {
+        const slotPlayers = (t.player_ids || []).reduce<DbTournamentPlayer[]>((acc, id: string) => {
+          const player = allPlayersMapped.get(id);
+          if (player) acc.push(player);
+          return acc;
+        }, []);
         return {
           code: t.team_code || `t${idx + 1}`,
           name: t.team_name || `임시 ${idx + 1}팀`,
@@ -328,13 +387,27 @@ export async function GET(req: Request) {
     .from("players")
     .select("id, name, nickname, race, tier, eloboard_id, gender, photo_url, elo_point");
 
-  let tournamentTeams: any[] = [];
+  let tournamentTeams: Array<{
+    code: string;
+    name: string;
+    player_ids: string[];
+    players: DbTournamentPlayer[];
+    player_count: number;
+    captainPlayerId: string;
+    is_slot: boolean;
+  }> = [];
   if (fs.existsSync(tournamentConfigPath)) {
-    const doc = JSON.parse(fs.readFileSync(tournamentConfigPath, "utf8").replace(/^\uFEFF/, ""));
-    const allPlayersMapped = new Map((dbPlayers || []).map((p: any) => [p.id, p]));
+    const doc = JSON.parse(
+      fs.readFileSync(tournamentConfigPath, "utf8").replace(/^\uFEFF/, "")
+    ) as TournamentHomeConfig;
+    const allPlayersMapped = new Map((dbPlayers || []).map((p) => [p.id, p]));
 
-    tournamentTeams = (doc.teams || []).map((t: any, idx: number) => {
-      const slotPlayers = (t.player_ids || []).map((id: string) => allPlayersMapped.get(id)).filter(Boolean);
+    tournamentTeams = (doc.teams || []).map((t, idx: number) => {
+      const slotPlayers = (t.player_ids || []).reduce<DbTournamentPlayer[]>((acc, id: string) => {
+        const player = allPlayersMapped.get(id);
+        if (player) acc.push(player);
+        return acc;
+      }, []);
       return {
         code: t.team_code || `t${idx + 1}`,
         name: t.team_name || `임시 ${idx + 1}팀`,
@@ -348,23 +421,42 @@ export async function GET(req: Request) {
   }
 
   const projects = loadProjects();
-  const overrides = readOverrides();
-  const exclusions = readExclusions();
+  const rosterAdminState = await loadMergedRosterAdminState();
+  const overrides = rosterAdminState.overrides;
+  const exclusions = rosterAdminState.exclusions;
   const overrideMap = new Map(overrides.map((row) => [String(row.entity_id), row]));
+  const teamMetaByCode = new Map(
+    projects.map((project) => [
+      String(project.doc.team_code || "").trim(),
+      {
+        team_code: project.doc.team_code,
+        team_name: project.doc.team_name,
+      },
+    ])
+  );
 
   const rawPlayers = projects.flatMap((p) =>
     (p.doc.roster || []).map((r) => {
       const override = overrideMap.get(String(r.entity_id));
       const exclusion = exclusionInfo(r, exclusions);
+      const overrideTeamCode = String(override?.team_code || "").trim();
+      const overrideTeamMeta = overrideTeamCode ? teamMetaByCode.get(overrideTeamCode) : null;
+      const effectiveTeamCode = shouldApplyManualAffiliationOverride(override) ? overrideTeamCode : p.doc.team_code;
+      const effectiveTeamName =
+        shouldApplyManualAffiliationOverride(override)
+          ? String(override?.team_name || "").trim() ||
+            String(overrideTeamMeta?.team_name || "").trim() ||
+            p.doc.team_name
+          : p.doc.team_name;
       return {
         entity_id: r.entity_id,
         wr_id: r.wr_id,
         gender: r.gender,
-        name: r.name,
-        team_code: p.doc.team_code,
-        team_name: p.doc.team_name,
-        tier: r.tier,
-        race: r.race,
+        name: String(override?.name || "").trim() || r.name,
+        team_code: effectiveTeamCode,
+        team_name: effectiveTeamName,
+        tier: shouldApplyManualTierOverride(override) ? String(override?.tier || "").trim() || r.tier : r.tier,
+        race: shouldApplyManualRaceOverride(override) ? String(override?.race || "").trim() || r.race : r.race,
         manual_lock: Boolean(override),
         manual_mode: override?.manual_mode || null,
         excluded: exclusion.excluded,
@@ -393,6 +485,13 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  if (isAdminWriteDisabled()) {
+    return NextResponse.json(
+      { ok: false, message: getAdminWriteDisabledMessage("로스터 편집") },
+      { status: 403 }
+    );
+  }
+
   const body = (await req.json().catch(() => ({}))) as {
     action?: string;
     team_code?: string;
@@ -400,7 +499,7 @@ export async function POST(req: Request) {
     team_name_en?: string;
     slot_code?: string; // 추가
     player_id?: string; // 추가
-    player?: any; 
+    player?: RecruitablePlayer;
   };
 
   if (body.action === "recruit_player") {
@@ -414,9 +513,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, message: "tournament config not found" }, { status: 404 });
     }
 
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8").replace(/^\uFEFF/, ""));
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8").replace(/^\uFEFF/, "")) as TournamentHomeConfig;
     const normalizedTeamCode = String(team_code).trim().toLowerCase();
-    const targetTeam = (config.teams || []).find((t: any) => String(t.team_code).trim().toLowerCase() === normalizedTeamCode);
+    const targetTeam = (config.teams || []).find((t) => String(t.team_code).trim().toLowerCase() === normalizedTeamCode);
     
     if (!targetTeam) {
       return NextResponse.json({ ok: false, message: "target slot not found" }, { status: 404 });
@@ -448,9 +547,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, message: "tournament config not found" }, { status: 404 });
     }
 
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8").replace(/^\uFEFF/, ""));
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8").replace(/^\uFEFF/, "")) as TournamentHomeConfig;
     const normalizedSlotCode = String(slot_code).trim().toLowerCase();
-    const targetTeam = (config.teams || []).find((t: any) => String(t.team_code).trim().toLowerCase() === normalizedSlotCode);
+    const targetTeam = (config.teams || []).find((t) => String(t.team_code).trim().toLowerCase() === normalizedSlotCode);
     
     if (!targetTeam) {
       return NextResponse.json({ ok: false, message: "target slot not found" }, { status: 404 });
@@ -521,7 +620,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as {
+  const parsedBody = (await req.json().catch(() => ({}))) as {
     action?: string;
     entity_id?: string;
     team_code?: string;
@@ -532,6 +631,19 @@ export async function PATCH(req: Request) {
     captain_player_id?: string;
     team_name?: string;
   };
+  const preAction = String(parsedBody.action || "").trim();
+  const preEntityId = String(parsedBody.entity_id || "").trim();
+  const preTeamCode = String(parsedBody.team_code || "").trim().toLowerCase();
+  const allowRosterCorrectionWrite =
+    preAction === "set_exclusion" || (!preAction && Boolean(preEntityId) && Boolean(preTeamCode));
+  if (isAdminWriteDisabled() && !allowRosterCorrectionWrite) {
+    return NextResponse.json(
+      { ok: false, message: getAdminWriteDisabledMessage("로스터 편집") },
+      { status: 403 }
+    );
+  }
+
+  const body = parsedBody;
 
   const entityId = String(body.entity_id || "").trim();
   const nextTeamCode = String(body.team_code || "").trim().toLowerCase();
@@ -540,6 +652,117 @@ export async function PATCH(req: Request) {
   const excluded = body.excluded === true;
   const exclusionReason = String(body.exclusion_reason || "").trim() || "user_excluded";
   const action = String(body.action || "").trim();
+
+  if (allowRosterCorrectionWrite) {
+    const projects = loadProjects();
+    const { player } = findPlayerInProjects(projects, entityId);
+    if (!player) {
+      return NextResponse.json({ ok: false, message: "player not found" }, { status: 404 });
+    }
+    const overrideTier = manualMode === "fixed" ? null : nextTier || null;
+    const overrideRace = manualMode === "fixed" ? null : player.race || null;
+
+    const updatedAt = new Date().toISOString();
+
+    if (action === "set_exclusion") {
+      const remoteSaved = await saveRemoteRosterAdminCorrection(entityId, {
+        entity_id: entityId,
+        name: player.name,
+        wr_id: player.wr_id,
+        excluded,
+        exclusion_reason: excluded ? exclusionReason : null,
+        resume_requested_at: null,
+        updated_at: updatedAt,
+      });
+
+      if (!remoteSaved) {
+        const exclusions = readExclusions().filter((row) => !matchesExclusion(row, player));
+        if (excluded) {
+          exclusions.push({
+            entity_id: player.entity_id,
+            wr_id: player.wr_id,
+            name: player.name,
+            reason: exclusionReason,
+            updated_at: updatedAt,
+          });
+        }
+        writeExclusions(exclusions);
+      }
+
+      return NextResponse.json({
+        ok: true,
+        updated: {
+          entity_id: player.entity_id,
+          excluded,
+          exclusion_reason: excluded ? exclusionReason : "",
+        },
+      });
+    }
+
+    const target = projects.find((project) => project.doc.team_code === nextTeamCode);
+    if (!target) {
+      return NextResponse.json({ ok: false, message: "target team not found" }, { status: 404 });
+    }
+
+    const remoteSaved = await saveRemoteRosterAdminCorrection(entityId, {
+      entity_id: entityId,
+      name: player.name,
+      wr_id: player.wr_id,
+      team_code: target.doc.team_code,
+      team_name: target.doc.team_name,
+      tier: overrideTier,
+      race: overrideRace,
+      manual_lock: true,
+      manual_mode: manualMode,
+      excluded,
+      exclusion_reason: excluded ? exclusionReason : null,
+      resume_requested_at: null,
+      updated_at: updatedAt,
+    });
+
+    if (!remoteSaved) {
+      const overrides = readOverrides().filter((row) => String(row.entity_id || "").trim() !== entityId);
+      overrides.push({
+        entity_id: entityId,
+        name: player.name,
+        team_code: target.doc.team_code,
+        team_name: target.doc.team_name,
+        tier: overrideTier || undefined,
+        race: overrideRace || undefined,
+        manual_lock: true,
+        manual_mode: manualMode,
+        updated_at: updatedAt,
+      });
+      writeOverrides(overrides);
+
+      const exclusions = readExclusions().filter((row) => !matchesExclusion(row, player));
+      if (excluded) {
+        exclusions.push({
+          entity_id: player.entity_id,
+          wr_id: player.wr_id,
+          name: player.name,
+          reason: exclusionReason,
+          updated_at: updatedAt,
+        });
+      }
+      writeExclusions(exclusions);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      updated: {
+        entity_id: player.entity_id,
+        name: player.name,
+        wr_id: player.wr_id,
+        team_code: target.doc.team_code,
+        team_name: target.doc.team_name,
+        tier: overrideTier || player.tier,
+        manual_mode: manualMode,
+        excluded,
+        exclusion_reason: excluded ? exclusionReason : "",
+      },
+    });
+  }
 
   if (action === "set_team_captain") {
     const teamCode = String(body.team_code || "").trim();
@@ -711,15 +934,81 @@ export async function PATCH(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as {
+  const parsedBody = (await req.json().catch(() => ({}))) as {
     entity_id?: string;
     clear_override?: boolean;
     clear_exclusion?: boolean;
   };
 
+  const allowRosterCorrectionWrite =
+    parsedBody.clear_override === true || parsedBody.clear_exclusion === true;
+
+  if (isAdminWriteDisabled() && !allowRosterCorrectionWrite) {
+    return NextResponse.json(
+      { ok: false, message: getAdminWriteDisabledMessage("로스터 편집") },
+      { status: 403 }
+    );
+  }
+
+  const body = parsedBody;
+
   const entityId = String(body.entity_id || "").trim();
   if (!entityId) {
     return NextResponse.json({ ok: false, message: "entity_id is required" }, { status: 400 });
+  }
+
+  if (allowRosterCorrectionWrite) {
+    if (body.clear_override) {
+      const remoteSaved = await saveRemoteRosterAdminCorrection(entityId, {
+        team_code: null,
+        team_name: null,
+        tier: null,
+        race: null,
+        manual_lock: false,
+        manual_mode: null,
+        note: null,
+        updated_at: new Date().toISOString(),
+      });
+
+      if (!remoteSaved) {
+        const overrides = readOverrides().filter((row) => String(row.entity_id || "").trim() !== entityId);
+        writeOverrides(overrides);
+      }
+    }
+
+    if (body.clear_exclusion) {
+      const projects = loadProjects();
+      const { player } = findPlayerInProjects(projects, entityId);
+      const updatedAt = new Date().toISOString();
+      const remoteSaved = await saveRemoteRosterAdminCorrection(entityId, {
+        excluded: false,
+        exclusion_reason: null,
+        resume_requested_at: player ? updatedAt : null,
+        updated_at: updatedAt,
+        name: player?.name,
+        wr_id: player?.wr_id,
+      });
+
+      if (!remoteSaved) {
+        const exclusions = readExclusions().filter((row) =>
+          player ? !matchesExclusion(row, player) : String(row.entity_id || "").trim() !== entityId
+        );
+        writeExclusions(exclusions);
+      }
+
+      if (player && !remoteSaved) {
+        const resumes = readResumes().filter((row) => !matchesExclusion(row, player));
+        resumes.push({
+          entity_id: player.entity_id,
+          wr_id: player.wr_id,
+          name: player.name,
+          requested_at: updatedAt,
+        });
+        writeResumes(resumes);
+      }
+    }
+
+    return NextResponse.json({ ok: true });
   }
 
   if (body.clear_override) {

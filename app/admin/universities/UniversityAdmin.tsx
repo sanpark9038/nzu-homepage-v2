@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { getAdminWriteDisabledMessage } from "@/lib/admin-runtime";
 
 type UniversityEntry = {
   code: string;
@@ -29,7 +30,13 @@ function normalizeAliases(value: string) {
   );
 }
 
-export default function UniversityAdmin({ initialUniversities }: { initialUniversities: UniversityEntry[] }) {
+export default function UniversityAdmin({
+  initialUniversities,
+  readOnly = false,
+}: {
+  initialUniversities: UniversityEntry[];
+  readOnly?: boolean;
+}) {
   const [universities, setUniversities] = useState<UniversityEntry[]>(initialUniversities);
   const [drafts, setDrafts] = useState<Record<string, UniversityEntry>>({});
   const [newEntry, setNewEntry] = useState<UniversityEntry>(EMPTY_FORM);
@@ -50,11 +57,11 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
     try {
       const res = await fetch("/api/admin/universities", { cache: "no-store" });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "failed to load universities");
+      if (!res.ok) throw new Error(json.message || "대학 목록을 불러오지 못했습니다.");
       setUniversities(json.universities || []);
       setDrafts({});
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "failed to load universities");
+      setMessage(error instanceof Error ? error.message : "대학 목록을 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
@@ -74,6 +81,10 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
   };
 
   const saveNewEntry = async () => {
+    if (readOnly) {
+      setMessage(getAdminWriteDisabledMessage("대학 메타데이터 수정"));
+      return;
+    }
     const payload = {
       ...newEntry,
       code: newEntry.code.trim().toUpperCase(),
@@ -82,7 +93,7 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
     };
 
     if (!payload.code || !payload.name) {
-      setMessage("code와 name을 먼저 입력해줘.");
+      setMessage("code와 name을 먼저 입력해주세요.");
       return;
     }
 
@@ -94,18 +105,22 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
         body: JSON.stringify({ university: payload }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "failed to create university");
+      if (!res.ok) throw new Error(json.message || "대학 추가에 실패했습니다.");
       setUniversities(json.universities || []);
       setNewEntry(EMPTY_FORM);
       setMessage(`${payload.code} 추가 완료`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "failed to create university");
+      setMessage(error instanceof Error ? error.message : "대학 추가에 실패했습니다.");
     } finally {
       setLoading(false);
     }
   };
 
   const saveExisting = async (code: string) => {
+    if (readOnly) {
+      setMessage(getAdminWriteDisabledMessage("대학 메타데이터 수정"));
+      return;
+    }
     const draft = drafts[code] || universities.find((entry) => entry.code === code);
     if (!draft) return;
 
@@ -124,7 +139,7 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
         body: JSON.stringify({ university: payload }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "failed to update university");
+      if (!res.ok) throw new Error(json.message || "대학 수정에 실패했습니다.");
       setUniversities(json.universities || []);
       setDrafts((prev) => {
         const next = { ...prev };
@@ -133,13 +148,17 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
       });
       setMessage(`${payload.code} 저장 완료`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "failed to update university");
+      setMessage(error instanceof Error ? error.message : "대학 수정에 실패했습니다.");
     } finally {
       setLoading(false);
     }
   };
 
   const deleteUniversity = async (code: string) => {
+    if (readOnly) {
+      setMessage(getAdminWriteDisabledMessage("대학 메타데이터 수정"));
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/admin/universities", {
@@ -148,7 +167,7 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
         body: JSON.stringify({ code }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "failed to delete university");
+      if (!res.ok) throw new Error(json.message || "대학 삭제에 실패했습니다.");
       setUniversities(json.universities || []);
       setDrafts((prev) => {
         const next = { ...prev };
@@ -157,7 +176,7 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
       });
       setMessage(`${code} 삭제 완료`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "failed to delete university");
+      setMessage(error instanceof Error ? error.message : "대학 삭제에 실패했습니다.");
     } finally {
       setLoading(false);
     }
@@ -174,18 +193,21 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
         <div className="mt-5 grid gap-3 md:grid-cols-[120px_minmax(0,1fr)_120px_minmax(0,1fr)_auto]">
           <input
             value={newEntry.code}
+            disabled={readOnly}
             onChange={(event) => setNewEntry((prev) => ({ ...prev, code: event.target.value.toUpperCase() }))}
             placeholder="DM"
             className="rounded-xl border border-white/10 bg-background px-4 py-3 text-sm font-bold text-white outline-none focus:border-nzu-green/40"
           />
           <input
             value={newEntry.name}
+            disabled={readOnly}
             onChange={(event) => setNewEntry((prev) => ({ ...prev, name: event.target.value }))}
             placeholder="DM"
             className="rounded-xl border border-white/10 bg-background px-4 py-3 text-sm font-bold text-white outline-none focus:border-nzu-green/40"
           />
           <input
             value={newEntry.stars ?? ""}
+            disabled={readOnly}
             onChange={(event) =>
               setNewEntry((prev) => ({
                 ...prev,
@@ -199,13 +221,14 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
           />
           <input
             value={(newEntry.aliases || []).join(", ")}
+            disabled={readOnly}
             onChange={(event) => setNewEntry((prev) => ({ ...prev, aliases: normalizeAliases(event.target.value) }))}
             placeholder="DM, 디엠"
             className="rounded-xl border border-white/10 bg-background px-4 py-3 text-sm font-bold text-white outline-none focus:border-nzu-green/40"
           />
           <button
             onClick={saveNewEntry}
-            disabled={loading}
+            disabled={loading || readOnly}
             className="rounded-xl bg-nzu-green px-5 py-3 text-sm font-black text-black disabled:opacity-50"
           >
             추가
@@ -232,7 +255,10 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
           {sortedUniversities.map((entry) => {
             const draft = drafts[entry.code] || entry;
             return (
-              <div key={entry.code} className="grid gap-3 rounded-2xl border border-white/8 bg-background/70 p-4 md:grid-cols-[110px_minmax(0,1fr)_110px_minmax(0,1fr)_110px_auto_auto]">
+              <div
+                key={entry.code}
+                className="grid gap-3 rounded-2xl border border-white/8 bg-background/70 p-4 md:grid-cols-[110px_minmax(0,1fr)_110px_minmax(0,1fr)_110px_auto_auto]"
+              >
                 <input
                   value={draft.code}
                   disabled
@@ -240,11 +266,13 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
                 />
                 <input
                   value={draft.name}
+                  disabled={readOnly}
                   onChange={(event) => updateDraft(entry.code, { name: event.target.value })}
                   className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-bold text-white outline-none focus:border-nzu-green/40"
                 />
                 <input
                   value={draft.stars ?? ""}
+                  disabled={readOnly}
                   onChange={(event) => updateDraft(entry.code, { stars: event.target.value ? Number(event.target.value) : undefined })}
                   type="number"
                   min={0}
@@ -252,6 +280,7 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
                 />
                 <input
                   value={(draft.aliases || []).join(", ")}
+                  disabled={readOnly}
                   onChange={(event) => updateDraft(entry.code, { aliases: normalizeAliases(event.target.value) })}
                   className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-bold text-white outline-none focus:border-nzu-green/40"
                 />
@@ -259,20 +288,21 @@ export default function UniversityAdmin({ initialUniversities }: { initialUniver
                   <input
                     type="checkbox"
                     checked={Boolean(draft.hidden)}
+                    disabled={readOnly}
                     onChange={(event) => updateDraft(entry.code, { hidden: event.target.checked })}
                   />
                   숨김
                 </label>
                 <button
                   onClick={() => saveExisting(entry.code)}
-                  disabled={loading}
+                  disabled={loading || readOnly}
                   className="rounded-xl bg-nzu-green px-4 py-2 text-sm font-black text-black disabled:opacity-50"
                 >
                   저장
                 </button>
                 <button
                   onClick={() => deleteUniversity(entry.code)}
-                  disabled={loading || entry.code === "FA"}
+                  disabled={loading || entry.code === "FA" || readOnly}
                   className="rounded-xl border border-red-500/25 px-4 py-2 text-sm font-black text-red-300 disabled:opacity-30"
                 >
                   삭제

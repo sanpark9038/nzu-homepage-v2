@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { shouldApplyManualTierOverride } = require("./lib/roster-admin-store");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const FA_PATH = path.join(ROOT, "data", "metadata", "projects", "fa", "players.fa.v1.json");
@@ -103,7 +104,8 @@ function main() {
     const name = normalizeName(player && player.name ? player.name : "");
     const displayName = normalizeName(player && player.display_name ? player.display_name : "");
     const override = lookup.byEntity.get(entityId) || lookup.byName.get(name) || null;
-    const overrideTier = override && override.tier ? String(override.tier).trim() : "";
+    const overrideTier =
+      shouldApplyManualTierOverride(override) && override && override.tier ? String(override.tier).trim() : "";
     const effectiveTier = overrideTier || String(player && player.tier ? player.tier : "").trim() || "미정";
     return {
       entity_id: entityId,

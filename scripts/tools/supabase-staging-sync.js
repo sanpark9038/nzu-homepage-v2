@@ -2,11 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env.local') });
+const {
+  loadMergedRosterAdminState,
+  shouldApplyManualAffiliationOverride,
+  shouldApplyManualRaceOverride,
+  shouldApplyManualTierOverride,
+} = require('./lib/roster-admin-store');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
-const EXCLUSIONS_FILE = path.join(ROOT, 'data', 'metadata', 'pipeline_collection_exclusions.v1.json');
-const OVERRIDES_FILE = path.join(ROOT, 'data', 'metadata', 'roster_manual_overrides.v1.json');
 const PLAYER_METADATA_PATH = path.join(ROOT, 'scripts', 'player_metadata.json');
 const SOOP_MAPPINGS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_channel_mappings.v1.json');
 const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_manual_review_decisions.v1.json');
@@ -281,8 +285,8 @@ async function main() {
   const soopSnapshot = loadSoopSnapshot();
   
   // 1. Load Exclusions and Overrides
-  const exclusionsData = readJson(EXCLUSIONS_FILE, { players: [] });
-  const exclusionRules = (exclusionsData.players || []).map((p) => {
+  const rosterAdminState = await loadMergedRosterAdminState();
+  const exclusionRules = (rosterAdminState.exclusions || []).map((p) => {
     const wrId = Number(p && p.wr_id);
     const name = String(p && p.name ? p.name : '').trim().toLowerCase();
     const entityId = String(p && p.entity_id ? p.entity_id : '').trim();
@@ -293,10 +297,9 @@ async function main() {
     };
   });
   
-  const overridesData = readJson(OVERRIDES_FILE, { overrides: [] });
   const overridesMap = new Map();
   const overridesByName = new Map();
-  (overridesData.overrides || []).forEach(o => {
+  (rosterAdminState.overrides || []).forEach(o => {
     const entityId = String(o && o.entity_id ? o.entity_id : '').trim();
     const name = normalizeName(o && o.name ? o.name : '');
     if (entityId) overridesMap.set(entityId, o);
@@ -316,9 +319,9 @@ async function main() {
         // Enforce the manual locks strictly
         const override = overridesMap.get(String(p.entity_id)) || overridesByName.get(normalizeName(p.name));
         if (override) {
-          if (override.tier) p.tier = override.tier;
-          if (override.race) p.race = override.race;
-          if (override.team_code) p.team_code = override.team_code;
+          if (shouldApplyManualTierOverride(override)) p.tier = override.tier;
+          if (shouldApplyManualRaceOverride(override)) p.race = override.race;
+          if (shouldApplyManualAffiliationOverride(override)) p.team_code = override.team_code;
           if (override.name) p.name = override.name;
         }
 

@@ -7,6 +7,27 @@ Status: in-progress
 
 Close the highest-risk pipeline stability gaps before deployment: silent name collisions, serving-data resets on missing source stats, stale public cache after successful sync, and hero media admin/serving stabilization.
 
+## 작업 전 확인 완료
+
+### 충돌 위험 파일
+
+- `scripts/tools/supabase-staging-sync.js`
+- `scripts/tools/supabase-prod-sync.js`
+- `lib/player-service.ts`
+- `docs/harness/SESSION_ENTRY.md`
+- shared deployment/runtime decision files such as `scripts/tools/push-supabase-approved.js`, `scripts/tools/revalidate-public-cache.js`, and `docs/harness/DEPLOYMENT_SCOPE_2026-04-20.md`
+
+### 독립 수정 가능한 파일
+
+- `scripts/sql/check-serving-identity-schema.sql`
+- `docs/harness/SERVING_IDENTITY_NOTES.md` when the change is note-only and does not alter rollout decisions
+- test files such as `scripts/tools/supabase-staging-sync.test.js` and `scripts/tools/supabase-prod-sync.test.js` when they only extend existing guarded behavior
+
+### 마지막으로 확인한 기준 시점/근거
+
+- Confirmed from this plan's current `Files in play`, blockers, and latest status note on 2026-04-22.
+- Treat staging/prod sync writes, deployment gating, and session-start rules as one coordination surface.
+
 ## Completed steps
 
 - [x] Re-run session entry and confirm current pipeline context, reports, and workflow state.
@@ -36,9 +57,12 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 - [x] Add optional opponent durable identity support to repo-visible contracts (`opponent_entity_id`) without making it a deployment blocker.
 - [x] Fix the scheduled ops-pipeline regression where ops alert team labels drifted across encodings and caused `test:pipeline:daily` to fail before manual refresh started.
 - [x] Make Discord failure summaries distinguish workflow preflight failures from real collection/apply failures so scheduled alerts do not misreport the broken stage.
+- [x] Add Vercel deployment safeguards so public/read-only admin views can ship while local-file admin writes and manual pipeline execution fail closed in deployment.
 - [ ] Replace `player-service` history/H2H fallback with opponent durable identity once warehouse / serving contracts expose it consistently; current fallback is now narrower but still name-based.
 - [x] Re-run `check-site-integration-readiness.js --markdown` after the next real sync and make sure the new readiness blockers clear.
 - [x] Re-run `npm run pipeline:manual:refresh:with-sync` after the placeholder-filename fix and confirm the previous `ku / pipeline_failure / fetch_fail=1` blocker is gone.
+- [ ] Decide whether `/admin/tournament` should stay deployment-visible as read-only UI, or be folded into the same Vercel read-only pattern as `/admin/roster`.
+- [x] Re-scope the deployment commit so current admin/Vercel stabilization work is explicitly tracked instead of drifting outside the deployment scope doc.
 
 ### Current note on the remaining identity blocker
 
@@ -61,7 +85,37 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 ### Latest status note
 
 - deployment readiness is now green after a successful real `with-sync` run, refreshed Discord roster snapshot, fresh SOOP live snapshot sync, and a regenerated homepage integrity report
+- current repo state is also green on local verification: `npm.cmd run build` and `npm.cmd run lint` both pass
 - the remaining practical blocker before shipping is no longer runtime readiness; it is deciding which current worktree changes belong in the deployment-scoped commit versus which should be deferred
+- deployment-visible admin copy has now been normalized again across hero media, rankings, prediction, ops, universities, and roster split pages
+- `/admin/roster` is now split into general corrections and manual-team management
+- general roster corrections now have a repo-visible durable path draft:
+- `scripts/sql/create-roster-admin-corrections.sql`
+- `lib/roster-admin-store.ts`
+- `scripts/tools/lib/roster-admin-store.js`
+- `/api/admin/roster` now writes general corrections to the Supabase overlay first, with local JSON fallback preserved for non-migrated environments
+- daily pipeline and serving sync now consume the same merged correction overlay in `sync-team-roster-metadata.js`, `export-team-roster-detailed.js`, `supabase-staging-sync.js`, and `supabase-prod-sync.js`
+- remaining roster deployment gap is narrower now: manual team create/delete still owns local project JSON, so only general player corrections should be treated as the Vercel-safe path after the Supabase table is applied
+
+### Mixed-scope triage note
+
+- Keep for the deployment commit:
+- roster correction overlay path and its consumers in serving/sync/report files
+- admin read-only/runtime safeguards and the split `/admin/roster` / `/admin/roster/teams` flow
+- green-readiness admin support fixes such as `app/admin/tournament/page.tsx` and `app/admin/roster/TeamNameEditor.tsx`
+- Split or defer before the deployment commit:
+- session-start hardening docs such as `AGENTS.md`, `RUNBOOK.md`, `LESSONS_LEARNED.md`, and plan-template cleanup
+- public-site carryover from the home/entry plan unless explicitly promoted into this deployment scope
+- lint-only shared UI cleanup unless it is required to keep the deployment-scoped commit green
+- Special review bucket before commit:
+- `app/admin/tournament/page.tsx`
+- `components/ThemeProvider.tsx`
+- `app/page.tsx`
+- These files are currently modified but should be consciously classified as keep/split/defer, not carried silently.
+- Current classification from local diff review:
+- keep `app/admin/tournament/page.tsx` because it is a real admin build/lint support fix, not product-scope drift
+- split or defer `components/ThemeProvider.tsx`, `app/page.tsx`, `components/SidebarNav.tsx`, and `components/battle-grid/TeamSelector.tsx` unless the deployment-scoped commit needs them to stay lint-green by itself
+- The exact current-worktree `stage now` vs `split/defer` file list now lives in `docs/harness/DEPLOYMENT_SCOPE_2026-04-20.md#current-worktree-triage`.
 
 ## Session recovery
 

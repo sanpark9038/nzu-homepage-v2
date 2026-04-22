@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { NextResponse } from "next/server";
+import { getAdminWriteDisabledMessage, isAdminWriteDisabled } from "@/lib/admin-runtime";
 
 export const runtime = "nodejs";
 
@@ -51,6 +52,13 @@ function toDateTag() {
 }
 
 export async function POST(req: Request) {
+  if (isAdminWriteDisabled()) {
+    return NextResponse.json(
+      { ok: false, message: getAdminWriteDisabledMessage("파이프라인 수동 실행") },
+      { status: 403 }
+    );
+  }
+
   ensureDirs();
   const current = readState();
   if (current?.status === "running" && isPidAlive(current.pid)) {
@@ -109,4 +117,3 @@ export async function POST(req: Request) {
     log_path: logPath,
   });
 }
-

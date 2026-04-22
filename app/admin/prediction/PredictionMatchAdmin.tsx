@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Save, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { getAdminWriteDisabledMessage } from "@/lib/admin-runtime";
 import { PredictionConfigMatch } from "@/lib/tournament-prediction";
 import { cn } from "@/lib/utils";
 
@@ -28,9 +29,11 @@ function fromKstDateTimeInput(value: string) {
 export function PredictionMatchAdmin({
   initialMatches,
   teams,
+  readOnly = false,
 }: {
   initialMatches: PredictionConfigMatch[];
   teams: TeamInfo[];
+  readOnly?: boolean;
 }) {
   const [matches, setMatches] = useState<PredictionConfigMatch[]>(initialMatches);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,6 +46,10 @@ export function PredictionMatchAdmin({
   };
 
   const handleSave = async () => {
+    if (readOnly) {
+      setStatus({ type: "error", message: getAdminWriteDisabledMessage("예측 경기 설정 수정") });
+      return;
+    }
     setIsSaving(true);
     setStatus(null);
     try {
@@ -51,10 +58,10 @@ export function PredictionMatchAdmin({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ matches }),
       });
-      if (!res.ok) throw new Error("저장에 실패했습니다");
-      setStatus({ type: "success", message: "성공적으로 저장되었습니다!" });
+      if (!res.ok) throw new Error("저장에 실패했습니다.");
+      setStatus({ type: "success", message: "성공적으로 저장되었습니다." });
     } catch (err) {
-      setStatus({ type: "error", message: err instanceof Error ? err.message : "저장 중 오류 발생" });
+      setStatus({ type: "error", message: err instanceof Error ? err.message : "저장 중 오류가 발생했습니다." });
     } finally {
       setIsSaving(false);
     }
@@ -69,9 +76,7 @@ export function PredictionMatchAdmin({
             className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 shadow-sm transition-all hover:bg-white/[0.04]"
           >
             <div className="mb-4 flex items-center justify-between border-b border-white/5 pb-2">
-              <span className="text-xs font-black uppercase tracking-widest text-nzu-green">
-                Match {idx + 1}
-              </span>
+              <span className="text-xs font-black uppercase tracking-widest text-nzu-green">Match {idx + 1}</span>
               <span className="text-[10px] font-bold text-white/30">{match.id}</span>
             </div>
 
@@ -80,6 +85,7 @@ export function PredictionMatchAdmin({
                 <label className="text-[11px] font-black uppercase tracking-wider text-white/50">Team A</label>
                 <select
                   value={match.team_a_code || ""}
+                  disabled={readOnly}
                   onChange={(e) => handleChange(idx, "team_a_code", e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white focus:border-nzu-green/50 focus:outline-none"
                 >
@@ -96,6 +102,7 @@ export function PredictionMatchAdmin({
                 <label className="text-[11px] font-black uppercase tracking-wider text-white/50">Team B</label>
                 <select
                   value={match.team_b_code || ""}
+                  disabled={readOnly}
                   onChange={(e) => handleChange(idx, "team_b_code", e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white focus:border-nzu-green/50 focus:outline-none"
                 >
@@ -113,6 +120,7 @@ export function PredictionMatchAdmin({
                 <input
                   type="text"
                   value={match.title || ""}
+                  disabled={readOnly}
                   onChange={(e) => handleChange(idx, "title", e.target.value)}
                   placeholder="예: 6강 1경기"
                   className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white focus:border-nzu-green/50 focus:outline-none"
@@ -124,6 +132,7 @@ export function PredictionMatchAdmin({
                 <input
                   type="datetime-local"
                   value={toKstDateTimeInput(match.start_at)}
+                  disabled={readOnly}
                   onChange={(e) => {
                     handleChange(idx, "start_at", fromKstDateTimeInput(e.target.value));
                   }}
@@ -151,7 +160,7 @@ export function PredictionMatchAdmin({
         </div>
         <button
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={isSaving || readOnly}
           className="flex items-center gap-2 rounded-xl bg-nzu-green px-6 py-3 text-sm font-black uppercase tracking-widest text-black transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
         >
           <Save size={16} />

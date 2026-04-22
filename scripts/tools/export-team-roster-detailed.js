@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
 const { defaultProfileUrlForPlayer } = require("./lib/eloboard-special-cases");
+const { clearRemoteResumeMarker, loadMergedRosterAdminState } = require("./lib/roster-admin-store");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-team-records.js");
@@ -283,7 +284,7 @@ function clearResumeMarker(player, resumes) {
   });
 }
 
-function main() {
+async function main() {
   const rosterPath = argValue("--roster-path", "");
   if (!rosterPath) {
     throw new Error("Missing --roster-path. Provide a team roster metadata file.");
@@ -304,8 +305,9 @@ function main() {
   const teamName = argValue("--univ", rosterJson.team_name || "team");
   const roster = Array.isArray(rosterJson.roster) ? rosterJson.roster : [];
   const players = limit > 0 ? roster.slice(0, limit) : roster;
-  const exclusions = loadCollectionExclusions();
-  let resumes = loadCollectionResumes();
+  const rosterAdminState = await loadMergedRosterAdminState();
+  const exclusions = mergeCollectionRows(loadCollectionExclusions(), rosterAdminState.exclusions || []);
+  let resumes = mergeCollectionRows(loadCollectionResumes(), rosterAdminState.resumes || []);
 
   const summary = {
     generated_at: new Date().toISOString(),
@@ -441,6 +443,7 @@ function main() {
         if (forceRefresh) {
           resumes = clearResumeMarker(p, resumes);
           writeCollectionResumes(resumes);
+          await clearRemoteResumeMarker(String(p && p.entity_id ? p.entity_id : "").trim());
         }
       }
 
@@ -517,8 +520,24 @@ function main() {
   console.log(`report: ${reportPath}`);
 }
 
+function mergeCollectionRows(localRows, remoteRows) {
+  const merged = new Map();
+  for (const row of [...(Array.isArray(localRows) ? localRows : []), ...(Array.isArray(remoteRows) ? remoteRows : [])]) {
+    const entityId = String(row && row.entity_id ? row.entity_id : "").trim();
+    const wrId = Number(row && row.wr_id ? row.wr_id : 0);
+    const name = normalizeName(row && row.name ? row.name : "");
+    const key = entityId ? `entity:${entityId}` : Number.isFinite(wrId) && wrId > 0 ? `wr:${wrId}` : name ? `name:${name}` : "";
+    if (!key) continue;
+    merged.set(key, row);
+  }
+  return [...merged.values()];
+}
+
 if (require.main === module) {
-  main();
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
 }
 
 module.exports = {

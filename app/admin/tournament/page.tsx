@@ -6,31 +6,59 @@ import LogoutButton from "../ops/LogoutButton";
 import { Search, Target, Trash2, Crown, Plus, X } from "lucide-react";
 import { TierBadge } from "@/components/ui/nzu-badges";
 
+type TournamentPagePlayer = {
+  id: string;
+  name: string;
+  nickname?: string | null;
+  race?: string | null;
+  tier?: string | null;
+};
+
+type TournamentPageTeam = {
+  teamCode: string;
+  teamName: string;
+  captainPlayerId: string;
+  players: TournamentPagePlayer[];
+  playerCount: number;
+};
+
+type TournamentTeamsResponse = {
+  ok: boolean;
+  players?: TournamentPagePlayer[];
+  tournament_teams?: Array<{
+    code: string;
+    name: string;
+    captainPlayerId?: string;
+    player_count?: number;
+    players?: TournamentPagePlayer[];
+  }>;
+  message?: string;
+};
 
 export const dynamic = "force-dynamic";
 
 export default function TournamentManagementPage() {
-  const [teams, setTeams] = useState<any[]>([]);
-  const [dbPlayers, setDbPlayers] = useState<any[]>([]);
+  const [teams, setTeams] = useState<TournamentPageTeam[]>([]);
+  const [dbPlayers, setDbPlayers] = useState<TournamentPagePlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [selectedPlayerToRecruit, setSelectedPlayerToRecruit] = useState<any>(null);
+  const [selectedPlayerToRecruit, setSelectedPlayerToRecruit] = useState<TournamentPagePlayer | null>(null);
   const [dbQuery, setDbQuery] = useState("");
   const [message, setMessage] = useState("");
 
   const loadData = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/roster?source=db");
-      const json = await res.json();
+      const json = (await res.json()) as TournamentTeamsResponse;
       
       if (json.ok) {
         setDbPlayers(json.players || []);
         if (json.tournament_teams) {
-          setTeams(json.tournament_teams.map((team: any) => ({
+          setTeams(json.tournament_teams.map((team) => ({
             teamCode: team.code,
             teamName: team.name,
             captainPlayerId: team.captainPlayerId || "",
-            players: (team.players || []).map((player: any) => ({
+            players: (team.players || []).map((player) => ({
               id: player.id,
               name: player.name,
               race: player.race,
@@ -201,7 +229,7 @@ export default function TournamentManagementPage() {
                       .filter(p => (p.name || "").includes(dbQuery) || (p.nickname || "").includes(dbQuery))
                       .slice(0, 10)
                       .map(p => {
-                        const isAlreadyInSomeTeam = teams.some(t => (t.players || []).some((pl: any) => String(pl.id) === String(p.id)));
+                        const isAlreadyInSomeTeam = teams.some(t => (t.players || []).some((pl) => String(pl.id) === String(p.id)));
                         return (
                           <div 
                             key={p.id} 
@@ -268,7 +296,7 @@ export default function TournamentManagementPage() {
                             className="bg-transparent text-sm font-black text-white outline-none appearance-none cursor-pointer text-center w-full"
                           >
                             <option value="" className="bg-black">미지정</option>
-                            {team.players.map((p: any) => (<option key={p.id} value={p.id} className="bg-black">{p.name}</option>))}
+                            {team.players.map((p) => (<option key={p.id} value={p.id} className="bg-black">{p.name}</option>))}
                           </select>
                        </div>
                     </div>
@@ -279,7 +307,7 @@ export default function TournamentManagementPage() {
                       if (a.id === team.captainPlayerId) return -1;
                       if (b.id === team.captainPlayerId) return 1;
                       return 0;
-                    })).map((p: any) => (
+                    })).map((p) => (
                       <div key={p.id} className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.03] border border-white/5 group/row hover:bg-white/10 transition-all shadow-lg">
                         <div className="flex items-center gap-4">
                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-lg border ${
@@ -296,7 +324,7 @@ export default function TournamentManagementPage() {
                                {team.captainPlayerId === p.id && <Crown size={14} className="text-amber-400" />}
                              </div>
                              <div className="mt-1 flex gap-2">
-                               <TierBadge tier={p.tier} size="xs" />
+                                <TierBadge tier={p.tier || ""} size="xs" />
                              </div>
                            </div>
                         </div>

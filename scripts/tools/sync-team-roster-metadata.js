@@ -11,12 +11,17 @@ const {
   normalizeProfileUrl,
 } = require("./lib/eloboard-special-cases");
 const { ensureAutoDiscoveredTeamProjects } = require("./lib/team-project-discovery");
+const {
+  loadMergedRosterAdminState,
+  shouldApplyManualAffiliationOverride,
+  shouldApplyManualRaceOverride,
+  shouldApplyManualTierOverride,
+} = require("./lib/roster-admin-store");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const REPORT_DIR = path.join(ROOT, "tmp", "reports");
 const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORT_DIR, "manual_refresh_baseline.json");
-const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const FA_UNIV_FALLBACKS = ["연합팀", "FA", "무소속"];
 
 function argValue(flag, fallback = "") {
@@ -31,16 +36,6 @@ function hasFlag(flag) {
 
 function readJson(p) {
   return JSON.parse(fs.readFileSync(p, "utf8").replace(/^\uFEFF/, ""));
-}
-
-function readManualOverrides() {
-  if (!fs.existsSync(OVERRIDES_PATH)) return [];
-  try {
-    const doc = readJson(OVERRIDES_PATH);
-    return Array.isArray(doc.overrides) ? doc.overrides : [];
-  } catch {
-    return [];
-  }
 }
 
 function buildLegacyEntityIdsBySuccessor(manualOverrides) {
@@ -775,7 +770,7 @@ async function main() {
     }
   }
 
-  const manualOverrides = readManualOverrides();
+  const { overrides: manualOverrides } = await loadMergedRosterAdminState();
   const retiredEntityIds = buildRetiredEntityIds(manualOverrides);
   const legacyEntityIdsBySuccessor = buildLegacyEntityIdsBySuccessor(manualOverrides);
   const appliedManualOverrides = [];
@@ -796,9 +791,9 @@ async function main() {
     if (!base) continue;
 
     const next = { ...base };
-    if (ov.team_code) next.team_code = String(ov.team_code).toLowerCase();
-    if (ov.tier) next.tier = String(ov.tier);
-    if (ov.race) next.race = String(ov.race);
+    if (shouldApplyManualAffiliationOverride(ov)) next.team_code = String(ov.team_code).toLowerCase();
+    if (shouldApplyManualTierOverride(ov)) next.tier = String(ov.tier);
+    if (shouldApplyManualRaceOverride(ov)) next.race = String(ov.race);
     if (ov.name) next.name = String(ov.name);
     observedByEntity.set(entityId, next);
     appliedManualOverrides.push({

@@ -50,7 +50,7 @@ export default async function AdminHeroMediaPage() {
         <div className="space-y-2">
           <h1 className="text-3xl font-black tracking-tight text-white">히어로 미디어 관리</h1>
           <p className="text-sm text-white/55">
-            메인 페이지 첫 화면을 가득 채우는 대표 이미지와 영상을 업로드하고, 어떤 항목을 노출할지 바로 바꿀 수 있습니다.
+            메인 페이지 첫 화면을 채우는 대표 이미지와 영상을 업로드하고, 어떤 항목을 노출할지 바로 바꿀 수 있습니다.
           </p>
         </div>
 

@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { playerService } from "@/lib/player-service";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/components/ThemeProvider";
 import { 
   Play,
   Compass,
@@ -16,9 +13,6 @@ import {
   Calendar,
   Settings,
   Menu,
-  ChevronRight,
-  ChevronLeft,
-  PanelLeftClose,
 } from "lucide-react";
 
 const featureItems = [
@@ -33,8 +27,6 @@ const featureItems = [
 
 export default function SidebarNav() {
   const [liveCount, setLiveCount] = useState(0);
-  const { theme, toggleTheme } = useTheme();
-  const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(true);
 
   useEffect(() => {

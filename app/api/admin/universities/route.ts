@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { ADMIN_SESSION_COOKIE, assertValidAdminSession } from "@/lib/admin-auth";
+import { getAdminWriteDisabledMessage, isAdminWriteDisabled } from "@/lib/admin-runtime";
 import {
   readUniversityMetadata,
   writeUniversityMetadata,
@@ -38,6 +39,12 @@ export async function POST(req: Request) {
   try {
     const cookieStore = await cookies();
     assertValidAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+    if (isAdminWriteDisabled()) {
+      return NextResponse.json(
+        { ok: false, message: getAdminWriteDisabledMessage("대학 메타데이터 수정") },
+        { status: 403 }
+      );
+    }
     const body = (await req.json().catch(() => ({}))) as { university?: unknown };
     const entry = normalizePayloadEntry(body.university);
 
@@ -63,6 +70,12 @@ export async function PATCH(req: Request) {
   try {
     const cookieStore = await cookies();
     assertValidAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+    if (isAdminWriteDisabled()) {
+      return NextResponse.json(
+        { ok: false, message: getAdminWriteDisabledMessage("대학 메타데이터 수정") },
+        { status: 403 }
+      );
+    }
     const body = (await req.json().catch(() => ({}))) as { university?: unknown };
     const entry = normalizePayloadEntry(body.university);
 
@@ -89,6 +102,12 @@ export async function DELETE(req: Request) {
   try {
     const cookieStore = await cookies();
     assertValidAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+    if (isAdminWriteDisabled()) {
+      return NextResponse.json(
+        { ok: false, message: getAdminWriteDisabledMessage("대학 메타데이터 수정") },
+        { status: 403 }
+      );
+    }
     const body = (await req.json().catch(() => ({}))) as { code?: string };
     const code = String(body.code || "").trim();
 

@@ -28,6 +28,37 @@ type IdentityResolution = {
   soopOverride: SoopIdentityOverride | null;
 };
 
+function isFixedAffiliationOverride(row?: {
+  manual_lock?: boolean;
+  manual_mode?: "temporary" | "fixed";
+} | null) {
+  return Boolean(row?.manual_lock === true && row?.manual_mode === "fixed");
+}
+
+function shouldApplyManualAffiliationOverride(row?: { team_code?: string } | null) {
+  return Boolean(String(row?.team_code || "").trim());
+}
+
+function shouldApplyManualTierOverride(
+  row?: {
+    tier?: string;
+    manual_lock?: boolean;
+    manual_mode?: "temporary" | "fixed";
+  } | null
+) {
+  return Boolean(String(row?.tier || "").trim()) && !isFixedAffiliationOverride(row);
+}
+
+function shouldApplyManualRaceOverride(
+  row?: {
+    race?: string;
+    manual_lock?: boolean;
+    manual_mode?: "temporary" | "fixed";
+  } | null
+) {
+  return Boolean(String(row?.race || "").trim()) && !isFixedAffiliationOverride(row);
+}
+
 let cachedSearchAliasesMtimeMs: number | null = null;
 let cachedSearchAliases = new Map<string, string[]>();
 let cachedDisplayAliasesMtimeMs: number | null = null;
@@ -179,6 +210,8 @@ function loadManualRosterOverrides(): Map<string, RosterPlayerOverride> {
       race?: string;
       name?: string;
       soop_id?: string;
+      manual_lock?: boolean;
+      manual_mode?: "temporary" | "fixed";
     }>;
   }>(filePath);
 
@@ -186,9 +219,11 @@ function loadManualRosterOverrides(): Map<string, RosterPlayerOverride> {
     const entityId = String(row?.entity_id || "").trim();
     if (!entityId) continue;
     overrides.set(entityId, {
-      university: String(row?.team_name || row?.team_code || "").trim() || undefined,
-      tier: String(row?.tier || "").trim() || undefined,
-      race: String(row?.race || "").trim() || undefined,
+      university: shouldApplyManualAffiliationOverride(row)
+        ? String(row?.team_name || row?.team_code || "").trim() || undefined
+        : undefined,
+      tier: shouldApplyManualTierOverride(row) ? String(row?.tier || "").trim() || undefined : undefined,
+      race: shouldApplyManualRaceOverride(row) ? String(row?.race || "").trim() || undefined : undefined,
       display_name: String(row?.name || "").trim() || undefined,
       soop_id: String(row?.soop_id || "").trim() || undefined,
     });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getAdminWriteDisabledMessage } from "@/lib/admin-runtime";
 
 type ApiStatus = {
   ok: boolean;
@@ -31,7 +32,7 @@ type RuleDoc = {
   };
 };
 
-export default function OpsControls() {
+export default function OpsControls({ readOnly = false }: { readOnly?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
   const [status, setStatus] = useState<ApiStatus | null>(null);
@@ -51,13 +52,19 @@ export default function OpsControls() {
   }
 
   useEffect(() => {
-    loadStatus();
-    loadRules();
-    const t = setInterval(loadStatus, 5000);
-    return () => clearInterval(t);
+    void loadStatus();
+    void loadRules();
+    const timer = setInterval(() => {
+      void loadStatus();
+    }, 5000);
+    return () => clearInterval(timer);
   }, []);
 
   async function run(mode: "full" | "smoke") {
+    if (readOnly) {
+      setMsg(getAdminWriteDisabledMessage("파이프라인 수동 실행"));
+      return;
+    }
     setLoading(true);
     setMsg("");
     try {
@@ -68,13 +75,13 @@ export default function OpsControls() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setMsg(json?.message || "실행 실패");
+        setMsg(json?.message || "실행에 실패했습니다.");
       } else {
-        setMsg(mode === "full" ? "전체 파이프라인 실행 시작됨" : "smoke 실행 시작됨");
+        setMsg(mode === "full" ? "전체 파이프라인 실행을 시작했습니다." : "Smoke 실행을 시작했습니다.");
       }
       await loadStatus();
     } catch {
-      setMsg("실행 중 오류 발생");
+      setMsg("실행 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -82,6 +89,10 @@ export default function OpsControls() {
 
   async function saveRules() {
     if (!rules) return;
+    if (readOnly) {
+      setMsg(getAdminWriteDisabledMessage("파이프라인 알림 규칙 수정"));
+      return;
+    }
     setSavingRules(true);
     setMsg("");
     try {
@@ -92,52 +103,52 @@ export default function OpsControls() {
       });
       const json = await res.json();
       setRules(json?.rules || rules);
-      setMsg("알림 규칙 저장 완료");
+      setMsg("알림 규칙을 저장했습니다.");
     } catch {
-      setMsg("알림 규칙 저장 실패");
+      setMsg("알림 규칙 저장에 실패했습니다.");
     } finally {
       setSavingRules(false);
     }
   }
 
   return (
-    <section className="border border-border rounded-lg p-4 bg-card space-y-3">
-      <h2 className="font-bold">Run Controls</h2>
+    <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+      <h2 className="font-bold">실행 제어</h2>
       <div className="flex gap-2">
         <button
           onClick={() => run("full")}
-          disabled={loading}
-          className="px-3 py-2 rounded bg-nzu-green text-white text-sm font-bold disabled:opacity-50"
+          disabled={loading || readOnly}
+          className="rounded bg-nzu-green px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
         >
           전체 실행
         </button>
         <button
           onClick={() => run("smoke")}
-          disabled={loading}
-          className="px-3 py-2 rounded bg-zinc-700 text-white text-sm font-bold disabled:opacity-50"
+          disabled={loading || readOnly}
+          className="rounded bg-zinc-700 px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
         >
           Smoke 실행(흑카데미)
         </button>
       </div>
       {msg ? <p className="text-sm text-muted-foreground">{msg}</p> : null}
-      <div className="text-xs text-muted-foreground space-y-1">
+      <div className="space-y-1 text-xs text-muted-foreground">
         <p>
-          상태: {status?.state?.status || "idle"}{" "}
-          {status?.state?.status === "running" ? `(pid ${status.state.pid})` : ""}
+          상태: {status?.state?.status || "idle"} {status?.state?.status === "running" ? `(pid ${status.state.pid})` : ""}
         </p>
         <p>마지막 스냅샷: {status?.latest_snapshot || "-"}</p>
         <p>마지막 알림: {status?.latest_alerts || "-"}</p>
       </div>
 
-      <div className="pt-2 border-t border-border space-y-2">
-        <h3 className="font-semibold text-sm">Alert Rules</h3>
+      <div className="space-y-2 border-t border-border pt-2">
+        <h3 className="text-sm font-semibold">알림 규칙</h3>
         {rules ? (
-          <div className="grid md:grid-cols-2 gap-2 text-sm">
+          <div className="grid gap-2 text-sm md:grid-cols-2">
             <label className="flex items-center justify-between gap-2">
               <span>no_new_matches 감지</span>
               <input
                 type="checkbox"
                 checked={rules.rules.no_new_matches_enabled}
+                disabled={readOnly}
                 onChange={(e) =>
                   setRules({
                     ...rules,
@@ -150,13 +161,14 @@ export default function OpsControls() {
               <span>no_new_matches severity</span>
               <select
                 value={rules.rules.no_new_matches_severity}
+                disabled={readOnly}
                 onChange={(e) =>
                   setRules({
                     ...rules,
                     rules: { ...rules.rules, no_new_matches_severity: e.target.value },
                   })
                 }
-                className="bg-card border border-border rounded px-2 py-1"
+                className="rounded border border-border bg-card px-2 py-1"
               >
                 <option value="low">low</option>
                 <option value="medium">medium</option>
@@ -166,12 +178,12 @@ export default function OpsControls() {
             </label>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">규칙 로딩 중...</p>
+          <p className="text-xs text-muted-foreground">규칙을 불러오는 중입니다...</p>
         )}
         <button
           onClick={saveRules}
-          disabled={savingRules || !rules}
-          className="px-3 py-2 rounded bg-zinc-700 text-white text-sm font-bold disabled:opacity-50"
+          disabled={savingRules || !rules || readOnly}
+          className="rounded bg-zinc-700 px-3 py-2 text-sm font-bold text-white disabled:opacity-50"
         >
           규칙 저장
         </button>

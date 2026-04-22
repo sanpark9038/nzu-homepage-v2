@@ -237,6 +237,57 @@ export type Database = {
         }
         Relationships: []
       }
+      roster_admin_corrections: {
+        Row: {
+          entity_id: string
+          excluded: boolean
+          exclusion_reason: string | null
+          manual_lock: boolean
+          manual_mode: string | null
+          name: string | null
+          note: string | null
+          race: string | null
+          resume_requested_at: string | null
+          team_code: string | null
+          team_name: string | null
+          tier: string | null
+          updated_at: string
+          wr_id: number | null
+        }
+        Insert: {
+          entity_id: string
+          excluded?: boolean
+          exclusion_reason?: string | null
+          manual_lock?: boolean
+          manual_mode?: string | null
+          name?: string | null
+          note?: string | null
+          race?: string | null
+          resume_requested_at?: string | null
+          team_code?: string | null
+          team_name?: string | null
+          tier?: string | null
+          updated_at?: string
+          wr_id?: number | null
+        }
+        Update: {
+          entity_id?: string
+          excluded?: boolean
+          exclusion_reason?: string | null
+          manual_lock?: boolean
+          manual_mode?: string | null
+          name?: string | null
+          note?: string | null
+          race?: string | null
+          resume_requested_at?: string | null
+          team_code?: string | null
+          team_name?: string | null
+          tier?: string | null
+          updated_at?: string
+          wr_id?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

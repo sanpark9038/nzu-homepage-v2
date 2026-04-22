@@ -1,6 +1,8 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState } from "react";
+import { getAdminWriteDisabledMessage } from "@/lib/admin-runtime";
 
 type HeroMediaEntry = {
   id: string;
@@ -12,7 +14,13 @@ type HeroMediaEntry = {
 
 const MAX_RECOMMENDED_VIDEO_SIZE_MB = 50;
 
-export default function HeroMediaAdmin({ initialMedia }: { initialMedia: HeroMediaEntry[] }) {
+export default function HeroMediaAdmin({
+  initialMedia,
+  readOnly = false,
+}: {
+  initialMedia: HeroMediaEntry[];
+  readOnly?: boolean;
+}) {
   const [media, setMedia] = useState<HeroMediaEntry[]>(initialMedia);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,8 +47,12 @@ export default function HeroMediaAdmin({ initialMedia }: { initialMedia: HeroMed
   }
 
   async function uploadMedia() {
+    if (readOnly) {
+      setMessage(getAdminWriteDisabledMessage("히어로 미디어 수정"));
+      return;
+    }
     if (!file) {
-      setMessage("업로드할 이미지 또는 영상을 먼저 선택해 주세요.");
+      setMessage("업로드할 이미지 또는 영상을 먼저 선택해주세요.");
       return;
     }
 
@@ -77,6 +89,10 @@ export default function HeroMediaAdmin({ initialMedia }: { initialMedia: HeroMed
   }
 
   async function setActive(id: string) {
+    if (readOnly) {
+      setMessage(getAdminWriteDisabledMessage("히어로 미디어 수정"));
+      return;
+    }
     setLoading(true);
     setMessage("");
     try {
@@ -97,6 +113,10 @@ export default function HeroMediaAdmin({ initialMedia }: { initialMedia: HeroMed
   }
 
   async function deleteMedia(id: string) {
+    if (readOnly) {
+      setMessage(getAdminWriteDisabledMessage("히어로 미디어 수정"));
+      return;
+    }
     if (pendingDeleteId !== id) {
       setPendingDeleteId(id);
       setMessage("같은 삭제 버튼을 한 번 더 누르면 Supabase 저장소 파일까지 함께 삭제됩니다.");
@@ -136,6 +156,7 @@ export default function HeroMediaAdmin({ initialMedia }: { initialMedia: HeroMed
             <input
               type="file"
               accept=".jpg,.jpeg,.png,.webp,.mp4,.webm,image/*,video/mp4,video/webm"
+              disabled={readOnly}
               onChange={(event) => setFile(event.target.files?.[0] || null)}
               className="block w-full rounded-xl border border-white/10 bg-background px-4 py-3 text-sm font-bold text-white file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-black file:text-white"
             />
@@ -143,6 +164,7 @@ export default function HeroMediaAdmin({ initialMedia }: { initialMedia: HeroMed
               <input
                 type="checkbox"
                 checked={activateOnUpload}
+                disabled={readOnly}
                 onChange={(event) => setActivateOnUpload(event.target.checked)}
                 className="h-4 w-4 rounded border-white/20 bg-background"
               />
@@ -152,7 +174,7 @@ export default function HeroMediaAdmin({ initialMedia }: { initialMedia: HeroMed
 
           <button
             onClick={uploadMedia}
-            disabled={loading}
+            disabled={loading || readOnly}
             className="inline-flex min-h-12 items-center justify-center rounded-xl bg-nzu-green px-5 text-sm font-black text-black disabled:opacity-50"
           >
             업로드
@@ -206,7 +228,7 @@ export default function HeroMediaAdmin({ initialMedia }: { initialMedia: HeroMed
                   <button
                     type="button"
                     onClick={() => setActive(entry.id)}
-                    disabled={loading || Boolean(entry.is_active)}
+                    disabled={loading || Boolean(entry.is_active) || readOnly}
                     className="inline-flex min-h-11 items-center justify-center rounded-xl bg-nzu-green px-4 text-sm font-black text-black disabled:opacity-50"
                   >
                     대표로 적용
@@ -214,7 +236,7 @@ export default function HeroMediaAdmin({ initialMedia }: { initialMedia: HeroMed
                   <button
                     type="button"
                     onClick={() => deleteMedia(entry.id)}
-                    disabled={loading}
+                    disabled={loading || readOnly}
                     className={`inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-black disabled:opacity-50 ${
                       pendingDeleteId === entry.id
                         ? "border border-red-300/60 bg-red-500/20 text-red-100"

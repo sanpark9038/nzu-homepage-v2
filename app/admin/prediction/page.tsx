@@ -30,38 +30,38 @@ export default async function AdminPredictionPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="max-w-4xl mx-auto w-full px-4 py-12">
+      <main className="mx-auto w-full max-w-4xl px-4 py-12">
         <AdminNav />
-        <header className="mb-12 flex justify-between items-start">
+        <header className="mb-12 flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-               <span className="px-2 py-0.5 bg-nzu-green/10 text-nzu-green border border-nzu-green/20 rounded text-[10px] font-black uppercase tracking-widest">
-                  Admin Control
-               </span>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="rounded border border-nzu-green/20 bg-nzu-green/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-nzu-green">
+                Admin Control
+              </span>
             </div>
-            <h1 className="text-4xl font-black tracking-tighter uppercase italic">
-               Prediction <span className="gradient-text">Admin</span>
+            <h1 className="text-4xl font-black uppercase italic tracking-tighter">
+              Prediction <span className="gradient-text">Admin</span>
             </h1>
-            <p className="text-muted-foreground text-sm mt-1">대진 및 경기 시간 설정</p>
+            <p className="mt-1 text-sm text-muted-foreground">대진 및 경기 시간을 설정합니다.</p>
           </div>
           <LogoutButton />
         </header>
 
-        <section className="bg-card border border-border/40 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-nzu-green/5 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
-           
-           <div className="relative">
-              <PredictionMatchAdmin initialMatches={config.matches || []} teams={teamList} />
-           </div>
+        <section className="relative overflow-hidden rounded-[2.5rem] border border-border/40 bg-card p-8 shadow-2xl md:p-12">
+          <div className="absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-nzu-green/5 blur-[100px]" />
+
+          <div className="relative">
+            <PredictionMatchAdmin initialMatches={config.matches || []} teams={teamList} />
+          </div>
         </section>
 
-        <footer className="mt-12 p-6 border border-border/20 rounded-2xl bg-muted/5">
-           <h3 className="text-xs font-black uppercase tracking-widest mb-3 opacity-60">Admin Notice</h3>
-           <ul className="text-[11px] text-muted-foreground space-y-2 list-disc pl-4">
-              <li>수정된 내용은 즉시 반영됩니다.</li>
-              <li>경기 시간은 한국 시간(KST) 기준입니다.</li>
-              <li>경기 시작 30분 전부터 투표가 마감됩니다.</li>
-           </ul>
+        <footer className="mt-12 rounded-2xl border border-border/20 bg-muted/5 p-6">
+          <h3 className="mb-3 text-xs font-black uppercase tracking-widest opacity-60">Admin Notice</h3>
+          <ul className="list-disc space-y-2 pl-4 text-[11px] text-muted-foreground">
+            <li>수정된 내용은 즉시 반영됩니다.</li>
+            <li>경기 시간은 한국 시간(KST) 기준입니다.</li>
+            <li>경기 시작 30분 전부터 투표가 마감됩니다.</li>
+          </ul>
         </footer>
       </main>
     </div>

@@ -1,7 +1,7 @@
 
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect } from 'react'
 
 type Theme = 'light' | 'dark'
 
@@ -14,11 +14,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark')
-
-  useEffect(() => {
-    setThemeState('dark')
-  }, [])
+  const theme: Theme = 'dark'
 
   useEffect(() => {
     const root = window.document.documentElement
@@ -27,14 +23,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('nzu-theme', theme)
   }, [theme])
 
-  const setTheme = (newTheme: Theme) => {} // No-op
+  const setTheme: ThemeContextType["setTheme"] = () => {} // No-op
   const toggleTheme = () => {} // No-op
 
-  return (
-    <ThemeContext.Provider value={{ theme: 'dark', setTheme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  )
+  return <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>{children}</ThemeContext.Provider>
 }
 
 export function useTheme() {
