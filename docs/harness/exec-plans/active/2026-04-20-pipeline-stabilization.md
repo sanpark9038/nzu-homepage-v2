@@ -89,6 +89,11 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 - `supabase-prod-sync.js` now fail-closes when stable CSV history is lower quality than existing `fact_matches` history, writes `tmp/reports/prod_sync_history_quality_latest.json`, and refuses prod sync when `match_history.opponent_name` coverage is catastrophically low
 - `report-homepage-integrity.js` now reports `summary.match_history`, and `run-daily-pipeline.js` can escalate degraded opponent-name coverage as `match_history_quality_degraded`
 - current live integrity snapshot after the repair reports `match_history_total_rows=132055`, `opponent_name_fill_rate=0.9998`, and `players_with_blank_opponent_rows=1`
+- current branch is now cleanly split into follow-up commits after `6adb505`:
+- `24d99bb` prod-sync / integrity guard
+- `0117fc5` public H2H recovery
+- `a033ffc` homepage lint suppression only
+- `2901260` roster metadata content refresh
 - the remaining practical blocker before shipping is no longer runtime readiness; it is deciding which current worktree changes belong in the deployment-scoped commit versus which should be deferred
 - deployment-visible admin copy has now been normalized again across hero media, rankings, prediction, ops, universities, and roster split pages
 - `/admin/roster` is now split into general corrections and manual-team management

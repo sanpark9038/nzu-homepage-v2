@@ -98,6 +98,28 @@ Purpose: keep the deployment-scoped commit focused on pipeline stabilization and
 - `components/battle-grid/TeamSelector.tsx`: keep if the deployment-scoped commit must stay lint-green by itself
 - reason: this is small battle-grid cleanup, but the current diff removed repo-green lint friction
 
+## Current Deployment Bundle Recommendation
+
+- Recommended runtime-safety deployment bundle:
+- `6adb505` `Stabilize deployment-scoped admin roster flow`
+- `24d99bb` `Guard prod sync match history quality`
+- `0117fc5` `Improve public H2H recovery paths`
+
+- Optional low-risk follow-up:
+- `a033ffc` `Suppress homepage img lint warning`
+
+- Separate content update unless the deployment explicitly wants the latest roster snapshot:
+- `2901260` `Refresh project roster metadata`
+
+- Keep out of the immediate runtime bundle:
+- `9713bcd` `Document session startup hardening and lessons learned`
+- reason: useful repo hardening, but not required for user-facing runtime recovery
+
+- Rationale:
+- `24d99bb` prevents a repeat of the blank `match_history.opponent_name` regression and surfaces integrity/ops warnings if it starts drifting again
+- `0117fc5` is the user-facing H2H recovery that made `/entry` and `/match` show real records again
+- `2901260` is coherent as a content/roster refresh, but it changes public roster state and should be included only if that roster snapshot is intended for this rollout
+
 ## Current Worktree Triage
 
 - Stage now for the deployment-scoped commit from the current worktree:
