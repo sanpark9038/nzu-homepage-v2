@@ -398,6 +398,7 @@ function loadSearchAliases(): Map<string, string[]> {
   const mappingAliases = mappingDoc && typeof mappingDoc.aliases === "object" ? mappingDoc.aliases : {};
   for (const [aliasName, canonicalName] of Object.entries(mappingAliases)) {
     registerSearchAlias(aliases, String(canonicalName || ""), String(aliasName || ""));
+    registerSearchAlias(aliases, String(aliasName || ""), String(canonicalName || ""));
   }
 
   const displayDoc = readJsonFile<{
@@ -407,11 +408,13 @@ function loadSearchAliases(): Map<string, string[]> {
   const globalRows = Array.isArray(displayDoc?.global) ? displayDoc.global : [];
   for (const row of globalRows) {
     registerSearchAlias(aliases, String(row?.name || ""), String(row?.display_name || ""));
+    registerSearchAlias(aliases, String(row?.display_name || ""), String(row?.name || ""));
   }
   const teams = displayDoc && typeof displayDoc.teams === "object" ? displayDoc.teams : {};
   for (const rows of Object.values(teams)) {
     for (const row of Array.isArray(rows) ? rows : []) {
       registerSearchAlias(aliases, String(row?.name || ""), String(row?.display_name || ""));
+      registerSearchAlias(aliases, String(row?.display_name || ""), String(row?.name || ""));
     }
   }
 

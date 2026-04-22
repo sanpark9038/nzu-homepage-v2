@@ -74,7 +74,12 @@ export function H2HSelectorBar() {
       const cached = h2hRequestCacheRef.current.get(queryKey);
       if (cached) return cached;
 
-      const promise = fetchH2HStats(player1, player2);
+      const promise = fetchH2HStats(player1, player2).then((payload) => {
+        if ((payload?.summary?.total || 0) === 0) {
+          h2hRequestCacheRef.current.delete(queryKey);
+        }
+        return payload;
+      });
       h2hRequestCacheRef.current.set(queryKey, promise);
       promise.catch(() => {
         h2hRequestCacheRef.current.delete(queryKey);

@@ -18,6 +18,7 @@ export interface H2HStats {
     wins: number;
     losses: number;
     winRate: string;
+    olderHistoryExists?: boolean;
     momentum90: {
       total: number;
       wins: number;

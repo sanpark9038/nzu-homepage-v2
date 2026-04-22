@@ -25,6 +25,7 @@ type Match = {
   p1: Player
   p2: Player
   h2h?: H2HStats | null
+  h2hStatus?: 'idle' | 'loading' | 'ready' | 'empty' | 'error'
 }
 
 type H2HLookupProps = {
@@ -41,6 +42,23 @@ function getMatchupStats(stats: H2HStats | null | undefined) {
     overall: [stats.summary.wins, stats.summary.losses] as const,
     recent: [stats.summary.momentum90.wins, stats.summary.momentum90.losses] as const,
   }
+}
+
+const EMPTY_H2H_STATS: H2HStats = {
+  summary: {
+    total: 0,
+    wins: 0,
+    losses: 0,
+    winRate: '0.0',
+    momentum90: {
+      total: 0,
+      wins: 0,
+      losses: 0,
+      winRate: '0.0',
+    },
+  },
+  mapStats: {},
+  recentMatches: [],
 }
 
 function buildGroupedMatches(matchList: Match[]) {
@@ -66,6 +84,8 @@ export default function H2HLookup({
   const [p1, setP1] = useState<Player | null>(null)
   const [p2, setP2] = useState<Player | null>(null)
   const [results, setResults] = useState<H2HStats | null>(null)
+  const [resultResolvedKey, setResultResolvedKey] = useState<string | null>(null)
+  const [resultFailedKey, setResultFailedKey] = useState<string | null>(null)
   const [u1, setU1] = useState('')
   const [u2, setU2] = useState('')
   const [hideEmptyTiers, setHideEmptyTiers] = useState(true)
@@ -73,12 +93,16 @@ export default function H2HLookup({
 
   const matchIdCounter = useRef(0)
   const h2hRequestCacheRef = useRef<Map<string, Promise<H2HStats | null>>>(new Map())
+  const activeResultRequestKeyRef = useRef<string | null>(null)
 
   const resetEntryBoard = useCallback(() => {
     setMatches([])
     setP1(null)
     setP2(null)
     setResults(null)
+    setResultResolvedKey(null)
+    setResultFailedKey(null)
+    activeResultRequestKeyRef.current = null
   }, [])
 
   const nextMatchId = useCallback(() => {
@@ -91,7 +115,12 @@ export default function H2HLookup({
     const cached = h2hRequestCacheRef.current.get(queryKey)
     if (cached) return cached
 
-    const promise = fetchH2HStats(left, right)
+    const promise = fetchH2HStats(left, right).then((payload) => {
+      if ((payload?.summary?.total || 0) === 0) {
+        h2hRequestCacheRef.current.delete(queryKey)
+      }
+      return payload
+    })
     h2hRequestCacheRef.current.set(queryKey, promise)
     promise.catch(() => {
       h2hRequestCacheRef.current.delete(queryKey)
@@ -99,13 +128,58 @@ export default function H2HLookup({
     return promise
   }, [])
 
-  useEffect(() => {
-    if (!p1 || !p2) return
+  const selectedResultKey = useMemo(() => {
+    if (!p1 || !p2) return null
+    return buildH2HCacheKey(p1, p2)
+  }, [p1, p2])
 
+  const currentResult = selectedResultKey && resultResolvedKey === selectedResultKey ? results : null
+  const resultStatus = !selectedResultKey
+    ? 'idle'
+    : resultFailedKey === selectedResultKey
+      ? 'error'
+      : resultResolvedKey === selectedResultKey
+        ? (currentResult?.summary?.total || 0) > 0
+          ? 'ready'
+          : 'empty'
+        : 'loading'
+  const displayResult = resultStatus === 'empty' ? EMPTY_H2H_STATS : currentResult
+
+  const selectP1 = useCallback((player: Player) => {
+    setResults(null)
+    setResultResolvedKey(null)
+    setResultFailedKey(null)
+    activeResultRequestKeyRef.current = null
+    setP1((current) => (current?.id === player.id ? null : player))
+  }, [])
+
+  const selectP2 = useCallback((player: Player) => {
+    setResults(null)
+    setResultResolvedKey(null)
+    setResultFailedKey(null)
+    activeResultRequestKeyRef.current = null
+    setP2((current) => (current?.id === player.id ? null : player))
+  }, [])
+
+  useEffect(() => {
+    if (!p1 || !p2 || !selectedResultKey) return
+
+    activeResultRequestKeyRef.current = selectedResultKey
     requestH2HStats(p1, p2)
-      .then((data) => setResults(data))
-      .catch((error) => reportMatchupRuntimeIssue('Entry H2H fetch failed', error))
-  }, [p1, p2, requestH2HStats])
+      .then((data) => {
+        if (activeResultRequestKeyRef.current !== selectedResultKey) return
+        setResults(data)
+        setResultResolvedKey(selectedResultKey)
+        setResultFailedKey(null)
+      })
+      .catch((error) => {
+        if (activeResultRequestKeyRef.current !== selectedResultKey) return
+        reportMatchupRuntimeIssue('Entry H2H fetch failed', error)
+        setResults(null)
+        setResultResolvedKey(null)
+        setResultFailedKey(selectedResultKey)
+      })
+  }, [p1, p2, requestH2HStats, selectedResultKey])
 
   const groupPlayers = useCallback((players: Player[]) => {
     const groups: Record<string, Player[]> = {}
@@ -191,11 +265,26 @@ export default function H2HLookup({
     (left: Player, right: Player) => {
       if (matches.some((match) => match.p1.id === left.id && match.p2.id === right.id)) return
 
-      const newMatch: Match = { id: nextMatchId(), p1: left, p2: right }
+      const newMatch: Match = { id: nextMatchId(), p1: left, p2: right, h2hStatus: 'loading' }
       setMatches((prev) => [...prev, newMatch])
 
       requestH2HStats(left, right).then((data) => {
-        setMatches((prev) => prev.map((match) => (match.id === newMatch.id ? { ...match, h2h: data } : match)))
+        setMatches((prev) =>
+          prev.map((match) =>
+            match.id === newMatch.id
+              ? {
+                  ...match,
+                  h2h: data,
+                  h2hStatus: (data?.summary?.total || 0) > 0 ? 'ready' : 'empty',
+                }
+              : match
+          )
+        )
+      }).catch((error) => {
+        reportMatchupRuntimeIssue('Entry quick-add H2H fetch failed', error)
+        setMatches((prev) =>
+          prev.map((match) => (match.id === newMatch.id ? { ...match, h2h: null, h2hStatus: 'error' } : match))
+        )
       })
     },
     [matches, nextMatchId, requestH2HStats]
@@ -217,7 +306,7 @@ export default function H2HLookup({
       leftGroup.players.forEach((left) => {
         rightGroup.players.forEach((right) => {
           if (!matches.some((match) => match.p1.id === left.id && match.p2.id === right.id)) {
-            newMatches.push({ id: nextMatchId(), p1: left, p2: right })
+            newMatches.push({ id: nextMatchId(), p1: left, p2: right, h2hStatus: 'loading' })
           }
         })
       })
@@ -228,7 +317,22 @@ export default function H2HLookup({
     setMatches((prev) => [...prev, ...newMatches])
     newMatches.forEach((match) => {
       requestH2HStats(match.p1, match.p2).then((data) => {
-        setMatches((prev) => prev.map((entry) => (entry.id === match.id ? { ...entry, h2h: data } : entry)))
+        setMatches((prev) =>
+          prev.map((entry) =>
+            entry.id === match.id
+              ? {
+                  ...entry,
+                  h2h: data,
+                  h2hStatus: (data?.summary?.total || 0) > 0 ? 'ready' : 'empty',
+                }
+              : entry
+          )
+        )
+      }).catch((error) => {
+        reportMatchupRuntimeIssue('Entry auto-match H2H fetch failed', error)
+        setMatches((prev) =>
+          prev.map((entry) => (entry.id === match.id ? { ...entry, h2h: null, h2hStatus: 'error' } : entry))
+        )
       })
     })
   }, [arenaTiers, groups1, groups2, matches, nextMatchId, requestH2HStats, u1, u2])
@@ -359,7 +463,7 @@ export default function H2HLookup({
                         {leftGroup?.players.map((player) => (
                           <button
                             key={player.id}
-                            onClick={() => setP1((current) => (current?.id === player.id ? null : player))}
+                            onClick={() => selectP1(player)}
                             className={cn(
                               'relative flex items-center gap-4 rounded-xl border-2 px-5 py-3 text-base font-black shadow-lg transition-all duration-300',
                               p1?.id === player.id
@@ -381,7 +485,7 @@ export default function H2HLookup({
                         {rightGroup?.players.map((player) => (
                           <button
                             key={player.id}
-                            onClick={() => setP2((current) => (current?.id === player.id ? null : player))}
+                            onClick={() => selectP2(player)}
                             className={cn(
                               'relative flex items-center gap-4 rounded-xl border-2 px-5 py-3 text-base font-black shadow-lg transition-all duration-300',
                               p2?.id === player.id
@@ -453,6 +557,8 @@ export default function H2HLookup({
                             >
                               {group.entries.map(({ match }, index) => {
                                 const matchupStats = getMatchupStats(match.h2h)
+                                const displayMatchupStats =
+                                  matchupStats || (match.h2hStatus === 'empty' ? getMatchupStats(EMPTY_H2H_STATS) : null)
 
                                 return (
                                   <div
@@ -480,31 +586,40 @@ export default function H2HLookup({
                                     </div>
 
                                     <div className="flex items-center justify-center">
-                                      {matchupStats ? (
+                                      {displayMatchupStats ? (
                                         <div className="flex min-w-[82px] flex-col items-center animate-in fade-in zoom-in-90 duration-300">
                                           <div className="flex min-w-[82px] items-center justify-center gap-1">
                                             <span className="min-w-[18px] text-right text-[1.28rem] font-[1000] italic leading-none tabular-nums text-nzu-green md:text-[1.45rem]">
-                                              {matchupStats.overall[0]}
+                                              {displayMatchupStats.overall[0]}
                                             </span>
                                             <span className="min-w-[34px] px-1 text-center text-[11px] font-[1000] italic text-nzu-green/68">
                                               전체
                                             </span>
                                             <span className="min-w-[18px] text-left text-[1.28rem] font-[1000] italic leading-none tabular-nums text-nzu-green md:text-[1.45rem]">
-                                              {matchupStats.overall[1]}
+                                              {displayMatchupStats.overall[1]}
                                             </span>
                                           </div>
                                           <div className="my-0.5 h-px w-[74px] bg-gradient-to-r from-transparent via-white/7 to-transparent" />
                                           <div className="flex min-w-[82px] items-center justify-center gap-1 opacity-75">
                                             <span className="min-w-[16px] text-right text-[1rem] font-[1000] italic leading-none tabular-nums text-red-500/85 md:text-[1.08rem]">
-                                              {matchupStats.recent[0]}
+                                              {displayMatchupStats.recent[0]}
                                             </span>
                                             <span className="min-w-[34px] text-center text-[11px] font-[1000] italic text-red-500/45">
                                               최근
                                             </span>
                                             <span className="min-w-[16px] text-left text-[1rem] font-[1000] italic leading-none tabular-nums text-red-500/85 md:text-[1.08rem]">
-                                              {matchupStats.recent[1]}
+                                              {displayMatchupStats.recent[1]}
                                             </span>
                                           </div>
+                                        </div>
+                                      ) : match.h2hStatus === 'error' ? (
+                                        <div className="flex min-w-[82px] flex-col items-center gap-1">
+                                          <span className="text-[10px] font-[1000] uppercase tracking-[0.18em] text-red-400/80">
+                                            조회 실패
+                                          </span>
+                                          <span className="text-[11px] font-[1000] italic text-white/18">
+                                            재시도 필요
+                                          </span>
                                         </div>
                                       ) : (
                                         <div className="flex min-w-[82px] flex-col items-center gap-1.5">
@@ -547,13 +662,26 @@ export default function H2HLookup({
         </div>
       </div>
 
-      {results && p1 && p2 && (
+      {p1 && p2 && resultStatus !== 'idle' && (
         <section className="relative overflow-hidden rounded-[3rem] border-2 border-nzu-green/40 bg-black/80 p-12 shadow-[0_0_100px_rgba(46,213,115,0.1)] fade-in">
           <div className="absolute right-0 top-0 p-8 opacity-10">
             <Swords className="h-64 w-64 rotate-12 text-nzu-green" />
           </div>
 
           <div className="relative z-10 space-y-12">
+            {resultStatus === 'loading' ? (
+              <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 text-center">
+                <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/10 border-t-nzu-green" />
+                <div className="text-lg font-black text-white">상대전적 불러오는 중</div>
+                <div className="text-sm font-bold text-white/35">2025 이후 표본과 최근 90일 전적을 확인하고 있습니다.</div>
+              </div>
+            ) : resultStatus === 'error' ? (
+              <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 text-center">
+                <div className="text-lg font-black text-red-300">상대전적 조회 실패</div>
+                <div className="text-sm font-bold text-white/35">잠시 후 다시 시도해 주세요.</div>
+              </div>
+            ) : displayResult ? (
+            <>
             <div className="flex items-center justify-between border-b border-white/10 pb-8">
               <div className="flex items-center gap-6">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-nzu-green/20 bg-nzu-green/10">
@@ -571,7 +699,7 @@ export default function H2HLookup({
               <div className="text-right">
                 <span className="mb-2 block text-sm font-bold text-white/40">예상 승률</span>
                 <div className="text-5xl font-black tracking-tighter text-white tabular-nums">
-                  {Math.round((results.summary.wins / (results.summary.wins + results.summary.losses || 1)) * 100)}%
+                  {Math.round((displayResult.summary.wins / (displayResult.summary.wins + displayResult.summary.losses || 1)) * 100)}%
                   <span className="text-nzu-green"> 우세</span>
                 </div>
               </div>
@@ -594,12 +722,12 @@ export default function H2HLookup({
               <div className="flex flex-col items-center space-y-8">
                 <div className="flex items-center gap-8">
                   <div className="text-center">
-                    <div className="mb-2 text-7xl font-black text-white">{results.summary.wins}</div>
+                    <div className="mb-2 text-7xl font-black text-white">{displayResult.summary.wins}</div>
                     <div className="text-[10px] font-black uppercase tracking-widest text-nzu-green">승</div>
                   </div>
                   <div className="text-4xl font-black text-white/10">VS</div>
                   <div className="text-center">
-                    <div className="mb-2 text-7xl font-black text-white/40">{results.summary.losses}</div>
+                    <div className="mb-2 text-7xl font-black text-white/40">{displayResult.summary.losses}</div>
                     <div className="text-[10px] font-black uppercase tracking-widest text-white/10">패</div>
                   </div>
                 </div>
@@ -608,7 +736,7 @@ export default function H2HLookup({
                   <div className="absolute inset-0 bg-gradient-to-r from-nzu-green/20 to-transparent" />
                   <div
                     className="h-full bg-nzu-green shadow-[0_0_20px_#2ed573] transition-all duration-1000"
-                    style={{ width: `${(results.summary.wins / (results.summary.wins + results.summary.losses || 1)) * 100}%` }}
+                    style={{ width: `${(displayResult.summary.wins / (displayResult.summary.wins + displayResult.summary.losses || 1)) * 100}%` }}
                   />
                 </div>
               </div>
@@ -639,6 +767,8 @@ export default function H2HLookup({
                 </span>
               </button>
             </div>
+            </>
+            ) : null}
           </div>
         </section>
       )}

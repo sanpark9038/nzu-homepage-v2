@@ -117,6 +117,63 @@ function hasExactPlayerSearchAliasMatch(player: Partial<Player>, normalizedQuery
   return getPlayerSearchAliases(player).some((alias) => normalizeSearchText(alias) === normalizedQuery);
 }
 
+type PlayerSearchAliasSource = {
+  name?: string | null;
+  nickname?: string | null;
+};
+
+function buildNormalizedPlayerSearchAliasSet(player: PlayerSearchAliasSource) {
+  const aliasSource: Partial<Player> = {
+    name: player.name ?? undefined,
+    nickname: player.nickname ?? undefined,
+  };
+  return new Set<string>(
+    [String(player.name || "").trim(), String(player.nickname || "").trim(), ...getPlayerSearchAliases(aliasSource)]
+      .map((value) => normalizeSearchText(value))
+      .filter(Boolean)
+  );
+}
+
+function buildPlayerRawH2HNameCandidates(player: PlayerSearchAliasSource) {
+  return Array.from(
+    new Set(
+      [String(player.name || "").trim(), String(player.nickname || "").trim(), ...getPlayerSearchAliases(player as Partial<Player>)]
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+function collectHistoryRawOpponentNames(
+  player: MinimalH2HPlayerRow | undefined,
+  opponent: MinimalH2HPlayerRow | undefined
+) {
+  if (!player || !opponent) return [];
+
+  const history = normalizeStoredMatchHistory(player.match_history);
+  if (history.length === 0) return [];
+
+  const opponentIdentityCandidates = new Set<string>(
+    [String(opponent.id || "").trim(), String(opponent.eloboard_id || "").trim()].filter(Boolean)
+  );
+  const opponentNameCandidates = buildNormalizedPlayerSearchAliasSet(opponent);
+
+  return Array.from(
+    new Set(
+      history
+        .filter((item) => {
+          const historyOpponentEntityId = String(item.opponent_entity_id || item.opponentEntityId || "").trim();
+          if (historyOpponentEntityId) {
+            return opponentIdentityCandidates.has(historyOpponentEntityId);
+          }
+          return opponentNameCandidates.has(normalizeSearchText(item.opponent_name || item.opponentName));
+        })
+        .map((item) => String(item.opponent_name || item.opponentName || "").trim())
+        .filter(Boolean)
+    )
+  );
+}
+
 function rankPlayerSearchResults(a: Partial<Player>, b: Partial<Player>, normalizedQuery: string) {
   const aAliasExact = hasExactPlayerSearchAliasMatch(a, normalizedQuery);
   const bAliasExact = hasExactPlayerSearchAliasMatch(b, normalizedQuery);
@@ -273,11 +330,7 @@ function buildDetailedHistoryEntries(
   const p2IdentityCandidates = new Set<string>(
     [String(p2.id || "").trim(), String(p2.eloboard_id || "").trim()].filter(Boolean)
   );
-  const p2NameCandidates = new Set<string>(
-    [String(p2.name || "").trim(), String(p2.nickname || "").trim()]
-      .map((value) => normalizeSearchText(value))
-      .filter(Boolean)
-  );
+  const p2NameCandidates = buildNormalizedPlayerSearchAliasSet(p2);
 
   return history
     .filter((item) => {
@@ -505,6 +558,46 @@ export const playerService = {
     return buildDetailedH2HStats(p1, p2, buildDetailedHistoryEntries(p1, p2));
   },
 
+  async getH2HNameCandidatesByIds(p1Id: string, p2Id: string) {
+    if (!p1Id || !p2Id) {
+      return { player1Candidates: [], player2Candidates: [] };
+    }
+
+    const { data: players, error } = await supabase
+      .from("players")
+      .select("id, eloboard_id, name, nickname, match_history")
+      .in("id", [p1Id, p2Id]);
+
+    if (error || !players || players.length < 2) {
+      if (error) {
+        console.error("Error fetching players for H2H name candidates:", error);
+      }
+      return { player1Candidates: [], player2Candidates: [] };
+    }
+
+    const p1 = players.find((player) => player.id === p1Id) as MinimalH2HPlayerRow | undefined;
+    const p2 = players.find((player) => player.id === p2Id) as MinimalH2HPlayerRow | undefined;
+
+    if (!p1 || !p2) {
+      return { player1Candidates: [], player2Candidates: [] };
+    }
+
+    return {
+      player1Candidates: Array.from(
+        new Set([
+          ...buildPlayerRawH2HNameCandidates(p1),
+          ...collectHistoryRawOpponentNames(p2, p1),
+        ])
+      ),
+      player2Candidates: Array.from(
+        new Set([
+          ...buildPlayerRawH2HNameCandidates(p2),
+          ...collectHistoryRawOpponentNames(p1, p2),
+        ])
+      ),
+    };
+  },
+
   async getH2HStats(p1Id: string, p2Id: string) {
     if (!p1Id || !p2Id) return { overall: [0, 0], recent: [0, 0] };
 
@@ -532,14 +625,7 @@ export const playerService = {
         String((p2 as { eloboard_id?: string | null }).eloboard_id || "").trim(),
       ].filter(Boolean)
     );
-    const p2Candidates = new Set<string>(
-      [
-        String(p2.name || "").trim(),
-        String(p2.nickname || "").trim(),
-      ]
-        .map((value) => normalizeSearchText(value))
-        .filter(Boolean)
-    );
+    const p2Candidates = buildNormalizedPlayerSearchAliasSet(p2);
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 

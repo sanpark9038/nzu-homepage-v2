@@ -32,6 +32,7 @@ export async function getInstantH2H(
   // 2. Filter & Deduplicate
   const seen = new Set();
   const allMatchesAfter2025: EloMatch[] = [];
+  let olderHistoryExists = false;
   const startOf2025 = new Date('2025-01-01');
 
   for (const m of rawMatches ?? []) {
@@ -46,7 +47,10 @@ export async function getInstantH2H(
     seen.add(key);
 
     const mDate = new Date(m.match_date as string);
-    if (mDate < startOf2025) continue;
+    if (mDate < startOf2025) {
+      olderHistoryExists = true;
+      continue;
+    }
 
     // Normalize: always relative to P1
     if (m.player_name === p1PlayerName) {
@@ -89,6 +93,7 @@ export async function getInstantH2H(
       wins,
       losses,
       winRate,
+      olderHistoryExists,
       momentum90: {
         total: recent90Matches.length,
         wins: r90Wins,
