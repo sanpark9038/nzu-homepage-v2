@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-04-20T10:55:14.091Z",
+  "generated_at": "2026-04-22T08:01:54.929Z",
   "project": "bgm",
   "team_name": "BGM",
   "team_code": "bgm",
@@ -8,7 +8,7 @@
   "team_aliases": [
     "BGM"
   ],
-  "roster_count": 21,
+  "roster_count": 22,
   "roster": [
     {
       "team_name": "BGM",
@@ -285,6 +285,34 @@
       "last_changed_at": "2026-04-20T10:38:17.977Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=76",
       "profile_kind": "default"
+    },
+    {
+      "team_name": "BGM",
+      "team_code": "bgm",
+      "entity_id": "eloboard:female:331",
+      "wr_id": 331,
+      "gender": "female",
+      "name": "라운이",
+      "display_name": "라운이",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=331",
+      "profile_kind": "default",
+      "tier": "5",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:female",
+        "team:bgm",
+        "team_code:bgm",
+        "team_ko:BGM",
+        "team_en:bgm",
+        "race:protoss",
+        "tier:5"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "5"
     },
     {
       "team_name": "BGM",

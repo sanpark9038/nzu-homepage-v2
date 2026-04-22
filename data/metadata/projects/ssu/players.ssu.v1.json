@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-04-20T10:55:14.863Z",
+  "generated_at": "2026-04-22T08:01:55.365Z",
   "project": "ssu",
   "team_name": "수술대",
   "team_code": "ssu",
   "team_name_en": "SSU",
-  "roster_count": 21,
+  "roster_count": 22,
   "roster": [
     {
       "team_name": "수술대",
@@ -715,6 +715,34 @@
       "last_changed_at": "2026-04-20T10:38:18.739Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=976",
       "profile_kind": "default"
+    },
+    {
+      "team_name": "수술대",
+      "team_code": "ssu",
+      "entity_id": "eloboard:female:1032",
+      "wr_id": 1032,
+      "gender": "female",
+      "name": "서모",
+      "display_name": "서모",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1032",
+      "profile_kind": "default",
+      "tier": "9",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:female",
+        "team:ssu",
+        "team_code:ssu",
+        "team_ko:수술대",
+        "team_en:ssu",
+        "race:protoss",
+        "tier:9"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "9"
     }
   ],
   "source_file": "tmp/수술대_roster_record_metadata.json",
