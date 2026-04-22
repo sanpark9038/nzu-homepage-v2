@@ -41,6 +41,77 @@ Do not treat this file as an encyclopedia. Read it first, then follow the linked
 - Do not rename existing visible page, button, or filter labels unless the user explicitly asks for that wording change.
 - Use active execution plans for multi-step work.
 
+## LOCKED UI LABELS
+
+These labels are locked.
+
+- Do not rename, rewrite, translate, shorten, expand, or restyle these user-visible labels unless the user explicitly asks for a wording change.
+- Treat navigation labels, CTA buttons, filter labels, placeholders, and major section headings as product copy, not cleanup targets.
+- If a task changes behavior but not wording, preserve the exact existing label text.
+- Source of truth for this section: `lib/navigation-config.ts` and the current public page components.
+
+### Primary Navigation
+
+- 홈
+- 승부예측
+- 티어표
+- 선수
+- 상대전적
+- 엔트리
+- 참가팀
+- 팀 및 선수 순위
+
+### Hidden Or Utility Navigation
+
+- 대회일정
+- 통합검색
+- 메시지 알림
+- 운영 알림
+- LOGIN
+
+### Home CTA Labels
+
+- 엔트리 바로 시작
+- 참가팀 확인
+
+### Public Page And Section Labels
+
+- 참가팀 명단
+- 팀 랭킹
+- 선수 랭킹
+- 자동 매치 결과
+- 상세 분석 리포트
+
+### Match / Entry / Player Filters And Buttons
+
+- 선수 이름을 입력하세요
+- 왼쪽 학교 선택
+- 오른쪽 학교 선택
+- 대전용필터
+- 자동 매치
+- 현재 매치에 추가
+- 기세 분석
+- 닫기
+- 매치 추가
+- A팀 선수
+- B팀 선수
+- 선수 보기
+- 선수 수
+- 선수 상세는 카드를 선택해 확인
+
+### Tier / Search / Empty State Labels
+
+- 조건에 맞는 선수가 없습니다
+- 검색어나 필터를 조금 더 넓게 조정해 보세요.
+
+### Schedule Status Labels
+
+- 마감
+- 마감 임박
+- 투표 중
+- 공식 경기 일정 안내
+- 예정된 경기가 없습니다.
+
 ## Drift Recovery
 
 If the session gets noisy, stop and reset:

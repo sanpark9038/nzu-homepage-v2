@@ -1,3 +1,6 @@
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$env:PYTHONUTF8 = "1"
+
 # SESSION ENTRY CHECKLIST
 
 This file exists to keep the agent on-track at the start of every session.
@@ -40,6 +43,7 @@ Get-ChildItem docs\harness\exec-plans\active
 
 ## Required reading rule
 
+- Read [LESSONS_LEARNED.md](../../LESSONS_LEARNED.md) at session start before meaningful work.
 - If `docs/harness/exec-plans/active/` contains one or more plan files:
   read the most relevant active plan before changing code or docs.
 - If `docs/harness/exec-plans/active/` is empty:

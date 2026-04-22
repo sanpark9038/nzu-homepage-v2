@@ -7,6 +7,20 @@ Status: `in-progress` | `blocked` | `review-needed`
 
 <one-line outcome>
 
+## 작업 전 확인 완료
+
+### 충돌 위험 파일
+
+- <path>
+
+### 독립 수정 가능한 파일
+
+- <path>
+
+### 마지막으로 확인한 기준 시점/근거
+
+- <date or run/commit/doc basis>
+
 ## Completed steps
 
 - [ ] 1.

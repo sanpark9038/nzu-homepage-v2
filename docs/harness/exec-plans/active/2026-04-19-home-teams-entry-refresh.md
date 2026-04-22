@@ -7,6 +7,27 @@ Status: in-progress
 
 Align the public site so home stays a lightweight landing page, teams live on `/teams`, and entry/H2H flows use the real matchup data path.
 
+## 작업 전 확인 완료
+
+### 충돌 위험 파일
+
+- `app/page.tsx`
+- `app/entry/page.tsx`
+- `app/match/page.tsx`
+- `lib/navigation-config.ts`
+- shared matchup/H2H contract files such as `lib/matchup-helpers.ts`, `lib/player-matchup-summary.ts`, and `app/api/players/route.ts`
+
+### 독립 수정 가능한 파일
+
+- `app/teams/page.tsx` when the change is teams-page-only copy/layout
+- `components/home/TournamentTeamsView.tsx` when the change stays home-view-local
+- `app/player/PlayerSearchResult.tsx` when the change is limited to player-card rendering and does not alter shared payload shape
+
+### 마지막으로 확인한 기준 시점/근거
+
+- Confirmed from this plan's current `Files in play`, completed steps, and next steps on 2026-04-22.
+- Treat any change that touches shared matchup data or public navigation wording as coordinated work, not isolated cleanup.
+
 ## Completed steps
 
 - [x] Move team-roster browsing intent off the home page and add a dedicated `/teams` route
