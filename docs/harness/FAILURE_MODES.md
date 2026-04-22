@@ -150,3 +150,56 @@ That means the harness currently downgrades certainty without always escalating 
 1. Add a threshold rule for clustered inferred affiliation changes.
 2. Mark those runs as `review-needed` even if wording is compliant.
 3. Prefer team-level suspicion alerts when many players from one roster shift to inferred FA at once.
+
+## FM-005: Low-quality stable CSV history can overwrite better serving match history
+
+### Status
+
+- documented
+- mitigated by prod-sync quality guard
+- mitigated by homepage integrity match-history coverage reporting
+- mitigated by ops alert escalation for degraded coverage
+
+### Summary
+
+Stable CSV history files in `tmp/` can have valid rows but missing or unreadable headers for `상대명` and related fields.
+When prod sync preferred that stable CSV blindly, it replaced higher-quality `fact_matches`-derived history with rows whose `opponent_name` was blank.
+
+### Confirmed example
+
+- 2026-04-22 local + live investigation
+- `players.match_history` existed for many players, but `opponent_name` was blank across those rows
+- public `/entry` and `/match` pages then showed widespread `0-0` or missing H2H despite real match data existing
+
+### What happened
+
+1. `fact_matches.csv` still had usable opponent names.
+2. `parseMatchHistoryFromStableCsv()` read stable CSV rows with degraded header matching.
+3. `buildServingStatsByIdentity()` treated any non-empty stable history as authoritative and overwrote the existing history.
+4. prod sync wrote that degraded history into `players.match_history`.
+
+### Relevant code paths
+
+- Stable CSV history parsing: [scripts/tools/supabase-prod-sync.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/supabase-prod-sync.js:345)
+- Stable-vs-fact replacement decision: [scripts/tools/supabase-prod-sync.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/supabase-prod-sync.js:642)
+- Prod-sync quality report output: [scripts/tools/supabase-prod-sync.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/supabase-prod-sync.js:891)
+- Homepage integrity match-history coverage check: [scripts/tools/report-homepage-integrity.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/report-homepage-integrity.js:428)
+- Ops alert escalation for degraded coverage: [scripts/tools/run-daily-pipeline.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/run-daily-pipeline.js:388)
+
+### Root cause
+
+The root cause was not only CSV encoding/header drift.
+
+The deeper harness failure was allowing:
+
+- lower-quality alternate history source
+- unconditional overwrite of better current history
+- no post-sync quality gate on `opponent_name` coverage
+
+to coexist in the serving path.
+
+### Preventive harness actions
+
+1. Only replace current history with stable CSV when the replacement is meaningfully populated.
+2. Refuse prod sync when `match_history.opponent_name` coverage falls below a safety threshold.
+3. Surface coverage metrics in homepage integrity and ops alerts so degradation is visible before users report it.

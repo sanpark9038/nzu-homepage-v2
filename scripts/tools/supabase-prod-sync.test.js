@@ -15,7 +15,18 @@ const {
   buildServingPayload,
   resolveSoopServingMetadata,
   parseMatchHistoryFromStableCsv,
+  summarizeHistoryQuality,
+  shouldReplaceHistoryWithStable,
 } = require("./supabase-prod-sync");
+
+const KOR_HEADERS = [
+  "\uB0A0\uC9DC",
+  "\uC0C1\uB300\uBA85",
+  "\uC0C1\uB300\uC885\uC871",
+  "\uB9F5",
+  "\uACBD\uAE30\uACB0\uACFC(\uC2B9/\uD328)",
+  "\uBA54\uBAA8",
+];
 
 function runTest(name, fn) {
   try {
@@ -27,30 +38,35 @@ function runTest(name, fn) {
   }
 }
 
-function writeStableCsv(fileName, rows) {
+function writeCsv(fileName, header, rows) {
   fs.mkdirSync(TMP_DIR, { recursive: true });
   const filePath = path.join(TMP_DIR, fileName);
-  const header = ["날짜", "상대명", "상대종족", "맵", "경기결과(승/패)", "메모"];
   const lines = [header.join(","), ...rows.map((row) => row.join(","))];
   fs.writeFileSync(filePath, "\uFEFF" + lines.join("\n"), "utf8");
   return filePath;
+}
+
+function writeStableCsv(fileName, rows) {
+  return writeCsv(fileName, KOR_HEADERS, rows);
 }
 
 runTest("parseMatchHistoryFromStableCsv preserves same-day row order from stable csv", () => {
   const fileName = "__test__stable_order.csv";
   try {
     writeStableCsv(fileName, [
-      ["2026-03-05", "opponent-p", "P", "map-alpha", "승", "5/3(4)"],
-      ["2026-03-02", "opponent-z", "Z", "map-beta", "패", "older-note"],
-      ["2026-03-01", "opponent-t", "T", "map-beta", "패", "older-note-2"],
-      ["2026-03-01", "same-day", "T", "map-beta", "승", "3/2(3)"],
-      ["2026-03-01", "same-day", "T", "map-gamma", "패", "3/2(2)"],
-      ["2026-03-01", "same-day", "T", "map-delta", "승", "3/2(1)"],
+      ["2026-03-05", "opponent-p", "P", "map-alpha", "\uC2B9", "5/3(4)"],
+      ["2026-03-02", "opponent-z", "Z", "map-beta", "\uD328", "older-note"],
+      ["2026-03-01", "opponent-t", "T", "map-beta", "\uD328", "older-note-2"],
+      ["2026-03-01", "same-day", "T", "map-beta", "\uC2B9", "3/2(3)"],
+      ["2026-03-01", "same-day", "T", "map-gamma", "\uC2B9", "3/2(2)"],
+      ["2026-03-01", "same-day", "T", "map-delta", "\uC2B9", "3/2(1)"],
     ]);
 
     const actual = parseMatchHistoryFromStableCsv(fileName);
     assert.deepEqual(
-      actual.filter((row) => row.match_date === "2026-03-01").map((row) => `${row.opponent_name}|${row.map_name}|${row.note}`),
+      actual
+        .filter((row) => row.match_date === "2026-03-01")
+        .map((row) => `${row.opponent_name}|${row.map_name}|${row.note}`),
       [
         "opponent-t|map-beta|older-note-2",
         "same-day|map-beta|3/2(3)",
@@ -69,8 +85,8 @@ runTest("parseMatchHistoryFromStableCsv keeps multiline notes in a single record
   const fileName = "__test__stable_multiline.csv";
   try {
     writeStableCsv(fileName, [
-      ["2026-02-19", "opponent-z", "Z", "map-alpha", "승", "\"line one\nline two\""],
-      ["2026-02-19", "opponent-z", "Z", "map-beta", "패", "single-line"],
+      ["2026-02-19", "opponent-z", "Z", "map-alpha", "\uC2B9", "\"line one\nline two\""],
+      ["2026-02-19", "opponent-z", "Z", "map-beta", "\uD328", "single-line"],
     ]);
 
     const actual = parseMatchHistoryFromStableCsv(fileName);
@@ -108,9 +124,9 @@ runTest("buildServingStatsByName seeds players from stable csv even when fact ro
   const fileName = "eloboard_male_99999___stable_only_player__.csv";
   try {
     writeStableCsv(fileName, [
-      ["2026-04-10", "opponent-a", "T", "neo-sylphid", "승", "3/2(1)"],
-      ["2026-04-09", "opponent-b", "Z", "polypoid", "패", "3/2(2)"],
-      ["2026-04-08", "opponent-c", "P", "outsider", "승", "3/2(3)"],
+      ["2026-04-10", "opponent-a", "T", "neo-sylphid", "\uC2B9", "3/2(1)"],
+      ["2026-04-09", "opponent-b", "Z", "polypoid", "\uD328", "3/2(2)"],
+      ["2026-04-08", "opponent-c", "P", "outsider", "\uC2B9", "3/2(3)"],
     ]);
 
     const actual = buildServingStatsByName([
@@ -139,8 +155,8 @@ runTest("buildServingStatsByIdentity exposes identity-keyed lookup for stable-on
   const fileName = "eloboard_female_88888___stable_only_identity__.csv";
   try {
     writeStableCsv(fileName, [
-      ["2026-04-10", "opponent-a", "T", "neo-sylphid", "승", "3/2(1)"],
-      ["2026-04-09", "opponent-b", "Z", "polypoid", "패", "3/2(2)"],
+      ["2026-04-10", "opponent-a", "T", "neo-sylphid", "\uC2B9", "3/2(1)"],
+      ["2026-04-09", "opponent-b", "Z", "polypoid", "\uD328", "3/2(2)"],
     ]);
 
     const actual = buildServingStatsByIdentity([
@@ -161,6 +177,70 @@ runTest("buildServingStatsByIdentity exposes identity-keyed lookup for stable-on
       fs.unlinkSync(path.join(TMP_DIR, fileName));
     } catch {}
   }
+});
+
+runTest("buildServingStatsByIdentity prefers populated stable csv over header-only sibling for the same wr_id", () => {
+  const emptyFile = "eloboard_male_77777___stable_candidate___detail.csv";
+  const populatedFile = "eloboard_male_77777___stable_candidate___matches.csv";
+  try {
+    writeStableCsv(emptyFile, []);
+    writeCsv(populatedFile, ["date", "opponent_name", "opponent_race", "map", "result", "note"], [
+      ["2026-04-10", "opponent-a", "T", "neo-sylphid", "win", "round-1"],
+    ]);
+
+    const actual = buildServingStatsByIdentity([
+      {
+        name: "__stable_candidate__",
+        eloboard_id: "eloboard:male:77777",
+        gender: "male",
+      },
+    ]);
+
+    const stats = actual.get("male:77777");
+    assert.ok(stats);
+    assert.equal(stats.history.length, 1);
+    assert.equal(stats.history[0].opponent_name, "opponent-a");
+    assert.equal(stats.history[0].source_file, populatedFile);
+  } finally {
+    try {
+      fs.unlinkSync(path.join(TMP_DIR, emptyFile));
+    } catch {}
+    try {
+      fs.unlinkSync(path.join(TMP_DIR, populatedFile));
+    } catch {}
+  }
+});
+
+runTest("shouldReplaceHistoryWithStable rejects stable history that drops opponent names below current quality", () => {
+  const currentHistory = [
+    { match_date: "2026-04-10", opponent_name: "opponent-a", map_name: "map-a" },
+    { match_date: "2026-04-09", opponent_name: "opponent-b", map_name: "map-b" },
+  ];
+  const stableHistory = [
+    { match_date: "2026-04-10", opponent_name: "", map_name: "map-a" },
+    { match_date: "2026-04-09", opponent_name: "", map_name: "map-b" },
+  ];
+
+  const actual = shouldReplaceHistoryWithStable(stableHistory, currentHistory);
+  assert.equal(actual.ok, false);
+  assert.equal(actual.reason, "stable_missing_opponent_names");
+});
+
+runTest("summarizeHistoryQuality reports opponent-name fill coverage", () => {
+  const actual = summarizeHistoryQuality([
+    { match_date: "2026-04-10", opponent_name: "opponent-a", map_name: "map-a" },
+    { match_date: "2026-04-09", opponent_name: "", map_name: "map-b" },
+  ]);
+
+  assert.deepEqual(actual, {
+    total_rows: 2,
+    opponent_name_filled: 1,
+    opponent_name_fill_rate: 0.5,
+    match_date_filled: 2,
+    map_name_filled: 2,
+    meaningful_rows: 2,
+    meaningful_rate: 1,
+  });
 });
 
 runTest("buildServingPayload preserves existing serving stats when current source stats are missing", () => {

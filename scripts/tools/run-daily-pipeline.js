@@ -204,6 +204,9 @@ function defaultAlertConfig() {
       clustered_uncertain_affiliation_changes_threshold: 3,
       stale_snapshot_disagreement_severity: "medium",
       stale_snapshot_disagreement_threshold: 1,
+      match_history_quality_severity: "medium",
+      match_history_opponent_name_fill_rate_threshold: 0.98,
+      match_history_blank_player_threshold: 3,
       homepage_integrity_report_max_age_minutes: 180,
       no_new_matches_enabled: false,
       no_new_matches_severity: "low",
@@ -354,32 +357,58 @@ function buildHomepageIntegrityOperationalAlerts(homepageIntegrityReport, cfg, r
     return [];
   }
 
-  const liveSummary =
-    homepageIntegrityReport.summary && homepageIntegrityReport.summary.live && typeof homepageIntegrityReport.summary.live === "object"
-      ? homepageIntegrityReport.summary.live
+  const summary =
+    homepageIntegrityReport.summary && typeof homepageIntegrityReport.summary === "object"
+      ? homepageIntegrityReport.summary
       : null;
-  if (!liveSummary) return [];
+  if (!summary) return [];
 
-  const disagreementCount = Number(liveSummary.stale_snapshot_disagreement_count || 0);
-  const snapshotIsFresh = Boolean(liveSummary.snapshot_is_fresh);
-  const snapshotExists = Boolean(liveSummary.snapshot_exists);
-  const threshold = normalizePositiveNumber(rules.stale_snapshot_disagreement_threshold, 1);
+  const alerts = [];
+  const liveSummary = summary.live && typeof summary.live === "object" ? summary.live : null;
+  if (liveSummary) {
+    const disagreementCount = Number(liveSummary.stale_snapshot_disagreement_count || 0);
+    const snapshotIsFresh = Boolean(liveSummary.snapshot_is_fresh);
+    const snapshotExists = Boolean(liveSummary.snapshot_exists);
+    const threshold = normalizePositiveNumber(rules.stale_snapshot_disagreement_threshold, 1);
 
-  if (!snapshotExists || snapshotIsFresh || !Number.isFinite(disagreementCount) || disagreementCount < threshold) {
-    return [];
+    if (snapshotExists && !snapshotIsFresh && Number.isFinite(disagreementCount) && disagreementCount >= threshold) {
+      alerts.push({
+        severity: rules.stale_snapshot_disagreement_severity || "medium",
+        team: "챙큄쨈챙?혖",
+        team_code: "ops",
+        rule: "stale_live_snapshot_disagreement",
+        message: `stale_snapshot_disagreement_count=${disagreementCount}, snapshot_updated_at=${String(
+          liveSummary.snapshot_updated_at || "-"
+        )}, report_generated_at=${generatedAt}`,
+      });
+    }
   }
 
-  return normalizeOpsAlertTeams([
-    {
-      severity: rules.stale_snapshot_disagreement_severity || "medium",
-      team: "ìš´ì˜",
-      team_code: "ops",
-      rule: "stale_live_snapshot_disagreement",
-      message: `stale_snapshot_disagreement_count=${disagreementCount}, snapshot_updated_at=${String(
-        liveSummary.snapshot_updated_at || "-"
-      )}, report_generated_at=${generatedAt}`,
-    },
-  ]);
+  const historySummary = summary.match_history && typeof summary.match_history === "object" ? summary.match_history : null;
+  if (historySummary) {
+    const fillRate = Number(historySummary.opponent_name_fill_rate || 0);
+    const blankPlayers = Number(historySummary.players_with_blank_opponent_rows || 0);
+    const fillRateThreshold = Number(rules.match_history_opponent_name_fill_rate_threshold || 0.98);
+    const blankPlayerThreshold = normalizePositiveNumber(rules.match_history_blank_player_threshold, 3);
+
+    if (
+      (Number.isFinite(fillRate) && fillRate < fillRateThreshold) ||
+      (Number.isFinite(blankPlayers) && blankPlayers >= blankPlayerThreshold)
+    ) {
+      alerts.push({
+        severity: rules.match_history_quality_severity || "medium",
+        team: "운영",
+        team_code: "ops",
+        rule: "match_history_quality_degraded",
+        message:
+          `opponent_name_fill_rate=${fillRate}, blank_players=${blankPlayers}, total_rows=${Number(
+            historySummary.total_match_history_rows || 0
+          )}, report_generated_at=${generatedAt}`,
+      });
+    }
+  }
+
+  return normalizeOpsAlertTeams(alerts);
 }
 
 function buildClusteredUncertainAffiliationAlerts(rosterSyncReport, cfg) {

@@ -152,7 +152,7 @@ async function fetchPlayersServing() {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("players")
-    .select("name,nickname,eloboard_id,gender,soop_id,broadcast_url,channel_profile_image_url,is_live");
+    .select("name,nickname,eloboard_id,gender,soop_id,broadcast_url,channel_profile_image_url,is_live,match_history,total_wins,total_losses");
   if (error) throw error;
   return Array.isArray(data) ? data : [];
 }
@@ -458,6 +458,49 @@ function buildHeroMediaSection(rows) {
   };
 }
 
+function buildMatchHistorySection(players) {
+  const rows = Array.isArray(players) ? players : [];
+  const withHistory = rows.filter((row) => Array.isArray(row && row.match_history) && row.match_history.length > 0);
+  const degraded = [];
+  let totalRows = 0;
+  let opponentFilled = 0;
+
+  for (const player of withHistory) {
+    const history = Array.isArray(player.match_history) ? player.match_history : [];
+    const filled = history.filter((item) => trim(item && item.opponent_name)).length;
+    totalRows += history.length;
+    opponentFilled += filled;
+    if (history.length > 0 && filled < history.length) {
+      degraded.push({
+        name: trim(player && player.name) || null,
+        eloboard_id: trim(player && player.eloboard_id) || null,
+        total_rows: history.length,
+        opponent_name_filled: filled,
+        opponent_name_fill_rate: Number((filled / history.length).toFixed(4)),
+        total_wins: Number(player && player.total_wins ? player.total_wins : 0),
+        total_losses: Number(player && player.total_losses ? player.total_losses : 0),
+      });
+    }
+  }
+
+  return {
+    players_total: rows.length,
+    players_with_history: withHistory.length,
+    total_match_history_rows: totalRows,
+    opponent_name_filled_rows: opponentFilled,
+    opponent_name_fill_rate: totalRows ? Number((opponentFilled / totalRows).toFixed(4)) : 0,
+    players_with_blank_opponent_rows: degraded.length,
+    degraded_players: degraded
+      .sort((a, b) => {
+        if (a.opponent_name_fill_rate !== b.opponent_name_fill_rate) {
+          return a.opponent_name_fill_rate - b.opponent_name_fill_rate;
+        }
+        return String(a.name || "").localeCompare(String(b.name || ""), "ko");
+      })
+      .slice(0, 30),
+  };
+}
+
 async function main() {
   const aliasDoc = loadDisplayAliases();
   const rosters = loadProjectRosters();
@@ -475,6 +518,7 @@ async function main() {
       soop: buildSoopSection(players, metadataRows, reviewDecisions),
       live: buildLiveSection(players, snapshot),
       hero_media: buildHeroMediaSection(heroMediaRows),
+      match_history: buildMatchHistorySection(players),
     },
   };
 
@@ -502,6 +546,10 @@ async function main() {
   console.log(`- hero_media_active_count: ${report.summary.hero_media.active_count}`);
   console.log(`- hero_media_active_ok: ${report.summary.hero_media.active_ok}`);
   console.log(`- hero_media_invalid_rows_count: ${report.summary.hero_media.invalid_rows_count}`);
+  console.log(`- match_history_players_with_history: ${report.summary.match_history.players_with_history}`);
+  console.log(`- match_history_total_rows: ${report.summary.match_history.total_match_history_rows}`);
+  console.log(`- match_history_opponent_name_fill_rate: ${report.summary.match_history.opponent_name_fill_rate}`);
+  console.log(`- match_history_players_with_blank_opponent_rows: ${report.summary.match_history.players_with_blank_opponent_rows}`);
 }
 
 main().catch((error) => {

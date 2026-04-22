@@ -8,10 +8,13 @@ const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
 const EXCLUSIONS_FILE = path.join(ROOT, 'data', 'metadata', 'pipeline_collection_exclusions.v1.json');
 const FACT_MATCHES_PATH = path.join(ROOT, 'data', 'warehouse', 'fact_matches.csv');
 const TMP_DIR = path.join(ROOT, 'tmp');
+const REPORTS_DIR = path.join(TMP_DIR, 'reports');
 const PLAYER_METADATA_PATH = path.join(ROOT, 'scripts', 'player_metadata.json');
 const SOOP_MAPPINGS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_channel_mappings.v1.json');
 const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_manual_review_decisions.v1.json');
 const DEBUG_PAYLOAD_PATH = path.join(TMP_DIR, 'supabase_prod_sync_payload_preview.json');
+const HISTORY_QUALITY_REPORT_PATH = path.join(REPORTS_DIR, 'prod_sync_history_quality_latest.json');
+const STABLE_CSV_ROW_COUNT_CACHE = new Map();
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceRoleKey =
@@ -291,6 +294,104 @@ function sourceCsvPath(sourceFile) {
   return fullPath;
 }
 
+function pickFirstDefined(row, keys) {
+  if (!row || typeof row !== 'object' || !Array.isArray(keys)) return '';
+  for (const key of keys) {
+    if (!key) continue;
+    const value = row[key];
+    if (value !== undefined && value !== null && String(value).length > 0) {
+      return value;
+    }
+  }
+  return '';
+}
+
+function getStableCsvRowCount(sourceFile) {
+  const name = String(sourceFile || '').trim();
+  if (!name) return 0;
+  if (STABLE_CSV_ROW_COUNT_CACHE.has(name)) {
+    return STABLE_CSV_ROW_COUNT_CACHE.get(name);
+  }
+  const filePath = sourceCsvPath(name);
+  const count = filePath ? readCsv(filePath).length : 0;
+  STABLE_CSV_ROW_COUNT_CACHE.set(name, count);
+  return count;
+}
+
+function hasMeaningfulHistory(history) {
+  return (
+    Array.isArray(history) &&
+    history.some((item) =>
+      Boolean(
+        String(item && item.opponent_name ? item.opponent_name : '').trim() ||
+          String(item && item.match_date ? item.match_date : '').trim() ||
+          String(item && item.map_name ? item.map_name : '').trim()
+      )
+    )
+  );
+}
+
+function summarizeHistoryQuality(history) {
+  const rows = Array.isArray(history) ? history : [];
+  const opponentFilled = rows.filter((item) => String(item && item.opponent_name ? item.opponent_name : '').trim().length > 0).length;
+  const dateFilled = rows.filter((item) => String(item && item.match_date ? item.match_date : '').trim().length > 0).length;
+  const mapFilled = rows.filter((item) => String(item && item.map_name ? item.map_name : '').trim().length > 0).length;
+  const meaningfulRows = rows.filter((item) =>
+    Boolean(
+      String(item && item.opponent_name ? item.opponent_name : '').trim() ||
+        String(item && item.match_date ? item.match_date : '').trim() ||
+        String(item && item.map_name ? item.map_name : '').trim()
+    )
+  ).length;
+  const total = rows.length;
+  return {
+    total_rows: total,
+    opponent_name_filled: opponentFilled,
+    opponent_name_fill_rate: total ? Number((opponentFilled / total).toFixed(4)) : 0,
+    match_date_filled: dateFilled,
+    map_name_filled: mapFilled,
+    meaningful_rows: meaningfulRows,
+    meaningful_rate: total ? Number((meaningfulRows / total).toFixed(4)) : 0,
+  };
+}
+
+function shouldReplaceHistoryWithStable(stableHistory, currentHistory) {
+  if (!hasMeaningfulHistory(stableHistory)) {
+    return { ok: false, reason: 'stable_history_not_meaningful' };
+  }
+  if (!Array.isArray(currentHistory) || currentHistory.length === 0) {
+    return { ok: true, reason: 'no_current_history' };
+  }
+
+  const stable = summarizeHistoryQuality(stableHistory);
+  const current = summarizeHistoryQuality(currentHistory);
+
+  if (current.opponent_name_filled > 0 && stable.opponent_name_filled === 0) {
+    return { ok: false, reason: 'stable_missing_opponent_names' };
+  }
+  if (current.meaningful_rows > 0 && stable.meaningful_rows === 0) {
+    return { ok: false, reason: 'stable_missing_meaningful_rows' };
+  }
+  if (
+    current.opponent_name_fill_rate >= 0.7 &&
+    stable.opponent_name_fill_rate + 0.2 < current.opponent_name_fill_rate
+  ) {
+    return { ok: false, reason: 'stable_opponent_fill_rate_regressed' };
+  }
+  if (current.meaningful_rate >= 0.9 && stable.meaningful_rate + 0.05 < current.meaningful_rate) {
+    return { ok: false, reason: 'stable_meaningful_rate_regressed' };
+  }
+
+  return { ok: true, reason: 'stable_history_preferred' };
+}
+
+function writeHistoryQualityReport(payload) {
+  try {
+    fs.mkdirSync(REPORTS_DIR, { recursive: true });
+    fs.writeFileSync(HISTORY_QUALITY_REPORT_PATH, JSON.stringify(payload, null, 2), 'utf8');
+  } catch {}
+}
+
 function normalizeRaceCode(value) {
   const raw = String(value || '').trim().toUpperCase();
   if (raw.startsWith('Z')) return 'Z';
@@ -349,19 +450,55 @@ function parseMatchHistoryFromStableCsv(sourceFile) {
   if (!rows.length) return [];
   return rows.map((row) => {
     const result = String(
-      row.result ||
-        row['ê²½ê¸°ê²°ê³¼(ìŠ¹/íŒ¨)'] ||
-        row['ÃªÂ²Â½ÃªÂ¸Â°ÃªÂ²Â°ÃªÂ³Â¼(Ã¬Å Â¹/Ã­Å’Â¨)'] ||
-        ''
+      pickFirstDefined(row, [
+        'result',
+        '\uACBD\uAE30\uACB0\uACFC(\uC2B9/\uD328)',
+        'ê²½ê¸°ê²°ê³¼(ìŠ¹/íŒ¨)',
+        'ÃªÂ²Â½ÃªÂ¸Â°ÃªÂ²Â°ÃªÂ³Â¼(Ã¬Å Â¹/Ã­Å’Â¨)',
+      ])
     ).trim();
     return {
-      match_date: row.date || row['ë‚ ì§œ'] || row['Ã«â€šÂ Ã¬Â§Å“'] || null,
-      opponent_name: normalizeName(row.opponent_name || row['ìƒëŒ€ëª…'] || row['Ã¬Æ’ÂÃ«Å’â‚¬Ã«Âªâ€¦']),
-      opponent_race: normalizeRaceCode(row.opponent_race || row['ìƒëŒ€ì¢…ì¡±'] || row['Ã¬Æ’ÂÃ«Å’â‚¬Ã¬Â¢â€¦Ã¬Â¡Â±']),
-      map_name: row.map || row['ë§µ'] || row['Ã«Â§Âµ'] || null,
-      is_win: result === 'ìŠ¹' || result === 'Ã¬Å Â¹' || result.toLowerCase() === 'win',
+      match_date: pickFirstDefined(row, [
+        'date',
+        '\uB0A0\uC9DC',
+        'ë‚ ì§œ',
+        'Ã«â€šÂ Ã¬Â§Å“',
+      ]) || null,
+      opponent_name: normalizeName(
+        pickFirstDefined(row, [
+          'opponent_name',
+          '\uC0C1\uB300\uBA85',
+          'ìƒëŒ€ëª…',
+          'Ã¬Æ’ÂÃ«Å’â‚¬Ã«Âªâ€¦',
+        ])
+      ),
+      opponent_race: normalizeRaceCode(
+        pickFirstDefined(row, [
+          'opponent_race',
+          '\uC0C1\uB300\uC885\uC871',
+          'ìƒëŒ€ì¢…ì¡±',
+          'Ã¬Æ’ÂÃ«Å’â‚¬Ã¬Â¢â€¦Ã¬Â¡Â±',
+        ])
+      ),
+      map_name: pickFirstDefined(row, [
+        'map',
+        '\uB9F5',
+        'ë§µ',
+        'Ã«Â§Âµ',
+      ]) || null,
+      is_win:
+        result === '\uC2B9' ||
+        result === 'ìŠ¹' ||
+        result === 'Ã¬Å Â¹' ||
+        result.toLowerCase() === 'win',
       result_text: result || null,
-      note: row.note || row['ë©”ëª¨'] || row['Ã«Â©â€Ã«ÂªÂ¨'] || null,
+      note:
+        pickFirstDefined(row, [
+          'note',
+          '\uBA54\uBAA8',
+          'ë©”ëª¨',
+          'Ã«Â©â€Ã«ÂªÂ¨',
+        ]) || null,
       source_file: String(sourceFile || '').trim() || null,
       source_row_no: null,
     };
@@ -399,13 +536,22 @@ function findStableCsvSourceFile(playerRow, stableCsvIndex) {
   const gender = String(playerRow && playerRow.gender ? playerRow.gender : '').trim().toLowerCase();
   const wantsMix = isMixEntityId(entityId);
 
-  const exact = candidates.find((candidate) => candidate.gender === gender && candidate.isMix === wantsMix);
-  if (exact) return exact.fileName;
+  const scoreCandidate = (candidate) => {
+    let score = 0;
+    if (candidate.gender === gender) score += 100;
+    if (candidate.isMix === wantsMix) score += 50;
+    score += Math.min(getStableCsvRowCount(candidate.fileName), 1000);
+    if (/_상세전적\.csv$/i.test(candidate.fileName)) score += 5;
+    return score;
+  };
 
-  const sameGender = candidates.find((candidate) => candidate.gender === gender);
-  if (sameGender) return sameGender.fileName;
+  const ranked = [...candidates].sort((a, b) => {
+    const diff = scoreCandidate(b) - scoreCandidate(a);
+    if (diff !== 0) return diff;
+    return String(a.fileName).localeCompare(String(b.fileName));
+  });
 
-  return candidates[0].fileName;
+  return ranked[0] ? ranked[0].fileName : null;
 }
 
 function attachServingStatsAlias(map, aliasKey, entry) {
@@ -496,7 +642,8 @@ function buildServingStatsByIdentity(players = []) {
 
   for (const [identityKey, entry] of byIdentity.entries()) {
     const stableHistory = parseMatchHistoryFromStableCsv(sourceFileByIdentity.get(identityKey));
-    if (Array.isArray(stableHistory) && stableHistory.length) {
+    const replacementDecision = shouldReplaceHistoryWithStable(stableHistory, entry.history);
+    if (replacementDecision.ok) {
       entry.history = stableHistory;
       entry.wins = stableHistory.filter((item) => item.is_win).length;
       entry.losses = stableHistory.length - entry.wins;
@@ -515,7 +662,7 @@ function buildServingStatsByIdentity(players = []) {
     if (!identityKey || identityKey === 'unknown' || byIdentity.has(identityKey)) continue;
     const stableSourceFile = findStableCsvSourceFile(player, stableCsvIndex);
     const stableHistory = parseMatchHistoryFromStableCsv(stableSourceFile);
-    if (!Array.isArray(stableHistory) || !stableHistory.length) continue;
+    if (!hasMeaningfulHistory(stableHistory)) continue;
     const wins = stableHistory.filter((item) => item.is_win).length;
     const entry = {
       wins,
@@ -744,6 +891,48 @@ async function main() {
     }))
     .filter((row) => row.name.length > 0);
 
+  const historyQuality = {
+    generated_at: new Date().toISOString(),
+    players_total: sanitized.length,
+    players_with_match_history: sanitized.filter((row) => Array.isArray(row.match_history) && row.match_history.length > 0).length,
+    players_with_blank_opponent_rows: 0,
+    total_match_history_rows: 0,
+    opponent_name_filled_rows: 0,
+    opponent_name_fill_rate: 0,
+    degraded_players: [],
+  };
+
+  for (const row of sanitized) {
+    const quality = summarizeHistoryQuality(row.match_history);
+    historyQuality.total_match_history_rows += quality.total_rows;
+    historyQuality.opponent_name_filled_rows += quality.opponent_name_filled;
+    if (quality.total_rows > 0 && quality.opponent_name_filled < quality.total_rows) {
+      historyQuality.players_with_blank_opponent_rows += 1;
+      if (historyQuality.degraded_players.length < 25) {
+        historyQuality.degraded_players.push({
+          name: row.name,
+          eloboard_id: row.eloboard_id || null,
+          total_rows: quality.total_rows,
+          opponent_name_filled: quality.opponent_name_filled,
+          opponent_name_fill_rate: quality.opponent_name_fill_rate,
+        });
+      }
+    }
+  }
+  historyQuality.opponent_name_fill_rate = historyQuality.total_match_history_rows
+    ? Number((historyQuality.opponent_name_filled_rows / historyQuality.total_match_history_rows).toFixed(4))
+    : 0;
+  writeHistoryQualityReport(historyQuality);
+
+  if (
+    historyQuality.total_match_history_rows > 0 &&
+    historyQuality.opponent_name_fill_rate < 0.8
+  ) {
+    throw new Error(
+      `Refusing production sync because match_history opponent_name fill rate is too low (${historyQuality.opponent_name_fill_rate}).`
+    );
+  }
+
   if (!sanitized.length) {
     throw new Error('players_staging has no valid rows to sync.');
   }
@@ -770,6 +959,9 @@ async function main() {
   }
 
   console.log(`[+] Fetched ${sanitized.length} valid records from players_staging`);
+  console.log(
+    `[=] match_history opponent_name fill rate: ${historyQuality.opponent_name_filled_rows}/${historyQuality.total_match_history_rows} (${historyQuality.opponent_name_fill_rate})`
+  );
 
   // 2) Use the current production snapshot for stale-delete phase
   // 3) Upsert all staging rows by unique key (name). Do not pass id.
@@ -844,6 +1036,8 @@ module.exports = {
   parseMatchHistoryFromStableCsv,
   resolveSoopServingMetadata,
   readCsv,
+  summarizeHistoryQuality,
+  shouldReplaceHistoryWithStable,
   sourceCsvPath,
 };
 

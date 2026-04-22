@@ -394,6 +394,67 @@ runTest("buildHomepageIntegrityOperationalAlerts ignores stale integrity reports
   assert.deepEqual(actual, []);
 });
 
+runTest("buildHomepageIntegrityOperationalAlerts raises a medium ops alert for degraded match-history quality", () => {
+  const referenceTime = Date.parse("2026-04-12T09:00:00.000Z");
+  const actual = buildHomepageIntegrityOperationalAlerts(
+    {
+      generated_at: "2026-04-12T08:15:00.000Z",
+      summary: {
+        match_history: {
+          total_match_history_rows: 1000,
+          opponent_name_fill_rate: 0.91,
+          players_with_blank_opponent_rows: 12,
+        },
+      },
+    },
+    {
+      rules: {
+        match_history_quality_severity: "medium",
+        match_history_opponent_name_fill_rate_threshold: 0.98,
+        match_history_blank_player_threshold: 3,
+        homepage_integrity_report_max_age_minutes: 180,
+      },
+    },
+    referenceTime
+  );
+
+  assert.equal(actual.length, 1);
+  assert.equal(actual[0].severity, "medium");
+  assert.equal(actual[0].team_code, "ops");
+  assert.equal(actual[0].rule, "match_history_quality_degraded");
+  assert.equal(
+    actual[0].message,
+    "opponent_name_fill_rate=0.91, blank_players=12, total_rows=1000, report_generated_at=2026-04-12T08:15:00.000Z"
+  );
+});
+
+runTest("buildHomepageIntegrityOperationalAlerts ignores healthy match-history quality", () => {
+  const referenceTime = Date.parse("2026-04-12T09:00:00.000Z");
+  const actual = buildHomepageIntegrityOperationalAlerts(
+    {
+      generated_at: "2026-04-12T08:15:00.000Z",
+      summary: {
+        match_history: {
+          total_match_history_rows: 1000,
+          opponent_name_fill_rate: 0.999,
+          players_with_blank_opponent_rows: 1,
+        },
+      },
+    },
+    {
+      rules: {
+        match_history_quality_severity: "medium",
+        match_history_opponent_name_fill_rate_threshold: 0.98,
+        match_history_blank_player_threshold: 3,
+        homepage_integrity_report_max_age_minutes: 180,
+      },
+    },
+    referenceTime
+  );
+
+  assert.deepEqual(actual, []);
+});
+
 runTest("buildClusteredUncertainAffiliationAlerts raises a medium ops alert for clustered fallback moves", () => {
   const actual = buildClusteredUncertainAffiliationAlerts(
     {

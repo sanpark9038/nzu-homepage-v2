@@ -86,6 +86,9 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 
 - deployment readiness is now green after a successful real `with-sync` run, refreshed Discord roster snapshot, fresh SOOP live snapshot sync, and a regenerated homepage integrity report
 - current repo state is also green on local verification: `npm.cmd run build` and `npm.cmd run lint` both pass
+- `supabase-prod-sync.js` now fail-closes when stable CSV history is lower quality than existing `fact_matches` history, writes `tmp/reports/prod_sync_history_quality_latest.json`, and refuses prod sync when `match_history.opponent_name` coverage is catastrophically low
+- `report-homepage-integrity.js` now reports `summary.match_history`, and `run-daily-pipeline.js` can escalate degraded opponent-name coverage as `match_history_quality_degraded`
+- current live integrity snapshot after the repair reports `match_history_total_rows=132055`, `opponent_name_fill_rate=0.9998`, and `players_with_blank_opponent_rows=1`
 - the remaining practical blocker before shipping is no longer runtime readiness; it is deciding which current worktree changes belong in the deployment-scoped commit versus which should be deferred
 - deployment-visible admin copy has now been normalized again across hero media, rankings, prediction, ops, universities, and roster split pages
 - `/admin/roster` is now split into general corrections and manual-team management
@@ -107,6 +110,8 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 - session-start hardening docs such as `AGENTS.md`, `RUNBOOK.md`, `LESSONS_LEARNED.md`, and plan-template cleanup
 - public-site carryover from the home/entry plan unless explicitly promoted into this deployment scope
 - lint-only shared UI cleanup unless it is required to keep the deployment-scoped commit green
+- current H2H UI recovery files such as `components/stats/H2HLookup.tsx`, `components/players/H2HSelectorBar.tsx`, `app/api/stats/h2h/route.ts`, and `lib/h2h-service.ts` unless this deployment explicitly absorbs the public H2H follow-up
+- pipeline-generated project roster JSON refreshes under `data/metadata/projects/*` unless they are intentionally shipped as a separate content/data update
 - Special review bucket before commit:
 - `app/admin/tournament/page.tsx`
 - `components/ThemeProvider.tsx`
