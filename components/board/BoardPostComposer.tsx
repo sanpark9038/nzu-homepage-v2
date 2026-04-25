@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { startTransition, useRef, useState } from "react";
 
@@ -9,27 +10,53 @@ type ComposerState = {
   tone: "idle" | "success" | "error";
 };
 
+type ImageUploadState = {
+  message: string;
+  tone: "idle" | "success" | "error";
+};
+
 const initialState: ComposerState = { message: "", tone: "idle" };
+const initialImageUploadState: ImageUploadState = { message: "", tone: "idle" };
+
+const BOARD_IMAGE_ACCEPT = "image/jpeg,image/png,image/gif,image/webp";
+const BOARD_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 const WRITING_GUIDE_LINES = [
   "타 스트리머와 이용자를 향한 비방, 인신공격성 표현은 삼가 주세요.",
   "분쟁을 부르는 글이나 과도한 도배성 글은 제한될 수 있습니다.",
-  "이미지와 영상 링크는 등록 전에 한 번만 더 확인해 주세요.",
+  "이미지는 선택하거나 붙여넣기(Ctrl+V)로 바로 올릴 수 있어요.",
 ];
+
+function isPreviewableImageUrl(value: string) {
+  const text = value.trim();
+  if (!text) return false;
+
+  try {
+    const url = new URL(text);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
 
 export function BoardPostComposer() {
   const router = useRouter();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const activeImageUploadIdRef = useRef(0);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [state, setState] = useState<ComposerState>(initialState);
+  const [imageUploadState, setImageUploadState] = useState<ImageUploadState>(initialImageUploadState);
   const [showGuide, setShowGuide] = useState(true);
 
   const contentHasText = content.trim().length > 0;
   const shouldShowGuide = showGuide && !contentHasText;
+  const shouldPreviewImage = isPreviewableImageUrl(imageUrl);
 
   function hideGuide() {
     if (showGuide) setShowGuide(false);
@@ -39,6 +66,77 @@ export function BoardPostComposer() {
     event.preventDefault();
     hideGuide();
     requestAnimationFrame(() => textareaRef.current?.focus());
+  }
+
+  function validateImageFile(file: File) {
+    if (!BOARD_IMAGE_ACCEPT.split(",").includes(file.type)) {
+      return "jpg, png, gif, webp 이미지만 올릴 수 있어요.";
+    }
+
+    if (file.size > BOARD_IMAGE_MAX_BYTES) {
+      return "이미지는 5MB 이하로 올려 주세요.";
+    }
+
+    return null;
+  }
+
+  async function uploadImageFile(file: File) {
+    const validationMessage = validateImageFile(file);
+    if (validationMessage) {
+      setImageUploadState({ tone: "error", message: validationMessage });
+      return;
+    }
+
+    const uploadId = activeImageUploadIdRef.current + 1;
+    activeImageUploadIdRef.current = uploadId;
+    setIsUploadingImage(true);
+    setImageUploadState({ tone: "idle", message: "이미지를 올리는 중입니다..." });
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/board/images", {
+        method: "POST",
+        body: formData,
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        message?: string;
+        image?: { url?: string };
+      };
+
+      if (!response.ok || !payload.ok || !payload.image?.url) {
+        throw new Error(payload.message || "이미지를 업로드하지 못했습니다.");
+      }
+
+      if (activeImageUploadIdRef.current === uploadId) {
+        setImageUrl(payload.image.url);
+        setImageUploadState({ tone: "success", message: "이미지가 추가되었습니다." });
+      }
+    } catch (error) {
+      if (activeImageUploadIdRef.current === uploadId) {
+        setImageUploadState({
+          tone: "error",
+          message: error instanceof Error ? error.message : "이미지를 업로드하지 못했습니다.",
+        });
+      }
+    } finally {
+      if (activeImageUploadIdRef.current === uploadId) {
+        setIsUploadingImage(false);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  function handleContentPaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const imageFile = Array.from(event.clipboardData.files).find((file) => file.type.startsWith("image/"));
+    if (!imageFile) return;
+
+    event.preventDefault();
+    hideGuide();
+    void uploadImageFile(imageFile);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -151,6 +249,7 @@ export function BoardPostComposer() {
             value={content}
             onFocus={hideGuide}
             onClick={hideGuide}
+            onPaste={handleContentPaste}
             onChange={(event) => {
               if (showGuide) setShowGuide(false);
               setContent(event.target.value);
@@ -164,15 +263,75 @@ export function BoardPostComposer() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="space-y-2 text-sm font-bold text-white/72">
-          <span>외부 이미지 URL</span>
+        <div className="space-y-2 text-sm font-bold text-white/72">
+          <div className="flex items-center justify-between gap-3">
+            <span>이미지</span>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploadingImage}
+              className="inline-flex min-h-9 items-center justify-center rounded-lg border border-white/12 bg-white/[0.04] px-3 text-xs font-black text-white/82 transition hover:border-white/22 hover:bg-white/[0.07] disabled:opacity-50"
+            >
+              {isUploadingImage ? "업로드 중..." : "이미지 선택"}
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void uploadImageFile(file);
+            }}
+          />
           <input
             value={imageUrl}
-            onChange={(event) => setImageUrl(event.target.value)}
+            aria-label="이미지 URL"
+            onChange={(event) => {
+              setImageUrl(event.target.value);
+              setImageUploadState(initialImageUploadState);
+            }}
             className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
-            placeholder="https://..."
+            placeholder="이미지 URL 또는 직접 업로드"
           />
-        </label>
+          {shouldPreviewImage ? (
+            <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+              <Image
+                src={imageUrl}
+                alt="게시글 이미지 미리보기"
+                width={720}
+                height={405}
+                unoptimized
+                className="max-h-56 w-full object-contain"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setImageUrl("");
+                  setImageUploadState(initialImageUploadState);
+                }}
+                className="w-full border-t border-white/8 px-3 py-2 text-xs font-black text-white/62 transition hover:text-white"
+              >
+                이미지 제거
+              </button>
+            </div>
+          ) : null}
+          {imageUploadState.message ? (
+            <p
+              className={
+                imageUploadState.tone === "error"
+                  ? "text-xs font-bold text-rose-200"
+                  : imageUploadState.tone === "success"
+                    ? "text-xs font-bold text-nzu-green"
+                    : "text-xs font-bold text-white/46"
+              }
+            >
+              {imageUploadState.message}
+            </p>
+          ) : null}
+        </div>
+
         <label className="space-y-2 text-sm font-bold text-white/72">
           <span>영상 URL</span>
           <input
@@ -185,7 +344,7 @@ export function BoardPostComposer() {
       </div>
 
       <div className="rounded-[1.2rem] border border-amber-300/18 bg-amber-300/8 px-4 py-3 text-sm font-medium leading-7 text-amber-100/88">
-        이미지는 외부 이미지 주소를 붙여 넣으면 표시됩니다. 영상은 YouTube 또는 SOOP 링크를 사용할 수 있어요.
+        이미지는 파일 선택 또는 붙여넣기(Ctrl+V)로 올릴 수 있어요. 영상은 YouTube 또는 SOOP 링크를 넣어 주세요.
       </div>
 
       {state.message ? (
@@ -203,7 +362,7 @@ export function BoardPostComposer() {
       <div className="flex flex-col gap-3 sm:flex-row">
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isUploadingImage}
           className="inline-flex min-h-12 items-center justify-center rounded-xl bg-nzu-green px-6 text-sm font-black tracking-tight text-black transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
         >
           {isSubmitting ? "등록 중..." : "등록"}

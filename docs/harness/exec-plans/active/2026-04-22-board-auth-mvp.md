@@ -98,6 +98,7 @@ Get-ChildItem docs\harness\exec-plans\active
 
 - 2026-04-25 download-link simplification follow-up: new public board posts no longer collect or submit a download URL from `components/board/BoardPostComposer.tsx`, and `POST /api/board` now forces `download_url = null` even if a direct client sends it. Existing `download_url` schema/type/detail-page/download-route support remains in place for old posts. Added `npm run test:board-write-contract` to guard the new write contract.
 - 2026-04-25 readability follow-up: `/board` and `/board/write` now remove internal reference/development copy, reduce non-actionable status banners, and keep the table/write flow visually first. `components/board/BoardPostComposer.tsx` now gives the content textarea a programmatic label and uses pointer-based guide dismissal. Added `npm run test:board-readability-contract` to guard the reduced-copy contract.
+- 2026-04-25 R2 image-upload follow-up: direct board image upload is now implemented as a one-image-per-post path using `POST /api/board/images`, `lib/r2.ts`, and the existing `image_url` column. Uploads require the SOOP public session cookie, use server-only R2 env vars, enforce a 5MB jpg/png/gif/webp allowlist with magic-byte checks, reject oversized multipart requests by `content-length`, and include a lightweight per-session rate limit. `components/board/BoardPostComposer.tsx` now supports file selection and paste upload while preserving manual image URL entry. Added `npm run test:board-r2-upload-contract`.
 
 ## Files in play
 
