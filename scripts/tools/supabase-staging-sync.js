@@ -165,8 +165,8 @@ function resolveLiveState(player, soopLookup, snapshot) {
   const metadata =
     (wrId && gender ? soopLookup.lookup.get(`${wrId}:${gender}`) : null) ||
     (wrId && isMixEntityId(entityId) ? soopLookup.byWrId.get(String(wrId)) : null) ||
-    (name && gender ? soopLookup.byNameGender.get(`${name}:${gender}`) : null) ||
-    (name ? soopLookup.byName.get(name) : null) ||
+    (wrId ? null : name && gender ? soopLookup.byNameGender.get(`${name}:${gender}`) : null) ||
+    (wrId ? null : name ? soopLookup.byName.get(name) : null) ||
     null;
 
   if (!metadata || !metadata.soop_id) return false;
@@ -463,4 +463,5 @@ module.exports = {
   dedupePlayersByName,
   findHarmfulNameIdentityCollisions,
   findUnsafeUpsertIdentityRows,
+  resolveLiveState,
 };

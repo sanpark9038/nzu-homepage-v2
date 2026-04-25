@@ -267,6 +267,42 @@ runTest("buildServingPayload preserves existing serving stats when current sourc
   });
 });
 
+runTest("buildServingPayload does not use name fallback for durable player identities", () => {
+  const statsByIdentity = new Map([
+    [
+      "히요코",
+      {
+        wins: 0,
+        losses: 1,
+        history: [{ match_date: null, opponent_name: "", is_win: false }],
+      },
+    ],
+  ]);
+  const existingPlayer = {
+    detailed_stats: { win_rate: 50 },
+    match_history: [{ match_date: "2026-04-01", opponent_name: "existing", is_win: true }],
+    total_wins: 1,
+    total_losses: 1,
+    win_rate: 50,
+    last_synced_at: "2026-04-19T00:00:00.000Z",
+  };
+
+  const actual = buildServingPayload(
+    { name: "히요코", eloboard_id: "eloboard:female:889", gender: "female" },
+    statsByIdentity,
+    existingPlayer
+  );
+
+  assert.deepEqual(actual, {
+    detailed_stats: { win_rate: 50 },
+    match_history: [{ match_date: "2026-04-01", opponent_name: "existing", is_win: true }],
+    total_wins: 1,
+    total_losses: 1,
+    win_rate: 50,
+    last_synced_at: "2026-04-19T00:00:00.000Z",
+  });
+});
+
 runTest("buildServingPayload still initializes empty serving stats for brand-new players without source stats", () => {
   const actual = buildServingPayload("new-player", new Map(), null);
 
@@ -370,5 +406,29 @@ runTest("resolveSoopServingMetadata honors exact wr_id + gender even when servin
   assert.deepEqual(
     resolveSoopServingMetadata({ eloboard_id: "eloboard:male:46", gender: "male", name: "alias-b" }, soopLookup),
     { soop_id: "arinbbidol", broadcast_url: "https://ch.sooplive.co.kr/arinbbidol" }
+  );
+});
+
+runTest("resolveSoopServingMetadata does not use name fallback for durable eloboard identities", () => {
+  const yuzuPayload = {
+    name: "히요코",
+    soop_id: "yuzzzz",
+    broadcast_url: "https://ch.sooplive.co.kr/yuzzzz",
+  };
+  const soopLookup = {
+    lookup: new Map([["1024:female", yuzuPayload]]),
+    byWrId: new Map([["1024", yuzuPayload]]),
+    byNameGender: new Map([["히요코:female", yuzuPayload]]),
+    byName: new Map([["히요코", yuzuPayload]]),
+  };
+
+  assert.deepEqual(
+    resolveSoopServingMetadata({ eloboard_id: "eloboard:female:889", gender: "female", name: "히요코" }, soopLookup),
+    { soop_id: null, broadcast_url: null }
+  );
+
+  assert.deepEqual(
+    resolveSoopServingMetadata({ eloboard_id: "eloboard:female:1024", gender: "female", name: "유즈" }, soopLookup),
+    { soop_id: "yuzzzz", broadcast_url: "https://ch.sooplive.co.kr/yuzzzz" }
   );
 });

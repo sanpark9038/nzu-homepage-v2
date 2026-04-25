@@ -191,6 +191,9 @@ function resolveSoopServingMetadata(row, soopLookup) {
       };
     }
   }
+  if (wrId) {
+    return { soop_id: null, broadcast_url: null };
+  }
   if (name && gender) {
     const sameName = soopLookup.byNameGender.get(`${name}:${gender}`);
     if (sameName) {
@@ -755,17 +758,19 @@ function findUnsafeStaleDeleteRows(rows = []) {
 }
 
 function buildServingPayload(playerOrName, servingStatsByIdentity, existingPlayer) {
+  const identityKey =
+    playerOrName && typeof playerOrName === 'object' ? buildSyncIdentityKey(playerOrName) : '';
+  const hasDurableIdentity = identityKey && identityKey !== 'unknown' && !identityKey.startsWith('name:');
+  const nameKey =
+    playerOrName && typeof playerOrName === 'object'
+      ? normalizeName(playerOrName && playerOrName.name ? playerOrName.name : '')
+      : String(playerOrName || '').trim();
   const stats =
     (playerOrName && typeof playerOrName === 'object'
-      ? servingStatsByIdentity.get(buildSyncIdentityKey(playerOrName)) ||
-        servingStatsByIdentity.get(normalizeName(playerOrName && playerOrName.name ? playerOrName.name : '')) ||
-        servingStatsByIdentity.get(
-          normalizeName(playerOrName && playerOrName.name ? playerOrName.name : '')
-            ? `name:${normalizeName(playerOrName && playerOrName.name ? playerOrName.name : '')}`
-            : ''
-        )
-      : servingStatsByIdentity.get(String(playerOrName || '').trim()) ||
-        servingStatsByIdentity.get(String(playerOrName || '').trim() ? `name:${String(playerOrName || '').trim()}` : '')) ||
+      ? servingStatsByIdentity.get(identityKey) ||
+        (!hasDurableIdentity && nameKey ? servingStatsByIdentity.get(nameKey) : null) ||
+        (!hasDurableIdentity && nameKey ? servingStatsByIdentity.get(`name:${nameKey}`) : null)
+      : servingStatsByIdentity.get(nameKey) || (nameKey ? servingStatsByIdentity.get(`name:${nameKey}`) : null)) ||
     null;
   if (stats) {
     const totalMatches = Number(stats.wins || 0) + Number(stats.losses || 0);

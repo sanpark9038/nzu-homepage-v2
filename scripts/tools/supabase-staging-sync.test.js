@@ -4,6 +4,7 @@ const {
   buildStableIdentityKey,
   findHarmfulNameIdentityCollisions,
   findUnsafeUpsertIdentityRows,
+  resolveLiveState,
 } = require("./supabase-staging-sync");
 
 function runTest(name, fn) {
@@ -58,4 +59,29 @@ runTest("findUnsafeUpsertIdentityRows flags name-only and missing-name staging r
   ]);
 
   assert.deepEqual(actual, [{ name: "name-only-player" }, { eloboard_id: "" }]);
+});
+
+runTest("resolveLiveState does not use name fallback for durable eloboard identities", () => {
+  const yuzuPayload = { soop_id: "yuzzzz" };
+  const soopLookup = {
+    lookup: new Map([["1024:female", yuzuPayload]]),
+    byWrId: new Map([["1024", yuzuPayload]]),
+    byNameGender: new Map([["히요코:female", yuzuPayload]]),
+    byName: new Map([["히요코", yuzuPayload]]),
+  };
+  const snapshot = {
+    isFresh: true,
+    channels: {
+      yuzzzz: { isLive: true },
+    },
+  };
+
+  assert.equal(
+    resolveLiveState({ entity_id: "eloboard:female:889", gender: "female", name: "히요코" }, soopLookup, snapshot),
+    false
+  );
+  assert.equal(
+    resolveLiveState({ entity_id: "eloboard:female:1024", gender: "female", name: "유즈" }, soopLookup, snapshot),
+    true
+  );
 });

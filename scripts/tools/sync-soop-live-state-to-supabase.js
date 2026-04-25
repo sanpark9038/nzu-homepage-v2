@@ -12,18 +12,20 @@ const SNAPSHOT_PATH = path.join(ROOT, "data", "metadata", "soop_live_snapshot.ge
 const SNAPSHOT_FRESH_MS = 15 * 60 * 1000;
 const UPDATE_CHUNK_SIZE = 100;
 
-const supabaseUrl = String(process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
-const supabaseServiceRoleKey = String(
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ""
-).trim();
+function createSupabaseClient() {
+  const supabaseUrl = String(process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  const supabaseServiceRoleKey = String(
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ""
+  ).trim();
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  throw new Error(
-    "SOOP live sync requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)."
-  );
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error(
+      "SOOP live sync requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)."
+    );
+  }
+
+  return createClient(supabaseUrl, supabaseServiceRoleKey);
 }
-
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 function readJsonIfExists(filePath, fallback = null) {
   if (!fs.existsSync(filePath)) return fallback;
@@ -177,21 +179,23 @@ function loadFreshSnapshot() {
 }
 
 function resolveSoopIdForPlayer(row, soopLookup) {
-  const direct = trim(row && row.soop_id);
-  if (direct) return direct;
-
   const entityId = trim(row && row.eloboard_id);
   const wrId = extractWrId(entityId);
   const gender = trim(row && row.gender).toLowerCase();
   const name = normalizeLookupName(row && (row.nickname || row.name));
+  const direct = trim(row && row.soop_id);
 
   const metadata =
     (wrId && gender ? soopLookup.lookup.get(`${wrId}:${gender}`) : null) ||
     (wrId && isMixEntityId(entityId) ? soopLookup.byWrId.get(String(wrId)) : null) ||
-    (name && gender ? soopLookup.byNameGender.get(`${name}:${gender}`) : null) ||
-    (name ? soopLookup.byName.get(name) : null) ||
+    (wrId ? null : name && gender ? soopLookup.byNameGender.get(`${name}:${gender}`) : null) ||
+    (wrId ? null : name ? soopLookup.byName.get(name) : null) ||
     null;
 
+  if (wrId) {
+    return metadata && metadata.soop_id ? metadata.soop_id : "";
+  }
+  if (direct) return direct;
   return metadata && metadata.soop_id ? metadata.soop_id : "";
 }
 
@@ -221,7 +225,7 @@ function buildUpdatePayloads(players, snapshot, soopLookup) {
 
     updates.push({
       id: player.id,
-      soop_id: soopId || player.soop_id || null,
+      soop_id: soopId || null,
       is_live: isLive,
       broadcast_title: isLive ? trim(channel.title) || null : null,
       live_thumbnail_url: isLive ? normalizeSoopAssetUrl(channel.thumbnail) : null,
@@ -240,6 +244,7 @@ function buildUpdatePayloads(players, snapshot, soopLookup) {
 }
 
 async function fetchServingPlayers() {
+  const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from("players")
     .select("id,name,nickname,soop_id,eloboard_id,gender,is_live,broadcast_title,live_thumbnail_url,last_checked_at");
@@ -248,6 +253,7 @@ async function fetchServingPlayers() {
 }
 
 async function applyUpdates(rows) {
+  const supabase = createSupabaseClient();
   for (let index = 0; index < rows.length; index += UPDATE_CHUNK_SIZE) {
     const chunk = rows.slice(index, index + UPDATE_CHUNK_SIZE);
     await Promise.all(
@@ -283,17 +289,24 @@ async function main() {
   console.log(`- checked_at: ${checkedAt}`);
 }
 
-main().catch((error) => {
-  if (error instanceof Error) {
-    console.error(error.stack || error.message);
-  } else if (error && typeof error === "object") {
-    try {
-      console.error(JSON.stringify(error, null, 2));
-    } catch {
+if (require.main === module) {
+  main().catch((error) => {
+    if (error instanceof Error) {
+      console.error(error.stack || error.message);
+    } else if (error && typeof error === "object") {
+      try {
+        console.error(JSON.stringify(error, null, 2));
+      } catch {
+        console.error(String(error));
+      }
+    } else {
       console.error(String(error));
     }
-  } else {
-    console.error(String(error));
-  }
-  process.exit(1);
-});
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  buildUpdatePayloads,
+  resolveSoopIdForPlayer,
+};
