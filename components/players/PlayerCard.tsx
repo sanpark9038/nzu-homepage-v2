@@ -62,6 +62,12 @@ export function PlayerCard({
     .join(" · ");
   const universityLabel = getUniversityLabel(player.university);
 
+  function preloadLiveThumbnail() {
+    if (!isTierVariant || !isLive || !liveThumbnailUrl || typeof window === "undefined") return;
+    const thumbnail = new window.Image();
+    thumbnail.src = liveThumbnailUrl;
+  }
+
   const updateTierPreviewPosition = useCallback(() => {
     if (!isTierVariant || !isLive || typeof window === "undefined") return;
     const anchor = tierPreviewAnchorRef.current;
@@ -158,6 +164,7 @@ export function PlayerCard({
     )}
       onMouseEnter={() => {
         if (!isTierVariant || !isLive) return;
+        preloadLiveThumbnail();
         updateTierPreviewPosition();
         setIsTierPreviewVisible(true);
       }}
@@ -183,7 +190,6 @@ export function PlayerCard({
                 width={132}
                 height={140}
                 sizes="132px"
-                unoptimized
                 className="h-full w-full object-cover object-top"
               />
               {isLive ? (
@@ -200,7 +206,6 @@ export function PlayerCard({
             src={profileUrl || "/placeholder-player.png"}
             alt={player.name}
             fill
-            unoptimized
             className="object-cover object-top transition-transform duration-700 group-hover:scale-110"
           />
         )}

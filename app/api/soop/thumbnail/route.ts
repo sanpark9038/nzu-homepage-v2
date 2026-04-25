@@ -43,13 +43,12 @@ export async function GET(request: Request) {
   }
 
   const contentType = upstream.headers.get("content-type") || "image/jpeg";
-  const buffer = await upstream.arrayBuffer();
 
-  return new NextResponse(buffer, {
+  return new NextResponse(upstream.body, {
     status: 200,
     headers: {
       "content-type": contentType,
-      "cache-control": "public, max-age=300, s-maxage=300, stale-while-revalidate=600",
+      "cache-control": "public, max-age=900, s-maxage=900, stale-while-revalidate=1800",
     },
   });
 }
