@@ -50,6 +50,8 @@ export const UNIVERSITY_ALIAS_MAP: Record<string, UniversityKey> = {
   DM: "DM",
   FA: "FA",
   무소속: "FA",
+  연합팀: "FA",
+  늪지대: "FA",
   고정없음: "FA",
   무팀: "FA",
   개인: "FA",
