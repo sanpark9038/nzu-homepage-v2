@@ -63,7 +63,7 @@ export default async function BoardPage({
               <div className="text-[11px] font-black uppercase tracking-[0.24em] text-nzu-green">Board</div>
               <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white">전체글</h1>
               <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-white/60">
-                FMKorea형 게시판 구조를 참고한 표형 목록입니다. 읽기는 공개이며, 글쓰기와 다운로드는 SOOP 로그인 후 사용할 수 있습니다.
+                FMKorea형 게시판 구조를 참고한 표형 목록입니다. 읽기는 공개이며, 글쓰기는 SOOP 로그인 후 사용할 수 있습니다.
               </p>
             </div>
             {renderWriteAction(
@@ -100,7 +100,7 @@ export default async function BoardPage({
         {session ? (
           <section className="rounded-[1.35rem] border border-nzu-green/15 bg-nzu-green/8 px-5 py-4 text-sm font-medium text-white/82">
             <span className="font-black text-nzu-green">{session.displayName}</span>
-            <span className="text-white/60"> 계정으로 로그인되어 있습니다. 글쓰기와 다운로드는 이 세션 기준으로 처리됩니다.</span>
+            <span className="text-white/60"> 계정으로 로그인되어 있습니다. 글쓰기는 이 세션 기준으로 처리됩니다.</span>
           </section>
         ) : (
           <section className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-5 py-4 text-sm font-medium text-white/68">

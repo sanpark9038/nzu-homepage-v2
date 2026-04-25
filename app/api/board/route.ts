@@ -46,6 +46,7 @@ export async function POST(req: Request) {
       author_provider: session.provider,
       author_provider_user_id: session.providerUserId,
       category: null,
+      download_url: null,
     });
     const validationMessage = validateBoardPostInput(input);
 

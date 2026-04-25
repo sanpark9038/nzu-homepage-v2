@@ -17,7 +17,7 @@ export default async function BoardWritePage() {
               <div className="text-[11px] font-black uppercase tracking-[0.24em] text-nzu-green">Write</div>
               <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white">글쓰기</h1>
               <p className="mt-3 max-w-3xl text-sm font-medium leading-7 text-white/60">
-                제목과 본문을 중심으로 빠르게 작성하는 심플한 게시판 폼입니다. 파일 업로드나 무거운 에디터 없이 외부 이미지, 영상, 다운로드 링크만 연결합니다.
+                제목과 본문을 중심으로 빠르게 작성하는 심플한 게시판 폼입니다. 이미지는 외부 이미지 주소로, 영상은 YouTube 또는 SOOP 링크로 연결할 수 있습니다.
               </p>
               {session ? (
                 <p className="mt-3 text-sm font-bold text-nzu-green">

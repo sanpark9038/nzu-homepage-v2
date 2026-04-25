@@ -14,7 +14,7 @@ const initialState: ComposerState = { message: "", tone: "idle" };
 const WRITING_GUIDE_LINES = [
   "타 스트리머와 이용자를 향한 비방, 인신공격성 표현은 삼가 주세요.",
   "분쟁을 부르는 글이나 과도한 도배성 글은 제한될 수 있습니다.",
-  "외부 링크는 등록 전에 한 번 더 확인해 주세요.",
+  "이미지와 영상 링크는 등록 전에 한 번만 더 확인해 주세요.",
 ];
 
 export function BoardPostComposer() {
@@ -24,7 +24,6 @@ export function BoardPostComposer() {
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
-  const [downloadUrl, setDownloadUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [state, setState] = useState<ComposerState>(initialState);
   const [showGuide, setShowGuide] = useState(true);
@@ -58,7 +57,6 @@ export function BoardPostComposer() {
           content,
           image_url: imageUrl,
           video_url: videoUrl,
-          download_url: downloadUrl,
         }),
       });
 
@@ -162,7 +160,7 @@ export function BoardPostComposer() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 text-sm font-bold text-white/72">
           <span>외부 이미지 URL</span>
           <input
@@ -181,19 +179,10 @@ export function BoardPostComposer() {
             placeholder="YouTube 또는 SOOP URL"
           />
         </label>
-        <label className="space-y-2 text-sm font-bold text-white/72">
-          <span>다운로드 외부 링크</span>
-          <input
-            value={downloadUrl}
-            onChange={(event) => setDownloadUrl(event.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
-            placeholder="https://..."
-          />
-        </label>
       </div>
 
       <div className="rounded-[1.2rem] border border-amber-300/18 bg-amber-300/8 px-4 py-3 text-sm font-medium leading-7 text-amber-100/88">
-        이미지는 외부 이미지 URL로, 영상은 YouTube 또는 SOOP 링크로 넣을 수 있어요.
+        이미지는 외부 이미지 주소를 붙여 넣으면 표시됩니다. 영상은 YouTube 또는 SOOP 링크를 사용할 수 있어요.
       </div>
 
       {state.message ? (
