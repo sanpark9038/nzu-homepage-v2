@@ -23,3 +23,11 @@ test("tier player cards let Next optimize profile images but keep live thumbnail
   assert.equal(tierProfileImageBlock.includes("unoptimized"), false);
   assert.match(playerCard, /preloadLiveThumbnail/);
 });
+
+test("tier live thumbnail preloading starts when cards enter the viewport", () => {
+  const playerCard = readProjectFile("components/players/PlayerCard.tsx");
+
+  assert.match(playerCard, /IntersectionObserver/);
+  assert.match(playerCard, /hasPreloadedLiveThumbnailRef/);
+  assert.match(playerCard, /rootMargin:\s*["']240px["']/);
+});

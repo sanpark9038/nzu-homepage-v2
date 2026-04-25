@@ -37,6 +37,7 @@ export function PlayerCard({
   const [isTierPreviewVisible, setIsTierPreviewVisible] = useState(false);
   const [tierPreviewStyle, setTierPreviewStyle] = useState<{ left: number; top: number } | null>(null);
   const tierPreviewAnchorRef = useRef<HTMLDivElement | null>(null);
+  const hasPreloadedLiveThumbnailRef = useRef(false);
   const race = normalizeRace(player.race);
   const isLive = player.is_live ?? false;
   const isHomeVariant = variant === "home";
@@ -62,11 +63,17 @@ export function PlayerCard({
     .join(" · ");
   const universityLabel = getUniversityLabel(player.university);
 
-  function preloadLiveThumbnail() {
+  const preloadLiveThumbnail = useCallback(() => {
     if (!isTierVariant || !isLive || !liveThumbnailUrl || typeof window === "undefined") return;
+    if (hasPreloadedLiveThumbnailRef.current) return;
     const thumbnail = new window.Image();
     thumbnail.src = liveThumbnailUrl;
-  }
+    hasPreloadedLiveThumbnailRef.current = true;
+  }, [isLive, isTierVariant, liveThumbnailUrl]);
+
+  useEffect(() => {
+    hasPreloadedLiveThumbnailRef.current = false;
+  }, [liveThumbnailUrl]);
 
   const updateTierPreviewPosition = useCallback(() => {
     if (!isTierVariant || !isLive || typeof window === "undefined") return;
@@ -96,6 +103,27 @@ export function PlayerCard({
       window.removeEventListener("scroll", handleViewportChange, true);
     };
   }, [isTierPreviewVisible, isTierVariant, isLive, updateTierPreviewPosition]);
+
+  useEffect(() => {
+    if (!isTierVariant || !isLive || !liveThumbnailUrl || typeof window === "undefined") return;
+    if (!("IntersectionObserver" in window)) return;
+
+    const anchor = tierPreviewAnchorRef.current;
+    if (!anchor) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          preloadLiveThumbnail();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "240px" }
+    );
+
+    observer.observe(anchor);
+    return () => observer.disconnect();
+  }, [isLive, isTierVariant, liveThumbnailUrl, preloadLiveThumbnail]);
 
   const raceStyles = {
     'Terran': {
