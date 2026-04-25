@@ -35,7 +35,7 @@ export function BoardPostComposer() {
     if (showGuide) setShowGuide(false);
   }
 
-  function focusContentFromGuide(event: React.MouseEvent<HTMLDivElement>) {
+  function focusContentFromGuide(event: React.PointerEvent<HTMLDivElement>) {
     event.preventDefault();
     hideGuide();
     requestAnimationFrame(() => textareaRef.current?.focus());
@@ -112,7 +112,9 @@ export function BoardPostComposer() {
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-bold text-white/72">내용</span>
+          <label htmlFor="board-post-content" className="text-sm font-bold text-white/72">
+            내용
+          </label>
           {!shouldShowGuide && !contentHasText ? (
             <button
               type="button"
@@ -130,7 +132,7 @@ export function BoardPostComposer() {
               id="board-content-guide"
               data-content-guide="true"
               className="absolute inset-0 z-10 cursor-text rounded-[1.2rem] border border-rose-400/20 bg-rose-500/6 px-4 py-3 text-sm font-medium leading-7 text-white/70"
-              onMouseDown={focusContentFromGuide}
+              onPointerDown={focusContentFromGuide}
             >
               <div className="max-w-3xl">
                 <div className="font-black text-rose-200">편하게 적어 주세요.</div>
@@ -144,6 +146,7 @@ export function BoardPostComposer() {
           ) : null}
 
           <textarea
+            id="board-post-content"
             ref={textareaRef}
             value={content}
             onFocus={hideGuide}

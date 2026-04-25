@@ -97,6 +97,7 @@ Get-ChildItem docs\harness\exec-plans\active
 - 2026-04-25 write UX follow-up: `components/board/BoardPostComposer.tsx` now moves the writing guide into the content textarea area, keeps a subtle rose warning tone, hides it on overlay click/focus/typing, exposes `안내 보기` again while the body is empty, and shortens the media helper copy. Read-only subagent checks found no `.env.local` tracking or unrelated nav/API changes; fresh `npm.cmd run lint`, `npm.cmd run build`, `git diff --check`, localhost `3000` `/board/write` HTTP 200, and agent-browser checks passed.
 
 - 2026-04-25 download-link simplification follow-up: new public board posts no longer collect or submit a download URL from `components/board/BoardPostComposer.tsx`, and `POST /api/board` now forces `download_url = null` even if a direct client sends it. Existing `download_url` schema/type/detail-page/download-route support remains in place for old posts. Added `npm run test:board-write-contract` to guard the new write contract.
+- 2026-04-25 readability follow-up: `/board` and `/board/write` now remove internal reference/development copy, reduce non-actionable status banners, and keep the table/write flow visually first. `components/board/BoardPostComposer.tsx` now gives the content textarea a programmatic label and uses pointer-based guide dismissal. Added `npm run test:board-readability-contract` to guard the reduced-copy contract.
 
 ## Files in play
 
