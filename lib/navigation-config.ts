@@ -17,6 +17,7 @@ export const visibleNavbarLinks: NavbarLinkItem[] = [
   { type: "link", href: "/prediction", label: "승부예측" },
   { type: "link", href: "/tier", label: "티어표" },
   { type: "link", href: "/player", label: "선수" },
+  { type: "link", href: "/board", label: "게시판" },
   { type: "link", href: "/match", label: "상대전적" },
   { type: "link", href: "/entry", label: "엔트리" },
   { type: "link", href: "/teams", label: "참가팀" },

@@ -141,6 +141,54 @@ export type Database = {
         }
         Relationships: []
       }
+      board_posts: {
+        Row: {
+          author_name: string
+          author_provider: string | null
+          author_provider_user_id: string | null
+          category: string | null
+          content: string
+          created_at: string | null
+          download_url: string | null
+          id: string
+          image_url: string | null
+          published: boolean | null
+          title: string
+          updated_at: string | null
+          video_url: string | null
+        }
+        Insert: {
+          author_name: string
+          author_provider?: string | null
+          author_provider_user_id?: string | null
+          category?: string | null
+          content: string
+          created_at?: string | null
+          download_url?: string | null
+          id?: string
+          image_url?: string | null
+          published?: boolean | null
+          title: string
+          updated_at?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          author_name?: string
+          author_provider?: string | null
+          author_provider_user_id?: string | null
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          download_url?: string | null
+          id?: string
+          image_url?: string | null
+          published?: boolean | null
+          title?: string
+          updated_at?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       players: {
         Row: {
           broadcast_title: string | null
