@@ -94,6 +94,8 @@ Get-ChildItem docs\harness\exec-plans\active
 - 2026-04-25 final smoke status: browser verification confirmed `/board` renders the table board with `전체글`, top/bottom `글쓰기`, table headers, and a title link; clicking the title opened `/board/[id]`; `/board/write` shows the logged-out SOOP login requirement and return links. Mobile viewport `390x844` kept document width at `390` with the table contained in its own scroll area. Fresh `npm.cmd run lint` and `npm.cmd run build` passed; `/` remained static/ISR in the build output.
 - 2026-04-25 residual download risk: `download_url` remains any stored `http` / `https` URL by product design for this phase (`Download buttons remain external-link redirects only`). The route avoids arbitrary query-parameter redirects by requiring a stored board post id and SOOP login before redirecting. A future moderation/interstitial/host-policy pass can narrow this further without changing the MVP contract.
 
+- 2026-04-25 write UX follow-up: `components/board/BoardPostComposer.tsx` now moves the writing guide into the content textarea area, keeps a subtle rose warning tone, hides it on overlay click/focus/typing, exposes `안내 보기` again while the body is empty, and shortens the media helper copy. Read-only subagent checks found no `.env.local` tracking or unrelated nav/API changes; fresh `npm.cmd run lint`, `npm.cmd run build`, `git diff --check`, localhost `3000` `/board/write` HTTP 200, and agent-browser checks passed.
+
 ## Files in play
 
 - `lib/navigation-config.ts`

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { startTransition, useMemo, useState } from "react";
+import { startTransition, useRef, useState } from "react";
 
 type ComposerState = {
   message: string;
@@ -12,13 +12,14 @@ type ComposerState = {
 const initialState: ComposerState = { message: "", tone: "idle" };
 
 const WRITING_GUIDE_LINES = [
-  "타 스트리머 및 타인에 대한 비방, 인신공격성 발언은 이용 제한 사유가 될 수 있습니다.",
-  "분쟁을 유도하는 게시물, 과도한 도배, 혐오 표현은 제한될 수 있습니다.",
-  "외부 링크와 다운로드 자료는 등록 전 한 번 더 확인해 주세요.",
+  "타 스트리머와 이용자를 향한 비방, 인신공격성 표현은 삼가 주세요.",
+  "분쟁을 부르는 글이나 과도한 도배성 글은 제한될 수 있습니다.",
+  "외부 링크는 등록 전에 한 번 더 확인해 주세요.",
 ];
 
 export function BoardPostComposer() {
   const router = useRouter();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -28,10 +29,17 @@ export function BoardPostComposer() {
   const [state, setState] = useState<ComposerState>(initialState);
   const [showGuide, setShowGuide] = useState(true);
 
-  const shouldHideGuide = useMemo(() => content.trim().length > 0, [content]);
+  const contentHasText = content.trim().length > 0;
+  const shouldShowGuide = showGuide && !contentHasText;
 
   function hideGuide() {
     if (showGuide) setShowGuide(false);
+  }
+
+  function focusContentFromGuide(event: React.MouseEvent<HTMLDivElement>) {
+    event.preventDefault();
+    hideGuide();
+    requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -61,12 +69,12 @@ export function BoardPostComposer() {
       };
 
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.message || "게시글 등록에 실패했습니다.");
+        throw new Error(payload.message || "게시글을 등록하지 못했습니다.");
       }
 
       setState({
         tone: "success",
-        message: "게시글이 등록되었습니다. 상세 화면으로 이동합니다.",
+        message: "게시글이 등록되었습니다. 게시글로 이동합니다.",
       });
 
       const nextHref = payload.post?.id ? `/board/${payload.post.id}` : "/board";
@@ -77,7 +85,7 @@ export function BoardPostComposer() {
     } catch (error) {
       setState({
         tone: "error",
-        message: error instanceof Error ? error.message : "게시글 등록에 실패했습니다.",
+        message: error instanceof Error ? error.message : "게시글을 등록하지 못했습니다.",
       });
     } finally {
       setIsSubmitting(false);
@@ -90,7 +98,7 @@ export function BoardPostComposer() {
       className="space-y-5 rounded-[1.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,18,0.98),rgba(7,10,11,0.94))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.16)]"
     >
       <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.02] px-4 py-3 text-sm font-medium text-white/62">
-        일반 글은 말머리 없이 바로 등록됩니다. 공지와 일정은 추후 관리자 작성 경로에서만 사용합니다.
+        일반 글은 말머리 없이 등록됩니다. 제목과 본문만으로도 바로 글을 쓸 수 있어요.
       </div>
 
       <label className="block space-y-2 text-sm font-bold text-white/72">
@@ -107,7 +115,7 @@ export function BoardPostComposer() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-sm font-bold text-white/72">내용</span>
-          {!showGuide || shouldHideGuide ? (
+          {!shouldShowGuide && !contentHasText ? (
             <button
               type="button"
               onClick={() => setShowGuide(true)}
@@ -118,32 +126,40 @@ export function BoardPostComposer() {
           ) : null}
         </div>
 
-        {showGuide && !shouldHideGuide ? (
-          <div className="rounded-[1.2rem] border border-rose-400/20 bg-rose-500/6 px-4 py-4">
-            <div className="text-sm font-black text-rose-300">작성 전 안내</div>
-            <ul className="mt-3 space-y-2 text-sm font-medium leading-6 text-white/72">
-              {WRITING_GUIDE_LINES.map((line) => (
-                <li key={line}>- {line}</li>
-              ))}
-            </ul>
-            <div className="mt-3 text-xs font-bold tracking-[0.08em] text-white/38">
-              본문 입력칸을 클릭하거나 내용을 쓰기 시작하면 이 안내는 자동으로 접힙니다.
+        <div className="relative">
+          {shouldShowGuide ? (
+            <div
+              id="board-content-guide"
+              data-content-guide="true"
+              className="absolute inset-0 z-10 cursor-text rounded-[1.2rem] border border-rose-400/20 bg-rose-500/6 px-4 py-3 text-sm font-medium leading-7 text-white/70"
+              onMouseDown={focusContentFromGuide}
+            >
+              <div className="max-w-3xl">
+                <div className="font-black text-rose-200">편하게 적어 주세요.</div>
+                <ul className="mt-3 space-y-1.5">
+                  {WRITING_GUIDE_LINES.map((line) => (
+                    <li key={line}>- {line}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        <textarea
-          value={content}
-          onFocus={hideGuide}
-          onClick={hideGuide}
-          onChange={(event) => {
-            if (showGuide) setShowGuide(false);
-            setContent(event.target.value);
-          }}
-          className="min-h-[320px] w-full rounded-[1.2rem] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium leading-7 text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
-          placeholder="내용을 입력해 주세요"
-          maxLength={4000}
-        />
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onFocus={hideGuide}
+            onClick={hideGuide}
+            onChange={(event) => {
+              if (showGuide) setShowGuide(false);
+              setContent(event.target.value);
+            }}
+            aria-describedby={shouldShowGuide ? "board-content-guide" : undefined}
+            className="min-h-[320px] w-full rounded-[1.2rem] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium leading-7 text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
+            placeholder={shouldShowGuide ? "" : "내용을 입력해 주세요"}
+            maxLength={4000}
+          />
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -176,9 +192,8 @@ export function BoardPostComposer() {
         </label>
       </div>
 
-      <div className="rounded-[1.2rem] border border-amber-300/18 bg-amber-300/8 px-4 py-4 text-sm font-medium leading-7 text-amber-100/88">
-        직접 업로드는 지원하지 않습니다. 이미지는 외부 URL로 표시하고, 영상은 YouTube 또는 SOOP 링크를 임베드로 연결합니다.
-        다운로드 버튼도 외부 링크로만 연결되며, 실제 다운로드 시에는 로그인 게이트가 적용됩니다.
+      <div className="rounded-[1.2rem] border border-amber-300/18 bg-amber-300/8 px-4 py-3 text-sm font-medium leading-7 text-amber-100/88">
+        이미지는 외부 이미지 URL로, 영상은 YouTube 또는 SOOP 링크로 넣을 수 있어요.
       </div>
 
       {state.message ? (
