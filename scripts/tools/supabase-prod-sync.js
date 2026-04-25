@@ -15,6 +15,7 @@ const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_man
 const DEBUG_PAYLOAD_PATH = path.join(TMP_DIR, 'supabase_prod_sync_payload_preview.json');
 const HISTORY_QUALITY_REPORT_PATH = path.join(REPORTS_DIR, 'prod_sync_history_quality_latest.json');
 const STABLE_CSV_ROW_COUNT_CACHE = new Map();
+const STABLE_CSV_LATEST_DATE_CACHE = new Map();
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceRoleKey =
@@ -321,6 +322,33 @@ function getStableCsvRowCount(sourceFile) {
   return count;
 }
 
+function getStableCsvLatestDateValue(sourceFile) {
+  const name = String(sourceFile || '').trim();
+  if (!name) return 0;
+  if (STABLE_CSV_LATEST_DATE_CACHE.has(name)) {
+    return STABLE_CSV_LATEST_DATE_CACHE.get(name);
+  }
+
+  const filePath = sourceCsvPath(name);
+  const rows = filePath ? readCsv(filePath) : [];
+  let latest = 0;
+  for (const row of rows) {
+    const value = pickFirstDefined(row, [
+      'date',
+      '\uB0A0\uC9DC',
+      'Ã«â€šÂ Ã¬Â§Å“',
+      'ÃƒÂ«Ã¢â‚¬Å¡Ã‚Â ÃƒÂ¬Ã‚Â§Ã…â€œ',
+    ]);
+    const match = String(value || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) continue;
+    const dateValue = Number(`${match[1]}${match[2]}${match[3]}`);
+    if (Number.isFinite(dateValue) && dateValue > latest) latest = dateValue;
+  }
+
+  STABLE_CSV_LATEST_DATE_CACHE.set(name, latest);
+  return latest;
+}
+
 function hasMeaningfulHistory(history) {
   return (
     Array.isArray(history) &&
@@ -356,6 +384,30 @@ function summarizeHistoryQuality(history) {
     meaningful_rows: meaningfulRows,
     meaningful_rate: total ? Number((meaningfulRows / total).toFixed(4)) : 0,
   };
+}
+
+function maxMatchHistoryDate(rows = []) {
+  let latest = '';
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const history = Array.isArray(row && row.match_history) ? row.match_history : [];
+    for (const item of history) {
+      const date = String(item && item.match_date ? item.match_date : '').trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date) && date > latest) latest = date;
+    }
+  }
+  return latest;
+}
+
+function assertNoProductionFreshnessRegression(prodRows = [], incomingRows = []) {
+  const currentMax = maxMatchHistoryDate(prodRows);
+  const incomingMax = maxMatchHistoryDate(incomingRows);
+  if (!currentMax || !incomingMax || incomingMax >= currentMax) {
+    return { ok: true, currentMax, incomingMax };
+  }
+
+  throw new Error(
+    `Refusing production sync because incoming match_history is older than current production. current_max=${currentMax}, incoming_max=${incomingMax}.`
+  );
 }
 
 function shouldReplaceHistoryWithStable(stableHistory, currentHistory) {
@@ -541,8 +593,9 @@ function findStableCsvSourceFile(playerRow, stableCsvIndex) {
 
   const scoreCandidate = (candidate) => {
     let score = 0;
-    if (candidate.gender === gender) score += 100;
-    if (candidate.isMix === wantsMix) score += 50;
+    if (candidate.gender === gender) score += 10_000_000_000;
+    if (candidate.isMix === wantsMix) score += 1_000_000_000;
+    score += getStableCsvLatestDateValue(candidate.fileName) * 1000;
     score += Math.min(getStableCsvRowCount(candidate.fileName), 1000);
     if (/_상세전적\.csv$/i.test(candidate.fileName)) score += 5;
     return score;
@@ -603,6 +656,13 @@ function buildServingStatsByIdentity(players = []) {
   const byIdentity = new Map();
   const sourceFileByIdentity = new Map();
   const stableCsvIndex = buildStableCsvIndex();
+  const playerByIdentity = new Map();
+  for (const player of Array.isArray(players) ? players : []) {
+    const identityKey = buildSyncIdentityKey(player);
+    if (identityKey && identityKey !== 'unknown' && !playerByIdentity.has(identityKey)) {
+      playerByIdentity.set(identityKey, player);
+    }
+  }
   const playerIdentityByName = new Map(
     (Array.isArray(players) ? players : [])
       .map((player) => [normalizeName(player && player.name ? player.name : ''), buildSyncIdentityKey(player)])
@@ -644,7 +704,10 @@ function buildServingStatsByIdentity(players = []) {
   }
 
   for (const [identityKey, entry] of byIdentity.entries()) {
-    const stableHistory = parseMatchHistoryFromStableCsv(sourceFileByIdentity.get(identityKey));
+    const stableSourceFile =
+      findStableCsvSourceFile(playerByIdentity.get(identityKey), stableCsvIndex) ||
+      sourceFileByIdentity.get(identityKey);
+    const stableHistory = parseMatchHistoryFromStableCsv(stableSourceFile);
     const replacementDecision = shouldReplaceHistoryWithStable(stableHistory, entry.history);
     if (replacementDecision.ok) {
       entry.history = stableHistory;
@@ -937,6 +1000,7 @@ async function main() {
       `Refusing production sync because match_history opponent_name fill rate is too low (${historyQuality.opponent_name_fill_rate}).`
     );
   }
+  assertNoProductionFreshnessRegression(prodData || [], sanitized);
 
   if (!sanitized.length) {
     throw new Error('players_staging has no valid rows to sync.');
@@ -1037,6 +1101,8 @@ module.exports = {
   buildServingPayload,
   buildSoopLookup,
   buildServingStatsByName,
+  assertNoProductionFreshnessRegression,
+  maxMatchHistoryDate,
   parseCsvLine,
   parseMatchHistoryFromStableCsv,
   resolveSoopServingMetadata,

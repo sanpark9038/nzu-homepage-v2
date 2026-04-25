@@ -77,7 +77,7 @@ function PlayerSearchResultInner({
   const liveThumbnailUrl = buildSoopThumbnailProxyUrl(player.live_thumbnail_url) || player.live_thumbnail_url || "";
   const canShowLiveThumbnail = Boolean(liveThumbnailUrl) && failedThumbnailSrc !== liveThumbnailUrl;
   const liveElapsedText = formatLiveElapsed(player.live_started_at);
-  const profileImageUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "/placeholder-player.png";
+  const profileImageUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "/placeholder-player.svg";
   const universityLabel = getUniversityLabel(player.university);
 
   function handleToggleExpanded() {

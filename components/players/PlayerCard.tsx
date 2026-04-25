@@ -213,7 +213,7 @@ export function PlayerCard({
           <div ref={tierPreviewAnchorRef} className="relative h-[140px] w-[132px]">
             <div className="relative h-full w-full overflow-hidden rounded-xl bg-muted">
               <Image
-                src={profileUrl || "/placeholder-player.png"}
+                src={profileUrl || "/placeholder-player.svg"}
                 alt={player.name}
                 width={132}
                 height={140}
@@ -231,7 +231,7 @@ export function PlayerCard({
           </div>
         ) : (
           <Image
-            src={profileUrl || "/placeholder-player.png"}
+            src={profileUrl || "/placeholder-player.svg"}
             alt={player.name}
             fill
             className="object-cover object-top transition-transform duration-700 group-hover:scale-110"

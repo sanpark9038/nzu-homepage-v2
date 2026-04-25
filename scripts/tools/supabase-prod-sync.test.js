@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 
 const ROOT = path.join(__dirname, "..", "..");
 const TMP_DIR = path.join(ROOT, "tmp");
+const FACT_MATCHES_PATH = path.join(ROOT, "data", "warehouse", "fact_matches.csv");
 
 const {
   buildSyncIdentityKey,
@@ -14,6 +15,8 @@ const {
   findUnsafeStaleDeleteRows,
   buildServingPayload,
   resolveSoopServingMetadata,
+  assertNoProductionFreshnessRegression,
+  maxMatchHistoryDate,
   parseMatchHistoryFromStableCsv,
   summarizeHistoryQuality,
   shouldReplaceHistoryWithStable,
@@ -211,6 +214,52 @@ runTest("buildServingStatsByIdentity prefers populated stable csv over header-on
   }
 });
 
+runTest("buildServingStatsByIdentity prefers newer stable csv even when fact rows point at an older sibling", () => {
+  const oldFile = "eloboard_male_77776___newer_candidate___detail.csv";
+  const freshFile = "eloboard_male_77776___newer_candidate___matches.csv";
+  const originalFactMatches = fs.readFileSync(FACT_MATCHES_PATH, "utf8");
+  try {
+    writeStableCsv(oldFile, [
+      ["2026-04-01", "old-opponent", "T", "old-map", "\uC2B9", "old-note"],
+    ]);
+    writeCsv(freshFile, ["date", "opponent_name", "opponent_race", "map", "result", "note"], [
+      ["2026-04-20", "fresh-opponent", "P", "fresh-map", "loss", "fresh-note"],
+      ["2026-04-01", "old-opponent", "T", "old-map", "win", "old-note"],
+    ]);
+
+    fs.appendFileSync(
+      FACT_MATCHES_PATH,
+      "\n__test_newer_candidate__,2026-04-01,eloboard:male:77776,__newer_candidate__,fa,god,Zerg,old-opponent,T,old-map,win,true,old-note," +
+        oldFile +
+        ",1,2026-04-20T00:00:00.000Z",
+      "utf8"
+    );
+
+    const actual = buildServingStatsByIdentity([
+      {
+        name: "__newer_candidate__",
+        eloboard_id: "eloboard:male:77776",
+        gender: "male",
+      },
+    ]);
+
+    const stats = actual.get("male:77776");
+    assert.ok(stats);
+    assert.equal(stats.history.length, 2);
+    assert.equal(stats.history[0].match_date, "2026-04-20");
+    assert.equal(stats.history[0].opponent_name, "fresh-opponent");
+    assert.equal(stats.history[0].source_file, freshFile);
+  } finally {
+    fs.writeFileSync(FACT_MATCHES_PATH, originalFactMatches, "utf8");
+    try {
+      fs.unlinkSync(path.join(TMP_DIR, oldFile));
+    } catch {}
+    try {
+      fs.unlinkSync(path.join(TMP_DIR, freshFile));
+    } catch {}
+  }
+});
+
 runTest("shouldReplaceHistoryWithStable rejects stable history that drops opponent names below current quality", () => {
   const currentHistory = [
     { match_date: "2026-04-10", opponent_name: "opponent-a", map_name: "map-a" },
@@ -240,6 +289,39 @@ runTest("summarizeHistoryQuality reports opponent-name fill coverage", () => {
     map_name_filled: 2,
     meaningful_rows: 2,
     meaningful_rate: 1,
+  });
+});
+
+runTest("maxMatchHistoryDate reports the newest date across serving rows", () => {
+  const actual = maxMatchHistoryDate([
+    { match_history: [{ match_date: "2026-04-20" }, { match_date: "2026-04-21" }] },
+    { match_history: [{ match_date: "2026-04-19" }, { match_date: "not-a-date" }] },
+  ]);
+
+  assert.equal(actual, "2026-04-21");
+});
+
+runTest("assertNoProductionFreshnessRegression refuses stale incoming serving data", () => {
+  assert.throws(
+    () =>
+      assertNoProductionFreshnessRegression(
+        [{ match_history: [{ match_date: "2026-04-25" }] }],
+        [{ match_history: [{ match_date: "2026-04-22" }] }]
+      ),
+    /incoming match_history is older/
+  );
+});
+
+runTest("assertNoProductionFreshnessRegression allows equally fresh incoming serving data", () => {
+  const actual = assertNoProductionFreshnessRegression(
+    [{ match_history: [{ match_date: "2026-04-25" }] }],
+    [{ match_history: [{ match_date: "2026-04-25" }] }]
+  );
+
+  assert.deepEqual(actual, {
+    ok: true,
+    currentMax: "2026-04-25",
+    incomingMax: "2026-04-25",
   });
 });
 

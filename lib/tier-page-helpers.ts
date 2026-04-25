@@ -7,6 +7,9 @@ const RACE_ORDER: Record<string, number> = {
   P: 2,
 };
 
+const TIER_PAGE_EXCLUDED_ENTITY_IDS = new Set(["eloboard:female:889"]);
+const BABY_TIER_KEY = "9";
+
 export const NAMED_TIER_LABELS = {
   god: "갓",
   king: "킹",
@@ -53,14 +56,14 @@ export function filterTierPlayers(
     university?: string | null;
     tier?: string | null;
     search?: string | null;
-  }
+  } = {}
 ) {
   const normalizedRace = String(race || "").trim();
   const normalizedUniversity = String(university || "").trim();
   const normalizedTierFilter = String(tier || "").trim();
   const normalizedSearch = String(search || "").trim().toLowerCase();
 
-  let playerList = [...players];
+  let playerList = players.filter((player) => !TIER_PAGE_EXCLUDED_ENTITY_IDS.has(String(player.eloboard_id || "").trim()));
 
   if (liveOnly) {
     playerList = playerList.filter((player) => player.is_live);
@@ -91,7 +94,7 @@ export function buildNamedTierPlayers(players: Player[]) {
     jackPlayers: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === NAMED_TIER_LABELS.jack)),
     jokerPlayers: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === NAMED_TIER_LABELS.joker)),
     spadePlayers: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === NAMED_TIER_LABELS.spade)),
-    babyPlayers: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === NAMED_TIER_LABELS.baby)),
+    babyPlayers: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === BABY_TIER_KEY)),
   };
 }
 

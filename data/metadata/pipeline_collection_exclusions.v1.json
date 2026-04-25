@@ -184,6 +184,13 @@
       "name": "\uC5F0\uB610",
       "reason": "retired_profile_after_race_change",
       "updated_at": "2026-04-20T00:00:00.000Z"
+    },
+    {
+      "entity_id": "eloboard:female:889",
+      "wr_id": 889,
+      "name": "Hiyoko",
+      "reason": "user_excluded_retired_or_unneeded",
+      "updated_at": "2026-04-26T00:00:00.000+09:00"
     }
   ]
 }
