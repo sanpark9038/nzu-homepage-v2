@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { ADMIN_SESSION_COOKIE, isAdminConfigured, isValidAdminSession } from "@/lib/admin-auth";
 
 function isAllowedPath(pathname: string) {
-  return pathname === "/admin/login" || pathname === "/api/admin/session";
+  return (
+    pathname === "/admin/login" ||
+    pathname === "/api/admin/session" ||
+    pathname === "/api/admin/revalidate-serving"
+  );
 }
 
 export function proxy(req: NextRequest) {

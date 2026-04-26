@@ -84,6 +84,17 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 
 ### Latest status note
 
+- 2026-04-26 recovery follow-up:
+- GitHub Actions run `24936550085` (`NZU Ops Pipeline`, `workflow_dispatch`, `main`, `845e188`) completed successfully at `2026-04-25T18:20:22Z`.
+- The run log confirms `[OK] supabase_staging_sync`, `[OK] supabase_prod_sync`, `Done: Supabase staging+prod sync completed.`, and `CACHE_REVALIDATION_RESULT {"status":"completed"}`.
+- The production sync wrote `318` valid staging records to `players`, found `0` stale players, and reported `match_history opponent_name fill rate: 134851/134851 (1)`.
+- Direct production Supabase verification on 2026-04-26 found `players=318`, `players_with_history=315`, `total_match_history_rows=134851`, `max_match_history_date=2026-04-25`, and `blank_opponent_players=0`.
+- Direct production verification for `김정우` (`id=2ca02f54-45d6-486a-beab-acf34fcba5b1`, `eloboard_id=eloboard:male:40`) found `history_rows=796` with latest rows on `2026-04-25`.
+- The deployed player page at `/player/김정우--2ca02f54` returned HTTP 200 and rendered `어윤수 / 폴스타 / 26.04.25`.
+- Local `.env.local` currently has Supabase envs but does not define `NEXT_PUBLIC_SITE_URL`, `SITE_URL`, `VERCEL_URL`, `SERVING_REVALIDATE_URL`, or `SERVING_REVALIDATE_SECRET`; this matches the earlier run log line `[SKIP] revalidate_public_cache missing base_url, secret` before the wrapper reported completed.
+- Vercel production env inspection after `vercel link --project nzu-homepage-v2 --scope sanparks-projects` found Supabase/admin/SOOP envs present, but no `SERVING_REVALIDATE_SECRET`, `SERVING_REVALIDATE_URL`, `NEXT_PUBLIC_SITE_URL`, or `SITE_URL`.
+- A deployed probe to `/api/admin/revalidate-serving` returned `401 admin auth required`, showing the proxy was also blocking the secret-protected revalidation endpoint. `proxy.ts` now allowlists that endpoint, `.github/workflows/ops-pipeline-cache.yml` now passes `SERVING_REVALIDATE_SECRET` and `SERVING_REVALIDATE_URL` into the job, and `scripts/tools/admin-revalidation-proxy-contract.test.js` is added to `verify:predeploy`.
+- 2026-04-26 follow-up env setup: generated one new `SERVING_REVALIDATE_SECRET`, set it in GitHub Actions secrets and Vercel production env, and set GitHub Actions variable `SERVING_REVALIDATE_URL=https://nzu-homepage-v2.vercel.app`. Vercel env metadata and GitHub secret/variable metadata verified by name only.
 - deployment readiness is now green after a successful real `with-sync` run, refreshed Discord roster snapshot, fresh SOOP live snapshot sync, and a regenerated homepage integrity report
 - current repo state is also green on local verification: `npm.cmd run build` and `npm.cmd run lint` both pass
 - `supabase-prod-sync.js` now fail-closes when stable CSV history is lower quality than existing `fact_matches` history, writes `tmp/reports/prod_sync_history_quality_latest.json`, and refuses prod sync when `match_history.opponent_name` coverage is catastrophically low
