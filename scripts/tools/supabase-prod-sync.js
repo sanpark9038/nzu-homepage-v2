@@ -3,6 +3,11 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env.local') });
 
+const {
+  tableHasColumn,
+  withServingIdentityKey,
+} = require('./lib/serving-identity-key');
+
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
 const EXCLUSIONS_FILE = path.join(ROOT, 'data', 'metadata', 'pipeline_collection_exclusions.v1.json');
@@ -917,6 +922,11 @@ function loadExpectedLocalVisibleCount() {
 async function main() {
   console.log('--- Production Sync Started ---');
   const soopLookup = buildSoopLookup();
+  const canWriteServingIdentityKey = await tableHasColumn(
+    supabase,
+    'players',
+    'serving_identity_key'
+  );
 
   const { data: prodData, error: prodErr } = await supabase
     .from('players')
@@ -957,6 +967,7 @@ async function main() {
       check_priority: row.check_priority || null,
       check_interval_days: Number.isFinite(Number(row.check_interval_days)) ? Number(row.check_interval_days) : null,
     }))
+    .map((row) => withServingIdentityKey(row, canWriteServingIdentityKey))
     .filter((row) => row.name.length > 0);
 
   const historyQuality = {
@@ -1031,6 +1042,7 @@ async function main() {
   console.log(
     `[=] match_history opponent_name fill rate: ${historyQuality.opponent_name_filled_rows}/${historyQuality.total_match_history_rows} (${historyQuality.opponent_name_fill_rate})`
   );
+  console.log(`[=] serving_identity_key write enabled: ${canWriteServingIdentityKey}`);
 
   // 2) Use the current production snapshot for stale-delete phase
   // 3) Upsert all staging rows by unique key (name). Do not pass id.

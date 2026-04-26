@@ -4,25 +4,15 @@ const path = require("node:path");
 require("dotenv").config({ path: ".env.local", quiet: true });
 
 const { createClient } = require("@supabase/supabase-js");
+const {
+  buildServingIdentityKey,
+  tableHasColumn,
+} = require("./lib/serving-identity-key");
 
 const REPORTS_DIR = path.join(process.cwd(), "tmp", "reports");
 const REPORT_PATH = path.join(REPORTS_DIR, "serving_identity_readiness_latest.json");
 
-function computeServingIdentityKey(row) {
-  const eloboardId = String(row && row.eloboard_id ? row.eloboard_id : "").trim();
-  const gender = String(row && row.gender ? row.gender : "").trim().toLowerCase();
-  const match = eloboardId.match(/^eloboard:(male|female)(:mix)?:(\d+)$/i);
-
-  if (match) {
-    return `${gender || match[1].toLowerCase()}:${match[3]}`;
-  }
-
-  if (eloboardId) {
-    return `entity:${eloboardId.toLowerCase()}`;
-  }
-
-  return null;
-}
+const computeServingIdentityKey = buildServingIdentityKey;
 
 function summarizeServingIdentityRows(rows) {
   const buckets = new Map();
@@ -70,6 +60,9 @@ function createSupabaseClient() {
 }
 
 async function checkServingIdentityColumn(supabase, table) {
+  const exists = await tableHasColumn(supabase, table, "serving_identity_key");
+  if (exists) return { exists: true };
+
   const { error } = await supabase.from(table).select("serving_identity_key").limit(1);
   return error
     ? {

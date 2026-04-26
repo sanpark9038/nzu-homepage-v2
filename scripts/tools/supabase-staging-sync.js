@@ -8,6 +8,10 @@ const {
   shouldApplyManualRaceOverride,
   shouldApplyManualTierOverride,
 } = require('./lib/roster-admin-store');
+const {
+  tableHasColumn,
+  withServingIdentityKey,
+} = require('./lib/serving-identity-key');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
@@ -281,6 +285,11 @@ function dedupePlayersByName(players) {
 async function main() {
   console.log('--- Supabase Staging Sync Started ---');
   const supabase = createSupabaseClient();
+  const canWriteServingIdentityKey = await tableHasColumn(
+    supabase,
+    'players_staging',
+    'serving_identity_key'
+  );
   const soopLookup = buildSoopLookup();
   const soopSnapshot = loadSoopSnapshot();
   
@@ -396,9 +405,12 @@ async function main() {
 
   // Insert to staging
   console.log(`Inserting ${playersForUpsert.length} players to players_staging...`);
+  console.log(`[=] serving_identity_key write enabled: ${canWriteServingIdentityKey}`);
   const chunkSize = 100;
   for (let i = 0; i < playersForUpsert.length; i += chunkSize) {
-    const chunk = playersForUpsert.slice(i, i + chunkSize);
+    const chunk = playersForUpsert
+      .slice(i, i + chunkSize)
+      .map((row) => withServingIdentityKey(row, canWriteServingIdentityKey));
     const { error } = await supabase.from('players_staging').upsert(chunk, { onConflict: 'name' });
     if (error) {
        console.error('Error inserting chunk:', error);
