@@ -411,7 +411,9 @@ async function main() {
     const chunk = playersForUpsert
       .slice(i, i + chunkSize)
       .map((row) => withServingIdentityKey(row, canWriteServingIdentityKey));
-    const { error } = await supabase.from('players_staging').upsert(chunk, { onConflict: 'name' });
+    const { error } = await supabase
+      .from('players_staging')
+      .upsert(chunk, { onConflict: canWriteServingIdentityKey ? 'serving_identity_key' : 'name' });
     if (error) {
        console.error('Error inserting chunk:', error);
     }

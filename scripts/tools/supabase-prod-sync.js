@@ -485,10 +485,10 @@ function isStatementTimeout(error) {
   return code === '57014' || message.includes('statement timeout') || message.includes('canceling statement due to statement timeout');
 }
 
-async function upsertPlayersChunkAdaptive(rows) {
+async function upsertPlayersChunkAdaptive(rows, onConflict = 'name') {
   if (!Array.isArray(rows) || rows.length === 0) return;
 
-  const { error } = await supabase.from('players').upsert(rows, { onConflict: 'name' });
+  const { error } = await supabase.from('players').upsert(rows, { onConflict });
   if (!error) return;
 
   if (!isStatementTimeout(error) || rows.length <= MIN_UPSERT_CHUNK_SIZE) {
@@ -499,8 +499,8 @@ async function upsertPlayersChunkAdaptive(rows) {
   const left = rows.slice(0, mid);
   const right = rows.slice(mid);
   console.warn(`[retry] players upsert timeout on chunk=${rows.length}; splitting into ${left.length}+${right.length}`);
-  await upsertPlayersChunkAdaptive(left);
-  await upsertPlayersChunkAdaptive(right);
+  await upsertPlayersChunkAdaptive(left, onConflict);
+  await upsertPlayersChunkAdaptive(right, onConflict);
 }
 
 function parseMatchHistoryFromStableCsv(sourceFile) {
@@ -751,6 +751,9 @@ function buildServingStatsByIdentity(players = []) {
 const buildServingStatsByName = buildServingStatsByIdentity;
 
 function buildSyncIdentityKey(row) {
+  const servingIdentityKey = String(row && row.serving_identity_key ? row.serving_identity_key : '').trim();
+  if (servingIdentityKey) return servingIdentityKey;
+
   const entityId = String(row && row.eloboard_id ? row.eloboard_id : '').trim();
   const wrId = extractWrId(entityId);
   const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase() || inferGenderFromEntityId(entityId);
@@ -797,23 +800,20 @@ function selectStaleProductionRows(prodRows = [], sanitizedRows = []) {
       .map((row) => normalizeName(row && row.name ? row.name : ''))
       .filter(Boolean)
   );
-  const validNameByEntity = new Map(
+  const validIdentities = new Set(
     (Array.isArray(sanitizedRows) ? sanitizedRows : [])
-      .map((row) => [String(row && row.eloboard_id ? row.eloboard_id : '').trim(), normalizeName(row && row.name ? row.name : '')])
-      .filter(([entityId, name]) => entityId && name)
+      .map((row) => buildSyncIdentityKey(row))
+      .filter((identityKey) => identityKey && identityKey !== 'unknown' && !identityKey.startsWith('name:'))
   );
 
   return (Array.isArray(prodRows) ? prodRows : []).filter((row) => {
+    const identityKey = buildSyncIdentityKey(row);
+    if (identityKey && identityKey !== 'unknown' && !identityKey.startsWith('name:')) {
+      return !validIdentities.has(identityKey);
+    }
+
     const name = normalizeName(row && row.name ? row.name : '');
-    if (validNames.has(name)) return false;
-
-    const entityId = String(row && row.eloboard_id ? row.eloboard_id : '').trim();
-    if (!entityId) return true;
-
-    const currentNameForEntity = validNameByEntity.get(entityId);
-    if (!currentNameForEntity) return true;
-
-    return currentNameForEntity !== name;
+    return !validNames.has(name);
   });
 }
 
@@ -930,7 +930,7 @@ async function main() {
 
   const { data: prodData, error: prodErr } = await supabase
     .from('players')
-    .select('name,eloboard_id,gender,detailed_stats,match_history,total_wins,total_losses,win_rate,last_synced_at');
+    .select('name,eloboard_id,gender,serving_identity_key,detailed_stats,match_history,total_wins,total_losses,win_rate,last_synced_at');
   if (prodErr) throw prodErr;
   const currentProdByName = new Map(
     (prodData || [])
@@ -1045,11 +1045,12 @@ async function main() {
   console.log(`[=] serving_identity_key write enabled: ${canWriteServingIdentityKey}`);
 
   // 2) Use the current production snapshot for stale-delete phase
-  // 3) Upsert all staging rows by unique key (name). Do not pass id.
+  // 3) Upsert all staging rows by unique serving key when available. Do not pass id.
   const chunkSize = resolveInitialChunkSize();
+  const upsertConflictTarget = canWriteServingIdentityKey ? 'serving_identity_key' : 'name';
   for (let i = 0; i < sanitized.length; i += chunkSize) {
     const chunk = sanitized.slice(i, i + chunkSize);
-    await upsertPlayersChunkAdaptive(chunk);
+    await upsertPlayersChunkAdaptive(chunk, upsertConflictTarget);
   }
   console.log(`[+] Upserted ${sanitized.length} records to players`);
 
@@ -1068,15 +1069,18 @@ async function main() {
   console.log(`[!] Found ${toDelete.length} stale players not in local pipeline.`);
 
   if (toDelete.length > 0) {
-    const namesToDelete = toDelete.map((d) => String(d.name || '')).filter(Boolean);
-    for (let i = 0; i < namesToDelete.length; i += chunkSize) {
-      const chunk = namesToDelete.slice(i, i + chunkSize);
-      const { error: delErr } = await supabase.from('players').delete().in('name', chunk);
+    const deleteKeys = toDelete
+      .map((row) => canWriteServingIdentityKey ? buildSyncIdentityKey(row) : String(row.name || '').trim())
+      .filter(Boolean);
+    const deleteColumn = canWriteServingIdentityKey ? 'serving_identity_key' : 'name';
+    for (let i = 0; i < deleteKeys.length; i += chunkSize) {
+      const chunk = deleteKeys.slice(i, i + chunkSize);
+      const { error: delErr } = await supabase.from('players').delete().in(deleteColumn, chunk);
       if (delErr) {
         throw new Error(`Failed to delete stale players: ${delErr.message}`);
       }
     }
-    console.log(`[-] Successfully removed ${namesToDelete.length} stale records.`);
+    console.log(`[-] Successfully removed ${deleteKeys.length} stale records.`);
   }
 
   // 5) Final verification

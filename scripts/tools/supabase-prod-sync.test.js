@@ -416,7 +416,7 @@ runTest("findProductionIdentityConflicts flags same-name rows with different dur
   assert.equal(actual[0].incoming_identity, "female:222");
 });
 
-runTest("selectStaleProductionRows deletes renamed rows for the same entity but keeps active names", () => {
+runTest("selectStaleProductionRows keeps renamed rows when the same serving identity remains active", () => {
   const actual = selectStaleProductionRows(
     [
       { name: "old-name", eloboard_id: "eloboard:male:913" },
@@ -428,7 +428,21 @@ runTest("selectStaleProductionRows deletes renamed rows for the same entity but 
     ]
   );
 
-  assert.deepEqual(actual, [{ name: "old-name", eloboard_id: "eloboard:male:913" }]);
+  assert.deepEqual(actual, []);
+});
+
+runTest("selectStaleProductionRows deletes rows whose serving identity is no longer active", () => {
+  const actual = selectStaleProductionRows(
+    [
+      { name: "removed-player", eloboard_id: "eloboard:male:913" },
+      { name: "active-player", eloboard_id: "eloboard:male:777" },
+    ],
+    [
+      { name: "active-player", eloboard_id: "eloboard:male:777" },
+    ]
+  );
+
+  assert.deepEqual(actual, [{ name: "removed-player", eloboard_id: "eloboard:male:913" }]);
 });
 
 runTest("findUnsafeStaleDeleteRows flags stale delete candidates without durable identities", () => {
