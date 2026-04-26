@@ -99,6 +99,11 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 - Manual verification run `24954064205` completed successfully on 2026-04-26. The log confirms `[OK] supabase_staging_sync`, `[OK] supabase_prod_sync`, `[OK] revalidate_public_cache {"ok":true,"revalidated":["public-players-list"]}`, and `CACHE_REVALIDATION_RESULT {"status":"completed"}`.
 - Run `24954064205` production sync reported `318` valid staging records, `318` players upserted, `0` stale players, and `match_history opponent_name fill rate: 134965/134965 (1)`.
 - Direct production Supabase verification after run `24954064205` found `players=318`, `players_with_history=315`, `total_match_history_rows=134965`, and `max_match_history_date=2026-04-26`.
+- Serving identity readiness follow-up on 2026-04-26:
+- Added `scripts/tools/check-serving-identity-readiness.js` and `npm run check:serving-identity-readiness` as a REST-based read-only check that can be run without a direct Postgres SQL connection.
+- Live REST check reports data readiness is good: `players=318`, `players_staging=318`, `missing_eloboard_id_rows=0` for both tables, and `duplicate_serving_identity_buckets=0` for both tables.
+- Live REST check also confirms schema is not ready yet: `players.serving_identity_key` and `players_staging.serving_identity_key` do not exist (`42703`), and unique/index contracts still cannot be verified without running `scripts/sql/check-serving-identity-schema.sql` through a SQL-capable channel.
+- Decision: do not flip `onConflict: 'name'` or stale delete yet. Next concrete unblocker is applying/verifying `scripts/sql/add-serving-identity-key.sql` through Supabase SQL/psql, then rerunning the SQL check and REST readiness check.
 - deployment readiness is now green after a successful real `with-sync` run, refreshed Discord roster snapshot, fresh SOOP live snapshot sync, and a regenerated homepage integrity report
 - current repo state is also green on local verification: `npm.cmd run build` and `npm.cmd run lint` both pass
 - `supabase-prod-sync.js` now fail-closes when stable CSV history is lower quality than existing `fact_matches` history, writes `tmp/reports/prod_sync_history_quality_latest.json`, and refuses prod sync when `match_history.opponent_name` coverage is catastrophically low
