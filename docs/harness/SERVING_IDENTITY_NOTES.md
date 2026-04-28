@@ -84,9 +84,13 @@ Opponent durable identity is now treated as an optional contract extension:
 A draft migration now exists at:
 
 - [../../scripts/sql/add-serving-identity-key.sql](../../scripts/sql/add-serving-identity-key.sql)
+- [../../scripts/sql/replace-serving-identity-partial-indexes.sql](../../scripts/sql/replace-serving-identity-partial-indexes.sql)
 - [../../scripts/sql/check-serving-identity-schema.sql](../../scripts/sql/check-serving-identity-schema.sql)
 
-Treat it as a proposal, not confirmed live schema.
+Treat it as a proposal, not confirmed live schema. The unique indexes for
+`serving_identity_key` must be non-partial so PostgREST/Supabase upsert can use
+`onConflict=serving_identity_key`; partial unique indexes can enforce uniqueness
+but can still fail upsert with `42P10`.
 
 ## Required Before Any `onConflict` Flip
 

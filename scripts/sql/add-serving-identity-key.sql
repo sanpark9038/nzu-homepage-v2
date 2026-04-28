@@ -37,8 +37,7 @@ set serving_identity_key = public.compute_serving_identity_key(eloboard_id, gend
 where serving_identity_key is distinct from public.compute_serving_identity_key(eloboard_id, gender);
 
 create unique index if not exists idx_players_serving_identity_key
-  on public.players (serving_identity_key)
-  where serving_identity_key is not null;
+  on public.players (serving_identity_key);
 
 alter table if exists public.players_staging
   add column if not exists serving_identity_key text;
@@ -48,8 +47,7 @@ set serving_identity_key = public.compute_serving_identity_key(eloboard_id, gend
 where serving_identity_key is distinct from public.compute_serving_identity_key(eloboard_id, gender);
 
 create unique index if not exists idx_players_staging_serving_identity_key
-  on public.players_staging (serving_identity_key)
-  where serving_identity_key is not null;
+  on public.players_staging (serving_identity_key);
 
 comment on function public.compute_serving_identity_key(text, text) is
   'Draft helper for serving-sync identity. Collapses mix/non-mix variants onto gender:wr_id when possible.';
