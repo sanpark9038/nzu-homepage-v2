@@ -1,4 +1,5 @@
 const SOOP_BROAD_LIST_URL = "https://openapi.sooplive.co.kr/broad/list";
+const DEFAULT_BROAD_LIST_PAGE_LIMIT = 200;
 
 function trim(value) {
   return String(value || "").trim();
@@ -98,7 +99,7 @@ async function fetchBroadListPage({ clientId, pageNo, orderType = "broad_start" 
   throw new Error("SOOP broad/list returned an unexpected payload.");
 }
 
-async function fetchLiveRowsByIds({ clientId, targetIds, pageLimit = 60, orderType = "broad_start" }) {
+async function fetchLiveRowsByIds({ clientId, targetIds, pageLimit = DEFAULT_BROAD_LIST_PAGE_LIMIT, orderType = "broad_start" }) {
   const remaining = new Set((targetIds || []).map((id) => trim(id).toLowerCase()).filter(Boolean));
   const found = new Map();
 
@@ -120,7 +121,7 @@ async function fetchLiveRowsByIds({ clientId, targetIds, pageLimit = 60, orderTy
   return found;
 }
 
-async function fetchAllLiveRows({ clientId, pageLimit = 60, orderType = "broad_start" }) {
+async function fetchAllLiveRows({ clientId, pageLimit = DEFAULT_BROAD_LIST_PAGE_LIMIT, orderType = "broad_start" }) {
   const rows = [];
   const seen = new Set();
 
@@ -146,6 +147,7 @@ async function fetchAllLiveRows({ clientId, pageLimit = 60, orderType = "broad_s
 
 module.exports = {
   SOOP_BROAD_LIST_URL,
+  DEFAULT_BROAD_LIST_PAGE_LIMIT,
   trim,
   fetchLiveRowsByIds,
   fetchAllLiveRows,

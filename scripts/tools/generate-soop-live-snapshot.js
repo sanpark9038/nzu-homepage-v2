@@ -1,13 +1,13 @@
 const fs = require("fs");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local"), quiet: true });
-const { SOOP_BROAD_LIST_URL, trim, fetchLiveRowsByIds } = require("./lib/soop-open-api");
+const { SOOP_BROAD_LIST_URL, DEFAULT_BROAD_LIST_PAGE_LIMIT, trim, fetchLiveRowsByIds } = require("./lib/soop-open-api");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PLAYER_METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const OUTPUT_PATH = path.join(ROOT, "data", "metadata", "soop_live_snapshot.generated.v1.json");
 const SOOP_CLIENT_ID = String(process.env.SOOP_CLIENT_ID || "").trim();
-const DEFAULT_PAGE_LIMIT = 60;
+const DEFAULT_PAGE_LIMIT = DEFAULT_BROAD_LIST_PAGE_LIMIT;
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));

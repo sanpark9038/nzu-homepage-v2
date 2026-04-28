@@ -204,3 +204,4 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 ## New failure modes found
 
 - FM-007: stale SOOP snapshot reused by long chunked ops runs. See `docs/harness/FAILURE_MODES.md`.
+- 2026-04-28 follow-up under FM-007: 전태규 (`70jeontaekyu`) exposed a second SOOP live-state gap where the snapshot was fresh but incomplete because `broad/list` scanning stopped at the default 60 pages. Immediate scope is to raise the default snapshot/live-sync scan depth, add a contract test for the minimum page limit, and verify the same-page-limit miss list before syncing live state.
