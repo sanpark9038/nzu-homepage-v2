@@ -11,6 +11,7 @@ const REPORT_LATEST_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.json");
 const REPORT_LATEST_MD_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.md");
 const ALERTS_LATEST_PATH = path.join(REPORTS_DIR, "daily_pipeline_alerts_latest.json");
 const COLLECT_CHUNKED_TIMEOUT_MS = 110 * 60 * 1000;
+const SOOP_SNAPSHOT_TIMEOUT_MS = 5 * 60 * 1000;
 const HOMEPAGE_INTEGRITY_TIMEOUT_MS = 10 * 60 * 1000;
 const SUPABASE_PUSH_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -108,6 +109,7 @@ function spawnNode(scriptRelPath, args = []) {
 }
 
 function stepTimeoutFor(name) {
+  if (name === "soop_live_snapshot") return SOOP_SNAPSHOT_TIMEOUT_MS;
   if (name === "homepage_integrity_report") return HOMEPAGE_INTEGRITY_TIMEOUT_MS;
   if (name === "collect_chunked") return COLLECT_CHUNKED_TIMEOUT_MS;
   if (name === "supabase_push") return SUPABASE_PUSH_TIMEOUT_MS;
@@ -120,6 +122,10 @@ function hasHomepageIntegrityEnv() {
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ""
   ).trim();
   return Boolean(supabaseUrl && serviceKey);
+}
+
+function hasSoopSnapshotEnv() {
+  return Boolean(String(process.env.SOOP_CLIENT_ID || "").trim());
 }
 
 function envFlag(name) {
@@ -401,6 +407,13 @@ async function main() {
   captureRosterBaseline();
   try {
     if (hasHomepageIntegrityEnv()) {
+      if (hasSoopSnapshotEnv()) {
+        steps.push(
+          await runStep("soop_live_snapshot", "scripts/tools/generate-soop-live-snapshot.js", [], {
+            timeoutMs: stepTimeoutFor("soop_live_snapshot"),
+          })
+        );
+      }
       steps.push(
         await runStep("homepage_integrity_report", "scripts/tools/report-homepage-integrity.js", [], {
           timeoutMs: stepTimeoutFor("homepage_integrity_report"),
