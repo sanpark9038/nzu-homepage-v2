@@ -8,6 +8,7 @@ const REPORT_DIR = path.join(ROOT, "tmp", "reports");
 const NODE_BIN = process.execPath || "node";
 const NODE_BIN_FALLBACK = "node";
 const DAILY_PIPELINE_TIMEOUT_MS = 60 * 60 * 1000;
+const SOOP_SNAPSHOT_TIMEOUT_MS = 5 * 60 * 1000;
 const HOMEPAGE_INTEGRITY_TIMEOUT_MS = 10 * 60 * 1000;
 const WAREHOUSE_VERIFY_TIMEOUT_MS = 5 * 60 * 1000;
 const SUPABASE_SYNC_TIMEOUT_MS = 30 * 60 * 1000;
@@ -36,6 +37,7 @@ function timestamp() {
 }
 
 function stepTimeoutFor(name) {
+  if (name === "soop_live_snapshot") return SOOP_SNAPSHOT_TIMEOUT_MS;
   if (name === "homepage_integrity_report") return HOMEPAGE_INTEGRITY_TIMEOUT_MS;
   if (name === "daily_pipeline") return DAILY_PIPELINE_TIMEOUT_MS;
   if (name === "warehouse_verify") return WAREHOUSE_VERIFY_TIMEOUT_MS;
@@ -49,6 +51,10 @@ function hasHomepageIntegrityEnv() {
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ""
   ).trim();
   return Boolean(supabaseUrl && serviceKey);
+}
+
+function hasSoopSnapshotEnv() {
+  return Boolean(String(process.env.SOOP_CLIENT_ID || "").trim());
 }
 
 function runStep(name, args, options = {}) {
@@ -356,6 +362,13 @@ function main() {
       }
     } else {
       if (hasHomepageIntegrityEnv()) {
+        if (hasSoopSnapshotEnv()) {
+          steps.push(
+            runStep("soop_live_snapshot", ["scripts/tools/generate-soop-live-snapshot.js"], {
+              timeoutMs: stepTimeoutFor("soop_live_snapshot"),
+            })
+          );
+        }
         steps.push(
           runStep("homepage_integrity_report", ["scripts/tools/report-homepage-integrity.js"], {
             timeoutMs: stepTimeoutFor("homepage_integrity_report"),
