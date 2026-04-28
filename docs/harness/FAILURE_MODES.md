@@ -203,3 +203,51 @@ to coexist in the serving path.
 1. Only replace current history with stable CSV when the replacement is meaningfully populated.
 2. Refuse prod sync when `match_history.opponent_name` coverage falls below a safety threshold.
 3. Surface coverage metrics in homepage integrity and ops alerts so degradation is visible before users report it.
+
+## FM-006: Repeated Discord roster delta from already-applied sync rows
+
+### Status
+
+- documented
+- mitigated by prior roster-state filtering in Discord summary generation
+- covered by `send-manual-refresh-discord.test.js`
+
+### Summary
+
+Discord can repeat the same roster delta across daily runs when the final summary reads `team_roster_sync_report.json` as a fresh alert source without checking whether those roster changes were already present in the previous `current_roster_state.json`.
+
+### Confirmed example
+
+- 2026-04-27 and 2026-04-28 Discord summaries repeated the same roster deltas:
+- 루다: `무소속 -> wfu`
+- 강민기: `무소속 -> wfu`
+- 기나: `무소속 -> ssu`
+
+루다 also had a separate match-collection exclusion decision at the time. That was not the root cause of the repeated Discord affiliation alert; it only explained why 루다 match collection needed a separate exclusion-list change.
+
+### What happened
+
+1. Roster sync produced `added` or `moved` rows in `tmp/reports/team_roster_sync_report.json`.
+2. The Discord summary preferred those roster-sync rows for joiner and affiliation-change sections.
+3. The summary did not compare those rows against the previous `tmp/reports/current_roster_state.json`.
+4. Already-applied roster state was announced again as if it were new.
+
+### Root cause
+
+The summary confused "sync activity observed during this run" with "new operator-facing roster delta since the last accepted roster state."
+
+`team_roster_sync_report.json` is useful evidence, but it is not sufficient by itself for Discord delta publication.
+
+### Relevant code paths
+
+- Discord summary check: [scripts/tools/lib/discord-summary.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/lib/discord-summary.js:136)
+- Final Discord message builder: [scripts/tools/send-manual-refresh-discord.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/send-manual-refresh-discord.js:609)
+- Regression coverage: [scripts/tools/send-manual-refresh-discord.test.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/send-manual-refresh-discord.test.js:450)
+
+### Preventive harness actions
+
+1. Before publishing roster-sync `added` or `moved` rows in Discord, compare them with the previous `current_roster_state.json`.
+2. Suppress rows whose player identity and target team already match the previous roster-state snapshot.
+3. Keep legitimate new joiners visible even when already-applied rows are suppressed.
+4. Use durable identity first (`entity_id` / serving identity), with name+team only as a compatibility fallback.
+5. Never use a fixed player count such as `318` or `319` as the success invariant. Counts are snapshots; success means staging/prod consistency, nonzero rows, zero missing/duplicate identities, sync success, and completed cache revalidation.

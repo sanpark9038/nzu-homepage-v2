@@ -66,6 +66,20 @@ Use this when the system looks stable and you only want to watch for regressions
 3. Check Discord summary wording and ordering.
 4. Spot-check `/tier`, `/player`, and `/match`.
 
+### Discord Roster Delta Guard
+
+Use this check whenever Discord repeats the same roster delta across runs.
+
+- Do not treat a repeated Discord roster delta as a new roster fact until it is compared with the previous `tmp/reports/current_roster_state.json`.
+- `tmp/reports/team_roster_sync_report.json` can contain sync activity for the current collection, but Discord must suppress `added` or `moved` rows that were already present in the previous roster-state snapshot.
+- A correct summary may still show real new joiners, but it should not repeat already-applied affiliation changes such as the 2026-04-28 루다/강민기/기나 case.
+- After any fix, verify with:
+
+```bash
+npm run pipeline:verify:discord
+node scripts/tools/send-manual-refresh-discord.test.js
+```
+
 ## Manual Recovery
 
 ```bash
@@ -102,4 +116,5 @@ npm run reports:prune -- --apply
 
 - Keep the main workflow as the primary live ops path.
 - Do not treat `tmp/` artifacts as permanent truth.
+- Treat player counts such as `318` or `319` as current snapshots, not fixed targets. The invariant is nonzero matching `players`/`players_staging`, zero missing/duplicate serving identities, successful sync, and completed cache revalidation.
 - If the session starts drifting, go back to `docs/harness/SESSION_ENTRY.md`.
