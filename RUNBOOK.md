@@ -66,6 +66,17 @@ Use this when the system looks stable and you only want to watch for regressions
 3. Check Discord summary wording and ordering.
 4. Spot-check `/tier`, `/player`, and `/match`.
 
+### SOOP Snapshot Freshness Guard
+
+Use this check whenever homepage integrity reports live-player disagreement or
+`stale_live_snapshot_disagreement`.
+
+- Do not trust an old repo snapshot as live SOOP truth during long ops runs.
+- `run-manual-refresh.js` should refresh `data/metadata/soop_live_snapshot.generated.v1.json` before `homepage_integrity_report` when `SOOP_CLIENT_ID` is present.
+- `run-ops-pipeline.js` should also refresh the SOOP snapshot inside each chunk before `homepage_integrity_report`; otherwise the final chunk can overwrite a fresh top-level report with stale data.
+- A healthy verification run should show `homepage_integrity: fresh`, `snapshot_is_fresh=true`, and `stale_snapshot_disagreement_count=0`.
+- Treat `stale_live_snapshot_disagreement` as an ops freshness problem first, not as a roster or player-count fact, until the snapshot timestamp is verified.
+
 ### Discord Roster Delta Guard
 
 Use this check whenever Discord repeats the same roster delta across runs.

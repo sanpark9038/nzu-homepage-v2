@@ -251,3 +251,54 @@ The summary confused "sync activity observed during this run" with "new operator
 3. Keep legitimate new joiners visible even when already-applied rows are suppressed.
 4. Use durable identity first (`entity_id` / serving identity), with name+team only as a compatibility fallback.
 5. Never use a fixed player count such as `318` or `319` as the success invariant. Counts are snapshots; success means staging/prod consistency, nonzero rows, zero missing/duplicate identities, sync success, and completed cache revalidation.
+
+## FM-007: Stale SOOP snapshot reused by long chunked ops runs
+
+### Status
+
+- documented
+- mitigated by refreshing the SOOP live snapshot before homepage integrity in both the top-level manual refresh and each ops chunk
+- verified by Actions run `25040648610`
+
+### Summary
+
+Homepage integrity can report `stale_live_snapshot_disagreement` when the ops
+pipeline compares current DB/effective live data against an old
+`data/metadata/soop_live_snapshot.generated.v1.json` snapshot.
+
+### Confirmed example
+
+- Verification run `25038323238` refreshed the SOOP snapshot before the first
+  homepage integrity report, but later chunked pipeline steps overwrote the
+  artifact with a report generated from a snapshot that had become stale during
+  the long run.
+- The stale alert was noise from freshness drift, not proof that the roster or
+  serving player count was wrong.
+
+### What happened
+
+1. The workflow had a fresh SOOP Live Sync earlier in the day.
+2. The ops pipeline then ran long enough for the local generated snapshot to
+   become stale relative to the homepage integrity freshness window.
+3. Chunk-local homepage integrity reports reused that stale file.
+4. The final uploaded artifact could therefore show stale live disagreement even
+   though the top-level refresh had already made a fresh report.
+
+### Root cause
+
+The pipeline treated the generated SOOP snapshot as durable for the whole run.
+For long chunked runs, freshness must be local to the report that consumes the
+snapshot, not only to the workflow start.
+
+### Relevant code paths
+
+- Top-level refresh: [scripts/tools/run-manual-refresh.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/run-manual-refresh.js:1)
+- Chunked runner: [scripts/tools/run-ops-pipeline.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/run-ops-pipeline.js:1)
+- Homepage integrity report: [scripts/tools/report-homepage-integrity.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/report-homepage-integrity.js:1)
+
+### Preventive harness actions
+
+1. Refresh the SOOP snapshot immediately before `homepage_integrity_report` when `SOOP_CLIENT_ID` is available.
+2. Apply the same refresh rule inside chunked ops runs, because chunks can overwrite the final artifact.
+3. Verify artifact JSON, not only logs: require `snapshot_is_fresh=true`, `stale_snapshot_disagreement_count=0`, and no `stale_live_snapshot_disagreement` alert.
+4. Interpret stale snapshot disagreement as freshness drift until the snapshot timestamp proves otherwise.
