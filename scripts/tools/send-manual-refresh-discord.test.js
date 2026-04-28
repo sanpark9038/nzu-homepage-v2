@@ -447,6 +447,130 @@ runTest("buildDiscordSummaryCheck exposes affiliation confidence summary from ro
   ]);
 });
 
+runTest("buildDiscordSummaryCheck suppresses roster sync changes already present in prior roster state", () => {
+  const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-repeat-roster-delta-"));
+  const baselinePath = path.join(reportsDir, "manual_refresh_baseline.json");
+  fs.writeFileSync(
+    baselinePath,
+    JSON.stringify(
+      {
+        teams: [
+          {
+            team_code: "fa",
+            players: [
+              {
+                entity_id: "eloboard:female:932",
+                name: "루다",
+                display_name: "루다",
+                team_code: "fa",
+                team_name: "무소속",
+              },
+            ],
+          },
+        ],
+      },
+      null,
+      2
+    )
+  );
+  fs.writeFileSync(
+    path.join(reportsDir, "team_roster_sync_report.json"),
+    JSON.stringify(
+      {
+        moved: [
+          {
+            entity_id: "eloboard:female:932",
+            name: "루다",
+            from: "fa",
+            to: "wfu",
+            change_confidence: "confirmed",
+          },
+          {
+            entity_id: "eloboard:male:155",
+            name: "강민기",
+            from: "fa",
+            to: "wfu",
+            change_confidence: "confirmed",
+          },
+        ],
+        added: [
+          {
+            entity_id: "eloboard:male:777",
+            name: "이미반영",
+            to: "fa",
+            change_confidence: "confirmed",
+          },
+          {
+            entity_id: "eloboard:male:888",
+            name: "신규선수",
+            to: "fa",
+            change_confidence: "confirmed",
+          },
+        ],
+      },
+      null,
+      2
+    )
+  );
+
+  const actual = buildDiscordSummaryCheck({
+    reportsDir,
+    baselinePath,
+    projectsDir: path.join(reportsDir, "missing-projects"),
+    previousRosterStatePlayers: [
+      {
+        entity_id: "eloboard:female:932",
+        name: "루다",
+        display_name: "루다",
+        team_code: "wfu",
+        team_name: "wfu",
+      },
+      {
+        entity_id: "eloboard:male:777",
+        name: "이미반영",
+        display_name: "이미반영",
+        team_code: "fa",
+        team_name: "무소속",
+      },
+    ],
+    currentPlayers: [
+      {
+        entity_id: "eloboard:female:932",
+        name: "루다",
+        display_name: "루다",
+        team_code: "wfu",
+        team_name: "wfu",
+      },
+      {
+        entity_id: "eloboard:male:155",
+        name: "강민기",
+        display_name: "강민기",
+        team_code: "wfu",
+        team_name: "wfu",
+      },
+      {
+        entity_id: "eloboard:male:777",
+        name: "이미반영",
+        display_name: "이미반영",
+        team_code: "fa",
+        team_name: "무소속",
+      },
+      {
+        entity_id: "eloboard:male:888",
+        name: "신규선수",
+        display_name: "신규선수",
+        team_code: "fa",
+        team_name: "무소속",
+      },
+    ],
+    snapshot: { teams: [] },
+    alertsDoc: { counts: { critical: 0, high: 0, medium: 0, low: 0, total: 0 }, alerts: [] },
+  });
+
+  assert.deepEqual(actual.affiliation_changes.map((row) => row.player_name), ["강민기"]);
+  assert.deepEqual(actual.joiners.map((row) => row.player_name), ["신규선수"]);
+});
+
 runTest("resolveLatestReportFile prefers merged daily snapshot over newer chunk snapshot", () => {
   const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-latest-report-"));
   const mergedPath = path.join(reportsDir, "daily_pipeline_snapshot_2026-04-12.json");

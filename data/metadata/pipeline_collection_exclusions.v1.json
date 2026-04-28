@@ -41,12 +41,6 @@
       "reason": "user_excluded_pending_tier"
     },
     {
-      "name": "루다",
-      "wr_id": 932,
-      "entity_id": "eloboard:female:932",
-      "reason": "user_excluded_inactive_until_affiliated"
-    },
-    {
       "name": "초롱빡",
       "wr_id": 41,
       "entity_id": "eloboard:female:41",

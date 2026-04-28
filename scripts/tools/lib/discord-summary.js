@@ -136,6 +136,40 @@ function buildNameTeamKey(player) {
   return `${name}@@${teamName}`;
 }
 
+function matchesTeam(player, teamValue) {
+  const expected = String(teamValue || "").trim();
+  if (!player || !expected) return false;
+  const expectedLower = expected.toLowerCase();
+  const teamCode = String(player.team_code || "").trim().toLowerCase();
+  if (teamCode && teamCode === expectedLower) return true;
+  const teamName = normalizeTeamName(player.team_name).trim().toLowerCase();
+  const expectedTeamName = normalizeTeamName(expected).trim().toLowerCase();
+  return Boolean(teamName && expectedTeamName && teamName === expectedTeamName);
+}
+
+function isRosterSyncRowAlreadyPresent(row, previousPlayers, lookup, teamValue) {
+  if (!Array.isArray(previousPlayers) || !previousPlayers.length || !row) return false;
+  const previousByKey = toPlayerMap(previousPlayers, lookup);
+  const playerKey = buildPlayerKey(
+    {
+      entity_id: String(row.entity_id || ""),
+      name: String(row.player_name || row.name || ""),
+    },
+    lookup
+  );
+  const previous = playerKey ? previousByKey.get(playerKey) : null;
+  if (previous && matchesTeam(previous, teamValue)) return true;
+
+  const previousNameTeamKeys = new Set(previousPlayers.map((player) => buildNameTeamKey(player)).filter(Boolean));
+  return previousNameTeamKeys.has(
+    buildNameTeamKey({
+      name: String(row.player_name || row.name || ""),
+      display_name: String(row.player_name || row.name || ""),
+      team_name: normalizeTeamName(teamValue),
+    })
+  );
+}
+
 function toPlayerMap(players, lookup = legacyEntityIdLookup()) {
   return new Map(players.map((player) => [buildPlayerKey(player, lookup), player]));
 }
@@ -288,28 +322,36 @@ function summarizeAlerts(alertsDoc) {
   };
 }
 
-function loadRosterSyncJoiners(reportsDir) {
+function loadRosterSyncJoiners(reportsDir, options = {}) {
   const syncReport = readJsonIfExists(path.join(reportsDir, "team_roster_sync_report.json"));
   const added = Array.isArray(syncReport && syncReport.added) ? syncReport.added : [];
+  const previousPlayers = Array.isArray(options.previousPlayers) ? options.previousPlayers : [];
+  const lookup = options.lookup instanceof Map ? options.lookup : legacyEntityIdLookup();
   return added
     .map((row) => ({
+      entity_id: String(row && row.entity_id ? row.entity_id : "").trim(),
       player_name: String(row && row.name ? row.name : "").trim(),
       team_name: normalizeTeamName(row && row.to ? row.to : "무소속"),
     }))
-    .filter((row) => row.player_name);
+    .filter((row) => row.player_name)
+    .filter((row) => !isRosterSyncRowAlreadyPresent(row, previousPlayers, lookup, row.team_name));
 }
 
-function loadRosterSyncAffiliationChanges(reportsDir) {
+function loadRosterSyncAffiliationChanges(reportsDir, options = {}) {
   const syncReport = readJsonIfExists(path.join(reportsDir, "team_roster_sync_report.json"));
   const moved = Array.isArray(syncReport && syncReport.moved) ? syncReport.moved : [];
+  const previousPlayers = Array.isArray(options.previousPlayers) ? options.previousPlayers : [];
+  const lookup = options.lookup instanceof Map ? options.lookup : legacyEntityIdLookup();
   return moved
     .map((row) => ({
+      entity_id: String(row && row.entity_id ? row.entity_id : "").trim(),
       player_name: String(row && row.name ? row.name : "").trim(),
       old_team: normalizeTeamName(row && row.from ? row.from : "fa"),
       new_team: normalizeTeamName(row && row.to ? row.to : "fa"),
       change_confidence: String(row && row.change_confidence ? row.change_confidence : "inferred").trim() || "inferred",
     }))
-    .filter((row) => row.player_name);
+    .filter((row) => row.player_name)
+    .filter((row) => !isRosterSyncRowAlreadyPresent(row, previousPlayers, lookup, row.new_team));
 }
 
 function summarizeAffiliationChanges(affiliationChanges) {
@@ -339,14 +381,28 @@ function summarizeAffiliationChanges(affiliationChanges) {
   };
 }
 
-function buildDiscordSummaryCheck({ reportsDir, baselinePath, projectsDir, snapshot, alertsDoc }) {
+function buildDiscordSummaryCheck({
+  reportsDir,
+  baselinePath,
+  projectsDir,
+  snapshot,
+  alertsDoc,
+  currentPlayers,
+  previousRosterStatePlayers,
+}) {
   const beforePlayers = loadBaselinePlayers(baselinePath);
   const snapshotPlayers = loadCurrentRosterStateSnapshot(reportsDir);
-  const afterPlayers = snapshotPlayers.length ? snapshotPlayers : loadCurrentRosterState(projectsDir);
+  const explicitCurrentPlayers = Array.isArray(currentPlayers) ? currentPlayers : [];
+  const previousPlayers = Array.isArray(previousRosterStatePlayers) ? previousRosterStatePlayers : [];
+  const afterPlayers = explicitCurrentPlayers.length
+    ? explicitCurrentPlayers
+    : snapshotPlayers.length
+      ? snapshotPlayers
+      : loadCurrentRosterState(projectsDir);
   const lookup = mergedEntityIdLookup({ reportsDir });
   const rosterChanges = compareRosterJoinersRemovals(beforePlayers, afterPlayers, lookup);
-  const rosterSyncJoiners = loadRosterSyncJoiners(reportsDir);
-  const affiliationChanges = loadRosterSyncAffiliationChanges(reportsDir);
+  const rosterSyncJoiners = loadRosterSyncJoiners(reportsDir, { previousPlayers, lookup });
+  const affiliationChanges = loadRosterSyncAffiliationChanges(reportsDir, { previousPlayers, lookup });
 
   return {
     joiners: rosterSyncJoiners.length ? rosterSyncJoiners : rosterChanges.joiners,

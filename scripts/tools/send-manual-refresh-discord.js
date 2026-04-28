@@ -8,6 +8,7 @@ const {
   mergedEntityIdLookup,
   loadBaselinePlayers,
   loadCurrentRosterState,
+  loadCurrentRosterStateSnapshot,
   normalizeTeamName,
   readJsonIfExists,
   resolveLatestReportFile,
@@ -608,10 +609,12 @@ function pushLimitedRows(lines, rows, formatter, limit = 5) {
 }
 
 function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
-  const beforePlayers = loadBaselinePlayers(BASELINE_PATH);
+  const previousRosterStatePlayers = loadCurrentRosterStateSnapshot(REPORTS_DIR);
+  const beforePlayers = previousRosterStatePlayers.length
+    ? previousRosterStatePlayers
+    : loadBaselinePlayers(BASELINE_PATH);
   const afterPlayers = loadCurrentRosterState(PROJECTS_DIR);
   const collectionHealth = readJsonIfExists(COLLECTION_SOURCES_HEALTH_PATH);
-  writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
   const { tierChanges, affiliationChanges, joiners, removals } = comparePlayerChanges(beforePlayers, afterPlayers);
   const todayTop = buildTodayTopPlayers(afterPlayers);
   const summaryCheck = buildDiscordSummaryCheck({
@@ -620,7 +623,10 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     projectsDir: PROJECTS_DIR,
     snapshot,
     alertsDoc,
+    currentPlayers: afterPlayers,
+    previousRosterStatePlayers,
   });
+  writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
   const alertCounts = summaryCheck.alerts.counts || countAlertsBySeverity([]);
   const alertTone = describeAlertTone(alertCounts);
   const deltaComparable = Boolean(
@@ -820,10 +826,12 @@ function buildFailureMessage({ snapshot, runUrl, alertsDoc, opsPipelineReport })
 }
 
 function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
-  const beforePlayers = loadBaselinePlayers(BASELINE_PATH);
+  const previousRosterStatePlayers = loadCurrentRosterStateSnapshot(REPORTS_DIR);
+  const beforePlayers = previousRosterStatePlayers.length
+    ? previousRosterStatePlayers
+    : loadBaselinePlayers(BASELINE_PATH);
   const afterPlayers = loadCurrentRosterState(PROJECTS_DIR);
   const collectionHealth = readJsonIfExists(COLLECTION_SOURCES_HEALTH_PATH);
-  writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
 
   const { tierChanges, affiliationChanges, joiners, removals } = comparePlayerChanges(beforePlayers, afterPlayers);
   const todayTop = buildTodayTopPlayers(afterPlayers);
@@ -833,7 +841,10 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     projectsDir: PROJECTS_DIR,
     snapshot,
     alertsDoc,
+    currentPlayers: afterPlayers,
+    previousRosterStatePlayers,
   });
+  writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
 
   const alertCounts = summaryCheck.alerts.counts || countAlertsBySeverity([]);
   const alertTone = describeAlertTone(alertCounts);
@@ -1078,10 +1089,12 @@ function pushLimitedRows(lines, rows, formatter, limit = 5) {
 }
 
 function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
-  const beforePlayers = loadBaselinePlayers(BASELINE_PATH);
+  const previousRosterStatePlayers = loadCurrentRosterStateSnapshot(REPORTS_DIR);
+  const beforePlayers = previousRosterStatePlayers.length
+    ? previousRosterStatePlayers
+    : loadBaselinePlayers(BASELINE_PATH);
   const afterPlayers = loadCurrentRosterState(PROJECTS_DIR);
   const collectionHealth = readJsonIfExists(COLLECTION_SOURCES_HEALTH_PATH);
-  writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
 
   const { tierChanges, affiliationChanges, joiners, removals } = comparePlayerChanges(beforePlayers, afterPlayers);
   const todayTop = buildTodayTopPlayers(afterPlayers);
@@ -1091,7 +1104,10 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     projectsDir: PROJECTS_DIR,
     snapshot,
     alertsDoc,
+    currentPlayers: afterPlayers,
+    previousRosterStatePlayers,
   });
+  writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
 
   const alertCounts = summaryCheck.alerts.counts || countAlertsBySeverity([]);
   const alertTone = describeAlertTone(alertCounts);
