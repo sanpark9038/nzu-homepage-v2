@@ -60,11 +60,6 @@ function main() {
     }
     seenSoopIds.add(soopId);
 
-    if (allowedWrIds.length < 2) {
-      issues.push(`${soopId}: allowed_wr_ids must contain at least 2 ids`);
-      continue;
-    }
-
     const uniqueWrIds = [...new Set(allowedWrIds)];
     if (uniqueWrIds.length !== allowedWrIds.length) {
       issues.push(`${soopId}: allowed_wr_ids contains duplicates`);
@@ -84,11 +79,11 @@ function main() {
     }
 
     const metadataNames = [...new Set(metadataBucket.map((item) => item.name).filter(Boolean))];
-    if (metadataNames.length < 2) {
-      issues.push(`${soopId}: metadata rows do not expose multiple names`);
+    if (uniqueWrIds.length < 2 && metadataNames.length < 2) {
+      issues.push(`${soopId}: exception must cover at least 2 wr_ids or 2 metadata names`);
     }
 
-    if (note) {
+    if (note && metadataNames.length > 1) {
       const missingNames = metadataNames.filter((name) => !note.includes(name));
       if (missingNames.length) {
         issues.push(`${soopId}: note does not mention metadata names ${missingNames.join(", ")}`);

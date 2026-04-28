@@ -258,13 +258,21 @@ The summary confused "sync activity observed during this run" with "new operator
 
 - documented
 - mitigated by refreshing the SOOP live snapshot before homepage integrity in both the top-level manual refresh and each ops chunk
-- verified by Actions run `25040648610`
+- mitigated by refreshing the SOOP live snapshot immediately before Supabase staging/prod sync
+- verified for homepage integrity by Actions run `25040648610`
+- verified for live-state recovery by SOOP Live Sync run `25053187989`
 
 ### Summary
 
 Homepage integrity can report `stale_live_snapshot_disagreement` when the ops
 pipeline compares current DB/effective live data against an old
 `data/metadata/soop_live_snapshot.generated.v1.json` snapshot.
+
+The same stale snapshot can also damage the public `/tier` live-broadcaster
+view if a long manual `with-sync` run reaches Supabase staging/prod sync after
+the snapshot freshness window has expired. In that case, staging prepares
+`is_live=false` for every player, and prod sync writes those false values to
+`players`.
 
 ### Confirmed example
 
@@ -283,12 +291,18 @@ pipeline compares current DB/effective live data against an old
 3. Chunk-local homepage integrity reports reused that stale file.
 4. The final uploaded artifact could therefore show stale live disagreement even
    though the top-level refresh had already made a fresh report.
+5. A later manual run with Supabase sync (`25049764351`) reached the sync phase
+   after the local generated snapshot was stale, logged `SOOP snapshot fresh:
+   false`, and wrote `players.is_live=false` for all rows. `/tier` then had no
+   current live broadcaster rows to display until SOOP Live Sync (`25053187989`)
+   restored `players.is_live=true` rows.
 
 ### Root cause
 
 The pipeline treated the generated SOOP snapshot as durable for the whole run.
-For long chunked runs, freshness must be local to the report that consumes the
-snapshot, not only to the workflow start.
+For long chunked runs, freshness must be local to every consumer of the
+snapshot, not only to the workflow start. That includes homepage integrity and
+the Supabase staging sync that prepares `is_live`.
 
 ### Relevant code paths
 
@@ -302,3 +316,5 @@ snapshot, not only to the workflow start.
 2. Apply the same refresh rule inside chunked ops runs, because chunks can overwrite the final artifact.
 3. Verify artifact JSON, not only logs: require `snapshot_is_fresh=true`, `stale_snapshot_disagreement_count=0`, and no `stale_live_snapshot_disagreement` alert.
 4. Interpret stale snapshot disagreement as freshness drift until the snapshot timestamp proves otherwise.
+5. Refresh the SOOP snapshot immediately before `supabase_staging_sync` / `supabase_prod_sync` in the approved push wrapper, so a long collection phase cannot publish all-false live state.
+6. After any real `with-sync` run, verify `players.is_live=true` count directly or run SOOP Live Sync before judging `/tier` live-broadcaster behavior.

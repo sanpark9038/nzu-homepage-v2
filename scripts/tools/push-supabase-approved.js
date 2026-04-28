@@ -12,6 +12,10 @@ function logCacheRevalidationResult(result) {
   console.log(`CACHE_REVALIDATION_RESULT ${JSON.stringify(result)}`);
 }
 
+function hasSoopSnapshotEnv() {
+  return Boolean(String(process.env.SOOP_CLIENT_ID || "").trim());
+}
+
 function runStep(name, scriptRelPath, args = [], options = {}) {
   const res = spawnSync(NODE_BIN, [scriptRelPath, ...args], {
     cwd: ROOT,
@@ -56,6 +60,11 @@ function main() {
     process.exit(1);
   }
 
+  if (hasSoopSnapshotEnv()) {
+    runStep("soop_live_snapshot_before_supabase_sync", "scripts/tools/generate-soop-live-snapshot.js");
+  } else {
+    console.warn("[SKIP] soop_live_snapshot_before_supabase_sync missing SOOP_CLIENT_ID");
+  }
   runStep("supabase_staging_sync", "scripts/tools/supabase-staging-sync.js");
   runStep("supabase_prod_sync", "scripts/tools/supabase-prod-sync.js");
   const revalidate = runStep("revalidate_public_cache", "scripts/tools/revalidate-public-cache.js", [], {
@@ -90,4 +99,11 @@ function main() {
   console.log("Done: Supabase staging+prod sync completed.");
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  hasSoopSnapshotEnv,
+  logCacheRevalidationResult,
+};
