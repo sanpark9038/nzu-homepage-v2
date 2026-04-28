@@ -418,7 +418,8 @@ export const playerService = {
       .order("elo_point", { ascending: false });
     
     if (error) throw error;
-    return applyPlayerServiceView((data || []) as Player[]);
+    const players = applyPlayerServiceView((data || []) as Player[]);
+    return players.filter((player) => player.is_live === true);
   },
 
   /** ?뱀젙 ?좎닔??留ㅼ튂 湲곕줉 媛?몄삤湲?*/

@@ -259,6 +259,7 @@ The summary confused "sync activity observed during this run" with "new operator
 - documented
 - mitigated by refreshing the SOOP live snapshot before homepage integrity in both the top-level manual refresh and each ops chunk
 - mitigated by refreshing the SOOP live snapshot immediately before Supabase staging/prod sync
+- mitigated by refusing stale database `is_live=true` values in the public player live overlay
 - verified for homepage integrity by Actions run `25040648610`
 - verified for live-state recovery by SOOP Live Sync run `25053187989`
 
@@ -296,6 +297,10 @@ the snapshot freshness window has expired. In that case, staging prepares
    false`, and wrote `players.is_live=false` for all rows. `/tier` then had no
    current live broadcaster rows to display until SOOP Live Sync (`25053187989`)
    restored `players.is_live=true` rows.
+6. A later SOOP scheduled-sync gap left old `players.is_live=true` rows visible
+   for users after broadcasters had already gone offline. GitHub schedule
+   cadence is not a hard 5-minute freshness guarantee, so public UI must not
+   treat old DB live flags as current truth without a fresh `last_checked_at`.
 
 ### Root cause
 
@@ -318,3 +323,7 @@ the Supabase staging sync that prepares `is_live`.
 4. Interpret stale snapshot disagreement as freshness drift until the snapshot timestamp proves otherwise.
 5. Refresh the SOOP snapshot immediately before `supabase_staging_sync` / `supabase_prod_sync` in the approved push wrapper, so a long collection phase cannot publish all-false live state.
 6. After any real `with-sync` run, verify `players.is_live=true` count directly or run SOOP Live Sync before judging `/tier` live-broadcaster behavior.
+7. Public live UI must fail closed when a DB live row is older than the live
+   freshness window. `lib/player-live-overlay.ts` is the serving-side guard, and
+   `scripts/tools/player-live-overlay-contract.test.js` keeps it in
+   `verify:predeploy`.

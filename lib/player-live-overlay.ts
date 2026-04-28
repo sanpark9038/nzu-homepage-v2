@@ -16,6 +16,14 @@ type SoopLiveSnapshotDoc = {
 
 const SOOP_PREVIEW_LIVE_WINDOW_MS = 8 * 60 * 60 * 1000;
 const SOOP_GENERATED_SNAPSHOT_MAX_AGE_MS = 15 * 60 * 1000;
+const SOOP_DB_LIVE_MAX_AGE_MS = 15 * 60 * 1000;
+
+type PlayerWithLiveState = Partial<Player> & {
+  soop_id?: string | null;
+  last_checked_at?: string | null;
+  live_viewers?: string | null;
+  live_started_at?: string | null;
+};
 
 let cachedSoopLivePreviewMtimeMs: number | null = null;
 let cachedSoopLivePreview = new Map<string, SoopLivePreview>();
@@ -114,6 +122,27 @@ function isFreshGeneratedSnapshot(updatedAt: string | null) {
   return ageMs >= 0 && ageMs <= SOOP_GENERATED_SNAPSHOT_MAX_AGE_MS;
 }
 
+function isFreshDbLiveState(checkedAt: string | null | undefined) {
+  const checkedTime = Date.parse(String(checkedAt || "").trim());
+  if (!Number.isFinite(checkedTime)) return false;
+  const ageMs = Date.now() - checkedTime;
+  return ageMs >= 0 && ageMs <= SOOP_DB_LIVE_MAX_AGE_MS;
+}
+
+function clearStaleLiveState<T extends PlayerWithLiveState>(player: T): T {
+  if (player.is_live !== true) return player;
+  if (isFreshDbLiveState(player.last_checked_at)) return player;
+
+  return {
+    ...player,
+    is_live: false,
+    broadcast_title: null,
+    live_thumbnail_url: null,
+    live_viewers: null,
+    live_started_at: null,
+  };
+}
+
 function resolveSoopLiveEntry(soopId: string) {
   const generated = loadSoopGeneratedLiveSnapshot();
   const generatedFresh = isFreshGeneratedSnapshot(generated.updatedAt);
@@ -153,13 +182,13 @@ function normalizeSoopAssetUrl(value: string | null | undefined) {
   return raw;
 }
 
-export function applySoopLivePreviewToOne<T extends Partial<Player> & { soop_id?: string | null }>(player: T): T {
+export function applySoopLivePreviewToOne<T extends PlayerWithLiveState>(player: T): T {
   const soopId = String(player?.soop_id || "").trim();
-  if (!soopId) return player;
+  if (!soopId) return clearStaleLiveState(player);
   const resolved = resolveSoopLiveEntry(soopId);
-  if (!resolved) return player;
+  if (!resolved) return clearStaleLiveState(player);
   if (resolved.mode === "generated" && !resolved.snapshotFresh) {
-    return player;
+    return clearStaleLiveState(player);
   }
   const preview = resolved.entry;
 
@@ -185,7 +214,7 @@ export function applySoopLivePreviewToOne<T extends Partial<Player> & { soop_id?
     is_live: effectiveIsLive,
     broadcast_title: effectiveIsLive
       ? String(preview.title || "").trim() || player.broadcast_title
-      : player.broadcast_title,
+      : null,
     live_thumbnail_url: effectiveIsLive
       ? normalizeSoopAssetUrl(preview.thumbnail) || player.live_thumbnail_url
       : null,
@@ -194,6 +223,6 @@ export function applySoopLivePreviewToOne<T extends Partial<Player> & { soop_id?
   };
 }
 
-export function applySoopLivePreviews<T extends Partial<Player> & { soop_id?: string | null }>(players: T[]) {
+export function applySoopLivePreviews<T extends PlayerWithLiveState>(players: T[]) {
   return players.map((player) => applySoopLivePreviewToOne(player));
 }
