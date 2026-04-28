@@ -787,12 +787,12 @@
     },
     {
       "entity_id": "eloboard:male:205",
-      "name": "??",
+      "name": "케이",
       "team_code": "ku",
       "tier": "8",
       "race": "Protoss",
       "manual_lock": true,
-      "note": "Canonical identity mapping: keep ku/?? on male:205 and retire duplicate mix entity from roster sync alerts.",
+      "note": "Canonical identity mapping: keep ku/케이 on male:205 and retire duplicate mix entity from roster sync alerts.",
       "legacy_entity_ids": [
         "eloboard:male:mix:205"
       ]
