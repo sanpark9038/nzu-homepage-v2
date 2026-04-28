@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-04-10T00:00:00.000Z",
+  "updated_at": "2026-04-28T00:00:00.000Z",
   "description": "Manual SOOP channel mappings. Raw source names may be SOOP activity names and can be normalized through aliases.",
   "aliases": {
     "홍구": "임홍규",
@@ -124,6 +124,7 @@
     { "name": "으니", "soop_user_id": "qwer1317", "source": "ref22" },
     { "name": "혁민", "soop_user_id": "suhi370erw", "source": "ref22" },
     { "name": "단솔", "soop_user_id": "1004yomi", "source": "ref22" },
-    { "name": "하윤", "soop_user_id": "tndkekdy", "source": "ref22" }
+    { "name": "하윤", "soop_user_id": "tndkekdy", "source": "ref22" },
+    { "name": "루다", "soop_user_id": "as1823", "source": "manual_user_2026-04-28" }
   ]
 }
