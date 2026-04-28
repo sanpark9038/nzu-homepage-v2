@@ -117,6 +117,22 @@ runTest("university normalization collapses roster aliases into FA", () => {
   assert.deepEqual(actual, ["FA", "FA", "NZU", "FA"]);
 });
 
+runTest("serving DB roster fields are not overwritten by stale local project metadata", () => {
+  const actual = applyPlayerServingMetadataToOne({
+    name: "\ub8e8\ub2e4",
+    nickname: null,
+    eloboard_id: "eloboard:female:932",
+    gender: "female",
+    university: "\uc640\ud50c\ub300",
+    tier: "8",
+    race: "Z",
+  });
+
+  assert.equal(actual.university, "WFU");
+  assert.equal(actual.tier, "8");
+  assert.equal(actual.race, "Z");
+});
+
 runTest("exact search matches serving name, canonical nickname, and configured aliases", () => {
   const player = applyPlayerServingMetadataToOne({
     name: "박종승",

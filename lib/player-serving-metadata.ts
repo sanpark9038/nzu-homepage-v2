@@ -326,6 +326,8 @@ function applyIdentityOverride<T extends ServingMetadataPlayer>(
   // Serving semantics:
   // - `name` is the homepage-facing label after display alias resolution.
   // - `nickname` stores the canonical source name when `name` is replaced.
+  // - roster fields from Supabase (`university`, `tier`, `race`) are the public
+  //   truth after sync; local project metadata can be stale during roster moves.
   // - `soop_id` only accepts the explicit metadata override for mix identities.
   return {
     ...player,
@@ -334,9 +336,6 @@ function applyIdentityOverride<T extends ServingMetadataPlayer>(
       resolved.displayName && resolved.canonicalName && resolved.displayName !== resolved.canonicalName
         ? resolved.canonicalName
         : player.nickname,
-    university: resolved.rosterOverride?.university ?? player.university,
-    tier: resolved.rosterOverride?.tier ?? player.tier,
-    race: resolved.rosterOverride?.race ?? player.race,
     soop_id: resolved.rosterOverride?.soop_id ?? resolved.soopOverride?.soop_id ?? player.soop_id,
     profile_url: resolved.rosterOverride?.profile_url ?? player.profile_url,
   };
