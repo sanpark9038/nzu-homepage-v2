@@ -86,7 +86,6 @@ export function validateBoardPostInput(input: ReturnType<typeof normalizeBoardPo
   if (!input.title) return "제목을 입력해 주세요.";
   if (!input.content) return "내용을 입력해 주세요.";
   if (input.title.length < 2) return "제목은 2자 이상 입력해 주세요.";
-  if (input.content.length < 10) return "내용은 10자 이상 입력해 주세요.";
   return null;
 }
 

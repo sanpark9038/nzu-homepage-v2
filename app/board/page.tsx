@@ -16,21 +16,25 @@ import {
 export const runtime = "nodejs";
 export const revalidate = 0;
 
-function formatBoardListDate(value: string | null) {
+export function formatBoardListDate(value: string | null) {
   if (!value) return "-";
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
 
+  const timeZone = "Asia/Seoul";
+  const dateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
   const now = new Date();
-  const sameDay =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate();
+  const sameDay = dateKeyFormatter.format(date) === dateKeyFormatter.format(now);
 
   return new Intl.DateTimeFormat("ko-KR", sameDay
-    ? { hour: "2-digit", minute: "2-digit" }
-    : { year: "2-digit", month: "2-digit", day: "2-digit" }).format(date);
+    ? { timeZone, hour: "2-digit", minute: "2-digit", hour12: false }
+    : { timeZone, year: "2-digit", month: "2-digit", day: "2-digit" }).format(date);
 }
 
 function renderWriteAction(_isLoggedIn: boolean, className: string) {

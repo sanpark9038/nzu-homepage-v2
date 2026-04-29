@@ -264,7 +264,7 @@ export function BoardPostComposer() {
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2 text-sm font-bold text-white/72">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex min-h-9 items-center justify-between gap-3">
             <span>이미지</span>
             <button
               type="button"
@@ -295,28 +295,6 @@ export function BoardPostComposer() {
             className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
             placeholder="이미지 URL 또는 직접 업로드"
           />
-          {shouldPreviewImage ? (
-            <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
-              <Image
-                src={imageUrl}
-                alt="게시글 이미지 미리보기"
-                width={720}
-                height={405}
-                unoptimized
-                className="max-h-56 w-full object-contain"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setImageUrl("");
-                  setImageUploadState(initialImageUploadState);
-                }}
-                className="w-full border-t border-white/8 px-3 py-2 text-xs font-black text-white/62 transition hover:text-white"
-              >
-                이미지 제거
-              </button>
-            </div>
-          ) : null}
           {imageUploadState.message ? (
             <p
               className={
@@ -333,7 +311,7 @@ export function BoardPostComposer() {
         </div>
 
         <label className="space-y-2 text-sm font-bold text-white/72">
-          <span>영상 URL</span>
+          <span className="flex min-h-9 items-center">영상 URL</span>
           <input
             value={videoUrl}
             onChange={(event) => setVideoUrl(event.target.value)}
@@ -342,6 +320,29 @@ export function BoardPostComposer() {
           />
         </label>
       </div>
+
+      {shouldPreviewImage ? (
+        <div className="max-w-sm overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+          <Image
+            src={imageUrl}
+            alt="게시글 이미지 미리보기"
+            width={384}
+            height={216}
+            unoptimized
+            className="max-h-40 w-full object-contain"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setImageUrl("");
+              setImageUploadState(initialImageUploadState);
+            }}
+            className="w-full border-t border-white/8 px-3 py-2 text-xs font-black text-white/62 transition hover:text-white"
+          >
+            이미지 제거
+          </button>
+        </div>
+      ) : null}
 
       <div className="rounded-[1.2rem] border border-amber-300/18 bg-amber-300/8 px-4 py-3 text-sm font-medium leading-7 text-amber-100/88">
         이미지는 파일 선택 또는 붙여넣기(Ctrl+V)로 올릴 수 있어요. 영상은 YouTube 또는 SOOP 링크를 넣어 주세요.
