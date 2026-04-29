@@ -108,6 +108,21 @@ export function buildNumericTierGroups(players: Player[], numericTiers: number[]
     .filter((group) => group.players.length > 0);
 }
 
+export function buildCompactTeamTierPlayers(players: Player[], numericTiers: number[]) {
+  const { godPlayers, kingPlayers, jackPlayers, jokerPlayers, spadePlayers, babyPlayers } = buildNamedTierPlayers(players);
+  const numericTierGroups = buildNumericTierGroups(players, numericTiers);
+
+  return [
+    ...godPlayers,
+    ...kingPlayers,
+    ...jackPlayers,
+    ...jokerPlayers,
+    ...spadePlayers,
+    ...numericTierGroups.flatMap((group) => group.players),
+    ...babyPlayers,
+  ];
+}
+
 export function buildTierNavigation(numericTiers: number[]): TierNavigationItem[] {
   return [
     { id: "god", name: NAMED_TIER_LABELS.god },

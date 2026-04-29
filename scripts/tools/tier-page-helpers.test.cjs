@@ -68,7 +68,7 @@ function runTest(name, fn) {
 registerRootAlias();
 registerTypeScriptRequire();
 
-const { buildNamedTierPlayers } = require(path.join(ROOT, "lib", "tier-page-helpers.ts"));
+const { buildCompactTeamTierPlayers, buildNamedTierPlayers, NAMED_TIER_LABELS } = require(path.join(ROOT, "lib", "tier-page-helpers.ts"));
 const { filterTierPlayers } = require(path.join(ROOT, "lib", "tier-page-helpers.ts"));
 
 runTest("numeric tier 9 players are rendered in the baby tier group", () => {
@@ -109,5 +109,22 @@ runTest("tier page excludes retired or unwanted player identities", () => {
   assert.deepEqual(
     players.map((player) => player.id),
     ["player-yuzu"]
+  );
+});
+
+runTest("compact team tier players are ordered by tier groups before race/name sorting", () => {
+  const players = buildCompactTeamTierPlayers(
+    [
+      { id: "tier-8", name: "Tier 8", race: "P", tier: "8", university: "WFU" },
+      { id: "spade", name: "Spade", race: "Z", tier: NAMED_TIER_LABELS.spade, university: "WFU" },
+      { id: "tier-2", name: "Tier 2", race: "T", tier: "2", university: "WFU" },
+      { id: "baby", name: "Baby", race: "P", tier: "9", university: "WFU" },
+    ],
+    [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  );
+
+  assert.deepEqual(
+    players.map((player) => player.id),
+    ["spade", "tier-2", "tier-8", "baby"]
   );
 });

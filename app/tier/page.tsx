@@ -2,11 +2,13 @@ import Link from "next/link";
 
 import { H2HSelectorBar } from "@/components/players/H2HSelectorBar";
 import { LiveToggle, PlayerSearch, RaceToggle, SmartStickyHeader, UnivFilter } from "@/components/players/Filters";
+import { TeamTierCompactGrid } from "@/components/players/TeamTierCompactGrid";
 import { TierGroup } from "@/components/players/TierGroup";
 import { getUniversityOptions } from "@/lib/university-metadata";
 import { playerService } from "@/lib/player-service";
 import {
   NAMED_TIER_LABELS,
+  buildCompactTeamTierPlayers,
   buildNamedTierPlayers,
   buildNumericTierGroups,
   buildTierNavigation,
@@ -40,9 +42,12 @@ export default async function TierPage({
   const { godPlayers, kingPlayers, jackPlayers, jokerPlayers, spadePlayers, babyPlayers } = buildNamedTierPlayers(playerList);
   const numericTiers = [0, 1, 2, 3, 4, 5, 6, 7, 8];
   const numericTierGroups = buildNumericTierGroups(playerList, numericTiers);
+  const compactTeamPlayers = buildCompactTeamTierPlayers(playerList, numericTiers);
   const tiers = buildTierNavigation(numericTiers);
   const hasResults = playerList.length > 0;
   const raceGrouped = params.raceToggle === "true";
+  const selectedUniversity = String(univ || "").trim();
+  const isTeamCompactView = Boolean(selectedUniversity && selectedUniversity !== "ALL");
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -78,6 +83,8 @@ export default async function TierPage({
                   초기화하기
                 </Link>
               </div>
+            ) : isTeamCompactView ? (
+              <TeamTierCompactGrid players={compactTeamPlayers} selectedUniversity={selectedUniversity} />
             ) : (
               <div className="space-y-16">
                 {godPlayers.length > 0 && (
@@ -143,6 +150,7 @@ export default async function TierPage({
           </div>
 
           <div className="relative hidden w-16 lg:block">
+            {!isTeamCompactView ? (
             <div className="sticky top-72 z-50 flex justify-end">
               <div className="group relative flex w-full flex-col items-center">
                 <div className="vertical-rl z-10 flex cursor-pointer items-center justify-center rounded-2xl border border-nzu-green/30 bg-nzu-green/[0.08] px-4 py-8 text-center text-[17px] font-[1000] tracking-[0.12em] text-nzu-green/95 shadow-[0_0_24px_rgba(46,213,115,0.12)] backdrop-blur-md transition-all duration-300 group-hover:scale-95 group-hover:opacity-0">
@@ -167,6 +175,7 @@ export default async function TierPage({
                 </div>
               </div>
             </div>
+            ) : null}
           </div>
         </div>
       </main>
