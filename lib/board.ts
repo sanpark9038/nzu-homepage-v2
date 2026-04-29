@@ -4,6 +4,7 @@ import type { Database } from "@/lib/database.types";
 
 export type BoardPostRow = Database["public"]["Tables"]["board_posts"]["Row"];
 export type BoardPostInsert = Database["public"]["Tables"]["board_posts"]["Insert"];
+export type BoardPostUpdate = Database["public"]["Tables"]["board_posts"]["Update"];
 export type BoardCategory = "notice" | "schedule" | null;
 
 const BOARD_POST_LIMIT = 20;
@@ -81,8 +82,28 @@ export function normalizeBoardPostInput(value: unknown) {
   } satisfies BoardPostInsert;
 }
 
+export function normalizeBoardPostUpdateInput(value: unknown) {
+  const row = (value || {}) as Partial<BoardPostUpdate>;
+  const title = normalizeText(row.title).slice(0, 120);
+  const content = normalizeText(row.content).slice(0, 4000);
+
+  return {
+    title,
+    content,
+    image_url: normalizeOptionalImageUrl(row.image_url),
+    video_url: normalizeOptionalVideoUrl(row.video_url),
+  } satisfies Pick<BoardPostUpdate, "title" | "content" | "image_url" | "video_url">;
+}
+
 export function validateBoardPostInput(input: ReturnType<typeof normalizeBoardPostInput>) {
   if (!input.author_name) return "작성자 이름을 입력해 주세요.";
+  if (!input.title) return "제목을 입력해 주세요.";
+  if (!input.content) return "내용을 입력해 주세요.";
+  if (input.title.length < 2) return "제목은 2자 이상 입력해 주세요.";
+  return null;
+}
+
+export function validateBoardPostUpdateInput(input: ReturnType<typeof normalizeBoardPostUpdateInput>) {
   if (!input.title) return "제목을 입력해 주세요.";
   if (!input.content) return "내용을 입력해 주세요.";
   if (input.title.length < 2) return "제목은 2자 이상 입력해 주세요.";
@@ -199,6 +220,18 @@ export async function getBoardPostById(id: string) {
   return (data || null) as BoardPostRow | null;
 }
 
+export async function getBoardPostForMutation(id: string) {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("board_posts")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data || null) as BoardPostRow | null;
+}
+
 export async function createBoardPost(input: ReturnType<typeof normalizeBoardPostInput>) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
@@ -209,4 +242,27 @@ export async function createBoardPost(input: ReturnType<typeof normalizeBoardPos
 
   if (error) throw error;
   return data as BoardPostRow;
+}
+
+export async function updateBoardPostById(id: string, input: ReturnType<typeof normalizeBoardPostUpdateInput>) {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("board_posts")
+    .update({
+      ...input,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as BoardPostRow;
+}
+
+export async function deleteBoardPostById(id: string) {
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.from("board_posts").delete().eq("id", id);
+
+  if (error) throw error;
 }

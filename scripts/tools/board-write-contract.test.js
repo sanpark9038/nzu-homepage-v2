@@ -44,3 +44,10 @@ test("board image preview stays compact and media inputs align", () => {
   assert.match(composer, /max-h-40 w-full object-contain/);
   assert.equal(composer.includes("max-h-56 w-full object-contain"), false);
 });
+
+test("board detail images keep their natural size instead of stretching to full width", () => {
+  const detailPage = readProjectFile("app/board/[id]/page.tsx");
+
+  assert.match(detailPage, /mx-auto h-auto max-h-\[720px\] max-w-full object-contain/);
+  assert.equal(detailPage.includes("max-h-[720px] w-full object-cover"), false);
+});

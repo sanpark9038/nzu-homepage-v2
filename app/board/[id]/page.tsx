@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { ImageIcon, MessageCircleMore, PlayCircle } from "lucide-react";
+import { ImageIcon, MessageCircleMore, Pencil, PlayCircle } from "lucide-react";
 
+import { BoardPostDeleteButton } from "@/components/board/BoardPostDeleteButton";
+import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import {
   buildVideoEmbedUrl,
   getBoardCategoryLabel,
@@ -45,6 +47,16 @@ export default async function BoardDetailPage({
 
   const cookieStore = await cookies();
   const session = parsePublicAuthSessionCookieValue(cookieStore.get(PUBLIC_AUTH_SESSION_COOKIE)?.value);
+  const isAdmin = isValidAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  const canEdit =
+    isAdmin ||
+    Boolean(
+      session &&
+        post.author_provider &&
+        post.author_provider_user_id &&
+        session.provider === post.author_provider &&
+        session.providerUserId === post.author_provider_user_id
+    );
   const embedUrl = buildVideoEmbedUrl(post.video_url);
   const categoryLabel = getBoardCategoryLabel(post.category);
   const categoryTone = getBoardCategoryTone(post.category);
@@ -82,6 +94,16 @@ export default async function BoardDetailPage({
                   <span>추천수 -</span>
                 </div>
               </div>
+              {canEdit ? (
+                <Link
+                  href={`/board/${post.id}/edit`}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.03] px-5 text-sm font-black text-white transition hover:border-white/22 hover:bg-white/[0.06]"
+                >
+                  <Pencil size={16} />
+                  수정
+                </Link>
+              ) : null}
+              {canEdit ? <BoardPostDeleteButton postId={post.id} /> : null}
               <Link
                 href="/board"
                 className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/12 bg-white/[0.03] px-5 text-sm font-black text-white transition hover:border-white/22 hover:bg-white/[0.06]"
@@ -113,7 +135,7 @@ export default async function BoardDetailPage({
           {post.image_url ? (
             <div className="mt-6 overflow-hidden rounded-[1.2rem] border border-white/8 bg-black/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={post.image_url} alt={post.title} className="h-auto max-h-[720px] w-full object-cover" />
+              <img src={post.image_url} alt={post.title} className="mx-auto h-auto max-h-[720px] max-w-full object-contain" />
             </div>
           ) : null}
 

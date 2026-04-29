@@ -6,7 +6,7 @@ import { BoardImageUploadError, uploadBoardImageToR2 } from "@/lib/r2";
 
 export const runtime = "nodejs";
 
-const MAX_MULTIPART_BODY_BYTES = 6 * 1024 * 1024;
+const MAX_MULTIPART_BODY_BYTES = 22 * 1024 * 1024;
 const UPLOAD_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const UPLOAD_RATE_LIMIT_COUNT = 10;
 const uploadAttempts = new Map<string, number[]>();
@@ -54,7 +54,10 @@ export async function POST(req: Request) {
   }
 
   if (isBodyTooLarge(req)) {
-    return NextResponse.json({ ok: false, message: "이미지는 5MB 이하로 올려 주세요." }, { status: 413 });
+    return NextResponse.json(
+      { ok: false, message: "이미지는 10MB 이하, GIF는 20MB 이하로 올려 주세요." },
+      { status: 413 }
+    );
   }
 
   const cookieStore = await cookies();

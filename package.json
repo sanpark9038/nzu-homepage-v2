@@ -107,6 +107,8 @@
     "test:serving-identity-readiness": "node scripts/tools/check-serving-identity-readiness.test.js",
     "test:board-readability-contract": "node scripts/tools/board-readability-contract.test.js",
     "test:board-write-contract": "node scripts/tools/board-write-contract.test.js",
+    "test:board-edit-contract": "node scripts/tools/board-edit-contract.test.js",
+    "test:board-delete-contract": "node scripts/tools/board-delete-contract.test.js",
     "test:board-r2-upload-contract": "node scripts/tools/board-r2-upload-contract.test.js",
     "test:soop-thumbnail-performance-contract": "node scripts/tools/soop-thumbnail-performance-contract.test.js",
     "test:matchup-helpers": "node --test scripts/tools/matchup-helpers.test.mjs",

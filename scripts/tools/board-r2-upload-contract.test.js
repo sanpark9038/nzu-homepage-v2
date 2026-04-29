@@ -28,7 +28,9 @@ test("R2 helper validates board image limits before upload", () => {
   assert.match(helper, /R2_SECRET_ACCESS_KEY/);
   assert.match(helper, /R2_BUCKET_NAME/);
   assert.match(helper, /R2_PUBLIC_BASE_URL/);
-  assert.match(helper, /5\s*\*\s*1024\s*\*\s*1024/);
+  assert.match(helper, /BOARD_IMAGE_MAX_BYTES\s*=\s*10\s*\*\s*1024\s*\*\s*1024/);
+  assert.match(helper, /BOARD_GIF_IMAGE_MAX_BYTES\s*=\s*20\s*\*\s*1024\s*\*\s*1024/);
+  assert.match(helper, /mimeType === "image\/gif"/);
 
   for (const mime of ["image/jpeg", "image/png", "image/gif", "image/webp"]) {
     assert.match(helper, new RegExp(mime));
@@ -55,10 +57,19 @@ test("board composer uploads selected or pasted images without exposing R2 secre
   assert.match(composer, /\/api\/board\/images/);
   assert.match(composer, /FormData/);
   assert.match(composer, /onPaste=/);
+  assert.match(composer, /onDrop=/);
+  assert.match(composer, /dataTransfer\.files/);
   assert.match(composer, /activeImageUploadIdRef/);
   assert.match(composer, /isPreviewableImageUrl/);
   assert.match(composer, /aria-label="이미지 URL"/);
   assert.match(composer, /accept="image\/jpeg,image\/png,image\/gif,image\/webp"/);
   assert.equal(composer.includes("R2_SECRET_ACCESS_KEY"), false);
   assert.equal(composer.includes("R2_ACCESS_KEY_ID"), false);
+});
+
+test("board image upload request body allows the GIF limit with multipart overhead", () => {
+  const route = readProjectFile("app/api/board/images/route.ts");
+
+  assert.match(route, /MAX_MULTIPART_BODY_BYTES\s*=\s*22\s*\*\s*1024\s*\*\s*1024/);
+  assert.match(route, /GIF.*20MB/s);
 });

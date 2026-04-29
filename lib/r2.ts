@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
-export const BOARD_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+export const BOARD_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+export const BOARD_GIF_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
 
 const BOARD_IMAGE_TYPES = {
   "image/jpeg": { extension: "jpg", signature: isJpeg },
@@ -94,6 +95,16 @@ function assertValidImageSignature(bytes: Uint8Array, mimeType: BoardImageMimeTy
   }
 }
 
+function getBoardImageMaxBytes(mimeType: BoardImageMimeType) {
+  return mimeType === "image/gif" ? BOARD_GIF_IMAGE_MAX_BYTES : BOARD_IMAGE_MAX_BYTES;
+}
+
+function formatBoardImageLimitMessage(mimeType: BoardImageMimeType) {
+  return mimeType === "image/gif"
+    ? "GIF 이미지는 20MB 이하로 올려 주세요."
+    : "이미지는 10MB 이하로 올려 주세요.";
+}
+
 function buildBoardImageKey(extension: string) {
   const now = new Date();
   const yyyy = now.getUTCFullYear();
@@ -113,11 +124,11 @@ function createR2Client(config: ReturnType<typeof getR2Config>) {
 }
 
 export async function uploadBoardImageToR2(file: File) {
-  if (file.size > BOARD_IMAGE_MAX_BYTES) {
-    throw new BoardImageUploadError("이미지는 5MB 이하로 올려 주세요.", "image_too_large");
+  const mimeType = getBoardImageMimeType(file);
+  if (file.size > getBoardImageMaxBytes(mimeType)) {
+    throw new BoardImageUploadError(formatBoardImageLimitMessage(mimeType), "image_too_large");
   }
 
-  const mimeType = getBoardImageMimeType(file);
   const bytes = new Uint8Array(await file.arrayBuffer());
   assertValidImageSignature(bytes, mimeType);
 
@@ -139,4 +150,39 @@ export async function uploadBoardImageToR2(file: File) {
     key,
     url: `${config.publicBaseUrl}/${key}`,
   };
+}
+
+export function getBoardImageObjectKeyFromPublicUrl(value: string | null | undefined) {
+  const text = String(value || "").trim();
+  if (!text) return null;
+
+  const config = getR2Config();
+
+  try {
+    const url = new URL(text);
+    const publicBaseUrl = new URL(config.publicBaseUrl);
+    if (url.origin !== publicBaseUrl.origin) return null;
+
+    const key = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
+    if (!key.startsWith("board/")) return null;
+    return key;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteBoardImageFromR2(value: string | null | undefined) {
+  const config = getR2Config();
+  const key = getBoardImageObjectKeyFromPublicUrl(value);
+  if (!key) return { deleted: false, key: null };
+
+  const client = createR2Client(config);
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: config.bucketName,
+      Key: key,
+    })
+  );
+
+  return { deleted: true, key };
 }
