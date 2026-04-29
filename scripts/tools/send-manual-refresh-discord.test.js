@@ -571,6 +571,74 @@ runTest("buildDiscordSummaryCheck suppresses roster sync changes already present
   assert.deepEqual(actual.joiners.map((row) => row.player_name), ["신규선수"]);
 });
 
+runTest("buildDiscordSummaryCheck does not fallback to baseline joiners after suppressing repeated roster sync joiners", () => {
+  const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-repeat-joiner-fallback-"));
+  const baselinePath = path.join(reportsDir, "manual_refresh_baseline.json");
+  fs.writeFileSync(
+    baselinePath,
+    JSON.stringify(
+      {
+        teams: [],
+      },
+      null,
+      2
+    )
+  );
+  fs.writeFileSync(
+    path.join(reportsDir, "team_roster_sync_report.json"),
+    JSON.stringify(
+      {
+        added: [
+          {
+            entity_id: "eloboard:male:1001",
+            name: "Repeat Alpha",
+            to: "fa",
+            change_confidence: "confirmed",
+          },
+          {
+            entity_id: "eloboard:female:1002",
+            name: "Repeat Beta",
+            to: "ku",
+            change_confidence: "confirmed",
+          },
+        ],
+      },
+      null,
+      2
+    )
+  );
+
+  const previousRosterStatePlayers = [
+    {
+      entity_id: "eloboard:male:1001",
+      name: "Repeat Alpha",
+      display_name: "Repeat Alpha",
+      team_code: "fa",
+      team_name: "fa",
+    },
+    {
+      entity_id: "eloboard:female:1002",
+      name: "Repeat Beta",
+      display_name: "Repeat Beta",
+      team_code: "ku",
+      team_name: "ku",
+    },
+  ];
+
+  const actual = buildDiscordSummaryCheck({
+    reportsDir,
+    baselinePath,
+    projectsDir: path.join(reportsDir, "missing-projects"),
+    previousRosterStatePlayers,
+    currentPlayers: previousRosterStatePlayers,
+    snapshot: { teams: [] },
+    alertsDoc: { counts: { critical: 0, high: 0, medium: 0, low: 0, total: 0 }, alerts: [] },
+  });
+
+  assert.deepEqual(actual.joiners, []);
+  assert.equal(actual.joiners_source, "previous_roster_state");
+});
+
 runTest("resolveLatestReportFile prefers merged daily snapshot over newer chunk snapshot", () => {
   const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-latest-report-"));
   const mergedPath = path.join(reportsDir, "daily_pipeline_snapshot_2026-04-12.json");

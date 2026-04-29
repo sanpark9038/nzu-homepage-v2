@@ -252,6 +252,18 @@ The summary confused "sync activity observed during this run" with "new operator
 4. Use durable identity first (`entity_id` / serving identity), with name+team only as a compatibility fallback.
 5. Never use a fixed player count such as `318` or `319` as the success invariant. Counts are snapshots; success means staging/prod consistency, nonzero rows, zero missing/duplicate identities, sync success, and completed cache revalidation.
 
+### 2026-04-29 follow-up
+
+The first mitigation still allowed repeated `added` rows to reappear when every
+roster-sync joiner was suppressed as already present in the previous
+`current_roster_state.json`. In that case, Discord summary generation fell back
+to `manual_refresh_baseline` vs current roster comparison, which can still see
+the same already-applied joiners as new inside the current run.
+
+The guard now uses the previous roster-state snapshot as the comparison
+baseline whenever it is available, so suppressed roster-sync joiners do not
+come back through the baseline fallback path.
+
 ## FM-007: Stale SOOP snapshot reused by long chunked ops runs
 
 ### Status

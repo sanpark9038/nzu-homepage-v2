@@ -400,13 +400,19 @@ function buildDiscordSummaryCheck({
       ? snapshotPlayers
       : loadCurrentRosterState(projectsDir);
   const lookup = mergedEntityIdLookup({ reportsDir });
-  const rosterChanges = compareRosterJoinersRemovals(beforePlayers, afterPlayers, lookup);
+  const comparisonBeforePlayers = previousPlayers.length ? previousPlayers : beforePlayers;
+  const rosterChanges = compareRosterJoinersRemovals(comparisonBeforePlayers, afterPlayers, lookup);
   const rosterSyncJoiners = loadRosterSyncJoiners(reportsDir, { previousPlayers, lookup });
   const affiliationChanges = loadRosterSyncAffiliationChanges(reportsDir, { previousPlayers, lookup });
+  const joinersSource = rosterSyncJoiners.length
+    ? "team_roster_sync_report"
+    : previousPlayers.length
+      ? "previous_roster_state"
+      : "baseline_vs_current_roster";
 
   return {
     joiners: rosterSyncJoiners.length ? rosterSyncJoiners : rosterChanges.joiners,
-    joiners_source: rosterSyncJoiners.length ? "team_roster_sync_report" : "baseline_vs_current_roster",
+    joiners_source: joinersSource,
     roster_source: snapshotPlayers.length ? CURRENT_ROSTER_STATE_FILE : "projects_dir",
     removals: rosterChanges.removals,
     affiliation_changes: affiliationChanges,
