@@ -272,6 +272,7 @@ come back through the baseline fallback path.
 - mitigated by refreshing the SOOP live snapshot before homepage integrity in both the top-level manual refresh and each ops chunk
 - mitigated by refreshing the SOOP live snapshot immediately before Supabase staging/prod sync
 - mitigated by refusing stale database `is_live=true` values in the public player live overlay
+- mitigated by revalidating the public `public-players-list` cache immediately after the SOOP Live Sync workflow writes Supabase live state
 - verified for homepage integrity by Actions run `25040648610`
 - verified for live-state recovery by SOOP Live Sync run `25053187989`
 
@@ -313,6 +314,11 @@ the snapshot freshness window has expired. In that case, staging prepares
    for users after broadcasters had already gone offline. GitHub schedule
    cadence is not a hard 5-minute freshness guarantee, so public UI must not
    treat old DB live flags as current truth without a fresh `last_checked_at`.
+7. A later public check showed `/tier?liveOnly=true` empty because the last
+   successful SOOP sync was about 95 minutes old. The public overlay correctly
+   failed closed, but the workflow needed immediate cache revalidation after a
+   successful recovery sync so fresh rows do not wait for the public players
+   cache window.
 
 ### Root cause
 
@@ -339,3 +345,6 @@ the Supabase staging sync that prepares `is_live`.
    freshness window. `lib/player-live-overlay.ts` is the serving-side guard, and
    `scripts/tools/player-live-overlay-contract.test.js` keeps it in
    `verify:predeploy`.
+8. SOOP Live Sync must revalidate `public-players-list` after Supabase live-state
+   sync. `scripts/tools/admin-revalidation-proxy-contract.test.js` guards the
+   workflow step and required env wiring.

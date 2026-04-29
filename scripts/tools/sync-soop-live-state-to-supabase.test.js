@@ -1,4 +1,6 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 
 process.env.NEXT_PUBLIC_SUPABASE_URL ||= "https://example.supabase.co";
 process.env.SUPABASE_SERVICE_ROLE_KEY ||= "test-service-role-key";
@@ -7,6 +9,8 @@ const {
   buildUpdatePayloads,
   resolveSoopIdForPlayer,
 } = require("./sync-soop-live-state-to-supabase");
+
+const ROOT = path.resolve(__dirname, "..", "..");
 
 function runTest(name, fn) {
   try {
@@ -75,4 +79,11 @@ runTest("buildUpdatePayloads does not preserve stale soop_id when durable resolu
 
   assert.equal(updates[0].soop_id, null);
   assert.equal(updates[0].is_live, false);
+});
+
+runTest("SOOP live workflow avoids :00/:05 schedule spikes", () => {
+  const workflow = fs.readFileSync(path.join(ROOT, ".github", "workflows", "soop-live-sync.yml"), "utf8");
+
+  assert.match(workflow, /cron:\s*"2-59\/5 \* \* \* \*"/);
+  assert.doesNotMatch(workflow, /cron:\s*"\*\/5 \* \* \* \*"/);
 });

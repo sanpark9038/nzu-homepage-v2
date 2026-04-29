@@ -147,9 +147,9 @@ function resolveSoopLiveEntry(soopId: string) {
   const generated = loadSoopGeneratedLiveSnapshot();
   const generatedFresh = isFreshGeneratedSnapshot(generated.updatedAt);
   const generatedEntry = generated.snapshots.get(soopId);
-  if (generatedEntry && generatedFresh) {
+  if (generatedFresh) {
     return {
-      entry: generatedEntry,
+      entry: generatedEntry || null,
       mode: "generated" as const,
       snapshotFresh: true,
     };
@@ -164,15 +164,11 @@ function resolveSoopLiveEntry(soopId: string) {
     };
   }
 
-  if (generatedEntry) {
-    return {
-      entry: generatedEntry,
-      mode: "generated" as const,
-      snapshotFresh: false,
-    };
-  }
-
-  return null;
+  return {
+    entry: null,
+    mode: "unverified" as const,
+    snapshotFresh: false,
+  };
 }
 
 function normalizeSoopAssetUrl(value: string | null | undefined) {
@@ -186,7 +182,9 @@ export function applySoopLivePreviewToOne<T extends PlayerWithLiveState>(player:
   const soopId = String(player?.soop_id || "").trim();
   if (!soopId) return clearStaleLiveState(player);
   const resolved = resolveSoopLiveEntry(soopId);
-  if (!resolved) return clearStaleLiveState(player);
+  if (!resolved.entry) {
+    return clearStaleLiveState(player);
+  }
   if (resolved.mode === "generated" && !resolved.snapshotFresh) {
     return clearStaleLiveState(player);
   }
