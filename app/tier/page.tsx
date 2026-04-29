@@ -15,7 +15,8 @@ import {
   filterTierPlayers,
 } from "@/lib/tier-page-helpers";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function TierPage({
   searchParams,
@@ -30,7 +31,7 @@ export default async function TierPage({
   const liveOnly = params.liveOnly === "true";
 
   const universityOptions = getUniversityOptions();
-  const allPlayers = await playerService.getCachedPlayersList();
+  const allPlayers = await playerService.getAllPlayers();
   const playerList = filterTierPlayers(allPlayers, {
     liveOnly,
     race,
