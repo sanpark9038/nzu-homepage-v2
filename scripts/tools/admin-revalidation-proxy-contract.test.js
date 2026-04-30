@@ -22,11 +22,13 @@ test("ops pipeline workflow passes serving revalidation envs to sync steps", () 
   assert.match(workflow, /SERVING_REVALIDATE_URL:\s*\$\{\{\s*(vars|secrets)\.SERVING_REVALIDATE_URL\s*\}\}/);
 });
 
-test("SOOP live sync revalidates public player cache after Supabase live-state sync", () => {
+test("SOOP Edge live sync revalidates public player cache after DB updates", () => {
   const workflow = readProjectFile(".github/workflows/soop-live-sync.yml");
+  const edgeFunction = readProjectFile("supabase/functions/soop-live-sync/index.ts");
 
-  assert.match(workflow, /SERVING_REVALIDATE_SECRET:\s*\$\{\{\s*secrets\.SERVING_REVALIDATE_SECRET\s*\}\}/);
-  assert.match(workflow, /SERVING_REVALIDATE_URL:\s*\$\{\{\s*(vars|secrets)\.SERVING_REVALIDATE_URL\s*\}\}/);
-  assert.match(workflow, /Sync live state to Supabase[\s\S]*Revalidate public player cache/);
-  assert.match(workflow, /node scripts\/tools\/revalidate-public-cache\.js/);
+  assert.match(workflow, /functions\/v1\/soop-live-sync/);
+  assert.doesNotMatch(workflow, /node scripts\/tools\/revalidate-public-cache\.js/);
+  assert.match(edgeFunction, /SERVING_REVALIDATE_SECRET/);
+  assert.match(edgeFunction, /SERVING_REVALIDATE_URL/);
+  assert.match(edgeFunction, /public-players-list/);
 });

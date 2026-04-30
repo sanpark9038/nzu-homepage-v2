@@ -2,9 +2,6 @@ name: SOOP Live Sync
 
 on:
   workflow_dispatch:
-  schedule:
-    # GitHub schedules are best-effort; avoid the :00/:05 load spikes.
-    - cron: "2-59/5 * * * *"
 
 concurrency:
   group: soop-live-sync
@@ -13,58 +10,48 @@ concurrency:
 jobs:
   sync-live-state:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     env:
-      SOOP_CLIENT_ID: ${{ secrets.SOOP_CLIENT_ID }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-      SERVING_REVALIDATE_SECRET: ${{ secrets.SERVING_REVALIDATE_SECRET }}
-      SERVING_REVALIDATE_URL: ${{ vars.SERVING_REVALIDATE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SOOP_SYNC_SECRET: ${{ secrets.SOOP_SYNC_SECRET }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate SOOP live snapshot
-        run: npm run soop:snapshot:generate
-
-      - name: Sync live state to Supabase
-        run: npm run soop:snapshot:sync:supabase
-
-      - name: Revalidate public player cache
-        run: node scripts/tools/revalidate-public-cache.js
-
-      - name: Verify homepage integrity
-        run: npm run report:homepage:integrity
-
-      - name: Write workflow summary
-        if: always()
+      - name: Call SOOP live Edge Function
+        shell: bash
         run: |
-          echo "## SOOP Live Sync" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Schedule: every 5 minutes" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Snapshot generator: \`npm run soop:snapshot:generate\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Supabase live sync: \`npm run soop:snapshot:sync:supabase\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          node scripts/tools/report-soop-live-summary.js >> "$GITHUB_STEP_SUMMARY"
+          set -euo pipefail
 
-      - name: Upload live-sync reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: soop-live-sync-${{ github.run_id }}
-          path: |
-            tmp/reports/homepage_integrity_report.json
-            data/metadata/soop_live_snapshot.generated.v1.json
-          if-no-files-found: warn
-          retention-days: 7
+          if [ -z "${NEXT_PUBLIC_SUPABASE_URL}" ]; then
+            echo "NEXT_PUBLIC_SUPABASE_URL is required." >&2
+            exit 1
+          fi
+
+          if [ -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY}" ]; then
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY is required." >&2
+            exit 1
+          fi
+
+          if [ -z "${SOOP_SYNC_SECRET}" ]; then
+            echo "SOOP_SYNC_SECRET is required." >&2
+            exit 1
+          fi
+
+          endpoint="${NEXT_PUBLIC_SUPABASE_URL%/}/functions/v1/soop-live-sync"
+          response="$(
+            curl --fail-with-body -sS -X POST "$endpoint" \
+              -H "authorization: Bearer ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+              -H "apikey: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}" \
+              -H "x-sync-secret: ${SOOP_SYNC_SECRET}" \
+              -H "content-type: application/json" \
+              --data '{"source":"github-actions-workflow-dispatch"}'
+          )"
+
+          echo "$response"
+          {
+            echo "## SOOP Live Sync"
+            echo ""
+            echo "- Trigger: manual fallback"
+            echo "- Endpoint: \`/functions/v1/soop-live-sync\`"
+            echo "- Response: \`$response\`"
+          } >> "$GITHUB_STEP_SUMMARY"

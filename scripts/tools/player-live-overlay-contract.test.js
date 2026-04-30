@@ -29,12 +29,14 @@ runTest("player live overlay refuses stale database live state", () => {
   assert.match(source, /return\s+clearStaleLiveState\(player\)/);
 });
 
-runTest("player live overlay clears stale database live state when no verified live entry exists", () => {
+runTest("player live overlay no longer reads local SOOP JSON snapshots", () => {
   const source = readProjectFile(OVERLAY_PATH);
 
-  assert.match(source, /mode:\s*"unverified"\s+as\s+const/);
-  assert.doesNotMatch(source, /return\s+player;\s*\n\s*}/);
-  assert.match(source, /if\s*\(!resolved\.entry\)\s*{\s*return\s+clearStaleLiveState\(player\);/s);
+  assert.doesNotMatch(source, /soop_live_preview\.v1\.json/);
+  assert.doesNotMatch(source, /soop_live_snapshot\.generated\.v1\.json/);
+  assert.doesNotMatch(source, /eval\(["']require["']\)/);
+  assert.doesNotMatch(source, /loadSoopLiveSnapshotFile|loadSoopLivePreview|loadSoopGeneratedLiveSnapshot/);
+  assert.doesNotMatch(source, /SOOP_GENERATED_SNAPSHOT_MAX_AGE_MS|SOOP_PREVIEW_LIVE_WINDOW_MS/);
 });
 
 runTest("live-player service results are filtered after live overlay", () => {
@@ -42,4 +44,14 @@ runTest("live-player service results are filtered after live overlay", () => {
 
   assert.match(source, /const\s+players\s*=\s*applyPlayerServiceView/);
   assert.match(source, /return\s+players\.filter\(\(player\)\s*=>\s*player\.is_live\s*===\s*true\)/);
+});
+
+runTest("cached player lists apply live freshness after cache read", () => {
+  const source = readProjectFile(PLAYER_SERVICE_PATH);
+
+  assert.match(source, /return\s+applyServingMetadataLayer\(\(data\s*\|\|\s*\[\]\)\s+as\s+Player\[\]\)/);
+  assert.match(
+    source,
+    /async\s+getCachedPlayersList\(\)\s*{\s*return\s+applyLiveOverlayLayer\(await\s+fetchCachedPlayersForList\(\)\);/s
+  );
 });

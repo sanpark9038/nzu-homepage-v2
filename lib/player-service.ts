@@ -101,7 +101,7 @@ async function fetchPlayersForList() {
     .order("tier", { ascending: true });
 
   if (error) throw error;
-  return applyPlayerServiceView((data || []) as Player[]);
+  return applyServingMetadataLayer((data || []) as Player[]);
 }
 
 const fetchCachedPlayersForList = unstable_cache(fetchPlayersForList, ["public-players-list-v1"], {
@@ -375,11 +375,11 @@ function buildDetailedServingEntries(
 
 export const playerService = {
   async getCachedPlayersList() {
-    return fetchCachedPlayersForList();
+    return applyLiveOverlayLayer(await fetchCachedPlayersForList());
   },
   /** ?꾩쟻(ELO) ?쒖쑝濡?紐⑤뱺 ?좎닔 媛?몄삤湲?*/
   async getAllPlayers() {
-    return fetchPlayersForList();
+    return applyLiveOverlayLayer(await fetchPlayersForList());
   },
 
   /** ?뱀젙 ID???좎닔 ?뺣낫 媛?몄삤湲?*/

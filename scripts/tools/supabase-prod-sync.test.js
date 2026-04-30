@@ -84,6 +84,14 @@ runTest("parseMatchHistoryFromStableCsv preserves same-day row order from stable
   }
 });
 
+runTest("prod sync does not copy SOOP live truth fields from staging", () => {
+  const source = fs.readFileSync(path.join(ROOT, "scripts", "tools", "supabase-prod-sync.js"), "utf8");
+
+  assert.doesNotMatch(source, /select\(['"][^'"]*is_live[^'"]*['"]\)/);
+  assert.doesNotMatch(source, /\bis_live:\s*Boolean\(row\.is_live\)/);
+  assert.doesNotMatch(source, /last_checked_at:\s*row\.last_checked_at\s*\|\|\s*null/);
+});
+
 runTest("parseMatchHistoryFromStableCsv keeps multiline notes in a single record", () => {
   const fileName = "__test__stable_multiline.csv";
   try {

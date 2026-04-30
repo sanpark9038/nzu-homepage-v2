@@ -31,6 +31,7 @@ type Props = {
   defaultExpanded?: boolean;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function formatLiveElapsed(value: string | null | undefined) {
   const raw = String(value || "").trim();
   if (!raw) return null;
@@ -76,7 +77,6 @@ function PlayerSearchResultInner({
   const liveWatchUrl = player.is_live ? resolveSoopWatchUrl(player) : null;
   const liveThumbnailUrl = buildSoopThumbnailProxyUrl(player.live_thumbnail_url) || player.live_thumbnail_url || "";
   const canShowLiveThumbnail = Boolean(liveThumbnailUrl) && failedThumbnailSrc !== liveThumbnailUrl;
-  const liveElapsedText = formatLiveElapsed(player.live_started_at);
   const profileImageUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "/placeholder-player.svg";
   const universityLabel = getUniversityLabel(player.university);
 
@@ -128,11 +128,6 @@ function PlayerSearchResultInner({
                     {player.live_viewers ? (
                       <div className="inline-flex items-center rounded-full border border-white/12 bg-black/45 px-2.5 py-0.5 text-[11px] font-[1000] tracking-tight text-white">
                         {player.live_viewers}명 시청 중
-                      </div>
-                    ) : null}
-                    {liveElapsedText ? (
-                      <div className="inline-flex items-center rounded-full border border-white/12 bg-black/45 px-2.5 py-0.5 text-[11px] font-[1000] tracking-tight text-white">
-                        {liveElapsedText}
                       </div>
                     ) : null}
                   </div>

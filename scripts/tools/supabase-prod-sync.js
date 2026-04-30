@@ -941,7 +941,7 @@ async function main() {
   // 1) Fetch source from staging
   const { data: stagingData, error: stagingErr } = await supabase
     .from('players_staging')
-    .select('eloboard_id,name,tier,race,university,gender,photo_url,is_live,last_checked_at,last_match_at,last_changed_at,check_priority,check_interval_days');
+    .select('eloboard_id,name,tier,race,university,gender,photo_url,last_match_at,last_changed_at,check_priority,check_interval_days');
   if (stagingErr) throw stagingErr;
   const servingStatsByIdentity = buildServingStatsByIdentity(stagingData || []);
 
@@ -960,8 +960,6 @@ async function main() {
       university: row.university || '',
       gender: row.gender || null,
       photo_url: row.photo_url || null,
-      is_live: Boolean(row.is_live),
-      last_checked_at: row.last_checked_at || null,
       last_match_at: row.last_match_at || null,
       last_changed_at: row.last_changed_at || null,
       check_priority: row.check_priority || null,

@@ -18,8 +18,6 @@ const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
 const PLAYER_METADATA_PATH = path.join(ROOT, 'scripts', 'player_metadata.json');
 const SOOP_MAPPINGS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_channel_mappings.v1.json');
 const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_manual_review_decisions.v1.json');
-const SOOP_SNAPSHOT_PATH = path.join(ROOT, 'data', 'metadata', 'soop_live_snapshot.generated.v1.json');
-const SNAPSHOT_FRESH_MS = 15 * 60 * 1000;
 
 function createSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -56,23 +54,6 @@ function extractWrId(value) {
   if (/^\d+$/.test(raw)) return raw;
   const match = raw.match(/(\d+)$/);
   return match ? match[1] : null;
-}
-
-function loadSoopSnapshot() {
-  const doc = readJson(SOOP_SNAPSHOT_PATH, null);
-  if (!doc || typeof doc !== 'object') {
-    return { isFresh: false, channels: {} };
-  }
-  const updatedAt = String(doc.updated_at || '').trim();
-  const updatedTime = Date.parse(updatedAt);
-  const isFresh =
-    Number.isFinite(updatedTime) &&
-    Date.now() - updatedTime >= 0 &&
-    Date.now() - updatedTime <= SNAPSHOT_FRESH_MS;
-  return {
-    isFresh,
-    channels: doc && typeof doc.channels === 'object' ? doc.channels : {},
-  };
 }
 
 function buildSoopLookup() {
@@ -157,25 +138,6 @@ function buildSoopLookup() {
   }
 
   return { lookup, byWrId, byNameGender, byName };
-}
-
-function resolveLiveState(player, soopLookup, snapshot) {
-  if (!snapshot.isFresh) return false;
-  const entityId = String(player && player.entity_id ? player.entity_id : '').trim();
-  const wrId = extractWrId(entityId);
-  const gender = String(player && player.gender ? player.gender : '').trim().toLowerCase();
-  const name = normalizeLookupName(player && player.name ? player.name : '');
-
-  const metadata =
-    (wrId && gender ? soopLookup.lookup.get(`${wrId}:${gender}`) : null) ||
-    (wrId && isMixEntityId(entityId) ? soopLookup.byWrId.get(String(wrId)) : null) ||
-    (wrId ? null : name && gender ? soopLookup.byNameGender.get(`${name}:${gender}`) : null) ||
-    (wrId ? null : name ? soopLookup.byName.get(name) : null) ||
-    null;
-
-  if (!metadata || !metadata.soop_id) return false;
-  const channel = snapshot.channels[metadata.soop_id];
-  return Boolean(channel && channel.isLive === true);
 }
 
 function uniqueUpsertKeyCount(players) {
@@ -290,9 +252,6 @@ async function main() {
     'players_staging',
     'serving_identity_key'
   );
-  const soopLookup = buildSoopLookup();
-  const soopSnapshot = loadSoopSnapshot();
-  
   // 1. Load Exclusions and Overrides
   const rosterAdminState = await loadMergedRosterAdminState();
   const exclusionRules = (rosterAdminState.exclusions || []).map((p) => {
@@ -336,8 +295,6 @@ async function main() {
 
         const rMode = String(p.race || '').trim().toUpperCase();
         const shortRace = rMode.startsWith('T') ? 'T' : rMode.startsWith('Z') ? 'Z' : rMode.startsWith('P') ? 'P' : 'T';
-        const isLive = resolveLiveState(p, soopLookup, soopSnapshot);
-
         // Map to DB schema
         allPlayers.push({
           eloboard_id: p.entity_id,
@@ -353,7 +310,6 @@ async function main() {
           check_priority: p.check_priority || null,
           check_interval_days: Number.isFinite(Number(p.check_interval_days)) ? Number(p.check_interval_days) : null,
           created_at: new Date().toISOString(),
-          is_live: isLive,
         });
       });
     }
@@ -440,8 +396,7 @@ async function main() {
   console.log(`[=] 이름 충돌 정규화: ${deduped.collisions.length}건`);
   console.log(`[=] Staging 적재 완료: ${stagingTotal}명\n`);
   console.log(`[=] 예상 Upsert Key 수(name 기준): ${expectedUpsertRows}명`);
-  console.log(`[=] SOOP snapshot fresh: ${soopSnapshot.isFresh}`);
-  console.log(`[=] staging live rows prepared: ${playersForUpsert.filter((row) => row.is_live === true).length}`);
+  console.log('[=] staging live fields are owned by dedicated SOOP live sync');
 
   if (Number(stagingTotal || 0) < Math.floor(expectedUpsertRows * 0.8)) {
     throw new Error(
@@ -477,5 +432,4 @@ module.exports = {
   dedupePlayersByName,
   findHarmfulNameIdentityCollisions,
   findUnsafeUpsertIdentityRows,
-  resolveLiveState,
 };

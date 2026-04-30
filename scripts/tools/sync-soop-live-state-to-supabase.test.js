@@ -81,9 +81,9 @@ runTest("buildUpdatePayloads does not preserve stale soop_id when durable resolu
   assert.equal(updates[0].is_live, false);
 });
 
-runTest("SOOP live workflow avoids :00/:05 schedule spikes", () => {
+runTest("SOOP live workflow keeps manual fallback but removes scheduled execution", () => {
   const workflow = fs.readFileSync(path.join(ROOT, ".github", "workflows", "soop-live-sync.yml"), "utf8");
 
-  assert.match(workflow, /cron:\s*"2-59\/5 \* \* \* \*"/);
-  assert.doesNotMatch(workflow, /cron:\s*"\*\/5 \* \* \* \*"/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /^\s*schedule:/m);
 });

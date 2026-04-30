@@ -285,6 +285,57 @@ export type Database = {
         }
         Relationships: []
       }
+      soop_live_sync_runs: {
+        Row: {
+          id: string
+          started_at: string
+          finished_at: string | null
+          status: string
+          source: string | null
+          players_total: number
+          live_count: number
+          offline_count: number
+          changed_count: number
+          unresolved_count: number
+          page_limit: number | null
+          pages_scanned: number | null
+          error_message: string | null
+          details: Json
+        }
+        Insert: {
+          id?: string
+          started_at?: string
+          finished_at?: string | null
+          status: string
+          source?: string | null
+          players_total?: number
+          live_count?: number
+          offline_count?: number
+          changed_count?: number
+          unresolved_count?: number
+          page_limit?: number | null
+          pages_scanned?: number | null
+          error_message?: string | null
+          details?: Json
+        }
+        Update: {
+          id?: string
+          started_at?: string
+          finished_at?: string | null
+          status?: string
+          source?: string | null
+          players_total?: number
+          live_count?: number
+          offline_count?: number
+          changed_count?: number
+          unresolved_count?: number
+          page_limit?: number | null
+          pages_scanned?: number | null
+          error_message?: string | null
+          details?: Json
+        }
+        Relationships: []
+      }
       roster_admin_corrections: {
         Row: {
           entity_id: string
