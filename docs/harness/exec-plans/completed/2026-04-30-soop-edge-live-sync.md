@@ -1,7 +1,7 @@
 # ACTIVE PLAN: soop-edge-live-sync
 
 Created: 2026-04-30
-Status: implemented; awaiting deployment
+Status: completed
 
 ## Goal
 
@@ -62,15 +62,15 @@ Move frequent SOOP live-state sync from GitHub Actions schedule to Supabase Cron
 
 ## Next Steps
 
-- [ ] Apply `scripts/sql/create-soop-live-sync-runs.sql` in Supabase.
-- [ ] Deploy `supabase/functions/soop-live-sync/index.ts` with the required secrets.
-- [ ] Install the Supabase Cron job, starting with a 10-minute cadence.
-- [ ] Configure GitHub `SOOP_SYNC_SECRET` for the manual workflow fallback.
+- [x] Apply `scripts/sql/create-soop-live-sync-runs.sql` in Supabase.
+- [x] Deploy `supabase/functions/soop-live-sync/index.ts` with the required secrets.
+- [x] Install the Supabase Cron job on a 10-minute cadence.
+- [x] Configure GitHub `SOOP_SYNC_SECRET` for the manual workflow fallback.
+- [x] Verify Supabase Cron success logs, GitHub manual fallback, production response, and local live UI.
 
 ## Blockers
 
-- No local Supabase CLI/SQL-capable channel was used in this session. SQL is committed as a repo-visible runbook script.
-- Edge Function deployment, secret installation, and Supabase Cron setup require operator action.
+- None at completion. Operator-owned Supabase SQL, Edge Function deployment, secret installation, Vault setup, and Cron registration were completed outside the repo.
 
 ## Verification Evidence
 
@@ -84,6 +84,14 @@ Move frequent SOOP live-state sync from GitHub Actions schedule to Supabase Cron
 - `npm.cmd run lint` passed.
 - `npm.cmd run build` passed.
 - `npm.cmd run verify:predeploy` passed.
+- Supabase SQL table `public.soop_live_sync_runs` was applied.
+- Supabase Edge Function `soop-live-sync` was deployed with required secrets.
+- Supabase Vault entries for `project_url`, `anon_key`, and `soop_sync_secret` were installed.
+- Supabase Cron run logs showed `source=supabase-cron`, `status=success`, and `error_message=NULL`.
+- GitHub Actions manual fallback run `25162888394` completed successfully.
+- Vercel production deployment reached `Ready`; `/tier?liveOnly=true` returned HTTP 200.
+- Local dev server PID `13336` returned HTTP 200 for `/tier?liveOnly=true`.
+- Browser verification on local `/tier?liveOnly=true`, `/tier`, and `/player/%EC%82%AC%ED%85%8C--2d277d7b` showed live UI content with no framework error overlay and no reported console errors.
 
 ## Review Notes
 
@@ -106,8 +114,9 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 ### Last Checked State
 
 - Branch: `main`
-- git HEAD: `7c5b310`
-- Recent Actions: `SOOP Live Sync` schedule runs were still succeeding on 2026-04-30.
+- git HEAD: `a02dc3e`
+- Recent Actions: `SOOP Live Sync` workflow_dispatch run `25162888394` succeeded on 2026-04-30.
+- Workflow schedule was removed; GitHub Actions remains as manual fallback only.
 
 ## Files In Play
 
