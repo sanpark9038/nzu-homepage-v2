@@ -31,7 +31,7 @@ export default async function TierPage({
   const liveOnly = params.liveOnly === "true";
 
   const universityOptions = getUniversityOptions();
-  const allPlayers = await playerService.getAllPlayers();
+  const allPlayers = await (liveOnly ? playerService.getLivePlayers() : playerService.getCachedPlayersList());
   const playerList = filterTierPlayers(allPlayers, {
     liveOnly,
     race,

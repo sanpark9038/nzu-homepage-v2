@@ -5,7 +5,7 @@ import { buildTournamentPredictionMatches } from "@/lib/tournament-prediction";
 export const revalidate = 60;
 
 export default async function PredictionPage() {
-  const allPlayers = await playerService.getAllPlayers();
+  const allPlayers = await playerService.getCachedPlayersList();
   const matches = buildTournamentPredictionMatches(allPlayers);
 
   return (

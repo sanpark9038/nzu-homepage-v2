@@ -9,11 +9,16 @@ function readProjectFile(filePath) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }
 
-test("tier page reads fresh player serving state instead of cached public player list", () => {
+test("tier page uses cached full-list reads and a filtered live-only query", () => {
   const source = readProjectFile("app/tier/page.tsx");
 
   assert.match(source, /export\s+const\s+dynamic\s*=\s*"force-dynamic"/);
   assert.match(source, /export\s+const\s+revalidate\s*=\s*0/);
-  assert.match(source, /playerService\.getAllPlayers\(\)/);
-  assert.doesNotMatch(source, /playerService\.getCachedPlayersList\(\)/);
+  assert.match(source, /playerService\.getCachedPlayersList\(\)/);
+  assert.match(source, /playerService\.getLivePlayers\(\)/);
+  assert.doesNotMatch(source, /playerService\.getAllPlayers\(\)/);
+  assert.match(
+    source,
+    /liveOnly\s*\?\s*playerService\.getLivePlayers\(\)\s*:\s*playerService\.getCachedPlayersList\(\)/s
+  );
 });

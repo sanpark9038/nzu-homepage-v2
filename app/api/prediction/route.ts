@@ -8,7 +8,7 @@ import {
 export const runtime = "nodejs";
 
 export async function GET() {
-  const players = await playerService.getAllPlayers();
+  const players = await playerService.getCachedPlayersList();
   const matches = buildTournamentPredictionMatches(players);
   return NextResponse.json({ ok: true, matches });
 }
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const players = await playerService.getAllPlayers();
+  const players = await playerService.getCachedPlayersList();
   const matches = buildTournamentPredictionMatches(players);
   return NextResponse.json({ ok: true, matches });
 }
