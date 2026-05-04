@@ -348,3 +348,54 @@ the Supabase staging sync that prepares `is_live`.
 8. SOOP Live Sync must revalidate `public-players-list` after Supabase live-state
    sync. `scripts/tools/admin-revalidation-proxy-contract.test.js` guards the
    workflow step and required env wiring.
+
+## FM-008: Stale R2 player-history artifact can override fresher serving history
+
+### Status
+
+- documented
+- mitigated in `lib/player-service.ts`
+- covered by `scripts/tools/player-history-artifacts.test.js`
+
+### Summary
+
+The public player-history serving path can hide recent matches if a non-empty
+R2 history artifact is older than the embedded Supabase `players.match_history`
+fallback and the service trusts the artifact unconditionally.
+
+### Confirmed example
+
+- Player ID: `5aee11bf-9641-4056-8290-8c4cae1efa49`
+- Supabase embedded history: 1869 rows, latest `2026-05-02`
+- R2 artifact: `eloboard-male-29.json`, 1747 rows, latest `2026-04-07`
+- User-visible symptom: the player page appeared to stop at `2026-04-07`
+
+### What happened
+
+1. The R2 player-history path was enabled for faster public reads.
+2. `loadPlayerHistoryArtifact()` returned a non-empty artifact.
+3. `mergePlayerHistoryArtifact()` treated any non-empty artifact as authoritative.
+4. The older artifact replaced the fresher Supabase embedded history in player
+   detail and H2H history-derived paths.
+
+### Root cause
+
+The serving path optimized for artifact availability but did not compare source
+freshness before replacing the fallback history.
+
+### Relevant code paths
+
+- Artifact loading: [lib/player-history-artifacts.ts](/c:/Users/NZU/Desktop/nzu-homepage/lib/player-history-artifacts.ts:1)
+- History merge: [lib/player-service.ts](/c:/Users/NZU/Desktop/nzu-homepage/lib/player-service.ts:1)
+- Regression guard: [scripts/tools/player-history-artifacts.test.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/player-history-artifacts.test.js:1)
+
+### Preventive harness actions
+
+1. A public serving artifact must not override an existing serving fallback
+   solely because it is non-empty.
+2. Compare latest durable `match_date` values before selecting a player-history
+   source.
+3. Prefer the fresher source; if freshness is tied, the cached artifact can win
+   for performance.
+4. Keep this behavior covered in `verify:predeploy` through the player-history
+   artifact contract.

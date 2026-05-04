@@ -1,31 +1,19 @@
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 
+import {
+  buildPlayerDetailSummary,
+  getEmptyPlayerDetailSummary,
+  getPrecomputedPlayerDetailSummary,
+} from "@/lib/player-detail-summary";
 import { buildPlayerHref } from "@/lib/player-route";
 import { isExactPlayerSearchMatch, playerService, type Player } from "@/lib/player-service";
-import {
-  buildMapSummaries,
-  buildRaceBestMaps,
-  buildRaceSummaries,
-  buildRecentLogs,
-  buildRecentSummary,
-  buildSpawnPartner,
-  normalizeRaceValue,
-  pickMapSummary,
-  type MapSummary,
-  type RaceMapSummary,
-  type RaceSummary,
-  type RecentLog,
-  type RecentSummary,
-  type SpawnPartnerSummary,
-} from "@/lib/player-matchup-summary";
+import { normalizeRaceValue } from "@/lib/player-matchup-summary";
 import { getUniversityLabel } from "@/lib/university-config";
 import { getTierLabel } from "@/lib/utils";
 
 import PlayerSearchForm from "./PlayerSearchForm";
 import PlayerSearchResult from "./PlayerSearchResult";
-
-const PLAYER_DETAIL_RECENT_LOG_LIMIT = 25;
 
 async function resolveSelectedPlayer(
   selectedId: string,
@@ -55,6 +43,14 @@ async function resolveSelectedPlayer(
   return null;
 }
 
+function buildPlayerCardPayload(player: Player): Player {
+  return {
+    ...player,
+    detailed_stats: null,
+    match_history: null,
+  };
+}
+
 export async function PlayerPageView({
   query = "",
   selectedId = "",
@@ -76,13 +72,8 @@ export async function PlayerPageView({
 
   let exactMatch: Awaited<ReturnType<typeof playerService.searchPlayers>>[number] | null = null;
   let candidates: Awaited<ReturnType<typeof playerService.searchPlayers>> = [];
-  let raceSummaries: RaceSummary[] = [];
-  let strongestMap: MapSummary | null = null;
-  let weakestMap: MapSummary | null = null;
-  let raceBestMaps: RaceMapSummary[] = [];
-  let spawnPartner: SpawnPartnerSummary = null;
-  let recentLogs: RecentLog[] = [];
-  let recentSummary: RecentSummary = { winRate: "기록 없음", wins: 0, losses: 0, form: [] };
+  let detailSummary = getEmptyPlayerDetailSummary();
+  let detailSummaryLoaded = false;
 
   if (hasSelectedId) {
     exactMatch = await resolveSelectedPlayer(normalizedId, normalizedIdPrefix, normalizedQuery, initialPlayer);
@@ -94,16 +85,12 @@ export async function PlayerPageView({
   }
 
   if (exactMatch) {
-    const matchLimit = Math.max((exactMatch.total_wins ?? 0) + (exactMatch.total_losses ?? 0), 20);
-    const exactMatchMatches = await playerService.getPlayerMatches(exactMatch.id, matchLimit);
-    raceSummaries = buildRaceSummaries(exactMatchMatches, exactMatch.id);
-    const mapSummaries = buildMapSummaries(exactMatchMatches, exactMatch.id);
-    strongestMap = pickMapSummary(mapSummaries, "desc", 5);
-    weakestMap = pickMapSummary(mapSummaries, "asc", 5);
-    raceBestMaps = buildRaceBestMaps(exactMatchMatches, exactMatch.id);
-    spawnPartner = buildSpawnPartner(exactMatchMatches, exactMatch.id);
-    recentLogs = buildRecentLogs(exactMatchMatches, exactMatch.id).slice(0, PLAYER_DETAIL_RECENT_LOG_LIMIT);
-    recentSummary = buildRecentSummary(exactMatchMatches, exactMatch.id);
+    detailSummary = getPrecomputedPlayerDetailSummary(exactMatch);
+  }
+
+  if (exactMatch && shouldExpandDetailByDefault) {
+    detailSummary = await buildPlayerDetailSummary(exactMatch);
+    detailSummaryLoaded = true;
   }
 
   const initialSearchValue = normalizedQuery || exactMatch?.name || "";
@@ -141,15 +128,17 @@ export async function PlayerPageView({
                     </div>
                   ) : null}
                   <PlayerSearchResult
-                    player={exactMatch}
-                    raceSummaries={raceSummaries}
-                    strongestMap={strongestMap}
-                    weakestMap={weakestMap}
-                    raceBestMaps={raceBestMaps}
-                    spawnPartner={spawnPartner}
-                    recentLogs={recentLogs}
-                    recentSummary={recentSummary}
+                    player={buildPlayerCardPayload(exactMatch)}
+                    raceSummaries={detailSummary.raceSummaries}
+                    strongestMap={detailSummary.strongestMap}
+                    weakestMap={detailSummary.weakestMap}
+                    raceBestMaps={detailSummary.raceBestMaps}
+                    spawnPartner={detailSummary.spawnPartner}
+                    recentLogs={detailSummary.recentLogs}
+                    recentSummary={detailSummary.recentSummary}
                     defaultExpanded={shouldExpandDetailByDefault}
+                    detailSummaryLoaded={detailSummaryLoaded}
+                    detailSummaryEndpoint={`/api/player-detail-summary?id=${encodeURIComponent(exactMatch.id)}`}
                   />
                 </div>
               ) : null}

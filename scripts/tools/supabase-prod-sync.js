@@ -37,6 +37,7 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 const DEFAULT_UPSERT_CHUNK_SIZE = 25;
 const MIN_UPSERT_CHUNK_SIZE = 1;
+const PLAYER_DETAIL_SUMMARY_RECENT_LOG_LIMIT = 25;
 
 function normalizeName(value) {
   return String(value || '').trim();
@@ -719,16 +720,199 @@ function attachServingStatsAlias(map, aliasKey, entry) {
   map.set(key, entry);
 }
 
+function buildRecent90Stats(history) {
+  const now = Date.now();
+  const ninetyDaysAgo = now - 1000 * 60 * 60 * 24 * 90;
+  let latestMatchDate = '';
+  const recent = [];
+
+  for (const item of Array.isArray(history) ? history : []) {
+    const date = String(item && item.match_date ? item.match_date : '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date) && date > latestMatchDate) latestMatchDate = date;
+
+    const playedAt = date ? new Date(date).getTime() : 0;
+    if (playedAt && !Number.isNaN(playedAt) && playedAt >= ninetyDaysAgo) {
+      recent.push(item);
+    }
+  }
+
+  const wins = recent.filter((item) => Boolean(item && item.is_win)).length;
+  const total = recent.length;
+  return {
+    window_days: 90,
+    total,
+    wins,
+    losses: total - wins,
+    win_rate: toPercent(wins, total),
+    latest_match_date: latestMatchDate || null,
+  };
+}
+
+function buildProjectedMapSummary(mapName, value) {
+  const matches = Number(value && value.matches ? value.matches : 0);
+  const wins = Number(value && value.wins ? value.wins : 0);
+  return {
+    map_name: mapName,
+    matches,
+    wins,
+    losses: matches - wins,
+  };
+}
+
+function sortProjectedMapSummaries(items, direction) {
+  return [...items].sort((a, b) => {
+    const aRate = a.matches ? a.wins / a.matches : -1;
+    const bRate = b.matches ? b.wins / b.matches : -1;
+    if (aRate !== bRate) return direction === 'desc' ? bRate - aRate : aRate - bRate;
+    if (a.matches !== b.matches) return b.matches - a.matches;
+    return String(a.map_name || '').localeCompare(String(b.map_name || ''), 'ko');
+  });
+}
+
+function pickProjectedMapSummary(mapStats, direction, minMatches) {
+  const items = Object.entries(mapStats || {})
+    .map(([mapName, value]) => buildProjectedMapSummary(mapName, value))
+    .filter((item) => item.matches >= minMatches);
+  if (!items.length) return null;
+  return sortProjectedMapSummaries(items, direction)[0];
+}
+
+function incrementProjectedMapStats(mapStats, mapName, isWin) {
+  const key = String(mapName || '').trim();
+  if (!key) return;
+  if (!mapStats[key]) mapStats[key] = { matches: 0, wins: 0 };
+  mapStats[key].matches += 1;
+  if (isWin) mapStats[key].wins += 1;
+}
+
+function buildPlayerDetailSummaryProjection(history) {
+  const rows = Array.isArray(history) ? history : [];
+  const raceBuckets = {
+    T: { race: 'T', matches: 0, wins: 0, losses: 0 },
+    Z: { race: 'Z', matches: 0, wins: 0, losses: 0 },
+    P: { race: 'P', matches: 0, wins: 0, losses: 0 },
+  };
+  const mapStats = {};
+  const raceMapStats = { T: {}, Z: {}, P: {} };
+  const partnerBuckets = new Map();
+  let latestMatchDate = '';
+
+  for (const item of rows) {
+    const date = String(item && item.match_date ? item.match_date : '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date) && date > latestMatchDate) latestMatchDate = date;
+
+    const isWin = Boolean(item && item.is_win);
+    const race = normalizeRaceCode(item && item.opponent_race) || 'T';
+    const raceBucket = raceBuckets[race];
+    if (raceBucket) {
+      raceBucket.matches += 1;
+      if (isWin) raceBucket.wins += 1;
+      else raceBucket.losses += 1;
+    }
+
+    incrementProjectedMapStats(mapStats, item && item.map_name, isWin);
+    if (raceMapStats[race]) incrementProjectedMapStats(raceMapStats[race], item && item.map_name, isWin);
+
+    const opponentName = String(item && item.opponent_name ? item.opponent_name : '').trim();
+    if (opponentName) {
+      const playedAt = date ? new Date(date).getTime() : 0;
+      const partnerKey = `${opponentName}|${race}`;
+      const partner = partnerBuckets.get(partnerKey) || {
+        name: opponentName,
+        race,
+        matches: 0,
+        wins: 0,
+        recentMatches: 0,
+        latestAt: 0,
+      };
+      partner.matches += 1;
+      if (isWin) partner.wins += 1;
+      if (playedAt && !Number.isNaN(playedAt) && playedAt >= Date.now() - 1000 * 60 * 60 * 24 * 90) {
+        partner.recentMatches += 1;
+      }
+      if (playedAt && !Number.isNaN(playedAt) && playedAt > partner.latestAt) partner.latestAt = playedAt;
+      partnerBuckets.set(partnerKey, partner);
+    }
+  }
+
+  const spawnPartner = Array.from(partnerBuckets.values()).sort((a, b) => {
+    if (a.matches !== b.matches) return b.matches - a.matches;
+    if (a.recentMatches !== b.recentMatches) return b.recentMatches - a.recentMatches;
+    if (a.latestAt !== b.latestAt) return b.latestAt - a.latestAt;
+    return String(a.name || '').localeCompare(String(b.name || ''), 'ko');
+  })[0];
+
+  return {
+    version: 1,
+    latest_match_date: latestMatchDate || null,
+    race_summaries: Object.values(raceBuckets),
+    strongest_map: pickProjectedMapSummary(mapStats, 'desc', 5),
+    weakest_map: pickProjectedMapSummary(mapStats, 'asc', 5),
+    race_best_maps: ['T', 'Z', 'P'].map((race) => ({
+      race,
+      best_map: pickProjectedMapSummary(raceMapStats[race], 'desc', 3),
+    })),
+    spawn_partner: spawnPartner
+      ? {
+          name: spawnPartner.name,
+          race: spawnPartner.race,
+          matches: spawnPartner.matches,
+          wins: spawnPartner.wins,
+          losses: spawnPartner.matches - spawnPartner.wins,
+        }
+      : null,
+    recent_logs: rows.slice(0, PLAYER_DETAIL_SUMMARY_RECENT_LOG_LIMIT).map((item, index) => ({
+      id: `history-${index}`,
+      result: item && item.is_win ? 'W' : 'L',
+      opponent_name: String(item && item.opponent_name ? item.opponent_name : '').trim(),
+      opponent_race: normalizeRaceCode(item && item.opponent_race) || 'T',
+      map_name: String(item && item.map_name ? item.map_name : '').trim(),
+      match_date: item && item.match_date ? item.match_date : null,
+    })),
+    recent_90: buildRecent90Stats(rows),
+  };
+}
+
+function getJsonByteLength(value) {
+  try {
+    return Buffer.byteLength(JSON.stringify(value ?? null), 'utf8');
+  } catch {
+    return 0;
+  }
+}
+
+function summarizeDetailedStatsSize(row) {
+  const detailedStats =
+    row && row.detailed_stats && typeof row.detailed_stats === 'object' && !Array.isArray(row.detailed_stats)
+      ? row.detailed_stats
+      : null;
+  const detailSummary =
+    detailedStats &&
+    detailedStats.player_detail_summary &&
+    typeof detailedStats.player_detail_summary === 'object' &&
+    !Array.isArray(detailedStats.player_detail_summary)
+      ? detailedStats.player_detail_summary
+      : null;
+  const recentLogs = detailSummary && Array.isArray(detailSummary.recent_logs) ? detailSummary.recent_logs : [];
+
+  return {
+    detailed_stats_bytes: getJsonByteLength(detailedStats),
+    player_detail_summary_bytes: getJsonByteLength(detailSummary),
+    player_detail_summary_recent_logs: recentLogs.length,
+  };
+}
+
 function buildDetailedStats(history) {
+  const rows = Array.isArray(history) ? history : [];
   const race_stats = {
     T: { w: 0, l: 0 },
     Z: { w: 0, l: 0 },
     P: { w: 0, l: 0 },
   };
   const map_stats = {};
-  const last_10 = history.slice(0, 10).map((item) => (item.is_win ? 'W' : 'L'));
+  const last_10 = rows.slice(0, 10).map((item) => (item.is_win ? 'W' : 'L'));
 
-  for (const item of history) {
+  for (const item of rows) {
     const race = normalizeRaceCode(item.opponent_race);
     if (race && race_stats[race]) {
       if (item.is_win) race_stats[race].w += 1;
@@ -743,13 +927,15 @@ function buildDetailedStats(history) {
     }
   }
 
-  const total = history.length;
-  const wins = history.filter((item) => item.is_win).length;
+  const total = rows.length;
+  const wins = rows.filter((item) => item.is_win).length;
 
   return {
     race_stats,
     map_stats,
     last_10,
+    recent_90: buildRecent90Stats(rows),
+    player_detail_summary: buildPlayerDetailSummaryProjection(rows),
     win_rate: toPercent(wins, total),
   };
 }
@@ -1154,13 +1340,30 @@ async function main() {
     total_match_history_rows: 0,
     opponent_name_filled_rows: 0,
     opponent_name_fill_rate: 0,
+    detailed_stats_max_bytes: 0,
+    detailed_stats_largest_player: null,
+    player_detail_summary_max_bytes: 0,
+    player_detail_summary_largest_player: null,
+    player_detail_summary_max_recent_logs: 0,
     degraded_players: [],
   };
 
   for (const row of sanitized) {
     const quality = summarizeHistoryQuality(row.match_history);
+    const detailedStatsSize = summarizeDetailedStatsSize(row);
     historyQuality.total_match_history_rows += quality.total_rows;
     historyQuality.opponent_name_filled_rows += quality.opponent_name_filled;
+    if (detailedStatsSize.detailed_stats_bytes > historyQuality.detailed_stats_max_bytes) {
+      historyQuality.detailed_stats_max_bytes = detailedStatsSize.detailed_stats_bytes;
+      historyQuality.detailed_stats_largest_player = row.name || null;
+    }
+    if (detailedStatsSize.player_detail_summary_bytes > historyQuality.player_detail_summary_max_bytes) {
+      historyQuality.player_detail_summary_max_bytes = detailedStatsSize.player_detail_summary_bytes;
+      historyQuality.player_detail_summary_largest_player = row.name || null;
+    }
+    if (detailedStatsSize.player_detail_summary_recent_logs > historyQuality.player_detail_summary_max_recent_logs) {
+      historyQuality.player_detail_summary_max_recent_logs = detailedStatsSize.player_detail_summary_recent_logs;
+    }
     if (quality.total_rows > 0 && quality.opponent_name_filled < quality.total_rows) {
       historyQuality.players_with_blank_opponent_rows += 1;
       if (historyQuality.degraded_players.length < 25) {
@@ -1217,6 +1420,9 @@ async function main() {
   console.log(`[+] Fetched ${sanitized.length} valid records from players_staging`);
   console.log(
     `[=] match_history opponent_name fill rate: ${historyQuality.opponent_name_filled_rows}/${historyQuality.total_match_history_rows} (${historyQuality.opponent_name_fill_rate})`
+  );
+  console.log(
+    `[=] detailed_stats max bytes: ${historyQuality.detailed_stats_max_bytes}; player_detail_summary max bytes: ${historyQuality.player_detail_summary_max_bytes}; recent_logs max: ${historyQuality.player_detail_summary_max_recent_logs}`
   );
   console.log(`[=] serving_identity_key write enabled: ${canWriteServingIdentityKey}`);
   console.log(
@@ -1299,6 +1505,8 @@ module.exports = {
   buildSyncIdentityKey,
   buildServingStatsByIdentity,
   buildServingStatsByName: buildServingStatsByIdentity,
+  buildDetailedStats,
+  summarizeDetailedStatsSize,
   findProductionIdentityConflicts,
   selectStaleProductionRows,
   findUnsafeStaleDeleteRows,

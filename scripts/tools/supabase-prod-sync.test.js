@@ -10,6 +10,8 @@ const {
   buildSyncIdentityKey,
   buildServingStatsByIdentity,
   buildServingStatsByName,
+  buildDetailedStats,
+  summarizeDetailedStatsSize,
   findProductionIdentityConflicts,
   selectStaleProductionRows,
   findUnsafeStaleDeleteRows,
@@ -65,6 +67,10 @@ function writeCsv(fileName, header, rows) {
 
 function writeStableCsv(fileName, rows) {
   return writeCsv(fileName, KOR_HEADERS, rows);
+}
+
+function dateDaysAgo(days) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 runTest("parseMatchHistoryFromStableCsv preserves same-day row order from stable csv", () => {
@@ -345,6 +351,91 @@ runTest("assertNoProductionFreshnessRegression allows equally fresh incoming ser
     currentMax: "2026-04-25",
     incomingMax: "2026-04-25",
   });
+});
+
+runTest("buildDetailedStats precomputes recent 90-day summary for player cards", () => {
+  const newest = dateDaysAgo(1);
+  const recentLoss = dateDaysAgo(20);
+  const oldWin = dateDaysAgo(120);
+
+  const actual = buildDetailedStats([
+    { match_date: newest, opponent_race: "T", map_name: "neo-sylphid", is_win: true },
+    { match_date: recentLoss, opponent_race: "Z", map_name: "polypoid", is_win: false },
+    { match_date: oldWin, opponent_race: "P", map_name: "outsider", is_win: true },
+  ]);
+
+  assert.deepEqual(actual.recent_90, {
+    window_days: 90,
+    total: 2,
+    wins: 1,
+    losses: 1,
+    win_rate: 50,
+    latest_match_date: newest,
+  });
+  assert.deepEqual(actual.last_10, ["W", "L", "W"]);
+});
+
+runTest("buildDetailedStats precomputes player detail summary for expanded reports", () => {
+  const newest = dateDaysAgo(1);
+  const recentLoss = dateDaysAgo(20);
+  const oldWin = dateDaysAgo(120);
+
+  const actual = buildDetailedStats([
+    { match_date: newest, opponent_name: "opponent-a", opponent_race: "T", map_name: "neo-sylphid", is_win: true },
+    { match_date: recentLoss, opponent_name: "opponent-a", opponent_race: "T", map_name: "neo-sylphid", is_win: false },
+    { match_date: dateDaysAgo(21), opponent_name: "opponent-c", opponent_race: "P", map_name: "neo-sylphid", is_win: true },
+    { match_date: dateDaysAgo(22), opponent_name: "opponent-d", opponent_race: "Z", map_name: "neo-sylphid", is_win: false },
+    { match_date: dateDaysAgo(23), opponent_name: "opponent-e", opponent_race: "T", map_name: "neo-sylphid", is_win: true },
+    { match_date: oldWin, opponent_name: "opponent-b", opponent_race: "Z", map_name: "polypoid", is_win: true },
+  ]);
+
+  assert.equal(actual.player_detail_summary.version, 1);
+  assert.equal(actual.player_detail_summary.latest_match_date, newest);
+  assert.deepEqual(actual.player_detail_summary.race_summaries.find((row) => row.race === "T"), {
+    race: "T",
+    matches: 3,
+    wins: 2,
+    losses: 1,
+  });
+  assert.deepEqual(actual.player_detail_summary.strongest_map, {
+    map_name: "neo-sylphid",
+    matches: 5,
+    wins: 3,
+    losses: 2,
+  });
+  assert.equal(actual.player_detail_summary.recent_logs.length, 6);
+  assert.equal(actual.player_detail_summary.recent_logs[0].opponent_name, "opponent-a");
+});
+
+runTest("buildDetailedStats caps expanded detail recent logs for payload size", () => {
+  const history = Array.from({ length: 30 }, (_, index) => ({
+    match_date: dateDaysAgo(index + 1),
+    opponent_name: `opponent-${index}`,
+    opponent_race: index % 2 === 0 ? "T" : "Z",
+    map_name: "neo-sylphid",
+    is_win: index % 2 === 0,
+  }));
+  const source = fs.readFileSync(path.join(ROOT, "scripts", "tools", "supabase-prod-sync.js"), "utf8");
+  const actual = buildDetailedStats(history);
+
+  assert.match(source, /PLAYER_DETAIL_SUMMARY_RECENT_LOG_LIMIT\s*=\s*25/);
+  assert.equal(actual.player_detail_summary.recent_logs.length, 25);
+});
+
+runTest("summarizeDetailedStatsSize reports precomputed detail summary byte size", () => {
+  const actual = summarizeDetailedStatsSize({
+    detailed_stats: {
+      recent_90: { total: 2, wins: 1, losses: 1 },
+      player_detail_summary: {
+        latest_match_date: "2026-05-02",
+        recent_logs: [{ opponent_name: "opponent-a", match_date: "2026-05-02" }],
+      },
+    },
+  });
+
+  assert.ok(actual.detailed_stats_bytes >= actual.player_detail_summary_bytes);
+  assert.ok(actual.player_detail_summary_bytes > 0);
+  assert.equal(actual.player_detail_summary_recent_logs, 1);
 });
 
 runTest("buildServingPayload preserves existing serving stats when current source stats are missing", () => {

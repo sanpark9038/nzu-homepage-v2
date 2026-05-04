@@ -132,9 +132,20 @@ runTest("player history R2 config can derive public history URL from a dedicated
   assert.equal(config.publicBaseUrl, "https://pub-history.example.com/custom-prefix");
 });
 
-runTest("player-service prefers player history artifact before Supabase match_history fallback", () => {
+runTest("player-service refuses stale player history artifacts when Supabase history is newer", () => {
   const source = fs.readFileSync(path.join(ROOT, "lib", "player-service.ts"), "utf8");
 
   assert.match(source, /loadPlayerHistoryArtifact/);
   assert.match(source, /mergePlayerHistoryArtifact/);
+  assert.match(source, /selectFresherStoredMatchHistory/);
+  assert.match(
+    source,
+    /fallbackLatest\s*>\s*artifactLatest/,
+    "Player service should compare latest match dates before trusting artifact history"
+  );
+  assert.doesNotMatch(
+    source,
+    /if\s*\(\s*artifactHistory\s*&&\s*artifactHistory\.length\s*>\s*0\s*\)\s*{[\s\S]*?match_history:\s*artifactHistory/,
+    "Artifact history should not blindly override newer Supabase match_history"
+  );
 });

@@ -197,19 +197,41 @@ function normalizeStoredMatchHistory(value: unknown): StoredMatchHistoryItem[] {
   return value.filter((item): item is StoredMatchHistoryItem => Boolean(item) && typeof item === "object");
 }
 
+function getStoredMatchHistoryDate(item: StoredMatchHistoryItem) {
+  return String(item.match_date || item.matchDate || "").trim();
+}
+
+function getLatestStoredMatchHistoryDate(history: StoredMatchHistoryItem[]) {
+  return history.reduce((latest, item) => {
+    const date = getStoredMatchHistoryDate(item);
+    return date && date > latest ? date : latest;
+  }, "");
+}
+
+function selectFresherStoredMatchHistory(artifactHistory: unknown, fallbackHistory: unknown) {
+  const normalizedArtifactHistory = normalizeStoredMatchHistory(artifactHistory);
+  const normalizedFallbackHistory = normalizeStoredMatchHistory(fallbackHistory);
+
+  if (normalizedArtifactHistory.length === 0) return normalizedFallbackHistory;
+  if (normalizedFallbackHistory.length === 0) return normalizedArtifactHistory;
+
+  const artifactLatest = getLatestStoredMatchHistoryDate(normalizedArtifactHistory);
+  const fallbackLatest = getLatestStoredMatchHistoryDate(normalizedFallbackHistory);
+
+  if (fallbackLatest && (!artifactLatest || fallbackLatest > artifactLatest)) {
+    return normalizedFallbackHistory;
+  }
+
+  return normalizedArtifactHistory;
+}
+
 async function mergePlayerHistoryArtifact<T extends { eloboard_id?: string | null; match_history?: unknown }>(
   player: T
 ): Promise<T & { match_history: StoredMatchHistoryItem[] }> {
   const artifactHistory = await loadPlayerHistoryArtifact(player);
-  if (artifactHistory && artifactHistory.length > 0) {
-    return {
-      ...player,
-      match_history: artifactHistory as StoredMatchHistoryItem[],
-    };
-  }
   return {
     ...player,
-    match_history: normalizeStoredMatchHistory(player.match_history),
+    match_history: selectFresherStoredMatchHistory(artifactHistory, player.match_history),
   };
 }
 

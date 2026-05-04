@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
+import type { PlayerDetailSummary } from "@/lib/player-detail-summary";
 import type { Player } from "@/lib/player-service";
 import type {
   MapSummary,
@@ -29,6 +30,8 @@ type Props = {
   recentLogs: RecentLog[];
   recentSummary: RecentSummary;
   defaultExpanded?: boolean;
+  detailSummaryLoaded?: boolean;
+  detailSummaryEndpoint?: string;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -46,27 +49,82 @@ function formatLiveElapsed(value: string | null | undefined) {
 }
 
 export default function PlayerSearchResult({ defaultExpanded = false, ...props }: Props) {
-  return <PlayerSearchResultInner key={`${props.player.id}:${props.player.live_thumbnail_url || ""}:${props.recentLogs.length}:${defaultExpanded ? "1" : "0"}`} defaultExpanded={defaultExpanded} {...props} />;
+  return <PlayerSearchResultInner key={`${props.player.id}:${props.player.live_thumbnail_url || ""}:${props.recentLogs.length}:${props.detailSummaryLoaded ? "loaded" : "lazy"}:${defaultExpanded ? "1" : "0"}`} defaultExpanded={defaultExpanded} {...props} />;
 }
 
 function PlayerSearchResultInner({
   player,
-  raceSummaries,
-  strongestMap,
-  weakestMap,
-  raceBestMaps,
-  spawnPartner,
-  recentLogs,
-  recentSummary,
+  raceSummaries: initialRaceSummaries,
+  strongestMap: initialStrongestMap,
+  weakestMap: initialWeakestMap,
+  raceBestMaps: initialRaceBestMaps,
+  spawnPartner: initialSpawnPartner,
+  recentLogs: initialRecentLogs,
+  recentSummary: initialRecentSummary,
   defaultExpanded = false,
+  detailSummaryLoaded = false,
+  detailSummaryEndpoint,
 }: Props) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [visibleRecentCount, setVisibleRecentCount] = useState(5);
   const [failedThumbnailSrc, setFailedThumbnailSrc] = useState<string | null>(null);
+  const [detailSummary, setDetailSummary] = useState<PlayerDetailSummary>({
+    raceSummaries: initialRaceSummaries,
+    strongestMap: initialStrongestMap,
+    weakestMap: initialWeakestMap,
+    raceBestMaps: initialRaceBestMaps,
+    spawnPartner: initialSpawnPartner,
+    recentLogs: initialRecentLogs,
+    recentSummary: initialRecentSummary,
+  });
+  const [isDetailSummaryLoaded, setIsDetailSummaryLoaded] = useState(detailSummaryLoaded);
+  const requestedDetailSummaryRef = useRef(detailSummaryLoaded);
+
+  useEffect(() => {
+    if (!isExpanded || isDetailSummaryLoaded || requestedDetailSummaryRef.current || !detailSummaryEndpoint) {
+      return;
+    }
+
+    const controller = new AbortController();
+    let cancelled = false;
+    requestedDetailSummaryRef.current = true;
+
+    fetch(detailSummaryEndpoint, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to load player detail summary");
+        return response.json() as Promise<PlayerDetailSummary>;
+      })
+      .then((summary) => {
+        if (cancelled) return;
+        setDetailSummary(summary);
+        setIsDetailSummaryLoaded(true);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") return;
+        if (!cancelled) requestedDetailSummaryRef.current = false;
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [detailSummaryEndpoint, isDetailSummaryLoaded, isExpanded]);
 
   const normTier = normalizeTier(player.tier);
   const isElite = ["갓", "킹"].includes(normTier);
   const themeColor = isElite ? "rgba(255, 215, 0, 0.28)" : "rgba(0, 255, 163, 0.22)";
+  const {
+    raceSummaries,
+    strongestMap,
+    weakestMap,
+    raceBestMaps,
+    spawnPartner,
+    recentLogs,
+    recentSummary,
+  } = detailSummary;
   const recentForm = recentSummary.form;
   const visibleRecentLogs = recentLogs.slice(0, visibleRecentCount);
   const canExpandRecentLogs = recentLogs.length > visibleRecentCount;
