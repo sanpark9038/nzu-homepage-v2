@@ -217,12 +217,14 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 - Changed detailed H2H artifact loading to read P1 history first and read P2 history only as a reciprocal fallback when P1 has no matching entries.
 - Added a 300 second `unstable_cache` wrapper for ID-based detailed H2H stats, tagged with `public-player-history`, so repeated matchup checks avoid redoing the Supabase/R2 path.
 - Changed the shared client matchup helper so `fetchH2HStats()` makes one API request when both player IDs are present, leaving name-candidate fallback only for non-ID requests.
+- Restored `test:matchup-helpers` by loading the production TypeScript helper through a small test-only transpile loader that resolves the repo's extensionless imports like the app bundler does.
 
 ### Verification
 
 - `npm.cmd run test:player-page-payload-contract`
 - `npm.cmd run test:h2h-route-performance-contract`
 - `npm.cmd run test:matchup-h2h-fetch-contract`
+- `npm.cmd run test:matchup-helpers`
 - `npm.cmd run test:player-live-overlay`
 - `npx.cmd tsc --noEmit`
 - `npm.cmd run build`

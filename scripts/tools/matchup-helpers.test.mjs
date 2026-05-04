@@ -1,7 +1,66 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import vm from "node:vm";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
-import {
+const require = createRequire(import.meta.url);
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+const moduleCache = new Map();
+
+function resolveProjectModule(specifier, fromPath) {
+  if (!specifier.startsWith(".")) return null;
+
+  const basePath = path.resolve(path.dirname(fromPath), specifier);
+  const candidates = [
+    basePath,
+    `${basePath}.ts`,
+    `${basePath}.tsx`,
+    `${basePath}.js`,
+    `${basePath}.mjs`,
+    path.join(basePath, "index.ts"),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile()) || null;
+}
+
+function loadProjectModule(filePath) {
+  const absolutePath = path.normalize(filePath);
+  const cached = moduleCache.get(absolutePath);
+  if (cached) return cached.exports;
+
+  const source = fs.readFileSync(absolutePath, "utf8");
+  const module = { exports: {} };
+  moduleCache.set(absolutePath, module);
+
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: {
+      esModuleInterop: true,
+      jsx: ts.JsxEmit.ReactJSX,
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2020,
+    },
+    fileName: absolutePath,
+  });
+
+  const localRequire = (specifier) => {
+    const resolvedProjectModule = resolveProjectModule(specifier, absolutePath);
+    if (resolvedProjectModule) return loadProjectModule(resolvedProjectModule);
+    return require(specifier);
+  };
+
+  const runModule = vm.runInThisContext(
+    `(function(require, module, exports, __dirname, __filename) {\n${outputText}\n})`,
+    { filename: absolutePath }
+  );
+  runModule(localRequire, module, module.exports, path.dirname(absolutePath), absolutePath);
+  return module.exports;
+}
+
+const {
   buildH2HCacheKey,
   buildH2HQueryParams,
   filterMatchupPlayers,
@@ -11,7 +70,7 @@ import {
   mapPlayerToMatchupSummary,
   mapPlayersToMatchupSummaries,
   normalizeMatchupSearchText,
-} from "../../lib/matchup-helpers.ts";
+} = loadProjectModule(path.join(repoRoot, "lib", "matchup-helpers.ts"));
 
 test("mapPlayerToMatchupSummary preserves nullable fields and defaults race/tier", () => {
   const summary = mapPlayerToMatchupSummary({
