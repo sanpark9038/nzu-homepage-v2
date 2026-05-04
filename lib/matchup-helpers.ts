@@ -154,6 +154,13 @@ export function buildH2HCacheKey(
   return `${player1.id}:${player2.id}:${sharedGender || "all"}`;
 }
 
+function hasStableMatchupIds(
+  player1: Pick<MatchupPlayerSummary, "id">,
+  player2: Pick<MatchupPlayerSummary, "id">
+) {
+  return Boolean(String(player1.id || "").trim() && String(player2.id || "").trim());
+}
+
 async function fetchSingleH2H(
   player1: Pick<MatchupPlayerSummary, "id" | "name">,
   player2: Pick<MatchupPlayerSummary, "id" | "name">,
@@ -179,6 +186,17 @@ export async function fetchH2HStats(
   const player1Candidates = getMatchupNameCandidates(player1);
   const player2Candidates = getMatchupNameCandidates(player2);
   const sharedGender = getSharedMatchupGender(player1, player2) || undefined;
+
+  if (hasStableMatchupIds(player1, player2)) {
+    return fetchSingleH2H(
+      player1,
+      player2,
+      player1Candidates[0] || player1.name,
+      player2Candidates[0] || player2.name,
+      sharedGender
+    );
+  }
+
   let fallback: H2HStats | null = null;
 
   for (const leftName of player1Candidates) {
