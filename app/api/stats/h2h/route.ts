@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { getInstantH2H } from '@/lib/h2h-service'
 import { getPlayerSearchAliases } from '@/lib/player-serving-metadata'
 import { playerService } from '@/lib/player-service'
 import type { H2HStats } from '@/types'
+
+const getCachedDetailedH2HStats = unstable_cache(
+  async (p1Id: string, p2Id: string) => playerService.getDetailedH2HStats(p1Id, p2Id),
+  ['public-h2h-stats-v1'],
+  {
+    revalidate: 300,
+    tags: ['public-player-history'],
+  }
+)
 
 function uniqueCandidates(values: Array<string | null | undefined>) {
   const seen = new Set<string>()
@@ -61,7 +71,7 @@ export async function GET(req: NextRequest) {
 
   try {
     if (p1Id && p2Id) {
-      const byIdStats = await playerService.getDetailedH2HStats(p1Id, p2Id)
+      const byIdStats = await getCachedDetailedH2HStats(p1Id, p2Id)
       return NextResponse.json(byIdStats)
     }
 

@@ -215,6 +215,7 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 - Changed ID-based `/api/stats/h2h` requests to return `getDetailedH2HStats(p1_id, p2_id)` directly, including zero-sample results, instead of expanding name candidates afterward.
 - Kept name-based `getInstantH2H` fallback for requests that do not include both player IDs.
 - Changed detailed H2H artifact loading to read P1 history first and read P2 history only as a reciprocal fallback when P1 has no matching entries.
+- Added a 300 second `unstable_cache` wrapper for ID-based detailed H2H stats, tagged with `public-player-history`, so repeated matchup checks avoid redoing the Supabase/R2 path.
 
 ### Verification
 

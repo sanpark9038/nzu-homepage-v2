@@ -26,11 +26,11 @@ test("H2H route avoids duplicate artifact-backed fallback work after ID-based de
 
 test("ID-based H2H route returns detailed stats before name fallback work", () => {
   const source = readProjectFile("app/api/stats/h2h/route.ts");
-  const detailedStatsIndex = source.indexOf("playerService.getDetailedH2HStats");
+  const detailedStatsIndex = source.indexOf("getCachedDetailedH2HStats");
   const cachedPlayersIndex = source.indexOf("playerService.getCachedPlayersList");
   const instantH2HIndex = source.indexOf("await getInstantH2H");
 
-  assert.notEqual(detailedStatsIndex, -1, "Route should call detailed ID H2H stats");
+  assert.notEqual(detailedStatsIndex, -1, "Route should call cached detailed ID H2H stats");
   assert.notEqual(cachedPlayersIndex, -1, "Route should keep cached player lookup for name-only fallback");
   assert.notEqual(instantH2HIndex, -1, "Route should keep instant H2H for name-only fallback");
   assert.ok(
@@ -43,8 +43,38 @@ test("ID-based H2H route returns detailed stats before name fallback work", () =
   );
   assert.match(
     source,
-    /if\s*\(\s*p1Id\s*&&\s*p2Id\s*\)\s*{[\s\S]*?const\s+byIdStats\s*=\s*await\s+playerService\.getDetailedH2HStats\(p1Id,\s*p2Id\)[\s\S]*?return\s+NextResponse\.json\(byIdStats\)/,
+    /if\s*\(\s*p1Id\s*&&\s*p2Id\s*\)\s*{[\s\S]*?const\s+byIdStats\s*=\s*await\s+getCachedDetailedH2HStats\(p1Id,\s*p2Id\)[\s\S]*?return\s+NextResponse\.json\(byIdStats\)/,
     "ID-based requests should return the detailed ID result directly, including zero-sample stats"
+  );
+});
+
+test("ID-based H2H route caches detailed stats briefly with the player-history tag", () => {
+  const source = readProjectFile("app/api/stats/h2h/route.ts");
+
+  assert.match(
+    source,
+    /import\s*{\s*unstable_cache\s*}\s*from\s*['"]next\/cache['"]/,
+    "Route should use the existing Next.js unstable_cache pattern"
+  );
+  assert.match(
+    source,
+    /const\s+getCachedDetailedH2HStats\s*=\s*unstable_cache\(/,
+    "Route should wrap ID-based detailed H2H stats in a named cache helper"
+  );
+  assert.match(
+    source,
+    /playerService\.getDetailedH2HStats\(p1Id,\s*p2Id\)/,
+    "Cached helper should still delegate to the detailed ID stats service"
+  );
+  assert.match(
+    source,
+    /revalidate:\s*300/,
+    "ID-based H2H cache should use a short 300 second TTL"
+  );
+  assert.match(
+    source,
+    /tags:\s*\[\s*['"]public-player-history['"]\s*\]/,
+    "ID-based H2H cache should be tied to player history invalidation"
   );
 });
 
