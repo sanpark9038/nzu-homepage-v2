@@ -75,7 +75,7 @@ export function H2HSelectorBar() {
       if (cached) return cached;
 
       const promise = fetchH2HStats(player1, player2).then((payload) => {
-        if ((payload?.summary?.total || 0) === 0) {
+        if (!payload) {
           h2hRequestCacheRef.current.delete(queryKey);
         }
         return payload;

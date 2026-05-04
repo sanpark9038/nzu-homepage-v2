@@ -116,7 +116,7 @@ export default function H2HLookup({
     if (cached) return cached
 
     const promise = fetchH2HStats(left, right).then((payload) => {
-      if ((payload?.summary?.total || 0) === 0) {
+      if (!payload) {
         h2hRequestCacheRef.current.delete(queryKey)
       }
       return payload
