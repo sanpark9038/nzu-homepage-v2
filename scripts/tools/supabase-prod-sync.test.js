@@ -14,12 +14,16 @@ const {
   selectStaleProductionRows,
   findUnsafeStaleDeleteRows,
   buildServingPayload,
+  selectRowsNeedingUpsert,
+  projectMatchHistoryForServing,
   resolveSoopServingMetadata,
   assertNoProductionFreshnessRegression,
   maxMatchHistoryDate,
   parseMatchHistoryFromStableCsv,
   summarizeHistoryQuality,
   shouldReplaceHistoryWithStable,
+  formatSupabaseError,
+  runSupabaseOperationWithRetry,
 } = require("./supabase-prod-sync");
 
 const KOR_HEADERS = [
@@ -34,6 +38,16 @@ const KOR_HEADERS = [
 function runTest(name, fn) {
   try {
     fn();
+    console.log(`PASS ${name}`);
+  } catch (error) {
+    console.error(`FAIL ${name}`);
+    throw error;
+  }
+}
+
+async function runAsyncTest(name, fn) {
+  try {
+    await fn();
     console.log(`PASS ${name}`);
   } catch (error) {
     console.error(`FAIL ${name}`);
@@ -357,6 +371,83 @@ runTest("buildServingPayload preserves existing serving stats when current sourc
   });
 });
 
+runTest("selectRowsNeedingUpsert skips unchanged serving payloads and ignores last_synced_at", () => {
+  const incoming = [
+    {
+      name: "same-player",
+      eloboard_id: "eloboard:male:123",
+      gender: "male",
+      serving_identity_key: "male:123",
+      detailed_stats: { last_10: ["W"], win_rate: 100 },
+      match_history: [{ match_date: "2026-04-05", opponent_name: "opponent-a", is_win: true }],
+      total_wins: 1,
+      total_losses: 0,
+      win_rate: 100,
+      last_synced_at: "2026-05-03T00:00:00.000Z",
+      tier: "A",
+      race: "T",
+      university: "nzu",
+      photo_url: null,
+      last_match_at: "2026-04-05",
+      last_changed_at: "2026-04-05T00:00:00.000Z",
+      check_priority: "normal",
+      check_interval_days: 1,
+    },
+    {
+      name: "changed-player",
+      eloboard_id: "eloboard:male:456",
+      gender: "male",
+      serving_identity_key: "male:456",
+      detailed_stats: { last_10: ["L"], win_rate: 0 },
+      match_history: [{ match_date: "2026-04-05", opponent_name: "opponent-b", is_win: false }],
+      total_wins: 0,
+      total_losses: 1,
+      win_rate: 0,
+      last_synced_at: "2026-05-03T00:00:00.000Z",
+      tier: "B",
+      race: "P",
+      university: "nzu",
+      photo_url: null,
+      last_match_at: "2026-04-05",
+      last_changed_at: "2026-04-05T00:00:00.000Z",
+      check_priority: "normal",
+      check_interval_days: 1,
+    },
+  ];
+
+  const existing = [
+    {
+      ...incoming[0],
+      last_synced_at: "2026-04-28T00:00:00.000Z",
+    },
+    {
+      ...incoming[1],
+      total_losses: 0,
+      match_history: [],
+      last_synced_at: "2026-04-28T00:00:00.000Z",
+    },
+  ];
+
+  assert.deepEqual(selectRowsNeedingUpsert(existing, incoming), [incoming[1]]);
+});
+
+runTest("projectMatchHistoryForServing keeps full history until artifact serving is enabled", () => {
+  const history = [
+    { match_date: "2026-04-05", opponent_name: "opponent-a", is_win: true },
+    { match_date: "2026-04-04", opponent_name: "opponent-b", is_win: false },
+    { match_date: "2026-04-03", opponent_name: "opponent-c", is_win: true },
+  ];
+
+  assert.deepEqual(
+    projectMatchHistoryForServing(history, { artifactsEnabled: false, limit: 2 }),
+    history
+  );
+  assert.deepEqual(
+    projectMatchHistoryForServing(history, { artifactsEnabled: true, limit: 2 }),
+    history.slice(0, 2)
+  );
+});
+
 runTest("buildServingPayload does not use name fallback for durable player identities", () => {
   const statsByIdentity = new Map([
     [
@@ -535,4 +626,48 @@ runTest("resolveSoopServingMetadata does not use name fallback for durable elobo
     resolveSoopServingMetadata({ eloboard_id: "eloboard:female:1024", gender: "female", name: "유즈" }, soopLookup),
     { soop_id: "yuzzzz", broadcast_url: "https://ch.sooplive.co.kr/yuzzzz" }
   );
+});
+
+(async () => {
+  await runAsyncTest("formatSupabaseError expands Supabase error objects instead of object Object", async () => {
+    const formatted = formatSupabaseError("players final count", {
+      code: "",
+      message: "",
+      details:
+        "<!DOCTYPE html><html><head><title>supabase.co | 521: Web server is down</title></head><body>Cloudflare</body></html>",
+      hint: "",
+    });
+
+    assert.match(formatted, /players final count/);
+    assert.match(formatted, /521/);
+    assert.match(formatted, /Web server is down/);
+    assert.doesNotMatch(formatted, /^\[object Object\]$/);
+  });
+
+  await runAsyncTest("runSupabaseOperationWithRetry retries transient Supabase failures", async () => {
+    let attempts = 0;
+    const result = await runSupabaseOperationWithRetry(
+      "players final count",
+      async () => {
+        attempts += 1;
+        if (attempts < 3) {
+          return {
+            count: null,
+            error: {
+              message: "TypeError: fetch failed",
+              details: "Caused by: AggregateError: EACCES",
+            },
+          };
+        }
+        return { count: 318, error: null };
+      },
+      { maxAttempts: 3, baseDelayMs: 0, logRetries: false }
+    );
+
+    assert.equal(attempts, 3);
+    assert.equal(result.count, 318);
+  });
+})().catch((error) => {
+  console.error(error instanceof Error ? error.stack || error.message : String(error));
+  process.exit(1);
 });

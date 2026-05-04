@@ -10,6 +10,7 @@ import {
   normalizeSearchText,
 } from "./player-serving-metadata";
 import { applySoopLivePreviewToOne, applySoopLivePreviews } from "./player-live-overlay";
+import { loadPlayerHistoryArtifact } from "./player-history-artifacts";
 export type { Player };
 export { isExactPlayerSearchMatch };
 
@@ -24,7 +25,7 @@ const PLAYER_DETAIL_SELECT = [
 ] as const;
 
 const PLAYER_HISTORY_SELECT =
-  "channel_profile_image_url, id, name, race, photo_url, created_at, last_synced_at, match_history" as const;
+  "channel_profile_image_url, eloboard_id, id, name, race, photo_url, created_at, last_synced_at, match_history" as const;
 
 const MATCH_SERVING_SELECT =
   "*, player1:players!player1_id(channel_profile_image_url, id, name, race, photo_url), player2:players!player2_id(channel_profile_image_url, id, name, race, photo_url), winner:players!winner_id(id, name)" as const;
@@ -46,6 +47,7 @@ type StoredMatchHistoryItem = {
 };
 type StoredPlayerHistoryRecord = {
   id: string;
+  eloboard_id?: string | null;
   name: string;
   race: string | null;
   photo_url: string | null;
@@ -193,6 +195,22 @@ function rankPlayerSearchResults(a: Partial<Player>, b: Partial<Player>, normali
 function normalizeStoredMatchHistory(value: unknown): StoredMatchHistoryItem[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is StoredMatchHistoryItem => Boolean(item) && typeof item === "object");
+}
+
+async function mergePlayerHistoryArtifact<T extends { eloboard_id?: string | null; match_history?: unknown }>(
+  player: T
+): Promise<T & { match_history: StoredMatchHistoryItem[] }> {
+  const artifactHistory = await loadPlayerHistoryArtifact(player);
+  if (artifactHistory && artifactHistory.length > 0) {
+    return {
+      ...player,
+      match_history: artifactHistory as StoredMatchHistoryItem[],
+    };
+  }
+  return {
+    ...player,
+    match_history: normalizeStoredMatchHistory(player.match_history),
+  };
 }
 
 function normalizeHistoryRace(value: string | null | undefined) {
@@ -441,10 +459,17 @@ export const playerService = {
       .single();
 
     if (playerError) throw playerError;
+    const playerWithArtifactHistory = await mergePlayerHistoryArtifact(player);
     return synthesizeMatchesFromHistory(
       {
-        ...player,
-        match_history: normalizeStoredMatchHistory(player?.match_history),
+        id: String(playerWithArtifactHistory.id || ""),
+        eloboard_id: playerWithArtifactHistory.eloboard_id || null,
+        name: String(playerWithArtifactHistory.name || ""),
+        race: playerWithArtifactHistory.race || null,
+        photo_url: playerWithArtifactHistory.photo_url || null,
+        created_at: playerWithArtifactHistory.created_at || null,
+        last_synced_at: playerWithArtifactHistory.last_synced_at || null,
+        match_history: playerWithArtifactHistory.match_history,
       },
       limit
     );
@@ -556,7 +581,16 @@ export const playerService = {
       return buildDetailedH2HStats(p1, p2, servingEntries);
     }
 
-    return buildDetailedH2HStats(p1, p2, buildDetailedHistoryEntries(p1, p2));
+    const [p1WithArtifactHistory, p2WithArtifactHistory] = await Promise.all([
+      mergePlayerHistoryArtifact(p1),
+      mergePlayerHistoryArtifact(p2),
+    ]);
+
+    return buildDetailedH2HStats(
+      p1WithArtifactHistory,
+      p2WithArtifactHistory,
+      buildDetailedHistoryEntries(p1WithArtifactHistory, p2WithArtifactHistory)
+    );
   },
 
   async getH2HNameCandidatesByIds(p1Id: string, p2Id: string) {
@@ -583,17 +617,22 @@ export const playerService = {
       return { player1Candidates: [], player2Candidates: [] };
     }
 
+    const [p1WithArtifactHistory, p2WithArtifactHistory] = await Promise.all([
+      mergePlayerHistoryArtifact(p1),
+      mergePlayerHistoryArtifact(p2),
+    ]);
+
     return {
       player1Candidates: Array.from(
         new Set([
-          ...buildPlayerRawH2HNameCandidates(p1),
-          ...collectHistoryRawOpponentNames(p2, p1),
+          ...buildPlayerRawH2HNameCandidates(p1WithArtifactHistory),
+          ...collectHistoryRawOpponentNames(p2WithArtifactHistory, p1WithArtifactHistory),
         ])
       ),
       player2Candidates: Array.from(
         new Set([
-          ...buildPlayerRawH2HNameCandidates(p2),
-          ...collectHistoryRawOpponentNames(p1, p2),
+          ...buildPlayerRawH2HNameCandidates(p2WithArtifactHistory),
+          ...collectHistoryRawOpponentNames(p1WithArtifactHistory, p2WithArtifactHistory),
         ])
       ),
     };
@@ -613,24 +652,33 @@ export const playerService = {
       return { overall: [0, 0], recent: [0, 0] };
     }
 
-    const p1 = players.find(p => p.id === p1Id);
-    const p2 = players.find(p => p.id === p2Id);
+    const p1 = players.find(p => p.id === p1Id) as MinimalH2HPlayerRow | undefined;
+    const p2 = players.find(p => p.id === p2Id) as MinimalH2HPlayerRow | undefined;
 
-    if (!p1 || !p2 || !p1.match_history || !Array.isArray(p1.match_history)) {
+    if (!p1 || !p2) {
+      return { overall: [0, 0], recent: [0, 0] };
+    }
+
+    const [p1WithArtifactHistory, p2WithArtifactHistory] = await Promise.all([
+      mergePlayerHistoryArtifact(p1),
+      mergePlayerHistoryArtifact(p2),
+    ]);
+
+    if (!p1WithArtifactHistory.match_history || !Array.isArray(p1WithArtifactHistory.match_history)) {
       return { overall: [0, 0], recent: [0, 0] };
     }
 
     const p2IdentityCandidates = new Set<string>(
       [
-        String(p2.id || "").trim(),
-        String((p2 as { eloboard_id?: string | null }).eloboard_id || "").trim(),
+        String(p2WithArtifactHistory.id || "").trim(),
+        String((p2WithArtifactHistory as { eloboard_id?: string | null }).eloboard_id || "").trim(),
       ].filter(Boolean)
     );
-    const p2Candidates = buildNormalizedPlayerSearchAliasSet(p2);
+    const p2Candidates = buildNormalizedPlayerSearchAliasSet(p2WithArtifactHistory);
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
-    const stats = (p1.match_history as Array<{
+    const stats = (p1WithArtifactHistory.match_history as Array<{
       opponent_entity_id?: string | null;
       opponentEntityId?: string | null;
       opponent_name?: string | null;

@@ -141,6 +141,7 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 - `/api/admin/roster` now writes general corrections to the Supabase overlay first, with local JSON fallback preserved for non-migrated environments
 - daily pipeline and serving sync now consume the same merged correction overlay in `sync-team-roster-metadata.js`, `export-team-roster-detailed.js`, `supabase-staging-sync.js`, and `supabase-prod-sync.js`
 - remaining roster deployment gap is narrower now: manual team create/delete still owns local project JSON, so only general player corrections should be treated as the Vercel-safe path after the Supabase table is applied
+- 2026-05-03 scheduled ops follow-up: run `25262873072` failed after successful collection, staging sync, and prod upsert because Supabase REST returned Cloudflare 521/522-style errors during final production count verification. The failed log printed `[object Object]` because `supabase-prod-sync.js` threw a plain Supabase error object. Current local mitigation adds readable Supabase error formatting and transient retry for the final `players` count verification, covered by `npm.cmd run test:prod-sync`; do not rerun the sync workflow until read-only Supabase probes stop returning Cloudflare 5xx HTML.
 
 ### Mixed-scope triage note
 

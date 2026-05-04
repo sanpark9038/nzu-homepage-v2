@@ -485,6 +485,104 @@ function isStatementTimeout(error) {
   return code === '57014' || message.includes('statement timeout') || message.includes('canceling statement due to statement timeout');
 }
 
+function summarizeErrorText(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const titleMatch = raw.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const text = (titleMatch ? titleMatch[1] : raw)
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length > 800 ? `${text.slice(0, 800)}...` : text;
+}
+
+function formatSupabaseError(label, error) {
+  const prefix = String(label || 'Supabase operation').trim() || 'Supabase operation';
+  if (!error) return `${prefix}: unknown error`;
+
+  if (error instanceof Error) {
+    return `${prefix}: ${error.stack || error.message || 'unknown error'}`;
+  }
+
+  if (typeof error !== 'object') {
+    return `${prefix}: ${summarizeErrorText(error) || String(error)}`;
+  }
+
+  const parts = [];
+  const code = summarizeErrorText(error.code);
+  const message = summarizeErrorText(error.message);
+  const details = summarizeErrorText(error.details);
+  const hint = summarizeErrorText(error.hint);
+  if (code) parts.push(`code=${code}`);
+  if (message) parts.push(`message=${message}`);
+  if (details) parts.push(`details=${details}`);
+  if (hint) parts.push(`hint=${hint}`);
+
+  if (!parts.length) {
+    try {
+      const json = JSON.stringify(error);
+      if (json && json !== '{}') parts.push(json);
+    } catch {}
+  }
+
+  return `${prefix}: ${parts.length ? parts.join(' | ') : 'unknown Supabase error'}`;
+}
+
+function isTransientSupabaseError(error) {
+  const text = formatSupabaseError('supabase', error).toLowerCase();
+  return (
+    text.includes('fetch failed') ||
+    text.includes('eacces') ||
+    text.includes('timeout') ||
+    text.includes('connection timed out') ||
+    text.includes('web server is down') ||
+    text.includes('cloudflare') ||
+    text.includes(' 521') ||
+    text.includes(' 522') ||
+    text.includes('code=521') ||
+    text.includes('code=522')
+  );
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function runSupabaseOperationWithRetry(label, operation, options = {}) {
+  const maxAttempts = Math.max(1, Number(options.maxAttempts || 3));
+  const baseDelayMs = Math.max(0, Number(options.baseDelayMs ?? 1000));
+  const logRetries = options.logRetries !== false;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const result = await operation();
+      if (!result || !result.error) return result;
+      lastError = result.error;
+    } catch (error) {
+      lastError = error;
+    }
+
+    if (attempt >= maxAttempts || !isTransientSupabaseError(lastError)) {
+      throw new Error(formatSupabaseError(label, lastError));
+    }
+
+    if (logRetries) {
+      console.warn(
+        `[retry] ${label} transient Supabase error attempt=${attempt}/${maxAttempts}: ${formatSupabaseError(
+          label,
+          lastError
+        )}`
+      );
+    }
+    if (baseDelayMs > 0) {
+      await sleep(baseDelayMs * attempt);
+    }
+  }
+
+  throw new Error(formatSupabaseError(label, lastError));
+}
+
 async function upsertPlayersChunkAdaptive(rows, onConflict = 'name') {
   if (!Array.isArray(rows) || rows.length === 0) return;
 
@@ -825,7 +923,85 @@ function findUnsafeStaleDeleteRows(rows = []) {
   });
 }
 
-function buildServingPayload(playerOrName, servingStatsByIdentity, existingPlayer) {
+function stableJson(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableJson(item)).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const keys = Object.keys(value).sort();
+    return `{${keys.map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
+function comparableServingPayload(row, keys) {
+  const payload = {};
+  for (const key of keys) {
+    if (key === 'last_synced_at') continue;
+    payload[key] = row && Object.prototype.hasOwnProperty.call(row, key) ? row[key] : null;
+  }
+  return stableJson(payload);
+}
+
+function buildProductionLookup(rows = []) {
+  const byIdentity = new Map();
+  const byName = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const identityKey = buildSyncIdentityKey(row);
+    if (identityKey && identityKey !== 'unknown' && !identityKey.startsWith('name:')) {
+      byIdentity.set(identityKey, row);
+    }
+    const name = normalizeName(row && row.name ? row.name : '');
+    if (name) byName.set(name, row);
+  }
+  return { byIdentity, byName };
+}
+
+function findExistingProductionRow(lookup, row) {
+  const identityKey = buildSyncIdentityKey(row);
+  if (
+    identityKey &&
+    identityKey !== 'unknown' &&
+    !identityKey.startsWith('name:') &&
+    lookup.byIdentity.has(identityKey)
+  ) {
+    return lookup.byIdentity.get(identityKey);
+  }
+  const name = normalizeName(row && row.name ? row.name : '');
+  return name ? lookup.byName.get(name) || null : null;
+}
+
+function selectRowsNeedingUpsert(prodRows = [], incomingRows = []) {
+  const lookup = buildProductionLookup(prodRows);
+  return (Array.isArray(incomingRows) ? incomingRows : []).filter((row) => {
+    const existing = findExistingProductionRow(lookup, row);
+    if (!existing) return true;
+    const keys = Object.keys(row || {}).sort();
+    return comparableServingPayload(existing, keys) !== comparableServingPayload(row, keys);
+  });
+}
+
+function projectMatchHistoryForServing(history, options = {}) {
+  const rows = Array.isArray(history) ? history : [];
+  if (!options.artifactsEnabled) return rows.slice();
+  const limit = Number(options.limit);
+  if (!Number.isFinite(limit) || limit < 0) return rows.slice();
+  return rows.slice(0, Math.trunc(limit));
+}
+
+function envFlag(name) {
+  const value = String(process.env[name] || '').trim().toLowerCase();
+  return value === 'true' || value === '1' || value === 'yes';
+}
+
+function resolveMatchHistoryProjectionOptions() {
+  return {
+    artifactsEnabled: envFlag('PLAYER_HISTORY_ARTIFACTS_ENABLED'),
+    limit: Number(process.env.SUPABASE_MATCH_HISTORY_LIMIT || 100),
+  };
+}
+
+function buildServingPayload(playerOrName, servingStatsByIdentity, existingPlayer, options = {}) {
   const identityKey =
     playerOrName && typeof playerOrName === 'object' ? buildSyncIdentityKey(playerOrName) : '';
   const hasDurableIdentity = identityKey && identityKey !== 'unknown' && !identityKey.startsWith('name:');
@@ -845,7 +1021,7 @@ function buildServingPayload(playerOrName, servingStatsByIdentity, existingPlaye
     const matchHistory = stats.history.slice();
     return {
       detailed_stats: buildDetailedStats(matchHistory),
-      match_history: matchHistory,
+      match_history: projectMatchHistoryForServing(matchHistory, options),
       total_wins: Number(stats.wins || 0),
       total_losses: Number(stats.losses || 0),
       win_rate: toPercent(Number(stats.wins || 0), totalMatches),
@@ -930,7 +1106,7 @@ async function main() {
 
   const { data: prodData, error: prodErr } = await supabase
     .from('players')
-    .select('name,eloboard_id,gender,serving_identity_key,detailed_stats,match_history,total_wins,total_losses,win_rate,last_synced_at');
+    .select('name,eloboard_id,gender,serving_identity_key,detailed_stats,match_history,total_wins,total_losses,win_rate,last_synced_at,soop_id,broadcast_url,tier,race,university,photo_url,last_match_at,last_changed_at,check_priority,check_interval_days');
   if (prodErr) throw prodErr;
   const currentProdByName = new Map(
     (prodData || [])
@@ -944,6 +1120,7 @@ async function main() {
     .select('eloboard_id,name,tier,race,university,gender,photo_url,last_match_at,last_changed_at,check_priority,check_interval_days');
   if (stagingErr) throw stagingErr;
   const servingStatsByIdentity = buildServingStatsByIdentity(stagingData || []);
+  const matchHistoryProjection = resolveMatchHistoryProjectionOptions();
 
   const sanitized = (stagingData || [])
     .map((row) => ({
@@ -951,7 +1128,8 @@ async function main() {
       ...buildServingPayload(
         row,
         servingStatsByIdentity,
-        currentProdByName.get(String(row.name || '').trim()) || null
+        currentProdByName.get(String(row.name || '').trim()) || null,
+        matchHistoryProjection
       ),
       eloboard_id: row.eloboard_id,
       name: String(row.name || '').trim(),
@@ -1041,16 +1219,21 @@ async function main() {
     `[=] match_history opponent_name fill rate: ${historyQuality.opponent_name_filled_rows}/${historyQuality.total_match_history_rows} (${historyQuality.opponent_name_fill_rate})`
   );
   console.log(`[=] serving_identity_key write enabled: ${canWriteServingIdentityKey}`);
+  console.log(
+    `[=] match_history projection artifacts=${matchHistoryProjection.artifactsEnabled ? 'enabled' : 'disabled'} limit=${matchHistoryProjection.limit}`
+  );
 
   // 2) Use the current production snapshot for stale-delete phase
-  // 3) Upsert all staging rows by unique serving key when available. Do not pass id.
+  // 3) Upsert changed staging rows by unique serving key when available. Do not pass id.
   const chunkSize = resolveInitialChunkSize();
   const upsertConflictTarget = canWriteServingIdentityKey ? 'serving_identity_key' : 'name';
-  for (let i = 0; i < sanitized.length; i += chunkSize) {
-    const chunk = sanitized.slice(i, i + chunkSize);
+  const rowsToUpsert = selectRowsNeedingUpsert(prodData || [], sanitized);
+  for (let i = 0; i < rowsToUpsert.length; i += chunkSize) {
+    const chunk = rowsToUpsert.slice(i, i + chunkSize);
     await upsertPlayersChunkAdaptive(chunk, upsertConflictTarget);
   }
-  console.log(`[+] Upserted ${sanitized.length} records to players`);
+  console.log(`[+] Upserted ${rowsToUpsert.length} changed records to players`);
+  console.log(`[=] Skipped ${sanitized.length - rowsToUpsert.length} unchanged player records`);
 
   // 4) Delete stale rows not present in staging snapshot
   const toDelete = selectStaleProductionRows(prodData || [], sanitized);
@@ -1082,10 +1265,17 @@ async function main() {
   }
 
   // 5) Final verification
-  const { count: finalCount, error: countErr } = await supabase
-    .from('players')
-    .select('*', { count: 'exact', head: true });
-  if (countErr) throw countErr;
+  const { count: finalCount } = await runSupabaseOperationWithRetry(
+    'players final count verification',
+    () =>
+      supabase
+        .from('players')
+        .select('id', { count: 'exact', head: true }),
+    {
+      maxAttempts: 3,
+      baseDelayMs: 2000,
+    }
+  );
 
   console.log(`\n=== 蹂?諛섏쁺 由ы룷??(Production Report) ===`);
   console.log(`[=] Production 'players' 理쒖쥌 Row ?? ${finalCount}`);
@@ -1100,7 +1290,7 @@ async function main() {
 
 if (require.main === module) {
   main().catch((error) => {
-    console.error(error instanceof Error ? error.stack || error.message : String(error));
+    console.error(formatSupabaseError('supabase_prod_sync', error));
     process.exit(1);
   });
 }
@@ -1112,6 +1302,8 @@ module.exports = {
   findProductionIdentityConflicts,
   selectStaleProductionRows,
   findUnsafeStaleDeleteRows,
+  selectRowsNeedingUpsert,
+  projectMatchHistoryForServing,
   buildServingPayload,
   buildSoopLookup,
   buildServingStatsByName,
@@ -1123,6 +1315,8 @@ module.exports = {
   readCsv,
   summarizeHistoryQuality,
   shouldReplaceHistoryWithStable,
+  formatSupabaseError,
+  runSupabaseOperationWithRetry,
   sourceCsvPath,
 };
 
