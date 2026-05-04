@@ -228,3 +228,8 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 - `npm.cmd run test:player-live-overlay`
 - `npx.cmd tsc --noEmit`
 - `npm.cmd run build`
+- Production browser verification after deploy:
+  - `/entry`: selected `김윤중` vs `이영한`; one `/api/stats/h2h` request was recorded and the detailed report rendered.
+  - `/match`: selected `김윤중` as A-team and `이영한` as B-team; one `/api/stats/h2h` request was recorded and `기세 분석` became enabled.
+  - `/tier`: quick-added `김지성` and `김명운`; one `/api/stats/h2h` request was recorded and the H2H selector rendered.
+  - `agent-browser.cmd errors` returned no console errors.
