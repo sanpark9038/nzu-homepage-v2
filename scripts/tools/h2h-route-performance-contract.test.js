@@ -9,15 +9,19 @@ function readProjectFile(filePath) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }
 
-test("H2H route checks ID-based detailed stats before expanding history name candidates", () => {
+test("H2H route avoids duplicate artifact-backed fallback work after ID-based detailed stats", () => {
   const source = readProjectFile("app/api/stats/h2h/route.ts");
   const detailedStatsIndex = source.indexOf("playerService.getDetailedH2HStats");
-  const nameCandidatesIndex = source.indexOf("playerService.getH2HNameCandidatesByIds");
 
   assert.notEqual(detailedStatsIndex, -1);
-  assert.notEqual(nameCandidatesIndex, -1);
-  assert.ok(
-    detailedStatsIndex < nameCandidatesIndex,
-    "ID-based H2H stats should run before history-name expansion to avoid duplicate R2 artifact fetches"
+  assert.doesNotMatch(
+    source,
+    /playerService\.getH2HNameCandidatesByIds\(/,
+    "The route should not fetch history-derived name candidates after detailed ID stats already checked artifacts"
+  );
+  assert.match(
+    source,
+    /if\s*\(\s*!byIdStats\s*&&\s*!hasH2HSample\(stats\)\s*&&\s*p1Id\s*&&\s*p2Id\s*\)/,
+    "Legacy ID fallback should be skipped when detailed ID stats already ran"
   );
 });

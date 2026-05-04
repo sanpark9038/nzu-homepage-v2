@@ -96,8 +96,6 @@ export async function GET(req: NextRequest) {
     const player2 = p2Id ? players.find((player) => player.id === p2Id) : null
     const player1Candidates = buildPlayerH2HCandidates(p1, player1)
     const player2Candidates = buildPlayerH2HCandidates(p2, player2)
-    let expandedPlayer1Candidates = player1Candidates
-    let expandedPlayer2Candidates = player2Candidates
 
     let stats = null
     let byIdStats: H2HStats | null = null
@@ -109,21 +107,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (!hasH2HSample(stats) && p1Id && p2Id) {
-      const historyCandidateBundle = await playerService.getH2HNameCandidatesByIds(p1Id, p2Id)
-      expandedPlayer1Candidates = uniqueCandidates([
-        ...player1Candidates,
-        ...(historyCandidateBundle.player1Candidates || []),
-      ])
-      expandedPlayer2Candidates = uniqueCandidates([
-        ...player2Candidates,
-        ...(historyCandidateBundle.player2Candidates || []),
-      ])
-    }
-
     if (!hasH2HSample(stats)) {
-      for (const leftName of expandedPlayer1Candidates) {
-        for (const rightName of expandedPlayer2Candidates) {
+      for (const leftName of player1Candidates) {
+        for (const rightName of player2Candidates) {
           const result = await getInstantH2H(leftName, rightName, gender || undefined)
           if (!result) continue
           if (!stats) stats = result
@@ -137,8 +123,8 @@ export async function GET(req: NextRequest) {
     }
 
     if (!hasH2HSample(stats) && gender) {
-      for (const leftName of expandedPlayer1Candidates) {
-        for (const rightName of expandedPlayer2Candidates) {
+      for (const leftName of player1Candidates) {
+        for (const rightName of player2Candidates) {
           const result = await getInstantH2H(leftName, rightName)
           if (!result) continue
           if (!stats) stats = result
@@ -155,7 +141,7 @@ export async function GET(req: NextRequest) {
       stats = byIdStats
     }
 
-    if (!hasH2HSample(stats) && p1Id && p2Id) {
+    if (!byIdStats && !hasH2HSample(stats) && p1Id && p2Id) {
       const byId = await playerService.getH2HStats(p1Id, p2Id)
       if ((byId.overall[0] + byId.overall[1]) > 0 || (byId.recent[0] + byId.recent[1]) > 0) {
         stats = toH2HStatsFromPlayerService(byId)
