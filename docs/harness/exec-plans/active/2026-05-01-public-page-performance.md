@@ -210,9 +210,16 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 - Reused the player row fetched during canonical `/player/[id]` redirect checks when rendering `PlayerPageView`.
 - Changed ID-prefix lookup to reuse `getCachedPlayersList()` instead of issuing a fresh full Supabase player-list query.
 
+### Implemented H2H Second-Pass Fix
+
+- Changed ID-based `/api/stats/h2h` requests to return `getDetailedH2HStats(p1_id, p2_id)` directly, including zero-sample results, instead of expanding name candidates afterward.
+- Kept name-based `getInstantH2H` fallback for requests that do not include both player IDs.
+- Changed detailed H2H artifact loading to read P1 history first and read P2 history only as a reciprocal fallback when P1 has no matching entries.
+
 ### Verification
 
 - `npm.cmd run test:player-page-payload-contract`
+- `npm.cmd run test:h2h-route-performance-contract`
 - `npm.cmd run test:player-live-overlay`
 - `npx.cmd tsc --noEmit`
 - `npm.cmd run build`

@@ -18,10 +18,6 @@ function uniqueCandidates(values: Array<string | null | undefined>) {
   return candidates
 }
 
-function pairFromStats(values: readonly number[] | null | undefined): [number, number] {
-  return [Number(values?.[0] || 0), Number(values?.[1] || 0)]
-}
-
 function hasH2HSample(stats: H2HStats | null | undefined) {
   return (stats?.summary?.total || 0) > 0
 }
@@ -48,33 +44,6 @@ function buildPlayerH2HCandidates(
   ])
 }
 
-function toH2HStatsFromPlayerService(payload: {
-  overall: readonly number[]
-  recent: readonly number[]
-}): H2HStats {
-  const [overallWins, overallLosses] = pairFromStats(payload.overall)
-  const [recentWins, recentLosses] = pairFromStats(payload.recent)
-  const overallTotal = overallWins + overallLosses
-  const recentTotal = recentWins + recentLosses
-
-  return {
-    summary: {
-      total: overallTotal,
-      wins: overallWins,
-      losses: overallLosses,
-      winRate: overallTotal > 0 ? ((overallWins / overallTotal) * 100).toFixed(1) : '0.0',
-      momentum90: {
-        total: recentTotal,
-        wins: recentWins,
-        losses: recentLosses,
-        winRate: recentTotal > 0 ? ((recentWins / recentTotal) * 100).toFixed(1) : '0.0',
-      },
-    },
-    mapStats: {},
-    recentMatches: [],
-  }
-}
-
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const p1 = searchParams.get('p1')
@@ -91,21 +60,18 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const players = await playerService.getCachedPlayersList()
+    if (p1Id && p2Id) {
+      const byIdStats = await playerService.getDetailedH2HStats(p1Id, p2Id)
+      return NextResponse.json(byIdStats)
+    }
+
+    const players = p1Id || p2Id ? await playerService.getCachedPlayersList() : []
     const player1 = p1Id ? players.find((player) => player.id === p1Id) : null
     const player2 = p2Id ? players.find((player) => player.id === p2Id) : null
     const player1Candidates = buildPlayerH2HCandidates(p1, player1)
     const player2Candidates = buildPlayerH2HCandidates(p2, player2)
 
-    let stats = null
-    let byIdStats: H2HStats | null = null
-
-    if (p1Id && p2Id) {
-      byIdStats = await playerService.getDetailedH2HStats(p1Id, p2Id)
-      if (hasH2HSample(byIdStats)) {
-        stats = byIdStats
-      }
-    }
+    let stats: H2HStats | null = null
 
     if (!hasH2HSample(stats)) {
       for (const leftName of player1Candidates) {
@@ -137,17 +103,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (!hasH2HSample(stats) && byIdStats) {
-      stats = byIdStats
-    }
-
-    if (!byIdStats && !hasH2HSample(stats) && p1Id && p2Id) {
-      const byId = await playerService.getH2HStats(p1Id, p2Id)
-      if ((byId.overall[0] + byId.overall[1]) > 0 || (byId.recent[0] + byId.recent[1]) > 0) {
-        stats = toH2HStatsFromPlayerService(byId)
-      }
-    }
-    
     if (!stats) {
       return NextResponse.json(
         { error: 'Failed to fetch Head-to-Head stats.' },

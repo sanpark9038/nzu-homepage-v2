@@ -366,6 +366,13 @@ function buildDetailedHistoryEntries(
     .sort((left, right) => String(right.match_date || "").localeCompare(String(left.match_date || "")));
 }
 
+function invertDetailedHistoryEntries(entries: H2HHistoryEntry[]): H2HHistoryEntry[] {
+  return entries.map((entry) => ({
+    ...entry,
+    is_win: !entry.is_win,
+  }));
+}
+
 function buildDetailedServingEntries(
   p1Id: string,
   p2Id: string,
@@ -575,16 +582,17 @@ export const playerService = {
       return buildDetailedH2HStats(p1, p2, servingEntries);
     }
 
-    const [p1WithArtifactHistory, p2WithArtifactHistory] = await Promise.all([
-      mergePlayerHistoryArtifact(p1),
-      mergePlayerHistoryArtifact(p2),
-    ]);
+    const p1WithArtifactHistory = await mergePlayerHistoryArtifact(p1);
+    let historyEntries = buildDetailedHistoryEntries(p1WithArtifactHistory, p2);
 
-    return buildDetailedH2HStats(
-      p1WithArtifactHistory,
-      p2WithArtifactHistory,
-      buildDetailedHistoryEntries(p1WithArtifactHistory, p2WithArtifactHistory)
-    );
+    if (historyEntries.length === 0) {
+      const p2WithArtifactHistory = await mergePlayerHistoryArtifact(p2);
+      historyEntries = invertDetailedHistoryEntries(
+        buildDetailedHistoryEntries(p2WithArtifactHistory, p1)
+      );
+    }
+
+    return buildDetailedH2HStats(p1, p2, historyEntries);
   },
 
   async getH2HNameCandidatesByIds(p1Id: string, p2Id: string) {
