@@ -1,3 +1,5 @@
+import { unstable_cache } from "next/cache";
+
 export type PlayerHistoryArtifactItem = {
   match_date?: string | null;
   opponent_entity_id?: string | null;
@@ -55,13 +57,22 @@ async function fetchRemoteArtifact(key: string): Promise<PlayerHistoryArtifact |
   }
 }
 
+const loadCachedPlayerHistoryArtifact = unstable_cache(
+  async (key: string) => fetchRemoteArtifact(key),
+  ["public-player-history-artifact-v1"],
+  {
+    revalidate: 300,
+    tags: ["public-player-history"],
+  }
+);
+
 export async function loadPlayerHistoryArtifact(
   player: PlayerHistoryLookupSource
 ): Promise<PlayerHistoryArtifactItem[] | null> {
   const key = buildHistoryArtifactKey(player.eloboard_id);
   if (!key) return null;
 
-  const remote = await fetchRemoteArtifact(key);
+  const remote = await loadCachedPlayerHistoryArtifact(key);
   const remoteHistory = Array.isArray(remote?.match_history) ? remote.match_history : null;
   if (remoteHistory && remoteHistory.length > 0) return remoteHistory;
   return null;

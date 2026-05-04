@@ -209,6 +209,7 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 - Bounded `recentLogs` passed to the client detail card to 25 rows while keeping full history available for server-side summary calculations.
 - Reused the player row fetched during canonical `/player/[id]` redirect checks when rendering `PlayerPageView`.
 - Changed ID-prefix lookup to reuse `getCachedPlayersList()` instead of issuing a fresh full Supabase player-list query.
+- Added a 300 second `unstable_cache` wrapper around public player-history artifact reads, tagged with `public-player-history`, after production samples showed player detail routes still spent time repeatedly loading the same R2 history JSON.
 
 ### Implemented H2H Second-Pass Fix
 
@@ -223,6 +224,7 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 ### Verification
 
 - `npm.cmd run test:player-page-payload-contract`
+- `npm.cmd run test:player-history-artifact-cache-contract`
 - `npm.cmd run test:h2h-route-performance-contract`
 - `npm.cmd run test:matchup-h2h-fetch-contract`
 - `npm.cmd run test:matchup-zero-h2h-cache-contract`
