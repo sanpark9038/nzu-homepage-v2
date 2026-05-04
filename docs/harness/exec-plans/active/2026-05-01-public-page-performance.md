@@ -119,6 +119,7 @@ This improves cost and speed without making the default page depend on current b
 - [x] Run lint.
 - [x] 2026-05-04 measured deployed `/player`, `/api/players`, `/match`, R2 player-history JSON, and `/api/stats/h2h` after enabling `PLAYER_HISTORY_PUBLIC_BASE_URL`.
 - [x] 2026-05-04 changed `/api/stats/h2h` to try ID-based detailed H2H before expanding history-derived name candidates, avoiding duplicate R2 artifact reads for matchups that already resolve by ID.
+- [x] 2026-05-04 second pass: investigate deployed `/player` and `/api/stats/h2h` latency after R2 artifact deployment, then change only the smallest confirmed bottleneck.
 - [ ] Decide whether to do a second pass on image/card rendering after observing the deployed page.
 - [x] Update this plan with verification results.
 
@@ -179,3 +180,39 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
   - `npm.cmd run test:prediction-cache-contract`
   - `npm.cmd run test:tier-page-helpers`
   - `npm.cmd run test:player-live-overlay`
+- After deployment `5ccc745`, production smoke checks were 200 for `/tier`, `/tier?liveOnly=true`, and `/prediction`.
+- After the R2 player-history artifact code deployed, heavy player detail routes still measured in the 2-4s range and known H2H samples in the 1.6-3.4s range. The next pass should gather route-level evidence before changing code.
+
+## 2026-05-04 Player/H2H Second Pass
+
+### Scope
+
+- Keep visible labels unchanged.
+- Do not change roster, rankings, or prediction behavior.
+- Prefer one targeted serving-path change with a contract test.
+
+### Investigation Questions
+
+- Does `/player` spend time on data fetching, RSC rendering payload size, or client component hydration/payload size?
+- Does `/api/stats/h2h` still perform avoidable fallback work after the ID-based route change?
+- Can full player history reads be bounded or deferred without losing all-time stats/H2H correctness?
+
+### Verification Targets
+
+- Focused contract test for the confirmed bottleneck.
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run build`
+- Production smoke check for the changed route after deployment.
+
+### Implemented Player-Page Fix
+
+- Bounded `recentLogs` passed to the client detail card to 25 rows while keeping full history available for server-side summary calculations.
+- Reused the player row fetched during canonical `/player/[id]` redirect checks when rendering `PlayerPageView`.
+- Changed ID-prefix lookup to reuse `getCachedPlayersList()` instead of issuing a fresh full Supabase player-list query.
+
+### Verification
+
+- `npm.cmd run test:player-page-payload-contract`
+- `npm.cmd run test:player-live-overlay`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run build`

@@ -2,7 +2,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 
 import { buildPlayerHref } from "@/lib/player-route";
-import { isExactPlayerSearchMatch, playerService } from "@/lib/player-service";
+import { isExactPlayerSearchMatch, playerService, type Player } from "@/lib/player-service";
 import {
   buildMapSummaries,
   buildRaceBestMaps,
@@ -25,7 +25,16 @@ import { getTierLabel } from "@/lib/utils";
 import PlayerSearchForm from "./PlayerSearchForm";
 import PlayerSearchResult from "./PlayerSearchResult";
 
-async function resolveSelectedPlayer(selectedId: string, selectedIdPrefix: string, query: string) {
+const PLAYER_DETAIL_RECENT_LOG_LIMIT = 25;
+
+async function resolveSelectedPlayer(
+  selectedId: string,
+  selectedIdPrefix: string,
+  query: string,
+  initialPlayer?: Player | null
+) {
+  if (initialPlayer) return initialPlayer;
+
   if (selectedId) {
     try {
       return await playerService.getPlayerById(selectedId);
@@ -50,10 +59,12 @@ export async function PlayerPageView({
   query = "",
   selectedId = "",
   selectedIdPrefix = "",
+  initialPlayer = null,
 }: {
   query?: string;
   selectedId?: string;
   selectedIdPrefix?: string;
+  initialPlayer?: Player | null;
 }) {
   noStore();
   const normalizedQuery = String(query || "").trim();
@@ -74,7 +85,7 @@ export async function PlayerPageView({
   let recentSummary: RecentSummary = { winRate: "기록 없음", wins: 0, losses: 0, form: [] };
 
   if (hasSelectedId) {
-    exactMatch = await resolveSelectedPlayer(normalizedId, normalizedIdPrefix, normalizedQuery);
+    exactMatch = await resolveSelectedPlayer(normalizedId, normalizedIdPrefix, normalizedQuery, initialPlayer);
   } else if (hasQuery) {
     const results = await playerService.searchPlayers(normalizedQuery);
     const exact = results.find((player) => isExactPlayerSearchMatch(player, normalizedQuery)) || null;
@@ -91,7 +102,7 @@ export async function PlayerPageView({
     weakestMap = pickMapSummary(mapSummaries, "asc", 5);
     raceBestMaps = buildRaceBestMaps(exactMatchMatches, exactMatch.id);
     spawnPartner = buildSpawnPartner(exactMatchMatches, exactMatch.id);
-    recentLogs = buildRecentLogs(exactMatchMatches, exactMatch.id);
+    recentLogs = buildRecentLogs(exactMatchMatches, exactMatch.id).slice(0, PLAYER_DETAIL_RECENT_LOG_LIMIT);
     recentSummary = buildRecentSummary(exactMatchMatches, exactMatch.id);
   }
 

@@ -417,14 +417,8 @@ export const playerService = {
     const normalizedPrefix = String(prefix || "").trim().toLowerCase();
     if (!normalizedPrefix) return null;
 
-    const { data, error } = await supabase
-      .from("players")
-      .select(PLAYER_LIST_SELECT[0])
-      .order("elo_point", { ascending: false, nullsFirst: false });
-
-    if (error) throw error;
-    const player = (data || []).find((row) => String(row.id || "").toLowerCase().startsWith(normalizedPrefix)) || null;
-    return player ? applyPlayerServiceViewToOne(player as Player) : null;
+    const players = await this.getCachedPlayersList();
+    return players.find((row) => String(row.id || "").toLowerCase().startsWith(normalizedPrefix)) || null;
   },
 
   /** ?꾩옱 諛⑹넚 以묒씤 ?좎닔?ㅻ쭔 媛?몄삤湲?*/
