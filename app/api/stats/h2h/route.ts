@@ -94,19 +94,10 @@ export async function GET(req: NextRequest) {
     const players = await playerService.getCachedPlayersList()
     const player1 = p1Id ? players.find((player) => player.id === p1Id) : null
     const player2 = p2Id ? players.find((player) => player.id === p2Id) : null
-    const historyCandidateBundle =
-      p1Id && p2Id ? await playerService.getH2HNameCandidatesByIds(p1Id, p2Id) : null
-
     const player1Candidates = buildPlayerH2HCandidates(p1, player1)
     const player2Candidates = buildPlayerH2HCandidates(p2, player2)
-    const expandedPlayer1Candidates = uniqueCandidates([
-      ...player1Candidates,
-      ...(historyCandidateBundle?.player1Candidates || []),
-    ])
-    const expandedPlayer2Candidates = uniqueCandidates([
-      ...player2Candidates,
-      ...(historyCandidateBundle?.player2Candidates || []),
-    ])
+    let expandedPlayer1Candidates = player1Candidates
+    let expandedPlayer2Candidates = player2Candidates
 
     let stats = null
     let byIdStats: H2HStats | null = null
@@ -116,6 +107,18 @@ export async function GET(req: NextRequest) {
       if (hasH2HSample(byIdStats)) {
         stats = byIdStats
       }
+    }
+
+    if (!hasH2HSample(stats) && p1Id && p2Id) {
+      const historyCandidateBundle = await playerService.getH2HNameCandidatesByIds(p1Id, p2Id)
+      expandedPlayer1Candidates = uniqueCandidates([
+        ...player1Candidates,
+        ...(historyCandidateBundle.player1Candidates || []),
+      ])
+      expandedPlayer2Candidates = uniqueCandidates([
+        ...player2Candidates,
+        ...(historyCandidateBundle.player2Candidates || []),
+      ])
     }
 
     if (!hasH2HSample(stats)) {
