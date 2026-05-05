@@ -372,6 +372,57 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 - `npm.cmd run build`
 - `npm.cmd run lint`
 - `git diff --check`
+
+## 2026-05-04 Post-Sync Verification Checklist
+
+### Current Sync Run
+
+- GitHub Actions run: `https://github.com/sanpark9038/nzu-homepage-v2/actions/runs/25320104806`
+- Trigger: manual `NZU Ops Pipeline` dispatch with `with_supabase_sync=true`
+- Commit under test: `16c57b2`
+- Expected duration: roughly 40-60 minutes based on recent scheduled runs.
+
+### Check After The Run Completes
+
+- Confirm the Actions run conclusion is `success`.
+- Confirm `Run manual refresh` completed as a Supabase sync, not collect-only.
+- Confirm `tmp/reports/prod_sync_history_quality_latest.json` from the run includes:
+  - `detailed_stats_max_bytes`
+  - `detailed_stats_largest_player`
+  - `player_detail_summary_max_bytes`
+  - `player_detail_summary_largest_player`
+  - `player_detail_summary_max_recent_logs`
+- Confirm `player_detail_summary_max_recent_logs` is no more than `25`.
+- Confirm a production player API/detail summary response for `5aee11bf-9641-4056-8290-8c4cae1efa49` still returns 200.
+- Confirm 김지성's latest visible history reaches the fresher Supabase date instead of the stale `2026-04-07` R2 artifact date.
+- Confirm `/player?query=김지성` shows the first-card recent 3-month summary after the sync has populated `detailed_stats.recent_90`.
+- Confirm opening `상세 리포트` returns the expanded report from the summary API without console errors.
+- Smoke-check `/api/stats/h2h` for a known ID-based matchup still returns 200.
+
+### Separate Cleanup Note
+
+- `docs/harness/exec-plans/active/2026-05-01-prediction-ux-admin-flow.md` and `public/prediction-layout-preview.html` belong to a separate prediction UX/admin-flow effort.
+- Keep them out of the player/R2 performance cleanup commit stream.
+
+### Result
+
+- Actions run `25320104806` completed successfully on commit `16c57b2`.
+- `Run manual refresh` completed with Supabase sync enabled.
+- Production sync report included the new size fields:
+  - `detailed_stats_max_bytes`: `5426`
+  - `detailed_stats_largest_player`: `김윤환`
+  - `player_detail_summary_max_bytes`: `4249`
+  - `player_detail_summary_largest_player`: `있찌`
+  - `player_detail_summary_max_recent_logs`: `25`
+- 김지성 production row after sync:
+  - `last_match_at`: `2026-05-02T00:00:00+00:00`
+  - `match_history_latest`: `2026-05-02`
+  - `recent_90`: `404` matches, `190` wins, `214` losses, `47.03%`
+  - `player_detail_summary.latest_match_date`: `2026-05-02`
+  - `player_detail_summary.recent_logs`: `25`
+- Production smoke checks returned 200 for `/player?query=김지성`, `/api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`, and ID-based `/api/stats/h2h`.
+- Browser check opened 김지성's `상세 리포트` without console errors.
+- Follow-up needed: GitHub Actions skipped player-history R2 artifact upload with `missing_r2_env`; `PLAYER_HISTORY_R2_ACCOUNT_ID` is missing from repo secrets.
 - `npm.cmd run verify:predeploy`
 
 ## 2026-05-04 Precomputed Player-Card Recent Metrics
