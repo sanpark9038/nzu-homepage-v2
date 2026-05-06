@@ -203,6 +203,15 @@ test("public prediction payload helpers do not expose voter identity fields", ()
   assert.doesNotMatch(serialized, /voter_id|voter_provider|voter_provider_user_id|voter_display_name|voter_avatar_url/);
 });
 
+test("buildTournamentPredictionMatches respects an explicitly empty remote state", () => {
+  const matches = tournamentPrediction.buildTournamentPredictionMatches([], {
+    matches: [],
+    votes: [],
+  });
+
+  assert.deepEqual(matches, []);
+});
+
 test("prediction admin voter helpers summarize and label SOOP fixed ids", () => {
   const match = {
     id: "match-1",

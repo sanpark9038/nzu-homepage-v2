@@ -199,7 +199,7 @@ export function buildTournamentPredictionMatches(
   const playerMap = new Map(allPlayers.map((player) => [String(player.id), player]));
   const config = readPredictionConfig();
   const configMatches =
-    Array.isArray(state?.matches) && state.matches.length > 0
+    Array.isArray(state?.matches)
       ? state.matches
       : Array.isArray(config.matches) && config.matches.length > 0
         ? config.matches

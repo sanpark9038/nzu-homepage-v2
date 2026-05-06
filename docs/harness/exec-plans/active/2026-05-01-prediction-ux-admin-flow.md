@@ -375,4 +375,37 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 ### Remaining Before Commit
 
 - Stage only the prediction UX/admin-flow files and keep `public/prediction-layout-preview.html` out of the commit.
-- Before production launch, apply `scripts/sql/create-prediction-tables.sql` to Supabase and confirm the production admin env is present so prediction writes do not fail closed.
+- Supabase schema/env follow-up is captured in the next slice.
+
+## 2026-05-06 Supabase Apply And E2E Smoke Slice
+
+### Completed
+
+- Applied `scripts/sql/create-prediction-tables.sql` to the linked Supabase project `ttglvnnzssaaypmcrmdt` using `npx supabase db query --linked`.
+- Verified `prediction_matches` and `prediction_votes` tables, columns, indexes/RLS SQL contract, and production env variable names.
+- Found and fixed a remote-empty-state mismatch:
+  - before: an explicitly empty remote prediction state could still render local JSON demo matches
+  - after: an explicitly provided empty state renders no matches, preventing users from seeing matches that POST cannot write to
+- Added a regression test for the empty remote state behavior.
+- Ran local API smoke through Next dev:
+  - admin session issued through `/api/admin/session`
+  - temporary prediction created through `/api/admin/prediction`
+  - public `/api/prediction` returned the temporary match without voter identity fields
+  - temporary prediction deleted through `/api/admin/prediction`
+  - remote prediction table counts returned to zero
+  - unauthenticated public vote POST returned `401`
+- Verified SOOP login start endpoint redirects to `openapi.sooplive.com`.
+
+### Verification
+
+- `npm.cmd run test:prediction-store-contract`
+- `npm.cmd run test:prediction-cache-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Supabase row-count check after smoke: `prediction_matches = 0`, `prediction_votes = 0`.
+
+### Remaining Before Public Launch
+
+- Create real prediction matches in `/admin/prediction`; the production prediction tables are intentionally empty after smoke cleanup.
+- Complete a human-in-the-loop SOOP login callback test in a real browser session, because external SOOP account authorization cannot be completed by the agent without user credentials.
