@@ -34,14 +34,14 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-[100] w-full border-b border-white/5 bg-background/60 backdrop-blur-3xl transition-all duration-300">
-      <div className="flex h-16 w-full items-center justify-between gap-8 px-8">
+      <div className="flex h-16 w-full items-center justify-between gap-4 px-4 lg:gap-8 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center group">
           <span className="text-xl font-black tracking-tighter text-white transition-colors duration-300 group-hover:text-nzu-green">
             HOSAGA
           </span>
         </Link>
 
-        <nav className="flex flex-1 items-center justify-center gap-2">
+        <nav className="hidden flex-1 items-center justify-center gap-2 lg:flex">
           {visibleNavbarLinks.map((item) => {
             const isActive = pathname === item.href;
             const showTierLiveBadge = item.href === "/tier";
@@ -75,8 +75,8 @@ export default function Navbar() {
           })}
         </nav>
 
-        <div className="flex items-center gap-4 text-foreground/40">
-          <div className="mx-2 h-6 w-[1px] bg-white/10" />
+        <div className="flex items-center gap-2 text-foreground/40 lg:gap-4">
+          <div className="mx-2 hidden h-6 w-[1px] bg-white/10 lg:block" />
           {session ? (
             <div className="flex items-center gap-2">
               <div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-black text-foreground md:flex">
@@ -87,7 +87,7 @@ export default function Navbar() {
               </div>
               <a
                 href="/api/auth/soop/logout"
-                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black text-foreground transition-all hover:bg-white/5"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-black text-foreground transition-all hover:bg-white/5 lg:px-4"
               >
                 <LogOut size={18} />
                 <span>LOGOUT</span>
@@ -96,13 +96,13 @@ export default function Navbar() {
           ) : (
             <a
               href="/api/auth/soop/start?next=/board"
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-black text-foreground transition-all hover:bg-white/5"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-black text-foreground transition-all hover:bg-white/5 lg:px-4"
             >
               <User size={18} />
               <span>LOGIN</span>
             </a>
           )}
-          <button className="rounded-lg p-2 transition-all hover:bg-white/5 hover:text-foreground">
+          <button type="button" className="rounded-lg p-2 transition-all hover:bg-white/5 hover:text-foreground">
             <Grid size={20} />
           </button>
         </div>

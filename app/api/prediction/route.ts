@@ -1,43 +1,77 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { playerService } from "@/lib/player-service";
+import { buildTournamentPredictionMatches } from "@/lib/tournament-prediction";
 import {
-  buildTournamentPredictionMatches,
+  getPredictionMyVotes,
+  getPredictionVoterId,
+  loadPredictionState,
   upsertPredictionVote,
-} from "@/lib/tournament-prediction";
+} from "@/lib/prediction-store";
+import { parsePublicAuthSessionCookieValue, PUBLIC_AUTH_SESSION_COOKIE } from "@/lib/public-auth";
 
 export const runtime = "nodejs";
 
+async function getPublicSession() {
+  const cookieStore = await cookies();
+  return parsePublicAuthSessionCookieValue(cookieStore.get(PUBLIC_AUTH_SESSION_COOKIE)?.value);
+}
+
+function serializePublicSession(session: Awaited<ReturnType<typeof getPublicSession>>) {
+  return session
+    ? {
+        provider: session.provider,
+        displayName: session.displayName,
+        avatarUrl: session.avatarUrl,
+      }
+    : null;
+}
+
 export async function GET() {
   const players = await playerService.getCachedPlayersList();
-  const matches = buildTournamentPredictionMatches(players);
-  return NextResponse.json({ ok: true, matches });
+  const state = await loadPredictionState();
+  const matches = buildTournamentPredictionMatches(players, state);
+  const session = await getPublicSession();
+  const voterId = session ? getPredictionVoterId(session) : "";
+  return NextResponse.json({
+    ok: true,
+    matches,
+    myVotes: getPredictionMyVotes(state.votes, voterId),
+    session: serializePublicSession(session),
+  });
 }
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as {
-    voter_id?: string;
     match_id?: string;
     picked_team_code?: string | null;
-    picked_player_id?: string | null;
   };
 
-  const voterId = String(body.voter_id || "").trim();
-  const matchId = String(body.match_id || "").trim();
-  if (!voterId || !matchId) {
+  const session = await getPublicSession();
+  if (!session) {
     return NextResponse.json(
-      { ok: false, message: "voter_id and match_id are required" },
+      { ok: false, message: "prediction_login_required" },
+      { status: 401 }
+    );
+  }
+
+  const voterId = getPredictionVoterId(session);
+  const matchId = String(body.match_id || "").trim();
+  if (!matchId) {
+    return NextResponse.json(
+      { ok: false, message: "match_id is required" },
       { status: 400 }
     );
   }
 
   try {
-    upsertPredictionVote({
+    await upsertPredictionVote({
       voterId,
       matchId,
+      voterSession: session,
       pickedTeamCode:
         Object.prototype.hasOwnProperty.call(body, "picked_team_code") ? body.picked_team_code ?? null : undefined,
-      pickedPlayerId:
-        Object.prototype.hasOwnProperty.call(body, "picked_player_id") ? body.picked_player_id ?? null : undefined,
+      pickedPlayerId: null,
     });
   } catch (error) {
     return NextResponse.json(
@@ -50,6 +84,12 @@ export async function POST(req: Request) {
   }
 
   const players = await playerService.getCachedPlayersList();
-  const matches = buildTournamentPredictionMatches(players);
-  return NextResponse.json({ ok: true, matches });
+  const state = await loadPredictionState();
+  const matches = buildTournamentPredictionMatches(players, state);
+  return NextResponse.json({
+    ok: true,
+    matches,
+    myVotes: getPredictionMyVotes(state.votes, voterId),
+    session: serializePublicSession(session),
+  });
 }

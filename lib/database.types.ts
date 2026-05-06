@@ -189,6 +189,131 @@ export type Database = {
         }
         Relationships: []
       }
+      prediction_matches: {
+        Row: {
+          archived_at: string | null
+          close_at: string
+          created_at: string
+          display_order: number
+          entry_matchups: Json
+          entry_order_status: string
+          id: string
+          match_type: string
+          result_published_at: string | null
+          result_team_code: string | null
+          start_at: string
+          status: string
+          team_a_code: string
+          team_a_name: string | null
+          team_a_player_ids: string[]
+          team_b_code: string
+          team_b_name: string | null
+          team_b_player_ids: string[]
+          team_mode: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          close_at: string
+          created_at?: string
+          display_order?: number
+          entry_matchups?: Json
+          entry_order_status?: string
+          id?: string
+          match_type?: string
+          result_published_at?: string | null
+          result_team_code?: string | null
+          start_at: string
+          status?: string
+          team_a_code: string
+          team_a_name?: string | null
+          team_a_player_ids?: string[]
+          team_b_code: string
+          team_b_name?: string | null
+          team_b_player_ids?: string[]
+          team_mode?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          close_at?: string
+          created_at?: string
+          display_order?: number
+          entry_matchups?: Json
+          entry_order_status?: string
+          id?: string
+          match_type?: string
+          result_published_at?: string | null
+          result_team_code?: string | null
+          start_at?: string
+          status?: string
+          team_a_code?: string
+          team_a_name?: string | null
+          team_a_player_ids?: string[]
+          team_b_code?: string
+          team_b_name?: string | null
+          team_b_player_ids?: string[]
+          team_mode?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prediction_votes: {
+        Row: {
+          change_count: number
+          created_at: string
+          id: string
+          match_id: string
+          picked_player_id: string | null
+          picked_team_code: string | null
+          updated_at: string
+          voter_avatar_url: string | null
+          voter_display_name: string | null
+          voter_id: string
+          voter_provider: string | null
+          voter_provider_user_id: string | null
+        }
+        Insert: {
+          change_count?: number
+          created_at?: string
+          id?: string
+          match_id: string
+          picked_player_id?: string | null
+          picked_team_code?: string | null
+          updated_at?: string
+          voter_avatar_url?: string | null
+          voter_display_name?: string | null
+          voter_id: string
+          voter_provider?: string | null
+          voter_provider_user_id?: string | null
+        }
+        Update: {
+          change_count?: number
+          created_at?: string
+          id?: string
+          match_id?: string
+          picked_player_id?: string | null
+          picked_team_code?: string | null
+          updated_at?: string
+          voter_avatar_url?: string | null
+          voter_display_name?: string | null
+          voter_id?: string
+          voter_provider?: string | null
+          voter_provider_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediction_votes_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       players: {
         Row: {
           broadcast_title: string | null

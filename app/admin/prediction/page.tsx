@@ -4,12 +4,12 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { playerService } from "@/lib/player-service";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import { buildTournamentHomeTeams } from "@/lib/tournament-home";
-import { readPredictionConfig } from "@/lib/tournament-prediction";
+import { loadPredictionState } from "@/lib/prediction-store";
 import { PredictionMatchAdmin } from "./PredictionMatchAdmin";
 import LogoutButton from "../ops/LogoutButton";
 
 export const metadata = {
-  title: "HOSAGA Admin - 승부예측 설정",
+  title: "HOSAGA Admin - 승부예측 관리",
 };
 
 export default async function AdminPredictionPage() {
@@ -19,48 +19,67 @@ export default async function AdminPredictionPage() {
     redirect("/admin/login?next=/admin/prediction");
   }
 
-  const players = await playerService.getAllPlayers();
+  const players = await playerService.getCachedPlayersList();
   const teams = buildTournamentHomeTeams(players);
-  const config = readPredictionConfig();
+  const predictionState = await loadPredictionState();
 
-  const teamList = teams.map((t) => ({
-    teamCode: t.teamCode,
-    teamName: t.teamName,
+  const playerList = players.map((player) => ({
+    id: player.id,
+    name: player.name,
+    nickname: player.nickname,
+    race: player.race,
+    tier: player.tier,
+  }));
+
+  const teamList = teams.map((team) => ({
+    teamCode: team.teamCode,
+    teamName: team.teamName,
+    players: team.players.map((player) => ({
+      id: player.id,
+      name: player.name,
+      nickname: player.nickname,
+      race: player.race,
+      tier: player.tier,
+    })),
   }));
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="mx-auto w-full max-w-4xl px-4 py-12">
+    <div className="min-h-screen bg-background text-foreground">
+      <main className="mx-auto w-full max-w-7xl px-4 py-10 md:py-12">
         <AdminNav />
-        <header className="mb-12 flex items-start justify-between">
+        <header className="mb-8 flex flex-wrap items-start justify-between gap-5">
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <span className="rounded border border-nzu-green/20 bg-nzu-green/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-nzu-green">
+              <span className="rounded border border-nzu-green/25 bg-nzu-green/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-nzu-green">
                 Admin Control
               </span>
             </div>
-            <h1 className="text-4xl font-black uppercase italic tracking-tighter">
-              Prediction <span className="gradient-text">Admin</span>
+            <h1 className="text-3xl font-black text-white md:text-4xl">
+              승부예측 관리
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">대진 및 경기 시간을 설정합니다.</p>
+            <p className="mt-2 max-w-3xl text-sm font-bold text-white/48">
+              팀전과 개인전 예측을 만들고, 임시저장, 투표 시작, 마감, 결과 공개 흐름을 관리합니다.
+            </p>
           </div>
           <LogoutButton />
         </header>
 
-        <section className="relative overflow-hidden rounded-[2.5rem] border border-border/40 bg-card p-8 shadow-2xl md:p-12">
-          <div className="absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-nzu-green/5 blur-[100px]" />
+        <PredictionMatchAdmin
+          initialMatches={predictionState.matches}
+          initialVotes={predictionState.votes}
+          teams={teamList}
+          players={playerList}
+        />
 
-          <div className="relative">
-            <PredictionMatchAdmin initialMatches={config.matches || []} teams={teamList} />
-          </div>
-        </section>
-
-        <footer className="mt-12 rounded-2xl border border-border/20 bg-muted/5 p-6">
-          <h3 className="mb-3 text-xs font-black uppercase tracking-widest opacity-60">Admin Notice</h3>
-          <ul className="list-disc space-y-2 pl-4 text-[11px] text-muted-foreground">
-            <li>수정된 내용은 즉시 반영됩니다.</li>
-            <li>경기 시간은 한국 시간(KST) 기준입니다.</li>
-            <li>경기 시작 30분 전부터 투표가 마감됩니다.</li>
+        <footer className="mt-8 rounded-xl border border-white/8 bg-white/[0.035] p-5">
+          <h3 className="mb-3 text-sm font-black text-white">운영 메모</h3>
+          <ul className="space-y-2 text-sm font-bold text-white/48">
+            <li>임시저장은 public 화면에 보이지 않습니다.</li>
+            <li>투표 시작 후 사용자는 로그인한 상태에서만 예측할 수 있습니다.</li>
+            <li>
+              팀전의 엔트리 매치업은 안내 정보이며, 세부 경기 승자 예측은 개인전 예측으로 별도 등록합니다.
+            </li>
+            <li>같은 예측 안에서는 같은 선수를 한 번만 등록할 수 있습니다.</li>
           </ul>
         </footer>
       </main>
