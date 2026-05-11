@@ -43,3 +43,21 @@ test("admin entry matchup picker uses a large select layout with clear empty-tea
   assert.match(source, /grid gap-3 rounded-xl/);
   assert.match(source, /md:grid-cols-\[120px_minmax\(0,1fr\)_48px_minmax\(0,1fr\)_84px\]/);
 });
+
+test("admin entry order status is selected with explicit unknown and confirmed controls", () => {
+  const source = readComponentSource();
+  const section = extractEntryMatchupSection(source);
+
+  assert.match(section, /const entryOrderStatus = normalizeEntryOrderStatus\(selectedMatch\?\.entry_order_status\)/);
+  assert.match(source, /const setEntryOrderStatus = \(entryOrderStatus: EntryOrderStatus\) =>/);
+  assert.ok(source.includes("\uC21C\uC11C \uBBF8\uC815"), "unknown-order control should be visible");
+  assert.ok(source.includes("\uC21C\uC11C \uD655\uC815"), "confirmed-order control should be visible");
+  assert.ok(
+    !source.includes("\uC21C\uC11C \uBBF8\uC815/\uD655\uC815 \uC804\uD658"),
+    "ambiguous toggle label should not remain"
+  );
+  assert.match(section, /aria-pressed=\{entryOrderStatus === "unknown"\}/);
+  assert.match(section, /aria-pressed=\{entryOrderStatus === "confirmed"\}/);
+  assert.match(section, /onClick=\{\(\) => setEntryOrderStatus\("unknown"\)\}/);
+  assert.match(section, /onClick=\{\(\) => setEntryOrderStatus\("confirmed"\)\}/);
+});

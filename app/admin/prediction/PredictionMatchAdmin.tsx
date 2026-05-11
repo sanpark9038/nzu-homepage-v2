@@ -691,6 +691,10 @@ export function PredictionMatchAdmin({
     updateSelected({ entry_matchups: rows });
   };
 
+  const setEntryOrderStatus = (entryOrderStatus: EntryOrderStatus) => {
+    updateSelected({ entry_order_status: entryOrderStatus });
+  };
+
   const handleSave = async (statusOverride?: "draft" | "open" | "closed") => {
     if (readOnly) {
       setStatus({ type: "error", message: getAdminWriteDisabledMessage("prediction admin") });
@@ -904,6 +908,7 @@ export function PredictionMatchAdmin({
   const matchupRows = matchups.length > 0 ? matchups : [{ id: "matchup-1", player_a_id: "", player_b_id: "" }];
   const teamAEntryPlayers = getSelectedTeamPlayers(playerMap, selectedMatch?.team_a_player_ids);
   const teamBEntryPlayers = getSelectedTeamPlayers(playerMap, selectedMatch?.team_b_player_ids);
+  const entryOrderStatus = normalizeEntryOrderStatus(selectedMatch?.entry_order_status);
 
   return (
     <div className="space-y-5">
@@ -1218,20 +1223,30 @@ export function PredictionMatchAdmin({
                     >
                       매치업 추가
                     </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateSelected({
-                          entry_order_status:
-                            normalizeEntryOrderStatus(selectedMatch.entry_order_status) === "confirmed"
-                              ? "unknown"
-                              : "confirmed",
-                        })
-                      }
-                      className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black text-white/72"
-                    >
-                      순서 미정/확정 전환
-                    </button>
+                    <div className="inline-flex overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]">
+                      <button
+                        type="button"
+                        aria-pressed={entryOrderStatus === "unknown"}
+                        onClick={() => setEntryOrderStatus("unknown")}
+                        className={cn(
+                          "px-3 py-2 text-xs font-black transition",
+                          entryOrderStatus === "unknown" ? "bg-nzu-green text-black" : "text-white/65 hover:text-white"
+                        )}
+                      >
+                        순서 미정
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={entryOrderStatus === "confirmed"}
+                        onClick={() => setEntryOrderStatus("confirmed")}
+                        className={cn(
+                          "border-l border-white/10 px-3 py-2 text-xs font-black transition",
+                          entryOrderStatus === "confirmed" ? "bg-nzu-green text-black" : "text-white/65 hover:text-white"
+                        )}
+                      >
+                        순서 확정
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : null}

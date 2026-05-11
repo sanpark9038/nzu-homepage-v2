@@ -435,6 +435,30 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 
 - Create the real prediction match or matches after the exact fixture details are confirmed.
 
+## 2026-05-12 Public Matchup Toggle And Admin Order Status Follow-up
+
+### Completed
+
+- Public `/prediction` now keeps team entry matchup details collapsed by default.
+- Added a `상세보기` / `접기` arrow toggle with `aria-expanded` and `aria-controls` so users can open matchup details only when they want them.
+- Replaced the admin `순서 미정/확정 전환` toggle with explicit `순서 미정` and `순서 확정` controls.
+- Kept the existing `entry_order_status` data shape unchanged.
+- Added UI contract coverage for the public matchup toggle and the explicit admin order-status controls.
+
+### Verification
+
+- `node scripts\tools\prediction-public-entry-matchup-toggle-ui-contract.test.js`
+- `node scripts\tools\prediction-admin-entry-matchup-ui-contract.test.js`
+- `node scripts\tools\prediction-public-vote-confirm-ui-contract.test.js`
+- `node scripts\tools\prediction-admin-player-search-ui-contract.test.js`
+- `npm.cmd run test:prediction-cache-contract`
+- `npm.cmd run test:prediction-store-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Browser smoke on `http://localhost:3000/prediction`: `상세보기` started collapsed, expanded to show matchup rows, and returned to collapsed with `접기`.
+- Browser smoke on `http://localhost:3000/admin/prediction`: `순서 미정` and `순서 확정` rendered as explicit controls; selecting `순서 미정` updated the local status badge to `경기 순서 미정`; no browser errors were reported.
+
 ## 2026-05-12 Admin Entry Matchup UI Follow-up
 
 ### Completed

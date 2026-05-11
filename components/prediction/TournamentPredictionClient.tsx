@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
 import { TierBadge } from "@/components/ui/nzu-badges";
 import { cn } from "@/lib/utils";
@@ -202,6 +203,7 @@ export function TournamentPredictionClient({
   const [myVotes, setMyVotes] = useState<MyVoteState>(initialMyVotes);
   const [message, setMessage] = useState("");
   const [pendingVote, setPendingVote] = useState<{ match: PredictionMatch; team: MatchTeam } | null>(null);
+  const [expandedEntryMatchIds, setExpandedEntryMatchIds] = useState<Set<string>>(() => new Set());
   const confirmVoteButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const matchMap = useMemo(() => new Map(matches.map((match) => [match.id, match])), [matches]);
@@ -266,6 +268,18 @@ export function TournamentPredictionClient({
     if (!isVotingOpen(match) || !session) return;
     if (myVotes[match.id]?.teamCode === team.teamCode) return;
     setPendingVote({ match, team });
+  }
+
+  function toggleEntryMatchups(matchId: string) {
+    setExpandedEntryMatchIds((current) => {
+      const next = new Set(current);
+      if (next.has(matchId)) {
+        next.delete(matchId);
+      } else {
+        next.add(matchId);
+      }
+      return next;
+    });
   }
 
   async function submitVote(matchId: string, teamCode: string) {
@@ -387,6 +401,9 @@ export function TournamentPredictionClient({
           const winnerName = leftWinner ? match.teamA.teamName : rightWinner ? match.teamB.teamName : "";
           const hasMyPick = Boolean(myVote.teamCode);
           const isCorrect = hasMyPick && myVote.teamCode === match.resultTeamCode;
+          const hasEntryMatchups = match.matchType === "team" && match.entryMatchups.length > 0;
+          const isEntryExpanded = expandedEntryMatchIds.has(match.id);
+          const entryMatchupPanelId = `entry-matchups-${match.id}`;
 
           return (
             <article
@@ -464,29 +481,47 @@ export function TournamentPredictionClient({
                 </div>
               ) : null}
 
-              {match.matchType === "team" && match.entryMatchups.length > 0 ? (
+              {hasEntryMatchups ? (
                 <div className="border-t border-white/8 px-4 pb-4 pt-3">
-                  <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-center">
-                    <h3 className="text-sm font-black text-white">엔트리 매치업 안내</h3>
-                    <span className="rounded-full border border-white/12 bg-white/[0.045] px-2.5 py-1 text-[11px] font-black text-white/58">
-                      {match.entryOrderStatus === "confirmed" ? "경기 순서 확정" : "경기 순서 미정"}
-                    </span>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-center">
+                    <div className="flex flex-wrap items-center justify-center gap-2 max-md:w-full">
+                      <h3 className="text-sm font-black text-white">엔트리 매치업 안내</h3>
+                      <span className="rounded-full border border-white/12 bg-white/[0.045] px-2.5 py-1 text-[11px] font-black text-white/58">
+                        {match.entryOrderStatus === "confirmed" ? "경기 순서 확정" : "경기 순서 미정"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      aria-expanded={isEntryExpanded}
+                      aria-controls={entryMatchupPanelId}
+                      onClick={() => toggleEntryMatchups(match.id)}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-3 py-2 text-xs font-black text-white/68 transition hover:border-nzu-green/30 hover:text-white max-md:mx-auto"
+                    >
+                      <span>{isEntryExpanded ? "접기" : "상세보기"}</span>
+                      <ChevronDown
+                        size={16}
+                        aria-hidden="true"
+                        className={cn("transition-transform", isEntryExpanded ? "rotate-180" : "")}
+                      />
+                    </button>
                   </div>
-                  <div className="mx-auto max-w-3xl space-y-2">
-                    {match.entryMatchups.map((row, index) => (
-                      <div
-                        key={row.id || index}
-                        className="grid grid-cols-[84px_minmax(0,1fr)_38px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 max-md:grid-cols-1"
-                      >
-                        <strong className="rounded-lg bg-white/[0.06] px-3 py-2 text-center text-sm font-black text-white">
-                          {row.label || `매치${index + 1}`}
-                        </strong>
-                        <PlayerLine player={row.playerA} />
-                        <span className="text-center text-xs font-black text-white/38">VS</span>
-                        <PlayerLine player={row.playerB} />
-                      </div>
-                    ))}
-                  </div>
+                  {isEntryExpanded ? (
+                    <div id={entryMatchupPanelId} className="mx-auto max-w-3xl space-y-2">
+                      {match.entryMatchups.map((row, index) => (
+                        <div
+                          key={row.id || index}
+                          className="grid grid-cols-[84px_minmax(0,1fr)_38px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 max-md:grid-cols-1"
+                        >
+                          <strong className="rounded-lg bg-white/[0.06] px-3 py-2 text-center text-sm font-black text-white">
+                            {row.label || `매치${index + 1}`}
+                          </strong>
+                          <PlayerLine player={row.playerA} />
+                          <span className="text-center text-xs font-black text-white/38">VS</span>
+                          <PlayerLine player={row.playerB} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </article>
