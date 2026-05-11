@@ -409,3 +409,55 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 
 - Create real prediction matches in `/admin/prediction`; the production prediction tables are intentionally empty after smoke cleanup.
 - Complete a human-in-the-loop SOOP login callback test in a real browser session, because external SOOP account authorization cannot be completed by the agent without user credentials.
+
+## 2026-05-11 Prelaunch Ops Re-entry
+
+### Completed
+
+- Re-entered through `AGENTS.md` and `docs/harness/SESSION_ENTRY.md`.
+- Confirmed `main` matches `origin/main` at `f314758`.
+- Confirmed the latest eight `NZU Ops Pipeline` runs listed by GitHub Actions were successful.
+- Ran `npm.cmd run build` successfully.
+- Started local production server through `next start`; `/prediction` returned HTTP 200.
+- Confirmed `/admin/prediction` renders under an admin session with no browser console errors.
+- Verified production SOOP OAuth start redirects to `openapi.sooplive.com`, uses `https://nzu-homepage-v2.vercel.app/api/auth/soop/callback`, and preserves `next=/prediction` in state.
+- Completed the human-in-the-loop production SOOP OAuth callback check:
+  - the browser returned to `https://nzu-homepage-v2.vercel.app/prediction`
+  - `/api/auth/session` returned `ok: true`, `hasSession: true`, and `provider: "soop"`
+  - no browser console errors were reported after callback
+
+### Local Test Note
+
+- Local `next start` runs with production-mode secure cookies on plain `http://localhost`.
+- Admin and SOOP full cookie-persistence tests should use the HTTPS production domain, or an explicit local cookie workaround when the goal is only UI smoke testing.
+
+### Remaining Before Public Launch
+
+- Create the real prediction match or matches after the exact fixture details are confirmed.
+
+## 2026-05-11 Prediction UI Friction Follow-up
+
+### Completed
+
+- Replaced the native admin player `datalist` picker with a bounded custom combobox/listbox search.
+- Limited admin player search results to eight visible matches and included player name, race, and tier metadata in each option.
+- Added keyboard navigation and stale-text reset behavior so unmatched typed text does not silently diverge from the selected player.
+- Added a public vote confirmation dialog before submitting a team prediction.
+- Added focus and Escape-key handling for the confirmation dialog.
+- Avoided a production hydration mismatch by rendering stable status labels before the client-side countdown starts.
+
+### Verification
+
+- `node scripts\tools\prediction-admin-player-search-ui-contract.test.js`
+- `node scripts\tools\prediction-public-vote-confirm-ui-contract.test.js`
+- `npm.cmd run test:prediction-cache-contract`
+- `npm.cmd run test:prediction-store-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Browser smoke on `http://localhost:3000/admin/prediction`: typing `김` in a player search field opened an eight-result custom listbox and reported no browser errors.
+- Browser smoke on `http://localhost:3000/prediction`: selecting `B팀 승리` opened the confirmation dialog, `취소` closed it without submitting, and a fresh browser session reported no browser errors.
+
+### Remaining Before Public Launch
+
+- Create the real prediction match or matches after the exact fixture details are confirmed.

@@ -40,6 +40,7 @@ type EntryOrderStatus = "unknown" | "confirmed";
 type StatusFilter = "all" | "draft" | "open" | "closed" | "result";
 
 const DEFAULT_MATCH_OFFSET_DAYS = 1;
+const PLAYER_SEARCH_RESULT_LIMIT = 8;
 
 function normalizeText(value: unknown) {
   return String(value || "").trim();
@@ -248,6 +249,20 @@ function findPlayerByText(players: PlayerOption[], value: string) {
   );
 }
 
+function getPlayerSearchResults(players: PlayerOption[], value: string) {
+  const query = normalizeText(value).toLowerCase();
+  if (!query) return [];
+
+  return players
+    .filter((player) => {
+      const searchValues = [player.id, player.name, player.nickname, player.race, player.tier]
+        .filter(Boolean)
+        .map((item) => String(item).toLowerCase());
+      return searchValues.some((item) => item.includes(query));
+    })
+    .slice(0, PLAYER_SEARCH_RESULT_LIMIT);
+}
+
 function getTeamName(teams: TeamInfo[], teamCode?: string | null) {
   return teams.find((team) => team.teamCode === teamCode)?.teamName || "";
 }
@@ -305,62 +320,145 @@ function PlayerSearchInput({
 }) {
   const playerKey = player?.id || "";
   const [queryState, setQueryState] = useState({ playerKey, query: player?.name || "" });
+  const [isResultsOpen, setIsResultsOpen] = useState(false);
+  const [activeResultIndex, setActiveResultIndex] = useState(0);
   const query = queryState.playerKey === playerKey ? queryState.query : player?.name || "";
-  const listId = `${id}-options`;
+  const resultsId = `${id}-results`;
+  const visibleResults = useMemo(
+    () => (isResultsOpen ? getPlayerSearchResults(players, query) : []),
+    [isResultsOpen, players, query]
+  );
+  const activeResult = visibleResults[activeResultIndex] || null;
+  const activeResultId = activeResult ? `${resultsId}-${activeResult.id}` : undefined;
 
   const setQuery = (query: string) => {
     setQueryState({ playerKey, query });
+    setActiveResultIndex(0);
+  };
+
+  const resetQueryToSelectedPlayer = () => {
+    setQuery(player?.name || "");
+    setIsResultsOpen(false);
+  };
+
+  const selectPlayer = (next: PlayerOption | null) => {
+    onSelect(next);
+    setQuery(next?.name || "");
+    setIsResultsOpen(false);
   };
 
   const commit = () => {
     const value = normalizeText(query);
     if (!value) {
-      onSelect(null);
+      selectPlayer(null);
       return;
     }
     const next = findPlayerByText(players, value);
     if (next) {
-      onSelect(next);
-      setQuery(next.name);
+      selectPlayer(next);
+      return;
+    }
+    const isExactQueryMatch = Boolean(next);
+    if (!isExactQueryMatch) {
+      resetQueryToSelectedPlayer();
+      return;
     }
   };
 
   return (
     <div className="grid grid-cols-[74px_minmax(0,1fr)_128px_58px] items-center gap-2 rounded-lg border border-white/8 bg-black/24 p-2 max-md:grid-cols-1">
       <strong className="text-center text-sm font-black text-white/78">{label}</strong>
-      <input
-        list={listId}
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            commit();
-          }
-        }}
-        placeholder="선수 이름 검색"
-        className="h-12 min-w-0 rounded-lg border border-white/10 bg-black/35 px-3 text-center text-base font-black text-white outline-none placeholder:text-white/25 focus:border-nzu-green/45"
-      />
+      <div className="relative min-w-0">
+        <input
+          value={query}
+          role="combobox"
+          aria-controls={visibleResults.length > 0 ? resultsId : undefined}
+          aria-activedescendant={activeResultId}
+          aria-expanded={visibleResults.length > 0}
+          aria-autocomplete="list"
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setIsResultsOpen(Boolean(normalizeText(event.target.value)));
+          }}
+          onFocus={() => setIsResultsOpen(Boolean(normalizeText(query)))}
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              if (!visibleResults.length) return;
+              setIsResultsOpen(true);
+              setActiveResultIndex((current) => Math.min(current + 1, visibleResults.length - 1));
+            }
+            if (event.key === "ArrowUp") {
+              event.preventDefault();
+              if (!visibleResults.length) return;
+              setIsResultsOpen(true);
+              setActiveResultIndex((current) => Math.max(current - 1, 0));
+            }
+            if (event.key === "Enter") {
+              event.preventDefault();
+              const activeResult = visibleResults[activeResultIndex];
+              if (activeResult) {
+                selectPlayer(activeResult);
+                return;
+              }
+              commit();
+            }
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setIsResultsOpen(false);
+            }
+          }}
+          placeholder="선수 이름 검색"
+          className="h-12 w-full min-w-0 rounded-lg border border-white/10 bg-black/35 px-3 text-center text-base font-black text-white outline-none placeholder:text-white/25 focus:border-nzu-green/45"
+        />
+        {visibleResults.length > 0 ? (
+          <div
+            id={resultsId}
+            role="listbox"
+            className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-lg border border-white/12 bg-zinc-950/98 shadow-2xl shadow-black/45"
+          >
+            {visibleResults.map((option, index) => (
+              <button
+                key={option.id}
+                id={`${resultsId}-${option.id}`}
+                type="button"
+                role="option"
+                aria-selected={index === activeResultIndex}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  selectPlayer(option);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between gap-3 border-b border-white/8 px-3 py-2.5 text-left transition last:border-b-0 hover:bg-white/[0.075]",
+                  index === activeResultIndex ? "bg-white/[0.075]" : ""
+                )}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-white">{option.name}</span>
+                  {option.nickname ? (
+                    <span className="block truncate text-xs font-bold text-white/45">{option.nickname}</span>
+                  ) : null}
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <RaceLetterBadge race={option.race || "T"} size="sm" />
+                  <TierBadge tier={option.tier || "미정"} size="xs" />
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
       <PlayerMeta player={player} />
       <button
         type="button"
         onClick={() => {
-          setQuery("");
-          onSelect(null);
+          selectPlayer(null);
         }}
         className="h-10 rounded-lg border border-white/10 bg-white/[0.035] text-xs font-black text-white/55 transition hover:border-white/20 hover:text-white"
       >
         비우기
       </button>
-      <datalist id={listId}>
-        {players.map((option) => (
-          <option key={option.id} value={option.name}>
-            {option.nickname ? `${option.nickname} · ` : ""}
-            {option.race || "-"} · {option.tier || "미정"}
-          </option>
-        ))}
-      </datalist>
     </div>
   );
 }
