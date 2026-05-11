@@ -12,7 +12,9 @@ function readComponentSource() {
 
 function extractPlayerSearchInput(source) {
   const start = source.indexOf("function PlayerSearchInput(");
-  const end = source.indexOf("\n\nexport function PredictionMatchAdmin", start);
+  const nextComponent = source.indexOf("\n\nfunction EntryMatchupPlayerSelect", start);
+  const exportStart = source.indexOf("\n\nexport function PredictionMatchAdmin", start);
+  const end = nextComponent === -1 ? exportStart : nextComponent;
   assert.notEqual(start, -1, "PlayerSearchInput must exist");
   assert.notEqual(end, -1, "PlayerSearchInput source boundary must stay findable");
   return source.slice(start, end);

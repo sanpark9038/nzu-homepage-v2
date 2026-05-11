@@ -435,6 +435,25 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 
 - Create the real prediction match or matches after the exact fixture details are confirmed.
 
+## 2026-05-12 Admin Entry Matchup UI Follow-up
+
+### Completed
+
+- Reworked the admin `엔트리 매치업 안내` rows into a larger card-like grid so the matchup controls are easier to read.
+- Scoped the A-side matchup dropdown to the players already added to A팀.
+- Scoped the B-side matchup dropdown to the players already added to B팀.
+- Kept the existing `entry_matchups`, `player_a_id`, and `player_b_id` data shape unchanged.
+- Added an admin UI contract test for the team-scoped entry matchup dropdown behavior.
+
+### Verification
+
+- `node scripts\tools\prediction-admin-entry-matchup-ui-contract.test.js`
+- `node scripts\tools\prediction-admin-player-search-ui-contract.test.js`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Browser smoke on `http://localhost:3000/admin/prediction`: A/B entry matchup dropdowns showed only each side's configured team players, selecting values updated the displayed player metadata, and no browser errors were reported.
+
 ## 2026-05-11 Prediction UI Friction Follow-up
 
 ### Completed

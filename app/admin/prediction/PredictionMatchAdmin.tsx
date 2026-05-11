@@ -229,6 +229,20 @@ function getPlayer(playerMap: Map<string, PlayerOption>, playerId?: string | nul
   return playerId ? playerMap.get(playerId) || null : null;
 }
 
+function getSelectedTeamPlayers(playerMap: Map<string, PlayerOption>, playerIds: unknown) {
+  const selectedPlayers: PlayerOption[] = [];
+  const seen = new Set<string>();
+
+  for (const playerId of normalizePlayerSlots(playerIds)) {
+    const player = getPlayer(playerMap, playerId);
+    if (!player || seen.has(player.id)) continue;
+    selectedPlayers.push(player);
+    seen.add(player.id);
+  }
+
+  return selectedPlayers;
+}
+
 function findPlayerByText(players: PlayerOption[], value: string) {
   const query = normalizeText(value).toLowerCase();
   if (!query) return null;
@@ -460,6 +474,50 @@ function PlayerSearchInput({
         비우기
       </button>
     </div>
+  );
+}
+
+function EntryMatchupPlayerSelect({
+  id,
+  label,
+  sideLabel,
+  player,
+  players,
+  onSelect,
+}: {
+  id: string;
+  label: string;
+  sideLabel: string;
+  player: PlayerOption | null;
+  players: PlayerOption[];
+  onSelect: (player: PlayerOption | null) => void;
+}) {
+  const selectedPlayer = player && players.some((option) => option.id === player.id) ? player : null;
+
+  return (
+    <label className="block min-w-0 rounded-lg border border-white/8 bg-black/22 p-3">
+      <span className="block text-xs font-black text-white/48">{label}</span>
+      <div className="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+        <select
+          id={id}
+          value={selectedPlayer?.id || ""}
+          disabled={players.length === 0}
+          onChange={(event) => {
+            const next = players.find((option) => option.id === event.target.value) || null;
+            onSelect(next);
+          }}
+          className="h-12 w-full min-w-0 rounded-lg border border-white/10 bg-black/35 px-3 text-base font-black text-white outline-none transition focus:border-nzu-green/45 disabled:cursor-not-allowed disabled:text-white/28"
+        >
+          <option value="">{players.length === 0 ? `${sideLabel}팀 선수 추가 후 선택` : `${sideLabel}팀 선수 선택`}</option>
+          {players.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name} · {option.race || "-"} · {option.tier || "미정"}
+            </option>
+          ))}
+        </select>
+        <PlayerMeta player={selectedPlayer} />
+      </div>
+    </label>
   );
 }
 
@@ -844,6 +902,8 @@ export function PredictionMatchAdmin({
 
   const matchups = normalizeEntryMatchups(selectedMatch?.entry_matchups);
   const matchupRows = matchups.length > 0 ? matchups : [{ id: "matchup-1", player_a_id: "", player_b_id: "" }];
+  const teamAEntryPlayers = getSelectedTeamPlayers(playerMap, selectedMatch?.team_a_player_ids);
+  const teamBEntryPlayers = getSelectedTeamPlayers(playerMap, selectedMatch?.team_b_player_ids);
 
   return (
     <div className="space-y-5">
@@ -1107,34 +1167,36 @@ export function PredictionMatchAdmin({
                         : "경기 순서 미정"}
                     </span>
                   </div>
-                  <div className="mx-auto max-w-5xl space-y-2">
+                  <div className="space-y-3">
                     {matchupRows.map((row, matchupIndex) => (
                       <div
                         key={row.id || matchupIndex}
-                        className="grid grid-cols-[78px_minmax(0,1fr)_34px_minmax(0,1fr)_58px] items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2 max-lg:grid-cols-1"
+                        className="grid gap-3 rounded-xl border border-white/10 bg-black/24 p-3 md:grid-cols-[120px_minmax(0,1fr)_48px_minmax(0,1fr)_84px] md:items-center"
                       >
-                        <strong className="rounded-lg bg-white/[0.055] px-3 py-2 text-center text-sm font-black text-white">
-                          매치{matchupIndex + 1}
+                        <strong className="flex h-full min-h-16 items-center justify-center rounded-lg bg-white/[0.055] px-3 py-3 text-center text-sm font-black text-white">
+                          {row.label || `매치${matchupIndex + 1}`}
                         </strong>
-                        <PlayerSearchInput
+                        <EntryMatchupPlayerSelect
                           id={`${selectedMatch.id}-entry-a-${matchupIndex}`}
-                          label="A"
+                          label={selectedTeamAName}
+                          sideLabel="A"
                           player={getPlayer(playerMap, row.player_a_id)}
-                          players={players}
+                          players={teamAEntryPlayers}
                           onSelect={(player) => updateMatchup(matchupIndex, { player_a_id: player?.id || "" })}
                         />
                         <span className="text-center text-xs font-black text-white/40">VS</span>
-                        <PlayerSearchInput
+                        <EntryMatchupPlayerSelect
                           id={`${selectedMatch.id}-entry-b-${matchupIndex}`}
-                          label="B"
+                          label={selectedTeamBName}
+                          sideLabel="B"
                           player={getPlayer(playerMap, row.player_b_id)}
-                          players={players}
+                          players={teamBEntryPlayers}
                           onSelect={(player) => updateMatchup(matchupIndex, { player_b_id: player?.id || "" })}
                         />
                         <button
                           type="button"
                           onClick={() => removeMatchup(matchupIndex)}
-                          className="h-10 rounded-lg border border-white/10 bg-white/[0.035] text-xs font-black text-white/55 transition hover:border-red-300/25 hover:text-red-200"
+                          className="h-12 rounded-lg border border-white/10 bg-white/[0.035] text-xs font-black text-white/55 transition hover:border-red-300/25 hover:text-red-200"
                         >
                           삭제
                         </button>
