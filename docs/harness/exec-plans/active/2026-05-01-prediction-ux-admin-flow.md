@@ -435,6 +435,35 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 
 - Create the real prediction match or matches after the exact fixture details are confirmed.
 
+## 2026-05-12 Production Launch Handoff Check
+
+### Completed
+
+- Re-entered through `AGENTS.md` and `docs/harness/SESSION_ENTRY.md`.
+- Confirmed `main` matches `origin/main` at `68e3441`.
+- Confirmed the latest eight `NZU Ops Pipeline` runs listed by GitHub Actions were successful.
+- Checked production `/prediction` at `https://nzu-homepage-v2.vercel.app/prediction`.
+- Production public page renders one open team prediction:
+  - title: `새 팀전 예측`
+  - start: `2026-05-12T20:00:00+09:00`
+  - lock: `2026-05-12T19:30:00+09:00`
+  - current vote display: A팀 `100% · 1표`, B팀 `0% · 0표`
+  - entry order: `경기 순서 확정`
+  - entry rows: `매치1` through `매치5`
+- Verified production public matchup details start collapsed with `상세보기`, expand to show the five matchup rows, and collapse back to `상세보기`.
+- Verified production `/prediction` showed no browser console errors during the public smoke.
+- Checked production `/admin/prediction`; unauthenticated access redirects to `/admin/login?next=%2Fadmin%2Fprediction` and shows the admin password form without browser console errors.
+
+### Blocked / Human-In-The-Loop
+
+- Production admin match correction, `순서 미정` / `순서 확정` choice, `임시저장`, and `투표 시작` require the operator to log in directly.
+- SOOP logged-in real vote smoke requires an operator SOOP session and an explicit real vote choice.
+
+### Immediate Next Step
+
+- Operator logs into production `/admin/prediction`, confirms or edits the real match data, selects `순서 미정` or `순서 확정`, then uses `임시저장` or `투표 시작`.
+- After that, re-check production `/prediction` and complete a SOOP logged-in vote smoke.
+
 ## 2026-05-12 Public Matchup Toggle And Admin Order Status Follow-up
 
 ### Completed
