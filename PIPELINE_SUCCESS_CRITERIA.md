@@ -12,7 +12,8 @@
   - `npm run pipeline:ops`
 - Supabase sync is explicit opt-in only:
   - `npm run pipeline:manual:refresh:with-sync`
-  - `npm run pipeline:ops:with-sync`
+  - `npm run pipeline:push:approved`
+- `npm run pipeline:ops:with-sync` is a compatibility alias to the manual refresh wrapper, not a direct sync path.
 
 ## A Run Counts As Healthy Only If
 1. `npm run test:pipeline:daily` passes
@@ -34,6 +35,7 @@
 2. Do not run production sync with anon key
 3. Do not run production sync unless `SUPABASE_SERVICE_ROLE_KEY` is configured
 4. If row counts are unexpectedly low, fail immediately
+5. Do not bypass `scripts/tools/push-supabase-approved.js --approved` for production serving sync rollback or recovery.
 
 ## Current Operating Mode
 - Collection/reporting: allowed

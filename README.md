@@ -43,6 +43,11 @@ npm run pipeline:manual:refresh
 npm run pipeline:manual:refresh:with-sync
 ```
 
+Production serving sync must stay on the approved wrapper path. Use
+`npm run pipeline:manual:refresh:with-sync` after collection, or
+`npm run pipeline:push:approved` for an explicit approved push. Direct
+`run-ops-pipeline.js --with-supabase-sync` is retired and fail-closed.
+
 ## Environment Variables
 
 Required for local website usage:

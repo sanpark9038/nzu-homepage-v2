@@ -7,8 +7,7 @@
       "entrypoint": ".github/workflows/ops-pipeline-cache.yml",
       "mode": "collect-only",
       "steps": [
-        "npm run test:pipeline:daily",
-        "npm run validate:pipeline-alert-rules",
+        "npm run pipeline:health",
         "npm run pipeline:manual:refresh",
         "npm run pipeline:status",
         "node scripts/tools/send-manual-refresh-discord.js --outcome success|failure --source github-actions",
@@ -29,8 +28,9 @@
       "mode": "local-manual",
       "steps": [
         "capture roster baseline from data/metadata/projects/*/players.*.v1.json",
+        "optional: generate-soop-live-snapshot.js when SOOP env exists",
         "optional: report-homepage-integrity.js",
-        "run-ops-pipeline-chunked.js",
+        "run-ops-pipeline-chunked.js --preflight-already-run",
         "optional: push-supabase-approved.js when --with-supabase-sync is present"
       ],
       "outputs": [
@@ -49,7 +49,7 @@
         "runCommonPreparation(): sync-team-roster-metadata.js",
         "runCommonPreparation(): apply-player-display-aliases.js for non-fa teams",
         "split teams into chunks with fa dedicated",
-        "run-ops-pipeline.js --skip-supabase --no-discord per chunk",
+        "run-ops-pipeline.js --no-discord per chunk; add --no-homepage-integrity only when --preflight-already-run is present",
         "merge-chunked-daily-reports.js",
         "update-player-check-priority.js"
       ],
@@ -73,13 +73,12 @@
     {
       "id": "single_chunk_pipeline",
       "entrypoint": "scripts/tools/run-ops-pipeline.js",
-      "mode": "single-run-or-wrapper",
+      "mode": "single-run-collect-only",
       "steps": [
+        "reject --with-supabase-sync before collection or sync work with fail-closed operator guidance",
         "optional: report-homepage-integrity.js when Supabase env exists",
         "run-daily-pipeline.js",
         "verify-warehouse-integrity.js",
-        "optional: supabase-staging-sync.js",
-        "optional: supabase-prod-sync.js",
         "optional: Discord webhook"
       ],
       "outputs": [
@@ -128,8 +127,12 @@
       "mode": "explicit-approved-sync",
       "guard": "--approved is mandatory",
       "steps": [
+        "generate-soop-live-snapshot.js when SOOP env exists",
+        "Supabase readiness check",
+        "export-player-history-artifacts.js",
         "supabase-staging-sync.js",
-        "supabase-prod-sync.js"
+        "supabase-prod-sync.js",
+        "revalidate-public-cache.js"
       ],
       "notes": "Serving sync is intentionally separated from collection and requires explicit operator approval."
     }

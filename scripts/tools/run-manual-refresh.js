@@ -379,6 +379,7 @@ async function main() {
     chunkSize,
     "--inactive-skip-days",
     inactiveSkipDays,
+    "--preflight-already-run",
   ];
   if (hasFlag("--no-use-existing-json")) {
     collectChunkedArgs.push("--no-use-existing-json");

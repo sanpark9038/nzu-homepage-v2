@@ -39,8 +39,12 @@ Historical handoff, review, and one-off planning notes should move under `docs/a
 Do not delete those files until:
 
 1. the current homepage consumes the serving contract cleanly
-2. the pipeline-to-Supabase sync path is verified
+2. the approved-wrapper pipeline-to-Supabase sync path is verified
 3. no active doc still depends on the historical note
+
+For rollback and recovery, production serving sync should still flow through
+`npm run pipeline:manual:refresh:with-sync` or `npm run pipeline:push:approved`,
+both of which reach `scripts/tools/push-supabase-approved.js --approved`.
 
 ## Working Rule
 

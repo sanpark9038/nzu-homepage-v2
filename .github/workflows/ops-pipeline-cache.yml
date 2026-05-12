@@ -54,11 +54,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run daily pipeline regression tests
-        run: npm run test:pipeline:daily
-
-      - name: Validate pipeline alert rules
-        run: npm run validate:pipeline-alert-rules
+      - name: Run pipeline health checks
+        run: npm run pipeline:health
 
       - name: Restore pipeline state cache
         id: pipeline-cache-restore

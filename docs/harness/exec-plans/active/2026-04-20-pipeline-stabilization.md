@@ -208,3 +208,69 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 
 - FM-007: stale SOOP snapshot reused by long chunked ops runs. See `docs/harness/FAILURE_MODES.md`.
 - 2026-04-28 follow-up under FM-007: 전태규 (`70jeontaekyu`) exposed a second SOOP live-state gap where the snapshot was fresh but incomplete because `broad/list` scanning stopped at the default 60 pages. Immediate scope is to raise the default snapshot/live-sync scan depth, add a contract test for the minimum page limit, and verify the same-page-limit miss list before syncing live state.
+
+## 2026-05-12 Legacy Sync Path Cleanup Slice
+
+### Goal
+
+Retire or fail-close the legacy direct Supabase sync path so production serving sync only flows through the approved wrapper with SOOP snapshot refresh, readiness checks, player-history artifact export, prod sync, and cache revalidation.
+
+### Scope
+
+- `package.json`
+- `scripts/tools/run-ops-pipeline.js`
+- `scripts/tools/run-ops-pipeline.test.js`
+- `scripts/tools/run-daily-pipeline.js`
+- `scripts/tools/report-pipeline-runtime-flow.test.js`
+- `PIPELINE_ONE_PAGE.md`
+- `PIPELINE_SUCCESS_CRITERIA.md`
+- `README.md`
+- `docs/README.md`
+- `data/metadata/pipeline_runtime_flow.v1.json`
+- this active plan
+
+### RB / Rollback Criteria
+
+- No production data writes are allowed during this cleanup.
+- If a focused test fails for reasons outside this scope, stop and report before widening the change.
+- Roll back non-safety edits by restoring the relevant docs/runtime metadata or helper cleanup only; do not restore the legacy direct sync path.
+- Keep the `run-ops-pipeline.js --with-supabase-sync` fail-closed guard and the `pipeline:ops:with-sync` compatibility alias to `pipeline:manual:refresh:with-sync` unless the operator explicitly chooses a new approved sync design.
+- The safe runtime invariant is: any command path that can sync staging/prod must call `scripts/tools/push-supabase-approved.js --approved` or fail closed with operator guidance.
+
+### Planned Steps
+
+- [x] Add a failing contract test proving `run-ops-pipeline.js --with-supabase-sync` no longer runs `supabase-staging-sync.js` / `supabase-prod-sync.js` directly.
+- [x] Add a failing contract test proving `package.json` no longer advertises the legacy direct sync path.
+- [x] Implement the smallest fail-closed change.
+- [x] Update pipeline docs/runtime metadata to point operators at `pipeline:manual:refresh:with-sync` and `pipeline:push:approved`.
+- [x] Remove unreachable legacy helper code in `run-daily-pipeline.js` only if the sync-path tests are green and the edit stays isolated.
+- [x] Run focused verification: pipeline push test, run-ops-pipeline test, runtime-flow/inventory checks, and package/doc grep.
+
+### Implementation Notes
+
+- `npm run pipeline:ops:with-sync` remains as a compatibility command, but now points at `node scripts/tools/run-manual-refresh.js --with-supabase-sync`.
+- Direct `node scripts/tools/run-ops-pipeline.js --with-supabase-sync` now exits before collection or sync work and prints approved-wrapper guidance.
+- `single_chunk_pipeline` in `data/metadata/pipeline_runtime_flow.v1.json` is now documented as collect-only, while `approved_serving_sync` owns staging/prod writes and cache revalidation.
+- Removed the unreachable `buildHomepageIntegrityOperationalAlertsLegacy` body from `scripts/tools/run-daily-pipeline.js`.
+
+### Direct Sync Branch Removal Follow-up
+
+- [x] Add a red contract proving `scripts/tools/run-ops-pipeline.js` no longer embeds direct `supabase-staging-sync.js` / `supabase-prod-sync.js` script calls or legacy sync step names.
+- [x] Remove the unreachable direct staging/prod sync ensure/dry-run/run branches from `scripts/tools/run-ops-pipeline.js`; the command remains collect-only and always reports `skip_supabase=true`.
+- [x] Verify dry-run collect-only output contains only `daily_pipeline` and `warehouse_verify`, while `--with-supabase-sync` still exits `1` with approved-wrapper guidance.
+- [x] Add `test:pipeline:ops` and include the ops/runtime-flow retirement contracts in `pipeline:health` and `verify:predeploy`.
+- [x] Add a contract proving `run-manual-refresh.js --with-supabase-sync` delegates to `push-supabase-approved.js --approved` and does not call staging/prod sync scripts directly.
+
+### Skip Supabase Flag Cleanup Follow-up
+
+- [x] Add red contracts proving collect-only callers no longer pass the no-op `--skip-supabase` flag.
+- [x] Remove `--skip-supabase` from `pipeline:collect-only`, chunk-local `run-ops-pipeline.js` calls, and runtime-flow metadata.
+- [x] Preserve the `skip_supabase=true` report field in `run-ops-pipeline.js` for report compatibility while the command remains collect-only.
+- [x] Update the scheduled ops workflow preflight to run `npm run pipeline:health` before any prod-capable manual refresh path.
+
+### Chunk Preflight Dedupe Follow-up
+
+- [x] Add red contracts proving chunk-local `run-ops-pipeline.js` calls opt out of duplicated homepage integrity / SOOP snapshot preflight.
+- [x] Add `--no-homepage-integrity` handling to `run-ops-pipeline.js` while preserving normal single-run preflight behavior when Supabase envs are present.
+- [x] Pass `--preflight-already-run` from `run-manual-refresh.js`; `run-ops-pipeline-chunked.js` only forwards `--no-homepage-integrity` to chunk-local ops calls when that wrapper-only flag is present.
+- [x] Preserve direct `pipeline:collect:chunked` / Windows scheduled chunked runs as normal preflight-capable paths instead of silently skipping homepage integrity.

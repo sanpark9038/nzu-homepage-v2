@@ -24,6 +24,17 @@ npm run pipeline:verify:discord
 npm run ops:watchlist
 ```
 
+Production serving sync must use one of the approved-wrapper paths:
+
+```bash
+npm run pipeline:manual:refresh:with-sync
+npm run pipeline:push:approved
+```
+
+`npm run pipeline:ops:with-sync` is kept only as a compatibility alias to the
+manual refresh wrapper. Direct `run-ops-pipeline.js --with-supabase-sync` usage
+is fail-closed.
+
 ## Core Scripts
 
 - `scripts/tools/run-manual-refresh.js`
@@ -51,8 +62,21 @@ npm run ops:watchlist
 - Promote anything durable into `data/metadata/` or a documented pipeline output.
 - Keep artifact uploads focused on latest reports rather than the full `tmp/reports/` history.
 
+## Rollback Criteria
+
+- If sync-path cleanup causes focused pipeline tests to fail, roll back only the
+  non-safety edits. Keep the direct `run-ops-pipeline.js --with-supabase-sync`
+  guard and the `pipeline:ops:with-sync` compatibility alias pointed at
+  `pipeline:manual:refresh:with-sync`.
+- Production writes remain blocked unless the command path reaches
+  `scripts/tools/push-supabase-approved.js --approved`.
+- Do not bypass SOOP snapshot, Supabase readiness, player-history artifact, or
+  cache revalidation guardrails to recover a failed run.
+
 ## Health Checks
 
+- `npm run test:pipeline:ops`
+- `npm run test:pipeline:runtime-flow`
 - `npm run test:pipeline:daily`
 - `npm run pipeline:health`
 - `npm run pipeline:collection-sources`

@@ -237,6 +237,7 @@ async function main() {
   const chunkSize = Math.max(1, Number(argValue("--chunk-size", "3")) || 3);
   const continueOnError = hasFlag("--continue-on-error");
   const strict = !hasFlag("--no-strict");
+  const preflightAlreadyRun = hasFlag("--preflight-already-run");
   const dateTag = timestamp();
   const baseDateTag = todayDateTag();
   const runTag = dateTag;
@@ -278,8 +279,8 @@ async function main() {
     const chunkStarted = Date.now();
     const args = [
       "scripts/tools/run-ops-pipeline.js",
-      "--skip-supabase",
       "--no-discord",
+      ...(preflightAlreadyRun ? ["--no-homepage-integrity"] : []),
       "--teams",
       chunkTeams.join(","),
       "--date-tag",

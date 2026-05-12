@@ -11,15 +11,14 @@ const DAILY_PIPELINE_TIMEOUT_MS = 60 * 60 * 1000;
 const SOOP_SNAPSHOT_TIMEOUT_MS = 5 * 60 * 1000;
 const HOMEPAGE_INTEGRITY_TIMEOUT_MS = 10 * 60 * 1000;
 const WAREHOUSE_VERIFY_TIMEOUT_MS = 5 * 60 * 1000;
-const SUPABASE_SYNC_TIMEOUT_MS = 30 * 60 * 1000;
 
-function hasFlag(flag) {
-  return process.argv.includes(flag);
+function hasFlag(flag, argv = process.argv) {
+  return argv.includes(flag);
 }
 
-function argValue(flag, fallback = null) {
-  const idx = process.argv.indexOf(flag);
-  if (idx >= 0 && process.argv[idx + 1]) return process.argv[idx + 1];
+function argValue(flag, fallback = null, argv = process.argv) {
+  const idx = argv.indexOf(flag);
+  if (idx >= 0 && argv[idx + 1]) return argv[idx + 1];
   return fallback;
 }
 
@@ -41,20 +40,38 @@ function stepTimeoutFor(name) {
   if (name === "homepage_integrity_report") return HOMEPAGE_INTEGRITY_TIMEOUT_MS;
   if (name === "daily_pipeline") return DAILY_PIPELINE_TIMEOUT_MS;
   if (name === "warehouse_verify") return WAREHOUSE_VERIFY_TIMEOUT_MS;
-  if (name === "supabase_staging_sync" || name === "supabase_prod_sync") return SUPABASE_SYNC_TIMEOUT_MS;
   return 30 * 60 * 1000;
 }
 
-function hasHomepageIntegrityEnv() {
-  const supabaseUrl = String(process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+function hasHomepageIntegrityEnv(env = process.env) {
+  const supabaseUrl = String(env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
   const serviceKey = String(
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ""
+    env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || ""
   ).trim();
   return Boolean(supabaseUrl && serviceKey);
 }
 
-function hasSoopSnapshotEnv() {
-  return Boolean(String(process.env.SOOP_CLIENT_ID || "").trim());
+function hasSoopSnapshotEnv(env = process.env) {
+  return Boolean(String(env.SOOP_CLIENT_ID || "").trim());
+}
+
+function shouldBlockDirectSupabaseSync(argv = process.argv) {
+  return Array.isArray(argv) && argv.includes("--with-supabase-sync");
+}
+
+function shouldRunHomepageIntegrityPreflight(argv = process.argv, env = process.env) {
+  if (hasFlag("--no-homepage-integrity", argv)) return false;
+  return hasHomepageIntegrityEnv(env);
+}
+
+function buildRetiredWithSyncMessage() {
+  return [
+    "Blocked: run-ops-pipeline.js --with-supabase-sync is retired.",
+    "Use the approved sync path instead:",
+    "  npm run pipeline:manual:refresh:with-sync",
+    "  npm run pipeline:push:approved",
+    "This keeps production writes behind the SOOP snapshot, readiness, player-history, and cache-revalidation guardrails.",
+  ].join("\n");
 }
 
 function runStep(name, args, options = {}) {
@@ -281,26 +298,34 @@ function ensureFile(relPath) {
   return abs;
 }
 
-function main() {
-  const withSupabaseSync = hasFlag("--with-supabase-sync");
-  const skipSupabase = !withSupabaseSync;
-  const dryRun = hasFlag("--dry-run");
-  const noDiscord = hasFlag("--no-discord");
+function main(options = {}) {
+  const argv = Array.isArray(options.argv) ? options.argv : process.argv;
+  const writeError = typeof options.writeError === "function" ? options.writeError : (message) => console.error(message);
+  const exitProcess = typeof options.exitProcess === "function" ? options.exitProcess : (code) => process.exit(code);
+  if (shouldBlockDirectSupabaseSync(argv)) {
+    writeError(buildRetiredWithSyncMessage());
+    exitProcess(1);
+    return;
+  }
+  const skipSupabase = true;
+  const dryRun = hasFlag("--dry-run", argv);
+  const noDiscord = hasFlag("--no-discord", argv);
+  const runHomepageIntegrityPreflight = shouldRunHomepageIntegrityPreflight(argv);
   const dateTag = timestamp();
   const dailyArgs = ["scripts/tools/run-daily-pipeline.js"];
-  appendArgIfPresent(dailyArgs, "--from", argValue("--from", null));
-  appendArgIfPresent(dailyArgs, "--to", argValue("--to", null));
-  appendArgIfPresent(dailyArgs, "--date-tag", argValue("--date-tag", null));
-  appendArgIfPresent(dailyArgs, "--teams", argValue("--teams", null));
-  appendArgIfPresent(dailyArgs, "--concurrency", argValue("--concurrency", null));
-  appendArgIfPresent(dailyArgs, "--inactive-skip-days", argValue("--inactive-skip-days", null));
-  if (hasFlag("--no-use-existing-json")) dailyArgs.push("--no-use-existing-json");
-  if (hasFlag("--no-roster-sync")) dailyArgs.push("--no-roster-sync");
-  if (hasFlag("--no-display-alias")) dailyArgs.push("--no-display-alias");
-  if (hasFlag("--no-team-table")) dailyArgs.push("--no-team-table");
-  if (hasFlag("--no-fa-record-metadata")) dailyArgs.push("--no-fa-record-metadata");
-  if (hasFlag("--no-organize")) dailyArgs.push("--no-organize");
-  if (hasFlag("--no-strict")) dailyArgs.push("--no-strict");
+  appendArgIfPresent(dailyArgs, "--from", argValue("--from", null, argv));
+  appendArgIfPresent(dailyArgs, "--to", argValue("--to", null, argv));
+  appendArgIfPresent(dailyArgs, "--date-tag", argValue("--date-tag", null, argv));
+  appendArgIfPresent(dailyArgs, "--teams", argValue("--teams", null, argv));
+  appendArgIfPresent(dailyArgs, "--concurrency", argValue("--concurrency", null, argv));
+  appendArgIfPresent(dailyArgs, "--inactive-skip-days", argValue("--inactive-skip-days", null, argv));
+  if (hasFlag("--no-use-existing-json", argv)) dailyArgs.push("--no-use-existing-json");
+  if (hasFlag("--no-roster-sync", argv)) dailyArgs.push("--no-roster-sync");
+  if (hasFlag("--no-display-alias", argv)) dailyArgs.push("--no-display-alias");
+  if (hasFlag("--no-team-table", argv)) dailyArgs.push("--no-team-table");
+  if (hasFlag("--no-fa-record-metadata", argv)) dailyArgs.push("--no-fa-record-metadata");
+  if (hasFlag("--no-organize", argv)) dailyArgs.push("--no-organize");
+  if (hasFlag("--no-strict", argv)) dailyArgs.push("--no-strict");
   const dailyCommand = `node ${dailyArgs.join(" ")}`;
 
   const steps = [];
@@ -311,10 +336,8 @@ function main() {
   try {
     ensureFile("scripts/tools/run-daily-pipeline.js");
     ensureFile("scripts/tools/verify-warehouse-integrity.js");
-    ensureFile("scripts/tools/report-homepage-integrity.js");
-    if (!skipSupabase) {
-      ensureFile("scripts/tools/supabase-staging-sync.js");
-      ensureFile("scripts/tools/supabase-prod-sync.js");
+    if (runHomepageIntegrityPreflight) {
+      ensureFile("scripts/tools/report-homepage-integrity.js");
     }
 
     if (dryRun) {
@@ -338,30 +361,8 @@ function main() {
         stdout: "[dry-run]",
         stderr: "",
       });
-      if (!skipSupabase) {
-        steps.push({
-          name: "supabase_staging_sync",
-          command: "node scripts/tools/supabase-staging-sync.js",
-          started_at: new Date().toISOString(),
-          ended_at: new Date().toISOString(),
-          exit_code: 0,
-          ok: true,
-          stdout: "[dry-run]",
-          stderr: "",
-        });
-        steps.push({
-          name: "supabase_prod_sync",
-          command: "node scripts/tools/supabase-prod-sync.js",
-          started_at: new Date().toISOString(),
-          ended_at: new Date().toISOString(),
-          exit_code: 0,
-          ok: true,
-          stdout: "[dry-run]",
-          stderr: "",
-        });
-      }
     } else {
-      if (hasHomepageIntegrityEnv()) {
+      if (runHomepageIntegrityPreflight) {
         if (hasSoopSnapshotEnv()) {
           steps.push(
             runStep("soop_live_snapshot", ["scripts/tools/generate-soop-live-snapshot.js"], {
@@ -382,19 +383,11 @@ function main() {
       steps.push(
         runStep("warehouse_verify", [
           "scripts/tools/verify-warehouse-integrity.js",
-          ...(String(argValue("--teams", "")).trim()
-            ? ["--teams", String(argValue("--teams", "")).trim()]
+          ...(String(argValue("--teams", "", argv)).trim()
+            ? ["--teams", String(argValue("--teams", "", argv)).trim()]
             : []),
         ])
       );
-      if (!skipSupabase) {
-        steps.push(
-          runStep("supabase_staging_sync", ["scripts/tools/supabase-staging-sync.js"])
-        );
-        steps.push(
-          runStep("supabase_prod_sync", ["scripts/tools/supabase-prod-sync.js"])
-        );
-      }
     }
   } catch (err) {
     status = "fail";
@@ -487,5 +480,9 @@ if (require.main === module) {
 }
 
 module.exports = {
+  buildRetiredWithSyncMessage,
+  main,
+  shouldBlockDirectSupabaseSync,
+  shouldRunHomepageIntegrityPreflight,
   stepTimeoutFor,
 };
