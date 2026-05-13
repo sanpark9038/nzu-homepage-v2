@@ -142,6 +142,38 @@ Production DB migration is a later explicit approval step.
 
 Before that migration, schedule reads must handle missing schedule columns as "storage not ready" instead of crashing the public page.
 
+## Production Migration Approval Checklist
+
+Do not run this checklist without an explicit user approval for production schema changes.
+
+Scope to approve:
+
+- Apply only the additive schedule fields and index from `scripts/sql/create-board-posts.sql`:
+  - `board_posts.schedule_date`
+  - `board_posts.schedule_start_time`
+  - `board_posts.schedule_display_name`
+  - `board_posts_schedule_public_idx`
+- Do not insert, update, delete, or backfill production board rows during the migration approval step.
+- Do not change RLS, auth policy, or admin credentials in the same step.
+
+Preflight before production schema apply:
+
+- Confirm `main` is pushed and clean.
+- Confirm local focused tests still pass:
+  - `npm.cmd run test:schedule-info-board-contract`
+  - `npm.cmd run test:schedule-info-page-contract`
+  - `npm.cmd run test:schedule-page-data-source-contract`
+- Confirm `npm.cmd run pipeline:health` passes.
+- Confirm `/schedule` still fails softly with the normal empty state if schedule columns are unavailable.
+
+Post-apply verification:
+
+- Open `/schedule` and confirm no crash.
+- Open `/admin/schedule` as admin and create one test unpublished schedule post first.
+- Publish that schedule post only after confirming board detail and `/schedule` render correctly.
+- Confirm `agent-browser.cmd errors` is empty.
+- Record the exact command/tool used for the production schema apply in this active plan.
+
 ## Current State
 
 - Implementation complete and committed.
