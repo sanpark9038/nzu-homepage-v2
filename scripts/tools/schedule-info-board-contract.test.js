@@ -33,3 +33,56 @@ test("board schedule label is displayed as info schedule", () => {
 
   assert.match(board, /if\s*\(category === "schedule"\)\s*return "정보\/일정"/);
 });
+
+test("public board creation remains unable to create schedule posts", () => {
+  const route = readProjectFile("app/api/board/route.ts");
+
+  assert.match(route, /category:\s*null/);
+  assert.doesNotMatch(route, /schedule_date/);
+  assert.doesNotMatch(route, /schedule_display_name/);
+});
+
+test("board helpers define admin schedule input and list helpers", () => {
+  const board = readProjectFile("lib/board.ts");
+
+  assert.match(board, /normalizeAdminSchedulePostInput/);
+  assert.match(board, /validateAdminSchedulePostInput/);
+  assert.match(board, /isScheduleInfoStorageMissing/);
+  assert.match(board, /listScheduleInfoPosts/);
+  assert.match(board, /listAdminScheduleInfoPosts/);
+  assert.match(board, /createAdminSchedulePost/);
+  assert.match(board, /updateAdminSchedulePostById/);
+  assert.match(board, /dateKeyFormatter\.format\(date\) !== text/);
+  assert.match(board, /hasInvalidOptionalUrlInput/);
+});
+
+test("admin schedule routes are admin-cookie protected", () => {
+  const createRoute = readProjectFile("app/api/admin/schedule/route.ts");
+  const itemRoute = readProjectFile("app/api/admin/schedule/[id]/route.ts");
+
+  for (const source of [createRoute, itemRoute]) {
+    assert.match(source, /ADMIN_SESSION_COOKIE/);
+    assert.match(source, /isValidAdminSession/);
+    assert.match(source, /NextResponse\.json\(\{\s*ok:\s*false/);
+  }
+});
+
+test("admin schedule image upload accepts admin session and schedule routes clean R2 images", () => {
+  const imageRoute = readProjectFile("app/api/board/images/route.ts");
+  const itemRoute = readProjectFile("app/api/admin/schedule/[id]/route.ts");
+
+  assert.match(imageRoute, /ADMIN_SESSION_COOKIE/);
+  assert.match(imageRoute, /isValidAdminSession/);
+  assert.match(imageRoute, /admin:/);
+  assert.match(itemRoute, /deleteBoardImageFromR2/);
+  assert.match(itemRoute, /previousImageUrl/);
+});
+
+test("admin schedule validation rejects invalid optional external links", () => {
+  const board = readProjectFile("lib/board.ts");
+  const createRoute = readProjectFile("app/api/admin/schedule/route.ts");
+
+  assert.match(board, /hasInvalidOptionalUrlInput/);
+  assert.match(board, /external_link_url/);
+  assert.match(createRoute, /validateAdminSchedulePostInput\(input,\s*body\)/);
+});

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import { parsePublicAuthSessionCookieValue, PUBLIC_AUTH_SESSION_COOKIE } from "@/lib/public-auth";
 import { BoardImageUploadError, uploadBoardImageToR2 } from "@/lib/r2";
 
@@ -62,12 +63,15 @@ export async function POST(req: Request) {
 
   const cookieStore = await cookies();
   const session = parsePublicAuthSessionCookieValue(cookieStore.get(PUBLIC_AUTH_SESSION_COOKIE)?.value);
-  if (!session) {
+  const isAdmin = isValidAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
+  if (!session && !isAdmin) {
     return NextResponse.json({ ok: false, message: "이미지 업로드는 SOOP 로그인 후 사용할 수 있습니다." }, { status: 401 });
   }
 
+  const uploadRateLimitKey = session ? `${session.provider}:${session.providerUserId}` : "admin:schedule";
+
   try {
-    assertBoardImageUploadRateLimit(`${session.provider}:${session.providerUserId}`);
+    assertBoardImageUploadRateLimit(uploadRateLimitKey);
 
     const formData = await req.formData();
     const file = formData.get("file");
