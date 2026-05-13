@@ -11,13 +11,20 @@ type ScheduleInfoListProps = {
   todayKey: string;
 };
 
-type FilterMode = "all" | "today" | "tomorrow" | "week";
+type ViewMode = "day" | "week" | "month";
+type DayFilter = "today" | "tomorrow" | "dayAfterTomorrow" | "all";
 
-const FILTERS: { value: FilterMode; label: string }[] = [
-  { value: "all", label: "전체" },
+const VIEW_MODES: { value: ViewMode; label: string }[] = [
+  { value: "day", label: "일별" },
+  { value: "week", label: "주별" },
+  { value: "month", label: "월별" },
+];
+
+const DAY_FILTERS: { value: DayFilter; label: string }[] = [
   { value: "today", label: "오늘" },
   { value: "tomorrow", label: "내일" },
-  { value: "week", label: "7일" },
+  { value: "dayAfterTomorrow", label: "모레" },
+  { value: "all", label: "전체" },
 ];
 
 function formatScheduleDate(value: string | null) {
@@ -44,12 +51,19 @@ function addDaysToDateKey(value: string, days: number) {
   }).format(date);
 }
 
-function isPostVisibleForFilter(post: BoardPostRow, filterMode: FilterMode, todayKey: string) {
+function isPostVisibleForRange(post: BoardPostRow, viewMode: ViewMode, dayFilter: DayFilter, todayKey: string) {
   const scheduleDate = post.schedule_date || "";
-  if (filterMode === "all") return true;
-  if (filterMode === "today") return scheduleDate === todayKey;
-  if (filterMode === "tomorrow") return scheduleDate === addDaysToDateKey(todayKey, 1);
-  return scheduleDate >= todayKey && scheduleDate <= addDaysToDateKey(todayKey, 6);
+  if (!scheduleDate) return false;
+
+  if (viewMode === "day") {
+    if (dayFilter === "all") return true;
+    if (dayFilter === "today") return scheduleDate === todayKey;
+    if (dayFilter === "tomorrow") return scheduleDate === addDaysToDateKey(todayKey, 1);
+    return scheduleDate === addDaysToDateKey(todayKey, 2);
+  }
+
+  const rangeEnd = viewMode === "week" ? addDaysToDateKey(todayKey, 6) : addDaysToDateKey(todayKey, 30);
+  return scheduleDate >= todayKey && scheduleDate <= rangeEnd;
 }
 
 function groupPosts(posts: BoardPostRow[]) {
@@ -66,45 +80,82 @@ function formatTimeLabel(value: string | null) {
   return value ? `${value.slice(0, 5)} 시작` : "시간 미정";
 }
 
+function getRangeLabel(viewMode: ViewMode, dayFilter: DayFilter) {
+  if (viewMode === "week") return "오늘부터 7일";
+  if (viewMode === "month") return "오늘부터 30일";
+
+  const activeFilter = DAY_FILTERS.find((filter) => filter.value === dayFilter);
+  return activeFilter?.label || "오늘";
+}
+
+function getEmptyMessage(viewMode: ViewMode, dayFilter: DayFilter) {
+  if (viewMode === "week") return "이번 주에 등록된 일정이 없습니다.";
+  if (viewMode === "month") return "이번 달 범위에 등록된 일정이 없습니다.";
+  if (dayFilter === "today") return "오늘 등록된 일정이 없습니다.";
+  if (dayFilter === "tomorrow") return "내일 등록된 일정이 없습니다.";
+  if (dayFilter === "dayAfterTomorrow") return "모레 등록된 일정이 없습니다.";
+  return "등록된 일정이 없습니다.";
+}
+
 export function ScheduleInfoList({ posts, todayKey }: ScheduleInfoListProps) {
-  const [filterMode, setFilterMode] = useState<FilterMode>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
+  const [dayFilter, setDayFilter] = useState<DayFilter>("today");
   const filteredPosts = useMemo(
-    () => posts.filter((post) => isPostVisibleForFilter(post, filterMode, todayKey)),
-    [filterMode, posts, todayKey]
+    () => posts.filter((post) => isPostVisibleForRange(post, viewMode, dayFilter, todayKey)),
+    [dayFilter, posts, todayKey, viewMode]
   );
   const groupedPosts = groupPosts(filteredPosts);
-
-  if (!posts.length) {
-    return (
-      <div className="rounded-[1.4rem] border border-dashed border-white/12 bg-white/[0.02] px-5 py-16 text-center">
-        <p className="text-sm font-medium text-white/55">예정된 경기가 없습니다.</p>
-      </div>
-    );
-  }
+  const emptyMessage = posts.length ? getEmptyMessage(viewMode, dayFilter) : "예정된 경기가 없습니다.";
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((filter) => (
-          <button
-            key={filter.value}
-            type="button"
-            aria-pressed={filterMode === filter.value}
-            onClick={() => setFilterMode(filter.value)}
-            className={
-              filterMode === filter.value
-                ? "rounded-xl bg-white px-4 py-2 text-sm font-black text-black"
-                : "rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-black text-white/68 transition hover:border-nzu-green/40 hover:text-white"
-            }
-          >
-            {filter.label}
-          </button>
-        ))}
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 border-b border-white/8 pb-5 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {VIEW_MODES.map((mode) => (
+              <button
+                key={mode.value}
+                type="button"
+                aria-pressed={viewMode === mode.value}
+                onClick={() => setViewMode(mode.value)}
+                className={
+                  viewMode === mode.value
+                    ? "min-h-10 rounded-xl bg-white px-4 text-sm font-black text-black"
+                    : "min-h-10 rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm font-black text-white/68 transition hover:border-nzu-green/40 hover:text-white"
+                }
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+
+          {viewMode === "day" ? (
+            <div className="flex flex-wrap gap-2">
+              {DAY_FILTERS.map((filter) => (
+                <button
+                  key={filter.value}
+                  type="button"
+                  aria-pressed={dayFilter === filter.value}
+                  onClick={() => setDayFilter(filter.value)}
+                  className={
+                    dayFilter === filter.value
+                      ? "min-h-9 rounded-xl bg-nzu-green px-3 text-xs font-black text-black"
+                      : "min-h-9 rounded-xl border border-white/10 bg-black/20 px-3 text-xs font-black text-white/62 transition hover:border-nzu-green/40 hover:text-white"
+                  }
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="text-xs font-black text-white/38 md:text-right">{getRangeLabel(viewMode, dayFilter)}</div>
       </div>
 
       {filteredPosts.length === 0 ? (
         <div className="rounded-[1.4rem] border border-dashed border-white/12 bg-white/[0.02] px-5 py-12 text-center">
-          <p className="text-sm font-medium text-white/55">선택한 기간에 등록된 정보/일정이 없습니다.</p>
+          <p className="text-sm font-medium text-white/55">{emptyMessage}</p>
         </div>
       ) : null}
 

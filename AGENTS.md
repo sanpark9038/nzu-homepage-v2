@@ -54,6 +54,7 @@ These labels are locked.
 
 - 홈
 - 승부예측
+- 일정
 - 티어표
 - 선수
 - 상대전적
@@ -63,7 +64,6 @@ These labels are locked.
 
 ### Hidden Or Utility Navigation
 
-- 대회일정
 - 통합검색
 - 메시지 알림
 - 운영 알림

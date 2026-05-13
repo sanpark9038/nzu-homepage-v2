@@ -29,7 +29,8 @@ Build the `정보/일정` schedule-board MVP from the approved design:
 ## RB Criteria
 
 - Do not apply production SQL or write production data.
-- Preserve locked navigation labels, including `대회일정`.
+- Preserve locked labels unless the user explicitly changes the wording.
+- 2026-05-14 user-approved exception: `/schedule` is now visible as `일정`, replacing the former hidden `대회일정` utility label.
 - Public users must not be able to create `정보/일정` posts.
 - Public `/schedule` must fail softly with an empty state if the new nullable schedule columns are not migrated yet.
 - Use TDD for each implementation slice.
@@ -148,3 +149,32 @@ Before that migration, schedule reads must handle missing schedule columns as "s
 - Production data has not been written.
 - Public `/schedule` fails softly with the normal empty state when schedule columns are not migrated yet.
 - Next step is a separate, explicit production DB migration approval before deployed admin schedule writes can succeed.
+
+## 2026-05-14 UI Refinement Scope
+
+User-approved refinement:
+
+- Promote `/schedule` into the visible top navigation with the shorter label `일정`.
+- Remove the large `/schedule` hero/title copy and make the page feel like a compact schedule tool.
+- Make the default schedule view `오늘`.
+- Add day/week/month-oriented controls while keeping button-style quick filtering.
+- Keep team/university filtering out of this pass; add it later only after schedule posts store a stable team key.
+
+Verification target for this refinement:
+
+- `npm.cmd run test:schedule-info-page-contract`
+- `npm.cmd run test:schedule-page-data-source-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+
+Verification completed on 2026-05-14:
+
+- `npm.cmd run test:schedule-info-page-contract`
+- `npm.cmd run test:schedule-page-data-source-contract`
+- `npm.cmd run test:schedule-info-board-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run pipeline:health`
+- `npm.cmd run build`
+- Browser smoke check: `http://localhost:3000/schedule` exposes visible nav `일정`, day/week/month controls, day quick filters, sr-only page heading, and the locked empty state.
