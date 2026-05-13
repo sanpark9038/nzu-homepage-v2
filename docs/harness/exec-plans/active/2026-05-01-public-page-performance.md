@@ -733,9 +733,21 @@ Verification:
 - `npm.cmd run pipeline:health`
 - `npm.cmd run verify:predeploy`
 
-Next:
+Deployment checks:
 
 - Commit and push the route revalidation change.
 - Wait for the Vercel production deployment to become `Ready`.
 - Remeasure canonical alias routes `/tier`, `/tier?liveOnly=true`, and `/schedule`.
-- If default `/tier` still reports repeated `MISS`, investigate proxy/platform cache headers before increasing the revalidation window.
+
+Production remeasure after `b3c843b`:
+
+- Deployment `https://nzu-homepage-v2-nz3w7hjpv-sanparks-projects.vercel.app` reached `Ready`; public measurements used canonical alias `https://nzu-homepage-v2.vercel.app`.
+- `/tier`: 5 samples, 713ms-1.95s, 1,719,483 bytes, first sample `X-Vercel-Cache: PRERENDER`, then `HIT` with increasing `Age`.
+- `/tier?liveOnly=true`: 5 samples, 1.64s-2.64s, 423,786 bytes, `X-Vercel-Cache: MISS`.
+- `/schedule`: 5 samples, 24ms-476ms, 20,342 bytes, first sample `PRERENDER`, then `HIT`.
+
+Result:
+
+- Default `/tier` is no longer stuck on repeated route-level `MISS`; the route split achieved the cache objective.
+- The explicit live-only query remains dynamic by design so it can continue using the live-only serving path and freshness overlay.
+- The next performance bottleneck for default `/tier` is still response size, not repeated SSR. Further work should target reducing or virtualizing the initial full-list HTML payload.
