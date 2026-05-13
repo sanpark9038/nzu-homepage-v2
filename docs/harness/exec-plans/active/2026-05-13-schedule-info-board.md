@@ -245,6 +245,72 @@ Final verification after review fixes on 2026-05-14:
 - PASS: read-only subagent re-review found no medium-or-higher risks after the `limit: 500` clamp and padded calendar lower bound.
 - PASS: browser smoke check at `http://localhost:3000/schedule` confirmed day list, weekly calendar, monthly calendar, no browser errors, and mobile 390px calendar horizontal scrolling.
 
+## 2026-05-14 End-of-Day Handoff
+
+Current git state at handoff:
+
+- Branch: `main`
+- HEAD: `18015a7 Document schedule migration checklist`
+- Local `main` is pushed to `origin/main`.
+- Worktree was clean before writing this handoff note.
+
+Completed today:
+
+- `/schedule` is visible in the top navigation as the short schedule label.
+- `/schedule` no longer uses the old large hero layout.
+- `day` view remains a today-first list with quick filters.
+- `week` view renders a 7-column calendar grid.
+- `month` view renders a full month calendar grid.
+- Calendar event chips are placed inside each date cell when schedule posts exist.
+- Calendar chips expand inline on the same page.
+- Mobile calendar uses a minimum grid width with horizontal scrolling.
+- All local commits through `18015a7` have been pushed.
+
+Verification completed today:
+
+- `npm.cmd run test:schedule-info-page-contract`
+- `npm.cmd run test:schedule-page-data-source-contract`
+- `npm.cmd run test:schedule-info-board-contract`
+- `npm.cmd run lint`
+- `npm.cmd run pipeline:health`
+- `npm.cmd run build`
+- Browser QA at `http://localhost:3000/schedule` for day/week/month and 390px mobile width.
+
+Production safety state:
+
+- Production SQL has not been applied.
+- Production data has not been inserted, updated, or deleted.
+- Schedule schema migration remains blocked until explicit user approval in a future session.
+
+Recommended next session entry:
+
+1. Read `AGENTS.md`.
+2. Read `docs/harness/SESSION_ENTRY.md`.
+3. Run the mandatory orient commands.
+4. Reopen this active plan.
+5. Treat the next concrete decision as: whether to approve production schedule schema migration for the additive schedule columns and index only.
+
+Suggested next-session user prompt:
+
+```text
+c:\Users\NZU\Desktop\nzu-homepage 작업 이어서 진행해줘.
+반드시 AGENTS.md와 docs/harness/SESSION_ENTRY.md 순서대로 재진입하고,
+active plan은 docs/harness/exec-plans/active/2026-05-13-schedule-info-board.md 기준으로 확인해줘.
+
+현재 상태:
+- branch: main
+- HEAD: 18015a7 Document schedule migration checklist
+- main은 origin/main과 동기화됨
+- worktree clean
+- 일정 UI/관리자 일정 MVP는 push 완료
+- production SQL/data write는 아직 안 함
+
+다음 작업:
+1. production schedule schema migration 승인 여부를 다시 쉽게 설명해줘.
+2. 승인하면 additive schedule columns/index만 적용하는 안전 절차로 진행해줘.
+3. production 데이터 insert/update/delete는 별도 승인 전까지 하지 마.
+```
+
 Review follow-up completed on 2026-05-14:
 
 - Calendar date math now uses `Date.UTC` with UTC getters/setters so browser local timezone cannot shift week/month cells.
