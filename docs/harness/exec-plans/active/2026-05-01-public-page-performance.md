@@ -694,3 +694,48 @@ Operator checklist:
 7. After the domain is live, update serving-cache revalidation configuration such as GitHub Actions `SERVING_REVALIDATE_URL` and the matching Supabase Edge secret/env to `https://star-hosaga.com`.
 
 No production Vercel, Cloudflare, GitHub, or Supabase configuration was changed in this slice.
+
+### 2026-05-13 Tier Route Revalidation Slice
+
+Goal:
+
+- Reduce repeated dynamic `/tier` server work after the payload correction, without making the public live-only view depend on stale SOOP state.
+
+Completed:
+
+- Removed the explicit `force-dynamic` / `revalidate = 0` route setting from `app/tier/page.tsx`.
+- Set the default `/tier` route revalidation to `60` seconds.
+- Split the query-aware tier renderer into `app/tier/query/page.tsx` and shared `app/tier/TierPageView.tsx`.
+- Added query-specific proxy rewrites so `/tier` with tier filter parameters is internally served by `/tier/query` while the visible URL stays `/tier?...`; the no-query default `/tier` path does not run this rewrite.
+- Kept the existing data split: default `/tier` uses `getCachedPlayersList()`, and `/tier?liveOnly=true` still uses `getLivePlayers()` through the query route.
+- Added Suspense boundaries around `useSearchParams()` filter controls so default `/tier` can prerender.
+- Updated the tier cache contract so future edits do not silently restore `force-dynamic`, `revalidate = 0`, or page-level `searchParams` on the default `/tier` route.
+
+Freshness note:
+
+- `getLivePlayers()` still applies the public live overlay, which fails closed for stale DB live rows.
+- Route-level revalidation can add up to about 60 seconds of public HTML staleness. This is acceptable for the current performance slice because the SOOP live-state guard still prevents old DB live rows from being treated as fresh truth.
+- Filtered query URLs may remain dynamic because `/tier/query` intentionally reads `searchParams`. The high-traffic default `/tier` route no longer does.
+- Local `next build` now reports static `/tier` with `1m` revalidation and dynamic `/tier/query`, which is the intended split.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract` (red before implementation, green after)
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:player-live-overlay`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run build`
+- `npm.cmd run lint`
+- Browser check, local dev server:
+  - `/tier`: 316 cards, no horizontal overflow, no framework overlay or browser errors.
+  - `/tier?liveOnly=true`: 64 cards, no horizontal overflow, no framework overlay or browser errors.
+  - Clicking the school filter from `/tier?liveOnly=true` kept the visible URL as `/tier?liveOnly=true&univ=MBU` and rendered the filtered result.
+- `npm.cmd run pipeline:health`
+- `npm.cmd run verify:predeploy`
+
+Next:
+
+- Commit and push the route revalidation change.
+- Wait for the Vercel production deployment to become `Ready`.
+- Remeasure canonical alias routes `/tier`, `/tier?liveOnly=true`, and `/schedule`.
+- If default `/tier` still reports repeated `MISS`, investigate proxy/platform cache headers before increasing the revalidation window.

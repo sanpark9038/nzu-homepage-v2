@@ -11,6 +11,13 @@ function isAllowedPath(pathname: string) {
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  if (pathname === "/tier") {
+    const rewriteUrl = req.nextUrl.clone();
+    rewriteUrl.pathname = "/tier/query";
+    return NextResponse.rewrite(rewriteUrl);
+  }
+
   const isAdminPath = pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
   if (!isAdminPath) return NextResponse.next();
   if (isAllowedPath(pathname)) return NextResponse.next();
@@ -30,5 +37,14 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: [
+    { source: "/tier", has: [{ type: "query", key: "liveOnly" }] },
+    { source: "/tier", has: [{ type: "query", key: "search" }] },
+    { source: "/tier", has: [{ type: "query", key: "race" }] },
+    { source: "/tier", has: [{ type: "query", key: "univ" }] },
+    { source: "/tier", has: [{ type: "query", key: "tier" }] },
+    { source: "/tier", has: [{ type: "query", key: "raceToggle" }] },
+    "/admin/:path*",
+    "/api/admin/:path*",
+  ],
 };

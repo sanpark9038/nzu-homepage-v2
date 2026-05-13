@@ -9,18 +9,37 @@ function readProjectFile(filePath) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }
 
-test("tier page uses cached full-list reads and a filtered live-only query", () => {
-  const source = readProjectFile("app/tier/page.tsx");
+test("tier default route is cacheable while query URLs keep filtered/live behavior", () => {
+  const defaultRouteSource = readProjectFile("app/tier/page.tsx");
+  const queryRouteSource = readProjectFile("app/tier/query/page.tsx");
+  const viewSource = readProjectFile("app/tier/TierPageView.tsx");
+  const proxySource = readProjectFile("proxy.ts");
 
-  assert.match(source, /export\s+const\s+dynamic\s*=\s*"force-dynamic"/);
-  assert.match(source, /export\s+const\s+revalidate\s*=\s*0/);
-  assert.match(source, /playerService\.getCachedPlayersList\(\)/);
-  assert.match(source, /playerService\.getLivePlayers\(\)/);
-  assert.doesNotMatch(source, /playerService\.getAllPlayers\(\)/);
+  assert.doesNotMatch(defaultRouteSource, /searchParams/);
+  assert.doesNotMatch(defaultRouteSource, /playerService\.getLivePlayers\(\)/);
+  assert.doesNotMatch(defaultRouteSource, /export\s+const\s+dynamic\s*=\s*"force-dynamic"/);
+  assert.match(defaultRouteSource, /export\s+const\s+revalidate\s*=\s*60/);
+  assert.doesNotMatch(defaultRouteSource, /export\s+const\s+revalidate\s*=\s*0/);
+  assert.match(defaultRouteSource, /<TierPageView\s*\/>/);
+
+  assert.match(queryRouteSource, /searchParams/);
+  assert.match(queryRouteSource, /<TierPageView\s+params=\{params\}\s*\/>/);
+
+  assert.match(viewSource, /playerService\.getCachedPlayersList\(\)/);
+  assert.match(viewSource, /playerService\.getLivePlayers\(\)/);
+  assert.doesNotMatch(viewSource, /playerService\.getAllPlayers\(\)/);
+  assert.match(viewSource, /import\s+\{\s*Suspense\s*\}\s+from\s+["']react["']/);
+  assert.match(viewSource, /<Suspense\s+fallback=/);
   assert.match(
-    source,
+    viewSource,
     /liveOnly\s*\?\s*playerService\.getLivePlayers\(\)\s*:\s*playerService\.getCachedPlayersList\(\)/s
   );
+
+  assert.match(proxySource, /NextResponse\.rewrite/);
+  assert.match(proxySource, /\/tier\/query/);
+  assert.match(proxySource, /source:\s*["']\/tier["']/);
+  assert.match(proxySource, /type:\s*["']query["'],\s*key:\s*["']liveOnly["']/);
+  assert.match(proxySource, /type:\s*["']query["'],\s*key:\s*["']univ["']/);
 });
 
 test("tier grids use a lightweight tier card instead of hydrating the shared player card", () => {
