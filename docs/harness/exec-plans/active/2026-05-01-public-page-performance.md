@@ -663,6 +663,18 @@ Next:
 
 - Push the correction and remeasure production alias payload for `/tier`, `/tier?liveOnly=true`, and `/schedule`.
 
+Production remeasure after `e5f400f`:
+
+- Deployment `https://nzu-homepage-v2-61wyawief-sanparks-projects.vercel.app` reached `Ready`; the protected deployment URL itself requires Vercel authentication, so public measurements used canonical alias `https://nzu-homepage-v2.vercel.app`.
+- `/tier`: 5 samples, 1.63s-2.70s, 1,718,484 bytes, `X-Vercel-Cache: MISS`.
+- `/tier?liveOnly=true`: 5 samples, 0.82s-1.56s, about 365,841-365,913 bytes, `X-Vercel-Cache: MISS`.
+- `/schedule`: 5 samples, 23ms-462ms, 20,342 bytes, `X-Vercel-Cache: STALE` then `HIT`.
+
+Result:
+
+- `/tier` initial HTML payload is now below the earlier 2026-05-13 audit baseline of about 2.18MB, and down from the first lightweight-card deployment's about 2.55MB.
+- Route-level `/tier` latency is still limited by dynamic SSR and repeated `MISS` responses; the next performance slice should evaluate route caching/revalidation without breaking live-state freshness expectations.
+
 ### 2026-05-13 Domain Connection Checklist
 
 Current state:
