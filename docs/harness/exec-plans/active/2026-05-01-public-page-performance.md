@@ -632,6 +632,37 @@ Next:
 
 - Domain connection remains an ops task: document exact Vercel/Cloudflare steps only, and do not change production DNS/Vercel settings without explicit approval.
 
+### 2026-05-13 Tier Payload Correction Slice
+
+Finding:
+
+- After deploying `0428d4e`, production alias measurements showed `/tier` still returned about 2.55MB of HTML and `/tier?liveOnly=true` about 504KB. Hydration pressure was lower, but the server-rendered card still emitted image-heavy markup for every tier entry.
+
+Completed:
+
+- Made `TierPlayerCard` text-first for the initial tier route payload.
+- Removed per-card `next/image` and SOOP profile image URL resolution from the tier grid card.
+- Kept race, tier, university, live indicator, `전적 보기`, and quick H2H behavior.
+- Added a contract that prevents the tier lightweight card from reintroducing initial-route image markup.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract`
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:matchup-helpers` (sandbox `spawn EPERM` on first run; rerun with approved permissions passed)
+- `npx.cmd tsc --noEmit` (one parallel run raced with `next build`; standalone rerun passed)
+- `npm.cmd run build`
+- `npm.cmd run lint`
+- Browser check, local dev server:
+  - mobile `390x844` `/tier`: 316 cards, no horizontal overflow, tier cards contain no images.
+  - desktop `1440x1000` `/tier?liveOnly=true`: live cards render, no horizontal overflow, tier cards contain no images.
+- `npm.cmd run pipeline:health`
+- `npm.cmd run verify:predeploy` (sandbox `spawn EPERM` on first run; rerun with approved permissions passed)
+
+Next:
+
+- Push the correction and remeasure production alias payload for `/tier`, `/tier?liveOnly=true`, and `/schedule`.
+
 ### 2026-05-13 Domain Connection Checklist
 
 Current state:
