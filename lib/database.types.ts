@@ -150,9 +150,13 @@ export type Database = {
           content: string
           created_at: string | null
           download_url: string | null
+          external_link_url: string | null
           id: string
           image_url: string | null
           published: boolean | null
+          schedule_date: string | null
+          schedule_display_name: string | null
+          schedule_start_time: string | null
           title: string
           updated_at: string | null
           video_url: string | null
@@ -165,9 +169,13 @@ export type Database = {
           content: string
           created_at?: string | null
           download_url?: string | null
+          external_link_url?: string | null
           id?: string
           image_url?: string | null
           published?: boolean | null
+          schedule_date?: string | null
+          schedule_display_name?: string | null
+          schedule_start_time?: string | null
           title: string
           updated_at?: string | null
           video_url?: string | null
@@ -180,9 +188,13 @@ export type Database = {
           content?: string
           created_at?: string | null
           download_url?: string | null
+          external_link_url?: string | null
           id?: string
           image_url?: string | null
           published?: boolean | null
+          schedule_date?: string | null
+          schedule_display_name?: string | null
+          schedule_start_time?: string | null
           title?: string
           updated_at?: string | null
           video_url?: string | null

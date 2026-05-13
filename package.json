@@ -111,6 +111,7 @@
     "test:prediction-cache-contract": "node scripts/tools/prediction-cache-contract.test.js",
     "test:prediction-store-contract": "node --test scripts/tools/prediction-store-contract.test.mjs",
     "test:schedule-page-data-source-contract": "node scripts/tools/schedule-page-data-source-contract.test.js",
+    "test:schedule-info-board-contract": "node scripts/tools/schedule-info-board-contract.test.js",
     "test:player-page-payload-contract": "node scripts/tools/player-page-payload-contract.test.js",
     "test:player-history-artifact-cache-contract": "node scripts/tools/player-history-artifact-cache-contract.test.js",
     "test:h2h-route-performance-contract": "node scripts/tools/h2h-route-performance-contract.test.js",

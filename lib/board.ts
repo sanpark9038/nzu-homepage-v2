@@ -163,7 +163,7 @@ export function buildVideoEmbedUrl(value: string | null | undefined) {
 
 export function getBoardCategoryLabel(category: string | null | undefined) {
   if (category === "notice") return "공지";
-  if (category === "schedule") return "일정";
+  if (category === "schedule") return "정보/일정";
   return "";
 }
 
