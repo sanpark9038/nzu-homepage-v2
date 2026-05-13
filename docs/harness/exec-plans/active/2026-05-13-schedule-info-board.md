@@ -1,0 +1,121 @@
+# ACTIVE PLAN: schedule-info-board
+
+Created: 2026-05-13
+Status: planned
+
+## Goal
+
+Build the `정보/일정` schedule-board MVP from the approved design:
+
+- administrator-only schedule writing
+- board post as source of truth
+- `/schedule` today-first list with inline details
+- no production DB writes during implementation
+
+## Basis
+
+- User approved the simplified direction on 2026-05-13:
+  - one prefix: `정보/일정`
+  - date and display name required
+  - start time optional
+  - end time excluded
+  - body reused for board detail and schedule inline detail
+  - admin-only schedule writing
+- Design document:
+  - `docs/superpowers/specs/2026-05-13-schedule-info-board-design.md`
+- Implementation plan:
+  - `docs/superpowers/plans/2026-05-13-schedule-info-board-implementation.md`
+
+## RB Criteria
+
+- Do not apply production SQL or write production data.
+- Preserve locked navigation labels, including `대회일정`.
+- Public users must not be able to create `정보/일정` posts.
+- Public `/schedule` must fail softly with an empty state if the new nullable schedule columns are not migrated yet.
+- Use TDD for each implementation slice.
+- Verification order:
+  1. focused tests
+  2. `npm.cmd run pipeline:health`
+  3. `npm.cmd run verify:predeploy` if needed and focused checks pass
+
+## Pre-work Confirmation
+
+### Conflict-Risk Files
+
+- `lib/board.ts`
+- `lib/database.types.ts`
+- `scripts/sql/create-board-posts.sql`
+- `app/schedule/page.tsx`
+- `app/board/page.tsx`
+- `app/board/[id]/page.tsx`
+- `components/admin/AdminNav.tsx`
+- `package.json`
+
+### Independently Editable Files
+
+- `scripts/tools/schedule-info-board-contract.test.js`
+- `scripts/tools/schedule-info-page-contract.test.js`
+- `app/api/admin/schedule/route.ts`
+- `app/api/admin/schedule/[id]/route.ts`
+- `app/admin/schedule/page.tsx`
+- `components/admin/schedule/SchedulePostComposer.tsx`
+- `components/schedule/ScheduleInfoList.tsx`
+
+### Last Basis Used
+
+- Code inspection on 2026-05-13 after design commit `1439b64`.
+- Current worktree was clean before writing this plan.
+
+## Implementation Tasks
+
+- [ ] Task 1: Schema and contract red/green.
+- [ ] Task 2: Board helpers and admin schedule API.
+- [ ] Task 3: Admin schedule composer and nav.
+- [ ] Task 4: Public schedule page from board posts.
+- [ ] Task 5: Board detail external link support.
+- [ ] Task 6: Verification and documentation.
+
+## Review Checkpoint
+
+2026-05-13 read-only subagent plan review raised four gaps before implementation:
+
+- admin-authenticated image upload was missing
+- admin edit/unpublish/delete UI and unpublished admin listing were missing
+- quick date filters on `/schedule` were underspecified
+- invalid external links and R2 image cleanup needed explicit tests
+
+Resolution in the implementation plan:
+
+- `app/api/board/images/route.ts` will accept admin sessions as an alternate upload identity.
+- admin schedule APIs will support all schedule rows for admin listing and clean R2 images on update/delete.
+- `SchedulePostComposer` will include create/edit/publish toggle/delete/image upload controls.
+- public `ScheduleInfoList` will include `전체`, `오늘`, `내일`, `7일` filters while still listing from today forward by default.
+- schedule validation will reject non-empty invalid `external_link_url` values instead of silently dropping them.
+- existing generic board edit/delete routes will revalidate `/schedule` for `category = "schedule"` posts.
+
+## Verification Targets
+
+- `npm.cmd run test:schedule-info-board-contract`
+- `npm.cmd run test:schedule-info-page-contract`
+- `npm.cmd run test:schedule-page-data-source-contract`
+- `npm.cmd run test:board-write-contract`
+- `npm.cmd run test:board-edit-contract`
+- `npm.cmd run test:board-readability-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run build`
+- `npm.cmd run lint`
+- `npm.cmd run pipeline:health`
+- `npm.cmd run verify:predeploy`
+
+## Production Safety
+
+The implementation may add SQL files and type definitions, but it must not apply database changes to production.
+
+Production DB migration is a later explicit approval step.
+
+Before that migration, schedule reads must handle missing schedule columns as "storage not ready" instead of crashing the public page.
+
+## Current State
+
+- Planned only.
+- No implementation code has been changed yet.
