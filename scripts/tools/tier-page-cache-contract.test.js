@@ -22,3 +22,21 @@ test("tier page uses cached full-list reads and a filtered live-only query", () 
     /liveOnly\s*\?\s*playerService\.getLivePlayers\(\)\s*:\s*playerService\.getCachedPlayersList\(\)/s
   );
 });
+
+test("tier grids use a lightweight tier card instead of hydrating the shared player card", () => {
+  const tierGroupSource = readProjectFile("components/players/TierGroup.tsx");
+  const compactGridSource = readProjectFile("components/players/TeamTierCompactGrid.tsx");
+
+  assert.match(tierGroupSource, /TierPlayerCard/);
+  assert.match(compactGridSource, /TierPlayerCard/);
+  assert.doesNotMatch(tierGroupSource, /<PlayerCard\b/);
+  assert.doesNotMatch(compactGridSource, /<PlayerCard\b/);
+});
+
+test("tier h2h selector accepts lightweight matchup summaries", () => {
+  const source = readProjectFile("components/players/H2HSelectorBar.tsx");
+
+  assert.match(source, /MatchupPlayerSummary/);
+  assert.doesNotMatch(source, /from ['"]\.\/PlayerCard['"]/);
+  assert.doesNotMatch(source, /CustomEvent<Player>/);
+});

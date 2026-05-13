@@ -1,16 +1,20 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Player } from './PlayerCard'
 import { cn } from '@/lib/utils'
 import { X, ArrowLeftRight, Plus } from 'lucide-react'
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
 import type { H2HStats } from "@/types";
-import { buildH2HCacheKey, fetchH2HStats, reportMatchupRuntimeIssue } from "@/lib/matchup-helpers";
+import {
+  buildH2HCacheKey,
+  fetchH2HStats,
+  reportMatchupRuntimeIssue,
+  type MatchupPlayerSummary,
+} from "@/lib/matchup-helpers";
 
 interface MatchSlot {
-  p1: Player | null;
-  p2: Player | null;
+  p1: MatchupPlayerSummary | null;
+  p2: MatchupPlayerSummary | null;
   overallScore: [number, number]; // [p1_wins, p2_wins]
   recentScore: [number, number];  // [p1_recent_wins, p2_recent_wins]
 }
@@ -27,7 +31,7 @@ export function H2HSelectorBar() {
 
   useEffect(() => {
     const handleAddPlayer = (e: Event) => {
-      const newPlayer = (e as CustomEvent<Player>).detail
+      const newPlayer = (e as CustomEvent<MatchupPlayerSummary>).detail
       setIsVisible(true)
 
       setMatchups(prev => {
@@ -69,7 +73,7 @@ export function H2HSelectorBar() {
   );
 
   useEffect(() => {
-    const requestH2H = (player1: Player, player2: Player) => {
+    const requestH2H = (player1: MatchupPlayerSummary, player2: MatchupPlayerSummary) => {
       const queryKey = buildH2HCacheKey(player1, player2);
       const cached = h2hRequestCacheRef.current.get(queryKey);
       if (cached) return cached;

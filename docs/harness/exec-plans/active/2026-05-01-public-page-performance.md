@@ -573,4 +573,35 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
    - add apex and `www` to the Vercel project,
    - set Cloudflare DNS according to Vercel's required records,
    - choose canonical redirect behavior before changing public links.
+
+### 2026-05-13 Tier Lightweight Card Slice
+
+Completed:
+
+- Added a server-rendered `TierPlayerCard` for `/tier` grids so the full player list no longer hydrates the shared rich `PlayerCard` for every player.
+- Added `TierQuickH2HButton` as the small client island that preserves the quick H2H action.
+- Switched `TierGroup` and `TeamTierCompactGrid` to the lightweight card while keeping `/tier` as the default full-list page.
+- Narrowed `H2HSelectorBar` to consume `MatchupPlayerSummary` instead of full player objects.
+- Added contract coverage that prevents tier grids from regressing back to unconditional rich `PlayerCard` hydration.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract`
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:matchup-helpers` (sandbox `spawn EPERM` on first run; rerun with approved permissions passed)
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run build`
+- Browser check, local dev server:
+  - mobile `390x844` `/tier`: 316 cards, no horizontal overflow, no browser errors.
+  - mobile `390x844` `/tier?liveOnly=true`: 43 cards, no horizontal overflow, no browser errors.
+  - desktop `1440x1000` `/tier`: 316 cards, no horizontal overflow, no browser errors.
+  - first quick H2H button opened the existing quick matching bar.
+- `npm.cmd run pipeline:health`
+- `npm.cmd run verify:predeploy` (sandbox `spawn EPERM` on first run; rerun with approved permissions passed)
+- `npm.cmd run lint`
 - `git diff --check`
+
+Next:
+
+- Treat `/schedule` as the next product slice. The safest path is a contract test that requires `/schedule` to load explicit prediction state instead of exposing local temporary prediction-match fallback data.
+- Keep `star-hosaga.com` as an ops checklist unless the operator explicitly approves Vercel/Cloudflare production configuration writes.
