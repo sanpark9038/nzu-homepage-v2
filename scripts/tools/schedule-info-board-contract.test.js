@@ -86,3 +86,32 @@ test("admin schedule validation rejects invalid optional external links", () => 
   assert.match(board, /external_link_url/);
   assert.match(createRoute, /validateAdminSchedulePostInput\(input,\s*body\)/);
 });
+
+test("admin schedule UI is a board-style composer with schedule fields", () => {
+  const page = readProjectFile("app/admin/schedule/page.tsx");
+  const composer = readProjectFile("components/admin/schedule/SchedulePostComposer.tsx");
+  const adminNav = readProjectFile("components/admin/AdminNav.tsx");
+  const board = readProjectFile("lib/board.ts");
+
+  assert.match(page, /ADMIN_SESSION_COOKIE/);
+  assert.match(page, /SchedulePostComposer/);
+  assert.match(composer, /schedule_display_name/);
+  assert.match(composer, /schedule_date/);
+  assert.match(composer, /schedule_start_time/);
+  assert.match(composer, /external_link_url/);
+  assert.match(composer, /\/api\/admin\/schedule/);
+  assert.match(composer, /\/api\/board\/images/);
+  assert.match(composer, /method:\s*"PATCH"/);
+  assert.match(composer, /method:\s*"DELETE"/);
+  assert.match(composer, /published/);
+  assert.match(composer, /type="file"/);
+  assert.match(composer, /window\.confirm/);
+  assert.match(composer, /busyPostId/);
+  assert.match(composer, /editingPostId === post\.id/);
+  assert.match(composer, /if \(!editingPostId\)/);
+  assert.match(composer, /toTimeInputValue\(post\.schedule_start_time\)/);
+  assert.match(composer, /이미지 파일 업로드/);
+  assert.match(composer, /htmlFor="schedule-image-url"/);
+  assert.match(board, /published:\s*row\.published === false \? false : true/);
+  assert.match(adminNav, /\/admin\/schedule/);
+});

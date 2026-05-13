@@ -145,7 +145,7 @@ export function normalizeAdminSchedulePostInput(value: unknown) {
     schedule_date: normalizeOptionalDate(row.schedule_date),
     schedule_start_time: normalizeOptionalTime(row.schedule_start_time),
     schedule_display_name: displayName || null,
-    published: true,
+    published: row.published === false ? false : true,
   } satisfies BoardPostInsert;
 }
 
