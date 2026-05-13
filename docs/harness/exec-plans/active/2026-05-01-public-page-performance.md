@@ -489,4 +489,88 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 - `npx.cmd tsc --noEmit`
 - `npm.cmd run build`
 - `npm.cmd run lint`
+
+## 2026-05-13 Public UX Baseline Audit
+
+### Scope
+
+- Measure current public-route performance before more UI work.
+- Check desktop and mobile rendering for the main public pages.
+- Confirm whether the existing `/schedule` page is good enough to promote into visible navigation, or whether it needs a focused redesign first.
+- Check whether `STAR-HOSAGA.COM` is connected to the Vercel project, separately from the already documented `images.star-hosaga.com` R2 image domain.
+- Decide the `/tier` default-mode question from evidence, while preserving the locked `티어표` navigation label and `/tier` target unless the operator explicitly asks for a wording/navigation change.
+
+### Routes To Audit
+
+- `/`
+- `/prediction`
+- `/tier`
+- `/tier?liveOnly=true`
+- `/player`
+- `/entry`
+- `/match`
+- `/schedule`
+
+### Evidence To Collect
+
+- Production deployment status after the current push.
+- HTTP timing samples for the route set above.
+- Browser/mobile checks for layout overlap, horizontal overflow, blank states, and console errors.
+- Current Vercel domain list or equivalent CLI evidence for `star-hosaga.com`.
+
+### Non-Goals
+
+- Do not change UI labels during the audit.
+- Do not redesign `/schedule` until the current state is measured.
+- Do not change the `/tier` default mode during the audit.
+- Do not write production data.
+
+### Audit Results
+
+- Current push/deploy baseline:
+  - `main` was pushed through `c5b3852`.
+  - Vercel production deployment `https://nzu-homepage-v2-oejbqnf6g-sanparks-projects.vercel.app` reached `Ready`.
+  - Production aliases remain Vercel-generated: `nzu-homepage-v2.vercel.app`, `nzu-homepage-v2-sanparks-projects.vercel.app`, and `nzu-homepage-v2-git-main-sanparks-projects.vercel.app`.
+- Production HTTP timing samples:
+  - `/`: 887ms cold-ish, then 26ms / 25ms, 21KB.
+  - `/prediction`: 445ms, then 44ms / 26ms, 23KB.
+  - `/tier`: 4909ms, then 1991ms / 1945ms, about 2.18MB.
+  - `/tier?liveOnly=true`: 1403ms / 2227ms / 1875ms, about 80KB.
+  - `/player`: 544ms / 235ms / 489ms, 18KB.
+  - `/entry`: 608ms, then 48ms / 47ms, 75KB.
+  - `/match`: 461ms / 40ms / 286ms, 22KB.
+  - `/schedule`: 465ms, then 27ms / 25ms, 24KB.
+- Browser checks:
+  - Mobile viewport `390x844`: no horizontal overflow and no framework error overlay on `/`, `/prediction`, `/tier`, `/tier?liveOnly=true`, `/player`, `/entry`, `/match`, or `/schedule`.
+  - Desktop viewport `1440x1000`: no horizontal overflow and no framework error overlay on the same route set.
+  - `/tier` remains the only sampled public route with clearly heavy first-response/payload cost.
+- `/tier` bottleneck:
+  - `app/tier/page.tsx` already uses `getCachedPlayersList()` for default mode and `getLivePlayers()` for `liveOnly=true`.
+  - The remaining cost is rendering/sending the full tier grid and all player cards, not the old uncached player-list read.
+  - Keep `/tier` as the default visible navigation target for now. Making live-only the default would shrink the page, but it can make the first visit look empty when no player is live or live freshness fails closed.
+- `/schedule` readiness:
+  - The route is fast, but current production content still includes placeholder/test data such as `임시 1팀`, `임시 2팀`, and `Quarterfinal Match 2 (TEST)`.
+  - Do not promote `/schedule` into visible navigation until tournament schedule content and fallback behavior are cleaned up.
+- Domain status:
+  - `vercel domains list` under `sanparks-projects` only showed `sig-mania.com`; `star-hosaga.com` is not attached to Vercel.
+  - Latest Vercel deployment aliases do not include `star-hosaga.com` or `www.star-hosaga.com`.
+  - DNS lookup for `star-hosaga.com` returned only Cloudflare authority data; `www.star-hosaga.com` did not resolve.
+  - `images.star-hosaga.com` resolves through Cloudflare, matching the prior R2 image-domain setup, but its root URL returns 404.
+
+### Recommended Next Implementation Slice
+
+1. Keep `/tier` default as the full player list and keep the live-only toggle as an explicit filter.
+2. Optimize `/tier` next by reducing first response/payload weight:
+   - keep full list data cached,
+   - render a lighter default tier card/list summary,
+   - defer or progressively expand expensive per-player card detail,
+   - preserve the current filter labels and `/tier` URL.
+3. Treat `/schedule` as the next product page after the tier payload fix:
+   - remove placeholder/test schedule data from the public default,
+   - define the empty/fallback state,
+   - then decide whether to expose `대회일정` in visible navigation.
+4. Connect `star-hosaga.com` as a separate ops task:
+   - add apex and `www` to the Vercel project,
+   - set Cloudflare DNS according to Vercel's required records,
+   - choose canonical redirect behavior before changing public links.
 - `git diff --check`
