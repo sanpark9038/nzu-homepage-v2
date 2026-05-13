@@ -37,7 +37,10 @@ runTest("single chunk runtime flow is collect-only and approved sync owns servin
   assert.match(githubActionsSteps, /npm run pipeline:health/);
   assert.match(manualRefreshSteps, /generate-soop-live-snapshot\.js/);
   assert.match(manualRefreshSteps, /report-homepage-integrity\.js/);
-  assert.match(manualRefreshSteps, /run-ops-pipeline-chunked\.js --preflight-already-run/);
+  assert.match(
+    manualRefreshSteps,
+    /run-ops-pipeline-chunked\.js --preflight-already-run only when top-level homepage integrity passes/
+  );
   assert.doesNotMatch(chunkedSteps, /--skip-supabase/);
   assert.match(chunkedSteps, /--no-homepage-integrity only when --preflight-already-run is present/);
   assert.doesNotMatch(singleChunkSteps, /supabase-staging-sync\.js/);

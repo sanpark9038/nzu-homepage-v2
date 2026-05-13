@@ -98,7 +98,8 @@ runTest("only wrapped chunked ops calls opt out of duplicated homepage integrity
 
   assert.doesNotMatch(collectChunkedScript, /--preflight-already-run/);
   assert.doesNotMatch(windowsCommand, /--preflight-already-run/);
-  assert.match(manualRefreshSource, /--preflight-already-run/);
+  assert.match(manualRefreshSource, /buildCollectChunkedArgs/);
+  assert.doesNotMatch(manualRefreshSource, /const collectChunkedArgs = \[[\s\S]*"--preflight-already-run"/);
   assert.match(chunkedSource, /hasFlag\("--preflight-already-run"\)/);
   assert.match(chunkedSource, /--no-homepage-integrity/);
 });
@@ -136,9 +137,12 @@ runTest("durable pipeline gates include ops retirement contracts", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const scripts = packageJson.scripts || {};
 
+  assert.equal(scripts["test:pipeline:manual-refresh"], "node scripts/tools/run-manual-refresh.test.js");
   assert.equal(scripts["test:pipeline:ops"], "node scripts/tools/run-ops-pipeline.test.js");
+  assert.match(String(scripts["pipeline:health"] || ""), /npm run test:pipeline:manual-refresh/);
   assert.match(String(scripts["pipeline:health"] || ""), /npm run test:pipeline:ops/);
   assert.match(String(scripts["pipeline:health"] || ""), /npm run test:pipeline:runtime-flow/);
+  assert.match(String(scripts["verify:predeploy"] || ""), /npm run test:pipeline:manual-refresh/);
   assert.match(String(scripts["verify:predeploy"] || ""), /npm run test:pipeline:ops/);
   assert.match(String(scripts["verify:predeploy"] || ""), /npm run test:pipeline:runtime-flow/);
 });

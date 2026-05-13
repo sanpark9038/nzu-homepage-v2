@@ -272,5 +272,14 @@ Retire or fail-close the legacy direct Supabase sync path so production serving 
 
 - [x] Add red contracts proving chunk-local `run-ops-pipeline.js` calls opt out of duplicated homepage integrity / SOOP snapshot preflight.
 - [x] Add `--no-homepage-integrity` handling to `run-ops-pipeline.js` while preserving normal single-run preflight behavior when Supabase envs are present.
-- [x] Pass `--preflight-already-run` from `run-manual-refresh.js`; `run-ops-pipeline-chunked.js` only forwards `--no-homepage-integrity` to chunk-local ops calls when that wrapper-only flag is present.
+- [x] Pass `--preflight-already-run` from `run-manual-refresh.js` only after top-level homepage integrity succeeds; `run-ops-pipeline-chunked.js` only forwards `--no-homepage-integrity` to chunk-local ops calls when that wrapper-only flag is present.
 - [x] Preserve direct `pipeline:collect:chunked` / Windows scheduled chunked runs as normal preflight-capable paths instead of silently skipping homepage integrity.
+
+### 2026-05-13 Manual Refresh Preflight Gating Follow-up
+
+- [x] Add a red focused contract for the review finding: if top-level `homepage_integrity_report` does not pass, `run-manual-refresh.js` must not cause chunk-local homepage integrity to be skipped before a possible sync.
+- [x] Preserve the existing dedupe path only when the top-level homepage integrity preflight succeeds.
+- [x] Wire the manual-refresh contract into `pipeline:health` and `verify:predeploy`.
+- [x] Verify with focused tests first, then `pipeline:health`, then `verify:predeploy`.
+
+Outcome: `run-manual-refresh.js` now builds chunked collection args after the allow-failure homepage integrity step has returned. `--preflight-already-run` is only forwarded when that top-level step has `ok === true`; failed or skipped top-level integrity leaves chunk-local homepage integrity enabled.

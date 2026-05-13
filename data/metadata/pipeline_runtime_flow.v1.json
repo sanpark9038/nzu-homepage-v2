@@ -30,7 +30,7 @@
         "capture roster baseline from data/metadata/projects/*/players.*.v1.json",
         "optional: generate-soop-live-snapshot.js when SOOP env exists",
         "optional: report-homepage-integrity.js",
-        "run-ops-pipeline-chunked.js --preflight-already-run",
+        "run-ops-pipeline-chunked.js --preflight-already-run only when top-level homepage integrity passes",
         "optional: push-supabase-approved.js when --with-supabase-sync is present"
       ],
       "outputs": [

@@ -4,6 +4,7 @@ const path = require("node:path");
 const Module = require("node:module");
 
 const {
+  buildCollectChunkedArgs,
   evaluateSupabaseSyncGate,
   parseCacheRevalidationResult,
   stepTimeoutFor,
@@ -90,6 +91,47 @@ runTest("manual refresh step timeouts are bounded by step type", () => {
   assert.equal(stepTimeoutFor("collect_chunked"), 110 * 60 * 1000);
   assert.equal(stepTimeoutFor("supabase_push"), 30 * 60 * 1000);
   assert.equal(stepTimeoutFor("unknown_step"), 30 * 60 * 1000);
+});
+
+runTest("manual refresh only skips chunk preflight after successful top-level homepage integrity", () => {
+  const base = {
+    chunkSize: "3",
+    inactiveSkipDays: "14",
+    noUseExistingJson: false,
+  };
+
+  assert.deepEqual(buildCollectChunkedArgs({ ...base, homepageIntegrityStep: { ok: true } }), [
+    "--chunk-size",
+    "3",
+    "--inactive-skip-days",
+    "14",
+    "--preflight-already-run",
+  ]);
+
+  assert.deepEqual(buildCollectChunkedArgs({ ...base, homepageIntegrityStep: { ok: false } }), [
+    "--chunk-size",
+    "3",
+    "--inactive-skip-days",
+    "14",
+  ]);
+
+  assert.deepEqual(buildCollectChunkedArgs({ ...base, homepageIntegrityStep: null }), [
+    "--chunk-size",
+    "3",
+    "--inactive-skip-days",
+    "14",
+  ]);
+
+  assert.deepEqual(
+    buildCollectChunkedArgs({ ...base, noUseExistingJson: true, homepageIntegrityStep: { ok: false } }),
+    [
+      "--chunk-size",
+      "3",
+      "--inactive-skip-days",
+      "14",
+      "--no-use-existing-json",
+    ]
+  );
 });
 
 runTest("summarizeBlockingAlerts returns only blocking severities", () => {

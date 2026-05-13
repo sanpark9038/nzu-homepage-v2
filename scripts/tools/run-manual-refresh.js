@@ -116,6 +116,26 @@ function stepTimeoutFor(name) {
   return 30 * 60 * 1000;
 }
 
+function buildCollectChunkedArgs(options = {}) {
+  const chunkSize = String(options.chunkSize || "3").trim() || "3";
+  const inactiveSkipDays = String(options.inactiveSkipDays || "14").trim() || "14";
+  const args = [
+    "--chunk-size",
+    chunkSize,
+    "--inactive-skip-days",
+    inactiveSkipDays,
+  ];
+
+  if (options.homepageIntegrityStep && options.homepageIntegrityStep.ok === true) {
+    args.push("--preflight-already-run");
+  }
+  if (options.noUseExistingJson) {
+    args.push("--no-use-existing-json");
+  }
+
+  return args;
+}
+
 function hasHomepageIntegrityEnv() {
   const supabaseUrl = String(process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
   const serviceKey = String(
@@ -374,17 +394,8 @@ async function main() {
   const workflowSyncRequested = envFlag("WORKFLOW_SYNC_REQUESTED");
   const workflowSyncEnabled = envFlag("WORKFLOW_SYNC_ENABLED");
   const workflowSyncWarning = String(process.env.WORKFLOW_SYNC_WARNING || "").trim();
-  const collectChunkedArgs = [
-    "--chunk-size",
-    chunkSize,
-    "--inactive-skip-days",
-    inactiveSkipDays,
-    "--preflight-already-run",
-  ];
-  if (hasFlag("--no-use-existing-json")) {
-    collectChunkedArgs.push("--no-use-existing-json");
-  }
   const steps = [];
+  let homepageIntegrityStep = null;
   let status = "pass";
   let errorMessage = null;
   let failureStep = null;
@@ -415,13 +426,18 @@ async function main() {
           })
         );
       }
-      steps.push(
-        await runStep("homepage_integrity_report", "scripts/tools/report-homepage-integrity.js", [], {
+      homepageIntegrityStep = await runStep("homepage_integrity_report", "scripts/tools/report-homepage-integrity.js", [], {
           timeoutMs: stepTimeoutFor("homepage_integrity_report"),
           allowFailure: true,
-        })
-      );
+        });
+      steps.push(homepageIntegrityStep);
     }
+    const collectChunkedArgs = buildCollectChunkedArgs({
+      chunkSize,
+      inactiveSkipDays,
+      noUseExistingJson: hasFlag("--no-use-existing-json"),
+      homepageIntegrityStep,
+    });
     steps.push(
       await runStep("collect_chunked", "scripts/tools/run-ops-pipeline-chunked.js", collectChunkedArgs, {
         timeoutMs: stepTimeoutFor("collect_chunked"),
@@ -487,6 +503,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  buildCollectChunkedArgs,
   evaluateSupabaseSyncGate,
   parseCacheRevalidationResult,
   stepTimeoutFor,
