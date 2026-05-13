@@ -96,6 +96,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     revalidatePath("/board");
     revalidatePath(`/board/${id}`);
     revalidatePath(`/board/${id}/edit`);
+    if (context.post.category === "schedule") {
+      revalidatePath("/schedule");
+    }
 
     return NextResponse.json({ ok: true, post });
   } catch (error) {
@@ -136,6 +139,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
     revalidatePath("/board");
     revalidatePath(`/board/${id}`);
+    if (context.post.category === "schedule") {
+      revalidatePath("/schedule");
+    }
 
     return NextResponse.json({ ok: true, deleted: { post: true, image: imageDeleted } });
   } catch (error) {

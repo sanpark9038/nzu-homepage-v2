@@ -120,3 +120,15 @@ test("admin schedule UI is a board-style composer with schedule fields", () => {
   assert.match(board, /published:\s*row\.published === false \? false : true/);
   assert.match(adminNav, /\/admin\/schedule/);
 });
+
+test("board list and detail expose info schedule label and external schedule links", () => {
+  const listPage = readProjectFile("app/board/page.tsx");
+  const detailPage = readProjectFile("app/board/[id]/page.tsx");
+  const mutationRoute = readProjectFile("app/api/board/[id]/route.ts");
+
+  assert.match(listPage, /getBoardCategoryLabel/);
+  assert.match(detailPage, /external_link_url/);
+  assert.match(detailPage, /링크 열기/);
+  assert.match(mutationRoute, /context\.post\.category === "schedule"/);
+  assert.match(mutationRoute, /revalidatePath\("\/schedule"\)/);
+});

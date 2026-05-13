@@ -153,6 +153,19 @@ export default async function BoardDetailPage({
             </div>
           ) : null}
 
+          {post.external_link_url ? (
+            <div className="mt-6">
+              <a
+                href={post.external_link_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-nzu-green/30 bg-nzu-green/10 px-5 text-sm font-black text-nzu-green transition hover:bg-nzu-green hover:text-black"
+              >
+                링크 열기
+              </a>
+            </div>
+          ) : null}
+
           {post.download_url ? (
             <div className="mt-6">
               <a
