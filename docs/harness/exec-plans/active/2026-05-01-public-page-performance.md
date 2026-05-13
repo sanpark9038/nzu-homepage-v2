@@ -605,3 +605,29 @@ Next:
 
 - Treat `/schedule` as the next product slice. The safest path is a contract test that requires `/schedule` to load explicit prediction state instead of exposing local temporary prediction-match fallback data.
 - Keep `star-hosaga.com` as an ops checklist unless the operator explicitly approves Vercel/Cloudflare production configuration writes.
+
+### 2026-05-13 Schedule Fallback Cleanup Slice
+
+Completed:
+
+- Updated `/schedule` to load explicit prediction state with `loadPredictionState()` and pass it into `buildTournamentPredictionMatches(players, predictionState)`.
+- Emptied the local prediction-match fallback seed so public schedule output cannot fall back to old test/temporary rows.
+- Added `test:schedule-page-data-source-contract` and included it in `verify:predeploy`.
+- Preserved the existing visible schedule labels and did not promote `/schedule` into visible navigation.
+
+Verification:
+
+- `npm.cmd run test:schedule-page-data-source-contract`
+- `npm.cmd run test:prediction-cache-contract`
+- `npm.cmd run test:prediction-store-contract` (sandbox `spawn EPERM` on first run; rerun with approved permissions passed)
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run build`
+- Browser check, local dev server:
+  - mobile `390x844` `/schedule`: no horizontal overflow, no browser errors, no `TEST`/`Temporary`/`placeholder`/`임시` text.
+  - desktop `1440x1000` `/schedule`: no horizontal overflow, no browser errors, no fixture text.
+- `npm.cmd run pipeline:health`
+- `npm.cmd run verify:predeploy` (sandbox `spawn EPERM` on first run; rerun with approved permissions passed)
+
+Next:
+
+- Domain connection remains an ops task: document exact Vercel/Cloudflare steps only, and do not change production DNS/Vercel settings without explicit approval.

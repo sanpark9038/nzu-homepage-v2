@@ -1,5 +1,6 @@
 
 import { playerService } from "@/lib/player-service";
+import { loadPredictionState } from "@/lib/prediction-store";
 import { buildTournamentPredictionMatches } from "@/lib/tournament-prediction";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -32,7 +33,8 @@ function toKstDate(dateLike: string | Date) {
 
 export default async function SchedulePage() {
   const players = await playerService.getCachedPlayersList();
-  const matches = buildTournamentPredictionMatches(players);
+  const predictionState = await loadPredictionState();
+  const matches = buildTournamentPredictionMatches(players, predictionState);
 
   // 날짜별로 그룹화
   const groupedMatches: Record<string, typeof matches> = {};
