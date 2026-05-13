@@ -631,3 +631,23 @@ Verification:
 Next:
 
 - Domain connection remains an ops task: document exact Vercel/Cloudflare steps only, and do not change production DNS/Vercel settings without explicit approval.
+
+### 2026-05-13 Domain Connection Checklist
+
+Current state:
+
+- `star-hosaga.com` and `www.star-hosaga.com` are not attached to the Vercel project aliases.
+- `star-hosaga.com` currently has Cloudflare authority data only; `www.star-hosaga.com` does not resolve.
+- `images.star-hosaga.com` is a separate Cloudflare/R2 image domain and must be left untouched during apex/www web-domain setup.
+
+Operator checklist:
+
+1. In Vercel project `nzu-homepage-v2`, add both `star-hosaga.com` and `www.star-hosaga.com`.
+2. Run `vercel domains inspect star-hosaga.com` and `vercel domains inspect www.star-hosaga.com`; use the exact records from inspect output.
+3. In Cloudflare DNS, remove conflicting apex/www records, then add the Vercel-required records. Vercel's general pattern is apex `A 76.76.21.21` and `www` CNAME to a Vercel DNS target, but inspect output is the source of truth.
+4. Keep the new Cloudflare apex/www records DNS-only at first for the lowest-risk certificate path. Do not use Cloudflare Flexible SSL, and do not block `/.well-known/acme-challenge/*`.
+5. Prefer `star-hosaga.com` as canonical and redirect `www` to apex unless the operator chooses the opposite.
+6. Verify with Vercel domain inspect, DNS lookup for apex/www, and browser smoke checks for `/`, `/tier`, `/prediction`, and `/schedule`.
+7. After the domain is live, update serving-cache revalidation configuration such as GitHub Actions `SERVING_REVALIDATE_URL` and the matching Supabase Edge secret/env to `https://star-hosaga.com`.
+
+No production Vercel, Cloudflare, GitHub, or Supabase configuration was changed in this slice.

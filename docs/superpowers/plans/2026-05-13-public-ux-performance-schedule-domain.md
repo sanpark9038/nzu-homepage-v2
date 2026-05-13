@@ -332,10 +332,12 @@ Record:
 ```text
 1. Add star-hosaga.com to Vercel project nzu-homepage-v2.
 2. Add www.star-hosaga.com to the same project.
-3. In Cloudflare, set apex A record to Vercel's required IP or use Vercel-provided instructions.
-4. In Cloudflare, set www CNAME to cname.vercel-dns.com if Vercel asks for it.
+3. Run vercel domains inspect for both domains and use the exact DNS records it reports.
+4. In Cloudflare, leave images.star-hosaga.com untouched, remove conflicting apex/www records, then add the exact Vercel-required apex/www records.
 5. Decide canonical redirect: apex -> www or www -> apex.
-6. Verify with vercel domains inspect and browser checks.
+6. Keep Cloudflare apex/www DNS-only at first; do not use Flexible SSL.
+7. Verify with vercel domains inspect, DNS lookups, and browser checks.
+8. After the domain is live, update SERVING_REVALIDATE_URL wherever serving cache revalidation is configured.
 ```
 
 - [ ] **Step 3: Do not change DNS from Codex unless the operator explicitly asks**
