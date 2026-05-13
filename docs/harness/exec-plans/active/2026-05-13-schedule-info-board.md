@@ -178,3 +178,43 @@ Verification completed on 2026-05-14:
 - `npm.cmd run pipeline:health`
 - `npm.cmd run build`
 - Browser smoke check: `http://localhost:3000/schedule` exposes visible nav `일정`, day/week/month controls, day quick filters, sr-only page heading, and the locked empty state.
+
+## 2026-05-14 Calendar View Refinement
+
+User-approved refinement:
+
+- Keep `일별` as the today-first list with `오늘`, `내일`, `모레`, `전체` quick filters.
+- Render `주별` as a 7-column weekly calendar.
+- Render `월별` as a full monthly calendar grid.
+- Provide `이전`, `오늘`, `다음` calendar navigation for week/month views.
+- Keep inline details on the same page when a calendar schedule chip is opened.
+- Use a minimum grid width with horizontal scrolling so mobile viewports do not crush the calendar cells.
+
+Verification completed on 2026-05-14:
+
+- RED/GREEN: `npm.cmd run test:schedule-info-page-contract`
+- `npm.cmd run test:schedule-page-data-source-contract`
+- `npm.cmd run test:schedule-info-board-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run pipeline:health`
+- `npm.cmd run build`
+- Browser smoke check: `http://localhost:3000/schedule` switches from `일별` to weekly and monthly calendar grids without console errors.
+
+Final verification after review fixes on 2026-05-14:
+
+- PASS: `npm.cmd run test:schedule-info-page-contract`
+- PASS: `npm.cmd run test:schedule-page-data-source-contract`
+- PASS: `npm.cmd run test:schedule-info-board-contract`
+- PASS: `npx.cmd tsc --noEmit`
+- PASS: `npm.cmd run lint`
+- PASS: `npm.cmd run pipeline:health`
+- PASS: `npm.cmd run build`
+- PASS: read-only subagent re-review found no medium-or-higher risks after the `limit: 500` clamp and padded calendar lower bound.
+- PASS: browser smoke check at `http://localhost:3000/schedule` confirmed day list, weekly calendar, monthly calendar, no browser errors, and mobile 390px calendar horizontal scrolling.
+
+Review follow-up completed on 2026-05-14:
+
+- Calendar date math now uses `Date.UTC` with UTC getters/setters so browser local timezone cannot shift week/month cells.
+- `/schedule` now fetches a bounded calendar window from 3 months before to 13 months after today with `limit: 500`.
+- Week/month `이전` and `다음` buttons are disabled outside the fetched calendar window to avoid showing false empty states for unloaded periods.

@@ -14,6 +14,17 @@ test("public schedule page uses schedule info board posts without a large hero",
 
   assert.match(source, /listScheduleInfoPosts/);
   assert.match(source, /ScheduleInfoList/);
+  assert.match(source, /addMonths/);
+  assert.match(source, /Date\.UTC/);
+  assert.match(source, /addMonthsToDateKey/);
+  assert.match(source, /addDaysToDateKey/);
+  assert.match(source, /minCalendarKey/);
+  assert.match(source, /maxCalendarKey/);
+  assert.match(source, /addDaysToDateKey\(addMonthsToDateKey\(todayKey,\s*-3\),\s*-6\)/);
+  assert.match(source, /limit:\s*500/);
+  assert.doesNotMatch(source, /addDays\(today,\s*60\)/);
+  assert.doesNotMatch(source, /\.setDate\(/);
+  assert.doesNotMatch(source, /\.setMonth\(/);
   assert.match(source, /<h1 className="sr-only">일정<\/h1>/);
   assert.doesNotMatch(source, /storageReady/);
   assert.doesNotMatch(source, /Match\s*<span/);
@@ -22,6 +33,9 @@ test("public schedule page uses schedule info board posts without a large hero",
   assert.doesNotMatch(source, /모든 일정 시간/);
   assert.doesNotMatch(source, /buildTournamentPredictionMatches/);
   assert.doesNotMatch(source, /loadPredictionState/);
+
+  const boardSource = readProjectFile("lib/board.ts");
+  assert.match(boardSource, /Math\.min\(Math\.max\(options\.limit \|\| 100,\s*1\),\s*500\)/);
 });
 
 test("visible navigation exposes schedule as short schedule label", () => {
@@ -56,4 +70,39 @@ test("schedule info list renders day week month controls with today as default",
   assert.doesNotMatch(source, /if \(!posts\.length\)/);
   assert.doesNotMatch(source, /iframe/);
   assert.doesNotMatch(source, /<img/);
+});
+
+test("schedule info list renders weekly and monthly calendar grids", () => {
+  const source = readProjectFile("components/schedule/ScheduleInfoList.tsx");
+
+  assert.match(source, /WEEKDAY_LABELS/);
+  assert.match(source, /buildWeekCalendarDays/);
+  assert.match(source, /buildMonthCalendarDays/);
+  assert.match(source, /ScheduleCalendarView/);
+  assert.match(source, /schedule-calendar-grid/);
+  assert.match(source, /grid-cols-7/);
+  assert.match(source, /Date\.UTC/);
+  assert.match(source, /getUTCDay/);
+  assert.match(source, /getUTCDate/);
+  assert.match(source, /setUTCDate/);
+  assert.match(source, /dayFilter === "all"\) return scheduleDate >= todayKey/);
+  assert.match(source, /isCalendarRangeWithinBounds/);
+  assert.match(source, /firstDateKey/);
+  assert.match(source, /lastDateKey/);
+  assert.doesNotMatch(source, /\.getDay\(/);
+  assert.doesNotMatch(source, /\.getDate\(/);
+  assert.doesNotMatch(source, /\.getMonth\(/);
+  assert.doesNotMatch(source, /\.setDate\(/);
+  assert.doesNotMatch(source, /\.setMonth\(/);
+  assert.match(source, /canMovePrevious/);
+  assert.match(source, /canMoveNext/);
+  assert.match(source, /disabled={!canMovePrevious}/);
+  assert.match(source, /disabled={!canMoveNext}/);
+  assert.match(source, /이전/);
+  assert.match(source, /다음/);
+  assert.match(source, /isToday/);
+  assert.match(source, /isCurrentMonth/);
+  assert.match(source, /line-clamp-1/);
+  assert.match(source, /viewMode === "day"/);
+  assert.match(source, /viewMode !== "day"/);
 });

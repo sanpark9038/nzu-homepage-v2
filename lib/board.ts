@@ -337,7 +337,7 @@ export async function listBoardPosts(limit = BOARD_POST_LIMIT) {
 
 export async function listScheduleInfoPosts(options: { fromDate?: string; toDate?: string; limit?: number } = {}) {
   try {
-    const limit = Math.min(Math.max(options.limit || 100, 1), 100);
+    const limit = Math.min(Math.max(options.limit || 100, 1), 500);
     let query = publicSupabase
       .from("board_posts")
       .select("*")
