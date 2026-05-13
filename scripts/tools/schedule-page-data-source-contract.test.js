@@ -9,13 +9,12 @@ function readProjectFile(filePath) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }
 
-test("schedule page builds public matches from explicit prediction state", () => {
+test("schedule page builds public schedule from admin schedule board posts", () => {
   const source = readProjectFile("app/schedule/page.tsx");
 
-  assert.match(source, /loadPredictionState/);
-  assert.match(source, /await\s+loadPredictionState\(\)/);
-  assert.match(source, /buildTournamentPredictionMatches\(\s*players\s*,\s*\w+\s*\)/);
-  assert.doesNotMatch(source, /buildTournamentPredictionMatches\(\s*players\s*\)/);
+  assert.match(source, /listScheduleInfoPosts/);
+  assert.doesNotMatch(source, /buildTournamentPredictionMatches/);
+  assert.doesNotMatch(source, /loadPredictionState/);
 });
 
 test("local public prediction-match seed does not expose placeholder fixture rows", () => {

@@ -198,6 +198,22 @@ function hasInvalidOptionalUrlInput(rawValue: unknown, normalizedValue: string |
   return Boolean(normalizeText(rawValue)) && !normalizedValue;
 }
 
+function formatErrorSearchText(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (!error || typeof error !== "object") return String(error || "");
+
+  const record = error as Record<string, unknown>;
+  const knownParts = ["code", "message", "details", "hint"]
+    .map((key) => record[key])
+    .filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  try {
+    return `${knownParts.join(" ")} ${JSON.stringify(error)}`;
+  } catch {
+    return knownParts.join(" ");
+  }
+}
+
 export function validateAdminSchedulePostInput(
   input: ReturnType<typeof normalizeAdminSchedulePostInput> | ReturnType<typeof normalizeAdminSchedulePostUpdateInput>,
   rawValue: unknown = {}
@@ -214,12 +230,12 @@ export function validateAdminSchedulePostInput(
 }
 
 export function isBoardStorageMissing(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error || "");
+  const message = formatErrorSearchText(error);
   return /board_posts|relation|schema cache|42p01/i.test(message);
 }
 
 export function isScheduleInfoStorageMissing(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error || "");
+  const message = formatErrorSearchText(error);
   return (
     isBoardStorageMissing(error) ||
     /schedule_date|schedule_start_time|schedule_display_name|external_link_url|schema cache|42703/i.test(message)
@@ -227,7 +243,7 @@ export function isScheduleInfoStorageMissing(error: unknown) {
 }
 
 export function isBoardReadUnavailable(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error || "");
+  const message = formatErrorSearchText(error);
   return /fetch failed|eacces|failed to fetch|network|timeout/i.test(message);
 }
 

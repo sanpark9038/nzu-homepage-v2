@@ -15,17 +15,31 @@ import { deleteBoardImageFromR2 } from "@/lib/r2";
 
 export const runtime = "nodejs";
 
+type RouteContext = {
+  params: Promise<unknown>;
+};
+
 async function requireAdmin() {
   const cookieStore = await cookies();
   return isValidAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
 }
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function readRouteId(paramsPromise: Promise<unknown>) {
+  const params = await paramsPromise;
+  if (!params || typeof params !== "object") return "";
+  const id = (params as { id?: unknown }).id;
+  return typeof id === "string" ? id : "";
+}
+
+export async function PATCH(req: Request, { params }: RouteContext) {
   if (!(await requireAdmin())) {
     return NextResponse.json({ ok: false, message: "unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  const id = await readRouteId(params);
+  if (!id) {
+    return NextResponse.json({ ok: false, message: "schedule post not found" }, { status: 404 });
+  }
 
   try {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
@@ -66,12 +80,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_req: Request, { params }: RouteContext) {
   if (!(await requireAdmin())) {
     return NextResponse.json({ ok: false, message: "unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  const id = await readRouteId(params);
+  if (!id) {
+    return NextResponse.json({ ok: false, message: "schedule post not found" }, { status: 404 });
+  }
 
   try {
     const post = await getBoardPostForMutation(id);

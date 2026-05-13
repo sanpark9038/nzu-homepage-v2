@@ -45,6 +45,8 @@ test("public board creation remains unable to create schedule posts", () => {
 test("board helpers define admin schedule input and list helpers", () => {
   const board = readProjectFile("lib/board.ts");
 
+  assert.match(board, /formatErrorSearchText/);
+  assert.match(board, /JSON\.stringify\(error\)/);
   assert.match(board, /normalizeAdminSchedulePostInput/);
   assert.match(board, /validateAdminSchedulePostInput/);
   assert.match(board, /isScheduleInfoStorageMissing/);
@@ -65,6 +67,9 @@ test("admin schedule routes are admin-cookie protected", () => {
     assert.match(source, /isValidAdminSession/);
     assert.match(source, /NextResponse\.json\(\{\s*ok:\s*false/);
   }
+
+  assert.match(itemRoute, /params:\s*Promise<unknown>/);
+  assert.match(itemRoute, /readRouteId/);
 });
 
 test("admin schedule image upload accepts admin session and schedule routes clean R2 images", () => {
