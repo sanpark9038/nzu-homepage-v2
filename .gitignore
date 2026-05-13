@@ -66,4 +66,5 @@ build_error.txt
 MAIN_AI_UI_BRIEFING.md
 MAIN_AI_UI_ONLY_INSTRUCTION.md
 .planning/
+.superpowers/
 prod-sync.log
