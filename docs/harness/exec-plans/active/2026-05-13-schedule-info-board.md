@@ -1,7 +1,7 @@
 # ACTIVE PLAN: schedule-info-board
 
 Created: 2026-05-13
-Status: planned
+Status: completed
 
 ## Goal
 
@@ -68,12 +68,12 @@ Build the `정보/일정` schedule-board MVP from the approved design:
 
 ## Implementation Tasks
 
-- [ ] Task 1: Schema and contract red/green.
-- [ ] Task 2: Board helpers and admin schedule API.
-- [ ] Task 3: Admin schedule composer and nav.
-- [ ] Task 4: Public schedule page from board posts.
-- [ ] Task 5: Board detail external link support.
-- [ ] Task 6: Verification and documentation.
+- [x] Task 1: Schema and contract red/green.
+- [x] Task 2: Board helpers and admin schedule API.
+- [x] Task 3: Admin schedule composer and nav.
+- [x] Task 4: Public schedule page from board posts.
+- [x] Task 5: Board detail external link support.
+- [x] Task 6: Verification and documentation.
 
 ## Review Checkpoint
 
@@ -107,6 +107,32 @@ Resolution in the implementation plan:
 - `npm.cmd run pipeline:health`
 - `npm.cmd run verify:predeploy`
 
+## Verification Evidence
+
+2026-05-13 implementation verification:
+
+- PASS: `npm.cmd run test:schedule-info-board-contract`
+- PASS: `npm.cmd run test:schedule-info-page-contract`
+- PASS: `npm.cmd run test:schedule-page-data-source-contract`
+- PASS: `npm.cmd run test:board-write-contract`
+- PASS: `npm.cmd run test:board-edit-contract`
+- PASS: `npm.cmd run test:board-readability-contract`
+- PASS: `npx.cmd tsc --noEmit`
+- PASS: `npm.cmd run build`
+- PASS: `npm.cmd run lint`
+- PASS: `npm.cmd run pipeline:health`
+- PASS: `npm.cmd run verify:predeploy`
+
+Browser verification:
+
+- `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000` could not start because an existing `.next/dev/lock` was present; no existing process was killed for this check.
+- Used the verified build with `npm.cmd run start -- --hostname 127.0.0.1 --port 3000`.
+- PASS: `/schedule` loaded with content and no framework error overlay.
+- PASS: `/schedule` empty state displayed `예정된 경기가 없습니다.`
+- PASS: `/schedule` had no horizontal overflow at 390x844 or 1440x1000.
+- PASS: `/admin/schedule` redirected to `/admin/login?next=%2Fadmin%2Fschedule` when logged out.
+- PASS: `agent-browser.cmd errors` returned no browser errors during checks.
+
 ## Production Safety
 
 The implementation may add SQL files and type definitions, but it must not apply database changes to production.
@@ -117,5 +143,8 @@ Before that migration, schedule reads must handle missing schedule columns as "s
 
 ## Current State
 
-- Planned only.
-- No implementation code has been changed yet.
+- Implementation complete and committed.
+- Production SQL has not been applied.
+- Production data has not been written.
+- Public `/schedule` fails softly with the normal empty state when schedule columns are not migrated yet.
+- Next step is a separate, explicit production DB migration approval before deployed admin schedule writes can succeed.
