@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { BoardPostRow } from "@/lib/board";
 import { renderBoardContentToHtml } from "@/lib/board-content";
@@ -57,6 +57,17 @@ function formatScheduleDate(value: string | null) {
 
   const date = dateFromKey(value);
   return new Intl.DateTimeFormat("ko-KR", {
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function formatSelectedScheduleDate(value: string) {
+  const date = dateFromKey(value);
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "long",
@@ -230,6 +241,14 @@ function getCalendarTodayDateClass(weekday: number) {
   if (weekday === 0) return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-rose-400 px-2 text-sm font-black text-black";
   if (weekday === 6) return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-sky-400 px-2 text-sm font-black text-black";
   return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-nzu-green px-2 text-sm font-black text-black";
+}
+
+function getCalendarDayButtonClass(day: CalendarDay, hasPosts: boolean) {
+  const toneClass = day.isToday ? getCalendarTodayDateClass(day.weekday) : `rounded-full text-sm font-black ${getCalendarDateToneClass(day)}`;
+  const interactionClass = hasPosts
+    ? "schedule-calendar-day-button cursor-pointer transition hover:ring-2 hover:ring-nzu-green/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nzu-green/70"
+    : "schedule-calendar-day-button cursor-default disabled:opacity-100";
+  return `${toneClass} ${interactionClass}`;
 }
 
 function isCalendarRangeWithinBounds(
@@ -408,9 +427,11 @@ function ScheduleCalendarView({
   onNext: () => void;
   onToday: () => void;
 }) {
+  const [selectedCalendarDateKey, setSelectedCalendarDateKey] = useState<string | null>(null);
   const days = getCalendarDaysForView(viewMode, cursorKey, todayKey);
   const visibleCount = days.reduce((count, day) => count + (postsByDate.get(day.dateKey)?.length || 0), 0);
   const emptyMessage = getCalendarEmptyMessage(posts, visibleCount);
+  const selectedCalendarPosts = selectedCalendarDateKey ? postsByDate.get(selectedCalendarDateKey) || [] : [];
   const canMovePrevious = isCalendarRangeWithinBounds(
     viewMode,
     getCalendarMoveTarget(viewMode, cursorKey, -1),
@@ -428,6 +449,19 @@ function ScheduleCalendarView({
   const calendarTitle = formatCalendarTitle(cursorKey, viewMode);
   const previousCalendarLabel = viewMode === "month" ? "이전 달" : "이전 주";
   const nextCalendarLabel = viewMode === "month" ? "다음 달" : "다음 주";
+
+  useEffect(() => {
+    if (!selectedCalendarDateKey) return;
+
+    function handleKeydown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSelectedCalendarDateKey(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, [selectedCalendarDateKey]);
 
   return (
     <div className="space-y-5">
@@ -491,13 +525,17 @@ function ScheduleCalendarView({
                 >
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <span
-                      className={
-                        day.isToday
-                          ? getCalendarTodayDateClass(day.weekday)
-                          : `text-sm font-black ${getCalendarDateToneClass(day)}`
-                      }
+                      className="inline-flex"
                     >
-                      {day.dayLabel}
+                      <button
+                        type="button"
+                        aria-label={`${formatSelectedScheduleDate(day.dateKey)} 일정 보기`}
+                        disabled={!dayPosts.length}
+                        onClick={() => setSelectedCalendarDateKey(day.dateKey)}
+                        className={getCalendarDayButtonClass(day, Boolean(dayPosts.length))}
+                      >
+                        {day.dayLabel}
+                      </button>
                     </span>
                     {dayPosts.length ? <span className="text-xs font-black text-sky-100/70">{dayPosts.length}</span> : null}
                   </div>
@@ -519,6 +557,59 @@ function ScheduleCalendarView({
           <p className="text-base font-medium text-white/60">{emptyMessage}</p>
         </div>
       ) : null}
+
+      {selectedCalendarDateKey && selectedCalendarPosts.length ? (
+        <ScheduleCalendarDayDialog
+          dateKey={selectedCalendarDateKey}
+          posts={selectedCalendarPosts}
+          onClose={() => setSelectedCalendarDateKey(null)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ScheduleCalendarDayDialog({
+  dateKey,
+  posts,
+  onClose,
+}: {
+  dateKey: string;
+  posts: BoardPostRow[];
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 py-8 backdrop-blur-sm" onClick={onClose}>
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="schedule-day-dialog-title"
+        className="w-full max-w-3xl rounded-[1.25rem] border border-white/10 bg-[#101820] p-6 shadow-2xl shadow-black/40 md:p-7"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
+          <div>
+            <h2 id="schedule-day-dialog-title" className="text-xl font-black text-white md:text-2xl">
+              {formatSelectedScheduleDate(dateKey)}
+            </h2>
+            <p className="mt-2 text-sm font-bold text-white/50">{posts.length}개의 일정</p>
+          </div>
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-sky-300/35 bg-white/[0.03] text-sky-200 transition hover:border-sky-300 hover:text-white"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        <div className="mt-5 max-h-[65vh] space-y-3 overflow-y-auto pr-1">
+          {posts.map((post) => (
+            <ScheduleInfoCard key={post.id} post={post} />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

@@ -548,3 +548,24 @@ Verification completed on 2026-05-14:
 - PASS: `npm.cmd run lint`
 - PASS: `npm.cmd run build`
 - PASS: browser smoke check at `http://127.0.0.1:3000/schedule` confirmed `예정된 일정이 없습니다.`, no old `예정된 경기가 없습니다.` text, and no Next.js error overlay.
+
+## 2026-05-14 Calendar Date Detail Dialog Pass
+
+User-approved refinement:
+
+- Add a reference-style selected-day dialog for week/month calendar dates.
+- Dates with registered schedules are clickable and open a centered dialog with the full date, schedule count, and schedule cards.
+- The dialog closes through the close button, backdrop click, or Escape.
+- Keep existing inline calendar event chips and board links available.
+- Keep local verification on port 3000 only; do not use port 3001.
+- Do not write production schedule data for visual verification.
+
+Verification completed on 2026-05-14:
+
+- RED/GREEN: `npm.cmd run test:schedule-info-page-contract`
+- PASS: `npm.cmd run test:schedule-page-data-source-contract`
+- PASS: `npm.cmd run test:schedule-info-board-contract`
+- PASS: `npx.cmd tsc --noEmit`
+- PASS: `npm.cmd run lint`
+- PASS: `npm.cmd run build`
+- PASS: browser smoke check at `http://127.0.0.1:3000/schedule` showed monthly calendar date buttons and no Next.js error overlay. Live production schedule data was 0 rows, so the dialog open path was covered by the contract test without inserting temporary production data.
