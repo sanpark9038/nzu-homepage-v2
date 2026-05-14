@@ -655,6 +655,10 @@ Verification completed on 2026-05-14:
 - PASS: clicking the event chip itself opened the selected-day dialog with title `2026년 5월 16일 토요일` and the test marker/title.
 - PASS: no browser application error was detected after the click.
 - PASS: screenshot captured at `C:\Users\NZU\.agent-browser\tmp\screenshots\screenshot-1778740731160.png`.
+- PASS: Vercel production deployment `https://nzu-homepage-v2-8qip879if-sanparks-projects.vercel.app` reached `Ready`.
+- PASS: production alias `https://nzu-homepage-v2.vercel.app/schedule?prodEventClick=1778739314350` opened the same selected-day dialog from the event chip.
+- PASS: production browser verification found title `2026년 5월 16일 토요일`, the test marker/title, and no application error.
+- PASS: production screenshot captured at `C:\Users\NZU\.agent-browser\tmp\screenshots\screenshot-1778741015454.png`.
 
 Current state:
 
