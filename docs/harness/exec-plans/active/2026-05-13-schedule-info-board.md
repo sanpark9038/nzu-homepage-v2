@@ -596,3 +596,35 @@ Verification completed on 2026-05-14:
 - PASS: `DELETE /api/admin/schedule/71c3b288-9931-403f-aca9-e5f35d65e886` returned `200`.
 - PASS: `GET /api/admin/schedule` returned `matchingAdminRows: 0` for the id/marker.
 - PASS: browser smoke check at `http://127.0.0.1:3000/schedule?afterDelete=1778738233459` found no marker/title and showed `예정된 일정이 없습니다.`
+
+## 2026-05-14 Temporary Public Review Schedule
+
+User-approved production write scope:
+
+- Create one temporary public schedule post so the user can inspect the real schedule UI.
+- Use local verification on port 3000 only; do not use port 3001.
+- Do not delete the row until the user confirms visual review is complete.
+
+Temporary row:
+
+- id: `8beb5031-86e7-4669-b1ea-cfb6522d8f9c`
+- marker: `codex-public-review-1778739314350`
+- title: `[TEST] Public schedule review - codex-public-review-1778739314350`
+- date: `2026-05-16`
+- start time: `14:00`
+- published: `true`
+
+Verification completed on 2026-05-14:
+
+- PASS: pre-create admin check found `0` existing `codex-public-review-*` rows.
+- PASS: `POST http://127.0.0.1:3000/api/admin/schedule` returned `201`.
+- PASS: admin listing found exactly `1` matching row and `published = true`.
+- PASS: public `GET http://127.0.0.1:3000/schedule?publicReview=1778739314350` contained the marker and title.
+- PASS: browser smoke check at `http://127.0.0.1:3000/schedule?publicReview=1778739314350` showed the row in monthly view with no Next.js error overlay.
+- PASS: clicking the `2026-05-16` monthly date opened a dialog with title `2026년 5월 16일 토요일` and the test marker/title.
+- PASS: screenshot captured at `C:\Users\NZU\.agent-browser\tmp\screenshots\screenshot-1778739542812.png`.
+
+Current state:
+
+- This temporary public row intentionally remains in production for user review.
+- Delete and verify residue only after the user confirms they are done reviewing it.
