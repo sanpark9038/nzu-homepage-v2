@@ -66,6 +66,14 @@ function shouldSkipByPriorityWindow(player, to, jsonPath = null) {
   return daysBetween(todayDate, lastChecked) < checkIntervalDays;
 }
 
+function shouldReuseInactiveExistingJson(player, inactiveSkipDays, to, jsonPath) {
+  const hasPriorityWindow = Number(player && player.check_interval_days ? player.check_interval_days : 0) > 0;
+  if (hasPriorityWindow || inactiveSkipDays <= 0) return false;
+  const maxDate = readPeriodMaxDate(jsonPath);
+  const todayDate = asDate(to) || new Date();
+  return Boolean(maxDate && daysBetween(todayDate, maxDate) > inactiveSkipDays);
+}
+
 function readPeriodMaxDate(jsonPath) {
   if (!fs.existsSync(jsonPath)) return null;
   try {
@@ -362,22 +370,21 @@ async function main() {
       });
       let shouldFetch = true;
       const forceRefresh = hasResumeMarker(p, resumes);
+      const hasPriorityWindow = Number(p && p.check_interval_days ? p.check_interval_days : 0) > 0;
       if (forceRefresh) {
         result.fetch_status = "forced_recollect_after_resume";
       } else if (useExisting && fs.existsSync(jsonPath)) {
         if (shouldSkipByPriorityWindow(p, to, jsonPath)) {
           shouldFetch = false;
           result.fetch_status = "used_existing_json_priority_window";
-        } else if (inactiveSkipDays > 0) {
-          const maxDate = readPeriodMaxDate(jsonPath);
-          const todayDate = asDate(to) || new Date();
-          if (maxDate && daysBetween(todayDate, maxDate) > inactiveSkipDays) {
+        } else if (!hasPriorityWindow && inactiveSkipDays > 0) {
+          if (shouldReuseInactiveExistingJson(p, inactiveSkipDays, to, jsonPath)) {
             shouldFetch = false;
             result.fetch_status = "used_existing_json_inactive";
           } else {
             shouldFetch = true;
           }
-        } else {
+        } else if (!hasPriorityWindow) {
           shouldFetch = false;
           result.fetch_status = "used_existing_json";
         }
@@ -543,4 +550,5 @@ if (require.main === module) {
 module.exports = {
   readFileModifiedAt,
   shouldSkipByPriorityWindow,
+  shouldReuseInactiveExistingJson,
 };

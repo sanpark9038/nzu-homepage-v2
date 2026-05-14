@@ -60,10 +60,15 @@ test("tier h2h selector accepts lightweight matchup summaries", () => {
   assert.doesNotMatch(source, /CustomEvent<Player>/);
 });
 
-test("tier lightweight card keeps the initial route payload text-first", () => {
+test("tier lightweight card keeps compact profile images visible without hydrating the shared card", () => {
   const source = readProjectFile("components/players/TierPlayerCard.tsx");
 
-  assert.doesNotMatch(source, /from ["']next\/image["']/);
-  assert.doesNotMatch(source, /resolveSoopChannelImageUrl/);
-  assert.doesNotMatch(source, /<Image\b/);
+  assert.match(source, /from ["']next\/image["']/);
+  assert.match(source, /resolveSoopChannelImageUrl/);
+  assert.match(source, /<Image\b/);
+  assert.match(source, /width=\{56\}/);
+  assert.match(source, /height=\{64\}/);
+  assert.match(source, /player\.name\.slice\(0,\s*1\)/);
+  assert.doesNotMatch(source, /sizes=["']56px["']/);
+  assert.doesNotMatch(source, /from ["']\.\/PlayerCard["']/);
 });

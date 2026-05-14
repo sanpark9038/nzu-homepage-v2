@@ -751,3 +751,14 @@ Result:
 - Default `/tier` is no longer stuck on repeated route-level `MISS`; the route split achieved the cache objective.
 - The explicit live-only query remains dynamic by design so it can continue using the live-only serving path and freshness overlay.
 - The next performance bottleneck for default `/tier` is still response size, not repeated SSR. Further work should target reducing or virtualizing the initial full-list HTML payload.
+
+### 2026-05-14 Tier Profile Image Follow-up
+
+- User review found that the lightweight tier card had removed visible player
+  profile images entirely. The earlier payload reduction solved response size
+  but created a UX regression.
+- Restored a compact fixed-size profile image in `TierPlayerCard` while keeping
+  the shared hydrated `PlayerCard` out of the tier grid.
+- Updated `scripts/tools/tier-page-cache-contract.test.js` so the contract now
+  protects both goals: compact profile images remain visible, and the tier grid
+  still does not rehydrate the shared card component.

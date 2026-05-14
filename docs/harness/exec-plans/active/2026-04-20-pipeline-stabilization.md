@@ -283,3 +283,21 @@ Retire or fail-close the legacy direct Supabase sync path so production serving 
 - [x] Verify with focused tests first, then `pipeline:health`, then `verify:predeploy`.
 
 Outcome: `run-manual-refresh.js` now builds chunked collection args after the allow-failure homepage integrity step has returned. `--preflight-already-run` is only forwarded when that top-level step has `ok === true`; failed or skipped top-level integrity leaves chunk-local homepage integrity enabled.
+
+### 2026-05-14 Player History Freshness Follow-up
+
+- Investigated a production report where `eloboard:male:37` still showed recent
+  records ending at `2026-04-20` while a forced no-cache source check found
+  matches through `2026-05-13`.
+- Root cause is FM-009: stale existing JSON could be reused for inactive
+  players, then `update-player-check-priority.js` used the JSON file mtime as
+  `last_checked_at`, making a stale cache look recently checked.
+- Mitigation scope:
+  - `report-team-records.js` now emits explicit `generated_at` in fresh JSON.
+  - `update-player-check-priority.js` no longer uses file mtime as
+    `last_checked_at`.
+  - `export-team-roster-detailed.js` no longer lets inactive JSON reuse bypass
+    players that are due by `check_interval_days`.
+  - `scripts/tools/player-collection-freshness-contract.test.js` is wired into
+    `pipeline:health` and `verify:predeploy`.
+- No production data write was performed in this investigation slice.

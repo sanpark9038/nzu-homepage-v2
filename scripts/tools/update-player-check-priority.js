@@ -76,15 +76,15 @@ function matchJsonPath(teamCode, teamName, fetchUnivName, player) {
   return hit || candidates[0];
 }
 
-function readPlayerMatchMeta(jsonPath) {
+function readPlayerMatchMeta(jsonPath, existingPlayer = null) {
   if (!fs.existsSync(jsonPath)) return null;
   try {
-    const stat = fs.statSync(jsonPath);
     const doc = readJson(jsonPath);
     const player = Array.isArray(doc.players) ? doc.players[0] : null;
+    const lastMatchAt = player && player.period_max_date ? player.period_max_date : existingPlayer?.last_match_at;
     return {
-      last_checked_at: stat.mtime.toISOString(),
-      last_match_at: isoOrNull(player && player.period_max_date ? player.period_max_date : null),
+      last_checked_at: isoOrNull(doc.generated_at),
+      last_match_at: isoOrNull(lastMatchAt || null),
       period_total: Number(player && player.period_total ? player.period_total : 0) || 0,
     };
   } catch {
@@ -134,7 +134,7 @@ function main() {
         check_priority: String(player.check_priority || ""),
         check_interval_days: Number(player.check_interval_days || 0) || 0,
       };
-      const meta = readPlayerMatchMeta(matchJsonPath(code, teamName, fetchUnivName, player));
+      const meta = readPlayerMatchMeta(matchJsonPath(code, teamName, fetchUnivName, player), player);
       if (meta) {
         player.last_checked_at = meta.last_checked_at;
         player.last_match_at = meta.last_match_at;
@@ -183,4 +183,11 @@ function main() {
   );
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  computePriority,
+  readPlayerMatchMeta,
+};

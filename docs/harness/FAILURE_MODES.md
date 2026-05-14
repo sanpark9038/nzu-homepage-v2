@@ -399,3 +399,59 @@ freshness before replacing the fallback history.
    for performance.
 4. Keep this behavior covered in `verify:predeploy` through the player-history
    artifact contract.
+
+## FM-009: Restored match JSON cache can masquerade as a fresh player-history check
+
+### Status
+
+- documented
+- mitigated in the collection priority/update path
+- covered by `scripts/tools/player-collection-freshness-contract.test.js`
+
+### Summary
+
+The player-history pipeline can leave an individual player stale even when the
+overall scheduled pipeline succeeds. A restored or reused match JSON file must
+not update `last_checked_at` merely because its filesystem mtime is recent.
+
+### Confirmed example
+
+- Player serving identity: `eloboard:male:37`
+- Production `players.match_history` latest date: `2026-04-20`
+- Forced no-cache source check latest date: `2026-05-13`
+- Pipeline run health: overall sync succeeded, but this player's row still
+  reflected the old cached history.
+
+### What happened
+
+1. The scheduled collection path allowed `--use-existing-json` plus
+   `--inactive-skip-days 14`.
+2. For a player whose cached `period_max_date` was older than the inactive
+   threshold, `export-team-roster-detailed.js` reused the existing JSON instead
+   of recollecting.
+3. `update-player-check-priority.js` then used the JSON file's mtime as
+   `last_checked_at`.
+4. Cache restore or artifact rewrite timing made the stale JSON look recently
+   checked, so later priority-window logic could keep skipping the same player.
+
+### Root cause
+
+The pipeline conflated artifact file freshness with source-check freshness.
+Filesystem metadata is not durable evidence that Eloboard was queried.
+
+### Relevant code paths
+
+- Collection skip decision: [scripts/tools/export-team-roster-detailed.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/export-team-roster-detailed.js:1)
+- Match report JSON output: [scripts/tools/report-team-records.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/report-team-records.js:1)
+- Priority metadata update: [scripts/tools/update-player-check-priority.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/update-player-check-priority.js:1)
+- Regression guard: [scripts/tools/player-collection-freshness-contract.test.js](/c:/Users/NZU/Desktop/nzu-homepage/scripts/tools/player-collection-freshness-contract.test.js:1)
+
+### Preventive harness actions
+
+1. Fresh match-report JSON must carry an explicit `generated_at` timestamp.
+2. Priority metadata must use `generated_at`, not file mtime, for
+   `last_checked_at`.
+3. Inactive JSON reuse must not override a player that is due for recollection
+   by `check_interval_days`.
+4. Keep this contract wired into both `pipeline:health` and
+   `verify:predeploy`.

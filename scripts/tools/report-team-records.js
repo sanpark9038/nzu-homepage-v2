@@ -673,9 +673,11 @@ async function main() {
   if (!JSON_ONLY) {
     printSummaryTable(outputPlayers);
   }
+  const generatedAt = new Date().toISOString();
   console.log(
     JSON.stringify(
       {
+        generated_at: generatedAt,
         team_name: TEAM_NAME,
         roster_url: ROSTER_URL,
         period: { from: START_DATE, to: END_DATE },

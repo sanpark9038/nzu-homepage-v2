@@ -7,6 +7,7 @@ const TMP_DIR = path.join(ROOT, "tmp");
 
 const {
   shouldSkipByPriorityWindow,
+  shouldReuseInactiveExistingJson,
 } = require("./export-team-roster-detailed");
 
 function runTest(name, fn) {
@@ -19,10 +20,10 @@ function runTest(name, fn) {
   }
 }
 
-function writeTempJson(fileName) {
+function writeTempJson(fileName, value = {}) {
   fs.mkdirSync(TMP_DIR, { recursive: true });
   const filePath = path.join(TMP_DIR, fileName);
-  fs.writeFileSync(filePath, "{}", "utf8");
+  fs.writeFileSync(filePath, JSON.stringify(value), "utf8");
   return filePath;
 }
 
@@ -62,6 +63,43 @@ runTest("shouldSkipByPriorityWindow forces recollect when cached json is stale",
         filePath
       ),
       false
+    );
+  } finally {
+    try {
+      fs.unlinkSync(filePath);
+    } catch {}
+  }
+});
+
+runTest("inactive reuse does not bypass due priority-window recollection", () => {
+  const filePath = writeTempJson("__test__inactive_due_priority.json", {
+    players: [{ period_max_date: "2026-04-20" }],
+  });
+  try {
+    assert.equal(
+      shouldReuseInactiveExistingJson(
+        { last_checked_at: "2026-05-01T00:00:00.000Z", check_interval_days: 3 },
+        14,
+        "2026-05-14T00:00:00.000Z",
+        filePath
+      ),
+      false
+    );
+  } finally {
+    try {
+      fs.unlinkSync(filePath);
+    } catch {}
+  }
+});
+
+runTest("inactive reuse still protects legacy players without priority metadata", () => {
+  const filePath = writeTempJson("__test__inactive_legacy_player.json", {
+    players: [{ period_max_date: "2026-04-20" }],
+  });
+  try {
+    assert.equal(
+      shouldReuseInactiveExistingJson({}, 14, "2026-05-14T00:00:00.000Z", filePath),
+      true
     );
   } finally {
     try {
