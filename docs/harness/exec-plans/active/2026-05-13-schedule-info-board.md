@@ -265,6 +265,42 @@ Post-apply verification:
 - PASS: Supabase REST query `select=id,external_link_url&limit=1` returned `200`.
 - Production unpublished schedule write-path test remains paused until separately resumed after this schema-only follow-up.
 
+## 2026-05-14 Production Unpublished Schedule Smoke Test
+
+User approval:
+
+- `production 비공개 테스트 일정 글 1개 생성/확인/삭제 승인. 공개 publish는 하지 마.`
+- After the `external_link_url` schema follow-up, user said to proceed with the paused test.
+
+Test route:
+
+- Used deployed production admin APIs at `https://nzu-homepage-v2.vercel.app`.
+- Authenticated through `/api/admin/session` using the configured admin access key.
+- Created one schedule post with `published: false`.
+- Did not publish any production schedule.
+
+Test row:
+
+- Marker: `codex-schedule-smoke-1778733623670`
+- Created id: `e52ba655-b91a-439b-adf6-893df536e097`
+- Schedule date: `2026-05-15`
+
+Verification:
+
+- PASS: `POST /api/admin/schedule` returned `201`.
+- PASS: returned row had `category = "schedule"` and `published = false`.
+- PASS: `GET /api/admin/schedule` found the unpublished row before deletion.
+- PASS: public `GET /schedule` returned `200` and did not contain the test marker.
+- PASS: `DELETE /api/admin/schedule/e52ba655-b91a-439b-adf6-893df536e097` returned `200`.
+- PASS: `GET /api/admin/schedule` no longer found the row after deletion.
+- PASS: read-only SQL residue check returned `matching_test_rows = 0` for the test id/marker.
+
+Final production data state:
+
+- The only production data write was the approved temporary unpublished test row.
+- The test row was deleted during the same smoke test.
+- No matching test row remains.
+
 ## 2026-05-14 UI Refinement Scope
 
 User-approved refinement:
