@@ -43,6 +43,12 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
           isLive && "ring-2 ring-red-500/80 ring-offset-2 ring-offset-background"
         )}
       >
+        {isLive ? (
+          <span className="pointer-events-none absolute right-3 top-3 z-20 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
+            LIVE
+          </span>
+        ) : null}
+
         <div className="flex flex-1 flex-col gap-3 p-3.5">
           <Link
             href={buildPlayerHref(player)}
@@ -61,19 +67,14 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
             />
           </Link>
 
-          <div className="flex items-start gap-2 pl-[5.25rem]">
+          <div className="pl-[5.25rem]">
             <Link
               href={buildPlayerHref(player)}
-              className="min-w-0 flex-1 truncate text-[1.16rem] font-black leading-tight tracking-tight text-foreground transition-colors hover:text-nzu-green"
+              className="block min-w-0 truncate text-[1.16rem] font-black leading-tight tracking-tight text-foreground transition-colors hover:text-nzu-green"
               aria-label={`${player.name} 전적 보기`}
             >
               {player.name}
             </Link>
-            {isLive ? (
-              <span className="shrink-0 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
-                LIVE
-              </span>
-            ) : null}
           </div>
 
           <div className="flex items-center gap-2 overflow-hidden pl-[5.25rem]">
@@ -103,7 +104,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
       {liveThumbnailUrl ? (
         <div
           data-live-thumbnail-hover-preview
-          className="pointer-events-none absolute bottom-[calc(100%+0.75rem)] left-1/2 z-[90] hidden w-[22rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/10 bg-[#061015] opacity-0 shadow-[0_24px_52px_rgba(0,0,0,0.44)] transition-opacity duration-150 group-hover:opacity-100 md:block"
+          className="pointer-events-none absolute bottom-[calc(100%+0.75rem)] left-1/2 z-[90] hidden w-[34rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/10 bg-[#061015] opacity-0 shadow-[0_24px_52px_rgba(0,0,0,0.44)] transition-opacity duration-150 group-hover:opacity-100 md:block"
         >
           <div className="relative aspect-video w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
             <Image

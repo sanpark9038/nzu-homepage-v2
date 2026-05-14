@@ -768,3 +768,7 @@ Result:
   protects both goals: compact player media remains visible, live thumbnails are
   hover previews when present, and the tier grid still does not rehydrate the
   shared card component.
+- User follow-up: the hover preview was too small and the inline `LIVE` badge
+  compressed short Korean player names into ellipses. The preview is now a
+  larger 16:9 `w-[34rem]` hover panel, and the live badge is positioned
+  absolutely outside the player-name text flow.

@@ -73,6 +73,10 @@ test("tier lightweight card keeps compact profile media and shows live thumbnail
   assert.match(source, /data-live-thumbnail-hover-preview/);
   assert.match(source, /group-hover:opacity-100/);
   assert.match(source, /bottom-\[calc\(100%\+0\.75rem\)\]/);
+  assert.match(source, /w-\[34rem\]/);
+  assert.doesNotMatch(source, /w-\[22rem\]/);
+  assert.match(source, /absolute right-3 top-3/);
+  assert.doesNotMatch(source, /shrink-0 rounded-full bg-red-600 px-2 py-0\.5/);
   assert.doesNotMatch(source, /aria-label=\{`\$\{player\.name\} live thumbnail`\}/);
   assert.doesNotMatch(source, /block aspect-video overflow-hidden/);
   assert.match(source, /<Image\b/);
