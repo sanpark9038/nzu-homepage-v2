@@ -178,7 +178,7 @@ Post-apply verification:
 
 - Implementation complete and committed.
 - Production schedule schema SQL has been applied for the approved additive columns/index only.
-- Production data has not been written.
+- Production schedule data now contains one approved temporary public test schedule row.
 - Public `/schedule` still has the soft-fail guard for non-migrated environments.
 - Deployed admin schedule writes can now use the schedule columns, but production schedule data insert/update/delete still requires a separate explicit approval.
 
@@ -300,6 +300,42 @@ Final production data state:
 - The only production data write was the approved temporary unpublished test row.
 - The test row was deleted during the same smoke test.
 - No matching test row remains.
+
+## 2026-05-14 Temporary Public Schedule Test Row
+
+User request:
+
+- User asked Codex to set temporary values and register a production schedule for testing, noting that it can be deleted later.
+
+Created production row:
+
+- id: `79fc792d-eee5-4a30-8c1f-2a8d7727fac5`
+- marker: `codex-public-schedule-test-1778733883558`
+- title: `[TEST] Schedule smoke check - codex-public-schedule-test-1778733883558`
+- display name: `TEST Schedule`
+- schedule date: `2026-05-15`
+- schedule start time: `09:00`
+- published: `true`
+
+Verification:
+
+- PASS: `POST /api/admin/schedule` returned `201`.
+- PASS: `GET /api/admin/schedule` found the row.
+- PASS: public `GET /schedule` contained the marker.
+- PASS: browser `/schedule` loaded with no browser errors.
+- PASS: after selecting the `내일` filter, browser DOM contained both the marker and `[TEST] Schedule smoke check`.
+- PASS: read-only SQL check found the row with `published = true`, `schedule_date = 2026-05-15`, and corrected ASCII test copy.
+
+Notes:
+
+- The first create request used Korean test literals that were mangled by the Windows PowerShell command boundary before reaching Node.
+- Codex immediately patched only this test row to ASCII test copy to avoid leaving garbled public text.
+- This temporary public row intentionally remains in production for review.
+- Delete when the test is no longer needed:
+
+```text
+DELETE /api/admin/schedule/79fc792d-eee5-4a30-8c1f-2a8d7727fac5
+```
 
 ## 2026-05-14 UI Refinement Scope
 
