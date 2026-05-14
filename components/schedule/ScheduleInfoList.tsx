@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { BoardPostRow } from "@/lib/board";
@@ -19,6 +20,7 @@ type DayFilter = "today" | "tomorrow" | "dayAfterTomorrow" | "all";
 type CalendarDay = {
   dateKey: string;
   dayLabel: string;
+  weekday: number;
   isToday: boolean;
   isCurrentMonth: boolean;
 };
@@ -111,6 +113,7 @@ function buildCalendarDay(date: Date, todayKey: string, currentMonth: number): C
   return {
     dateKey,
     dayLabel: String(date.getUTCDate()),
+    weekday: date.getUTCDay(),
     isToday: dateKey === todayKey,
     isCurrentMonth: date.getUTCMonth() === currentMonth,
   };
@@ -211,6 +214,24 @@ function getCalendarDaysForView(viewMode: Exclude<ViewMode, "day">, cursorKey: s
   return viewMode === "week" ? buildWeekCalendarDays(cursorKey, todayKey) : buildMonthCalendarDays(cursorKey, todayKey);
 }
 
+function getCalendarWeekdayClass(weekday: number) {
+  if (weekday === 0) return "schedule-weekday-sunday text-rose-300";
+  if (weekday === 6) return "schedule-weekday-saturday text-sky-300";
+  return "text-white/74";
+}
+
+function getCalendarDateToneClass(day: CalendarDay) {
+  if (day.weekday === 0) return day.isCurrentMonth ? "text-rose-300" : "text-rose-300/35";
+  if (day.weekday === 6) return day.isCurrentMonth ? "text-sky-300" : "text-sky-300/35";
+  return day.isCurrentMonth ? "text-white" : "text-white/28";
+}
+
+function getCalendarTodayDateClass(weekday: number) {
+  if (weekday === 0) return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-rose-400 px-2 text-sm font-black text-black";
+  if (weekday === 6) return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-sky-400 px-2 text-sm font-black text-black";
+  return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-nzu-green px-2 text-sm font-black text-black";
+}
+
 function isCalendarRangeWithinBounds(
   viewMode: Exclude<ViewMode, "day">,
   cursorKey: string,
@@ -291,9 +312,9 @@ export function ScheduleInfoList({ posts, todayKey, minCalendarKey, maxCalendarK
           ) : null}
         </div>
 
-        <div className="text-sm font-black text-white/44 md:text-right md:text-base">
-          {viewMode === "day" ? getRangeLabel(dayFilter) : formatCalendarTitle(calendarCursorKey, viewMode)}
-        </div>
+        {viewMode === "day" ? (
+          <div className="text-sm font-black text-white/44 md:text-right md:text-base">{getRangeLabel(dayFilter)}</div>
+        ) : null}
       </div>
 
       {!isCalendarView ? (
@@ -404,33 +425,43 @@ function ScheduleCalendarView({
     minCalendarKey,
     maxCalendarKey
   );
+  const calendarTitle = formatCalendarTitle(cursorKey, viewMode);
+  const previousCalendarLabel = viewMode === "month" ? "이전 달" : "이전 주";
+  const nextCalendarLabel = viewMode === "month" ? "다음 달" : "다음 주";
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+      <div className="schedule-calendar-toolbar flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <button
             type="button"
+            aria-label={previousCalendarLabel}
             onClick={onPrevious}
             disabled={!canMovePrevious}
-            className="schedule-control-button inline-flex min-h-11 items-center rounded-2xl border border-white/12 bg-white/[0.03] px-4 text-base font-black text-white transition hover:border-nzu-green/45 disabled:cursor-not-allowed disabled:opacity-35"
+            className="schedule-calendar-nav-button schedule-control-button inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.03] text-white transition hover:border-nzu-green/45 hover:text-nzu-green disabled:cursor-not-allowed disabled:opacity-35"
           >
-            이전
+            <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+            <span className="sr-only">이전</span>
+          </button>
+          <h2 className="schedule-calendar-title min-w-[8rem] text-xl font-black text-white md:min-w-[10rem] md:text-2xl">
+            {calendarTitle}
+          </h2>
+          <button
+            type="button"
+            aria-label={nextCalendarLabel}
+            onClick={onNext}
+            disabled={!canMoveNext}
+            className="schedule-calendar-nav-button schedule-control-button inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.03] text-white transition hover:border-nzu-green/45 hover:text-nzu-green disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <ChevronRight className="h-5 w-5" aria-hidden="true" />
+            <span className="sr-only">다음</span>
           </button>
           <button
             type="button"
             onClick={onToday}
-            className="schedule-control-button inline-flex min-h-11 items-center rounded-2xl border border-white/12 bg-white/[0.03] px-5 text-base font-black text-white transition hover:border-nzu-green/45"
+            className="schedule-control-button inline-flex min-h-12 items-center rounded-2xl border border-white/12 bg-white/[0.03] px-5 text-base font-black text-white transition hover:border-nzu-green/45"
           >
             오늘
-          </button>
-          <button
-            type="button"
-            onClick={onNext}
-            disabled={!canMoveNext}
-            className="schedule-control-button inline-flex min-h-11 items-center rounded-2xl border border-white/12 bg-white/[0.03] px-4 text-base font-black text-white transition hover:border-nzu-green/45 disabled:cursor-not-allowed disabled:opacity-35"
-          >
-            다음
           </button>
         </div>
         <div className="text-sm font-black text-white/48">{visibleCount}건</div>
@@ -439,8 +470,8 @@ function ScheduleCalendarView({
       <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
         <div className="schedule-calendar-grid min-w-[760px] overflow-hidden rounded-[1.25rem] border border-white/12 bg-[#07111f]">
           <div className="grid grid-cols-7 border-b border-white/12 bg-white/[0.05]">
-            {WEEKDAY_LABELS.map((label) => (
-              <div key={label} className="px-3 py-4 text-center text-sm font-black text-white/74">
+            {WEEKDAY_LABELS.map((label, weekday) => (
+              <div key={label} className={`px-3 py-4 text-center text-sm font-black ${getCalendarWeekdayClass(weekday)}`}>
                 {label}
               </div>
             ))}
@@ -462,10 +493,8 @@ function ScheduleCalendarView({
                     <span
                       className={
                         day.isToday
-                          ? "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-nzu-green px-2 text-sm font-black text-black"
-                          : day.isCurrentMonth
-                            ? "text-sm font-black text-white"
-                            : "text-sm font-black text-white/28"
+                          ? getCalendarTodayDateClass(day.weekday)
+                          : `text-sm font-black ${getCalendarDateToneClass(day)}`
                       }
                     >
                       {day.dayLabel}

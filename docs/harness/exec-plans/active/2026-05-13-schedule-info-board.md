@@ -511,3 +511,22 @@ Verification completed on 2026-05-14:
 - PASS: `npm.cmd run lint`
 - PASS: `npm.cmd run build`
 - PASS: browser smoke check at `http://127.0.0.1:3000/schedule` loaded the page, showed the schedule controls, reported no Next.js error overlay, and confirmed rendered controls at 44-48px height with 16px text.
+
+## 2026-05-14 Monthly Calendar Readability Pass
+
+User-approved refinement:
+
+- Make the monthly calendar easier to scan by moving the active year/month into the calendar toolbar.
+- Replace visible previous/next text buttons with left/right icon buttons while preserving accessible labels.
+- Color Sunday labels/dates with a red tone and Saturday labels/dates with a blue tone.
+- Keep day/week/month behavior, date math, and production data untouched.
+
+Verification completed on 2026-05-14:
+
+- RED/GREEN: `npm.cmd run test:schedule-info-page-contract`
+- PASS: `npm.cmd run test:schedule-page-data-source-contract`
+- PASS: `npm.cmd run test:schedule-info-board-contract`
+- PASS: `npx.cmd tsc --noEmit`
+- PASS: `npm.cmd run lint`
+- PASS: `npm.cmd run build`
+- PASS: browser smoke check at `http://127.0.0.1:3001/schedule` switched to monthly view and confirmed title `2026년 5월`, two icon navigation buttons, no Next.js error overlay, and distinct Sunday/Saturday computed colors.

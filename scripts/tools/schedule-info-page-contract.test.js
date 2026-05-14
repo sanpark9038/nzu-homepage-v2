@@ -122,3 +122,23 @@ test("schedule info list uses readable typography scale for controls and cards",
   assert.match(source, /text-lg font-black leading-7 md:text-xl/);
   assert.match(source, /text-base font-medium leading-8/);
 });
+
+test("monthly calendar exposes intuitive title navigation and weekend color cues", () => {
+  const source = readProjectFile("components/schedule/ScheduleInfoList.tsx");
+
+  assert.match(source, /ChevronLeft/);
+  assert.match(source, /ChevronRight/);
+  assert.match(source, /schedule-calendar-toolbar/);
+  assert.match(source, /schedule-calendar-nav-button/);
+  assert.match(source, /schedule-calendar-title/);
+  assert.match(source, /formatCalendarTitle\(cursorKey,\s*viewMode\)/);
+  assert.match(source, /weekday:\s*date\.getUTCDay\(\)/);
+  assert.match(source, /getCalendarWeekdayClass/);
+  assert.match(source, /getCalendarDateToneClass/);
+  assert.match(source, /schedule-weekday-sunday/);
+  assert.match(source, /schedule-weekday-saturday/);
+  assert.match(source, /weekday === 0/);
+  assert.match(source, /weekday === 6/);
+  assert.match(source, /text-rose-300/);
+  assert.match(source, /text-sky-300/);
+});
