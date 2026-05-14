@@ -683,6 +683,8 @@ Deletion verification completed on 2026-05-14:
 - PASS: post-delete admin listing found `0` matching rows.
 - Note: deletion was performed through the local 3000 app API because the deployed production admin API uses a different production admin key than local `.env.local`.
 - Note: the local 3000 app API successfully deleted the production DB row; Vercel public `/schedule` cache is refreshed by the follow-up production deploy from this record commit.
+- PASS: follow-up Vercel production deployment `https://nzu-homepage-v2-afakjpa3x-sanparks-projects.vercel.app` reached `Ready`.
+- PASS: production alias `https://nzu-homepage-v2.vercel.app/schedule?prodAfterDelete=1778742200` no longer contained the marker or title and showed no application error.
 
 Current state:
 
