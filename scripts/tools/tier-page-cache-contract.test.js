@@ -130,6 +130,7 @@ test("tier filters update the visible URL without remounting the client tier she
 
 test("tier lightweight card keeps compact profile media and delegates live hover preview without hydrating the shared card", () => {
   const source = readProjectFile("components/players/TierPlayerCard.tsx");
+  const badgeSource = readProjectFile("components/ui/nzu-badges.tsx");
   const quickH2HButtonSource = readProjectFile("components/players/TierQuickH2HButton.tsx");
   const h2hSelectorSource = readProjectFile("components/players/H2HSelectorBar.tsx");
 
@@ -147,7 +148,10 @@ test("tier lightweight card keeps compact profile media and delegates live hover
   assert.match(source, /data-live-broadcast-title=\{player\.broadcast_title \|\| undefined\}/);
   assert.doesNotMatch(source, /data-live-thumbnail-hover-preview/);
   assert.doesNotMatch(source, /w-\[22rem\]/);
-  assert.match(source, /absolute right-3 top-3/);
+  assert.match(source, /max-w-56/);
+  assert.match(source, /absolute right-2 top-2/);
+  assert.match(source, /flex items-center gap-1 overflow-hidden pl-\[5\.25rem\]/);
+  assert.match(badgeSource, /sm:\s*["']text-\[11px\] px-2\.5 py-\[0\.35rem\] rounded-lg["']/);
   assert.doesNotMatch(source, /shrink-0 rounded-full bg-red-600 px-2 py-0\.5/);
   assert.doesNotMatch(source, /aria-label=\{`\$\{player\.name\} live thumbnail`\}/);
   assert.doesNotMatch(source, /block aspect-video overflow-hidden/);

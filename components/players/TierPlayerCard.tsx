@@ -36,7 +36,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
 
   return (
     <div
-      className={cn("group relative w-full max-w-52 overflow-visible hover:z-[70]", className)}
+      className={cn("group relative w-full max-w-56 overflow-visible hover:z-[70]", className)}
       data-live-thumbnail-hover-anchor={liveThumbnailUrl ? "true" : undefined}
       data-live-thumbnail-url={liveThumbnailUrl || undefined}
       data-live-player-name={player.name}
@@ -56,7 +56,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
         )}
       >
         {isLive ? (
-          <span className="pointer-events-none absolute right-3 top-3 z-20 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white">
+          <span className="pointer-events-none absolute right-2 top-2 z-20 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white">
             LIVE
           </span>
         ) : null}
@@ -90,7 +90,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
             </Link>
           </div>
 
-          <div className="flex items-center gap-2 overflow-hidden pl-[5.25rem]">
+          <div className="flex items-center gap-1 overflow-hidden pl-[5.25rem]">
             <RaceLetterBadge race={race} size="lg" />
             <TierBadge tier={player.tier || "미정"} size="sm" />
           </div>

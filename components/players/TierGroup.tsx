@@ -34,7 +34,7 @@ export function TierGroup({ rankName, players, showRaceGroups, emptyMessage }: T
           <p className="text-xs font-bold tracking-widest text-foreground/20">{emptyMessage}</p>
         </div>
       ) : !showRaceGroups ? (
-        <div className="grid grid-cols-1 justify-items-center gap-2.5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 xl:gap-2.5 2xl:grid-cols-7">
+        <div className="grid grid-cols-1 justify-items-center gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
           {players.map((player) => (
             <TierPlayerCard key={player.id} player={player} />
           ))}
@@ -63,7 +63,7 @@ export function TierGroup({ rankName, players, showRaceGroups, emptyMessage }: T
                 </div>
 
                 {racePlayers.length > 0 ? (
-                  <div className="grid grid-cols-1 justify-items-center gap-2.5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 xl:gap-2.5 2xl:grid-cols-7">
+                  <div className="grid grid-cols-1 justify-items-center gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
                     {racePlayers.map((player) => (
                       <TierPlayerCard key={player.id} player={player} />
                     ))}

@@ -70,7 +70,7 @@ export function TierBadge({
 
   const sizeClasses = {
     xs: "text-[11px] px-1.5 py-0.5 rounded-md",
-    sm: "text-[11px] px-2 py-[0.35rem] rounded-lg",
+    sm: "text-[11px] px-2.5 py-[0.35rem] rounded-lg",
     md: "text-base px-3 py-1 rounded-xl",
     lg: "h-10 px-4 text-[18px] rounded-xl border-2 leading-none",
   };

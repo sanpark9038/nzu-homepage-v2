@@ -68,11 +68,11 @@ function readBrowserQueryString(fallback: string) {
 
 function TierGridSkeleton() {
   return (
-    <div className="grid grid-cols-1 justify-items-center gap-2.5 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 xl:gap-2.5 2xl:grid-cols-7">
+    <div className="grid grid-cols-1 justify-items-center gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
       {Array.from({ length: 18 }).map((_, index) => (
         <div
           key={index}
-          className="h-[11.75rem] w-full max-w-52 rounded-2xl border-[3px] border-white/10 bg-white/[0.035]"
+          className="h-[11.75rem] w-full max-w-56 rounded-2xl border-[3px] border-white/10 bg-white/[0.035]"
         />
       ))}
     </div>
