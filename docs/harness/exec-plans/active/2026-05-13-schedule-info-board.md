@@ -331,11 +331,32 @@ Notes:
 - The first create request used Korean test literals that were mangled by the Windows PowerShell command boundary before reaching Node.
 - Codex immediately patched only this test row to ASCII test copy to avoid leaving garbled public text.
 - This temporary public row intentionally remains in production for review.
-- Delete when the test is no longer needed:
+- Deleted after user confirmed it displayed correctly.
+- Deletion verification:
+  - PASS: `DELETE /api/admin/schedule/79fc792d-eee5-4a30-8c1f-2a8d7727fac5` returned `200`.
+  - PASS: `GET /api/admin/schedule` no longer found the id/marker.
+  - PASS: public `GET /schedule` no longer contained the marker.
+  - PASS: read-only SQL residue check returned `matching_test_rows = 0`.
 
-```text
-DELETE /api/admin/schedule/79fc792d-eee5-4a30-8c1f-2a8d7727fac5
-```
+Final state:
+
+- No matching temporary public test row remains.
+
+## 2026-05-14 Schedule Readability Follow-Up
+
+User feedback:
+
+- The schedule page text is too small and the overall readability is poor compared with the provided reference screenshot.
+- Reference has larger information units, more comfortable button/card text, and stronger hierarchy.
+- Current `/schedule` needs a typography and spacing readability pass before real operations.
+
+Recommended next scope:
+
+- Increase schedule page base text sizes, button sizes, and card title/body sizes.
+- Preserve locked Korean labels exactly.
+- Keep the compact tool layout and existing day/week/month behavior.
+- Make day list cards easier to scan on desktop and mobile.
+- Verify with browser screenshots at desktop and mobile widths.
 
 ## 2026-05-14 UI Refinement Scope
 
