@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 import { UNIVERSITY_MAP } from "@/lib/university-config";
 import { cn } from "@/lib/utils";
@@ -12,8 +12,13 @@ type UniversityOption = {
   stars?: number;
 };
 
+function navigateTierFilters(params: URLSearchParams) {
+  const query = params.toString();
+  const target = query ? `/tier?${query}` : "/tier";
+  window.location.assign(target);
+}
+
 export function PlayerSearch({ playerNames = [] }: { playerNames?: string[] }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const debounceRef = useRef<NodeJS.Timeout>(undefined);
 
@@ -32,10 +37,10 @@ export function PlayerSearch({ playerNames = [] }: { playerNames?: string[] }) {
           params.delete("search");
         }
 
-        router.push(`?${params.toString()}`, { scroll: false });
+        navigateTierFilters(params);
       }, 200);
     },
-    [playerNames, router, searchParams]
+    [playerNames, searchParams]
   );
 
   return (
@@ -58,7 +63,6 @@ export function PlayerSearch({ playerNames = [] }: { playerNames?: string[] }) {
 }
 
 export function RaceFilter() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const currentRace = searchParams.get("race") || "ALL";
 
@@ -69,7 +73,7 @@ export function RaceFilter() {
     } else {
       params.set("race", race);
     }
-    router.push(`?${params.toString()}`, { scroll: false });
+    navigateTierFilters(params);
   };
 
   const races = [
@@ -127,7 +131,6 @@ function sortUniversityOptions(options: UniversityOption[]) {
 }
 
 export function UnivFilter({ options }: { options?: UniversityOption[] }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const currentUniv = searchParams.get("univ") || "ALL";
 
@@ -138,7 +141,7 @@ export function UnivFilter({ options }: { options?: UniversityOption[] }) {
     } else {
       params.set("univ", univ);
     }
-    router.push(`?${params.toString()}`, { scroll: false });
+    navigateTierFilters(params);
   };
 
   const sortedOptions = (() => {
@@ -206,7 +209,6 @@ export function UnivFilter({ options }: { options?: UniversityOption[] }) {
 }
 
 export function RaceToggle() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const paramToggled = searchParams.get("raceToggle") === "true";
   const [isToggled, setIsToggled] = useState(paramToggled);
@@ -225,7 +227,7 @@ export function RaceToggle() {
     } else {
       params.delete("raceToggle");
     }
-    router.push(`?${params.toString()}`, { scroll: false });
+    navigateTierFilters(params);
   };
 
   return (
@@ -242,7 +244,6 @@ export function RaceToggle() {
 }
 
 export function LiveToggle() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const paramToggled = searchParams.get("liveOnly") === "true";
   const [isToggled, setIsToggled] = useState(paramToggled);
@@ -261,7 +262,7 @@ export function LiveToggle() {
     } else {
       params.delete("liveOnly");
     }
-    router.push(`?${params.toString()}`, { scroll: false });
+    navigateTierFilters(params);
   };
 
   return (

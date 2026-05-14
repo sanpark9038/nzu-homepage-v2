@@ -60,6 +60,15 @@ test("tier h2h selector accepts lightweight matchup summaries", () => {
   assert.doesNotMatch(source, /CustomEvent<Player>/);
 });
 
+test("tier filters use full tier URL navigation so query routes render server-filtered data", () => {
+  const source = readProjectFile("components/players/Filters.tsx");
+
+  assert.match(source, /function navigateTierFilters/);
+  assert.match(source, /window\.location\.assign\(target\)/);
+  assert.match(source, /const target = query \? `\/tier\?\$\{query\}` : "\/tier"/);
+  assert.doesNotMatch(source, /router\.push\(`\?\$\{params\.toString\(\)\}`/);
+});
+
 test("tier lightweight card keeps compact profile media and shows live thumbnail as a hover preview without hydrating the shared card", () => {
   const source = readProjectFile("components/players/TierPlayerCard.tsx");
 

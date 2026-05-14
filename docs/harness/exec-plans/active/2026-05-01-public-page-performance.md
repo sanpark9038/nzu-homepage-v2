@@ -772,3 +772,9 @@ Result:
   compressed short Korean player names into ellipses. The preview is now a
   larger 16:9 `w-[34rem]` hover panel, and the live badge is positioned
   absolutely outside the player-name text flow.
+- User follow-up: toggling `방송중` changed the URL to `/tier?liveOnly=true`
+  but the server-rendered list stayed on the cached default `/tier` payload.
+  Root cause was client-only search-param navigation (`router.push("?…")`) not
+  reliably entering the proxy-backed `/tier/query` server route. Tier filters
+  now navigate to the full `/tier?...` URL so the proxy rewrite performs a fresh
+  server render for filtered/live data.
