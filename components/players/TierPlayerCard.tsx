@@ -5,7 +5,7 @@ import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
 import { TierBadge } from "@/components/ui/nzu-badges";
 import { mapPlayerToMatchupSummary } from "@/lib/matchup-helpers";
 import { buildPlayerHref } from "@/lib/player-route";
-import { resolveSoopChannelImageUrl } from "@/lib/soop";
+import { buildSoopThumbnailProxyUrl, resolveSoopChannelImageUrl } from "@/lib/soop";
 import { getUniversityLabel } from "@/lib/university-config";
 import { cn, normalizeRace } from "@/lib/utils";
 import type { Player } from "@/types";
@@ -30,6 +30,11 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
   const universityLabel = getUniversityLabel(player.university);
   const matchupSummary = mapPlayerToMatchupSummary(player);
   const profileUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "/placeholder-player.svg";
+  const liveThumbnailUrl = isLive
+    ? buildSoopThumbnailProxyUrl(player.live_thumbnail_url) || player.live_thumbnail_url || ""
+    : "";
+  const mediaUrl = liveThumbnailUrl || profileUrl;
+  const mediaAlt = liveThumbnailUrl ? `${player.name} live preview` : player.name;
 
   return (
     <article
@@ -43,22 +48,23 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
       <div className="flex flex-1 flex-col gap-3 p-3.5">
         <Link
           href={buildPlayerHref(player)}
-          className="absolute left-3 top-3 h-16 w-14 overflow-hidden rounded-xl border border-white/10 bg-muted/30"
+          className="absolute left-3 top-3 h-[4.75rem] w-[4.75rem] overflow-hidden rounded-xl border border-white/10 bg-muted/30"
           aria-label={`${player.name} profile`}
         >
           <span className="absolute inset-0 flex items-center justify-center text-lg font-black text-white/45">
             {player.name.slice(0, 1)}
           </span>
           <Image
-            src={profileUrl}
-            alt={player.name}
-            width={56}
-            height={64}
+            src={mediaUrl}
+            alt={mediaAlt}
+            width={76}
+            height={76}
+            unoptimized={Boolean(liveThumbnailUrl)}
             className="relative z-10 h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
           />
         </Link>
 
-        <div className="flex items-start gap-2 pl-[4.25rem]">
+        <div className="flex items-start gap-2 pl-[5.25rem]">
           <Link
             href={buildPlayerHref(player)}
             className="min-w-0 flex-1 truncate text-[1.16rem] font-black leading-tight tracking-tight text-foreground transition-colors hover:text-nzu-green"
@@ -73,7 +79,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2 overflow-hidden pl-[4.25rem]">
+        <div className="flex items-center gap-2 overflow-hidden pl-[5.25rem]">
           <RaceLetterBadge race={race} size="lg" />
           <TierBadge tier={player.tier || "미정"} size="sm" />
         </div>

@@ -759,6 +759,11 @@ Result:
   but created a UX regression.
 - Restored a compact fixed-size profile image in `TierPlayerCard` while keeping
   the shared hydrated `PlayerCard` out of the tier grid.
+- Follow-up: live players now use `live_thumbnail_url` through the SOOP thumbnail
+  proxy as the card media before falling back to the profile image. This keeps
+  the lightweight card path but restores the live thumbnail signal that was lost
+  when the shared tier `PlayerCard` was removed.
 - Updated `scripts/tools/tier-page-cache-contract.test.js` so the contract now
-  protects both goals: compact profile images remain visible, and the tier grid
-  still does not rehydrate the shared card component.
+  protects both goals: compact player media remains visible, live thumbnails are
+  preferred when present, and the tier grid still does not rehydrate the shared
+  card component.
