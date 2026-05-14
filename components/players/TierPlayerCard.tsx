@@ -33,90 +33,98 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
   const liveThumbnailUrl = isLive
     ? buildSoopThumbnailProxyUrl(player.live_thumbnail_url) || player.live_thumbnail_url || ""
     : "";
+
   return (
-    <article
-      className={cn(
-        "group relative flex min-h-[11.75rem] w-full max-w-52 flex-col overflow-hidden rounded-2xl border-[3px] bg-card shadow-[0_0_20px_rgba(0,0,0,0.16)] transition-all duration-300 hover:-translate-y-1",
-        raceTone[race] || raceTone.R,
-        isLive && "ring-2 ring-red-500/80 ring-offset-2 ring-offset-background",
-        className
-      )}
-    >
-      <div className="flex flex-1 flex-col gap-3 p-3.5">
-        <Link
-          href={buildPlayerHref(player)}
-          className="absolute left-3 top-3 h-[4.75rem] w-[4.75rem] overflow-hidden rounded-xl border border-white/10 bg-muted/30"
-          aria-label={`${player.name} profile`}
-        >
-          <span className="absolute inset-0 flex items-center justify-center text-lg font-black text-white/45">
-            {player.name.slice(0, 1)}
-          </span>
-          <Image
-            src={profileUrl}
-            alt={player.name}
-            width={76}
-            height={76}
-            className="relative z-10 h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
-          />
-        </Link>
-
-        <div className="flex items-start gap-2 pl-[5.25rem]">
+    <div className={cn("group relative w-full max-w-52 overflow-visible hover:z-[70]", className)}>
+      <article
+        className={cn(
+          "relative flex min-h-[11.75rem] w-full flex-col overflow-hidden rounded-2xl border-[3px] bg-card shadow-[0_0_20px_rgba(0,0,0,0.16)] transition-all duration-300 group-hover:-translate-y-1",
+          raceTone[race] || raceTone.R,
+          isLive && "ring-2 ring-red-500/80 ring-offset-2 ring-offset-background"
+        )}
+      >
+        <div className="flex flex-1 flex-col gap-3 p-3.5">
           <Link
             href={buildPlayerHref(player)}
-            className="min-w-0 flex-1 truncate text-[1.16rem] font-black leading-tight tracking-tight text-foreground transition-colors hover:text-nzu-green"
-            aria-label={`${player.name} 전적 보기`}
+            className="absolute left-3 top-3 h-[4.75rem] w-[4.75rem] overflow-hidden rounded-xl border border-white/10 bg-muted/30"
+            aria-label={`${player.name} profile`}
           >
-            {player.name}
-          </Link>
-          {isLive ? (
-            <span className="shrink-0 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
-              LIVE
+            <span className="absolute inset-0 flex items-center justify-center text-lg font-black text-white/45">
+              {player.name.slice(0, 1)}
             </span>
-          ) : null}
-        </div>
+            <Image
+              src={profileUrl}
+              alt={player.name}
+              width={76}
+              height={76}
+              className="relative z-10 h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+            />
+          </Link>
 
-        <div className="flex items-center gap-2 overflow-hidden pl-[5.25rem]">
-          <RaceLetterBadge race={race} size="lg" />
-          <TierBadge tier={player.tier || "미정"} size="sm" />
-        </div>
+          <div className="flex items-start gap-2 pl-[5.25rem]">
+            <Link
+              href={buildPlayerHref(player)}
+              className="min-w-0 flex-1 truncate text-[1.16rem] font-black leading-tight tracking-tight text-foreground transition-colors hover:text-nzu-green"
+              aria-label={`${player.name} 전적 보기`}
+            >
+              {player.name}
+            </Link>
+            {isLive ? (
+              <span className="shrink-0 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
+                LIVE
+              </span>
+            ) : null}
+          </div>
 
-        {liveThumbnailUrl ? (
-          <Link
-            href={buildPlayerHref(player)}
-            aria-label={`${player.name} live thumbnail`}
-            className="relative mt-0.5 block aspect-video overflow-hidden rounded-xl border border-red-500/30 bg-black/30 shadow-[0_10px_26px_rgba(0,0,0,0.22)]"
-          >
+          <div className="flex items-center gap-2 overflow-hidden pl-[5.25rem]">
+            <RaceLetterBadge race={race} size="lg" />
+            <TierBadge tier={player.tier || "미정"} size="sm" />
+          </div>
+
+          <div className="overflow-hidden">
+            <span className="block truncate rounded-full border border-white/10 bg-black/15 px-2.5 py-1.5 text-center text-[10px] font-[1000] tracking-tight text-white/72">
+              {universityLabel}
+            </span>
+          </div>
+
+          <div className="mt-auto flex flex-col gap-2">
+            <Link
+              href={buildPlayerHref(player)}
+              className="rounded-xl border border-nzu-green/45 bg-nzu-green/90 py-2 text-center text-[11px] font-black tracking-tight text-black transition-colors hover:border-white hover:bg-white"
+            >
+              전적 보기
+            </Link>
+
+            <TierQuickH2HButton player={matchupSummary} className="py-2.5" />
+          </div>
+        </div>
+      </article>
+
+      {liveThumbnailUrl ? (
+        <div
+          data-live-thumbnail-hover-preview
+          className="pointer-events-none absolute bottom-[calc(100%+0.75rem)] left-1/2 z-[90] hidden w-[22rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/10 bg-[#061015] opacity-0 shadow-[0_24px_52px_rgba(0,0,0,0.44)] transition-opacity duration-150 group-hover:opacity-100 md:block"
+        >
+          <div className="relative aspect-video w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
             <Image
               src={liveThumbnailUrl}
-              alt={`${player.name} live thumbnail`}
-              width={152}
-              height={86}
+              alt={`${player.name} live preview`}
+              fill
               unoptimized
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="object-cover"
             />
-            <span className="absolute left-2 top-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/25 to-transparent" />
+            <div className="absolute left-3 top-3 rounded-full bg-black/85 px-3 py-1.5 text-[12px] font-black tracking-tight text-white shadow-lg">
               LIVE
-            </span>
-          </Link>
-        ) : null}
-
-        <div className="overflow-hidden">
-          <span className="block truncate rounded-full border border-white/10 bg-black/15 px-2.5 py-1.5 text-center text-[10px] font-[1000] tracking-tight text-white/72">
-            {universityLabel}
-          </span>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 p-3.5">
+              <p className="line-clamp-2 text-[0.98rem] font-black leading-snug text-white">
+                {player.broadcast_title || `${player.name} LIVE`}
+              </p>
+            </div>
+          </div>
         </div>
-
-        <div className="mt-auto flex flex-col gap-2">
-          <Link
-            href={buildPlayerHref(player)}
-            className="rounded-xl border border-nzu-green/45 bg-nzu-green/90 py-2 text-center text-[11px] font-black tracking-tight text-black transition-colors hover:border-white hover:bg-white"
-          >
-            전적 보기
-          </Link>
-
-          <TierQuickH2HButton player={matchupSummary} className="py-2.5" />
-        </div>
-      </div>
-    </article>
+      ) : null}
+    </div>
   );
 }

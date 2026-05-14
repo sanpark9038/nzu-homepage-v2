@@ -761,9 +761,10 @@ Result:
   the shared hydrated `PlayerCard` out of the tier grid.
 - Follow-up correction: live players now keep the compact profile image in the
   profile slot and render `live_thumbnail_url` through the SOOP thumbnail proxy
-  as a separate live thumbnail panel. The thumbnail must not replace the profile
-  image.
+  as a hover-only live preview that floats outside the card, matching the
+  reference behavior. The thumbnail must not replace the profile image and must
+  not appear as a persistent panel inside the card.
 - Updated `scripts/tools/tier-page-cache-contract.test.js` so the contract now
   protects both goals: compact player media remains visible, live thumbnails are
-  separate when present, and the tier grid still does not rehydrate the shared
-  card component.
+  hover previews when present, and the tier grid still does not rehydrate the
+  shared card component.

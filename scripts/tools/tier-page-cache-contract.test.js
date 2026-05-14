@@ -60,7 +60,7 @@ test("tier h2h selector accepts lightweight matchup summaries", () => {
   assert.doesNotMatch(source, /CustomEvent<Player>/);
 });
 
-test("tier lightweight card keeps compact profile media and separate live thumbnail media without hydrating the shared card", () => {
+test("tier lightweight card keeps compact profile media and shows live thumbnail as a hover preview without hydrating the shared card", () => {
   const source = readProjectFile("components/players/TierPlayerCard.tsx");
 
   assert.match(source, /from ["']next\/image["']/);
@@ -70,12 +70,15 @@ test("tier lightweight card keeps compact profile media and separate live thumbn
   assert.doesNotMatch(source, /const mediaUrl = liveThumbnailUrl \|\| profileUrl/);
   assert.match(source, /src=\{profileUrl\}/);
   assert.match(source, /src=\{liveThumbnailUrl\}/);
-  assert.match(source, /aria-label=\{`\$\{player\.name\} live thumbnail`\}/);
+  assert.match(source, /data-live-thumbnail-hover-preview/);
+  assert.match(source, /group-hover:opacity-100/);
+  assert.match(source, /bottom-\[calc\(100%\+0\.75rem\)\]/);
+  assert.doesNotMatch(source, /aria-label=\{`\$\{player\.name\} live thumbnail`\}/);
+  assert.doesNotMatch(source, /block aspect-video overflow-hidden/);
   assert.match(source, /<Image\b/);
   assert.match(source, /width=\{76\}/);
   assert.match(source, /height=\{76\}/);
-  assert.match(source, /width=\{152\}/);
-  assert.match(source, /height=\{86\}/);
+  assert.match(source, /fill/);
   assert.match(source, /unoptimized/);
   assert.match(source, /player\.name\.slice\(0,\s*1\)/);
   assert.doesNotMatch(source, /sizes=["']56px["']/);
