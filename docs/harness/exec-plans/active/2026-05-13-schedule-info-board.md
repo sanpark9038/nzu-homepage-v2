@@ -229,6 +229,42 @@ Post-apply verification:
 - PASS: `agent-browser.cmd errors` returned no browser errors.
 - Deferred by user constraint: creating a test unpublished schedule post was not performed because production data insert/update/delete still needs separate approval.
 
+## 2026-05-14 Production External Link Schema Follow-Up
+
+User approval:
+
+- `production board_posts.external_link_url nullable column 추가 승인. 데이터 insert/update/delete 없이 컬럼만 추가해줘`
+
+Why this follow-up was needed:
+
+- The approved production schedule columns/index were present.
+- The deployed admin schedule API also writes `external_link_url`.
+- A production unpublished schedule test create attempt failed before row creation with `503 board_posts storage is not ready`.
+- Root-cause check showed `board_posts.external_link_url` was absent from production while the schedule columns were present.
+- Read-only verification confirmed the failed test create left `0` matching test rows behind.
+
+Exact production schema apply command/tool:
+
+```powershell
+npx.cmd supabase db query --linked --workdir 'C:\tmp\nzu-supabase-link' --output json "alter table public.board_posts add column if not exists external_link_url text null;"
+```
+
+Applied scope:
+
+- `board_posts.external_link_url`
+
+Explicitly not performed:
+
+- No production schedule row insert/update/delete.
+- No production board row backfill.
+- No RLS, auth policy, admin credential, or data pipeline change.
+
+Post-apply verification:
+
+- PASS: read-only SQL schema verification found `external_link_url` with `data_type = text` and `is_nullable = YES`.
+- PASS: Supabase REST query `select=id,external_link_url&limit=1` returned `200`.
+- Production unpublished schedule write-path test remains paused until separately resumed after this schema-only follow-up.
+
 ## 2026-05-14 UI Refinement Scope
 
 User-approved refinement:
