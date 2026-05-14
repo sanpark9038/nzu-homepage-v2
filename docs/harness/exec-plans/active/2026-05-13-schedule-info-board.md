@@ -569,3 +569,30 @@ Verification completed on 2026-05-14:
 - PASS: `npm.cmd run lint`
 - PASS: `npm.cmd run build`
 - PASS: browser smoke check at `http://127.0.0.1:3000/schedule` showed monthly calendar date buttons and no Next.js error overlay. Live production schedule data was 0 rows, so the dialog open path was covered by the contract test without inserting temporary production data.
+
+## 2026-05-14 Production Calendar Modal Smoke Test
+
+User-approved production write scope:
+
+- Create one temporary public schedule post.
+- Verify `/schedule` monthly view opens the selected-day dialog for that date.
+- Delete the temporary post immediately after verification.
+- Use port 3000 only; do not use port 3001.
+
+Temporary row:
+
+- id: `71c3b288-9931-403f-aca9-e5f35d65e886`
+- marker: `codex-calendar-modal-test-1778738233459`
+- date: `2026-05-15`
+- published: `true`
+
+Verification completed on 2026-05-14:
+
+- PASS: `POST /api/admin/schedule` returned `201`.
+- PASS: browser smoke check at `http://127.0.0.1:3000/schedule` monthly view showed the test schedule chip.
+- PASS: clicking `2026년 5월 15일 금요일` opened a dialog with title `2026년 5월 15일 금요일`, count `1개의 일정`, and the test marker.
+- PASS: no Next.js error overlay was detected.
+- PASS: screenshot captured at `C:\Users\NZU\.agent-browser\tmp\screenshots\screenshot-1778738540879.png`.
+- PASS: `DELETE /api/admin/schedule/71c3b288-9931-403f-aca9-e5f35d65e886` returned `200`.
+- PASS: `GET /api/admin/schedule` returned `matchingAdminRows: 0` for the id/marker.
+- PASS: browser smoke check at `http://127.0.0.1:3000/schedule?afterDelete=1778738233459` found no marker/title and showed `예정된 일정이 없습니다.`
