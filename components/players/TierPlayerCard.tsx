@@ -33,9 +33,6 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
   const liveThumbnailUrl = isLive
     ? buildSoopThumbnailProxyUrl(player.live_thumbnail_url) || player.live_thumbnail_url || ""
     : "";
-  const mediaUrl = liveThumbnailUrl || profileUrl;
-  const mediaAlt = liveThumbnailUrl ? `${player.name} live preview` : player.name;
-
   return (
     <article
       className={cn(
@@ -55,11 +52,10 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
             {player.name.slice(0, 1)}
           </span>
           <Image
-            src={mediaUrl}
-            alt={mediaAlt}
+            src={profileUrl}
+            alt={player.name}
             width={76}
             height={76}
-            unoptimized={Boolean(liveThumbnailUrl)}
             className="relative z-10 h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
           />
         </Link>
@@ -83,6 +79,26 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
           <RaceLetterBadge race={race} size="lg" />
           <TierBadge tier={player.tier || "미정"} size="sm" />
         </div>
+
+        {liveThumbnailUrl ? (
+          <Link
+            href={buildPlayerHref(player)}
+            aria-label={`${player.name} live thumbnail`}
+            className="relative mt-0.5 block aspect-video overflow-hidden rounded-xl border border-red-500/30 bg-black/30 shadow-[0_10px_26px_rgba(0,0,0,0.22)]"
+          >
+            <Image
+              src={liveThumbnailUrl}
+              alt={`${player.name} live thumbnail`}
+              width={152}
+              height={86}
+              unoptimized
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <span className="absolute left-2 top-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
+              LIVE
+            </span>
+          </Link>
+        ) : null}
 
         <div className="overflow-hidden">
           <span className="block truncate rounded-full border border-white/10 bg-black/15 px-2.5 py-1.5 text-center text-[10px] font-[1000] tracking-tight text-white/72">
