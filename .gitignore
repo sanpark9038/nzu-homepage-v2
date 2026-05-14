@@ -68,3 +68,5 @@ MAIN_AI_UI_ONLY_INSTRUCTION.md
 .planning/
 .superpowers/
 prod-sync.log
+tmp-next-start.out.log
+tmp-next-start.err.log

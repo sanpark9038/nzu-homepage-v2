@@ -340,6 +340,35 @@ runTest("assertNoProductionFreshnessRegression refuses stale incoming serving da
   );
 });
 
+runTest("assertNoProductionFreshnessRegression refuses per-player stale incoming data even when global max is fresh", () => {
+  assert.throws(
+    () =>
+      assertNoProductionFreshnessRegression(
+        [
+          {
+            serving_identity_key: "male:37",
+            match_history: [{ match_date: "2026-05-14" }],
+          },
+          {
+            serving_identity_key: "male:40",
+            match_history: [{ match_date: "2026-05-15" }],
+          },
+        ],
+        [
+          {
+            serving_identity_key: "male:37",
+            match_history: [{ match_date: "2026-04-20" }],
+          },
+          {
+            serving_identity_key: "male:40",
+            match_history: [{ match_date: "2026-05-15" }],
+          },
+        ]
+      ),
+    /male:37/
+  );
+});
+
 runTest("assertNoProductionFreshnessRegression allows equally fresh incoming serving data", () => {
   const actual = assertNoProductionFreshnessRegression(
     [{ match_history: [{ match_date: "2026-04-25" }] }],
@@ -459,6 +488,44 @@ runTest("buildServingPayload preserves existing serving stats when current sourc
     total_losses: 50,
     win_rate: 61.5,
     last_synced_at: "2026-04-19T00:00:00.000Z",
+  });
+});
+
+runTest("buildServingPayload preserves newer existing serving stats when current source history is older", () => {
+  const stats = new Map([
+    [
+      "male:37",
+      {
+        wins: 10,
+        losses: 2,
+        history: [{ match_date: "2026-04-20", opponent_name: "old", is_win: true }],
+      },
+    ],
+  ]);
+
+  const actual = buildServingPayload(
+    {
+      name: "player",
+      serving_identity_key: "male:37",
+    },
+    stats,
+    {
+      detailed_stats: { win_rate: 60 },
+      match_history: [{ match_date: "2026-05-14", opponent_name: "newer", is_win: false }],
+      total_wins: 12,
+      total_losses: 8,
+      win_rate: 60,
+      last_synced_at: "2026-05-13T00:00:00.000Z",
+    }
+  );
+
+  assert.deepEqual(actual, {
+    detailed_stats: { win_rate: 60 },
+    match_history: [{ match_date: "2026-05-14", opponent_name: "newer", is_win: false }],
+    total_wins: 12,
+    total_losses: 8,
+    win_rate: 60,
+    last_synced_at: "2026-05-13T00:00:00.000Z",
   });
 });
 

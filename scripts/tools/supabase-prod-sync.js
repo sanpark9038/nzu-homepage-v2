@@ -407,6 +407,35 @@ function maxMatchHistoryDate(rows = []) {
 function assertNoProductionFreshnessRegression(prodRows = [], incomingRows = []) {
   const currentMax = maxMatchHistoryDate(prodRows);
   const incomingMax = maxMatchHistoryDate(incomingRows);
+
+  const incomingByKey = new Map();
+  for (const row of Array.isArray(incomingRows) ? incomingRows : []) {
+    const key = buildSyncIdentityKey(row);
+    if (!key || key === 'unknown') continue;
+    incomingByKey.set(key, maxMatchHistoryDate([row]));
+  }
+
+  const regressions = [];
+  for (const row of Array.isArray(prodRows) ? prodRows : []) {
+    const key = buildSyncIdentityKey(row);
+    if (!key || key === 'unknown' || !incomingByKey.has(key)) continue;
+    const currentRowMax = maxMatchHistoryDate([row]);
+    const incomingRowMax = incomingByKey.get(key);
+    if (currentRowMax && incomingRowMax && incomingRowMax < currentRowMax) {
+      regressions.push({ key, currentMax: currentRowMax, incomingMax: incomingRowMax });
+    }
+  }
+
+  if (regressions.length > 0) {
+    const preview = regressions
+      .slice(0, 5)
+      .map((row) => `${row.key}:${row.incomingMax}<${row.currentMax}`)
+      .join('; ');
+    throw new Error(
+      `Refusing production sync because incoming match_history is older than current production for ${regressions.length} player(s). ${preview}`
+    );
+  }
+
   if (!currentMax || !incomingMax || incomingMax >= currentMax) {
     return { ok: true, currentMax, incomingMax };
   }
@@ -1175,6 +1204,21 @@ function projectMatchHistoryForServing(history, options = {}) {
   return rows.slice(0, Math.trunc(limit));
 }
 
+function dateOnly(value) {
+  const text = String(value || '').trim();
+  const match = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : '';
+}
+
+function selectFreshestDateValue(incoming, existing) {
+  const incomingDate = dateOnly(incoming);
+  const existingDate = dateOnly(existing);
+  if (existingDate && (!incomingDate || existingDate > incomingDate)) {
+    return existing || existingDate;
+  }
+  return incoming || null;
+}
+
 function envFlag(name) {
   const value = String(process.env[name] || '').trim().toLowerCase();
   return value === 'true' || value === '1' || value === 'yes';
@@ -1205,6 +1249,18 @@ function buildServingPayload(playerOrName, servingStatsByIdentity, existingPlaye
   if (stats) {
     const totalMatches = Number(stats.wins || 0) + Number(stats.losses || 0);
     const matchHistory = stats.history.slice();
+    const incomingMax = maxMatchHistoryDate([{ match_history: matchHistory }]);
+    const existingMax = existingPlayer ? maxMatchHistoryDate([existingPlayer]) : '';
+    if (existingPlayer && existingMax && incomingMax && incomingMax < existingMax) {
+      return {
+        detailed_stats: existingPlayer.detailed_stats || null,
+        match_history: Array.isArray(existingPlayer.match_history) ? existingPlayer.match_history : null,
+        total_wins: Number(existingPlayer.total_wins || 0),
+        total_losses: Number(existingPlayer.total_losses || 0),
+        win_rate: Number(existingPlayer.win_rate || 0),
+        last_synced_at: existingPlayer.last_synced_at || null,
+      };
+    }
     return {
       detailed_stats: buildDetailedStats(matchHistory),
       match_history: projectMatchHistoryForServing(matchHistory, options),
@@ -1309,12 +1365,14 @@ async function main() {
   const matchHistoryProjection = resolveMatchHistoryProjectionOptions();
 
   const sanitized = (stagingData || [])
-    .map((row) => ({
+    .map((row) => {
+      const existingPlayer = currentProdByName.get(String(row.name || '').trim()) || null;
+      return {
       ...resolveSoopServingMetadata(row, soopLookup),
       ...buildServingPayload(
         row,
         servingStatsByIdentity,
-        currentProdByName.get(String(row.name || '').trim()) || null,
+        existingPlayer,
         matchHistoryProjection
       ),
       eloboard_id: row.eloboard_id,
@@ -1324,11 +1382,12 @@ async function main() {
       university: row.university || '',
       gender: row.gender || null,
       photo_url: row.photo_url || null,
-      last_match_at: row.last_match_at || null,
+      last_match_at: selectFreshestDateValue(row.last_match_at, existingPlayer && existingPlayer.last_match_at),
       last_changed_at: row.last_changed_at || null,
       check_priority: row.check_priority || null,
       check_interval_days: Number.isFinite(Number(row.check_interval_days)) ? Number(row.check_interval_days) : null,
-    }))
+      };
+    })
     .map((row) => withServingIdentityKey(row, canWriteServingIdentityKey))
     .filter((row) => row.name.length > 0);
 

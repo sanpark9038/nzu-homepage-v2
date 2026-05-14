@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 
 const {
   buildPlayerHistoryProdSyncEnv,
+  cacheRevalidationResultFromStep,
   checkSupabaseReadiness,
   formatSupabaseReadinessError,
   hasSoopSnapshotEnv,
@@ -112,6 +113,19 @@ runTest("player history artifact result leaves Supabase history full when upload
 
   assert.equal(result.publicBaseUrl, "");
   assert.deepEqual(buildPlayerHistoryProdSyncEnv({ artifactResult: result, env: {} }), {});
+});
+
+runTest("cache revalidation result reports skipped when the revalidation script skips env", () => {
+  const actual = cacheRevalidationResultFromStep({
+    ok: true,
+    out: "[SKIP] revalidate_public_cache missing base_url, secret",
+    err: "",
+  });
+
+  assert.deepEqual(actual, {
+    status: "skipped",
+    reason: "missing_base_url_and_secret",
+  });
 });
 
 (async () => {

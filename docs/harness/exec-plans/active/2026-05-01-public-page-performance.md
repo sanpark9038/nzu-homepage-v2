@@ -91,6 +91,21 @@ This improves cost and speed without making the default page depend on current b
 - `npm.cmd run test:tier-page-helpers`
 - `npm.cmd run test:player-live-overlay`
 - `npm.cmd run build`
+
+Shadow follow-up:
+
+- Removed shadow classes from the tier card body, tier live badge, live hover
+  preview shell, and hover preview live badge.
+- Added contract assertions so these tier card/preview shadows are not
+  reintroduced accidentally.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+
 - Browser check:
   - `/tier`
   - `/tier?liveOnly=true`
@@ -778,3 +793,453 @@ Result:
   reliably entering the proxy-backed `/tier/query` server route. Tier filters
   now navigate to the full `/tier?...` URL so the proxy rewrite performs a fresh
   server render for filtered/live data.
+
+### 2026-05-14 Tier Toggle Interaction Performance Slice
+
+Goal:
+
+- Reduce visible jank when changing the tier page `liveOnly` filter.
+- Keep the live-only data correctness restored by the proxy-backed `/tier/query`
+  route.
+- Avoid pre-rendering every live hover thumbnail image in the initial tier page
+  HTML.
+
+Planned:
+
+- Add a contract that live hover preview images are lazy-mounted by a focused
+  client component instead of being emitted directly by `TierPlayerCard`.
+- Replace hard `window.location.assign(...)` filter navigation with app-router
+  navigation plus an explicit refresh, then verify that the live-only card list
+  still updates on port 3000.
+- Remeasure local DOM/image counts before considering heavier virtualization.
+
+Completed:
+
+- Added `TierLiveHoverPreview` as a focused client component. It emits only the
+  hover-preview shell initially, attaches `pointerenter` and `focusin` listeners
+  to the card wrapper, and mounts the thumbnail image after the first hover or
+  focus.
+- Updated `TierPlayerCard` so profile images remain visible, but live thumbnail
+  images are no longer emitted directly in the server-rendered card markup.
+- Replaced hard tier filter navigation with app-router `router.push(target, {
+  scroll: false })` followed by `router.refresh()`.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract` failed before implementation and
+  passed after implementation.
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:soop-thumbnail-performance-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Local browser check on port 3000:
+  - `/tier`: 316 cards, 316 images, 128 hover-preview shells, 0 hover-preview
+    images before hover.
+  - Clicking `liveOnly` changed the visible URL to `/tier?liveOnly=true`,
+    reduced cards to 128, kept browser navigation entries at 1, and still had 0
+    hover-preview images before hover.
+  - Dispatching the first hover mounted 1 hover-preview image.
+
+Follow-up after user clarified that all cards must still render at once:
+
+- Removed `router.refresh()` from tier filter navigation after verifying full
+  `/tier?...` app-router navigation is enough to enter the proxy-backed query
+  route.
+- Kept all tier cards rendered at once. No virtualization, infinite scroll, or
+  per-tier delayed rendering was introduced.
+- Added `sizes="76px"` to compact profile images so the fixed 76px media slot
+  gives the browser a precise source-size hint.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract` failed before the follow-up
+  implementation and passed after.
+- Local browser check on port 3000:
+  - `/tier`: 316 cards, 316 images, 0 hover-preview images before hover.
+  - Clicking `liveOnly` changed the visible URL to `/tier?liveOnly=true`,
+    reduced cards to 132, kept browser navigation entries at 1, and still had 0
+    hover-preview images before hover.
+- Browser errors output was empty.
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+
+Follow-up after user noticed apparent card re-positioning on tier render:
+
+- Root cause: `TierPageView` rendered client filter controls behind `Suspense`
+  fallback blocks whose reserved heights did not match the final filter/button
+  layout. The school filter then changed height after hydration and pushed the
+  tier card grid into its final position.
+- Secondary visual cause: tier cards and profile images used hover translate /
+  scale transitions, and active school filters used `scale-105`, which made the
+  grid feel like it was briefly growing even when layout was stable.
+- Updated the filters to receive the server-built `queryString` prop instead
+  of calling `useSearchParams()`, removed the `Suspense` wrappers/fallbacks from
+  `TierPageView`, and removed the tier-card/profile transform effects.
+- Follow-up correction: removed the remaining `/tier` page-level `fade-in`
+  transform animation and the right-side tier navigation scale transition after
+  user still perceived a slight grow-and-return motion.
+- Kept all tier cards rendered at once. No virtualization, infinite scroll, or
+  delayed card rendering was introduced.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract` failed before the layout-shift
+  fix and passed after.
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:soop-thumbnail-performance-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Local browser check on port 3000:
+  - `/tier`: 316 cards, 316 images, 0 hover-preview images before hover.
+  - First card top stayed at 516px after 2 seconds, so no observed post-load
+    vertical shift.
+  - Toggling `liveOnly` changed the URL to `/tier?liveOnly=true`, rendered the
+    current live-only card list, kept 0 hover-preview images before hover, and
+    kept first card top at 516px after 2 seconds.
+  - Browser errors output was empty.
+- Follow-up local browser check on port 3000 after removing page-level
+  transform animations:
+  - `/tier`: 316 cards.
+  - First card left/top/width stayed `61.5 / 516 / 208` after 2 seconds.
+  - `main.getAnimations().length` was 0.
+  - Browser errors output was empty.
+
+Follow-up after user asked for faster tier rendering while keeping all cards
+rendered at once:
+
+- Kept the visible tier card button layout unchanged, but converted
+  `TierQuickH2HButton` from a per-card client component into server-rendered
+  button markup with data attributes.
+- Added one delegated click listener in `H2HSelectorBar` that reads the clicked
+  tier button's player summary and dispatches the existing `add-h2h-player`
+  event. This removes 316 per-card hydrated quick-add button handlers from the
+  tier grid while preserving the current UX.
+- Kept all tier cards rendered at once. No virtualization, infinite scroll, or
+  delayed card rendering was introduced.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract` failed before the delegated
+  quick-add implementation and passed after.
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:soop-thumbnail-performance-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Local browser check on port 3000, using the already-running node server:
+  - `/tier`: 316 cards, 316 delegated quick-add buttons, 0 hover-preview images
+    before hover.
+  - Clicking the first delegated quick-add button created the H2H selector bar
+    with the selected player.
+  - Browser errors output was empty.
+
+Production-like local remeasure after user still felt `/tier` was slow:
+
+- The old port 3000 node server returned `Cache-Control: no-store,
+  must-revalidate` and produced much heavier local timings:
+  - `/tier`: about 6.8MB decoded HTML, about 1,290 script tags, about 1,265
+    `self.__next_f.push` chunks, 316 cards, 316 images, 636 SVGs.
+  - Browser timing on that server: FCP about 5.4s, navigation duration about
+    6.9s, DOM nodes about 8.8k.
+- Restarted port 3000 with `next start -p 3000` against the current build and
+  remeasured:
+  - HTTP samples: 3.38MB / 2.1s first sample, then 3.25MB / 1.4s and 1.3s.
+  - `Cache-Control: s-maxage=60, stale-while-revalidate=31535940`.
+  - Script tags dropped to about 360, `self.__next_f.push` chunks to about
+    345, but 316 cards, 316 images, and 636 SVGs remained.
+  - Browser timing on production-like 3000: FCP about 2.45s, navigation
+    duration about 3.05s, decoded document about 3.45MB, DOM nodes about 7.9k,
+    0 hover-preview images before hover.
+- Conclusion: the local dev/non-cache server exaggerated the slowness, but the
+  remaining real bottleneck is still the full initial card payload: all 316
+  cards, their image markup, repeated SVG icons/badges, and the serialized RSC
+  payload.
+
+Follow-up after user chose reference-style live-centered default:
+
+- Changed tier page semantics so `/tier` is live-centered by default. `liveOnly`
+  is now true unless the URL explicitly has `liveOnly=false`.
+- Updated the live toggle so turning broadcasting mode back on removes the
+  `liveOnly` query parameter and returns to canonical `/tier`; turning it off
+  writes `liveOnly=false` so the full tier table remains available.
+- This keeps a visible "all players" path while making the first tier-page load
+  closer to the reference site pattern.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract` failed before implementation and
+  passed after.
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:soop-thumbnail-performance-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Production-like local `next start -p 3000` HTTP measurement:
+  - `/tier`: 145 cards, 145 images, 294 SVGs, 192 RSC push chunks, about
+    1.68MB decoded HTML, about 666ms response time, `s-maxage=60`.
+  - `/tier?liveOnly=false`: 316 cards, 316 images, 636 SVGs, 366 RSC push
+    chunks, about 3.40MB decoded HTML, about 2.8s response time.
+
+Follow-up after comparing the reference site's full tier view:
+
+- User confirmed the target is closer to the reference site's model: tiny
+  document shell plus Fetch/XHR data, not MB-scale server-rendered card HTML.
+- Added `/api/tier/players`, returning compact JSON for the current tier query.
+  It uses live-centered default semantics and keeps `liveOnly=false` as the
+  explicit full-table path.
+- Moved the tier controls, grouping, cards, and H2H selector into
+  `TierClientView`. `TierPageView` now only builds the query string and passes
+  static university metadata into the client shell.
+- This changes initial tier rendering from server-emitted card HTML/RSC to
+  client rendering after the compact API response. The visible card UI remains
+  the same after data loads.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract` failed before the client/API shell
+  existed and passed after.
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:soop-thumbnail-performance-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Production-like local `next start -p 3000` HTTP measurement:
+  - `/tier`: about 31KB document, 0 article tags, 0 image tags, 4 SVGs, 5 RSC
+    push chunks, about 141ms response time.
+  - `/tier?liveOnly=false`: about 32KB document, 0 article tags, 0 image tags,
+    4 SVGs, 3 RSC push chunks, about 58ms response time.
+  - `/api/tier/players`: about 83KB JSON, about 470ms response time,
+    `s-maxage=30`.
+  - `/api/tier/players?liveOnly=false`: about 162KB JSON, about 87ms response
+    time, `s-maxage=300`.
+- Browser check on production-like port 3000:
+  - `/tier`: FCP about 644ms, document decoded about 31KB, API JSON about 83KB,
+    147 rendered cards after data load, 0 hover-preview images before hover.
+  - `/tier?liveOnly=false`: FCP about 116ms, document decoded about 32KB, API
+    JSON about 149KB, 316 rendered cards after data load, 0 hover-preview
+    images before hover.
+  - Browser errors output was empty.
+
+Follow-up after user found the full-player toggle did not update the rendered
+list:
+
+- Root cause: after the `/tier` shell moved to client-side data loading,
+  `router.push("/tier?...")` changed the visible URL but the mounted
+  `TierClientView` continued using the original server-provided `queryString`.
+  The page therefore stayed on the previous `/api/tier/players` payload and did
+  not request `/api/tier/players?liveOnly=false`.
+- Added an active client query state in `TierClientView` that syncs from
+  `window.location.search`, `popstate`, and a focused
+  `tier-filter-query-change` event emitted by the filter controls.
+- Changed tier filter navigation to update the visible URL with
+  `window.history.pushState` instead of remounting the App Router tree, then
+  dispatch the query-change event for the already-mounted shell.
+- Added a small module-level request promise cache so repeated/remounted reads
+  for the same `/api/tier/players...` URL reuse the same payload promise.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract` failed before each fix slice and
+  passed after.
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:soop-thumbnail-performance-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Browser check on production-like port 3000:
+  - `/tier`: rendered the current live-only list and `data-tier-live-only=true`.
+  - Turning the live toggle off changed the URL to `/tier?liveOnly=false`,
+    rendered 316 cards and 316 profile images, and set
+    `data-tier-live-only=false`.
+  - The browser navigation entry count stayed at 1 and browser errors output
+    was empty.
+
+Follow-up after user asked to try `content-visibility`:
+
+- Added group-level `content-visibility: auto` through the
+  `tier-content-visibility` utility class on `TierGroup`.
+- Set `contain-intrinsic-size: auto 44rem` so offscreen tier sections keep a
+  reasonable reserved height while allowing the browser to remember real sizes
+  after rendering.
+- Kept every player card in the DOM. No virtualization, infinite scroll, card
+  slicing, or delayed data loading was introduced.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract` failed before implementation and
+  passed after.
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:soop-thumbnail-performance-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Browser check on production-like port 3000:
+  - `/tier?liveOnly=false`: rendered 316 cards and 316 profile images.
+  - 15 tier groups had `content-visibility: auto`; computed
+    `contain-intrinsic-size` was `auto 704px`.
+  - Browser errors output was empty.
+
+Follow-up after user found top-row live hover previews were clipped:
+
+- Root cause: the hover preview was still an absolute child of the tier card.
+  With `content-visibility: auto` on each `TierGroup`, the browser can paint
+  contain that group, so a preview extending above the group's top edge was
+  clipped even with a high z-index.
+- Changed `TierLiveHoverPreview` so the card keeps only a small client hover
+  anchor, while the actual 16:9 live thumbnail preview is rendered through a
+  `document.body` portal as a fixed, viewport-aware overlay.
+- Kept lazy mounting: the live thumbnail image is still created only after the
+  first hover/focus for that card.
+- Kept all tier cards in the DOM and kept the `content-visibility` performance
+  experiment in place.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract` failed before the portal/fixed
+  preview implementation and passed after.
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:soop-thumbnail-performance-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Browser check on production-like port 3000:
+  - `/tier?liveOnly=false`: rendered 316 cards and 316 profile images.
+  - Dispatching hover on the first live-preview anchor rendered one
+    `data-live-thumbnail-hover-preview` element directly under `document.body`.
+  - The preview measured `position: fixed`, `z-index: 999`, top/bottom
+    `198/505` in a `1264x625` viewport, and was fully inside the viewport.
+  - Browser errors output was empty.
+
+Follow-up measurement before considering no-profile-image tier cards:
+
+- Goal: check whether removing compact profile images is likely to be worth the
+  UX change before doing the design work.
+- Server state: production-like `next start -p 3000` on the current build.
+- HTTP samples:
+  - `/tier`: 30.9KB document, 0 article tags, 0 image tags. After the first
+    local sample, warm responses were about 43-85ms with `s-maxage=60`.
+  - `/tier?liveOnly=false`: 31.3KB document, 0 article tags, 0 image tags,
+    about 110-221ms, `no-store` query route shell.
+  - `/api/tier/players`: 88.4KB JSON, 146 players, observed 275-1468ms across
+    local samples with `s-maxage=30`.
+  - `/api/tier/players?liveOnly=false`: 153-171KB JSON, 324 API players,
+    observed 215-311ms with `s-maxage=300`.
+- Browser initial render:
+  - `/tier`: 142 rendered cards, 142 image elements, 22 decoded profile images,
+    288 SVGs, about 3.7K DOM nodes, one API request.
+  - `/tier?liveOnly=false`: 316 rendered cards, 316 image elements, 21-30
+    decoded profile images at the top of the page, 636 SVGs, about 7.6K DOM
+    nodes, one API request after reopening the browser session.
+  - All profile images had lazy loading; the page does not immediately fetch or
+    decode all 316 profile images on first paint.
+- Browser scroll-through measurement on the real internal scroll container:
+  - After scrolling through the full table, all 316 profile images were decoded.
+  - Resource timing showed 108 image resource entries and about 30MB decoded
+    image body size in that browser session.
+- Toggle measurement:
+  - Warm real `liveOnly=false` transition from `/tier`: API response about
+    53ms, 316-card DOM completion about 351ms after the filter event.
+  - Cache-busted measurement query showed the cold path can be dominated by the
+    API: about 3.3s API duration and about 4.0s until 316 cards were present.
+- Conclusion:
+  - Removing profile images is unlikely to be the highest-impact fix for the
+    warm initial tier transition because offscreen profile images are lazy.
+  - Profile images do matter during full-table scroll-through and memory/image
+    decode pressure.
+  - The next lowest-risk improvements should target measurable costs first:
+    API cold/warm behavior, duplicated/large per-card DOM such as SVG/button
+    markup, and possibly a small local-only no-profile-card A/B only if the
+    user wants a visual trade-off check.
+
+Follow-up after user chose to defer no-profile-image cards:
+
+- Kept compact profile images and the current visible tier card design.
+- Changed live hover preview from one client component per live card to one
+  delegated `TierLiveHoverPreviewLayer` mounted by `TierClientView`.
+- `TierPlayerCard` now only emits lightweight `data-live-thumbnail-*`
+  attributes on live card wrappers. The global layer listens for document-level
+  `pointerover`/`pointerout` and `focusin`/`focusout`, then renders the same
+  body-level fixed 16:9 preview portal.
+- This preserves the clipping fix, lazy thumbnail mount, keyboard focus support,
+  and all visible labels while removing the repeated per-card preview state and
+  effects.
+
+Verification:
+
+- `npm.cmd run test:tier-page-cache-contract` failed before the delegated
+  layer implementation and passed after.
+- `npm.cmd run test:tier-page-helpers`
+- `npm.cmd run test:soop-thumbnail-performance-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+- Browser check on production-like port 3000:
+  - `/tier?liveOnly=false`: rendered 316 cards, 316 profile images, and 140
+    live-preview data anchors.
+  - Before hover, there were 0 `data-live-thumbnail-hover-preview` elements.
+  - Dispatching hover on the first live anchor rendered exactly 1 preview
+    element under `document.body`; it measured `position: fixed`, `z-index:
+    999`, `544x307`, and fully inside the viewport.
+  - Dispatching pointerout kept the single reusable preview element and set its
+    opacity to 0.
+  - Browser errors output was empty.
+
+Recent-record freshness check:
+
+- User reported public player recent records still looked stale and wanted the
+  issue closed today if possible.
+- Read-only subagent split traced the public player detail serving path and the
+  ops pipeline/R2 artifact path.
+- Confirmed source freshness for `eloboard:male:37` (`김택용`) with a direct
+  no-cache Eloboard read on 2026-05-15 KST: source returned `period_total=840`
+  and `period_max_date=2026-05-14`.
+- Current production row evidence from the same session still showed
+  `players.match_history` latest date `2026-04-20`, with precomputed detail
+  projections also ending at `2026-04-20`.
+- Latest successful scheduled ops run inspected was `25830448942`, head SHA
+  `1d3bf2c`, created `2026-05-13T22:37:07Z`. That run predates freshness guard
+  commit `41ff6e2` (`Restore tier profiles and guard history freshness`).
+- The currently checked-in guard is covered by
+  `npm.cmd run test:player-collection-freshness-contract`, which passed in this
+  session.
+- Next production-affecting step requires operator approval: run the approved
+  refresh/sync path on current code, then verify the public player detail cache
+  reflects source dates after revalidation.
+
+Recent-record refresh execution:
+
+- User approved production refresh/sync on 2026-05-15 KST.
+- Added a post-sync player-history freshness sentinel:
+  - `scripts/tools/verify-player-history-freshness-sentinel.js` performs a
+    no-cache source read for the FM-009 sentinel (`male:37`) and compares it to
+    production serving history.
+  - `push-supabase-approved.js` now runs the sentinel after the approved
+    staging/prod sync and public-cache revalidation step.
+  - `test:player-history-freshness-sentinel` is wired into
+    `pipeline:health` and `verify:predeploy`.
+- Hardened production sync so it refuses per-player match-history regressions,
+  not just aggregate max-date regressions.
+- First approved `pipeline:manual:refresh:with-sync` completed collection and
+  staging sync, then correctly blocked production sync before prod writes
+  because 4 incoming players were older than current production.
+- Updated production sync to preserve newer existing production serving stats
+  when current source history for that specific player is older, so a partial
+  source regression does not overwrite fresher production history.
+- Re-ran `pipeline:push:approved` successfully:
+  - SOOP snapshot generated.
+  - player-history artifacts uploaded to R2 (`314` files).
+  - staging loaded `324` players.
+  - production upserted `324` changed records.
+  - final production row count verified at `324`.
+  - freshness sentinel passed: `male:37` source latest `2026-05-14`, serving
+    latest `2026-05-14`.
+- Public verification:
+  - `https://nzu-homepage-v2.vercel.app/api/player-detail-summary?id=027310b3-97df-4faf-9c78-83b85dcf6ea3`
+    returned `200` and recent logs beginning with `26.05.14`.
+- Cache revalidation note:
+  - `revalidate-public-cache` skipped because local env lacked base URL/secret.
+  - Wrapper reporting was corrected so this case is reported as `skipped`
+    rather than `completed` in future runs.

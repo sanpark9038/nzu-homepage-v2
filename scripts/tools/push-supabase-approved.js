@@ -15,6 +15,34 @@ function logCacheRevalidationResult(result) {
   console.log(`CACHE_REVALIDATION_RESULT ${JSON.stringify(result)}`);
 }
 
+function cacheRevalidationResultFromStep(step) {
+  if (!step) {
+    return {
+      status: "unknown",
+      reason: "missing_step_result",
+    };
+  }
+  const stderr = String(step.err || "").trim();
+  const stdout = String(step.out || "").trim();
+  const combined = stderr || stdout;
+  const skipMatch = combined.match(/\[SKIP\]\s+revalidate_public_cache\s+missing\s+(.+)$/m);
+  if (skipMatch) {
+    return {
+      status: "skipped",
+      reason: `missing_${String(skipMatch[1] || "").trim().replace(/,\s*/g, "_and_")}`,
+    };
+  }
+  if (step.ok) {
+    return {
+      status: "completed",
+    };
+  }
+  return {
+    status: "failed",
+    reason: combined.split(/\r?\n/).filter(Boolean).slice(-1)[0] || "unknown_error",
+  };
+}
+
 function parseJsonFromStepOutput(output) {
   const text = String(output || "").trim();
   if (!text) return null;
@@ -240,32 +268,11 @@ async function main() {
   const revalidate = runStep("revalidate_public_cache", "scripts/tools/revalidate-public-cache.js", [], {
     allowFailure: true,
   });
-  if (!revalidate) {
-    logCacheRevalidationResult({
-      status: "unknown",
-      reason: "missing_step_result",
-    });
-  } else if (revalidate.ok) {
-    logCacheRevalidationResult({
-      status: "completed",
-    });
-  } else {
-    const stderr = String(revalidate.err || "").trim();
-    const stdout = String(revalidate.out || "").trim();
-    const combined = stderr || stdout;
-    const skipMatch = combined.match(/\[SKIP\]\s+revalidate_public_cache\s+missing\s+(.+)$/m);
-    if (skipMatch) {
-      logCacheRevalidationResult({
-        status: "skipped",
-        reason: `missing_${String(skipMatch[1] || "").trim().replace(/,\s*/g, "_and_")}`,
-      });
-    } else {
-      logCacheRevalidationResult({
-        status: "failed",
-        reason: combined.split(/\r?\n/).filter(Boolean).slice(-1)[0] || "unknown_error",
-      });
-    }
-  }
+  logCacheRevalidationResult(cacheRevalidationResultFromStep(revalidate));
+  runStep(
+    "player_history_freshness_sentinel",
+    "scripts/tools/verify-player-history-freshness-sentinel.js"
+  );
   console.log("Done: Supabase staging+prod sync completed.");
 }
 
@@ -278,6 +285,7 @@ if (require.main === module) {
 
 module.exports = {
   buildPlayerHistoryProdSyncEnv,
+  cacheRevalidationResultFromStep,
   checkSupabaseReadiness,
   formatSupabaseReadinessError,
   hasSoopSnapshotEnv,
