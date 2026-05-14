@@ -244,6 +244,19 @@ function dedupePlayersByName(players) {
   };
 }
 
+function applyRosterAdminOverrideToPlayer(player, override) {
+  const next = { ...(player || {}) };
+  if (!override) return next;
+  if (shouldApplyManualTierOverride(override)) next.tier = override.tier;
+  if (shouldApplyManualRaceOverride(override)) next.race = override.race;
+  if (shouldApplyManualAffiliationOverride(override)) {
+    next.team_code = override.team_code;
+    if (override.team_name) next.team_name = override.team_name;
+  }
+  if (override.name) next.name = override.name;
+  return next;
+}
+
 async function main() {
   console.log('--- Supabase Staging Sync Started ---');
   const supabase = createSupabaseClient();
@@ -286,12 +299,7 @@ async function main() {
       roster.forEach(p => {
         // Enforce the manual locks strictly
         const override = overridesMap.get(String(p.entity_id)) || overridesByName.get(normalizeName(p.name));
-        if (override) {
-          if (shouldApplyManualTierOverride(override)) p.tier = override.tier;
-          if (shouldApplyManualRaceOverride(override)) p.race = override.race;
-          if (shouldApplyManualAffiliationOverride(override)) p.team_code = override.team_code;
-          if (override.name) p.name = override.name;
-        }
+        p = applyRosterAdminOverrideToPlayer(p, override);
 
         const rMode = String(p.race || '').trim().toUpperCase();
         const shortRace = rMode.startsWith('T') ? 'T' : rMode.startsWith('Z') ? 'Z' : rMode.startsWith('P') ? 'P' : 'T';
@@ -427,6 +435,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  applyRosterAdminOverrideToPlayer,
   buildStableIdentityKey,
   choosePreferredNameRow,
   dedupePlayersByName,

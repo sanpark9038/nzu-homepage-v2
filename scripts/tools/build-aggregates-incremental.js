@@ -197,8 +197,54 @@ function hashMatch(parts) {
 function normalizePlayerNameFromFileName(fileName) {
   return fileName
     .replace(/^eloboard_(?:male|female|male_mix)_\d+_/, "")
+    .replace(/_matches\.csv$/, "")
     .replace(/_상세전적_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$/, "")
     .replace(/_상세전적\.csv$/, "");
+}
+
+function parseEntityIdFromSourceFileName(fileName) {
+  const match = String(fileName || "").match(/^eloboard_(male_mix|male|female)_(\d+)_/);
+  if (!match) return "";
+  const gender = match[1] === "male_mix" ? "male:mix" : match[1];
+  return `eloboard:${gender}:${match[2]}`;
+}
+
+function isSourceCsvFileName(fileName) {
+  const name = String(fileName || "");
+  if (/^eloboard_(?:male_mix|male|female)_\d+_.+_matches\.csv$/.test(name)) return true;
+  return /_?怨멸쉭?袁⑹읅(?:_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2})?\.csv$/.test(name);
+}
+
+function findEntityForSourceFile(fileName, rosterIndex) {
+  const entityId = parseEntityIdFromSourceFileName(fileName);
+  if (entityId && rosterIndex.byEntityId.has(entityId)) return rosterIndex.byEntityId.get(entityId);
+  const playerName = normalizePlayerNameFromFileName(fileName);
+  return rosterIndex.byName.get(playerName) || null;
+}
+
+function sourceCandidateBucketKey(candidate) {
+  return String((candidate && candidate.identity) || (candidate && candidate.player) || "").trim();
+}
+
+function firstSourceValue(row, keys) {
+  for (const key of keys) {
+    const value = String(row[key] || "").trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+function extractSourceMatchFields(row) {
+  const result = firstSourceValue(row, ["result", "å¯ƒìŽ„ë¦°å¯ƒê³Œë‚µ(????"]);
+  return {
+    matchDate: firstSourceValue(row, ["date", "?ì¢Žì­¨"]),
+    opponentName: firstSourceValue(row, ["opponent_name", "?ê³·?ï§?]"]),
+    opponentRace: firstSourceValue(row, ["opponent_race", "?ê³·?é†«ë‚†â€"]),
+    mapName: firstSourceValue(row, ["map", "map_name", "ï§?]"]),
+    result,
+    memo: firstSourceValue(row, ["note", "memo", "ï§Žë¶¾ãˆ"]),
+    isWin: result === "win" || result === "ìŠ¹",
+  };
 }
 
 function readJson(filePath, fallback) {
@@ -255,6 +301,18 @@ function listSourceCsvFiles() {
         stack.push(abs);
         continue;
       }
+      if (/^eloboard_(?:male_mix|male|female)_\d+_.+_matches\.csv$/.test(ent.name)) {
+        candidates.push({
+          path: abs,
+          player: normalizePlayerNameFromFileName(ent.name),
+          identity: parseEntityIdFromSourceFileName(ent.name),
+          stable: true,
+          from: "",
+          to: "",
+          mtime: fs.statSync(abs).mtimeMs,
+        });
+        continue;
+      }
       if (/_상세전적(?:_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2})?\.csv$/.test(ent.name)) {
         const stable = /_상세전적\.csv$/.test(ent.name);
         const range = stable
@@ -263,6 +321,7 @@ function listSourceCsvFiles() {
         candidates.push({
           path: abs,
           player: normalizePlayerNameFromFileName(ent.name),
+          identity: parseEntityIdFromSourceFileName(ent.name),
           stable,
           from: range ? range[1] : "",
           to: range ? range[2] : "",
@@ -277,8 +336,9 @@ function listSourceCsvFiles() {
   // 2) latest ranged file by to/from date (then mtime)
   const byPlayer = new Map();
   for (const c of candidates) {
-    if (!byPlayer.has(c.player)) byPlayer.set(c.player, []);
-    byPlayer.get(c.player).push(c);
+    const key = sourceCandidateBucketKey(c);
+    if (!byPlayer.has(key)) byPlayer.set(key, []);
+    byPlayer.get(key).push(c);
   }
 
   const selected = [];
@@ -459,7 +519,6 @@ function main() {
   const prevState = readJson(STATE_PATH, {});
   const sourceFiles = rebuild ? allSourceFiles : changedFiles(allSourceFiles, prevState);
   const rosterIndex = buildRosterIndexFromProjects();
-  const entityMap = rosterIndex.byName;
 
   const factRows = rebuild ? [] : readCsv(FACT_PATH);
   const dimRows = readCsv(DIM_PATH);
@@ -479,7 +538,7 @@ function main() {
     for (const filePath of sourceFiles) {
       const fileName = path.basename(filePath);
       const playerName = normalizePlayerNameFromFileName(fileName);
-      const entity = entityMap.get(playerName);
+      const entity = findEntityForSourceFile(fileName, rosterIndex);
       if (!entity) {
         unknownPlayers.add(playerName);
         continue;
@@ -505,7 +564,7 @@ function main() {
   for (const filePath of sourceFiles) {
     const fileName = path.basename(filePath);
     const playerName = normalizePlayerNameFromFileName(fileName);
-    const entity = entityMap.get(playerName);
+    const entity = findEntityForSourceFile(fileName, rosterIndex);
     if (!entity) {
       unknownPlayers.add(playerName);
       continue;
@@ -518,6 +577,45 @@ function main() {
 
     for (const r of rows) {
       sourceRowNo += 1;
+      const normalizedFields = extractSourceMatchFields(r);
+      if (r.date || r.match_date) {
+        const matchDate = normalizedFields.matchDate;
+        if (!matchDate || !isIsoDate(matchDate)) {
+          skippedInvalidDateRows += 1;
+          continue;
+        }
+        if (matchDate < from || matchDate > to) continue;
+
+        const matchKey = hashMatch([
+          `src:${fileName}`,
+          `entity:${entity.entity_id}`,
+          `row:${sourceRowNo}`,
+        ]);
+        if (existingFactKeys.has(matchKey)) continue;
+        existingFactKeys.add(matchKey);
+
+        factRows.push({
+          match_key: matchKey,
+          match_date: matchDate,
+          player_entity_id: entity.entity_id,
+          player_name: playerName,
+          team: teamCode,
+          tier: entity.tier || "",
+          race: entity.race || "",
+          opponent_name: normalizedFields.opponentName,
+          opponent_race: normalizedFields.opponentRace,
+          map_name: normalizedFields.mapName,
+          result: normalizedFields.result,
+          is_win: String(normalizedFields.isWin),
+          memo: normalizedFields.memo,
+          source_file: fileName,
+          source_row_no: String(sourceRowNo),
+          ingested_at: nowIso,
+        });
+        insertedFacts += 1;
+        changedDates.add(matchDate);
+        continue;
+      }
       const matchDate = String(r["날짜"] || "").trim();
       if (!matchDate || !isIsoDate(matchDate)) {
         skippedInvalidDateRows += 1;
@@ -619,4 +717,15 @@ function main() {
   console.log(JSON.stringify(report, null, 2));
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  extractSourceMatchFields,
+  findEntityForSourceFile,
+  isSourceCsvFileName,
+  normalizePlayerNameFromFileName,
+  parseEntityIdFromSourceFileName,
+  sourceCandidateBucketKey,
+};

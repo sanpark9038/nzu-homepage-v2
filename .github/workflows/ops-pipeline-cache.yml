@@ -2,12 +2,6 @@ name: NZU Ops Pipeline
 
 on:
   workflow_dispatch:
-    inputs:
-      with_supabase_sync:
-        description: "Enable Supabase push after collection"
-        required: false
-        default: false
-        type: boolean
   schedule:
     - cron: "10 21 * * *"
 
@@ -91,18 +85,6 @@ jobs:
             else
               mode_label="scheduled auto-sync unavailable, downgraded to collect-only"
               sync_warning="Supabase service-role secret is not configured in GitHub Actions, so homepage serving sync was skipped."
-            fi
-          fi
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.with_supabase_sync }}" = "true" ]; then
-            sync_requested="true"
-            if [ "$has_supabase_secrets" = "true" ]; then
-              run_command="npm run pipeline:manual:refresh:with-sync"
-              mode_label="manual dispatch with Supabase sync"
-              sync_enabled="true"
-            else
-              mode_label="manual dispatch requested sync, downgraded to collect-only"
-              sync_warning="Supabase service-role secret is not configured in GitHub Actions, so sync was skipped."
             fi
           fi
 

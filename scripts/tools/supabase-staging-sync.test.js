@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const {
+  applyRosterAdminOverrideToPlayer,
   buildStableIdentityKey,
   findHarmfulNameIdentityCollisions,
   findUnsafeUpsertIdentityRows,
@@ -62,6 +63,38 @@ runTest("findUnsafeUpsertIdentityRows flags name-only and missing-name staging r
   ]);
 
   assert.deepEqual(actual, [{ name: "name-only-player" }, { eloboard_id: "" }]);
+});
+
+runTest("staging sync applies admin-confirmed team tier race and name overrides", () => {
+  const player = {
+    entity_id: "eloboard:female:99991",
+    name: "before-name",
+    team_code: "jsa",
+    team_name: "JSA",
+    tier: "7",
+    race: "Zerg",
+  };
+  const override = {
+    entity_id: "eloboard:female:99991",
+    name: "after-name",
+    team_code: "hm",
+    team_name: "HM",
+    tier: "6",
+    race: "Terran",
+    manual_mode: "temporary",
+  };
+
+  const actual = applyRosterAdminOverrideToPlayer(player, override);
+
+  assert.deepEqual(actual, {
+    entity_id: "eloboard:female:99991",
+    name: "after-name",
+    team_code: "hm",
+    team_name: "HM",
+    tier: "6",
+    race: "Terran",
+  });
+  assert.equal(player.team_code, "jsa");
 });
 
 runTest("staging sync does not prepare SOOP live state from local snapshots", () => {

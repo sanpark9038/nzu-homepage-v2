@@ -34,6 +34,10 @@ function hasFlag(flag) {
   return process.argv.includes(flag);
 }
 
+function shouldWriteRosterFiles(argv = process.argv) {
+  return !argv.includes("--report-only");
+}
+
 function readJson(p) {
   return JSON.parse(fs.readFileSync(p, "utf8").replace(/^\uFEFF/, ""));
 }
@@ -626,6 +630,7 @@ function shouldGuardObservedRoster(existingCount, observedCount) {
 }
 
 async function main() {
+  const writeRosterFiles = shouldWriteRosterFiles();
   let autoDiscovery = {
     created_projects_count: 0,
     created_projects: [],
@@ -970,12 +975,20 @@ async function main() {
     sortRoster(d.json);
     d.json.generated_at = new Date().toISOString();
     d.json.roster_count = Array.isArray(d.json.roster) ? d.json.roster.length : 0;
-    writeJson(d.path, d.json);
-    changedTeams.push({ team_code: d.team.code, roster_count: d.json.roster_count, file: path.relative(ROOT, d.path).replace(/\\/g, "/") });
+    if (writeRosterFiles) {
+      writeJson(d.path, d.json);
+    }
+    changedTeams.push({
+      team_code: d.team.code,
+      roster_count: d.json.roster_count,
+      file: path.relative(ROOT, d.path).replace(/\\/g, "/"),
+      write_skipped: !writeRosterFiles,
+    });
   }
 
   const report = {
     generated_at: new Date().toISOString(),
+    report_only: !writeRosterFiles,
     auto_discovery: autoDiscovery,
     teams: teams.map((t) => t.code),
     fa_source_univ: faSourceUniv,
@@ -1028,6 +1041,7 @@ module.exports = {
   reconcileObservedIdentityMigrations,
   restoreMissingFaBaselinePlayers,
   readManualRefreshBaselinePlayers,
+  shouldWriteRosterFiles,
   shouldRetainPreviousAffiliation,
   shouldGuardObservedRoster,
   tierKey,

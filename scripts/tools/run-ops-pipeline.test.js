@@ -104,6 +104,15 @@ runTest("only wrapped chunked ops calls opt out of duplicated homepage integrity
   assert.match(chunkedSource, /--no-homepage-integrity/);
 });
 
+runTest("chunked ops runs roster sync in report-only mode by default", () => {
+  const chunkedSource = fs.readFileSync(path.join(ROOT, "scripts", "tools", "run-ops-pipeline-chunked.js"), "utf8");
+
+  assert.match(chunkedSource, /--report-only/);
+  assert.doesNotMatch(chunkedSource, /\[ROSTER_SYNC_SCRIPT\](?![\s\S]*--report-only)/);
+  assert.match(chunkedSource, /build-roster-change-review\.js/);
+  assert.match(chunkedSource, /roster_change_review/);
+});
+
 runTest("ops pipeline homepage integrity preflight can be disabled for wrapped chunk calls", () => {
   const env = {
     NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
@@ -159,4 +168,14 @@ runTest("scheduled ops workflow runs pipeline health before refresh", () => {
   assert.equal(healthIndex < modeIndex, true);
   assert.equal(healthIndex < refreshIndex, true);
   assert.match(workflow, /run_command="npm run pipeline:manual:refresh:with-sync"/);
+});
+
+runTest("scheduled ops workflow limits Supabase sync to the daily schedule", () => {
+  const workflow = fs.readFileSync(path.join(ROOT, ".github", "workflows", "ops-pipeline-cache.yml"), "utf8");
+  const dailyCronMatches = workflow.match(/cron:\s*"10 21 \* \* \*"/g) || [];
+
+  assert.equal(dailyCronMatches.length, 1);
+  assert.doesNotMatch(workflow, /with_supabase_sync/);
+  assert.doesNotMatch(workflow, /manual dispatch with Supabase sync/);
+  assert.doesNotMatch(workflow, /github\.event_name.*workflow_dispatch[\s\S]*pipeline:manual:refresh:with-sync/);
 });

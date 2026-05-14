@@ -5,7 +5,6 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const TMP_DIR = path.join(ROOT, "tmp");
 
 const REMOVABLE_DIR_NAMES = new Set([
-  "exports",
   "ppt_review_images",
   "ppt_review_images_2",
   "gh-actions",

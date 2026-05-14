@@ -301,3 +301,47 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   - `scripts/tools/player-collection-freshness-contract.test.js` is wired into
     `pipeline:health` and `verify:predeploy`.
 - No production data write was performed in this investigation slice.
+
+### 2026-05-15 Roster Ownership Simplification
+
+- Decision: treat `data/metadata/projects/*/players.*.v1.json` as the current
+  operator-confirmed roster baseline.
+- Scheduled/manual refresh pipelines must not auto-apply Eloboard roster, tier,
+  race, or FA movement decisions to that baseline.
+- `run-ops-pipeline-chunked.js` now calls `sync-team-roster-metadata.js` with
+  `--report-only`, so roster differences still produce
+  `tmp/reports/team_roster_sync_report.json` but do not rewrite project roster
+  files during collection.
+- `build-roster-change-review.js` converts that raw sync report into
+  `tmp/reports/roster_change_review_latest.md/json`, showing only the
+  operator-facing move, tier, race, new-player, conflict, and guarded-team
+  review items.
+- Staging sync has a focused contract proving admin-confirmed roster corrections
+  can override team, tier, race, and name before serving rows are prepared.
+- Manual correction remains an operator action through the admin roster flow or
+  an explicitly approved local edit path.
+- Operator expectation: admin corrections are not instant public-site changes.
+  They become visible after the next approved Supabase sync and cache
+  revalidation completes.
+- 2026-05-15 cadence decision: GitHub Actions Supabase serving sync is limited
+  to the single daily scheduled run (`10 21 * * *`, 06:10 KST). Manual workflow
+  dispatch remains collect-only, so extra production syncs require a separate
+  explicit operator approval path instead of a checkbox in the scheduled
+  workflow.
+- 2026-05-15 player-history pipeline follow-up: the freshness audit showed
+  current team export files had newer matches than serving/player-history
+  artifacts. Root cause was the warehouse builder still recognizing legacy CSV
+  filename/header shapes instead of the current `eloboard_*_matches.csv`
+  exports. `build-aggregates-incremental.js` now accepts the current normalized
+  export format, groups source candidates by durable Eloboard identity before
+  display name, and has `test:warehouse:aggregates` wired into durable gates.
+  Local rebuild verified `fact_matches=145930`, `verify:warehouse` pass, and
+  the previously stale audit sample now reaches source latest dates in local
+  player-history artifacts. No production write was performed.
+- 2026-05-15 tmp cleanup guard: `tmp/exports` is now explicitly preserved by
+  `cleanup-tmp-root.js` because current warehouse rebuilds read the latest
+  Eloboard CSV exports from that directory. `test:tmp:cleanup` is wired into
+  `pipeline:health` and `verify:predeploy` so the source export directory is
+  not accidentally reintroduced as a removable tmp-root target. Dry-run cleanup
+  found no root cleanup targets after this guard, and duplicate cleanup found
+  only two small legacy match JSON duplicates. No deletion was performed.

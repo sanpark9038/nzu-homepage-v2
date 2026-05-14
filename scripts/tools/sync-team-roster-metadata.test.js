@@ -10,6 +10,7 @@ const {
   findBaselineIdentityMigrationCandidate,
   reconcileObservedIdentityMigrations,
   restoreMissingFaBaselinePlayers,
+  shouldWriteRosterFiles,
   shouldRetainPreviousAffiliation,
   shouldGuardObservedRoster,
   upsertRosterEntry,
@@ -218,6 +219,11 @@ runTest("shouldGuardObservedRoster blocks suspicious partial roster collapses", 
     guarded: false,
     reason: "",
   });
+});
+
+runTest("roster sync writes files only when report-only is not requested", () => {
+  assert.equal(shouldWriteRosterFiles(["node", "sync-team-roster-metadata.js"]), true);
+  assert.equal(shouldWriteRosterFiles(["node", "sync-team-roster-metadata.js", "--report-only"]), false);
 });
 
 runTest("restoreMissingFaBaselinePlayers rehydrates FA players missing from current docs", () => {

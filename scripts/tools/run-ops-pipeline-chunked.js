@@ -9,6 +9,7 @@ const NODE_BIN = process.execPath || "node";
 const NODE_BIN_FALLBACK = "node";
 const MERGE_SCRIPT = "scripts/tools/merge-chunked-daily-reports.js";
 const ROSTER_SYNC_SCRIPT = "scripts/tools/sync-team-roster-metadata.js";
+const ROSTER_REVIEW_SCRIPT = "scripts/tools/build-roster-change-review.js";
 const DISPLAY_ALIAS_SCRIPT = "scripts/tools/apply-player-display-aliases.js";
 const PRIORITY_SCRIPT = "scripts/tools/update-player-check-priority.js";
 const { ensureAutoDiscoveredTeamProjects } = require("./lib/team-project-discovery");
@@ -192,8 +193,8 @@ async function runCommonPreparation(teamCodes, allTeamCodes) {
   const steps = [];
   const isFullSync = teamCodes.length === allTeamCodes.length && teamCodes.every((code, idx) => code === allTeamCodes[idx]);
   const rosterArgs = isFullSync
-    ? [ROSTER_SYNC_SCRIPT]
-    : [ROSTER_SYNC_SCRIPT, "--teams", teamCodes.join(","), "--allow-partial"];
+    ? [ROSTER_SYNC_SCRIPT, "--report-only"]
+    : [ROSTER_SYNC_SCRIPT, "--report-only", "--teams", teamCodes.join(","), "--allow-partial"];
   const rosterRes = await runNode(rosterArgs, "roster_sync");
   steps.push({
     name: "roster_sync",
@@ -203,6 +204,17 @@ async function runCommonPreparation(teamCodes, allTeamCodes) {
     stderr_tail: tail([rosterRes.stderr, rosterRes.error].filter(Boolean).join("\n")),
   });
   if (!rosterRes.ok) return { ok: false, steps };
+
+  const reviewArgs = [ROSTER_REVIEW_SCRIPT];
+  const reviewRes = await runNode(reviewArgs, "roster_change_review");
+  steps.push({
+    name: "roster_change_review",
+    ok: reviewRes.ok,
+    command: `${reviewRes.node_bin} ${reviewArgs.join(" ")}`,
+    stdout_tail: tail(reviewRes.stdout),
+    stderr_tail: tail([reviewRes.stderr, reviewRes.error].filter(Boolean).join("\n")),
+  });
+  if (!reviewRes.ok) return { ok: false, steps };
 
   for (const teamCode of teamCodes.filter((code) => code !== "fa")) {
     const aliasArgs = [DISPLAY_ALIAS_SCRIPT, "--project", teamCode];

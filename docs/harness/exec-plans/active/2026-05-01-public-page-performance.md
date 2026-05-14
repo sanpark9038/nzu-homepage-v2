@@ -1243,3 +1243,42 @@ Recent-record refresh execution:
   - `revalidate-public-cache` skipped because local env lacked base URL/secret.
   - Wrapper reporting was corrected so this case is reported as `skipped`
     rather than `completed` in future runs.
+
+Pipeline observability follow-up after repeated freshness failures:
+
+- User concern: the data pipeline has become hard to reason about after nearly
+  two months of repeated freshness and serving-data fixes.
+- Root issue identified for the current class of failures: the pipeline had
+  several guards that protected specific stages, but it did not produce a
+  player-by-player explanation of source latest date versus production serving
+  latest date. That made a stale player look like an isolated data bug instead
+  of an observable pipeline-state mismatch.
+- Added `scripts/tools/audit-player-history-freshness.js` as a read-only
+  operator audit command. It builds candidates from durable metadata identity
+  (`eloboard:gender:wr_id`), reads production serving rows, optionally performs
+  no-cache source reads through `report-team-records.js`, and writes:
+  - `tmp/reports/player_history_freshness_audit_latest.json`
+  - `tmp/reports/player_history_freshness_audit_latest.md`
+- Added `npm run report:player-history:freshness-audit` for manual/operator
+  use. By default it checks a bounded high-priority slice; `-- --all` can be
+  used when a full no-cache source audit is intentionally desired.
+- Added `scripts/tools/player-history-freshness-audit.test.js` and wired
+  `test:player-history-freshness-audit` into `pipeline:health` and
+  `verify:predeploy`.
+- This is intentionally not a production write path and does not deploy, push,
+  or mutate Supabase. It is the missing state board for deciding whether a
+  player is truly stale, source-missing, serving-missing, or fresh.
+- Follow-up classification:
+  - Initial no-source audit showed 14 metadata candidates without production
+    serving rows.
+  - After matching the same exclusion semantics as staging/prod sync, those 14
+    rows were explained as `excluded_from_serving`, not stale serving failures.
+  - Added `--visible-only` so expensive no-cache source audits can skip
+    intentionally excluded rows.
+  - A visible-only no-cache sample of 10 high-priority players found 5 real
+    stale serving rows:
+    `female:331`, `female:653`, `female:881`, `male:56`, `male:8`.
+  - This confirms the recent-record issue is not limited to the original
+    `male:37` sentinel. The next production-affecting step must be an approved
+    targeted refresh/sync or a wider visible-player audit, not another blind
+    full sync.
