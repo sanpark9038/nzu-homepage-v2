@@ -542,7 +542,7 @@ function ScheduleCalendarView({
 
                   <div className="max-h-[8.25rem] space-y-2 overflow-y-auto pr-1">
                     {dayPosts.map((post) => (
-                      <ScheduleCalendarEvent key={post.id} post={post} />
+                      <ScheduleCalendarEvent key={post.id} post={post} onSelect={() => setSelectedCalendarDateKey(day.dateKey)} />
                     ))}
                   </div>
                 </div>
@@ -614,20 +614,22 @@ function ScheduleCalendarDayDialog({
   );
 }
 
-function ScheduleCalendarEvent({ post }: { post: BoardPostRow }) {
+function ScheduleCalendarEvent({ post, onSelect }: { post: BoardPostRow; onSelect: () => void }) {
+  const scheduleDateLabel = post.schedule_date ? formatSelectedScheduleDate(post.schedule_date) : "";
+
   return (
-    <details className="group rounded-xl border border-white/8 bg-black/24 px-3 py-2 open:bg-black/40">
-      <summary className="cursor-pointer marker:content-none">
-        <div className="line-clamp-1 text-xs font-black leading-5 text-white">
-          {post.schedule_start_time ? <span className="mr-1 text-nzu-green">{post.schedule_start_time.slice(0, 5)}</span> : null}
-          {post.title}
-        </div>
-        <div className="line-clamp-1 text-[11px] font-bold text-white/52">{post.schedule_display_name}</div>
-      </summary>
-      <div className="mt-2 border-t border-white/8 pt-2">
-        <ScheduleInfoBody post={post} compact />
+    <button
+      type="button"
+      aria-label={scheduleDateLabel ? `${post.title} ${scheduleDateLabel} 일정 보기` : `${post.title} 일정 보기`}
+      onClick={onSelect}
+      className="schedule-calendar-event-button group w-full rounded-xl border border-white/8 bg-black/24 px-3 py-2 text-left transition hover:border-nzu-green/45 hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nzu-green/70"
+    >
+      <div className="line-clamp-1 text-xs font-black leading-5 text-white">
+        {post.schedule_start_time ? <span className="mr-1 text-nzu-green">{post.schedule_start_time.slice(0, 5)}</span> : null}
+        {post.title}
       </div>
-    </details>
+      <div className="line-clamp-1 text-[11px] font-bold text-white/52">{post.schedule_display_name}</div>
+    </button>
   );
 }
 

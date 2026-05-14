@@ -144,13 +144,17 @@ test("monthly calendar exposes intuitive title navigation and weekend color cues
   assert.match(source, /text-sky-300/);
 });
 
-test("calendar dates open a selected-day schedule dialog", () => {
+test("calendar dates and event chips open a selected-day schedule dialog", () => {
   const source = readProjectFile("components/schedule/ScheduleInfoList.tsx");
 
   assert.match(source, /selectedCalendarDateKey/);
   assert.match(source, /selectedCalendarPosts/);
   assert.match(source, /setSelectedCalendarDateKey\(day\.dateKey\)/);
   assert.match(source, /schedule-calendar-day-button/);
+  assert.match(source, /schedule-calendar-event-button/);
+  assert.match(source, /onSelect: \(\) => void/);
+  assert.match(source, /<ScheduleCalendarEvent[\s\S]*onSelect=\{\(\) => setSelectedCalendarDateKey\(day\.dateKey\)\}/);
+  assert.match(source, /onClick=\{onSelect\}/);
   assert.match(source, /ScheduleCalendarDayDialog/);
   assert.match(source, /formatSelectedScheduleDate/);
   assert.match(source, /role="dialog"/);

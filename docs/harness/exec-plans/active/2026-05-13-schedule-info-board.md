@@ -628,3 +628,35 @@ Current state:
 
 - This temporary public row intentionally remains in production for user review.
 - Delete and verify residue only after the user confirms they are done reviewing it.
+
+## 2026-05-14 Calendar Event Chip Dialog Correction
+
+User correction:
+
+- The intended interaction is not only clicking the date number.
+- Clicking a schedule chip inside the monthly calendar cell should open the same selected-day popup shown in the reference image.
+- Board/detail navigation should remain available from inside the popup schedule card.
+
+Implementation:
+
+- Changed calendar event chips from inline expanding `details` to full-width clickable buttons.
+- Each event chip calls the same selected-date handler as the date button.
+- The selected-day dialog continues to show all schedules for that date.
+
+Verification completed on 2026-05-14:
+
+- RED/GREEN: `npm.cmd run test:schedule-info-page-contract`.
+- PASS: `npm.cmd run test:schedule-page-data-source-contract`.
+- PASS: `npm.cmd run test:schedule-info-board-contract`.
+- PASS: `npx.cmd tsc --noEmit`.
+- PASS: `npm.cmd run lint`.
+- PASS: `npm.cmd run build`.
+- PASS: browser smoke check on port 3000 showed the temporary public review schedule in monthly view.
+- PASS: clicking the event chip itself opened the selected-day dialog with title `2026년 5월 16일 토요일` and the test marker/title.
+- PASS: no browser application error was detected after the click.
+- PASS: screenshot captured at `C:\Users\NZU\.agent-browser\tmp\screenshots\screenshot-1778740731160.png`.
+
+Current state:
+
+- Temporary public review row `8beb5031-86e7-4669-b1ea-cfb6522d8f9c` remains in production for user review.
+- Delete it only after the user confirms the updated interaction is acceptable.
