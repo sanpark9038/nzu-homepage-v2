@@ -664,3 +664,26 @@ Current state:
 
 - Temporary public review row `8beb5031-86e7-4669-b1ea-cfb6522d8f9c` remains in production for user review.
 - Delete it only after the user confirms the updated interaction is acceptable.
+
+## 2026-05-14 Temporary Public Review Schedule Deletion
+
+User approval:
+
+- User confirmed the popup interaction looked correctly reflected and approved proceeding with deletion.
+
+Deleted row:
+
+- id: `8beb5031-86e7-4669-b1ea-cfb6522d8f9c`
+- marker: `codex-public-review-1778739314350`
+
+Deletion verification completed on 2026-05-14:
+
+- PASS: pre-delete admin listing found `1` matching row.
+- PASS: `DELETE http://127.0.0.1:3000/api/admin/schedule/8beb5031-86e7-4669-b1ea-cfb6522d8f9c` returned `200`.
+- PASS: post-delete admin listing found `0` matching rows.
+- Note: deletion was performed through the local 3000 app API because the deployed production admin API uses a different production admin key than local `.env.local`.
+- Note: the local 3000 app API successfully deleted the production DB row; Vercel public `/schedule` cache is refreshed by the follow-up production deploy from this record commit.
+
+Current state:
+
+- No matching temporary public review row remains in production DB.
