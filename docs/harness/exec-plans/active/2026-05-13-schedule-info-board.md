@@ -177,10 +177,57 @@ Post-apply verification:
 ## Current State
 
 - Implementation complete and committed.
-- Production SQL has not been applied.
+- Production schedule schema SQL has been applied for the approved additive columns/index only.
 - Production data has not been written.
-- Public `/schedule` fails softly with the normal empty state when schedule columns are not migrated yet.
-- Next step is a separate, explicit production DB migration approval before deployed admin schedule writes can succeed.
+- Public `/schedule` still has the soft-fail guard for non-migrated environments.
+- Deployed admin schedule writes can now use the schedule columns, but production schedule data insert/update/delete still requires a separate explicit approval.
+
+## 2026-05-14 Production Schema Migration
+
+User approval:
+
+- `production schedule schema migration 승인. schedule columns/index만 적용해줘`
+
+Preflight verification:
+
+- PASS: `git status --short --branch` showed `main...origin/main`.
+- PASS: `git log --oneline -3` showed HEAD `1d3bf2c Record schedule handoff`.
+- PASS: `npm.cmd run test:schedule-info-board-contract`.
+- PASS: `npm.cmd run test:schedule-info-page-contract`.
+- PASS: `npm.cmd run test:schedule-page-data-source-contract`.
+- PASS: `npm.cmd run pipeline:health`.
+
+SQL-capable path:
+
+- Used existing linked Supabase workdir `C:\tmp\nzu-supabase-link`.
+- Verified project ref `ttglvnnzssaaypmcrmdt`.
+- Initial read-only schema check returned no schedule columns/index.
+
+Exact production schema apply command/tool:
+
+```powershell
+npx.cmd supabase db query --linked --workdir 'C:\tmp\nzu-supabase-link' --output json "alter table public.board_posts add column if not exists schedule_date date null; alter table public.board_posts add column if not exists schedule_start_time time without time zone null; alter table public.board_posts add column if not exists schedule_display_name text null; create index if not exists board_posts_schedule_public_idx on public.board_posts (published, category, schedule_date, schedule_start_time, created_at);"
+```
+
+Applied scope:
+
+- `board_posts.schedule_date`
+- `board_posts.schedule_start_time`
+- `board_posts.schedule_display_name`
+- `board_posts_schedule_public_idx`
+
+Explicitly not performed:
+
+- No production schedule row insert/update/delete.
+- No production board row backfill.
+- No RLS, auth policy, admin credential, or data pipeline change.
+
+Post-apply verification:
+
+- PASS: read-only schema verification found all three schedule columns and `board_posts_schedule_public_idx`.
+- PASS: public production alias `https://nzu-homepage-v2.vercel.app/schedule` loaded.
+- PASS: `agent-browser.cmd errors` returned no browser errors.
+- Deferred by user constraint: creating a test unpublished schedule post was not performed because production data insert/update/delete still needs separate approval.
 
 ## 2026-05-14 UI Refinement Scope
 
