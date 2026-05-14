@@ -157,6 +157,13 @@ test("tier lightweight card keeps compact profile media and delegates live hover
   assert.match(source, /sizes=["']76px["']/);
   assert.doesNotMatch(source, /shadow-/);
   assert.doesNotMatch(source, /shadow-\[/);
+  assert.doesNotMatch(source, /ring-offset-/);
+  assert.doesNotMatch(source, /ring-red-/);
+  assert.doesNotMatch(source, /\[box-shadow:/);
+  assert.match(source, /aria-hidden="true"/);
+  assert.match(source, /absolute inset-0 rounded-2xl border-2 border-red-500\/90/);
+  assert.match(source, /m-\[4px\]/);
+  assert.match(source, /w-\[calc\(100%-0\.5rem\)\]/);
   assert.doesNotMatch(source, /transition-all/);
   assert.doesNotMatch(source, /group-hover:-translate-y/);
   assert.doesNotMatch(source, /group-hover:scale/);

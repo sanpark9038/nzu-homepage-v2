@@ -42,11 +42,17 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
       data-live-player-name={player.name}
       data-live-broadcast-title={player.broadcast_title || undefined}
     >
+      {isLive ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-red-500/90"
+        />
+      ) : null}
+
       <article
         className={cn(
-          "relative flex min-h-[11.75rem] w-full flex-col overflow-hidden rounded-2xl border-[3px] bg-card",
-          raceTone[race] || raceTone.R,
-          isLive && "ring-2 ring-red-500/80 ring-offset-2 ring-offset-background"
+          "relative m-[4px] flex min-h-[11.75rem] w-[calc(100%-0.5rem)] flex-col overflow-hidden rounded-[0.9rem] border-[3px] bg-card",
+          raceTone[race] || raceTone.R
         )}
       >
         {isLive ? (
