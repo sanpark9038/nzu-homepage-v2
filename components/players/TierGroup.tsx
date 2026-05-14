@@ -15,7 +15,7 @@ export function TierGroup({ rankName, players, showRaceGroups, emptyMessage }: T
   if (players.length === 0 && !emptyMessage) return null;
 
   return (
-    <div className="mb-14">
+    <div className="tier-content-visibility mb-14">
       <div className="mb-8 flex items-center justify-between border-b border-foreground/5 px-2 pb-4">
         <div className="flex items-center gap-4">
           <div className="h-6 w-1.5 rounded-full bg-nzu-green shadow-[0_0_15px_rgba(46,213,115,0.4)]" />

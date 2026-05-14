@@ -19,6 +19,27 @@ interface MatchSlot {
   recentScore: [number, number];  // [p1_recent_wins, p2_recent_wins]
 }
 
+function readDelegatedTierH2HPlayer(target: EventTarget | null): MatchupPlayerSummary | null {
+  if (!(target instanceof Element)) return null
+
+  const button = target.closest('[data-tier-h2h-player]')
+  if (!(button instanceof HTMLElement)) return null
+
+  const id = button.dataset.playerId || ''
+  const name = button.dataset.playerName || ''
+  if (!id || !name) return null
+
+  return {
+    id,
+    name,
+    nickname: button.dataset.playerNickname || null,
+    race: button.dataset.playerRace || 'R',
+    gender: button.dataset.playerGender || null,
+    tier: button.dataset.playerTier || '',
+    university: button.dataset.playerUniversity || null,
+  }
+}
+
 export function H2HSelectorBar() {
   const [matchups, setMatchups] = useState<MatchSlot[]>([{
     p1: null, p2: null, overallScore: [0, 0], recentScore: [0, 0]
@@ -28,6 +49,18 @@ export function H2HSelectorBar() {
   const [isLoading, setIsLoading] = useState<Record<number, boolean>>({})
   const h2hRequestCacheRef = useRef<Map<string, Promise<H2HStats | null>>>(new Map())
   const resolvedMatchupKeyRef = useRef<Record<number, string>>({})
+
+  useEffect(() => {
+    const handleDelegatedTierH2HClick = (event: MouseEvent) => {
+      const player = readDelegatedTierH2HPlayer(event.target)
+      if (!player) return
+
+      window.dispatchEvent(new CustomEvent('add-h2h-player', { detail: player }))
+    }
+
+    document.addEventListener('click', handleDelegatedTierH2HClick)
+    return () => document.removeEventListener('click', handleDelegatedTierH2HClick)
+  }, [])
 
   useEffect(() => {
     const handleAddPlayer = (e: Event) => {

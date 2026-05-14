@@ -35,16 +35,22 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
     : "";
 
   return (
-    <div className={cn("group relative w-full max-w-52 overflow-visible hover:z-[70]", className)}>
+    <div
+      className={cn("group relative w-full max-w-52 overflow-visible hover:z-[70]", className)}
+      data-live-thumbnail-hover-anchor={liveThumbnailUrl ? "true" : undefined}
+      data-live-thumbnail-url={liveThumbnailUrl || undefined}
+      data-live-player-name={player.name}
+      data-live-broadcast-title={player.broadcast_title || undefined}
+    >
       <article
         className={cn(
-          "relative flex min-h-[11.75rem] w-full flex-col overflow-hidden rounded-2xl border-[3px] bg-card shadow-[0_0_20px_rgba(0,0,0,0.16)] transition-all duration-300 group-hover:-translate-y-1",
+          "relative flex min-h-[11.75rem] w-full flex-col overflow-hidden rounded-2xl border-[3px] bg-card",
           raceTone[race] || raceTone.R,
           isLive && "ring-2 ring-red-500/80 ring-offset-2 ring-offset-background"
         )}
       >
         {isLive ? (
-          <span className="pointer-events-none absolute right-3 top-3 z-20 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">
+          <span className="pointer-events-none absolute right-3 top-3 z-20 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white">
             LIVE
           </span>
         ) : null}
@@ -63,7 +69,8 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
               alt={player.name}
               width={76}
               height={76}
-              className="relative z-10 h-full w-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+              sizes="76px"
+              className="relative z-10 h-full w-full object-cover object-top"
             />
           </Link>
 
@@ -101,31 +108,6 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
         </div>
       </article>
 
-      {liveThumbnailUrl ? (
-        <div
-          data-live-thumbnail-hover-preview
-          className="pointer-events-none absolute bottom-[calc(100%+0.75rem)] left-1/2 z-[90] hidden w-[34rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/10 bg-[#061015] opacity-0 shadow-[0_24px_52px_rgba(0,0,0,0.44)] transition-opacity duration-150 group-hover:opacity-100 md:block"
-        >
-          <div className="relative aspect-video w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
-            <Image
-              src={liveThumbnailUrl}
-              alt={`${player.name} live preview`}
-              fill
-              unoptimized
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/25 to-transparent" />
-            <div className="absolute left-3 top-3 rounded-full bg-black/85 px-3 py-1.5 text-[12px] font-black tracking-tight text-white shadow-lg">
-              LIVE
-            </div>
-            <div className="absolute inset-x-0 bottom-0 p-3.5">
-              <p className="line-clamp-2 text-[0.98rem] font-black leading-snug text-white">
-                {player.broadcast_title || `${player.name} LIVE`}
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

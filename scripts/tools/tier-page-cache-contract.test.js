@@ -13,6 +13,8 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   const defaultRouteSource = readProjectFile("app/tier/page.tsx");
   const queryRouteSource = readProjectFile("app/tier/query/page.tsx");
   const viewSource = readProjectFile("app/tier/TierPageView.tsx");
+  const clientViewSource = readProjectFile("app/tier/TierClientView.tsx");
+  const apiRouteSource = readProjectFile("app/api/tier/players/route.ts");
   const proxySource = readProjectFile("proxy.ts");
 
   assert.doesNotMatch(defaultRouteSource, /searchParams/);
@@ -25,13 +27,45 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(queryRouteSource, /searchParams/);
   assert.match(queryRouteSource, /<TierPageView\s+params=\{params\}\s*\/>/);
 
-  assert.match(viewSource, /playerService\.getCachedPlayersList\(\)/);
-  assert.match(viewSource, /playerService\.getLivePlayers\(\)/);
+  assert.match(viewSource, /TierClientView/);
+  assert.match(viewSource, /getUniversityOptions\(\)/);
+  assert.doesNotMatch(viewSource, /playerService\.getCachedPlayersList\(\)/);
+  assert.doesNotMatch(viewSource, /playerService\.getLivePlayers\(\)/);
+  assert.doesNotMatch(viewSource, /<TierGroup\b/);
+  assert.doesNotMatch(viewSource, /<TeamTierCompactGrid\b/);
+  assert.doesNotMatch(viewSource, /<TierPlayerCard\b/);
+  assert.doesNotMatch(viewSource, /<H2HSelectorBar\b/);
+  assert.match(viewSource, /const queryString = /);
+  assert.match(viewSource, /queryString=\{queryString\}/);
+
+  assert.match(clientViewSource, /"use client"/);
+  assert.match(clientViewSource, /\/api\/tier\/players/);
+  assert.match(clientViewSource, /fetch\(apiUrl/);
+  assert.match(clientViewSource, /tierPlayersRequestCache/);
+  assert.match(clientViewSource, /function loadTierPlayers/);
+  assert.match(clientViewSource, /tierPlayersRequestCache\.get\(apiUrl\)/);
+  assert.match(clientViewSource, /tierPlayersRequestCache\.set\(apiUrl,\s*request\)/);
+  assert.match(clientViewSource, /activeQueryString/);
+  assert.match(clientViewSource, /tier-filter-query-change/);
+  assert.match(clientViewSource, /window\.location\.search/);
+  assert.match(clientViewSource, /addEventListener\("popstate"/);
+  assert.match(clientViewSource, /buildTierApiUrl\(activeQueryString\)/);
+  assert.match(clientViewSource, /queryString=\{activeQueryString\}/);
+  assert.match(clientViewSource, /TierGroup/);
+  assert.match(clientViewSource, /TeamTierCompactGrid/);
+  assert.match(clientViewSource, /H2HSelectorBar/);
+  assert.match(clientViewSource, /const liveOnly = params\.get\("liveOnly"\) !== "false"/);
+
+  assert.match(apiRouteSource, /NextResponse\.json/);
+  assert.match(apiRouteSource, /playerService\.getCachedPlayersList\(\)/);
+  assert.match(apiRouteSource, /playerService\.getLivePlayers\(\)/);
   assert.doesNotMatch(viewSource, /playerService\.getAllPlayers\(\)/);
-  assert.match(viewSource, /import\s+\{\s*Suspense\s*\}\s+from\s+["']react["']/);
-  assert.match(viewSource, /<Suspense\s+fallback=/);
+  assert.doesNotMatch(viewSource, /import\s+\{\s*Suspense\s*\}\s+from\s+["']react["']/);
+  assert.doesNotMatch(viewSource, /<Suspense\s+fallback=/);
+  assert.doesNotMatch(viewSource, /fade-in/);
+  assert.doesNotMatch(viewSource, /group-hover:scale/);
   assert.match(
-    viewSource,
+    apiRouteSource,
     /liveOnly\s*\?\s*playerService\.getLivePlayers\(\)\s*:\s*playerService\.getCachedPlayersList\(\)/s
   );
 
@@ -52,6 +86,19 @@ test("tier grids use a lightweight tier card instead of hydrating the shared pla
   assert.doesNotMatch(compactGridSource, /<PlayerCard\b/);
 });
 
+test("tier groups defer offscreen layout and paint work without removing cards from the DOM", () => {
+  const tierGroupSource = readProjectFile("components/players/TierGroup.tsx");
+  const globalsSource = readProjectFile("app/globals.css");
+
+  assert.match(tierGroupSource, /tier-content-visibility/);
+  assert.doesNotMatch(tierGroupSource, /IntersectionObserver/);
+  assert.doesNotMatch(tierGroupSource, /slice\(/);
+  assert.doesNotMatch(tierGroupSource, /players\.filter\([^)]*index/);
+  assert.match(globalsSource, /\.tier-content-visibility/);
+  assert.match(globalsSource, /content-visibility:\s*auto/);
+  assert.match(globalsSource, /contain-intrinsic-size:\s*auto\s+44rem/);
+});
+
 test("tier h2h selector accepts lightweight matchup summaries", () => {
   const source = readProjectFile("components/players/H2HSelectorBar.tsx");
 
@@ -60,29 +107,45 @@ test("tier h2h selector accepts lightweight matchup summaries", () => {
   assert.doesNotMatch(source, /CustomEvent<Player>/);
 });
 
-test("tier filters use full tier URL navigation so query routes render server-filtered data", () => {
+test("tier filters update the visible URL without remounting the client tier shell", () => {
   const source = readProjectFile("components/players/Filters.tsx");
 
   assert.match(source, /function navigateTierFilters/);
-  assert.match(source, /window\.location\.assign\(target\)/);
+  assert.doesNotMatch(source, /useRouter/);
+  assert.doesNotMatch(source, /useSearchParams/);
+  assert.match(source, /queryString/);
+  assert.match(source, /window\.history\.pushState\(null,\s*"",\s*target\)/);
+  assert.match(source, /tier-filter-query-change/);
+  assert.match(source, /queryString: query/);
   assert.match(source, /const target = query \? `\/tier\?\$\{query\}` : "\/tier"/);
+  assert.match(source, /get\("liveOnly"\) !== "false"/);
+  assert.match(source, /params\.set\("liveOnly", "false"\)/);
+  assert.doesNotMatch(source, /params\.set\("liveOnly", "true"\)/);
+  assert.doesNotMatch(source, /window\.location\.assign/);
+  assert.doesNotMatch(source, /router\.push/);
+  assert.doesNotMatch(source, /router\.refresh\(\)/);
   assert.doesNotMatch(source, /router\.push\(`\?\$\{params\.toString\(\)\}`/);
+  assert.doesNotMatch(source, /scale-105/);
 });
 
-test("tier lightweight card keeps compact profile media and shows live thumbnail as a hover preview without hydrating the shared card", () => {
+test("tier lightweight card keeps compact profile media and delegates live hover preview without hydrating the shared card", () => {
   const source = readProjectFile("components/players/TierPlayerCard.tsx");
+  const quickH2HButtonSource = readProjectFile("components/players/TierQuickH2HButton.tsx");
+  const h2hSelectorSource = readProjectFile("components/players/H2HSelectorBar.tsx");
 
   assert.match(source, /from ["']next\/image["']/);
+  assert.doesNotMatch(source, /TierLiveHoverPreview/);
   assert.match(source, /resolveSoopChannelImageUrl/);
   assert.match(source, /buildSoopThumbnailProxyUrl/);
   assert.match(source, /const liveThumbnailUrl = /);
   assert.doesNotMatch(source, /const mediaUrl = liveThumbnailUrl \|\| profileUrl/);
   assert.match(source, /src=\{profileUrl\}/);
-  assert.match(source, /src=\{liveThumbnailUrl\}/);
-  assert.match(source, /data-live-thumbnail-hover-preview/);
-  assert.match(source, /group-hover:opacity-100/);
-  assert.match(source, /bottom-\[calc\(100%\+0\.75rem\)\]/);
-  assert.match(source, /w-\[34rem\]/);
+  assert.doesNotMatch(source, /src=\{liveThumbnailUrl\}/);
+  assert.match(source, /data-live-thumbnail-hover-anchor/);
+  assert.match(source, /data-live-thumbnail-url=\{liveThumbnailUrl \|\| undefined\}/);
+  assert.match(source, /data-live-player-name=\{player\.name\}/);
+  assert.match(source, /data-live-broadcast-title=\{player\.broadcast_title \|\| undefined\}/);
+  assert.doesNotMatch(source, /data-live-thumbnail-hover-preview/);
   assert.doesNotMatch(source, /w-\[22rem\]/);
   assert.match(source, /absolute right-3 top-3/);
   assert.doesNotMatch(source, /shrink-0 rounded-full bg-red-600 px-2 py-0\.5/);
@@ -91,9 +154,65 @@ test("tier lightweight card keeps compact profile media and shows live thumbnail
   assert.match(source, /<Image\b/);
   assert.match(source, /width=\{76\}/);
   assert.match(source, /height=\{76\}/);
-  assert.match(source, /fill/);
-  assert.match(source, /unoptimized/);
+  assert.match(source, /sizes=["']76px["']/);
+  assert.doesNotMatch(source, /shadow-/);
+  assert.doesNotMatch(source, /shadow-\[/);
+  assert.doesNotMatch(source, /transition-all/);
+  assert.doesNotMatch(source, /group-hover:-translate-y/);
+  assert.doesNotMatch(source, /group-hover:scale/);
   assert.match(source, /player\.name\.slice\(0,\s*1\)/);
   assert.doesNotMatch(source, /sizes=["']56px["']/);
   assert.doesNotMatch(source, /from ["']\.\/PlayerCard["']/);
+  assert.match(source, /TierQuickH2HButton/);
+  assert.doesNotMatch(quickH2HButtonSource, /"use client"/);
+  assert.doesNotMatch(quickH2HButtonSource, /window\.dispatchEvent/);
+  assert.doesNotMatch(quickH2HButtonSource, /onClick=/);
+  assert.match(quickH2HButtonSource, /from ["']lucide-react["']/);
+  assert.match(quickH2HButtonSource, /data-tier-h2h-player/);
+  assert.match(quickH2HButtonSource, /data-player-id=\{player\.id\}/);
+  assert.match(quickH2HButtonSource, /data-player-name=\{player\.name\}/);
+  assert.match(quickH2HButtonSource, /data-player-race=\{player\.race\}/);
+  assert.match(quickH2HButtonSource, /data-player-tier=\{player\.tier\}/);
+  assert.match(h2hSelectorSource, /data-tier-h2h-player/);
+  assert.match(h2hSelectorSource, /\.closest\(/);
+  assert.match(h2hSelectorSource, /add-h2h-player/);
+});
+
+test("tier live hover preview uses one delegated fixed layer and lazy-mounts the image", () => {
+  const clientViewSource = readProjectFile("app/tier/TierClientView.tsx");
+  const source = readProjectFile("components/players/TierLiveHoverPreview.tsx");
+
+  assert.match(source, /"use client"/);
+  assert.match(clientViewSource, /TierLiveHoverPreviewLayer/);
+  assert.match(clientViewSource, /<TierLiveHoverPreviewLayer\s*\/>/);
+  assert.match(source, /export function TierLiveHoverPreviewLayer/);
+  assert.match(source, /createPortal/);
+  assert.match(source, /useState\(false\)/);
+  assert.match(source, /document\.addEventListener\("pointerover"/);
+  assert.match(source, /document\.addEventListener\("pointerout"/);
+  assert.match(source, /document\.addEventListener\("focusin"/);
+  assert.match(source, /document\.addEventListener\("focusout"/);
+  assert.match(source, /closest\(\s*["']\[data-live-thumbnail-hover-anchor\]["']/);
+  assert.match(source, /dataset\.liveThumbnailUrl/);
+  assert.match(source, /dataset\.livePlayerName/);
+  assert.match(source, /dataset\.liveBroadcastTitle/);
+  assert.doesNotMatch(source, /parent\.addEventListener/);
+  assert.doesNotMatch(source, /rootRef/);
+  assert.match(source, /focusin/);
+  assert.match(source, /focusout/);
+  assert.match(source, /shouldRender/);
+  assert.match(source, /previewPosition/);
+  assert.match(source, /getPreviewPosition/);
+  assert.match(source, /data-live-thumbnail-hover-preview/);
+  assert.match(source, /position:\s*"fixed"/);
+  assert.match(source, /z-\[999\]/);
+  assert.match(source, /document\.body/);
+  assert.doesNotMatch(source, /group-hover:opacity-100/);
+  assert.doesNotMatch(source, /bottom-\[calc\(100%\+0\.75rem\)\]/);
+  assert.doesNotMatch(source, /absolute bottom/);
+  assert.match(source, /src=\{preview\.thumbnailUrl\}/);
+  assert.match(source, /fill/);
+  assert.match(source, /unoptimized/);
+  assert.doesNotMatch(source, /shadow-/);
+  assert.doesNotMatch(source, /shadow-\[/);
 });

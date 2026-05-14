@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 
 import { UNIVERSITY_MAP } from "@/lib/university-config";
 import { cn } from "@/lib/utils";
@@ -12,24 +11,55 @@ type UniversityOption = {
   stars?: number;
 };
 
+type TierFilterControlProps = {
+  queryString?: string;
+};
+
+function createTierFilterParams(queryString = "") {
+  return new URLSearchParams(queryString);
+}
+
 function navigateTierFilters(params: URLSearchParams) {
   const query = params.toString();
   const target = query ? `/tier?${query}` : "/tier";
-  window.location.assign(target);
+  window.history.pushState(null, "", target);
+  window.dispatchEvent(new CustomEvent("tier-filter-query-change", { detail: { queryString: query } }));
 }
 
-export function PlayerSearch({ playerNames = [] }: { playerNames?: string[] }) {
-  const searchParams = useSearchParams();
+function useTierFilterNavigation() {
+  return useCallback(
+    (params: URLSearchParams) => {
+      navigateTierFilters(params);
+    },
+    []
+  );
+}
+
+export function PlayerSearch({ playerNames = [], queryString = "" }: { playerNames?: string[] } & TierFilterControlProps) {
+  const navigateFilters = useTierFilterNavigation();
   const debounceRef = useRef<NodeJS.Timeout>(undefined);
+  const currentSearch = createTierFilterParams(queryString).get("search") || "";
+  const [value, setValue] = useState(currentSearch);
+
+  useEffect(() => {
+    setValue(currentSearch);
+  }, [currentSearch]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const handleSearch = useCallback(
     (term: string) => {
+      setValue(term);
       if (debounceRef.current) clearTimeout(debounceRef.current);
 
       debounceRef.current = setTimeout(() => {
         const lowerTerm = term.trim().toLowerCase();
         const hasMatch = lowerTerm ? playerNames.some((name) => name.toLowerCase().includes(lowerTerm)) : false;
-        const params = new URLSearchParams(searchParams.toString());
+        const params = createTierFilterParams(queryString);
 
         if (lowerTerm && hasMatch) {
           params.set("search", lowerTerm);
@@ -37,10 +67,10 @@ export function PlayerSearch({ playerNames = [] }: { playerNames?: string[] }) {
           params.delete("search");
         }
 
-        navigateTierFilters(params);
+        navigateFilters(params);
       }, 200);
     },
-    [playerNames, searchParams]
+    [navigateFilters, playerNames, queryString]
   );
 
   return (
@@ -54,7 +84,7 @@ export function PlayerSearch({ playerNames = [] }: { playerNames?: string[] }) {
       <input
         type="text"
         placeholder="선수 검색..."
-        defaultValue={searchParams.get("search") || ""}
+        value={value}
         onChange={(event) => handleSearch(event.target.value)}
         className="w-full rounded-2xl border border-white/10 bg-white/5 py-2 pl-9 pr-4 text-[11px] font-bold tracking-wider text-white placeholder:text-white/10 transition-all focus:border-nzu-green/40 focus:bg-white/10 focus:outline-none"
       />
@@ -62,18 +92,18 @@ export function PlayerSearch({ playerNames = [] }: { playerNames?: string[] }) {
   );
 }
 
-export function RaceFilter() {
-  const searchParams = useSearchParams();
-  const currentRace = searchParams.get("race") || "ALL";
+export function RaceFilter({ queryString = "" }: TierFilterControlProps = {}) {
+  const navigateFilters = useTierFilterNavigation();
+  const currentRace = createTierFilterParams(queryString).get("race") || "ALL";
 
   const handleRace = (race: string) => {
-    const params = new URLSearchParams(searchParams);
+    const params = createTierFilterParams(queryString);
     if (currentRace === race || race === "ALL") {
       params.delete("race");
     } else {
       params.set("race", race);
     }
-    navigateTierFilters(params);
+    navigateFilters(params);
   };
 
   const races = [
@@ -130,18 +160,18 @@ function sortUniversityOptions(options: UniversityOption[]) {
   });
 }
 
-export function UnivFilter({ options }: { options?: UniversityOption[] }) {
-  const searchParams = useSearchParams();
-  const currentUniv = searchParams.get("univ") || "ALL";
+export function UnivFilter({ options, queryString = "" }: { options?: UniversityOption[] } & TierFilterControlProps) {
+  const navigateFilters = useTierFilterNavigation();
+  const currentUniv = createTierFilterParams(queryString).get("univ") || "ALL";
 
   const handleUniv = (univ: string) => {
-    const params = new URLSearchParams(searchParams);
+    const params = createTierFilterParams(queryString);
     if (currentUniv === univ || univ === "ALL") {
       params.delete("univ");
     } else {
       params.set("univ", univ);
     }
-    navigateTierFilters(params);
+    navigateFilters(params);
   };
 
   const sortedOptions = (() => {
@@ -163,8 +193,8 @@ export function UnivFilter({ options }: { options?: UniversityOption[] }) {
       <button
         onClick={() => handleUniv("ALL")}
         className={cn(
-          "whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-black transition-all",
-          currentUniv === "ALL" ? "scale-105 bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
+          "whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-black transition-colors",
+          currentUniv === "ALL" ? "bg-white text-black" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
         )}
       >
         전체 학교
@@ -179,9 +209,9 @@ export function UnivFilter({ options }: { options?: UniversityOption[] }) {
             key={option.code}
             onClick={() => handleUniv(option.code)}
             className={cn(
-              "group relative whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-black transition-all",
+              "group relative whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-black transition-colors",
               isActive
-                ? "scale-105 border-white/20 bg-gradient-to-br from-nzu-green/80 to-nzu-green text-black shadow-[0_0_25px_rgba(46,213,115,0.4)]"
+                ? "border-white/20 bg-gradient-to-br from-nzu-green/80 to-nzu-green text-black"
                 : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
             )}
           >
@@ -208,9 +238,9 @@ export function UnivFilter({ options }: { options?: UniversityOption[] }) {
   );
 }
 
-export function RaceToggle() {
-  const searchParams = useSearchParams();
-  const paramToggled = searchParams.get("raceToggle") === "true";
+export function RaceToggle({ queryString = "" }: TierFilterControlProps = {}) {
+  const navigateFilters = useTierFilterNavigation();
+  const paramToggled = createTierFilterParams(queryString).get("raceToggle") === "true";
   const [isToggled, setIsToggled] = useState(paramToggled);
 
   useEffect(() => {
@@ -221,13 +251,13 @@ export function RaceToggle() {
     const newState = !isToggled;
     setIsToggled(newState);
 
-    const params = new URLSearchParams(searchParams);
+    const params = createTierFilterParams(queryString);
     if (newState) {
       params.set("raceToggle", "true");
     } else {
       params.delete("raceToggle");
     }
-    navigateTierFilters(params);
+    navigateFilters(params);
   };
 
   return (
@@ -243,9 +273,9 @@ export function RaceToggle() {
   );
 }
 
-export function LiveToggle() {
-  const searchParams = useSearchParams();
-  const paramToggled = searchParams.get("liveOnly") === "true";
+export function LiveToggle({ queryString = "" }: TierFilterControlProps = {}) {
+  const navigateFilters = useTierFilterNavigation();
+  const paramToggled = createTierFilterParams(queryString).get("liveOnly") !== "false";
   const [isToggled, setIsToggled] = useState(paramToggled);
 
   useEffect(() => {
@@ -256,13 +286,13 @@ export function LiveToggle() {
     const newState = !isToggled;
     setIsToggled(newState);
 
-    const params = new URLSearchParams(searchParams);
+    const params = createTierFilterParams(queryString);
     if (newState) {
-      params.set("liveOnly", "true");
-    } else {
       params.delete("liveOnly");
+    } else {
+      params.set("liveOnly", "false");
     }
-    navigateTierFilters(params);
+    navigateFilters(params);
   };
 
   return (

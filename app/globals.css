@@ -204,6 +204,11 @@
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   }
 
+  .tier-content-visibility {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 44rem;
+  }
+
   /* LIVE 배지 애니메이션 */
   .live-dot {
     animation: live-pulse 1.5s ease-in-out infinite;
