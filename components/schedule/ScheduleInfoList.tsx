@@ -201,7 +201,7 @@ function getEmptyMessage(dayFilter: DayFilter) {
 }
 
 function getCalendarEmptyMessage(posts: BoardPostRow[], visibleCount: number) {
-  if (posts.length === 0) return "예정된 경기가 없습니다.";
+  if (posts.length === 0) return "예정된 일정이 없습니다.";
   if (visibleCount === 0) return "선택한 기간에 등록된 일정이 없습니다.";
   return "";
 }
@@ -256,7 +256,7 @@ export function ScheduleInfoList({ posts, todayKey, minCalendarKey, maxCalendarK
   );
   const groupedPosts = groupPosts(filteredPosts);
   const postsByDate = useMemo(() => buildPostsByDate(posts), [posts]);
-  const dayEmptyMessage = posts.length ? getEmptyMessage(dayFilter) : "예정된 경기가 없습니다.";
+  const dayEmptyMessage = posts.length ? getEmptyMessage(dayFilter) : "예정된 일정이 없습니다.";
   const isCalendarView = viewMode !== "day";
 
   function moveCalendarCursor(direction: -1 | 1) {

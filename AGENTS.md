@@ -110,7 +110,7 @@ These labels are locked.
 - 마감 임박
 - 투표 중
 - 공식 경기 일정 안내
-- 예정된 경기가 없습니다.
+- 예정된 일정이 없습니다.
 
 ## Drift Recovery
 

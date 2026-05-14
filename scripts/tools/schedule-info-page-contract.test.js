@@ -63,7 +63,8 @@ test("schedule info list renders day week month controls with today as default",
   assert.match(source, /모레/);
   assert.match(source, /시간 미정/);
   assert.match(source, /정보\/일정/);
-  assert.match(source, /예정된 경기가 없습니다/);
+  assert.match(source, /예정된 일정이 없습니다/);
+  assert.doesNotMatch(source, /예정된 경기가 없습니다/);
   assert.match(source, /details/);
   assert.match(source, /summary/);
   assert.match(source, /aria-pressed/);

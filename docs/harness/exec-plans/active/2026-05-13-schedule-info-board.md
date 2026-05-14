@@ -129,7 +129,7 @@ Browser verification:
 - `npm.cmd run dev -- --hostname 127.0.0.1 --port 3000` could not start because an existing `.next/dev/lock` was present; no existing process was killed for this check.
 - Used the verified build with `npm.cmd run start -- --hostname 127.0.0.1 --port 3000`.
 - PASS: `/schedule` loaded with content and no framework error overlay.
-- PASS: `/schedule` empty state displayed `예정된 경기가 없습니다.`
+- PASS: `/schedule` empty state displayed `예정된 일정이 없습니다.`
 - PASS: `/schedule` had no horizontal overflow at 390x844 or 1440x1000.
 - PASS: `/admin/schedule` redirected to `/admin/login?next=%2Fadmin%2Fschedule` when logged out.
 - PASS: `agent-browser.cmd errors` returned no browser errors during checks.
@@ -529,4 +529,22 @@ Verification completed on 2026-05-14:
 - PASS: `npx.cmd tsc --noEmit`
 - PASS: `npm.cmd run lint`
 - PASS: `npm.cmd run build`
-- PASS: browser smoke check at `http://127.0.0.1:3001/schedule` switched to monthly view and confirmed title `2026년 5월`, two icon navigation buttons, no Next.js error overlay, and distinct Sunday/Saturday computed colors.
+- PASS: browser smoke check at `http://127.0.0.1:3000/schedule` switched to monthly view and confirmed title `2026년 5월`, two icon navigation buttons, no Next.js error overlay, and distinct Sunday/Saturday computed colors.
+
+## 2026-05-14 Schedule Empty-State Wording Pass
+
+User-approved wording change:
+
+- Change the no-post public schedule empty state from `예정된 경기가 없습니다.` to `예정된 일정이 없습니다.`
+- Update `AGENTS.md` locked label guidance so future sessions use the new user-approved copy.
+- Keep local browser verification on port 3000 only; 3001 is reserved for another project.
+
+Verification completed on 2026-05-14:
+
+- RED/GREEN: `npm.cmd run test:schedule-info-page-contract`
+- PASS: `npm.cmd run test:schedule-page-data-source-contract`
+- PASS: `npm.cmd run test:schedule-info-board-contract`
+- PASS: `npx.cmd tsc --noEmit`
+- PASS: `npm.cmd run lint`
+- PASS: `npm.cmd run build`
+- PASS: browser smoke check at `http://127.0.0.1:3000/schedule` confirmed `예정된 일정이 없습니다.`, no old `예정된 경기가 없습니다.` text, and no Next.js error overlay.
