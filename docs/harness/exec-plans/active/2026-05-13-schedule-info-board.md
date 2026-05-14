@@ -491,4 +491,23 @@ Review follow-up completed on 2026-05-14:
 
 - Calendar date math now uses `Date.UTC` with UTC getters/setters so browser local timezone cannot shift week/month cells.
 - `/schedule` now fetches a bounded calendar window from 3 months before to 13 months after today with `limit: 500`.
-- Week/month `이전` and `다음` buttons are disabled outside the fetched calendar window to avoid showing false empty states for unloaded periods.
+- Week/month previous/next buttons are disabled outside the fetched calendar window to avoid showing false empty states for unloaded periods.
+
+## 2026-05-14 Schedule Readability Pass
+
+User-approved refinement:
+
+- Increase the public `/schedule` typography scale so controls and content read closer to the provided reference screenshot.
+- Make day/week/month controls and day quick filters larger with stable touch-friendly heights.
+- Increase schedule date pills, card title/body text, inline detail spacing, and external link buttons.
+- Preserve existing locked labels and behavior.
+
+Verification completed on 2026-05-14:
+
+- RED/GREEN: `npm.cmd run test:schedule-info-page-contract`
+- PASS: `npm.cmd run test:schedule-page-data-source-contract`
+- PASS: `npm.cmd run test:schedule-info-board-contract`
+- PASS: `npx.cmd tsc --noEmit`
+- PASS: `npm.cmd run lint`
+- PASS: `npm.cmd run build`
+- PASS: browser smoke check at `http://127.0.0.1:3000/schedule` loaded the page, showed the schedule controls, reported no Next.js error overlay, and confirmed rendered controls at 44-48px height with 16px text.
