@@ -116,6 +116,7 @@
     "test:tier-page-cache-contract": "node scripts/tools/tier-page-cache-contract.test.js",
     "test:player-placeholder-contract": "node scripts/tools/player-placeholder-contract.test.js",
     "test:roster-manual-overrides": "node scripts/tools/roster-manual-overrides-contract.test.js",
+    "test:admin-roster-ops-review": "node scripts/tools/admin-roster-ops-review-contract.test.js",
     "test:player-live-overlay": "node scripts/tools/player-live-overlay-contract.test.js",
     "test:prediction-cache-contract": "node scripts/tools/prediction-cache-contract.test.js",
     "test:prediction-store-contract": "node --test scripts/tools/prediction-store-contract.test.mjs",

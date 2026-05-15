@@ -227,3 +227,22 @@ test("tier live hover preview uses one delegated fixed layer and lazy-mounts the
   assert.doesNotMatch(source, /shadow-/);
   assert.doesNotMatch(source, /shadow-\[/);
 });
+
+test("tier footer exposes a short admin entry without leaking credentials", () => {
+  const source = readProjectFile("app/tier/TierClientView.tsx");
+  const adminEntrySource = readProjectFile("app/admin/page.tsx");
+
+  assert.match(source, /href=["']\/admin["']/);
+  assert.match(source, /LockKeyhole/);
+  assert.match(source, /\\uC804\\uC801 \\uCD9C\\uCC98: ELOBOARD\.COM|전적 출처:\s*ELOBOARD\.COM/);
+  assert.match(source, /2026 HOSAGA BY SANPARK\./);
+  assert.doesNotMatch(source, /HOSAGA ARCHIVE/);
+  assert.doesNotMatch(source, /HOSAGA 티어 데이터/);
+  assert.doesNotMatch(source, /ADMIN_ACCESS_KEY|adminAccessKey|password|next=\/admin/);
+
+  assert.match(adminEntrySource, /ADMIN_SESSION_COOKIE/);
+  assert.match(adminEntrySource, /isValidAdminSession/);
+  assert.match(adminEntrySource, /redirect\("\/admin\/ops"\)/);
+  assert.match(adminEntrySource, /redirect\("\/admin\/login\?next=\/admin\/ops"\)/);
+  assert.doesNotMatch(adminEntrySource, /ADMIN_ACCESS_KEY|adminAccessKey|password/);
+});

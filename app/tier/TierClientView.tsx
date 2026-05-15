@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LockKeyhole } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { H2HSelectorBar } from "@/components/players/H2HSelectorBar";
@@ -282,16 +283,19 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
 
       <footer className="relative z-10 border-t border-white/5 py-12">
         <div className="mx-auto flex max-w-[1800px] flex-col items-center justify-between gap-6 px-16 md:flex-row">
-          <div className="flex flex-col items-center gap-1 text-center md:items-start md:text-left">
-            <span className="mb-2 text-[13px] font-black uppercase tracking-widest text-nzu-green transition-colors">티어표 출처: HOSAGA ARCHIVE</span>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30">© 2026 HOSAGA UNIVERSITY. 모든 권리 보유.</p>
-          </div>
+          <Link
+            href="/admin"
+            aria-label="Admin"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-foreground/35 transition-colors hover:border-nzu-green/60 hover:text-nzu-green"
+          >
+            <LockKeyhole className="h-4 w-4" aria-hidden="true" />
+          </Link>
 
-          <div className="flex items-center gap-8">
-            <div className="flex flex-col items-end gap-1">
-              <span className="text-[10px] font-black tracking-widest text-foreground/40">업데이트</span>
-              <span className="text-sm font-black tracking-tighter text-foreground transition-colors">HOSAGA 티어 데이터</span>
-            </div>
+          <div className="flex flex-col items-center gap-1 text-center md:items-start md:text-left">
+            <span className="mb-2 text-[13px] font-black uppercase tracking-widest text-nzu-green transition-colors">
+              {"\uC804\uC801 \uCD9C\uCC98: ELOBOARD.COM"}
+            </span>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30">2026 HOSAGA BY SANPARK.</p>
           </div>
         </div>
       </footer>

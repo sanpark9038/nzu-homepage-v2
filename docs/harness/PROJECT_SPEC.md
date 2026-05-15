@@ -35,6 +35,8 @@ Tracks player identity and serving attributes such as:
 
 Tracks roster membership by team project under `data/metadata/projects/<team>/players.<team>.v1.json`.
 
+The operator-facing admin ownership model for roster affiliation, new teams, new player candidates, names, and review-only Eloboard deltas is documented in [ROSTER_ADMIN_MODEL.md](./ROSTER_ADMIN_MODEL.md).
+
 ### 3.3 Match history and derived aggregates
 
 Pipeline scripts collect, normalize, and validate match records and aggregates used by the site and downstream serving paths.
