@@ -1,6 +1,7 @@
-# ACTIVE PLAN: admin-roster-ui-information-architecture
+# COMPLETED PLAN: admin-roster-ui-information-architecture
 
 Created: 2026-05-15
+Completed: 2026-05-16
 Status: completed-local
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

@@ -1,7 +1,8 @@
-# ACTIVE PLAN: player-metadata-source-consolidation
+# COMPLETED PLAN: player-metadata-source-consolidation
 
 Created: 2026-05-15
-Status: `in-progress`
+Completed: 2026-05-16
+Status: `completed-local`
 
 ## Goal
 
