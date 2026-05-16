@@ -487,3 +487,22 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - Added a source-consolidation contract test so project metadata cannot regain
   `tmp/` `source_file` references. `/tmp/*` remains ignored, so future temporary
   reports should stay outside tracked source data.
+
+### 2026-05-16 Conservative Local Bundle Check
+
+- Local `main` is ahead of `origin/main` by `17` commits. No push or deployment
+  has been performed.
+- Full local `npm.cmd run verify:predeploy` passed after the metadata source,
+  player-history, H2H, and tracked-`tmp` cleanup work. The build step completed
+  successfully.
+- Quick active-path audit found no tracked `tmp`, `data/warehouse`, or
+  generated `data/metadata/players.master.v1.json` files. It also found no
+  active code path for `scripts/player_metadata.json`, `getInstantH2H`, or
+  `lib/h2h-service.ts`; remaining references are docs, archive, or guard tests.
+- Conservative publish recommendation: do not rewrite local history now. Treat
+  the current local branch as a verified review bundle, then decide before any
+  push whether to include or split the older tier-card/admin-roster-review UI
+  commits from the metadata/pipeline/H2H safety commits.
+- If a push/PR is approved later, rerun `npm.cmd run verify:predeploy`
+  immediately before that action and keep deployment separate from the push
+  decision.
