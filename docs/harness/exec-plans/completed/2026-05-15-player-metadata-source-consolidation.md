@@ -992,7 +992,7 @@ Get-Content docs\harness\exec-plans\active\2026-05-15-player-metadata-source-con
 - Commit-scope review checkpoint:
   - Reviewed changed files by bundle. The worktree is large, but the changes fall into coherent groups:
     - `metadata consolidation`: project roster JSON files, CALM rename, `data/metadata/README.md`, `.gitignore`, archived legacy metadata/tools, source-consolidation report/test, serving-roster-diff report/test, and active scripts converted away from `scripts/player_metadata.json`
-    - `admin roster review IA`: `app/admin/roster/ops-review/page.tsx`, `components/admin/AdminNav.tsx`, `scripts/tools/admin-roster-ops-review-contract.test.js`, and `docs/harness/exec-plans/active/2026-05-15-admin-roster-ui-information-architecture.md`
+    - `admin roster review IA`: `app/admin/roster/ops-review/page.tsx`, `components/admin/AdminNav.tsx`, `scripts/tools/admin-roster-ops-review-contract.test.js`, and `docs/harness/exec-plans/completed/2026-05-15-admin-roster-ui-information-architecture.md`
     - `player-history freshness recovery`: targeted collection options in `scripts/tools/export-team-roster-detailed.js`, Supabase/R2 sync guard updates, freshness tests, and operational sync docs
     - `serving/tier guardrails`: tier normalization and roster override helpers that prevent migrated canonical metadata from being hidden or mis-grouped
     - `generated/retired artifacts`: deleted tracked `tmp/player_metadata_*` files and updated `data/metadata/soop_live_snapshot.generated.v1.json`

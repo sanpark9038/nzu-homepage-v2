@@ -506,3 +506,20 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - If a push/PR is approved later, rerun `npm.cmd run verify:predeploy`
   immediately before that action and keep deployment separate from the push
   decision.
+
+### 2026-05-16 Conservative Bundle Inclusion Decision
+
+- Reviewed the four earlier commits that looked less directly related to the
+  metadata/pipeline/H2H cleanup:
+  - `d07df67` and `4b83837`: tier-card containment, spacing, and badge
+    presentation only, covered by tier cache/helper contract tests.
+  - `56cf976` and `cf2bd85`: admin roster ops review and IA. The helper/API/page
+    are read-only, and the contract test explicitly blocks write/delete/mutation
+    controls.
+- Conservative decision: do not rewrite or split local history now. The four
+  commits may remain in the verified local review bundle, but any future PR or
+  push summary should call them out as separate UI/admin-support sections rather
+  than blending them into the canonical metadata safety narrative.
+- Deployment remains a separate later approval. If the operator wants the
+  smallest possible metadata-only PR later, create a fresh branch/cherry-pick
+  plan then instead of rewriting this verified local branch in place.
