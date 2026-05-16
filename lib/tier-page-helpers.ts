@@ -42,6 +42,15 @@ export function sortTierPlayers(players: Player[]) {
   });
 }
 
+function normalizeTierPageKey(tier: string | null | undefined) {
+  const normalized = normalizeTier(tier);
+  const raw = String(tier || "").trim();
+  if (normalized === raw && raw.endsWith("티어")) {
+    return normalizeTier(raw.replace(/티어$/, ""));
+  }
+  return normalized;
+}
+
 export function filterTierPlayers(
   players: Player[],
   {
@@ -75,7 +84,7 @@ export function filterTierPlayers(
     playerList = playerList.filter((player) => player.university === normalizedUniversity);
   }
   if (normalizedTierFilter && normalizedTierFilter !== "ALL") {
-    playerList = playerList.filter((player) => normalizeTier(player.tier) === normalizeTier(normalizedTierFilter));
+    playerList = playerList.filter((player) => normalizeTierPageKey(player.tier) === normalizeTierPageKey(normalizedTierFilter));
   }
   if (normalizedSearch) {
     const searchedList = playerList.filter((player) => String(player.name || "").toLowerCase().includes(normalizedSearch));
@@ -89,12 +98,12 @@ export function filterTierPlayers(
 
 export function buildNamedTierPlayers(players: Player[]) {
   return {
-    godPlayers: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === NAMED_TIER_LABELS.god)),
-    kingPlayers: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === NAMED_TIER_LABELS.king)),
-    jackPlayers: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === NAMED_TIER_LABELS.jack)),
-    jokerPlayers: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === NAMED_TIER_LABELS.joker)),
-    spadePlayers: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === NAMED_TIER_LABELS.spade)),
-    babyPlayers: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === BABY_TIER_KEY)),
+    godPlayers: sortTierPlayers(players.filter((player) => normalizeTierPageKey(player.tier) === NAMED_TIER_LABELS.god)),
+    kingPlayers: sortTierPlayers(players.filter((player) => normalizeTierPageKey(player.tier) === NAMED_TIER_LABELS.king)),
+    jackPlayers: sortTierPlayers(players.filter((player) => normalizeTierPageKey(player.tier) === NAMED_TIER_LABELS.jack)),
+    jokerPlayers: sortTierPlayers(players.filter((player) => normalizeTierPageKey(player.tier) === NAMED_TIER_LABELS.joker)),
+    spadePlayers: sortTierPlayers(players.filter((player) => normalizeTierPageKey(player.tier) === NAMED_TIER_LABELS.spade)),
+    babyPlayers: sortTierPlayers(players.filter((player) => normalizeTierPageKey(player.tier) === BABY_TIER_KEY)),
   };
 }
 
@@ -103,7 +112,7 @@ export function buildNumericTierGroups(players: Player[], numericTiers: number[]
     .map((tier) => ({
       tier,
       name: `${tier}티어`,
-      players: sortTierPlayers(players.filter((player) => normalizeTier(player.tier) === String(tier))),
+      players: sortTierPlayers(players.filter((player) => normalizeTierPageKey(player.tier) === String(tier))),
     }))
     .filter((group) => group.players.length > 0);
 }
@@ -111,6 +120,18 @@ export function buildNumericTierGroups(players: Player[], numericTiers: number[]
 export function buildCompactTeamTierPlayers(players: Player[], numericTiers: number[]) {
   const { godPlayers, kingPlayers, jackPlayers, jokerPlayers, spadePlayers, babyPlayers } = buildNamedTierPlayers(players);
   const numericTierGroups = buildNumericTierGroups(players, numericTiers);
+  const groupedIds = new Set(
+    [
+      ...godPlayers,
+      ...kingPlayers,
+      ...jackPlayers,
+      ...jokerPlayers,
+      ...spadePlayers,
+      ...numericTierGroups.flatMap((group) => group.players),
+      ...babyPlayers,
+    ].map((player) => player.id)
+  );
+  const ungroupedPlayers = sortTierPlayers(players.filter((player) => !groupedIds.has(player.id)));
 
   return [
     ...godPlayers,
@@ -120,6 +141,7 @@ export function buildCompactTeamTierPlayers(players: Player[], numericTiers: num
     ...spadePlayers,
     ...numericTierGroups.flatMap((group) => group.players),
     ...babyPlayers,
+    ...ungroupedPlayers,
   ];
 }
 

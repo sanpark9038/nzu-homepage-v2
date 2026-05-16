@@ -2,11 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local"), quiet: true });
+const { loadProjectPlayerMetadata } = require("./lib/project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const DISPLAY_ALIASES_PATH = path.join(ROOT, "data", "metadata", "player_display_aliases.v1.json");
-const PLAYER_METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const REVIEW_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "soop_manual_review_decisions.v1.json");
 const SNAPSHOT_PATH = path.join(ROOT, "data", "metadata", "soop_live_snapshot.generated.v1.json");
 const OUTPUT_PATH = path.join(ROOT, "tmp", "reports", "homepage_integrity_report.json");
@@ -94,14 +94,13 @@ function loadProjectRosters() {
 }
 
 function loadPlayerMetadata() {
-  if (!fs.existsSync(PLAYER_METADATA_PATH)) return [];
-  const rows = readJson(PLAYER_METADATA_PATH);
-  if (!Array.isArray(rows)) return [];
-  return rows.map((row) => ({
+  return loadProjectPlayerMetadata().map((row) => ({
     wr_id: Number.isFinite(Number(row && row.wr_id)) ? Number(row.wr_id) : null,
-    name: trim(row && row.name) || null,
+    name: trim((row && row.display_name) || (row && row.name)) || null,
     gender: lower(row && row.gender) || null,
     soop_user_id: trim(row && row.soop_user_id) || null,
+    entity_id: trim(row && row.entity_id) || null,
+    team_code: trim(row && row.team_code) || null,
   }));
 }
 

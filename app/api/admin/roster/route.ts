@@ -11,6 +11,7 @@ import {
 } from "@/lib/roster-admin-store";
 import { updateTournamentTeamCaptain, updateTournamentTeamName } from "@/lib/tournament-home";
 import { supabase } from "@/lib/supabase";
+import { normalizeTier } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -194,16 +195,14 @@ function slug(v: string) {
 }
 
 function tierKey(tier: string) {
-  const raw = String(tier || "").trim();
+  const raw = normalizeTier(tier);
   const map: Record<string, string> = {
     갓: "god",
     GOD: "god",
     킹: "king",
     KING: "king",
-    킹티어: "king",
     잭: "jack",
     JACK: "jack",
-    잭티어: "jack",
     조커: "joker",
     JOKER: "joker",
     스페이드: "spade",
@@ -214,6 +213,11 @@ function tierKey(tier: string) {
   if (map[raw]) return map[raw];
   if (/^\d+$/.test(raw)) return raw;
   return "unknown";
+}
+
+function canonicalTierValue(tier: string | null | undefined) {
+  const raw = String(tier || "").trim();
+  return raw ? normalizeTier(raw) : "";
 }
 
 function tierRank(tier: string) {
@@ -455,7 +459,7 @@ export async function GET(req: Request) {
         name: String(override?.name || "").trim() || r.name,
         team_code: effectiveTeamCode,
         team_name: effectiveTeamName,
-        tier: shouldApplyManualTierOverride(override) ? String(override?.tier || "").trim() || r.tier : r.tier,
+        tier: shouldApplyManualTierOverride(override) ? canonicalTierValue(override?.tier) || r.tier : r.tier,
         race: shouldApplyManualRaceOverride(override) ? String(override?.race || "").trim() || r.race : r.race,
         manual_lock: Boolean(override),
         manual_mode: override?.manual_mode || null,
@@ -647,7 +651,7 @@ export async function PATCH(req: Request) {
 
   const entityId = String(body.entity_id || "").trim();
   const nextTeamCode = String(body.team_code || "").trim().toLowerCase();
-  const nextTier = String(body.tier || "").trim();
+  const nextTier = canonicalTierValue(body.tier);
   const manualMode = body.manual_mode === "fixed" ? "fixed" : "temporary";
   const excluded = body.excluded === true;
   const exclusionReason = String(body.exclusion_reason || "").trim() || "user_excluded";

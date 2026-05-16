@@ -19,6 +19,8 @@ const {
   selectRowsNeedingUpsert,
   projectMatchHistoryForServing,
   resolveSoopServingMetadata,
+  buildExistingPlayerLookup,
+  findExistingPlayerForIncoming,
   assertNoProductionFreshnessRegression,
   maxMatchHistoryDate,
   parseMatchHistoryFromStableCsv,
@@ -527,6 +529,28 @@ runTest("buildServingPayload preserves newer existing serving stats when current
     win_rate: 60,
     last_synced_at: "2026-05-13T00:00:00.000Z",
   });
+});
+
+runTest("prod sync matches existing production rows by durable identity when names change", () => {
+  const lookup = buildExistingPlayerLookup([
+    {
+      name: "old-display-name",
+      eloboard_id: "eloboard:male:93",
+      gender: "male",
+      match_history: [{ match_date: "2026-05-08" }],
+    },
+  ]);
+
+  const actual = findExistingPlayerForIncoming(
+    {
+      name: "new-display-name",
+      eloboard_id: "eloboard:male:93",
+      gender: "male",
+    },
+    lookup
+  );
+
+  assert.equal(actual.name, "old-display-name");
 });
 
 runTest("selectRowsNeedingUpsert skips unchanged serving payloads and ignores last_synced_at", () => {

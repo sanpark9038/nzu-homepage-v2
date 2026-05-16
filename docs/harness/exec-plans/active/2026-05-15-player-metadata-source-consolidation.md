@@ -1,0 +1,1035 @@
+# ACTIVE PLAN: player-metadata-source-consolidation
+
+Created: 2026-05-15
+Status: `in-progress`
+
+## Goal
+
+Choose one player metadata source of truth, migrate safe SOOP ID data into it, and remove or clearly demote legacy files so future work does not mix data sources.
+
+## Operating decision
+
+- Candidate source of truth: `data/metadata/projects/*/players.*.v1.json`
+- Legacy/reference candidate: `scripts/player_metadata.json`
+- Supporting reference only: `data/metadata/players.master.v1.json`
+- No production data writes, push, or deploy in this plan unless the user explicitly approves an operational recovery gate.
+- Do not use port 3001.
+- Do not use name-only matching for automatic migration.
+- Treat `scripts/player_metadata.json` as `unverified_reference_only`; user confirmed `male:301` was false data and warned that more legacy rows may be fake.
+
+## Pre-work confirmation
+
+### Conflict-risk files
+
+- `data/metadata/projects/*/players.*.v1.json`
+- `scripts/player_metadata.json`
+- `data/metadata/players.master.v1.json`
+- `lib/admin-roster-ops-review.ts`
+- SOOP/live/sync scripts that currently read `scripts/player_metadata.json`
+
+### Independently editable files
+
+- `scripts/tools/report-player-metadata-source-consolidation.js`
+- `scripts/tools/player-metadata-source-consolidation.test.js`
+- `tmp/reports/player_metadata_source_consolidation_latest.json`
+- this active plan
+
+### Basis
+
+- User confirmed the goal is one canonical source, not long-term mixed-source reads.
+- Local investigation showed project roster files have 345 approved players and 0 project-level SOOP IDs.
+- `scripts/player_metadata.json` has 372 rows, 361 rows with SOOP IDs, and covers 313 of 345 project roster rows by `gender + wr_id`.
+
+## Completed steps
+
+- [x] Re-entered via `AGENTS.md` and `docs/harness/SESSION_ENTRY.md`.
+- [x] Confirmed latest local commit basis: `56cf976 Add roster ops review and admin entry`.
+- [x] Confirmed existing admin review currently over-reports SOOP ID missing rows because it only reads project files.
+- [x] Agreed that legacy data may be used only as migration input, not as a second source of truth.
+- [x] Created `scripts/tools/player-metadata-source-consolidation.test.js`.
+- [x] Verified the new contract test failed before the report script and package scripts existed.
+- [x] Created `scripts/tools/report-player-metadata-source-consolidation.js`.
+- [x] Added `report:metadata:source-consolidation` and `test:metadata:source-consolidation`.
+- [x] Generated `tmp/reports/player_metadata_source_consolidation_latest.json`.
+- [x] Checked BGM candidates first:
+  - 21 safe SOOP ID migration candidates
+  - 2 manual-review candidates: `male:1068`, `female:1018`
+- [x] Created `scripts/tools/apply-project-soop-id-migration.test.js`.
+- [x] Verified the migration contract test failed before the guarded migration script and package scripts existed.
+- [x] Created `scripts/tools/apply-project-soop-id-migration.js`.
+- [x] Added `apply:metadata:project-soop-migration` and `test:metadata:project-soop-migration`.
+- [x] Ran dry-run project SOOP ID migration and generated `tmp/reports/project_soop_id_migration_report.json`.
+- [x] Removed confirmed false legacy row `male:301` from `scripts/player_metadata.json`.
+- [x] Updated the consolidation report to mark legacy metadata as `unverified_reference_only`.
+- [x] Removed duplicate legacy `male:100` row without `soop_user_id`.
+- [x] Removed stale `zealotmaru` alias exception because `male:301` was false legacy data.
+- [x] Tightened safe migration criteria:
+  - legacy SOOP ID must not appear on multiple `gender + wr_id` identities
+  - legacy name must match project `name` or `display_name`
+- [x] Added `--project=<code>` support to `scripts/tools/apply-project-soop-id-migration.js`.
+- [x] Verified BGM-only dry-run:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=bgm`
+  - project_filter: `bgm`
+  - candidate_count: 19
+  - total_available_candidate_count: 283
+  - updated: 19
+  - skipped: 0
+- [x] Added `scripts/tools/build-project-soop-migration-review.js`.
+- [x] Added `report:metadata:project-soop-review` and `test:metadata:project-soop-review`.
+- [x] Generated BGM review artifacts:
+  - `tmp/reports/project_soop_migration_review.bgm.md`
+  - `tmp/reports/project_soop_migration_review.bgm.json`
+- [x] User reviewed `tmp/reports/project_soop_migration_review.bgm.md` and confirmed all 19 BGM rows are correct.
+- [x] Removed temporary BGM review artifacts after approved write because no `OK`/`보류` annotations were recorded there.
+- [x] Applied BGM-only SOOP ID migration:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=bgm --write`
+  - updated: 19
+  - skipped: 0
+- [x] Regenerated source consolidation report after BGM write.
+- [x] Generated BLACK review artifacts for next user review:
+  - `tmp/reports/project_soop_migration_review.black.md`
+  - `tmp/reports/project_soop_migration_review.black.json`
+  - safe candidates: 17
+  - dry-run updated: 17
+  - manual-review candidates: `male:120`, `female:722`
+- [x] User reviewed BLACK candidates by sampling and confirmed they look correct.
+- [x] Applied BLACK-only SOOP ID migration:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=black --write`
+  - updated: 17
+  - skipped: 0
+- [x] Removed temporary BLACK review artifacts after approved write.
+- [x] Generated DM review artifacts for next user review:
+  - `tmp/reports/project_soop_migration_review.dm.md`
+  - `tmp/reports/project_soop_migration_review.dm.json`
+  - safe candidates: 9
+  - dry-run updated: 9
+  - manual-review candidates: `female:881`, `female:858`
+- [x] User reviewed DM candidates and confirmed they look correct.
+- [x] Applied DM-only SOOP ID migration:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=dm --write`
+  - updated: 9
+  - skipped: 0
+- [x] Removed temporary DM review artifacts after approved write.
+- [x] Generated YB review artifacts for next user review:
+  - `tmp/reports/project_soop_migration_review.yb.md`
+  - `tmp/reports/project_soop_migration_review.yb.json`
+  - safe candidates: 7
+  - dry-run updated: 7
+  - manual-review candidates: `male:159`, `female:889`
+- [x] Reclassified YB as a manually managed project roster after user clarified the eloboard YB team disappeared.
+- [x] Applied user-confirmed YB roster changes:
+  - removed from YB only: `male:28` 유승곤, `male:48` 오메킴, `female:898` 하루묭
+  - moved those three rows to FA so they remain active players, not collection exclusions
+  - added or retained YB rows for: 태영/xodud1898, 임밍지/dlaalswl22, 또해영/pokimasiso, 으냉이/rhakdncjs90, 한쪼니/zzonii, 히요코/hiyoko040, 염보성/yuambo
+  - used `female:820` for 으냉이 because it is the current project metadata row; legacy `female:947` remains untrusted reference data
+  - marked `data/metadata/projects/yb/players.yb.v1.json` as `manual_managed: true`
+  - updated `data/metadata/roster_manual_overrides.v1.json` so YB rows are fixed manual overrides and stale YB overrides for removed rows are gone
+- [x] Removed stale YB automatic SOOP review artifacts after the user-provided manual roster superseded them.
+- [x] Removed `male:159` 저라뎃 and `female:889` 히요코 from the YB project roster after user confirmed they do not need to appear on the homepage.
+- [x] Removed the matching YB fixed manual overrides for `male:159` and `female:889`.
+- [x] Added explicit collection/homepage exclusion coverage for `male:159`; kept `female:889` excluded.
+
+## Next steps
+
+- [x] Create a contract test for the source-consolidation report.
+- [x] Implement a read-only report script that compares project metadata with legacy metadata.
+- [x] Report:
+  - source-of-truth recommendation
+  - row counts and field coverage
+  - duplicate `gender + wr_id` keys
+  - SOOP ID collision risks
+  - safe SOOP ID migration candidates
+  - manual-review migration candidates
+  - legacy dependency list for `scripts/player_metadata.json`
+- [x] Add an npm script for the report test.
+- [x] Run final targeted verification.
+- [x] Review the report before any data migration.
+- [x] Prepare guarded dry-run migration script for safe SOOP IDs.
+- [x] Review the dry-run migration report before any data migration.
+- [x] User reviews `tmp/reports/project_soop_migration_review.bgm.md`.
+- [x] Run `npm.cmd run apply:metadata:project-soop-migration -- --project=bgm --write` only after approval.
+- [x] After migration, update admin roster review so SOOP ID missing count reads the canonical project metadata only.
+- [x] After dependent scripts are converted, remove or archive obsolete legacy files/docs.
+- [x] User reviews `tmp/reports/project_soop_migration_review.black.md`.
+- [x] User reviews `tmp/reports/project_soop_migration_review.dm.md`.
+- [x] User reviews `tmp/reports/project_soop_migration_review.yb.md`.
+- [x] Superseded automatic YB review with user-confirmed manual YB roster changes.
+- [x] User accepted WFU review after manual roster corrections.
+- [x] Applied user-confirmed WFU roster corrections before automatic SOOP migration:
+  - moved `female:27` 꼬니부깅 from WFU to FA with `soop_user_id: kitty1029`
+  - kept `female:844` 얌쭈 on WFU and added `soop_user_id: shj06170`
+  - kept `eloboard:male:mix:1055` 와이퍼 on WFU and added `soop_user_id: tkdduddb06`
+  - recorded the three rows in `data/metadata/roster_manual_overrides.v1.json` as temporary user-confirmed roster corrections
+  - removed stale WFU automatic review artifacts and regenerated them after the manual corrections
+- [x] Applied WFU-only SOOP ID migration after approval:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=wfu --write`
+  - updated: 10
+  - skipped: 0
+- [x] Removed temporary WFU review artifacts after approved write.
+- [x] Renamed the former TSUCALM project identity to CALM:
+  - project path: `data/metadata/projects/calm/players.calm.v1.json`
+  - project/team code: `calm`
+  - English label: `calm`
+  - homepage/team display label: `캄몬스타즈`
+  - kept `TSUCALM` and prior Korean names as aliases for lookup continuity
+  - moved `team_role_overrides.v1.json` key from `tsucalm` to `calm`
+  - updated `data/metadata/universities.v1.json` and `lib/university-config.ts`
+- [x] User accepted CALM roster/code state and approved SOOP migration.
+- [x] Applied CALM-only SOOP ID migration after approval:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=calm --write`
+  - updated: 15
+  - skipped: 0
+- [x] Removed temporary CALM review artifacts after approved write.
+- [x] Applied user-confirmed CALM manual SOOP IDs for the remaining four CALM players:
+  - 파도튜브/kthrs9207
+  - 주하랑/fpahsdltu1
+  - 치리/db001202
+  - 먼진/2meonjin
+  - recorded these rows in `data/metadata/roster_manual_overrides.v1.json` as temporary user-confirmed SOOP corrections
+- [x] User reviewed `tmp/reports/project_soop_migration_review.mbu.md` and confirmed the automatic candidates are correct.
+- [x] Applied MBU-only SOOP ID migration after approval:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=mbu --write`
+  - updated: 12
+  - skipped: 0
+- [x] Applied user-confirmed MBU manual SOOP IDs:
+  - 엽삽/얍삽e: `wnsgur2da`
+  - 빡죠스: `askl021`
+  - 토스봇: `kalmian`
+  - 최세상: `rabbitmiffy`
+  - 마예준: `tiger3006`
+  - 병하: `dlqudgk1227`
+  - recorded these rows in `data/metadata/roster_manual_overrides.v1.json` as temporary user-confirmed SOOP corrections
+- [x] Applied user-confirmed MBU SOOP ID for 정다닝:
+  - `female:977` 정다닝: `dyaan0v0`
+  - recorded the row in `data/metadata/roster_manual_overrides.v1.json` as a temporary user-confirmed SOOP correction
+- [x] User reviewed `tmp/reports/project_soop_migration_review.c9.md` and confirmed C9 automatic candidates plus manual SOOP IDs.
+- [x] Applied C9-only SOOP ID migration after approval:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=c9 --write`
+  - updated: 16
+  - skipped: 0
+- [x] Applied user-confirmed C9 manual SOOP IDs:
+  - 장민철/왜냐맨: `jmc06170`
+  - 나무늘봉순: `yjk011599`
+  - 효짱: `queen030`
+  - recorded these rows in `data/metadata/roster_manual_overrides.v1.json` as temporary user-confirmed SOOP corrections
+- [x] Removed temporary C9 review artifacts after approved write.
+- [x] User reviewed `tmp/reports/project_soop_migration_review.hm.md` and confirmed HM automatic candidates plus manual SOOP IDs.
+- [x] Applied HM-only SOOP ID migration after approval:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=hm --write`
+  - updated: 17
+  - skipped: 0
+- [x] Applied user-confirmed HM manual SOOP IDs:
+  - 혁민: `suhi370erw`
+  - 이아라: `ara9687`
+  - 세월: `asdsa1113`
+  - recorded these rows in `data/metadata/roster_manual_overrides.v1.json` as temporary user-confirmed SOOP corrections
+- [x] Removed temporary HM review artifacts after approved write.
+- [x] Removed temporary MBU review artifacts after approved write.
+- [x] Switched remaining project workflow to apply safe candidates automatically and review only manual-risk candidates.
+- [x] Applied remaining safe project SOOP ID migrations:
+  - SSU: 17 updates
+  - JSA: 18 updates
+  - KU: 22 updates
+  - NCS: 24 updates
+  - FA: 74 updates
+- [x] Regenerated the consolidation report after all safe migrations:
+  - safe SOOP ID migration candidates: 0
+  - manual-review SOOP ID candidates: 40
+- [x] Generated the remaining manual review summary:
+  - `tmp/reports/manual_soop_review_remaining.md`
+- [x] Applied user-confirmed SSU manual SOOP IDs:
+  - 멍이: `rlawhdwns6`
+  - 이소룡: `gjgj3274`
+  - 정중만: `ititit`
+  - 밍가: `tato1104`
+  - 묘묘묫: `miiing0620`
+- [x] Regenerated the remaining manual review summary after SSU:
+  - manual-review SOOP ID candidates: 35
+- [x] Applied user-confirmed JSA/KU/NCS manual SOOP IDs:
+  - JSA 모비: `owoouoowo`
+  - KU 유민: `minyoo3972`
+  - NCS 단솔: `1004yomi`
+  - NCS 하윤: `tndkekdy`
+- [x] Regenerated the remaining manual review summary after JSA/KU/NCS:
+  - manual-review SOOP ID candidates: 31
+- [x] Applied user-confirmed BGM/BLACK/DM manual SOOP IDs:
+  - BGM 난수: `wkddudrms15`
+  - BGM 진니: `youaregood`
+  - BGM 두폴조합: `hckkhc21`
+  - BGM 킹봄: `nbomichae7`
+  - BLACK 배호연: `bhy95`
+  - BLACK 링가: `lingolinga`
+  - DM 수니양: `nasd06`
+  - DM 김말랑: `5eulgii`
+- [x] Regenerated the remaining manual review summary after BGM/BLACK/DM:
+  - manual-review SOOP ID candidates: 23
+- [x] Applied first FA manual-review responses:
+  - 이광용: display alias `프발`, SOOP ID `lky6407`
+  - 김인호: `pookygamja`
+  - 나예리: `ovoa3316`
+  - 귀요민정: `khsoo0105`
+  - removed/excluded from homepage: 탱크, 밍도릿, 끔알
+- [x] Regenerated the remaining manual review summary after first FA batch:
+  - project rows: 340
+  - manual-review SOOP ID candidates: 16
+- [x] Applied second FA manual-review response:
+  - removed/excluded from homepage: 햄찌야, 단이, 박쫘이, 우질, 찡찡시아, 강만식, 김수환, 김하선
+- [x] Regenerated the remaining manual review summary after second FA batch:
+  - project rows: 332
+  - manual-review SOOP ID candidates: 8
+- [x] Applied final FA manual-review response:
+  - removed/excluded from homepage: 박지수, 박한별, 서도일, 수입뿌드, 엘사, 오은유, 카리스, 트할
+- [x] Regenerated the remaining manual review summary after final FA batch:
+  - project rows: 324
+  - safe SOOP ID migration candidates: 0
+  - manual-review SOOP ID candidates: 0
+- [x] Converted active metadata/live/sync consumers away from `scripts/player_metadata.json`:
+  - app serving metadata now reads SOOP IDs from project metadata
+  - metadata SOOP collision and alias checks now read project metadata
+  - SOOP snapshot, coverage, fallback audit, player live audit, homepage integrity, and Supabase sync lookup now read project metadata
+  - metadata DB build now reads project metadata and regenerated `players.master.v1.json`
+- [x] Removed legacy write/apply scripts that still targeted `scripts/player_metadata.json`:
+  - `apply-soop-channel-mappings.js`
+  - `apply-soop-manual-onboarding-plan.js`
+  - `apply-soop-reference-plan.js`
+  - `apply-metadata-conflict-resolutions.js`
+  - `apply-player-metadata-canonical.js`
+- [x] Removed package scripts for legacy apply commands.
+- [x] Emptied stale identity alias exceptions after canonical project metadata no longer has SOOP ID collisions.
+- [x] Reduced legacy dependency report from 36 paths to 11 paths; remaining paths are archive/history docs, the consolidation report itself, and explicit legacy-reference documentation.
+
+## Blockers
+
+- none
+
+## Session recovery
+
+### First three commands
+
+```powershell
+git status --short --branch
+git log --oneline -5
+Get-Content docs\harness\exec-plans\active\2026-05-15-player-metadata-source-consolidation.md
+```
+
+### Last checked state
+
+- Actions run id: latest 8 scheduled `NZU Ops Pipeline` runs were successful as of 2026-05-15.
+- Report artifact: `tmp/reports/player_metadata_source_consolidation_latest.json`
+- git HEAD: `56cf976 Add roster ops review and admin entry`
+
+### Current report summary
+
+- Recommended source of truth: `data/metadata/projects/*/players.*.v1.json`
+- Legacy trust level: `unverified_reference_only`
+- Project metadata coverage: 345 rows, 345 `entity_id`, 345 `gender + wr_id`, 345 team codes, 0 SOOP IDs
+- Legacy metadata coverage after removing false/duplicate rows: 370 rows
+- Safe SOOP ID migration candidates after stricter checks: 283
+- Manual-review SOOP ID candidates after stricter checks: 62
+- BGM safe candidates after stricter checks: 19
+- BGM manual-review candidates after stricter checks:
+  - `male:80`: `legacy_soop_id_collision`
+  - `female:761`: `legacy_name_mismatch`
+  - `male:1068`: `legacy_match_missing`
+  - `female:1018`: `legacy_match_missing`
+- Reason split:
+  - `legacy_match_missing`: 29
+  - `legacy_duplicate_gender_wr_id`: 1
+  - `legacy_soop_id_missing`: 3
+- Legacy `scripts/player_metadata.json` dependency paths: 36
+- BGM project metadata after approved write:
+  - total rows: 23
+  - rows with SOOP ID: 19
+  - rows missing SOOP ID: 4
+- Safe SOOP ID migration candidates after BGM write: 264
+- BLACK review status:
+  - total rows: 19
+  - rows with SOOP ID after approved write: 17
+  - rows missing SOOP ID after approved write: 2
+  - safe candidates after approved write: 0 for BLACK
+  - manual-review candidates: 2
+- Safe SOOP ID migration candidates after BLACK write: 247
+- DM review status:
+  - total rows: 11
+  - rows with SOOP ID after approved write: 9
+  - rows missing SOOP ID after approved write: 2
+  - safe candidates after approved write: 0 for DM
+  - manual-review candidates: 2
+- Safe SOOP ID migration candidates after DM write: 238
+- YB review status:
+  - automatic review superseded by manual roster update
+  - total rows after manual update: 10
+  - rows with SOOP ID after manual update: 10
+  - rows missing SOOP ID after manual update: 0
+  - user-excluded from homepage/collection: `male:159`, `female:889`
+  - `manual_managed: true`
+- WFU review status:
+  - review artifacts removed after approved write
+  - user-confirmed roster correction applied before review
+  - safe candidates after correction and approved write: 0 for WFU
+  - rows updated by approved write: 10
+  - manual-review candidates: `female:844`, `male:1055`
+- CALM review status:
+  - review artifacts removed after approved write
+  - current rows: 19
+  - rows updated by approved write: 15
+  - rows updated manually after approval: 4
+  - rows with SOOP ID: 19
+  - rows missing SOOP ID: 0
+  - safe candidates after approved write: 0 for CALM
+- MBU review status:
+  - review artifacts removed after approved write
+  - current rows: 19
+  - rows updated by approved write: 12
+  - rows updated manually after approval: 7
+  - rows with SOOP ID: 19
+  - rows missing SOOP ID: 0
+  - safe candidates after approved write: 0 for MBU
+- C9 review status:
+  - review artifacts removed after approved write
+  - current rows: 19
+  - rows updated by approved write: 16
+  - rows updated manually after approval: 3
+  - rows with SOOP ID: 19
+  - rows missing SOOP ID: 0
+  - safe candidates after approved write: 0 for C9
+- HM review status:
+  - review artifacts removed after approved write
+  - current rows: 20
+  - rows updated by approved write: 17
+  - rows updated manually after approval: 3
+  - rows with SOOP ID: 20
+  - rows missing SOOP ID: 0
+- Remaining automatic migration status:
+  - SSU safe candidates applied: 17
+  - JSA safe candidates applied: 18
+  - KU safe candidates applied: 22
+  - NCS safe candidates applied: 24
+  - FA safe candidates applied: 74
+  - remaining safe candidates: 0
+  - SSU manual candidates resolved: 5
+  - JSA/KU/NCS manual candidates resolved: 4
+  - BGM/BLACK/DM manual candidates resolved: 8
+  - first FA manual batch resolved: 7
+  - second FA manual batch resolved: 8
+  - final FA manual batch resolved: 8
+  - remaining manual-review candidates: 0
+  - manual review artifact: `tmp/reports/manual_soop_review_remaining.md`
+  - safe candidates after approved write: 0 for HM
+
+### Verification results
+
+- `npm.cmd run test:metadata:source-consolidation` passed.
+- `npm.cmd run report:metadata:source-consolidation` passed and regenerated the report.
+- `npm.cmd run test:metadata:project-soop-migration` passed.
+- `npm.cmd run apply:metadata:project-soop-migration` passed in dry-run mode.
+  - candidate_count: 312
+  - updated: 312
+  - skipped: 0
+  - BGM dry-run updated: 21
+- After removing false legacy `male:301`, `npm.cmd run check:metadata:soop-id` passed.
+- After marking legacy trust level, `npm.cmd run report:metadata:source-consolidation` passed with 371 legacy rows.
+- After removing duplicate `male:100` and stale `zealotmaru` alias exception:
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run report:metadata:source-consolidation` passed with 370 legacy rows.
+  - `npm.cmd run apply:metadata:project-soop-migration` dry-run passed with 283 candidates.
+- `npm.cmd run apply:metadata:project-soop-migration -- --project=bgm` dry-run passed with 19 candidates.
+- `npm.cmd run test:metadata:project-soop-review` passed.
+- `npm.cmd run report:metadata:project-soop-review -- --project=bgm` passed with 19 rows.
+- `npm.cmd run apply:metadata:project-soop-migration -- --project=bgm --write` passed with 19 updates.
+- After BGM write, `npm.cmd run report:metadata:source-consolidation` passed with 264 remaining safe candidates.
+- After BGM write, `npm.cmd run apply:metadata:project-soop-migration -- --project=bgm` dry-run showed updated 0, skipped 19.
+- `npm.cmd run report:metadata:project-soop-review -- --project=black` passed with 17 rows.
+- `npm.cmd run apply:metadata:project-soop-migration -- --project=black` dry-run passed with 17 updates.
+- `npm.cmd run apply:metadata:project-soop-migration -- --project=black --write` passed with 17 updates.
+- After BLACK write, `npm.cmd run report:metadata:source-consolidation` passed with 247 remaining safe candidates.
+- After BLACK write, `npm.cmd run apply:metadata:project-soop-migration -- --project=black` dry-run showed updated 0, skipped 17.
+- `npm.cmd run report:metadata:project-soop-review -- --project=dm` passed with 9 rows.
+- `npm.cmd run apply:metadata:project-soop-migration -- --project=dm` dry-run passed with 9 updates.
+- `npm.cmd run apply:metadata:project-soop-migration -- --project=dm --write` passed with 9 updates.
+- After DM write, `npm.cmd run report:metadata:source-consolidation` passed with 238 remaining safe candidates.
+- After DM write, `npm.cmd run apply:metadata:project-soop-migration -- --project=dm` dry-run showed updated 0, skipped 9.
+- `npm.cmd run report:metadata:project-soop-review -- --project=yb` passed with 7 rows.
+- `npm.cmd run apply:metadata:project-soop-migration -- --project=yb` dry-run passed with 7 updates.
+- After manual YB roster update:
+  - `node scripts/tools/validate-project-metadata.js` passed.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+  - `npm.cmd run report:metadata:source-consolidation` passed with 226 remaining safe candidates and 0 project duplicates.
+- After removing `male:159` and `female:889` from YB:
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+  - `npm.cmd run report:metadata:source-consolidation` passed with 343 project rows, 226 remaining safe candidates, and 59 manual-review candidates.
+- `npm.cmd run report:metadata:project-soop-review -- --project=wfu` passed with 11 rows.
+- `npm.cmd run apply:metadata:project-soop-migration -- --project=wfu` dry-run passed with 11 updates and 0 skips.
+- After user-confirmed WFU roster corrections:
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+  - `npm.cmd run report:metadata:source-consolidation` passed with 225 remaining safe candidates and 57 manual-review candidates.
+  - `npm.cmd run report:metadata:project-soop-review -- --project=wfu` passed with 10 rows.
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=wfu` dry-run passed with 10 updates and 0 skips.
+- After approved WFU write:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=wfu --write` passed with 10 updates and 0 skips.
+  - `npm.cmd run report:metadata:source-consolidation` passed with 215 remaining safe candidates and 57 manual-review candidates.
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=wfu` dry-run showed updated 0, skipped 10.
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+  - `npm.cmd run test:metadata:source-consolidation` passed.
+  - `npm.cmd run test:metadata:project-soop-migration` passed.
+  - `npm.cmd run test:metadata:project-soop-review` passed.
+- After renaming TSUCALM to CALM:
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run report:metadata:source-consolidation` passed with 215 remaining safe candidates and 57 manual-review candidates.
+  - `npm.cmd run report:metadata:project-soop-review -- --project=calm` passed with 15 rows.
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=calm` dry-run passed with 15 updates and 0 skips.
+  - `npx.cmd tsc --noEmit` passed.
+  - `npm.cmd run lint` passed.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+- After approved CALM write:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=calm --write` passed with 15 updates and 0 skips.
+  - `npm.cmd run report:metadata:source-consolidation` passed with 200 remaining safe candidates and 57 manual-review candidates.
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=calm` dry-run showed updated 0, skipped 15.
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+  - `npm.cmd run test:metadata:source-consolidation` passed.
+  - `npm.cmd run test:metadata:project-soop-migration` passed.
+  - `npm.cmd run test:metadata:project-soop-review` passed.
+- After user-confirmed CALM manual SOOP IDs:
+  - `npm.cmd run report:metadata:source-consolidation` passed with 200 remaining safe candidates and 53 manual-review candidates.
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=calm` dry-run showed candidate_count 0, updated 0, skipped 0.
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+  - CALM project has 19 rows and 19 rows with SOOP ID.
+- `npm.cmd run report:metadata:project-soop-review -- --project=mbu` passed with 12 rows.
+- `npm.cmd run apply:metadata:project-soop-migration -- --project=mbu` dry-run passed with 12 updates and 0 skips.
+- After approved MBU write and user-confirmed manual SOOP IDs:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=mbu --write` passed with 12 updates and 0 skips.
+  - `npm.cmd run report:metadata:source-consolidation` passed with 188 remaining safe candidates and 47 manual-review candidates.
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=mbu` dry-run showed updated 0, skipped 12.
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+  - MBU project has 19 rows, 18 rows with SOOP ID, and 1 missing SOOP ID (`female:977` 정다닝).
+- After user-confirmed 정다닝 SOOP ID:
+  - `npm.cmd run report:metadata:source-consolidation` passed with 188 remaining safe candidates and 46 manual-review candidates.
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=mbu` dry-run showed candidate_count 0, updated 0, skipped 0.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - MBU project has 19 rows and 19 rows with SOOP ID.
+- `npm.cmd run report:metadata:project-soop-review -- --project=c9` passed with 16 rows.
+- `npm.cmd run apply:metadata:project-soop-migration -- --project=c9` dry-run passed with 16 updates and 0 skips.
+- After approved C9 write and user-confirmed manual SOOP IDs:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=c9 --write` passed with 16 updates and 0 skips.
+  - `npm.cmd run report:metadata:source-consolidation` passed with 172 remaining safe candidates and 43 manual-review candidates.
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=c9` dry-run showed candidate_count 0, updated 0, skipped 0.
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+  - C9 project has 19 rows and 19 rows with SOOP ID.
+- `npm.cmd run report:metadata:project-soop-review -- --project=hm` passed with 17 rows.
+- `npm.cmd run apply:metadata:project-soop-migration -- --project=hm` dry-run passed with 17 updates and 0 skips.
+- After approved HM write and user-confirmed manual SOOP IDs:
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=hm --write` passed with 17 updates and 0 skips.
+  - `npm.cmd run report:metadata:source-consolidation` passed with 155 remaining safe candidates and 40 manual-review candidates.
+  - `npm.cmd run apply:metadata:project-soop-migration -- --project=hm` dry-run showed updated 0, skipped 17.
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+  - HM project has 20 rows and 20 rows with SOOP ID.
+- `npm.cmd run test:admin-roster-ops-review` passed.
+- `npx.cmd tsc --noEmit` passed.
+- `npm.cmd run lint` passed.
+- After remaining safe migrations:
+  - `npm.cmd run report:metadata:source-consolidation` passed with 0 safe candidates and 40 manual-review candidates.
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+- After SSU manual SOOP IDs:
+  - `npm.cmd run report:metadata:source-consolidation` passed with 0 safe candidates and 35 manual-review candidates.
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+- After JSA/KU/NCS manual SOOP IDs:
+  - `npm.cmd run report:metadata:source-consolidation` passed with 0 safe candidates and 31 manual-review candidates.
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+- After BGM/BLACK/DM manual SOOP IDs:
+  - `npm.cmd run report:metadata:source-consolidation` passed with 0 safe candidates and 23 manual-review candidates.
+  - `node scripts/tools/validate-project-metadata.js` passed with 343 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+- After first FA manual batch:
+  - `npm.cmd run report:metadata:source-consolidation` passed with 0 safe candidates and 16 manual-review candidates.
+  - `node scripts/tools/validate-project-metadata.js` passed with 340 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+- After second FA manual batch:
+  - `npm.cmd run report:metadata:source-consolidation` passed with 0 safe candidates and 8 manual-review candidates.
+  - `node scripts/tools/validate-project-metadata.js` passed with 332 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+- After final FA manual batch:
+  - `npm.cmd run report:metadata:source-consolidation` passed with 0 safe candidates and 0 manual-review candidates.
+  - `node scripts/tools/validate-project-metadata.js` passed with 324 project players.
+  - `npm.cmd run check:metadata:soop-id` passed.
+  - `npm.cmd run check:metadata:identity-aliases` passed.
+- After active consumer conversion:
+  - `npm.cmd run verify:env` passed using project metadata.
+  - `npm.cmd run test:player-serving-metadata` passed.
+  - `npm.cmd run test:roster-manual-overrides` passed.
+  - `npm.cmd run test:prod-sync` passed.
+  - `npm.cmd run test:staging-sync` passed.
+  - `npm.cmd run test:soop-live-sync` passed.
+  - `npm.cmd run test:pipeline:verify:discord` passed.
+  - `npm.cmd run build:metadata` regenerated `players.master.v1.json` from project metadata with 324 players.
+  - `npm.cmd run validate:metadata` passed with 324 master players.
+  - `npm.cmd run validate:metadata:projects` passed with 324 project players.
+  - `npm.cmd run report:metadata:source-consolidation` passed with 11 remaining legacy-reference paths.
+- After cleanup pass:
+  - Removed stale tracked `tmp/player_metadata_*` reports/previews that were generated from the old legacy metadata file.
+  - Removed resolved `tmp/reports/manual_soop_review_remaining.md`.
+  - Added `scripts/archive/README.md` to mark archived March scripts as historical-only and keep project metadata as the canonical source.
+  - Tightened the consolidation dependency scan so historical archive files, markdown notes, and the report script itself are not counted as active legacy dependencies.
+- Serving reflection checkpoint:
+  - Add a read-only `report:serving-roster-diff` step before any staging/prod Supabase write.
+  - The report compares canonical project metadata to either an explicit serving snapshot (`--serving-json`) or an explicit read-only Supabase query (`--from-supabase`).
+  - Default execution writes a canonical-only summary and does not contact Supabase.
+  - Ran staging sync from canonical project metadata:
+    - loaded 324 local candidates
+    - applied 3 collection exclusions
+    - wrote 321 rows to `players_staging`
+    - harmful identity/name collisions: 0
+  - First prod sync attempt correctly failed closed because renamed rows were matched by name and appeared to regress match history freshness.
+  - Fixed prod sync to find existing production rows by durable serving identity before name fallback, preserving fresher match history across display/name changes.
+  - Ran prod sync successfully:
+    - read 321 staging rows
+    - upserted 319 changed public `players` rows
+    - skipped 2 unchanged rows
+    - removed 3 stale public rows
+    - final public `players` count: 321
+  - Final `report:serving-roster-diff -- --from-supabase` result:
+    - canonical_rows: 321
+    - serving_rows: 321
+    - added: 0
+    - removed: 0
+    - changed: 0
+- Post-review FA/HM cleanup checkpoint:
+  - Disabled obsolete local Windows scheduled tasks outside the repo:
+    - `NZU_Daily_Pipeline`
+    - `NZU_Ops_Pipeline_0610`
+    - `NZU_Ops_Pipeline_0620_HealthCheck`
+  - Fixed `sync-team-roster-metadata.js` so user-excluded FA players are not retained by later roster sync runs.
+  - Restored user-confirmed former YB active FA rows:
+    - `eloboard:male:48` 오메킴
+    - `eloboard:female:898` 하루묭
+  - Re-removed homepage-unneeded FA rows that the local scheduled run had restored:
+    - `eloboard:male:mix:831`
+    - `eloboard:male:mix:377`
+    - `eloboard:female:1033`
+    - `eloboard:female:856`
+  - Updated the source-consolidation report so excluded SOOP candidates are separated from manual-review candidates.
+  - Latest source-consolidation report:
+    - project_rows: 334
+    - safe SOOP ID migration candidates: 0
+    - manual-review SOOP ID candidates: 0
+    - excluded SOOP ID candidates: 14
+    - active legacy dependency paths: 0
+  - Latest serving sync result:
+    - staging rows: 318
+    - public `players` rows: 318
+    - `report:serving-roster-diff -- --from-supabase`: added 0, removed 0, changed 0
+- Nightly handoff checkpoint:
+  - Re-ran session entry checks after the long metadata session.
+  - GitHub Actions context: latest 8 scheduled `NZU Ops Pipeline` runs are successful.
+  - Active-path legacy reference scan excluding `tmp/**`, `docs/archive/**`, and `scripts/archive/**` found no active consumers of `scripts/player_metadata.json`.
+  - Current local metadata state is ready for tomorrow's cleanup pass:
+    - project metadata is the canonical source
+    - source-consolidation report has 0 safe SOOP candidates and 0 manual-review SOOP candidates
+    - excluded SOOP candidates are separated from manual review
+    - serving roster diff against Supabase is 0 added, 0 removed, 0 changed
+  - Do not delete `scripts/player_metadata.json` blindly. It is still useful as historical migration evidence until the migration-only tools are either archived together or removed together.
+  - Recommended next step tomorrow:
+    - archive or remove migration-only package scripts and tools for project SOOP migration/review
+    - then decide whether `scripts/player_metadata.json` should move to an archive path or be deleted
+    - rerun metadata validation and serving diff after that cleanup
+- Cleanup continuation checkpoint:
+  - Removed active npm scripts for completed project SOOP migration/review:
+    - `report:metadata:project-soop-review`
+    - `apply:metadata:project-soop-migration`
+    - `test:metadata:project-soop-migration`
+    - `test:metadata:project-soop-review`
+  - Archived completed migration/review tools under `scripts/archive/player-metadata-source-consolidation/`.
+  - Decision for `scripts/player_metadata.json`: archived, not deleted, because it remains useful as historical migration evidence but is no longer an active source.
+    - archived path: `scripts/archive/player-metadata-source-consolidation/player_metadata.legacy_reference.v1.json`
+  - Updated the source-consolidation report to read the archived legacy reference path and keep project metadata as the canonical source.
+  - Latest source-consolidation report after cleanup:
+    - project_rows: 334
+    - safe SOOP ID migration candidates: 0
+    - manual-review SOOP ID candidates: 0
+    - excluded SOOP ID candidates: 14
+    - active legacy dependency paths: 0
+  - Fresh local metadata validation after cleanup passed:
+    - `npm.cmd run test:metadata:source-consolidation`
+    - `npm.cmd run report:metadata:source-consolidation`
+    - `npm.cmd run validate:metadata:projects`
+    - `npm.cmd run validate:metadata`
+    - `npm.cmd run check:metadata:soop-id`
+    - `npm.cmd run check:metadata:identity-aliases`
+  - Fresh read-only serving diff against Supabase no longer matches the prior 0-diff checkpoint:
+    - `npm.cmd run report:serving-roster-diff -- --from-supabase`
+    - canonical_rows: 318
+    - serving_rows: 324
+    - added: 0
+    - removed: 6
+    - changed: 43
+  - No push, deploy, or serving write was performed in this cleanup pass.
+  - Entry check note: latest scheduled `NZU Ops Pipeline` run visible at session start was a failure (`25943799131`, 2026-05-15T22:09:55Z), while the previous seven listed scheduled runs were successful.
+- Discord alarm investigation checkpoint:
+  - Alarm checked: Spidey Bot failure report for 2026-05-16, Actions run `25943799131`.
+  - The failed run used remote `main@6267ebfc78406cacae6ba7b989c2c4b40251485a`, before this local cleanup state.
+  - `Run manual refresh` failed during the `supabase_push` wrapper, but the inner serving write steps had already completed:
+    - `supabase_staging_sync`: OK
+    - `supabase_prod_sync`: OK, wrote 324 changed `players` rows
+    - `revalidate_public_cache`: OK for `public-players-list`
+  - The actual nonzero exit came from the post-sync `player_history_freshness_sentinel` guard:
+    - sentinel: `male:37` / `eloboard:male:37`
+    - source_latest_date: `2026-05-15`
+    - serving_latest_date: `2026-05-14`
+    - reason: `serving_older_than_source:2026-05-14<2026-05-15`
+  - Fresh local read-only sentinel check reproduced the same failure after the alert.
+  - Read-only Supabase row check showed why the guard failed:
+    - `players_staging` for `male:37`: `last_match_at` `2026-04-20`, `match_history` count `0`
+    - production `players` for `male:37`: `last_match_at` `2026-05-14`, `match_history` count `100`
+    - source no-cache sentinel saw newer source data through `2026-05-15`
+  - Interpretation: the scheduled run collected generally healthy data, but the sentinel player was reused/stale in the pipeline output while the no-cache source check found a newer match. The guard correctly failed closed after sync rather than claiming the serving history was fresh.
+  - No corrective write, rerun, push, or deploy was performed during this investigation.
+- Discord alarm follow-up fix checkpoint:
+  - Root cause narrowed to source-cache freshness, not a Supabase write failure:
+    - `export-team-roster-detailed.js` normally calls `report-team-records.js` without `--no-cache`.
+    - It only retried `--no-cache` when the first result had `period_total=0`.
+    - `male:37` had non-empty but stale cached source data, so the normal export could pass while the later no-cache sentinel saw `2026-05-15`.
+  - Added a regression contract in `scripts/tools/export-team-roster-detailed.test.js`:
+    - due one-day priority players bypass source cache on fetch
+    - recent priority-window players can still use source cache
+  - Updated `scripts/tools/export-team-roster-detailed.js` so players with `check_interval_days <= 1` that are due for collection use `--no-cache` on the first source report call.
+  - Fresh verification passed:
+    - `npm.cmd run test:export-team-roster-detailed`
+    - `npm.cmd run test:pipeline:ops`
+    - `npm.cmd run test:pipeline:manual-refresh`
+    - `npm.cmd run test:pipeline:push`
+    - `npm.cmd run test:player-history-freshness-sentinel`
+  - This is a preventive code fix only. The current production `male:37` row remains stale until a future approved collection/sync run writes fresher serving history.
+  - No corrective write, rerun, push, or deploy was performed in this follow-up.
+- Read-only serving-diff decision checkpoint:
+  - User chose the most conservative path before any operational write: generate a read-only diff only.
+  - `tmp/reports/serving_roster_diff_latest.json` and `.md` are temporary decision reports only; they are not canonical metadata and must not be used as a source of truth.
+  - Fresh read-only Supabase diff:
+    - canonical_rows: 318
+    - serving_rows: 324
+    - added: 0
+    - removed: 6
+    - changed: 43
+    - changed_by_field: name 6, university 29, tier 4, race 0, soop_id 9
+  - Conservative interpretation:
+    - no new players would be added
+    - 6 serving-only rows would be removed if a write is later approved
+    - 9 SOOP ID differences need explicit review before any automatic operational write
+  - No Supabase write, push, deploy, or cache revalidation was performed.
+- Serving-diff review grouping:
+  - Removal candidates already covered by collection/homepage exclusions:
+    - `male:831`
+    - `male:199`
+    - `female:354`
+    - `male:377`
+    - `female:1033`
+    - `male:777`
+  - SOOP ID differences that need review before any operational write:
+    - `female:1018`: canonical `nbomichae7`, serving empty
+    - `female:880`: canonical `queen030`, serving `tato1104`
+    - `male:136`: canonical `pookygamja`, serving `llqqqq`
+    - `female:1036`: canonical `ara9687`, serving empty
+    - `male:1184`: canonical `suhi370erw`, serving empty, also tier differs
+    - `male:398`: canonical `kalmian`, serving `yjk011599`
+    - `female:702`: canonical `rabbitmiffy`, serving `khsoo0105`
+    - `female:1034`: canonical `tndkekdy`, serving empty
+    - `female:1035`: canonical `miiing0620`, serving empty
+  - Remaining changed rows are display name, team, or tier differences only and can wait behind the SOOP ID review.
+  - No new canonical files were created; this grouping is documentation only.
+- SOOP ID review narrowing:
+  - All 9 SOOP ID differences have canonical-side support in project metadata and/or `roster_manual_overrides.v1.json`.
+  - Empty serving SOOP IDs that are backed by user-confirmed metadata:
+    - `female:1018` -> `nbomichae7`
+    - `female:1036` -> `ara9687`
+    - `male:1184` -> `suhi370erw`
+    - `female:1034` -> `tndkekdy`
+    - `female:1035` -> `miiing0620`
+  - Serving SOOP IDs that appear to belong to different canonical players:
+    - `female:880`: serving `tato1104` belongs to `female:781`; canonical `queen030` is user-confirmed for `female:880`
+    - `male:136`: serving `llqqqq` belongs to `female:136`; canonical `pookygamja` is user-confirmed for `male:mix:136`
+    - `male:398`: serving `yjk011599` belongs to `female:398`; canonical `kalmian` is user-confirmed for `male:mix:398`
+    - `female:702`: serving `khsoo0105` belongs to `female:784`; canonical `rabbitmiffy` is user-confirmed for `female:702`
+  - Conservative next step remains no write: if operational sync is later approved, run a final read-only diff immediately before any write.
+- Operational sync safety plan:
+  - Created `docs/superpowers/plans/2026-05-16-player-metadata-operational-sync-safety.md` to reduce repeated stop/start decisions.
+  - Continue read-only/local verification without asking unless a stop condition appears.
+  - Stop only for explicit approval gates: Supabase write, cache revalidation outside an approved wrapper, git push, or deploy.
+  - Stop if any guard output changes materially from the documented expected values.
+- Fresh read-only sync decision checkpoint:
+  - Metadata source report still has safe 0, manual 0, excluded 14, legacy dependency paths 0.
+  - Project/master metadata validation passed with 334 players.
+  - SOOP ID collision and identity alias checks passed.
+  - Serving diff still has canonical_rows 318, serving_rows 324, added 0, removed 6, changed 43.
+  - Removal candidates remain covered by collection/homepage exclusions.
+  - SOOP ID differences remain backed by canonical/user-confirmed metadata.
+  - No Supabase write, push, deploy, or cache revalidation was performed.
+- Canonical roster quality checkpoint:
+  - User asked to verify whether the cleaned roster is accurate enough before any operational sync write.
+  - Fresh checks passed:
+    - `npm.cmd run validate:metadata:projects`: 15 projects, 334 players
+    - `npm.cmd run validate:metadata`: 334 master players
+    - `npm.cmd run report:metadata:source-consolidation`: safe 0, manual 0, excluded 14, legacy dependency paths 0
+    - `npm.cmd run check:metadata:soop-id`: checked 320, pass
+    - `npm.cmd run check:metadata:identity-aliases`: checked 0, pass
+    - `npm.cmd run check:metadata:roster-wr-id`: checked 334 identity keys, pass
+  - Additional read-only roster integrity scan found:
+    - project rows: 334
+    - serving candidate rows after the report script's exclusion logic: 318
+    - missing required fields: 0
+    - duplicate identity keys: 0
+    - duplicate SOOP IDs: 0
+    - duplicate serving diff keys: 0 canonical, 0 serving
+  - Project row counts:
+    - bgm 23, black 19, c9 19, calm 19, dm 11, fa 92, hm 20, jsa 19, ku 23, mbu 19, ncs 26, ssu 22, wfu 12, yb 10
+  - Fresh read-only Supabase serving diff still has canonical_rows 318, serving_rows 324, added 0, removed 6, changed 43.
+  - The 6 removal candidates are still covered by exclusions and the 9 SOOP differences still have canonical evidence.
+  - Interpretation: the cleaned project metadata is internally consistent and more reliable than the current serving DB for this sync decision.
+  - No Supabase write, push, deploy, or cache revalidation was performed.
+- Approved Supabase sync checkpoint:
+  - User approved proceeding after the canonical roster quality checkpoint.
+  - Pre-write read-only serving diff:
+    - canonical_rows 318, serving_rows 324, added 0, removed 6, changed 43
+  - Focused pre-write tests passed:
+    - `npm.cmd run test:staging-sync`
+    - `npm.cmd run test:prod-sync`
+    - `npm.cmd run test:pipeline:push`
+    - `npm.cmd run test:player-history-freshness-sentinel`
+  - Ran `npm.cmd run pipeline:push:approved`.
+  - Completed inner write steps:
+    - `soop_live_snapshot_before_supabase_sync`: OK
+    - `player_history_artifacts`: OK, uploaded 344 files to R2
+    - `supabase_staging_sync`: OK, wrote 318 rows to `players_staging`
+    - `supabase_prod_sync`: OK, upserted 318 changed records and removed 6 stale public `players` rows
+    - `revalidate_public_cache`: skipped because local env is missing base_url and secret
+  - Wrapper final status: failed at `player_history_freshness_sentinel`.
+  - Post-write read-only serving diff:
+    - canonical_rows 318, serving_rows 318, added 0, removed 0, changed 0
+  - Freshness sentinel failure:
+    - sentinel: `male:37` / `eloboard:male:37`
+    - source_latest_date: `2026-05-15`
+    - serving_latest_date: `2026-05-14`
+    - reason: `serving_older_than_source:2026-05-14<2026-05-15`
+  - Read-only row check after sync:
+    - `players_staging` `male:37`: `last_match_at` `2026-05-14`, `match_history` count 0
+    - production `players` `male:37`: `last_match_at` `2026-05-14`, `match_history` count 100
+    - no-cache source read sees a 2026-05-15 match for `male:37`
+  - Interpretation:
+    - player metadata/roster serving sync succeeded and now matches canonical project metadata
+    - remaining failure is player history freshness for `male:37`, not metadata source consolidation
+    - do not rerun Supabase write blindly; collect or regenerate the `male:37` history source first, then rerun the approved sync guard if needed
+  - No git push or deploy was performed.
+- Player history freshness scope check:
+  - User correctly questioned whether `male:37` is the only stale history case.
+  - Read-only full visible serving-row presence audit passed without source checks:
+    - command: `npm.cmd run report:player-history:freshness-audit -- --visible-only --all --no-source`
+    - visible checked players: 298
+    - problem players: 0
+  - Attempted full high-priority source freshness audit timed out after 30 minutes, so smaller batches were used.
+  - High-priority source freshness audit, first 10 visible players:
+    - checked: 10
+    - problem players: 1
+    - stale: `male:8` (`김경모`), source `2026-05-16`, serving `2026-05-15`
+  - High-priority source freshness audit, first 25 visible players:
+    - checked: 25
+    - problem players: 3
+    - stale:
+      - `male:8` (`김경모`), source `2026-05-16`, serving `2026-05-15`
+      - `female:956` (`면추가`), source `2026-05-16`, serving `2026-05-15`
+      - `female:1025` (`김유나`), source `2026-05-16`, serving `2026-05-14`
+  - Along with sentinel `male:37`, at least 4 player-history freshness cases now need correction.
+  - Interpretation: canonical roster/metadata sync is complete, but player history freshness needs a separate corrective collection/sync pass. Do not treat this as a metadata source-consolidation blocker.
+- Player history high-priority full audit checkpoint:
+  - Ran read-only high-priority freshness audit:
+    - command: `npm.cmd run report:player-history:freshness-audit -- --visible-only --priority high --all`
+    - checked players: 240
+    - fresh: 214
+    - `serving_older_than_source`: 26
+  - Stale players by team:
+    - fa: 13
+    - mbu: 3
+    - c9: 2
+    - ncs: 2
+    - black: 1
+    - calm: 1
+    - dm: 1
+    - ku: 1
+    - ssu: 1
+    - wfu: 1
+  - Stale date gaps:
+    - `2026-05-16 > 2026-05-15`: 13
+    - `2026-05-16 > 2026-05-14`: 5
+    - `2026-05-16 > 2026-05-10`: 2
+    - `2026-05-15 > 2026-05-14`: 4
+    - `2026-05-15 > 2026-05-11`: 1
+    - `2026-05-16 > 2026-05-12`: 1
+  - Confirmed stale examples include `male:37`, `male:8`, `female:956`, `female:1025`, and 22 more high-priority players.
+  - Fresh read-only serving roster diff after this audit remains clean:
+    - canonical_rows 318, serving_rows 318, added 0, removed 0, changed 0
+  - Interpretation: the metadata/roster consolidation task is complete; the next work should be a separate player-history freshness corrective pass, not more metadata source cleanup.
+- Player history targeted corrective collection checkpoint:
+  - Added a narrow, canonical-key filtered collection option to `scripts/tools/export-team-roster-detailed.js`:
+    - `--entity-ids`: limits collection to explicitly requested canonical identity keys such as `male:37`
+    - `--force-no-cache`: forces the SOOP source read to bypass cache for the targeted correction pass
+    - the filter matches both canonical serving keys (`male:37`) and project metadata entity IDs (`eloboard:male:37`)
+  - Test coverage:
+    - `npm.cmd run test:export-team-roster-detailed`: pass
+  - Ran targeted local-only collection for the 26 high-priority stale history players:
+    - teams: `black,c9,calm,dm,fa,ku,mbu,ncs,ssu,wfu`
+    - result: 26/26 `fetch=ok`, 26/26 `csv=ok`
+    - no Supabase write, push, deploy, or cache revalidation was performed
+  - Rebuilt local warehouse:
+    - command: `npm.cmd run build:aggregates`
+    - source_csv_scanned: 26
+    - fact_total: 146077
+    - unresolved_source_players_count: 0
+    - duplicate_entity_id_count: 0
+  - Warehouse integrity:
+    - command: `node scripts/tools/verify-warehouse-integrity.js`
+    - status: pass
+    - errors: 0
+    - warnings: 0
+  - Local freshness validation against the previous high-priority audit:
+    - checked stale players: 26
+    - local warehouse latest-date misses: 0
+    - generated local player-history artifacts: 340 players, 146077 match rows
+    - artifact latest-date misses for the same 26 players: 0
+  - Metadata source consolidation guard:
+    - command: `npm.cmd run report:metadata:source-consolidation`
+    - project_rows: 334
+    - safe candidates: 0
+    - manual candidates: 0
+    - excluded candidates: 14
+    - legacy dependency paths: 0
+  - Next approval gate:
+    - the local data needed to fix the freshness sentinel is now prepared
+    - the remaining production action is an approved Supabase/R2 sync pass, which must not be run without explicit user approval
+    - expected effect after approval: upload regenerated player-history artifacts, update public `players.match_history`/`last_match_at`, then rerun the freshness sentinel
+- Approved player-history production sync checkpoint:
+  - User approved the production sync pass.
+  - Pre-write focused checks:
+    - `npm.cmd run test:pipeline:push`: pass
+    - `npm.cmd run test:player-history-freshness-sentinel`: pass
+    - `npm.cmd run report:serving-roster-diff -- --from-supabase`: canonical_rows 318, serving_rows 318, added 0, removed 0, changed 0
+  - Ran approved write path:
+    - command: `npm.cmd run pipeline:push:approved`
+    - `soop_live_snapshot_before_supabase_sync`: OK
+    - `player_history_artifacts`: OK, uploaded 344 files to R2
+    - `supabase_staging_sync`: OK, staged 318 players
+    - `supabase_prod_sync`: OK, upserted 26 changed records, skipped 292 unchanged records, removed 0 stale records
+    - `revalidate_public_cache`: skipped because local env is missing base_url and secret
+    - `player_history_freshness_sentinel`: OK
+  - Sentinel result:
+    - `male:37` source_latest_date `2026-05-15`
+    - `male:37` serving_latest_date `2026-05-15`
+    - `serving_last_synced_at`: `2026-05-16T06:08:33.847+00:00`
+  - Post-write verification:
+    - `node scripts/tools/verify-player-history-freshness-sentinel.js`: OK
+    - `npm.cmd run report:serving-roster-diff -- --from-supabase`: canonical_rows 318, serving_rows 318, added 0, removed 0, changed 0
+    - `npm.cmd run report:player-history:freshness-audit -- --visible-only --priority high --all`: checked 240, fresh 240, problem_players 0
+  - No git push or deploy was performed.
+  - Interpretation: the roster/metadata serving state still matches the single canonical project metadata source, and the high-priority player-history freshness issue from the Discord alert is resolved.
+- Admin review canonical-source guard checkpoint:
+  - Confirmed `lib/admin-roster-ops-review.ts` loads approved players from `data/metadata/projects/*/players.*.v1.json`.
+  - Added a contract guard so admin roster ops review must not read `scripts/player_metadata.json` or `data/metadata/players.master.v1.json`.
+  - Verification:
+    - `npm.cmd run test:admin-roster-ops-review`: pass
+  - Interpretation: the admin review missing-SOOP-ID count is locked to the canonical project metadata source and should not reintroduce the retired legacy metadata source.
+- Worktree cleanup checkpoint:
+  - Classified the current worktree without deleting or reverting user work.
+  - Large change groups are expected for this plan:
+    - canonical project roster metadata updates under `data/metadata/projects/*/players.*.v1.json`
+    - CALM rename from `tsucalm` to `calm`
+    - archived `scripts/player_metadata.json` and migration/review-only tools under `scripts/archive/player-metadata-source-consolidation/`
+    - active tool updates that now read canonical project metadata instead of the retired legacy source
+    - admin roster ops review guardrails and Korean operator UI changes
+    - generated SOOP live snapshot update from the approved production sync
+  - Tracked stale tmp artifacts are intentionally removed from source control:
+    - `tmp/player_metadata.cleaned.json`
+    - `tmp/player_metadata_canonical_preview.json`
+    - `tmp/player_metadata_integrity_report.json`
+  - `.gitignore` no longer whitelists those stale `tmp/player_metadata_*` files, so future temporary reports do not become accidental source data.
+  - Active npm script scan found no re-exposed migration/apply commands for the archived project SOOP migration tools.
+  - Active-path legacy scan still shows only docs/report/archive references to `scripts/player_metadata.json`, not active consumers.
+  - Fresh local verification:
+    - `npm.cmd run validate:metadata:projects`: pass, 15 projects, 334 players
+    - `npm.cmd run validate:metadata`: pass, 334 players
+    - `npm.cmd run check:metadata:soop-id`: pass, checked 320
+    - `npm.cmd run check:metadata:identity-aliases`: pass
+    - `npm.cmd run check:metadata:roster-wr-id`: pass, checked 334 identity keys
+    - `npm.cmd run test:metadata:source-consolidation`: pass
+    - `npm.cmd run test:admin-roster-ops-review`: pass
+    - `npm.cmd run test:export-team-roster-detailed`: pass
+  - Remaining cleanup risk:
+    - before commit, split review should separate this consolidation bundle from unrelated older UI/admin edits if any are found during final review
+    - no git push or deploy was performed
+- Commit-scope review checkpoint:
+  - Reviewed changed files by bundle. The worktree is large, but the changes fall into coherent groups:
+    - `metadata consolidation`: project roster JSON files, CALM rename, `data/metadata/README.md`, `.gitignore`, archived legacy metadata/tools, source-consolidation report/test, serving-roster-diff report/test, and active scripts converted away from `scripts/player_metadata.json`
+    - `admin roster review IA`: `app/admin/roster/ops-review/page.tsx`, `components/admin/AdminNav.tsx`, `scripts/tools/admin-roster-ops-review-contract.test.js`, and `docs/harness/exec-plans/active/2026-05-15-admin-roster-ui-information-architecture.md`
+    - `player-history freshness recovery`: targeted collection options in `scripts/tools/export-team-roster-detailed.js`, Supabase/R2 sync guard updates, freshness tests, and operational sync docs
+    - `serving/tier guardrails`: tier normalization and roster override helpers that prevent migrated canonical metadata from being hidden or mis-grouped
+    - `generated/retired artifacts`: deleted tracked `tmp/player_metadata_*` files and updated `data/metadata/soop_live_snapshot.generated.v1.json`
+  - No files were reverted or deleted during this review pass.
+  - Additional targeted verification:
+    - `npm.cmd run test:tier-page-helpers`: pass
+    - `npm.cmd run test:player-serving-metadata`: pass
+    - `npm.cmd run test:roster-manual-overrides`: pass
+    - `npm.cmd run test:serving-roster-diff`: pass
+    - `npm.cmd run test:staging-sync`: pass
+    - `npm.cmd run test:prod-sync`: pass
+    - `npm.cmd run test:pipeline:push`: pass
+    - `npm.cmd run test:export-team-roster-detailed`: pass
+  - Recommended commit strategy:
+    - safest: split into 3 commits in this order: metadata consolidation, admin roster review IA, player-history freshness recovery/sync guardrails
+    - acceptable: one large commit only if the user wants a single checkpoint for the entire May 15-16 consolidation run
+  - No git add, commit, push, or deploy was performed.
+
+## Files in play
+
+- `scripts/tools/report-player-metadata-source-consolidation.js`
+- `scripts/tools/player-metadata-source-consolidation.test.js`
+- `scripts/tools/export-team-roster-detailed.js`
+- `scripts/tools/export-team-roster-detailed.test.js`
+- `scripts/archive/player-metadata-source-consolidation/apply-project-soop-id-migration.js`
+- `scripts/archive/player-metadata-source-consolidation/apply-project-soop-id-migration.test.js`
+- `scripts/archive/player-metadata-source-consolidation/build-project-soop-migration-review.js`
+- `scripts/archive/player-metadata-source-consolidation/build-project-soop-migration-review.test.js`
+- `package.json`
+- `tmp/reports/player_metadata_source_consolidation_latest.json`
+- `tmp/reports/project_soop_id_migration_report.json`
+- `data/metadata/projects/*/players.*.v1.json`
+- `data/metadata/pipeline_collection_exclusions.v1.json`
+- `data/metadata/roster_manual_overrides.v1.json`
+- `scripts/archive/player-metadata-source-consolidation/player_metadata.legacy_reference.v1.json`
+- `data/metadata/players.master.v1.json`
+- `lib/admin-roster-ops-review.ts`
+
+## New failure modes found
+
+- none

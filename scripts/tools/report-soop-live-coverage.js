@@ -2,16 +2,12 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local"), quiet: true });
 const { SOOP_BROAD_LIST_URL, DEFAULT_BROAD_LIST_PAGE_LIMIT, trim, fetchAllLiveRows } = require("./lib/soop-open-api");
+const { loadProjectPlayerMetadata, PROJECTS_DIR } = require("./lib/project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const PLAYER_METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const SOOP_CLIENT_ID = String(process.env.SOOP_CLIENT_ID || "").trim();
 const DEFAULT_PAGE_LIMIT = DEFAULT_BROAD_LIST_PAGE_LIMIT;
-
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
-}
 
 function writeJson(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -30,20 +26,14 @@ function toNumber(value, fallback) {
 }
 
 function loadMetadataTargets() {
-  if (!fs.existsSync(PLAYER_METADATA_PATH)) {
-    throw new Error(`Missing file: ${PLAYER_METADATA_PATH}`);
-  }
-  const rows = readJson(PLAYER_METADATA_PATH);
-  if (!Array.isArray(rows)) {
-    throw new Error("scripts/player_metadata.json must be an array");
-  }
-
-  return rows
+  return loadProjectPlayerMetadata()
     .map((row) => ({
       wr_id: Number(row && row.wr_id),
-      name: trim(row && row.name),
+      name: trim((row && row.display_name) || (row && row.name)),
       gender: trim(row && row.gender).toLowerCase(),
       soop_id: trim(row && row.soop_user_id),
+      entity_id: trim(row && row.entity_id),
+      team_code: trim(row && row.team_code),
     }))
     .filter((row) => Number.isFinite(row.wr_id) && row.name && row.gender && row.soop_id);
 }
@@ -83,7 +73,7 @@ async function main() {
   const report = {
     generated_at: new Date().toISOString(),
     source: SOOP_BROAD_LIST_URL,
-    player_metadata_path: PLAYER_METADATA_PATH,
+    player_metadata_path: PROJECTS_DIR,
     totals: {
       metadata_players_with_soop_id: metadataTargets.length,
       live_rows_fetched: liveRows.length,

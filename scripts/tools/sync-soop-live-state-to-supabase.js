@@ -2,9 +2,9 @@ const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local"), quiet: true });
+const { loadProjectPlayerMetadata } = require("./lib/project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const PLAYER_METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const MASTER_METADATA_PATH = path.join(ROOT, "data", "metadata", "players.master.v1.json");
 const SOOP_MAPPINGS_PATH = path.join(ROOT, "data", "metadata", "soop_channel_mappings.v1.json");
 const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "soop_manual_review_decisions.v1.json");
@@ -99,13 +99,13 @@ function buildSoopLookup() {
     });
   }
 
-  const metadataRows = readJsonIfExists(PLAYER_METADATA_PATH, []);
-  for (const row of Array.isArray(metadataRows) ? metadataRows : []) {
+  const metadataRows = loadProjectPlayerMetadata();
+  for (const row of metadataRows) {
     registerIdentityPayload({
       wrId: Number(row && row.wr_id),
       gender: trim(row && row.gender).toLowerCase(),
       soopUserId: trim(row && row.soop_user_id),
-      name: row && row.name,
+      name: (row && row.display_name) || (row && row.name),
     });
   }
 

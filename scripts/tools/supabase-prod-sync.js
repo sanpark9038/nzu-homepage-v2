@@ -7,6 +7,7 @@ const {
   tableHasColumn,
   withServingIdentityKey,
 } = require('./lib/serving-identity-key');
+const { loadProjectPlayerMetadata } = require('./lib/project-player-metadata');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
@@ -14,7 +15,6 @@ const EXCLUSIONS_FILE = path.join(ROOT, 'data', 'metadata', 'pipeline_collection
 const FACT_MATCHES_PATH = path.join(ROOT, 'data', 'warehouse', 'fact_matches.csv');
 const TMP_DIR = path.join(ROOT, 'tmp');
 const REPORTS_DIR = path.join(TMP_DIR, 'reports');
-const PLAYER_METADATA_PATH = path.join(ROOT, 'scripts', 'player_metadata.json');
 const SOOP_MAPPINGS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_channel_mappings.v1.json');
 const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_manual_review_decisions.v1.json');
 const DEBUG_PAYLOAD_PATH = path.join(TMP_DIR, 'supabase_prod_sync_payload_preview.json');
@@ -74,15 +74,7 @@ function readJsonIfExists(filePath, fallback) {
 }
 
 function buildSoopLookup() {
-  const empty = {
-    lookup: new Map(),
-    byWrId: new Map(),
-    byNameGender: new Map(),
-    byName: new Map(),
-  };
-  if (!fs.existsSync(PLAYER_METADATA_PATH)) return empty;
-  const rows = readJson(PLAYER_METADATA_PATH);
-  if (!Array.isArray(rows)) return empty;
+  const rows = loadProjectPlayerMetadata();
   const lookup = new Map();
   const byWrId = new Map();
   const byNameGenderBuckets = new Map();
@@ -100,7 +92,7 @@ function buildSoopLookup() {
     const wrId = Number(row && row.wr_id);
     const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase();
     const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
-    const name = normalizeLookupName(row && row.name ? row.name : '');
+    const name = normalizeLookupName(row && (row.display_name || row.name) ? (row.display_name || row.name) : '');
     if (!Number.isFinite(wrId) || !gender || !soopUserId) continue;
     const payload = {
       name,
@@ -1292,6 +1284,37 @@ function buildServingPayload(playerOrName, servingStatsByIdentity, existingPlaye
   };
 }
 
+function buildExistingPlayerLookup(prodRows = []) {
+  const byName = new Map();
+  const byIdentity = new Map();
+
+  for (const row of Array.isArray(prodRows) ? prodRows : []) {
+    const name = normalizeName(row && row.name ? row.name : '');
+    if (name) byName.set(name, row);
+
+    const identityKey = buildSyncIdentityKey(row);
+    if (identityKey && identityKey !== 'unknown' && !identityKey.startsWith('name:')) {
+      byIdentity.set(identityKey, row);
+    }
+  }
+
+  return { byName, byIdentity };
+}
+
+function findExistingPlayerForIncoming(row, lookup) {
+  const identityKey = buildSyncIdentityKey(row);
+  if (identityKey && lookup && lookup.byIdentity && lookup.byIdentity.has(identityKey)) {
+    return lookup.byIdentity.get(identityKey);
+  }
+
+  const name = normalizeName(row && row.name ? row.name : '');
+  if (name && lookup && lookup.byName && lookup.byName.has(name)) {
+    return lookup.byName.get(name);
+  }
+
+  return null;
+}
+
 function loadExpectedLocalVisibleCount() {
   const exclusionsData = fs.existsSync(EXCLUSIONS_FILE) ? readJson(EXCLUSIONS_FILE) : { players: [] };
   const exclusionRules = (exclusionsData.players || []).map((p) => {
@@ -1350,11 +1373,7 @@ async function main() {
     .from('players')
     .select('name,eloboard_id,gender,serving_identity_key,detailed_stats,match_history,total_wins,total_losses,win_rate,last_synced_at,soop_id,broadcast_url,tier,race,university,photo_url,last_match_at,last_changed_at,check_priority,check_interval_days');
   if (prodErr) throw prodErr;
-  const currentProdByName = new Map(
-    (prodData || [])
-      .map((row) => [String(row && row.name ? row.name : '').trim(), row])
-      .filter(([name]) => name.length > 0)
-  );
+  const currentProdLookup = buildExistingPlayerLookup(prodData || []);
 
   // 1) Fetch source from staging
   const { data: stagingData, error: stagingErr } = await supabase
@@ -1366,7 +1385,7 @@ async function main() {
 
   const sanitized = (stagingData || [])
     .map((row) => {
-      const existingPlayer = currentProdByName.get(String(row.name || '').trim()) || null;
+      const existingPlayer = findExistingPlayerForIncoming(row, currentProdLookup);
       return {
       ...resolveSoopServingMetadata(row, soopLookup),
       ...buildServingPayload(
@@ -1572,6 +1591,8 @@ module.exports = {
   selectRowsNeedingUpsert,
   projectMatchHistoryForServing,
   buildServingPayload,
+  buildExistingPlayerLookup,
+  findExistingPlayerForIncoming,
   buildSoopLookup,
   buildServingStatsByName,
   assertNoProductionFreshnessRegression,

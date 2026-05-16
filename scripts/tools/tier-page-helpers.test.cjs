@@ -70,6 +70,7 @@ registerTypeScriptRequire();
 
 const { buildCompactTeamTierPlayers, buildNamedTierPlayers, NAMED_TIER_LABELS } = require(path.join(ROOT, "lib", "tier-page-helpers.ts"));
 const { filterTierPlayers } = require(path.join(ROOT, "lib", "tier-page-helpers.ts"));
+const { getTierLabel, normalizeTier } = require(path.join(ROOT, "lib", "utils.ts"));
 
 runTest("numeric tier 9 players are rendered in the baby tier group", () => {
   const { babyPlayers } = buildNamedTierPlayers([
@@ -127,4 +128,25 @@ runTest("compact team tier players are ordered by tier groups before race/name s
     players.map((player) => player.id),
     ["spade", "tier-2", "tier-8", "baby"]
   );
+});
+
+runTest("compact team tier players include tier suffix aliases and ungrouped players", () => {
+  const players = buildCompactTeamTierPlayers(
+    [
+      { id: "unknown", name: "Unknown", race: "Z", tier: "미정", university: "YB" },
+      { id: "jack-suffix", name: "Jack Suffix", race: "T", tier: "잭티어", university: "YB" },
+      { id: "tier-4", name: "Tier 4", race: "P", tier: "4", university: "YB" },
+    ],
+    [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  );
+
+  assert.deepEqual(
+    players.map((player) => player.id),
+    ["jack-suffix", "tier-4", "unknown"]
+  );
+});
+
+runTest("tier labels normalize Korean tier suffixes before badge display", () => {
+  assert.equal(normalizeTier("\uc7ad\ud2f0\uc5b4"), "\uc7ad");
+  assert.equal(getTierLabel("\uc7ad\ud2f0\uc5b4"), "\uc7ad");
 });

@@ -1,8 +1,8 @@
 const fs = require("fs");
 const path = require("path");
+const { loadProjectPlayerMetadata, PROJECTS_DIR } = require("./lib/project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const PLAYER_METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const SNAPSHOT_PATH = path.join(ROOT, "data", "metadata", "soop_live_snapshot.generated.v1.json");
 const PREVIEW_PATH = path.join(ROOT, "data", "metadata", "soop_live_preview.v1.json");
 const VERIFICATION_TARGETS_PATH = path.join(ROOT, "data", "metadata", "soop_live_verification_targets.v1.json");
@@ -43,13 +43,7 @@ function loadVerificationTargets() {
 }
 
 function loadPlayerMetadata() {
-  if (!fs.existsSync(PLAYER_METADATA_PATH)) {
-    throw new Error(`Missing file: ${PLAYER_METADATA_PATH}`);
-  }
-  const rows = readJson(PLAYER_METADATA_PATH);
-  if (!Array.isArray(rows)) {
-    throw new Error("scripts/player_metadata.json must be an array");
-  }
+  const rows = loadProjectPlayerMetadata();
 
   const bySoopId = new Map();
   for (const row of rows) {
@@ -57,8 +51,9 @@ function loadPlayerMetadata() {
     if (!soopId) continue;
     bySoopId.set(soopId, {
       wr_id: Number(row && row.wr_id),
-      name: trim(row && row.name),
+      name: trim((row && row.display_name) || (row && row.name)),
       gender: trim(row && row.gender).toLowerCase(),
+      entity_id: trim(row && row.entity_id),
     });
   }
 
@@ -69,6 +64,7 @@ function loadPlayerMetadata() {
       total_rows: rows.length,
       with_soop_user_id: rows.filter((row) => trim(row && row.soop_user_id)).length,
       without_soop_user_id: rows.filter((row) => !trim(row && row.soop_user_id)).length,
+      source_path: PROJECTS_DIR,
     },
   };
 }

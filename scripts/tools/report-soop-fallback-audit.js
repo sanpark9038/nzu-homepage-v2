@@ -2,18 +2,14 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local"), quiet: true });
 const { createClient } = require("@supabase/supabase-js");
+const { loadProjectPlayerMetadata } = require("./lib/project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const PLAYER_METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const REPORT_PATH = path.join(REPORTS_DIR, "soop_fallback_audit_report.json");
 
 function trim(value) {
   return String(value || "").trim();
-}
-
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
 }
 
 function writeJson(filePath, value) {
@@ -32,22 +28,14 @@ function isMixIdentity(eloboardId) {
 }
 
 function loadMetadataLookup() {
-  if (!fs.existsSync(PLAYER_METADATA_PATH)) {
-    throw new Error(`Missing file: ${PLAYER_METADATA_PATH}`);
-  }
-  const rows = readJson(PLAYER_METADATA_PATH);
-  if (!Array.isArray(rows)) {
-    throw new Error("scripts/player_metadata.json must be an array");
-  }
-
   const byWrId = new Map();
-  for (const row of rows) {
+  for (const row of loadProjectPlayerMetadata()) {
     const wrId = trim(row && row.wr_id);
     const soopId = trim(row && row.soop_user_id);
     if (!wrId || !soopId) continue;
     byWrId.set(wrId, {
       wr_id: wrId,
-      name: trim(row && row.name),
+      name: trim((row && row.display_name) || (row && row.name)),
       gender: trim(row && row.gender).toLowerCase(),
       soop_id: soopId,
     });

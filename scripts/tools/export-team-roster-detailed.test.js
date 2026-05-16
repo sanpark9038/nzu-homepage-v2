@@ -6,6 +6,9 @@ const ROOT = path.join(__dirname, "..", "..");
 const TMP_DIR = path.join(ROOT, "tmp");
 
 const {
+  filterPlayersByEntityIds,
+  shouldUseNoCacheForFetch,
+  shouldFetchWithNoCache,
   shouldSkipByPriorityWindow,
   shouldReuseInactiveExistingJson,
 } = require("./export-team-roster-detailed");
@@ -106,4 +109,83 @@ runTest("inactive reuse still protects legacy players without priority metadata"
       fs.unlinkSync(filePath);
     } catch {}
   }
+});
+
+runTest("due one-day priority players bypass source cache on fetch", () => {
+  const filePath = writeTempJson("__test__due_priority_no_cache.json", {
+    players: [{ period_max_date: "2026-05-14" }],
+  });
+  try {
+    const today = "2026-05-16T00:00:00.000Z";
+    const recentCachedFile = new Date("2026-05-15T20:00:00.000Z");
+    fs.utimesSync(filePath, recentCachedFile, recentCachedFile);
+
+    assert.equal(
+      shouldFetchWithNoCache(
+        {
+          last_checked_at: "2026-05-14T15:47:26.614Z",
+          last_match_at: "2026-05-14T00:00:00.000Z",
+          check_interval_days: 1,
+        },
+        today,
+        filePath
+      ),
+      true
+    );
+  } finally {
+    try {
+      fs.unlinkSync(filePath);
+    } catch {}
+  }
+});
+
+runTest("recent priority-window players can still use source cache", () => {
+  const filePath = writeTempJson("__test__recent_priority_cache.json", {
+    players: [{ period_max_date: "2026-05-15" }],
+  });
+  try {
+    const today = "2026-05-16T00:00:00.000Z";
+    const recentCachedFile = new Date("2026-05-15T20:00:00.000Z");
+    fs.utimesSync(filePath, recentCachedFile, recentCachedFile);
+
+    assert.equal(
+      shouldFetchWithNoCache(
+        {
+          last_checked_at: "2026-05-15T20:00:00.000Z",
+          last_match_at: "2026-05-15T00:00:00.000Z",
+          check_interval_days: 1,
+        },
+        today,
+        filePath
+      ),
+      false
+    );
+  } finally {
+    try {
+      fs.unlinkSync(filePath);
+    } catch {}
+  }
+});
+
+runTest("filterPlayersByEntityIds keeps only requested canonical players", () => {
+  const roster = [
+    { entity_id: "eloboard:male:37", name: "A" },
+    { entity_id: "eloboard:female:956", name: "B" },
+    { entity_id: "eloboard:male:8", name: "C" },
+  ];
+
+  assert.deepEqual(filterPlayersByEntityIds(roster, " female:956, male:37 "), [
+    { entity_id: "eloboard:male:37", name: "A" },
+    { entity_id: "eloboard:female:956", name: "B" },
+  ]);
+});
+
+runTest("filterPlayersByEntityIds returns full roster when no entity ids are requested", () => {
+  const roster = [{ entity_id: "male:37", name: "A" }];
+
+  assert.deepEqual(filterPlayersByEntityIds(roster, ""), roster);
+});
+
+runTest("shouldUseNoCacheForFetch honors an explicit force flag", () => {
+  assert.equal(shouldUseNoCacheForFetch({ forceNoCache: true }, {}, "2026-05-16", ""), true);
 });

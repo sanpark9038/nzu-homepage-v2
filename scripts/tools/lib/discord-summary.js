@@ -1,10 +1,10 @@
 const fs = require("fs");
 const path = require("path");
+const { loadProjectPlayerMetadata } = require("./project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
 const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const CURRENT_ROSTER_STATE_FILE = "current_roster_state.json";
-const PLAYER_METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 
 function readJsonIfExists(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return null;
@@ -12,14 +12,10 @@ function readJsonIfExists(filePath) {
 }
 
 function buildTrackedEntityIdSet() {
-  const rows = readJsonIfExists(PLAYER_METADATA_PATH);
-  if (!Array.isArray(rows)) return new Set();
   const tracked = new Set();
-  for (const row of rows) {
-    const wrId = Number(row && row.wr_id ? row.wr_id : 0);
-    const gender = String(row && row.gender ? row.gender : "").trim().toLowerCase();
-    if (!Number.isFinite(wrId) || wrId <= 0 || !gender) continue;
-    tracked.add(`eloboard:${gender}:${wrId}`);
+  for (const row of loadProjectPlayerMetadata()) {
+    const entityId = String(row && row.entity_id ? row.entity_id : "").trim();
+    if (entityId) tracked.add(entityId);
   }
   return tracked;
 }

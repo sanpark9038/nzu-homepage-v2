@@ -12,10 +12,10 @@ const {
   tableHasColumn,
   withServingIdentityKey,
 } = require('./lib/serving-identity-key');
+const { loadProjectPlayerMetadata } = require('./lib/project-player-metadata');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
-const PLAYER_METADATA_PATH = path.join(ROOT, 'scripts', 'player_metadata.json');
 const SOOP_MAPPINGS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_channel_mappings.v1.json');
 const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_manual_review_decisions.v1.json');
 
@@ -57,7 +57,7 @@ function extractWrId(value) {
 }
 
 function buildSoopLookup() {
-  const rows = readJson(PLAYER_METADATA_PATH, []);
+  const rows = loadProjectPlayerMetadata();
   const lookup = new Map();
   const byWrId = new Map();
   const byNameGenderBuckets = new Map();
@@ -71,11 +71,11 @@ function buildSoopLookup() {
     byNameBuckets.set(normalized, bucket);
   };
 
-  for (const row of Array.isArray(rows) ? rows : []) {
+  for (const row of rows) {
     const wrId = Number(row && row.wr_id);
     const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase();
     const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
-    const name = normalizeLookupName(row && row.name ? row.name : '');
+    const name = normalizeLookupName(row && (row.display_name || row.name) ? (row.display_name || row.name) : '');
     if (!Number.isFinite(wrId) || !gender || !soopUserId) continue;
     const payload = { soop_id: soopUserId };
     lookup.set(`${wrId}:${gender}`, payload);

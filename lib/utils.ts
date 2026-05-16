@@ -41,6 +41,11 @@ export function normalizeTier(tier: string | null | undefined): string {
 
   if (TIER_ALIASES[normalized]) return TIER_ALIASES[normalized];
 
+  if (raw.endsWith("티어")) {
+    const suffixless = raw.replace(/티어$/, "").trim();
+    if (suffixless && suffixless !== raw) return normalizeTier(suffixless);
+  }
+
   const numericTier = normalized.match(/^\d+$/);
   if (numericTier) return numericTier[0];
 

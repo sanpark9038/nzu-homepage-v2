@@ -89,7 +89,7 @@ runTest("mixed identity only overrides soop_id without polluting canonical name"
   assert.equal(actual.soop_id, "yuzzzz");
 });
 
-runTest("non-mix identity never backfills soop_id only by wr_id", () => {
+runTest("non-mix identity uses canonical project SOOP ID only when entity matches", () => {
   const actual = applyPlayerServingMetadataToOne({
     name: "유즈",
     nickname: null,
@@ -99,7 +99,7 @@ runTest("non-mix identity never backfills soop_id only by wr_id", () => {
   });
 
   assert.equal(actual.name, "유즈");
-  assert.equal(actual.soop_id, null);
+  assert.equal(actual.soop_id, "yuzzzz");
 });
 
 runTest("university normalization collapses roster aliases into FA", () => {

@@ -74,6 +74,12 @@ function shouldReuseInactiveExistingJson(player, inactiveSkipDays, to, jsonPath)
   return Boolean(maxDate && daysBetween(todayDate, maxDate) > inactiveSkipDays);
 }
 
+function shouldFetchWithNoCache(player, to, jsonPath = null) {
+  const checkIntervalDays = Number(player && player.check_interval_days ? player.check_interval_days : 0) || 0;
+  if (checkIntervalDays <= 0 || checkIntervalDays > 1) return false;
+  return !shouldSkipByPriorityWindow(player, to, jsonPath);
+}
+
 function readPeriodMaxDate(jsonPath) {
   if (!fs.existsSync(jsonPath)) return null;
   try {
@@ -292,6 +298,34 @@ function clearResumeMarker(player, resumes) {
   });
 }
 
+function parseEntityIdFilter(value) {
+  return new Set(
+    String(value || "")
+      .split(",")
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function identityFilterKeys(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  return [raw, raw.replace(/^eloboard:/, "")].filter(Boolean);
+}
+
+function filterPlayersByEntityIds(roster, entityIdsValue) {
+  const entityIds = parseEntityIdFilter(entityIdsValue);
+  if (!entityIds.size) return roster;
+  return roster.filter((player) => {
+    const entityId = String(player && player.entity_id ? player.entity_id : "").trim().toLowerCase();
+    return identityFilterKeys(entityId).some((key) => entityIds.has(key));
+  });
+}
+
+function shouldUseNoCacheForFetch(options, player, todayIso, jsonPath) {
+  if (options && options.forceNoCache) return true;
+  return shouldFetchWithNoCache(player, todayIso, jsonPath);
+}
+
 async function main() {
   const rosterPath = argValue("--roster-path", "");
   if (!rosterPath) {
@@ -307,12 +341,15 @@ async function main() {
   const to = argValue("--to", new Date().toISOString().slice(0, 10));
   const useExisting = hasFlag("--use-existing-json");
   const inactiveSkipDays = Number(argValue("--inactive-skip-days", "0")) || 0;
+  const entityIdsArg = argValue("--entity-ids", "");
+  const forceNoCache = hasFlag("--force-no-cache");
   const reportPath = argValue("--report-path", path.join(TMP_DIR, "team_roster_batch_export_report.json"));
 
   const rosterJson = JSON.parse(fs.readFileSync(rosterPath, "utf8").replace(/^\uFEFF/, ""));
   const teamName = argValue("--univ", rosterJson.team_name || "team");
   const roster = Array.isArray(rosterJson.roster) ? rosterJson.roster : [];
-  const players = limit > 0 ? roster.slice(0, limit) : roster;
+  const filteredRoster = filterPlayersByEntityIds(roster, entityIdsArg);
+  const players = limit > 0 ? filteredRoster.slice(0, limit) : filteredRoster;
   const rosterAdminState = await loadMergedRosterAdminState();
   const exclusions = mergeCollectionRows(loadCollectionExclusions(), rosterAdminState.exclusions || []);
   let resumes = mergeCollectionRows(loadCollectionResumes(), rosterAdminState.resumes || []);
@@ -322,7 +359,7 @@ async function main() {
     team_name: teamName,
     source_roster: rosterPath,
     total_players: players.length,
-    options: { limit, concurrency, from, to, useExisting, inactiveSkipDays },
+    options: { limit, concurrency, from, to, useExisting, inactiveSkipDays, entityIds: [...parseEntityIdFilter(entityIdsArg)], forceNoCache },
     results: [],
   };
   appendExportProgress(reportPath, "team_export_start", {
@@ -392,12 +429,14 @@ async function main() {
 
       if (shouldFetch) {
         const existingPeriodTotal = fs.existsSync(jsonPath) ? readPeriodTotal(jsonPath) : null;
+        const noCacheFirst = shouldUseNoCacheForFetch({ forceNoCache }, p, to, jsonPath);
+        const reportFlags = noCacheFirst ? ["--no-cache", "--concurrency", concurrency] : ["--concurrency", concurrency];
         appendExportProgress(reportPath, "player_report_start", {
           player: playerName,
           wr_id: p.wr_id,
-          no_cache: false,
+          no_cache: noCacheFirst,
         });
-        let raw = runNode(REPORT_SCRIPT, directReportArgs(teamName, playerName, p, ["--concurrency", concurrency]), {
+        let raw = runNode(REPORT_SCRIPT, directReportArgs(teamName, playerName, p, reportFlags), {
           timeoutMs: 240000,
         });
         let parsed = JSON.parse(raw);
@@ -405,7 +444,7 @@ async function main() {
           player: playerName,
           wr_id: p.wr_id,
           period_total: firstPeriodTotal(parsed),
-          no_cache: false,
+          no_cache: noCacheFirst,
         });
 
         // Guardrail: when collection unexpectedly returns 0, retry once with no-cache.
@@ -549,6 +588,9 @@ if (require.main === module) {
 
 module.exports = {
   readFileModifiedAt,
+  shouldFetchWithNoCache,
   shouldSkipByPriorityWindow,
   shouldReuseInactiveExistingJson,
+  filterPlayersByEntityIds,
+  shouldUseNoCacheForFetch,
 };
