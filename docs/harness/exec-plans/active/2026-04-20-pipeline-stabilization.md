@@ -372,3 +372,22 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   are stable. The plan stays active only for separate follow-ups: public
   history/H2H opponent durable identity and the `/admin/tournament`
   deployment-read-only decision.
+
+### 2026-05-16 H2H Opponent Identity Coverage Checkpoint
+
+- Do not remove the public history/H2H name fallback yet. That would be
+  premature and would likely reduce H2H results rather than improve identity
+  safety.
+- Added `report:player-history:opponent-identity` so the fallback-removal
+  decision is based on current artifact coverage instead of assumption.
+- Current local report from `tmp/player-history-artifacts` found
+  `artifact_files=343`, `players_with_history=343`, `match_rows=146423`,
+  `rows_with_opponent_entity_id=0`, `rows_with_opponent_name=146423`,
+  `opponent_entity_id_coverage_pct=0`, and
+  `ready_to_remove_name_fallback=false`.
+- Added `test:player-history-opponent-identity-coverage` and wired it into
+  `verify:predeploy` so the coverage report stays maintained.
+- Next meaningful implementation step is not route fallback removal. It is to
+  populate `opponent_entity_id` in warehouse/player-history artifacts first,
+  then rerun this report and only remove name fallback after coverage is high
+  enough to preserve H2H behavior.
