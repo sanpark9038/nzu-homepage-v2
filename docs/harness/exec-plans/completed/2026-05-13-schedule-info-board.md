@@ -1,6 +1,7 @@
-# ACTIVE PLAN: schedule-info-board
+# COMPLETED PLAN: schedule-info-board
 
 Created: 2026-05-13
+Completed: 2026-05-14
 Status: completed
 
 ## Goal
