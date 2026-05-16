@@ -407,3 +407,18 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   (`124964/143664` rows). `ready_to_remove_name_fallback=false`, so the
   public H2H fallback remains necessary until the remaining unknown/ambiguous
   opponent names are resolved safely.
+
+### 2026-05-16 Unresolved Opponent Identity Triage
+
+- Extended `report:player-history:opponent-identity` so the same report now
+  includes unresolved opponent-name classification.
+- Current unresolved shape is clear: `missing_rows=18700`,
+  `unique_names=205`, `no_candidate_names=205`,
+  `ambiguous_candidate_names=0`, and `unique_candidate_names=0`.
+- Interpretation: the remaining rows are not safe automatic alias candidates
+  against current canonical project metadata. They look like external, old,
+  inactive, or otherwise not-yet-modeled opponents.
+- Next meaningful work is an operator-facing review decision: decide which of
+  those 205 unresolved names should become canonical/project metadata entries,
+  which should remain external opponents, and whether any belong in an explicit
+  alias map. Do not auto-apply them into the canonical roster without review.

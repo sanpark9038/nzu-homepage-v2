@@ -5,7 +5,10 @@ const path = require("node:path");
 
 const {
   buildCoverageReport,
+  classifyOpponentName,
   formatMarkdown,
+  normalizeIdentityLookupName,
+  summarizeUnresolvedOpponents,
 } = require("./report-player-history-opponent-identity-coverage");
 
 function runTest(name, fn) {
@@ -46,6 +49,32 @@ function writeArtifact(dir, fileName, matchHistory) {
   );
 }
 
+function withProjectDir(fn) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-opponent-identity-projects-"));
+  try {
+    fs.mkdirSync(path.join(dir, "nzu"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "nzu", "players.nzu.v1.json"),
+      JSON.stringify(
+        {
+          roster: [
+            { entity_id: "eloboard:female:1", name: "opponent-a", team_code: "nzu" },
+            { entity_id: "eloboard:female:2", name: "shared", team_code: "nzu" },
+            { entity_id: "eloboard:male:3", name: "shared", team_code: "nzu" },
+            { entity_id: "eloboard:female:4", name: "canonical", display_name: "display name", team_code: "nzu" },
+          ],
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+    fn(dir);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 runTest("buildCoverageReport measures opponent entity id and name coverage", () => {
   withFixtureDir((dir) => {
     writeArtifact(dir, "player-a.json", [
@@ -57,20 +86,26 @@ runTest("buildCoverageReport measures opponent entity id and name coverage", () 
     ]);
     fs.writeFileSync(path.join(dir, "index.json"), "{}", "utf8");
 
-    const report = buildCoverageReport({
-      artifactDir: dir,
-      generatedAt: "2026-05-16T00:00:00.000Z",
-    });
+    withProjectDir((projectsDir) => {
+      const report = buildCoverageReport({
+        artifactDir: dir,
+        projectsDir,
+        generatedAt: "2026-05-16T00:00:00.000Z",
+      });
 
-    assert.equal(report.artifact_files, 2);
-    assert.equal(report.players_with_history, 2);
-    assert.equal(report.match_rows, 3);
-    assert.equal(report.rows_with_opponent_entity_id, 2);
-    assert.equal(report.rows_with_opponent_name, 3);
-    assert.equal(report.opponent_entity_id_coverage_pct, 66.67);
-    assert.equal(report.opponent_name_coverage_pct, 100);
-    assert.equal(report.ready_to_remove_name_fallback, false);
-    assert.equal(report.incomplete_samples.length, 1);
+      assert.equal(report.artifact_files, 2);
+      assert.equal(report.players_with_history, 2);
+      assert.equal(report.match_rows, 3);
+      assert.equal(report.rows_with_opponent_entity_id, 2);
+      assert.equal(report.rows_with_opponent_name, 3);
+      assert.equal(report.opponent_entity_id_coverage_pct, 66.67);
+      assert.equal(report.opponent_name_coverage_pct, 100);
+      assert.equal(report.ready_to_remove_name_fallback, false);
+      assert.equal(report.incomplete_samples.length, 1);
+      assert.equal(report.unresolved_opponents.missing_rows, 1);
+      assert.equal(report.unresolved_opponents.unique_names, 1);
+      assert.equal(report.unresolved_opponents.no_candidate_names, 1);
+    });
   });
 });
 
@@ -105,8 +140,53 @@ runTest("formatMarkdown includes the fallback removal decision", () => {
     opponent_name_coverage_pct: 100,
     ready_to_remove_name_fallback: false,
     incomplete_samples: [],
+    unresolved_opponents: {
+      missing_rows: 1,
+      unique_names: 1,
+      no_candidate_names: 1,
+      ambiguous_candidate_names: 0,
+      unique_candidate_names: 0,
+      top: [{ opponent_name: "unknown", match_rows: 1, candidate_status: "no_candidate", candidate_count: 0 }],
+    },
   });
 
   assert.match(markdown, /ready_to_remove_name_fallback: false/);
   assert.match(markdown, /opponent_entity_id_coverage_pct: 0/);
+  assert.match(markdown, /Top Unresolved Opponents/);
+});
+
+runTest("classifyOpponentName separates unique, ambiguous, and missing candidates", () => {
+  const candidateIndex = new Map([
+    ["opponenta", new Map([["eloboard:female:1", { entity_id: "eloboard:female:1" }]])],
+    [
+      "shared",
+      new Map([
+        ["eloboard:female:2", { entity_id: "eloboard:female:2" }],
+        ["eloboard:male:3", { entity_id: "eloboard:male:3" }],
+      ]),
+    ],
+  ]);
+
+  assert.equal(normalizeIdentityLookupName(" Opponent A "), "opponenta");
+  assert.equal(classifyOpponentName("Opponent A", candidateIndex).status, "unique_candidate");
+  assert.equal(classifyOpponentName("shared", candidateIndex).status, "ambiguous_candidate");
+  assert.equal(classifyOpponentName("missing", candidateIndex).status, "no_candidate");
+});
+
+runTest("summarizeUnresolvedOpponents ranks unresolved names by match rows", () => {
+  const unresolvedByName = new Map([
+    ["b", { opponent_name: "b", lookup_name: "b", match_rows: 2, player_samples: [] }],
+    ["a", { opponent_name: "a", lookup_name: "a", match_rows: 5, player_samples: [] }],
+  ]);
+  const candidateIndex = new Map([
+    ["a", new Map([["eloboard:female:1", { entity_id: "eloboard:female:1" }]])],
+  ]);
+
+  const summary = summarizeUnresolvedOpponents(unresolvedByName, candidateIndex, 1);
+
+  assert.equal(summary.missing_rows, 7);
+  assert.equal(summary.unique_names, 2);
+  assert.equal(summary.unique_candidate_names, 1);
+  assert.equal(summary.no_candidate_names, 1);
+  assert.deepEqual(summary.top.map((row) => row.opponent_name), ["a"]);
 });
