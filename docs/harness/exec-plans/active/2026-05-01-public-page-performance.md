@@ -234,10 +234,10 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 ### Implemented H2H Second-Pass Fix
 
 - Changed ID-based `/api/stats/h2h` requests to return `getDetailedH2HStats(p1_id, p2_id)` directly, including zero-sample results, instead of expanding name candidates afterward.
-- Kept name-based `getInstantH2H` fallback for requests that do not include both player IDs.
+- Superseded on 2026-05-16: name-only `getInstantH2H` fallback was removed, and H2H now requires both selected canonical player IDs.
 - Changed detailed H2H artifact loading to read P1 history first and read P2 history only as a reciprocal fallback when P1 has no matching entries.
 - Added a 300 second `unstable_cache` wrapper for ID-based detailed H2H stats, tagged with `public-player-history`, so repeated matchup checks avoid redoing the Supabase/R2 path.
-- Changed the shared client matchup helper so `fetchH2HStats()` makes one API request when both player IDs are present, leaving name-candidate fallback only for non-ID requests.
+- Changed the shared client matchup helper so `fetchH2HStats()` makes one API request when both player IDs are present; the old non-ID name-candidate fallback is now closed.
 - Changed the client H2H request caches to keep successful zero-sample payloads, while still evicting null payloads and rejected requests so transient failures can retry.
 - Restored `test:matchup-helpers` by loading the production TypeScript helper through a small test-only transpile loader that resolves the repo's extensionless imports like the app bundler does.
 

@@ -197,27 +197,5 @@ export async function fetchH2HStats(
     );
   }
 
-  let fallback: H2HStats | null = null;
-
-  for (const leftName of player1Candidates) {
-    for (const rightName of player2Candidates) {
-      const stats = await fetchSingleH2H(player1, player2, leftName, rightName, sharedGender);
-      if (!stats) continue;
-      if (!fallback) fallback = stats;
-      if ((stats.summary?.total || 0) > 0) return stats;
-    }
-  }
-
-  if (sharedGender) {
-    for (const leftName of player1Candidates) {
-      for (const rightName of player2Candidates) {
-        const stats = await fetchSingleH2H(player1, player2, leftName, rightName);
-        if (!stats) continue;
-        if (!fallback) fallback = stats;
-        if ((stats.summary?.total || 0) > 0) return stats;
-      }
-    }
-  }
-
-  return fallback;
+  return null;
 }

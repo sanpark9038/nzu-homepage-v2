@@ -78,7 +78,10 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 - `hero_media` table, `hero_media_single_active_idx`, `hero_media_public_read`, and `hero-media` public bucket were manually verified in Supabase.
 - Homepage integrity now reports `summary.hero_media`, and `check-daily-status` surfaces it without escalating it into daily ops alerts.
 - The former serving-identity blocker is closed: active staging/prod sync can use `serving_identity_key`, stale delete compares durable serving identities first, and the latest live serving roster diff is clean.
-- Remaining plan work is narrower and separate from the player metadata source: replace the remaining public history/H2H name fallback once opponent durable identity is consistently served, and decide whether `/admin/tournament` should use the same deployment read-only pattern as `/admin/roster`.
+- Remaining plan work is narrower and separate from the player metadata source:
+  decide whether `/admin/tournament` should use the same deployment read-only
+  pattern as `/admin/roster`, and keep monitoring opponent-identity coverage as
+  a report-only signal.
 
 ### Latest status note
 
@@ -151,7 +154,7 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 - session-start hardening docs such as `AGENTS.md`, `RUNBOOK.md`, `LESSONS_LEARNED.md`, and plan-template cleanup
 - public-site carryover from the home/entry plan unless explicitly promoted into this deployment scope
 - lint-only shared UI cleanup unless it is required to keep the deployment-scoped commit green
-- current H2H UI recovery files such as `components/stats/H2HLookup.tsx`, `components/players/H2HSelectorBar.tsx`, `app/api/stats/h2h/route.ts`, and `lib/h2h-service.ts` unless this deployment explicitly absorbs the public H2H follow-up
+- current H2H UI recovery files such as `components/stats/H2HLookup.tsx`, `components/players/H2HSelectorBar.tsx`, and `app/api/stats/h2h/route.ts` unless this deployment explicitly absorbs the public H2H follow-up
 - pipeline-generated project roster JSON refreshes under `data/metadata/projects/*` unless they are intentionally shipped as a separate content/data update
 - Special review bucket before commit:
 - `app/admin/tournament/page.tsx`
@@ -375,6 +378,9 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 
 ### 2026-05-16 H2H Opponent Identity Coverage Checkpoint
 
+- Superseded on 2026-05-16 by the Canonical-Only H2H Search Gate below: public
+  H2H search now requires selected canonical player IDs, while unresolved
+  opponents remain report-only display/history context.
 - Do not remove the public history/H2H name fallback yet. That would be
   premature and would likely reduce H2H results rather than improve identity
   safety.
@@ -452,3 +458,20 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - Decision: keep the canonical source surface small. Do not add unresolved
   opponents to `data/metadata/projects/*/players.*.v1.json` until an explicit
   review confirms they are real in-scope players rather than external opponents.
+
+### 2026-05-16 Canonical-Only H2H Search Gate
+
+- Decision refinement after product review: public H2H/search flows should only
+  compare players selected from the canonical player list. A name that appears
+  only as an opponent in match history is not, by itself, an active search
+  target or canonical metadata candidate.
+- `/api/stats/h2h` now requires both `p1_id` and `p2_id` canonical player IDs
+  before it runs detailed H2H lookup. Name-only requests fail closed with `400`
+  instead of running display-name fallback.
+- `fetchH2HStats` now makes one ID-based request when both selected players have
+  stable IDs and returns `null` when either ID is missing. It no longer retries
+  H2H by display-name candidate loops.
+- Removed the unused legacy `lib/h2h-service.ts` name-based Supabase lookup so
+  future work does not mistake it for an active data path.
+- This keeps external/unknown opponents as match-history display strings unless
+  an explicit operator review promotes them into canonical metadata.

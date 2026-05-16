@@ -9,6 +9,12 @@ function readProjectFile(filePath) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
 }
 
+function sliceGetRoute(source) {
+  const start = source.indexOf("export async function GET");
+  assert.notEqual(start, -1, "GET route should exist");
+  return source.slice(start);
+}
+
 test("H2H route avoids duplicate artifact-backed fallback work after ID-based detailed stats", () => {
   const source = readProjectFile("app/api/stats/h2h/route.ts");
 
@@ -25,26 +31,35 @@ test("H2H route avoids duplicate artifact-backed fallback work after ID-based de
 });
 
 test("ID-based H2H route returns detailed stats before name fallback work", () => {
-  const source = readProjectFile("app/api/stats/h2h/route.ts");
-  const detailedStatsIndex = source.indexOf("getCachedDetailedH2HStats");
-  const cachedPlayersIndex = source.indexOf("playerService.getCachedPlayersList");
-  const instantH2HIndex = source.indexOf("await getInstantH2H");
+  const routeSource = sliceGetRoute(readProjectFile("app/api/stats/h2h/route.ts"));
+  const detailedStatsIndex = routeSource.indexOf("getCachedDetailedH2HStats");
+  const missingIdGuardIndex = routeSource.indexOf("Both p1_id and p2_id canonical player ids are required.");
 
   assert.notEqual(detailedStatsIndex, -1, "Route should call cached detailed ID H2H stats");
-  assert.notEqual(cachedPlayersIndex, -1, "Route should keep cached player lookup for name-only fallback");
-  assert.notEqual(instantH2HIndex, -1, "Route should keep instant H2H for name-only fallback");
+  assert.notEqual(missingIdGuardIndex, -1, "Route should reject name-only H2H requests");
   assert.ok(
-    detailedStatsIndex < cachedPlayersIndex,
-    "ID-based detailed stats should run before loading the cached full player list"
-  );
-  assert.ok(
-    detailedStatsIndex < instantH2HIndex,
-    "ID-based detailed stats should run before trying name-based instant H2H"
+    missingIdGuardIndex < detailedStatsIndex,
+    "Canonical ID guard should run before detailed H2H lookup"
   );
   assert.match(
-    source,
-    /if\s*\(\s*p1Id\s*&&\s*p2Id\s*\)\s*{[\s\S]*?const\s+byIdStats\s*=\s*await\s+getCachedDetailedH2HStats\(p1Id,\s*p2Id\)[\s\S]*?return\s+NextResponse\.json\(byIdStats\)/,
+    routeSource,
+    /const\s+byIdStats\s*=\s*await\s+getCachedDetailedH2HStats\(p1Id,\s*p2Id\)[\s\S]*?return\s+NextResponse\.json\(byIdStats\)/,
     "ID-based requests should return the detailed ID result directly, including zero-sample stats"
+  );
+});
+
+test("H2H route does not accept name-only opponent lookup", () => {
+  const source = readProjectFile("app/api/stats/h2h/route.ts");
+
+  assert.doesNotMatch(
+    source,
+    /await\s+getInstantH2H\(/,
+    "Route should not query H2H by display names because that can pull external opponents into the active search path"
+  );
+  assert.doesNotMatch(
+    source,
+    /playerService\.getCachedPlayersList\(\)/,
+    "Route should not load the player list to recover name-only H2H requests"
   );
 });
 
