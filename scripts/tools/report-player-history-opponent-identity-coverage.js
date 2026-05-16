@@ -85,6 +85,28 @@ function classifyOpponentName(opponentName, candidateIndex) {
   return { status: "no_candidate", candidates: [] };
 }
 
+function incrementCount(map, key) {
+  const normalized = String(key || "").trim() || "unknown";
+  map.set(normalized, (map.get(normalized) || 0) + 1);
+}
+
+function sortCountObject(map) {
+  return Object.fromEntries(
+    Array.from(map.entries()).sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return String(a[0]).localeCompare(String(b[0]));
+    })
+  );
+}
+
+function recommendUnresolvedOpponent(row, candidateStatus) {
+  if (candidateStatus === "unique_candidate") return "metadata_review_needed";
+  if (candidateStatus === "ambiguous_candidate") return "manual_disambiguation_needed";
+  if (row.match_rows >= 100) return "external_or_metadata_review_needed";
+  if (row.match_rows >= 10) return "external_candidate";
+  return "ignore_low_frequency";
+}
+
 function summarizeUnresolvedOpponents(unresolvedByName, candidateIndex, limit = 50) {
   const rows = Array.from(unresolvedByName.values()).sort((a, b) => {
     if (b.match_rows !== a.match_rows) return b.match_rows - a.match_rows;
@@ -107,10 +129,16 @@ function summarizeUnresolvedOpponents(unresolvedByName, candidateIndex, limit = 
     if (classified.status === "unique_candidate") summary.unique_candidate_names += 1;
     if (summary.top.length < limit) {
       summary.top.push({
-        ...row,
+        opponent_name: row.opponent_name,
+        lookup_name: row.lookup_name,
+        match_rows: row.match_rows,
+        latest_match_date: row.latest_match_date || null,
+        opponent_race_counts: sortCountObject(row.opponent_race_counts || new Map()),
+        player_samples: row.player_samples,
         candidate_status: classified.status,
         candidate_count: classified.candidates.length,
         candidates: classified.candidates.slice(0, 5),
+        recommended_action: recommendUnresolvedOpponent(row, classified.status),
       });
     }
   }
@@ -152,12 +180,22 @@ function buildCoverageReport(options = {}) {
           opponent_name: opponentName,
           lookup_name: key,
           match_rows: 0,
+          latest_match_date: null,
+          opponent_race_counts: new Map(),
           player_samples: [],
+          player_sample_keys: new Set(),
         };
         item.match_rows += 1;
-        if (item.player_samples.length < 5) {
+        const matchDate = String(row.match_date || row.matchDate || "").trim();
+        if (matchDate && (!item.latest_match_date || matchDate > item.latest_match_date)) {
+          item.latest_match_date = matchDate;
+        }
+        incrementCount(item.opponent_race_counts, row.opponent_race || row.opponentRace || "");
+        const sampleKey = String(doc.player?.entity_id || "");
+        if (item.player_samples.length < 5 && sampleKey && !item.player_sample_keys.has(sampleKey)) {
+          item.player_sample_keys.add(sampleKey);
           item.player_samples.push({
-            player_entity_id: String(doc.player?.entity_id || ""),
+            player_entity_id: sampleKey,
             player_name: String(doc.player?.name || ""),
             file: path.relative(ROOT, filePath).replace(/\\/g, "/"),
           });
@@ -235,7 +273,7 @@ function formatMarkdown(report) {
   } else {
     for (const item of report.unresolved_opponents.top) {
       lines.push(
-        `- ${item.opponent_name}: ${item.match_rows} rows, ${item.candidate_status}, candidates=${item.candidate_count}`
+        `- ${item.opponent_name}: ${item.match_rows} rows, latest=${item.latest_match_date || "n/a"}, ${item.candidate_status}, ${item.recommended_action}, candidates=${item.candidate_count}`
       );
     }
   }
@@ -274,6 +312,7 @@ module.exports = {
   formatMarkdown,
   loadOpponentCandidateIndex,
   normalizeIdentityLookupName,
+  recommendUnresolvedOpponent,
   summarizeUnresolvedOpponents,
   writeReport,
 };

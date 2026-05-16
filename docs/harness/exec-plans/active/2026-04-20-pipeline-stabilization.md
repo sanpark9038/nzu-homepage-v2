@@ -422,3 +422,14 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   those 205 unresolved names should become canonical/project metadata entries,
   which should remain external opponents, and whether any belong in an explicit
   alias map. Do not auto-apply them into the canonical roster without review.
+
+### 2026-05-16 Unresolved Opponent Review Fields
+
+- The unresolved opponent section now includes `latest_match_date`,
+  `opponent_race_counts`, deduplicated player samples, and a conservative
+  `recommended_action` for each top unresolved name.
+- Current top unresolved names are still all `no_candidate`; high-frequency
+  names are labeled `external_or_metadata_review_needed`, not auto-onboarded.
+- This keeps the pipeline simple: one report shows coverage, unresolved impact,
+  and review priority, while canonical metadata remains unchanged until an
+  explicit operator review decides what belongs there.

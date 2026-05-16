@@ -8,6 +8,7 @@ const {
   classifyOpponentName,
   formatMarkdown,
   normalizeIdentityLookupName,
+  recommendUnresolvedOpponent,
   summarizeUnresolvedOpponents,
 } = require("./report-player-history-opponent-identity-coverage");
 
@@ -79,7 +80,7 @@ runTest("buildCoverageReport measures opponent entity id and name coverage", () 
   withFixtureDir((dir) => {
     writeArtifact(dir, "player-a.json", [
       { opponent_entity_id: "eloboard:female:1", opponent_name: "opponent-a" },
-      { opponent_entity_id: "", opponent_name: "opponent-b" },
+      { opponent_entity_id: "", opponent_name: "opponent-b", opponent_race: "Z", match_date: "2026-05-01" },
     ]);
     writeArtifact(dir, "player-b.json", [
       { opponentEntityId: "eloboard:male:2", opponentName: "opponent-c" },
@@ -105,6 +106,9 @@ runTest("buildCoverageReport measures opponent entity id and name coverage", () 
       assert.equal(report.unresolved_opponents.missing_rows, 1);
       assert.equal(report.unresolved_opponents.unique_names, 1);
       assert.equal(report.unresolved_opponents.no_candidate_names, 1);
+      assert.equal(report.unresolved_opponents.top[0].latest_match_date, "2026-05-01");
+      assert.deepEqual(report.unresolved_opponents.top[0].opponent_race_counts, { Z: 1 });
+      assert.equal(report.unresolved_opponents.top[0].recommended_action, "ignore_low_frequency");
     });
   });
 });
@@ -146,7 +150,16 @@ runTest("formatMarkdown includes the fallback removal decision", () => {
       no_candidate_names: 1,
       ambiguous_candidate_names: 0,
       unique_candidate_names: 0,
-      top: [{ opponent_name: "unknown", match_rows: 1, candidate_status: "no_candidate", candidate_count: 0 }],
+      top: [
+        {
+          opponent_name: "unknown",
+          match_rows: 1,
+          latest_match_date: "2026-05-01",
+          candidate_status: "no_candidate",
+          candidate_count: 0,
+          recommended_action: "ignore_low_frequency",
+        },
+      ],
     },
   });
 
@@ -175,8 +188,28 @@ runTest("classifyOpponentName separates unique, ambiguous, and missing candidate
 
 runTest("summarizeUnresolvedOpponents ranks unresolved names by match rows", () => {
   const unresolvedByName = new Map([
-    ["b", { opponent_name: "b", lookup_name: "b", match_rows: 2, player_samples: [] }],
-    ["a", { opponent_name: "a", lookup_name: "a", match_rows: 5, player_samples: [] }],
+    [
+      "b",
+      {
+        opponent_name: "b",
+        lookup_name: "b",
+        match_rows: 2,
+        latest_match_date: "2026-04-01",
+        opponent_race_counts: new Map([["Z", 2]]),
+        player_samples: [],
+      },
+    ],
+    [
+      "a",
+      {
+        opponent_name: "a",
+        lookup_name: "a",
+        match_rows: 105,
+        latest_match_date: "2026-05-01",
+        opponent_race_counts: new Map([["T", 100], ["P", 5]]),
+        player_samples: [],
+      },
+    ],
   ]);
   const candidateIndex = new Map([
     ["a", new Map([["eloboard:female:1", { entity_id: "eloboard:female:1" }]])],
@@ -184,9 +217,22 @@ runTest("summarizeUnresolvedOpponents ranks unresolved names by match rows", () 
 
   const summary = summarizeUnresolvedOpponents(unresolvedByName, candidateIndex, 1);
 
-  assert.equal(summary.missing_rows, 7);
+  assert.equal(summary.missing_rows, 107);
   assert.equal(summary.unique_names, 2);
   assert.equal(summary.unique_candidate_names, 1);
   assert.equal(summary.no_candidate_names, 1);
   assert.deepEqual(summary.top.map((row) => row.opponent_name), ["a"]);
+  assert.equal(summary.top[0].latest_match_date, "2026-05-01");
+  assert.deepEqual(summary.top[0].opponent_race_counts, { T: 100, P: 5 });
+  assert.equal(summary.top[0].recommended_action, "metadata_review_needed");
+});
+
+runTest("recommendUnresolvedOpponent keeps low-count missing names out of metadata by default", () => {
+  assert.equal(
+    recommendUnresolvedOpponent({ match_rows: 200 }, "no_candidate"),
+    "external_or_metadata_review_needed"
+  );
+  assert.equal(recommendUnresolvedOpponent({ match_rows: 25 }, "no_candidate"), "external_candidate");
+  assert.equal(recommendUnresolvedOpponent({ match_rows: 2 }, "no_candidate"), "ignore_low_frequency");
+  assert.equal(recommendUnresolvedOpponent({ match_rows: 1 }, "ambiguous_candidate"), "manual_disambiguation_needed");
 });
