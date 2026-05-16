@@ -61,7 +61,7 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 - [ ] Replace `player-service` history/H2H fallback with opponent durable identity once warehouse / serving contracts expose it consistently; current fallback is now narrower but still name-based.
 - [x] Re-run `check-site-integration-readiness.js --markdown` after the next real sync and make sure the new readiness blockers clear.
 - [x] Re-run `npm run pipeline:manual:refresh:with-sync` after the placeholder-filename fix and confirm the previous `ku / pipeline_failure / fetch_fail=1` blocker is gone.
-- [ ] Decide whether `/admin/tournament` should stay deployment-visible as read-only UI, or be folded into the same Vercel read-only pattern as `/admin/roster`.
+- [x] Decide whether `/admin/tournament` should stay deployment-visible as read-only UI, or be folded into the same Vercel read-only pattern as `/admin/roster`.
 - [x] Re-scope the deployment commit so current admin/Vercel stabilization work is explicitly tracked instead of drifting outside the deployment scope doc.
 
 ### Current note on the serving identity blocker
@@ -550,3 +550,21 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   - Push and deployment must be separate approvals.
 - Required final pre-push check: rerun `npm.cmd run verify:predeploy`
   immediately before any approved push/PR action.
+
+### 2026-05-16 Admin Tournament Read-Only Follow-Up
+
+- Decision: keep `/admin/tournament` deployment-visible, but fold it into the
+  same Vercel read-only pattern as `/admin/roster`.
+- `app/admin/tournament/page.tsx` is now a server wrapper that computes
+  `isAdminWriteDisabled()` and passes `readOnly` into the client UI.
+- `app/admin/tournament/TournamentManagementClient.tsx` keeps the existing
+  tournament UI, shows the shared admin read-only notice, and fails closed
+  before any recruit, remove, team-name, or captain mutation fetch when
+  `readOnly` is true.
+- Added `test:admin-tournament-readonly` and wired it into `verify:predeploy`.
+- Verification passed:
+  - `npm.cmd run test:admin-tournament-readonly`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run build`
+- The build route table now reports `/admin/tournament` as a dynamic route, not
+  a static route, so deployment read-only state is evaluated by the server page.
