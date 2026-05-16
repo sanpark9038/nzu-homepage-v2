@@ -523,3 +523,30 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - Deployment remains a separate later approval. If the operator wants the
   smallest possible metadata-only PR later, create a fresh branch/cherry-pick
   plan then instead of rewriting this verified local branch in place.
+
+### 2026-05-16 PR Preparation Draft
+
+- Conservative integration choice: prepare PR text only; do not push, deploy,
+  rewrite history, or create a new branch in this step.
+- Recommended PR title:
+  `Consolidate player metadata source and harden roster pipeline safety`
+- Recommended PR summary sections:
+  - Canonical metadata source consolidation around
+    `data/metadata/projects/*/players.*.v1.json`
+  - Legacy `scripts/player_metadata.json` archive/reference-only cleanup and
+    active dependency removal
+  - Tracked `tmp/` roster metadata cleanup plus a guard against future `tmp/`
+    `source_file` references
+  - Player-history freshness, serving roster diff, and opponent identity
+    coverage reports
+  - Canonical-ID-only H2H search gate
+  - Read-only admin roster ops review support
+  - Small tier-card UI containment/spacing support work
+- Required PR safety notes:
+  - No deployment in the PR preparation step.
+  - External/unresolved opponents remain report-only and are not auto-added to
+    canonical metadata.
+  - H2H name-only fallback remains closed.
+  - Push and deployment must be separate approvals.
+- Required final pre-push check: rerun `npm.cmd run verify:predeploy`
+  immediately before any approved push/PR action.
