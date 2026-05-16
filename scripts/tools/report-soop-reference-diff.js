@@ -1,8 +1,8 @@
 const fs = require("fs");
 const path = require("path");
+const { loadProjectPlayerMetadata } = require("./lib/project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const PLAYER_METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const MAPPINGS_PATH = path.join(ROOT, "data", "metadata", "soop_channel_mappings.v1.json");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 
@@ -53,7 +53,7 @@ function buildMetadataIndexes(metadata) {
   for (const row of Array.isArray(metadata) ? metadata : []) {
     const wrId = Number(row && row.wr_id);
     const gender = trim(row && row.gender).toLowerCase();
-    const name = trim(row && row.name);
+    const name = trim((row && row.display_name) || (row && row.name));
     if (Number.isFinite(wrId)) {
       const bucket = byWrId.get(wrId) || [];
       bucket.push(row);
@@ -87,7 +87,7 @@ function makePayload(target, row, matchKind) {
   return {
     match_kind: matchKind,
     wr_id: Number(target && target.wr_id),
-    metadata_name: trim(target && target.name) || null,
+    metadata_name: trim((target && target.display_name) || (target && target.name)) || null,
     metadata_gender: trim(target && target.gender) || null,
     existing_soop_user_id: trim(target && target.soop_user_id) || null,
     source_name: trim(row && row.source_name) || null,
@@ -154,7 +154,7 @@ function main() {
   }
 
   const normalizedDoc = readJson(path.resolve(inputPath));
-  const metadata = readJson(PLAYER_METADATA_PATH);
+  const metadata = loadProjectPlayerMetadata();
   const mappingsDoc = readJson(MAPPINGS_PATH);
 
   const records = Array.isArray(normalizedDoc.records) ? normalizedDoc.records : [];
@@ -206,7 +206,7 @@ function main() {
       continue;
     }
 
-    matchedMetadataKeys.add(`${Number(target.wr_id)}:${trim(target.name)}`);
+    matchedMetadataKeys.add(`${Number(target.wr_id)}:${trim((target && target.display_name) || target.name)}`);
 
     const existingSoopId = trim(target.soop_user_id);
     const incomingSoopId = trim(row && row.soop_user_id);
@@ -249,11 +249,11 @@ function main() {
   }
 
   for (const row of metadataIndexes.withSoop) {
-    const key = `${Number(row.wr_id)}:${trim(row.name)}`;
+    const key = `${Number(row.wr_id)}:${trim((row && row.display_name) || row.name)}`;
     if (matchedMetadataKeys.has(key)) continue;
     const wrId = Number(row.wr_id);
     const soopId = trim(row.soop_user_id).toLowerCase();
-    const name = trim(row.name);
+    const name = trim((row && row.display_name) || row.name);
     if (
       (Number.isFinite(wrId) && referenceIndexes.byWrId.has(wrId)) ||
       (soopId && referenceIndexes.bySoopId.has(soopId)) ||

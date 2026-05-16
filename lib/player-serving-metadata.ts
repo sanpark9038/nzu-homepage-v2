@@ -162,6 +162,7 @@ function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
         race?: string;
         display_name?: string;
         profile_url?: string;
+        soop_user_id?: string;
       }>;
     }>(filePath);
     const roster = Array.isArray(doc?.roster) ? doc.roster : [];
@@ -174,6 +175,7 @@ function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
         race: String(player?.race || "").trim() || undefined,
         display_name: String(player?.display_name || "").trim() || undefined,
         profile_url: String(player?.profile_url || "").trim() || undefined,
+        soop_id: String(player?.soop_user_id || "").trim() || undefined,
       });
     }
   }
@@ -282,24 +284,34 @@ function loadSoopIdentityOverrides(): Map<string, SoopIdentityOverride> {
   const req = eval("require") as NodeRequire;
   const fs = req("fs") as typeof import("fs");
   const path = req("path") as typeof import("path");
-  const filePath = path.join(process.cwd(), "scripts", "player_metadata.json");
-  if (!fs.existsSync(filePath)) return overrides;
+  const projectsDir = path.join(process.cwd(), "data", "metadata", "projects");
+  if (!fs.existsSync(projectsDir)) return overrides;
 
-  const rows = readJsonFile<
-    Array<{
-      name?: string;
-      wr_id?: string | number;
-      soop_user_id?: string;
-    }>
-  >(filePath);
-  for (const row of Array.isArray(rows) ? rows : []) {
-    const wrId = String(row?.wr_id || "").trim();
-    const soopId = String(row?.soop_user_id || "").trim();
-    if (!wrId || !soopId) continue;
-    overrides.set(wrId, {
-      name: String(row?.name || "").trim() || undefined,
-      soop_id: soopId,
-    });
+  const projectDirs = fs
+    .readdirSync(projectsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+
+  for (const code of projectDirs) {
+    const filePath = path.join(projectsDir, code, `players.${code}.v1.json`);
+    const doc = readJsonFile<{
+      roster?: Array<{
+        name?: string;
+        display_name?: string;
+        wr_id?: string | number;
+        soop_user_id?: string;
+      }>;
+    }>(filePath);
+    const roster = Array.isArray(doc?.roster) ? doc.roster : [];
+    for (const row of roster) {
+      const wrId = String(row?.wr_id || "").trim();
+      const soopId = String(row?.soop_user_id || "").trim();
+      if (!wrId || !soopId) continue;
+      overrides.set(wrId, {
+        name: String(row?.display_name || row?.name || "").trim() || undefined,
+        soop_id: soopId,
+      });
+    }
   }
 
   return overrides;

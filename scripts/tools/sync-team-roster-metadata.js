@@ -22,6 +22,7 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const REPORT_DIR = path.join(ROOT, "tmp", "reports");
 const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORT_DIR, "manual_refresh_baseline.json");
+const COLLECTION_EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
 const FA_UNIV_FALLBACKS = ["연합팀", "FA", "무소속"];
 
 function argValue(flag, fallback = "") {
@@ -63,6 +64,15 @@ function buildRetiredEntityIds(manualOverrides) {
     if (entityId) retired.add(entityId);
   }
   return retired;
+}
+
+function buildExcludedEntityIds(exclusions) {
+  const excluded = new Set();
+  for (const row of Array.isArray(exclusions) ? exclusions : []) {
+    const entityId = String(row && row.entity_id ? row.entity_id : "").trim();
+    if (entityId) excluded.add(entityId);
+  }
+  return excluded;
 }
 
 function readManualRefreshBaselinePlayers(teamCode) {
@@ -345,17 +355,21 @@ function removeRosterEntry(teamJson, entityId) {
   teamJson.roster = roster.filter((p) => String(p.entity_id) !== entityId);
 }
 
-function buildRetainedFaEntityIds(faObservedEntityIds, observedByEntity, fallbackEntityIds = []) {
+function buildRetainedFaEntityIds(faObservedEntityIds, observedByEntity, fallbackEntityIds = [], excludedEntityIds = new Set()) {
   const retained = new Set(
-    Array.isArray(fallbackEntityIds) ? fallbackEntityIds.map((value) => String(value)) : []
+    Array.isArray(fallbackEntityIds)
+      ? fallbackEntityIds.map((value) => String(value)).filter((value) => !excludedEntityIds.has(value))
+      : []
   );
   for (const entityId of faObservedEntityIds || []) {
-    retained.add(String(entityId));
+    const safeEntityId = String(entityId);
+    if (!excludedEntityIds.has(safeEntityId)) retained.add(safeEntityId);
   }
   if (observedByEntity && typeof observedByEntity.entries === "function") {
     for (const [entityId, observed] of observedByEntity.entries()) {
-      if (String(observed && observed.team_code ? observed.team_code : "") === "fa") {
-        retained.add(String(entityId));
+      const safeEntityId = String(entityId);
+      if (String(observed && observed.team_code ? observed.team_code : "") === "fa" && !excludedEntityIds.has(safeEntityId)) {
+        retained.add(safeEntityId);
       }
     }
   }
@@ -776,6 +790,8 @@ async function main() {
   }
 
   const { overrides: manualOverrides } = await loadMergedRosterAdminState();
+  const collectionExclusionsDoc = readJsonIfExists(COLLECTION_EXCLUSIONS_PATH, {});
+  const excludedEntityIds = buildExcludedEntityIds(collectionExclusionsDoc && collectionExclusionsDoc.players);
   const retiredEntityIds = buildRetiredEntityIds(manualOverrides);
   const legacyEntityIdsBySuccessor = buildLegacyEntityIdsBySuccessor(manualOverrides);
   const appliedManualOverrides = [];
@@ -784,6 +800,12 @@ async function main() {
       removeRosterEntry(d.json, retiredEntityId);
     }
     observedByEntity.delete(retiredEntityId);
+  }
+  for (const excludedEntityId of excludedEntityIds) {
+    for (const d of allDocs) {
+      removeRosterEntry(d.json, excludedEntityId);
+    }
+    observedByEntity.delete(excludedEntityId);
   }
   for (const ov of manualOverrides) {
     if (!ov) continue;
@@ -963,7 +985,8 @@ async function main() {
     const retainedFaEntityIds = buildRetainedFaEntityIds(
       faObservedEntityIds,
       observedByEntity,
-      [...faFallbackEntityIds]
+      [...faFallbackEntityIds],
+      excludedEntityIds
     );
     faDoc.json.roster = roster.filter((p) => retainedFaEntityIds.has(String(p.entity_id)));
   } else {
@@ -1031,6 +1054,7 @@ async function main() {
 
 module.exports = {
   buildLegacyEntityIdsBySuccessor,
+  buildExcludedEntityIds,
   buildRetainedFaEntityIds,
   collapseObservedLegacyDuplicates,
   collapseStalePreviousDuplicateEntities,

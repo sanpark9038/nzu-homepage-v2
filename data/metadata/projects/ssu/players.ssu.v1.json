@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.669Z",
+  "generated_at": "2026-05-15T18:10:14.066Z",
   "project": "ssu",
   "team_name": "수술대",
   "team_code": "ssu",
@@ -39,7 +39,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.637Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=22",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "thakzkf"
     },
     {
       "team_name": "수술대",
@@ -73,7 +74,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.638Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=102",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "palko1"
     },
     {
       "team_name": "수술대",
@@ -107,7 +109,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.639Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=74",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "jh3697"
     },
     {
       "team_name": "수술대",
@@ -141,7 +144,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.640Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=194",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dohyeon97"
     },
     {
       "team_name": "수술대",
@@ -175,7 +179,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.641Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=203",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "cksdnddldhkd"
     },
     {
       "team_name": "수술대",
@@ -208,7 +213,9 @@
       "last_match_at": "2026-05-01T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.641Z"
+      "last_changed_at": "2026-05-15T14:46:33.710Z",
+      "soop_user_id": "rlawhdwns6",
+      "generated_at": "2026-05-15T14:46:33.710Z"
     },
     {
       "team_name": "수술대",
@@ -240,9 +247,11 @@
       "last_match_at": "2026-04-22T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.642Z",
+      "last_changed_at": "2026-05-15T14:46:33.710Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=79",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "gjgj3274",
+      "generated_at": "2026-05-15T14:46:33.710Z"
     },
     {
       "team_name": "수술대",
@@ -276,7 +285,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.643Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=28",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "bijyu90"
     },
     {
       "team_name": "수술대",
@@ -309,7 +319,8 @@
       "last_match_at": "2026-05-02T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.644Z"
+      "last_changed_at": "2026-05-14T16:27:48.644Z",
+      "soop_user_id": "byebye22"
     },
     {
       "team_name": "수술대",
@@ -343,7 +354,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.648Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=617",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dmswls4565"
     },
     {
       "team_name": "수술대",
@@ -361,11 +373,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:protoss",
         "tier:3"
       ],
@@ -376,7 +388,8 @@
       "last_match_at": "2026-05-11T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.649Z"
+      "last_changed_at": "2026-05-14T16:27:48.649Z",
+      "soop_user_id": "rlsk0705"
     },
     {
       "team_name": "수술대",
@@ -410,7 +423,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.650Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=119",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "pazzy1"
     },
     {
       "team_name": "수술대",
@@ -444,7 +458,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.653Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=713",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "nerve89"
     },
     {
       "team_name": "수술대",
@@ -477,7 +492,9 @@
       "last_match_at": "2026-05-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.653Z"
+      "last_changed_at": "2026-05-15T14:46:33.710Z",
+      "soop_user_id": "ititit",
+      "generated_at": "2026-05-15T14:46:33.710Z"
     },
     {
       "team_name": "수술대",
@@ -511,7 +528,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.656Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=566",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "ys9024"
     },
     {
       "team_name": "수술대",
@@ -545,7 +563,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.659Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=860",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "wlgua7272"
     },
     {
       "team_name": "수술대",
@@ -577,9 +596,11 @@
       "last_match_at": "2026-05-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.662Z",
+      "last_changed_at": "2026-05-15T14:46:33.710Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=781",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "tato1104",
+      "generated_at": "2026-05-15T14:46:33.710Z"
     },
     {
       "team_name": "수술대",
@@ -613,7 +634,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.664Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=895",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "nreupne"
     },
     {
       "team_name": "수술대",
@@ -646,7 +668,8 @@
       "last_match_at": "2026-05-02T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.666Z"
+      "last_changed_at": "2026-05-14T16:27:48.666Z",
+      "soop_user_id": "min030606"
     },
     {
       "team_name": "수술대",
@@ -679,7 +702,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.668Z"
+      "last_changed_at": "2026-05-14T16:27:48.668Z",
+      "soop_user_id": "jungym0116"
     },
     {
       "team_name": "수술대",
@@ -697,11 +721,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:ssu",
         "team_code:ssu",
         "team_ko:수술대",
         "team_en:ssu",
-        "gender:female",
         "race:zerg",
         "tier:9"
       ],
@@ -712,7 +736,9 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.668Z"
+      "last_changed_at": "2026-05-15T14:46:33.710Z",
+      "soop_user_id": "miiing0620",
+      "generated_at": "2026-05-15T14:46:33.710Z"
     },
     {
       "team_name": "수술대",
@@ -745,7 +771,8 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.669Z"
+      "last_changed_at": "2026-05-14T16:27:48.669Z",
+      "soop_user_id": "tjgus5570"
     }
   ],
   "source_file": "tmp/수술대_roster_record_metadata.json",

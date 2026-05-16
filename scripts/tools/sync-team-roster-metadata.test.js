@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 
 const {
   buildLegacyEntityIdsBySuccessor,
+  buildExcludedEntityIds,
   buildRetainedFaEntityIds,
   collapseObservedLegacyDuplicates,
   collapseStalePreviousDuplicateEntities,
@@ -188,6 +189,32 @@ runTest("buildRetainedFaEntityIds keeps observed FA, manual override FA, and fal
     "eloboard:female:3",
     "eloboard:female:4",
   ]);
+});
+
+runTest("buildRetainedFaEntityIds drops user-excluded FA players even when observed", () => {
+  const observedByEntity = new Map([
+    ["eloboard:female:1", { team_code: "fa", name: "Keep" }],
+    ["eloboard:female:2", { team_code: "fa", name: "Drop" }],
+  ]);
+
+  const actual = buildRetainedFaEntityIds(
+    new Set(["eloboard:female:1", "eloboard:female:2"]),
+    observedByEntity,
+    ["eloboard:female:3"],
+    new Set(["eloboard:female:2", "eloboard:female:3"])
+  );
+
+  assert.deepEqual([...actual].sort(), ["eloboard:female:1"]);
+});
+
+runTest("buildExcludedEntityIds reads explicit excluded entity ids", () => {
+  const actual = buildExcludedEntityIds([
+    { entity_id: "eloboard:female:1" },
+    { entity_id: "" },
+    {},
+  ]);
+
+  assert.deepEqual([...actual], ["eloboard:female:1"]);
 });
 
 runTest("buildLegacyEntityIdsBySuccessor maps current entity ids to deprecated predecessors", () => {

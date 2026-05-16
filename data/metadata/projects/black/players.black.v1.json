@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.070Z",
+  "generated_at": "2026-05-15T18:10:13.454Z",
   "project": "black",
   "team_name": "흑카데미",
   "team_code": "black",
@@ -41,7 +41,8 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.027Z"
+      "last_changed_at": "2026-05-14T16:27:48.027Z",
+      "soop_user_id": "ckmin706"
     },
     {
       "team_name": "흑카데미",
@@ -74,7 +75,9 @@
       "last_match_at": "2026-04-24T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.027Z"
+      "last_changed_at": "2026-05-15T14:54:12.174Z",
+      "soop_user_id": "bhy95",
+      "generated_at": "2026-05-15T14:54:12.174Z"
     },
     {
       "team_name": "흑카데미",
@@ -109,7 +112,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.028Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=216",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "ndudska620"
     },
     {
       "team_name": "흑카데미",
@@ -142,7 +146,8 @@
       "last_match_at": "2026-03-21T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-05-14T16:27:48.029Z"
+      "last_changed_at": "2026-05-14T16:27:48.029Z",
+      "soop_user_id": "skarbwhgc"
     },
     {
       "team_name": "흑카데미",
@@ -175,7 +180,8 @@
       "last_match_at": "2026-05-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.030Z"
+      "last_changed_at": "2026-05-14T16:27:48.030Z",
+      "soop_user_id": "jhpark7712"
     },
     {
       "team_name": "흑카데미",
@@ -210,7 +216,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.032Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=85",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "kwh1992"
     },
     {
       "team_name": "흑카데미",
@@ -245,7 +252,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.036Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=418",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "ehgmldud1233"
     },
     {
       "team_name": "흑카데미",
@@ -280,7 +288,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.041Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=555",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "eeceec"
     },
     {
       "team_name": "흑카데미",
@@ -313,9 +322,11 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.045Z",
+      "last_changed_at": "2026-05-15T14:54:12.174Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=722",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "lingolinga",
+      "generated_at": "2026-05-15T14:54:12.174Z"
     },
     {
       "team_name": "흑카데미",
@@ -348,7 +359,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.050Z"
+      "last_changed_at": "2026-05-14T16:27:48.050Z",
+      "soop_user_id": "chchchshai"
     },
     {
       "team_name": "흑카데미",
@@ -383,7 +395,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.053Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=892",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "maeong2"
     },
     {
       "team_name": "흑카데미",
@@ -416,7 +429,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.056Z"
+      "last_changed_at": "2026-05-14T16:27:48.056Z",
+      "soop_user_id": "tjwjddms1565"
     },
     {
       "team_name": "흑카데미",
@@ -451,7 +465,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.059Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=780",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "2ahgo1203"
     },
     {
       "team_name": "흑카데미",
@@ -486,7 +501,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.062Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=949",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "gangeda"
     },
     {
       "team_name": "흑카데미",
@@ -521,7 +537,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.064Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=928",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "rudzhd123"
     },
     {
       "team_name": "흑카데미",
@@ -556,7 +573,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.067Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=983",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dollooo"
     },
     {
       "team_name": "흑카데미",
@@ -591,7 +609,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.068Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1025",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "yuna1024"
     },
     {
       "team_name": "흑카데미",
@@ -624,7 +643,8 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.069Z"
+      "last_changed_at": "2026-05-14T16:27:48.069Z",
+      "soop_user_id": "x1aohongmao"
     },
     {
       "team_name": "흑카데미",
@@ -660,7 +680,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.070Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=88",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "firebathero"
     }
   ],
   "source_file": "tmp/흑카데미_roster_record_metadata.json",

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.630Z",
+  "generated_at": "2026-05-15T18:10:14.010Z",
   "project": "ncs",
   "team_name": "뉴캣슬",
   "team_code": "ncs",
@@ -46,7 +46,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.585Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=78",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "onlysibar"
     },
     {
       "team_name": "뉴캣슬",
@@ -82,7 +83,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.590Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=14",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "wodnrdldia"
     },
     {
       "team_name": "뉴캣슬",
@@ -119,7 +121,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.591Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=149",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "ksmo54"
     },
     {
       "team_name": "뉴캣슬",
@@ -155,7 +158,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.592Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=57",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "killkg2"
     },
     {
       "team_name": "뉴캣슬",
@@ -192,7 +196,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.593Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=95",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dmk1212"
     },
     {
       "team_name": "뉴캣슬",
@@ -229,7 +234,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.593Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=137",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "qhkrwns12"
     },
     {
       "team_name": "뉴캣슬",
@@ -262,7 +268,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.594Z"
+      "last_changed_at": "2026-05-14T16:27:48.594Z",
+      "soop_user_id": "wjswpalssla1"
     },
     {
       "team_name": "뉴캣슬",
@@ -299,7 +306,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.594Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=85",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dbrbals"
     },
     {
       "team_name": "뉴캣슬",
@@ -332,7 +340,8 @@
       "last_match_at": "2026-01-23T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-05-14T16:27:48.595Z"
+      "last_changed_at": "2026-05-14T16:27:48.595Z",
+      "soop_user_id": "ywww123"
     },
     {
       "team_name": "뉴캣슬",
@@ -368,7 +377,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.599Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=361",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "cyj982002"
     },
     {
       "team_name": "뉴캣슬",
@@ -404,7 +414,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.601Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=660",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "haru1207"
     },
     {
       "team_name": "뉴캣슬",
@@ -440,7 +451,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.603Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=512",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "123rhaxld"
     },
     {
       "team_name": "뉴캣슬",
@@ -476,7 +488,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.606Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=827",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dbwjdcool1"
     },
     {
       "team_name": "뉴캣슬",
@@ -512,7 +525,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.610Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=870",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "zzzz809"
     },
     {
       "team_name": "뉴캣슬",
@@ -548,7 +562,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.613Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=842",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "aybjc2319"
     },
     {
       "team_name": "뉴캣슬",
@@ -584,7 +599,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.616Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=925",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "diniowo"
     },
     {
       "team_name": "뉴캣슬",
@@ -620,7 +636,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.618Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=980",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "queenzu"
     },
     {
       "team_name": "뉴캣슬",
@@ -656,7 +673,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.620Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=966",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "corgi1102"
     },
     {
       "team_name": "뉴캣슬",
@@ -692,7 +710,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.622Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=959",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "totoo23"
     },
     {
       "team_name": "뉴캣슬",
@@ -728,7 +747,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.624Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1016",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "haeun5513"
     },
     {
       "team_name": "뉴캣슬",
@@ -764,7 +784,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.625Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1024",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "yuzzzz"
     },
     {
       "team_name": "뉴캣슬",
@@ -797,7 +818,9 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.626Z"
+      "last_changed_at": "2026-05-15T14:48:49.356Z",
+      "soop_user_id": "1004yomi",
+      "generated_at": "2026-05-15T14:48:49.356Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -830,7 +853,8 @@
       "last_match_at": "2026-05-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.627Z"
+      "last_changed_at": "2026-05-14T16:27:48.627Z",
+      "soop_user_id": "qwer1317"
     },
     {
       "team_name": "뉴캣슬",
@@ -848,11 +872,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:ncs",
         "team_code:ncs",
         "team_ko:뉴캣슬",
         "team_en:ncs",
-        "gender:female",
         "race:protoss",
         "tier:9"
       ],
@@ -863,7 +887,9 @@
       "last_match_at": "2026-05-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.627Z"
+      "last_changed_at": "2026-05-15T14:48:49.356Z",
+      "soop_user_id": "tndkekdy",
+      "generated_at": "2026-05-15T14:48:49.356Z"
     },
     {
       "team_name": "뉴캣슬",
@@ -900,7 +926,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.628Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=46",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "arinbbidol"
     },
     {
       "team_name": "뉴캣슬",
@@ -936,7 +963,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.630Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=62",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "peros777"
     }
   ],
   "source_file": "tmp/뉴캣슬_roster_record_metadata.json",

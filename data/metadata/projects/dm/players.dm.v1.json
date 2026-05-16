@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.160Z",
+  "generated_at": "2026-05-15T18:10:13.665Z",
   "project": "dm",
   "team_name": "DM",
   "team_code": "dm",
@@ -42,7 +42,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.128Z"
+      "last_changed_at": "2026-05-14T16:27:48.128Z",
+      "soop_user_id": "gnsl418"
     },
     {
       "team_name": "DM",
@@ -75,7 +76,8 @@
       "last_match_at": "2026-05-09T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.130Z"
+      "last_changed_at": "2026-05-14T16:27:48.130Z",
+      "soop_user_id": "organ333"
     },
     {
       "team_name": "DM",
@@ -108,7 +110,8 @@
       "last_match_at": "2026-05-07T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.131Z"
+      "last_changed_at": "2026-05-14T16:27:48.131Z",
+      "soop_user_id": "70jeontaekyu"
     },
     {
       "team_name": "DM",
@@ -141,7 +144,8 @@
       "last_match_at": "2026-01-08T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-05-14T16:27:48.132Z"
+      "last_changed_at": "2026-05-14T16:27:48.132Z",
+      "soop_user_id": "lovelove7777"
     },
     {
       "team_name": "DM",
@@ -174,7 +178,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.134Z"
+      "last_changed_at": "2026-05-14T16:27:48.134Z",
+      "soop_user_id": "llqqqq"
     },
     {
       "team_name": "DM",
@@ -207,7 +212,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.137Z"
+      "last_changed_at": "2026-05-14T16:27:48.137Z",
+      "soop_user_id": "jscando77"
     },
     {
       "team_name": "DM",
@@ -240,7 +246,9 @@
       "last_match_at": "2026-04-21T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.142Z"
+      "last_changed_at": "2026-05-15T14:54:12.174Z",
+      "soop_user_id": "nasd06",
+      "generated_at": "2026-05-15T14:54:12.174Z"
     },
     {
       "team_name": "DM",
@@ -273,7 +281,9 @@
       "last_match_at": "2026-05-09T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.148Z"
+      "last_changed_at": "2026-05-15T14:54:12.174Z",
+      "soop_user_id": "5eulgii",
+      "generated_at": "2026-05-15T14:54:12.174Z"
     },
     {
       "team_name": "DM",
@@ -306,7 +316,8 @@
       "last_match_at": "2026-04-24T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.152Z"
+      "last_changed_at": "2026-05-14T16:27:48.152Z",
+      "soop_user_id": "danu619"
     },
     {
       "team_name": "DM",
@@ -339,7 +350,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.157Z"
+      "last_changed_at": "2026-05-14T16:27:48.157Z",
+      "soop_user_id": "eunseo0152"
     },
     {
       "team_name": "DM",
@@ -357,11 +369,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:dm",
         "team_code:dm",
         "team_ko:DM",
         "team_en:dm",
-        "gender:female",
         "race:zerg",
         "tier:8"
       ],
@@ -372,7 +384,8 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.160Z"
+      "last_changed_at": "2026-05-14T16:27:48.160Z",
+      "soop_user_id": "eunjo0105"
     }
   ]
 }

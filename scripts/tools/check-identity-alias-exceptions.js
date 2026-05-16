@@ -1,29 +1,22 @@
 const fs = require("fs");
 const path = require("path");
+const { loadProjectPlayerMetadata, trim } = require("./lib/project-player-metadata");
 
 const ROOT = path.join(__dirname, "..", "..");
 const EXCEPTIONS_PATH = path.join(ROOT, "data", "metadata", "identity_alias_exceptions.v1.json");
-const METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
-}
-
-function trim(value) {
-  return String(value || "").trim();
 }
 
 function main() {
   if (!fs.existsSync(EXCEPTIONS_PATH)) {
     throw new Error(`Missing exceptions file: ${EXCEPTIONS_PATH}`);
   }
-  if (!fs.existsSync(METADATA_PATH)) {
-    throw new Error(`Missing player metadata: ${METADATA_PATH}`);
-  }
 
   const doc = readJson(EXCEPTIONS_PATH);
   const rows = Array.isArray(doc && doc.soop_id_aliases) ? doc.soop_id_aliases : [];
-  const metadataRows = Array.isArray(readJson(METADATA_PATH)) ? readJson(METADATA_PATH) : [];
+  const metadataRows = loadProjectPlayerMetadata();
   const bySoopId = new Map();
 
   for (const row of metadataRows) {
@@ -36,6 +29,7 @@ function main() {
       wr_id: wrId,
       name,
       gender: trim(row && row.gender) || null,
+      entity_id: trim(row && row.entity_id) || null,
     });
     bySoopId.set(soopId, bucket);
   }
@@ -67,7 +61,7 @@ function main() {
 
     const metadataBucket = (bySoopId.get(soopId) || []).sort((a, b) => a.wr_id - b.wr_id);
     if (!metadataBucket.length) {
-      issues.push(`${soopId}: no matching rows in scripts/player_metadata.json`);
+      issues.push(`${soopId}: no matching rows in project player metadata`);
       continue;
     }
 

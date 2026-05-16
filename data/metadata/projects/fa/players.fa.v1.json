@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.397Z",
+  "generated_at": "2026-05-15T18:35:36.146Z",
   "project": "fa",
   "team_name": "무소속",
   "team_code": "fa",
@@ -9,7 +9,7 @@
     "무소속",
     "FA"
   ],
-  "roster_count": 103,
+  "roster_count": 92,
   "roster": [
     {
       "team_name": "무소속",
@@ -42,7 +42,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.171Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=36",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "kimmyungwun"
     },
     {
       "team_name": "무소속",
@@ -75,7 +76,8 @@
       "last_changed_at": "2026-05-14T16:27:48.175Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=15",
       "profile_kind": "default",
-      "display_name": "김민철"
+      "display_name": "김민철",
+      "soop_user_id": "minchul"
     },
     {
       "team_name": "무소속",
@@ -108,7 +110,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.179Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=34",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "tjdeosks"
     },
     {
       "team_name": "무소속",
@@ -141,7 +144,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.184Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=40",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "momo130"
     },
     {
       "team_name": "무소속",
@@ -174,7 +178,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.192Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=29",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "ho1godme"
     },
     {
       "team_name": "무소속",
@@ -207,7 +212,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.199Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=35",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "bye1013"
     },
     {
       "team_name": "무소속",
@@ -240,7 +246,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.212Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=12",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "yoo376"
     },
     {
       "team_name": "무소속",
@@ -276,7 +283,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.215Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=24",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "cksgmldbs"
     },
     {
       "team_name": "무소속",
@@ -309,7 +317,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.218Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=33",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "scv6256"
     },
     {
       "team_name": "무소속",
@@ -342,7 +351,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.225Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=42",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "jaedong23"
     },
     {
       "team_name": "무소속",
@@ -375,7 +385,8 @@
       "last_changed_at": "2026-05-14T16:27:48.226Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=39",
       "profile_kind": "default",
-      "display_name": "정윤종"
+      "display_name": "정윤종",
+      "soop_user_id": "ioioiobb"
     },
     {
       "team_name": "무소속",
@@ -408,7 +419,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.240Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=13",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "byhero"
     },
     {
       "team_name": "무소속",
@@ -441,7 +453,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.252Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=32",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "hby0724"
     },
     {
       "team_name": "무소속",
@@ -459,11 +472,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
-        "gender:male",
         "race:protoss",
         "tier:king"
       ],
@@ -474,7 +487,8 @@
       "last_match_at": "2026-05-09T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.260Z"
+      "last_changed_at": "2026-05-14T16:27:48.260Z",
+      "soop_user_id": "koreasbg"
     },
     {
       "team_name": "무소속",
@@ -507,7 +521,43 @@
       "check_priority": "high",
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.266Z",
-      "display_name": "원선재"
+      "display_name": "원선재",
+      "soop_user_id": "zealot0846"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:male:28",
+      "wr_id": 28,
+      "gender": "male",
+      "name": "유승곤",
+      "display_name": "유승곤",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=28",
+      "profile_kind": "default",
+      "tier": "킹",
+      "race": "Terran",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:male",
+        "project:fa",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "race:terran",
+        "tier:king"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "king",
+      "last_checked_at": "2026-05-14T16:14:16.693Z",
+      "last_match_at": "2026-05-10T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-05-15T13:42:11.901Z",
+      "soop_user_id": "scan1014"
     },
     {
       "team_name": "무소속",
@@ -540,7 +590,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.274Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=9",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "snfjdro369"
     },
     {
       "team_name": "무소속",
@@ -573,7 +624,42 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.277Z"
+      "last_changed_at": "2026-05-14T16:27:48.277Z",
+      "soop_user_id": "rfvtgb778"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:male:56",
+      "wr_id": 56,
+      "gender": "male",
+      "name": "권혁진",
+      "display_name": "권혁진",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=56",
+      "profile_kind": "default",
+      "tier": "잭",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:male",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "race:protoss",
+        "tier:jack"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "jack",
+      "last_checked_at": null,
+      "last_match_at": "2026-04-21T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-05-15T18:35:36.146Z",
+      "soop_user_id": "rnjsgurwls15"
     },
     {
       "team_name": "무소속",
@@ -606,7 +692,8 @@
       "last_changed_at": "2026-05-14T16:27:48.279Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=20",
       "profile_kind": "default",
-      "display_name": "김범수"
+      "display_name": "김범수",
+      "soop_user_id": "bumsoo552"
     },
     {
       "team_name": "무소속",
@@ -639,7 +726,8 @@
       "last_match_at": "2026-05-11T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.280Z"
+      "last_changed_at": "2026-05-14T16:27:48.280Z",
+      "soop_user_id": "kss33325"
     },
     {
       "team_name": "무소속",
@@ -672,40 +760,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.282Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=213",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:male:45",
-      "wr_id": 45,
-      "gender": "male",
-      "name": "염보성",
-      "display_name": "염보성",
-      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=45",
       "profile_kind": "default",
-      "tier": "잭티어",
-      "race": "Terran",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:male",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:terran",
-        "tier:jack"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "jack",
-      "last_checked_at": "2026-05-14T16:21:04.911Z",
-      "last_match_at": "2026-05-09T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.282Z"
+      "soop_user_id": "djdbstn"
     },
     {
       "team_name": "무소속",
@@ -723,11 +779,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
-        "gender:male",
         "race:protoss",
         "tier:jack"
       ],
@@ -738,40 +794,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.284Z"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:male:93",
-      "wr_id": 93,
-      "gender": "male",
-      "name": "이광용",
-      "display_name": "이광용",
-      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=93",
-      "profile_kind": "default",
-      "tier": "잭",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:male",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:protoss",
-        "tier:jack"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "jack",
-      "last_checked_at": "2026-05-14T16:21:29.139Z",
-      "last_match_at": "2026-05-08T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.284Z"
+      "last_changed_at": "2026-05-14T16:27:48.284Z",
+      "soop_user_id": "rudals5467"
     },
     {
       "team_name": "무소속",
@@ -804,7 +828,44 @@
       "last_changed_at": "2026-05-14T16:27:48.287Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=63",
       "profile_kind": "default",
-      "display_name": "진영화"
+      "display_name": "진영화",
+      "soop_user_id": "jyh8610"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:male:93",
+      "wr_id": 93,
+      "gender": "male",
+      "name": "프발",
+      "display_name": "프발",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=93",
+      "profile_kind": "default",
+      "tier": "잭",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:male",
+        "display_alias:true",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "race:protoss",
+        "tier:jack"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "jack",
+      "last_checked_at": "2026-05-14T16:21:29.139Z",
+      "last_match_at": "2026-05-08T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-05-15T15:01:05.440Z",
+      "soop_user_id": "lky6407",
+      "generated_at": "2026-05-15T15:01:05.440Z"
     },
     {
       "team_name": "무소속",
@@ -837,7 +898,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.288Z"
+      "last_changed_at": "2026-05-14T16:27:48.288Z",
+      "soop_user_id": "qndnd12"
     },
     {
       "team_name": "무소속",
@@ -855,11 +917,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
-        "gender:male",
         "race:protoss",
         "tier:joker"
       ],
@@ -870,7 +932,8 @@
       "last_match_at": "2026-04-28T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.290Z"
+      "last_changed_at": "2026-05-14T16:27:48.290Z",
+      "soop_user_id": "comcmxx"
     },
     {
       "team_name": "무소속",
@@ -904,7 +967,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.290Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=150",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "spark123"
     },
     {
       "team_name": "무소속",
@@ -938,7 +1002,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.291Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=100",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "zealotmaru"
     },
     {
       "team_name": "무소속",
@@ -956,11 +1021,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
-        "gender:male",
         "race:terran",
         "tier:joker"
       ],
@@ -971,7 +1036,8 @@
       "last_match_at": "2026-05-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.291Z"
+      "last_changed_at": "2026-05-14T16:27:48.291Z",
+      "soop_user_id": "byromantic"
     },
     {
       "team_name": "무소속",
@@ -1004,7 +1070,8 @@
       "last_match_at": "2026-05-03T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.292Z"
+      "last_changed_at": "2026-05-14T16:27:48.292Z",
+      "soop_user_id": "khm11903"
     },
     {
       "team_name": "무소속",
@@ -1038,41 +1105,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.292Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=207",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:male:199",
-      "wr_id": 199,
-      "gender": "male",
-      "name": "박단원",
-      "display_name": "탱크",
-      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=199",
       "profile_kind": "default",
-      "tier": "스페이드",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:male",
-        "display_alias:true",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:protoss",
-        "tier:spade"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "spade",
-      "last_checked_at": "2026-05-14T16:22:51.967Z",
-      "last_match_at": "2026-04-05T00:00:00.000Z",
-      "check_priority": "normal",
-      "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.292Z"
+      "soop_user_id": "erosrainbow"
     },
     {
       "team_name": "무소속",
@@ -1090,11 +1124,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
-        "gender:male",
         "race:zerg",
         "tier:spade"
       ],
@@ -1105,7 +1139,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.293Z"
+      "last_changed_at": "2026-05-14T16:27:48.293Z",
+      "soop_user_id": "cztaemin"
     },
     {
       "team_name": "무소속",
@@ -1139,7 +1174,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.293Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=208",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "momjin"
     },
     {
       "team_name": "무소속",
@@ -1172,7 +1208,8 @@
       "last_match_at": "2026-05-07T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.294Z"
+      "last_changed_at": "2026-05-14T16:27:48.294Z",
+      "soop_user_id": "nada11200"
     },
     {
       "team_name": "무소속",
@@ -1205,7 +1242,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.298Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=32",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "simcheong23"
     },
     {
       "team_name": "무소속",
@@ -1238,7 +1276,8 @@
       "check_priority": "high",
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.298Z",
-      "display_name": "클템"
+      "display_name": "클템",
+      "soop_user_id": "killgusdnk"
     },
     {
       "team_name": "무소속",
@@ -1271,7 +1310,8 @@
       "last_changed_at": "2026-05-14T16:27:48.303Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=619",
       "profile_kind": "default",
-      "display_name": "김뽀뇨"
+      "display_name": "김뽀뇨",
+      "soop_user_id": "boyun96"
     },
     {
       "team_name": "무소속",
@@ -1304,7 +1344,9 @@
       "last_match_at": "2026-05-03T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.303Z"
+      "last_changed_at": "2026-05-15T15:01:05.440Z",
+      "soop_user_id": "pookygamja",
+      "generated_at": "2026-05-15T15:01:05.440Z"
     },
     {
       "team_name": "무소속",
@@ -1337,7 +1379,9 @@
       "last_match_at": "2026-05-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.307Z"
+      "last_changed_at": "2026-05-15T15:01:05.440Z",
+      "soop_user_id": "ovoa3316",
+      "generated_at": "2026-05-15T15:01:05.440Z"
     },
     {
       "team_name": "무소속",
@@ -1370,7 +1414,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.311Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=517",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "parkle1006"
     },
     {
       "team_name": "무소속",
@@ -1403,7 +1448,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.312Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=11",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "595935"
     },
     {
       "team_name": "무소속",
@@ -1436,7 +1482,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.313Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=297",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "yoomingseo"
     },
     {
       "team_name": "무소속",
@@ -1469,7 +1516,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.315Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=456",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "forweourus"
     },
     {
       "team_name": "무소속",
@@ -1502,7 +1550,8 @@
       "last_changed_at": "2026-05-14T16:27:48.317Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=294",
       "profile_kind": "default",
-      "display_name": "하리"
+      "display_name": "하리",
+      "soop_user_id": "jjyjeh5454"
     },
     {
       "team_name": "무소속",
@@ -1535,7 +1584,43 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.319Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=565",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "kwbm123081"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:female:27",
+      "wr_id": 27,
+      "gender": "female",
+      "name": "꼬니부깅",
+      "tier": "4",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "meta_tags": [
+        "domain:player",
+        "gender:female",
+        "project:fa",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "race:protoss",
+        "tier:4"
+      ],
+      "missing_in_master": false,
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "4",
+      "display_name": "꼬니부깅",
+      "last_checked_at": "2026-05-14T16:12:52.550Z",
+      "last_match_at": "2026-03-02T00:00:00.000Z",
+      "check_priority": "low",
+      "check_interval_days": 7,
+      "last_changed_at": "2026-05-15T13:58:36.118Z",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=27",
+      "profile_kind": "default",
+      "soop_user_id": "kitty1029"
     },
     {
       "team_name": "무소속",
@@ -1568,40 +1653,8 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.323Z"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:730",
-      "wr_id": 730,
-      "gender": "female",
-      "name": "임밍지",
-      "display_name": "임밍지",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=730",
-      "profile_kind": "default",
-      "tier": "4",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:protoss",
-        "tier:4"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "4",
-      "last_checked_at": "2026-05-14T16:24:48.623Z",
-      "last_match_at": "2026-05-01T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.326Z"
+      "last_changed_at": "2026-05-14T16:27:48.323Z",
+      "soop_user_id": "djathekd"
     },
     {
       "team_name": "무소속",
@@ -1634,7 +1687,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.327Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=618",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "lily0104"
     },
     {
       "team_name": "무소속",
@@ -1652,11 +1706,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
-        "gender:female",
         "race:terran",
         "tier:4"
       ],
@@ -1667,7 +1721,8 @@
       "last_match_at": "2026-05-03T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.329Z"
+      "last_changed_at": "2026-05-14T16:27:48.329Z",
+      "soop_user_id": "zalalz"
     },
     {
       "team_name": "무소속",
@@ -1700,40 +1755,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.329Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=50",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:653",
-      "wr_id": 653,
-      "gender": "female",
-      "name": "태영",
-      "display_name": "태영",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=653",
       "profile_kind": "default",
-      "tier": "4",
-      "race": "Terran",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:terran",
-        "tier:4"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "4",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-21T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.331Z"
+      "soop_user_id": "chzh1chzh"
     },
     {
       "team_name": "무소속",
@@ -1766,7 +1789,8 @@
       "last_match_at": "2026-05-09T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.335Z"
+      "last_changed_at": "2026-05-14T16:27:48.335Z",
+      "soop_user_id": "sdkels"
     },
     {
       "team_name": "무소속",
@@ -1799,7 +1823,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.336Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=533",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "xshinx"
     },
     {
       "team_name": "무소속",
@@ -1832,7 +1857,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.336Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=509",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "kangjikk"
     },
     {
       "team_name": "무소속",
@@ -1865,7 +1891,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.338Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=605",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "aram1213"
     },
     {
       "team_name": "무소속",
@@ -1898,7 +1925,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.340Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=662",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dptmfl1258"
     },
     {
       "team_name": "무소속",
@@ -1932,7 +1960,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.341Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=846",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "della2440"
     },
     {
       "team_name": "무소속",
@@ -1965,41 +1994,9 @@
       "last_match_at": "2026-04-23T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.343Z"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:776",
-      "wr_id": 776,
-      "gender": "female",
-      "name": "밍도릿",
-      "tier": "6",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "project:fa",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:zerg",
-        "tier:6"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "6",
-      "display_name": "밍도릿",
-      "last_checked_at": null,
-      "last_match_at": "2026-03-09T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.346Z",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=776",
-      "profile_kind": "default"
+      "last_changed_at": "2026-05-15T15:01:05.440Z",
+      "soop_user_id": "khsoo0105",
+      "generated_at": "2026-05-15T15:01:05.440Z"
     },
     {
       "team_name": "무소속",
@@ -2032,7 +2029,8 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.348Z"
+      "last_changed_at": "2026-05-14T16:27:48.348Z",
+      "soop_user_id": "yunheehoho"
     },
     {
       "team_name": "무소속",
@@ -2065,7 +2063,8 @@
       "last_match_at": "2026-05-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.349Z"
+      "last_changed_at": "2026-05-14T16:27:48.349Z",
+      "soop_user_id": "dlrnf"
     },
     {
       "team_name": "무소속",
@@ -2099,40 +2098,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.350Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=627",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:820",
-      "wr_id": 820,
-      "gender": "female",
-      "name": "으냉이",
-      "display_name": "으냉이",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=820",
       "profile_kind": "default",
-      "tier": "6",
-      "race": "Terran",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:terran",
-        "tier:6"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "6",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-21T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.351Z"
+      "soop_user_id": "ynblbee"
     },
     {
       "team_name": "무소속",
@@ -2165,7 +2132,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.354Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=416",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "busky3"
     },
     {
       "team_name": "무소속",
@@ -2183,11 +2151,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
-        "gender:female",
         "race:terran",
         "tier:7"
       ],
@@ -2198,7 +2166,8 @@
       "last_match_at": "2026-05-07T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.357Z"
+      "last_changed_at": "2026-05-14T16:27:48.357Z",
+      "soop_user_id": "jiinii000"
     },
     {
       "team_name": "무소속",
@@ -2231,7 +2200,8 @@
       "last_changed_at": "2026-05-14T16:27:48.359Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=930",
       "profile_kind": "default",
-      "display_name": "엄키키"
+      "display_name": "엄키키",
+      "soop_user_id": "umji1218"
     },
     {
       "team_name": "무소속",
@@ -2264,7 +2234,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.361Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=958",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "yyssaa33"
     },
     {
       "team_name": "무소속",
@@ -2297,7 +2268,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.362Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=386",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "kittysh1"
     },
     {
       "team_name": "무소속",
@@ -2330,139 +2302,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.362Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=693",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:891",
-      "wr_id": 891,
-      "gender": "female",
-      "name": "한쪼니",
-      "display_name": "한쪼니",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=891",
       "profile_kind": "default",
-      "tier": "7",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:protoss",
-        "tier:7"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "7",
-      "last_checked_at": "2026-05-14T16:26:58.516Z",
-      "last_match_at": "2026-05-01T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.365Z"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:354",
-      "wr_id": 354,
-      "gender": "female",
-      "name": "햄찌야",
-      "tier": "7",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:zerg",
-        "tier:7"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "7",
-      "display_name": "햄찌야",
-      "last_checked_at": "2026-05-14T16:27:05.267Z",
-      "last_match_at": "2026-05-14T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.366Z",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=354",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:965",
-      "wr_id": 965,
-      "gender": "female",
-      "name": "뀨알",
-      "tier": "8",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:protoss",
-        "tier:8"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "8",
-      "display_name": "뀨알",
-      "last_checked_at": null,
-      "last_match_at": "2026-03-19T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.369Z",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=965",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:951",
-      "wr_id": 951,
-      "gender": "female",
-      "name": "단이",
-      "tier": "8",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:zerg",
-        "tier:8"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "8",
-      "display_name": "단이",
-      "last_checked_at": null,
-      "last_match_at": "2026-03-05T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.371Z",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=951",
-      "profile_kind": "default"
+      "soop_user_id": "do33ob"
     },
     {
       "team_name": "무소속",
@@ -2495,40 +2336,8 @@
       "last_changed_at": "2026-05-14T16:27:48.371Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1015",
       "profile_kind": "default",
-      "display_name": "땃쥐"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:998",
-      "wr_id": 998,
-      "gender": "female",
-      "name": "박쭈이",
-      "tier": "8",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:zerg",
-        "tier:8"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "8",
-      "last_checked_at": null,
-      "last_match_at": "2026-03-26T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.373Z",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=998",
-      "profile_kind": "default",
-      "display_name": "박쭈이"
+      "display_name": "땃쥐",
+      "soop_user_id": "dlwjddls30"
     },
     {
       "team_name": "무소속",
@@ -2561,40 +2370,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.375Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=912",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:1003",
-      "wr_id": 1003,
-      "gender": "female",
-      "name": "우질",
-      "tier": "8",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:protoss",
-        "tier:8"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "8",
-      "display_name": "우질",
-      "last_checked_at": null,
-      "last_match_at": "2026-03-16T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.377Z",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1003",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "khl1589"
     },
     {
       "team_name": "무소속",
@@ -2627,7 +2404,8 @@
       "last_match_at": "2026-04-16T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.378Z"
+      "last_changed_at": "2026-05-14T16:27:48.378Z",
+      "soop_user_id": "wegogin7410"
     },
     {
       "team_name": "무소속",
@@ -2660,7 +2438,8 @@
       "last_match_at": "2026-04-27T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.379Z"
+      "last_changed_at": "2026-05-14T16:27:48.379Z",
+      "soop_user_id": "nkelly6085"
     },
     {
       "team_name": "무소속",
@@ -2693,40 +2472,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.380Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=974",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:955",
-      "wr_id": 955,
-      "gender": "female",
-      "name": "찡찡시아",
-      "tier": "8",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:protoss",
-        "tier:8"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "8",
-      "display_name": "찡찡시아",
-      "last_checked_at": null,
-      "last_match_at": "2026-03-20T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.382Z",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=955",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "jiwooris2"
     },
     {
       "team_name": "무소속",
@@ -2759,7 +2506,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.383Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=939",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "hikikojjang"
     },
     {
       "team_name": "무소속",
@@ -2777,11 +2525,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
-        "gender:female",
         "race:protoss",
         "tier:8"
       ],
@@ -2792,7 +2540,8 @@
       "last_match_at": "2026-05-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.385Z"
+      "last_changed_at": "2026-05-14T16:27:48.385Z",
+      "soop_user_id": "heyyo0123"
     },
     {
       "team_name": "무소속",
@@ -2825,7 +2574,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.386Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1020",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "finepearls"
     },
     {
       "team_name": "무소속",
@@ -2843,11 +2593,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
-        "gender:female",
         "race:protoss",
         "tier:9"
       ],
@@ -2858,7 +2608,8 @@
       "last_match_at": "2026-04-25T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.386Z"
+      "last_changed_at": "2026-05-14T16:27:48.386Z",
+      "soop_user_id": "ktulsun00"
     },
     {
       "team_name": "무소속",
@@ -2876,55 +2627,17 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
+        "gender:male",
         "race:protoss",
         "tier:unknown"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-07T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.387Z"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:male:56",
-      "wr_id": 56,
-      "gender": "male",
-      "name": "권혁진",
-      "display_name": "권혁진",
-      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=56",
-      "profile_kind": "default",
-      "tier": "미정",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:male",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:protoss",
-        "tier:unknown"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-21T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.387Z"
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
@@ -2942,22 +2655,17 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
+        "gender:male",
         "race:terran",
         "tier:unknown"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": null,
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.388Z"
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
@@ -2975,33 +2683,28 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "gender:female",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
+        "gender:female",
         "race:terran",
         "tier:unknown"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-05T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.389Z"
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
       "team_code": "fa",
-      "entity_id": "eloboard:male:mix:831",
-      "wr_id": 831,
+      "entity_id": "eloboard:male:199",
+      "wr_id": 199,
       "gender": "male",
-      "name": "니칸",
-      "display_name": "니칸",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=831",
-      "profile_kind": "mix",
+      "name": "박단원",
+      "display_name": "탱크",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=199",
+      "profile_kind": "default",
       "tier": "미정",
       "race": "Protoss",
       "source": "roster_sync",
@@ -3014,82 +2717,12 @@
         "team_en:fa",
         "gender:male",
         "race:protoss",
-        "tier:unknown"
+        "tier:unknown",
+        "display_alias:true"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-27T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.389Z"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:901",
-      "wr_id": 901,
-      "gender": "female",
-      "name": "또해영",
-      "display_name": "또해영",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=901",
-      "profile_kind": "default",
-      "tier": "미정",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:female",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:zerg",
-        "tier:unknown"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-03-16T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.391Z"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:male:mix:377",
-      "wr_id": 377,
-      "gender": "male",
-      "name": "모토케이",
-      "display_name": "모토케이",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=377",
-      "profile_kind": "mix",
-      "tier": "미정",
-      "race": "Terran",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:male",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "race:terran",
-        "tier:unknown"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": "2026-05-14T16:27:43.895Z",
-      "last_match_at": "2026-04-22T00:00:00.000Z",
-      "check_priority": "normal",
-      "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.391Z"
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
@@ -3107,22 +2740,17 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
+        "gender:male",
         "race:terran",
         "tier:unknown"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-10T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.392Z"
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
@@ -3140,22 +2768,17 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
+        "gender:male",
         "race:protoss",
         "tier:unknown"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": null,
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.392Z"
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
@@ -3173,55 +2796,17 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
         "gender:male",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
         "race:zerg",
         "tier:unknown"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-07T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.393Z"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:1033",
-      "wr_id": 1033,
-      "gender": "female",
-      "name": "성예린",
-      "display_name": "성예린",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1033",
-      "profile_kind": "default",
-      "tier": "미정",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "gender:female",
-        "race:zerg",
-        "tier:unknown"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-28T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.393Z"
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
@@ -3239,22 +2824,17 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
+        "gender:male",
         "race:protoss",
         "tier:unknown"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-07T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.394Z"
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
@@ -3282,12 +2862,7 @@
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-03-02T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.395Z"
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
@@ -3305,22 +2880,45 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
+        "gender:male",
         "race:zerg",
         "tier:unknown"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-17T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.395Z"
+      "tier_key": "unknown"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:female:955",
+      "wr_id": 955,
+      "gender": "female",
+      "name": "찡찡시아",
+      "display_name": "찡찡시아",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=955",
+      "profile_kind": "default",
+      "tier": "미정",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "gender:female",
+        "race:protoss",
+        "tier:unknown"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
@@ -3338,22 +2936,17 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
+        "gender:male",
         "race:terran",
         "tier:unknown"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-12T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.396Z"
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
@@ -3371,55 +2964,115 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "gender:male",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
+        "gender:male",
         "race:terran",
         "tier:unknown"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
-      "last_checked_at": null,
-      "last_match_at": "2026-04-07T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.397Z"
+      "tier_key": "unknown"
     },
     {
       "team_name": "무소속",
       "team_code": "fa",
-      "entity_id": "eloboard:female:856",
-      "wr_id": 856,
+      "entity_id": "eloboard:female:354",
+      "wr_id": 354,
       "gender": "female",
-      "name": "한소끔",
-      "display_name": "한소끔",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=856",
+      "name": "햄찌야",
+      "display_name": "햄찌야",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=354",
       "profile_kind": "default",
       "tier": "미정",
-      "race": "Terran",
+      "race": "Zerg",
       "source": "roster_sync",
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "gender:female",
         "team:fa",
         "team_code:fa",
         "team_ko:무소속",
         "team_en:fa",
-        "race:terran",
+        "gender:female",
+        "race:zerg",
         "tier:unknown"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
+      "tier_key": "unknown"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:male:48",
+      "wr_id": 48,
+      "gender": "male",
+      "name": "오메킴",
+      "display_name": "오메킴",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=48",
+      "profile_kind": "default",
+      "tier": "잭",
+      "race": "Protoss",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:male",
+        "project:fa",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "race:protoss",
+        "tier:jack"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "jack",
       "last_checked_at": null,
-      "last_match_at": "2026-04-11T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.397Z"
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-05-15T18:35:36.146Z",
+      "soop_user_id": "rlatldgus"
+    },
+    {
+      "team_name": "무소속",
+      "team_code": "fa",
+      "entity_id": "eloboard:female:898",
+      "wr_id": 898,
+      "gender": "female",
+      "name": "하루뮭",
+      "display_name": "하루뮭",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=898",
+      "profile_kind": "default",
+      "tier": "7",
+      "race": "Protoss",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:female",
+        "project:fa",
+        "team:fa",
+        "team_code:fa",
+        "team_ko:무소속",
+        "team_en:fa",
+        "race:protoss",
+        "tier:7"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "7",
+      "last_checked_at": null,
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-05-15T18:35:36.146Z",
+      "soop_user_id": "harumyong"
     }
   ],
   "fetch_univ_name": "연합팀"

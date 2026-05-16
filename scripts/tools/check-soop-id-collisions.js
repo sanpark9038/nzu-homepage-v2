@@ -1,16 +1,12 @@
 const fs = require("fs");
 const path = require("path");
+const { loadProjectPlayerMetadata, trim } = require("./lib/project-player-metadata");
 
 const ROOT = path.join(__dirname, "..", "..");
-const METADATA_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const EXCEPTIONS_PATH = path.join(ROOT, "data", "metadata", "identity_alias_exceptions.v1.json");
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
-}
-
-function trim(value) {
-  return String(value || "").trim();
 }
 
 function readExceptions() {
@@ -30,10 +26,7 @@ function readExceptions() {
 }
 
 function main() {
-  const rows = readJson(METADATA_PATH);
-  if (!Array.isArray(rows)) {
-    throw new Error("scripts/player_metadata.json must be an array");
-  }
+  const rows = loadProjectPlayerMetadata();
 
   const bySoopId = new Map();
   const exceptionLookup = readExceptions();
@@ -45,13 +38,15 @@ function main() {
       wr_id: Number(row && row.wr_id),
       gender: trim(row && row.gender) || null,
       name: trim(row && row.name) || null,
+      entity_id: trim(row && row.entity_id) || null,
+      team_code: trim(row && row.team_code) || null,
     });
     bySoopId.set(soopId, bucket);
   }
 
   const conflicts = [];
   for (const [soopId, bucket] of bySoopId.entries()) {
-    const identityKeys = [...new Set(bucket.map((row) => `${row.wr_id}:${row.gender}:${row.name}`))];
+    const identityKeys = [...new Set(bucket.map((row) => row.entity_id || `${row.wr_id}:${row.gender}:${row.name}`))];
     if (identityKeys.length <= 1) continue;
     const wrIdKey = [...new Set(bucket.map((row) => row.wr_id).filter(Number.isFinite))].sort((a, b) => a - b).join(",");
     if (exceptionLookup.get(soopId) === wrIdKey) continue;
@@ -71,7 +66,11 @@ function main() {
   for (const conflict of conflicts) {
     console.error(`- ${conflict.soop_id}`);
     for (const row of conflict.rows) {
-      console.error(`  wr_id=${row.wr_id} gender=${row.gender || "-"} name=${row.name || "-"}`);
+      console.error(
+        `  entity_id=${row.entity_id || "-"} wr_id=${row.wr_id} gender=${row.gender || "-"} team=${
+          row.team_code || "-"
+        } name=${row.name || "-"}`
+      );
     }
   }
   process.exitCode = 1;

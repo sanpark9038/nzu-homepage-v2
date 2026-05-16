@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-03-20T15:04:26.911Z",
+  "updated_at": "2026-05-15T14:05:32.810Z",
   "description": "Team-specific role priority overrides for roster ordering.",
   "teams": {
     "wfu": [
@@ -98,7 +98,7 @@
         "role_priority": 2
       }
     ],
-    "tsucalm": [
+    "calm": [
       {
         "name": "김윤환",
         "role_title": "이사장",

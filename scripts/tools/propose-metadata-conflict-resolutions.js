@@ -1,8 +1,8 @@
 const fs = require("fs");
 const path = require("path");
+const { loadProjectPlayerMetadata, PROJECTS_DIR } = require("./lib/project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const SOURCE_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const CONFLICT_JSON_PATH = path.join(ROOT, "tmp", "metadata_gender_conflicts.json");
 const OUT_JSON = path.join(ROOT, "tmp", "metadata_conflict_resolution_proposal.json");
 const OUT_CSV = path.join(ROOT, "tmp", "metadata_conflict_resolution_proposal.csv");
@@ -40,10 +40,9 @@ function keyOf(wrId, gender) {
 }
 
 function main() {
-  if (!fs.existsSync(SOURCE_PATH)) throw new Error(`Missing file: ${SOURCE_PATH}`);
   if (!fs.existsSync(CONFLICT_JSON_PATH)) throw new Error(`Missing file: ${CONFLICT_JSON_PATH}`);
 
-  const source = readJson(SOURCE_PATH);
+  const source = loadProjectPlayerMetadata();
   const conflictData = readJson(CONFLICT_JSON_PATH);
   const conflicts = Array.isArray(conflictData.conflicts) ? conflictData.conflicts : [];
 
@@ -103,7 +102,7 @@ function main() {
 
   const jsonOut = {
     generated_at: new Date().toISOString(),
-    source_path: SOURCE_PATH,
+    source_path: PROJECTS_DIR,
     conflict_source_path: CONFLICT_JSON_PATH,
     proposal_count: proposals.length,
     proposals,

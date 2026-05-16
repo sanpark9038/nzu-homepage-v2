@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.024Z",
+  "generated_at": "2026-05-15T18:10:13.392Z",
   "project": "bgm",
   "team_name": "BGM",
   "team_code": "bgm",
@@ -41,7 +41,8 @@
       "last_match_at": "2026-04-07T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:47.978Z"
+      "last_changed_at": "2026-05-14T16:27:47.978Z",
+      "soop_user_id": "daehan7224"
     },
     {
       "team_name": "BGM",
@@ -77,7 +78,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:47.979Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=124",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "parkjaehyeon"
     },
     {
       "team_name": "BGM",
@@ -113,7 +115,44 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:47.980Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=86",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "jou1025"
+    },
+    {
+      "team_name": "BGM",
+      "team_code": "bgm",
+      "entity_id": "eloboard:male:80",
+      "wr_id": 80,
+      "gender": "male",
+      "name": "난수",
+      "display_name": "난수",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=80",
+      "profile_kind": "default",
+      "tier": "스페이드",
+      "race": "Protoss",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:male",
+        "display_alias:true",
+        "team:bgm",
+        "team_code:bgm",
+        "team_ko:BGM",
+        "team_en:bgm",
+        "race:protoss",
+        "tier:spade"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "spade",
+      "last_checked_at": "2026-05-14T15:43:10.829Z",
+      "last_match_at": "2026-05-01T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-05-15T14:54:12.174Z",
+      "soop_user_id": "wkddudrms15",
+      "generated_at": "2026-05-15T14:54:12.174Z"
     },
     {
       "team_name": "BGM",
@@ -148,41 +187,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:47.981Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=77",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "BGM",
-      "team_code": "bgm",
-      "entity_id": "eloboard:male:80",
-      "wr_id": 80,
-      "gender": "male",
-      "name": "장영근",
-      "display_name": "난수",
-      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=80",
       "profile_kind": "default",
-      "tier": "스페이드",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "gender:male",
-        "team:bgm",
-        "team_code:bgm",
-        "team_ko:BGM",
-        "team_en:bgm",
-        "race:protoss",
-        "tier:spade",
-        "display_alias:true"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "spade",
-      "last_checked_at": "2026-05-14T15:43:10.829Z",
-      "last_match_at": "2026-05-01T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:47.983Z"
+      "soop_user_id": "tjdwnls123"
     },
     {
       "team_name": "BGM",
@@ -215,7 +221,8 @@
       "last_match_at": "2026-04-22T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:47.983Z"
+      "last_changed_at": "2026-05-14T16:27:47.983Z",
+      "soop_user_id": "khc2566"
     },
     {
       "team_name": "BGM",
@@ -250,7 +257,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:47.985Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=175",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dudwn4974"
     },
     {
       "team_name": "BGM",
@@ -285,7 +293,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:47.986Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=76",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "s1on0106"
     },
     {
       "team_name": "BGM",
@@ -318,7 +327,8 @@
       "last_match_at": "2026-03-29T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:47.989Z"
+      "last_changed_at": "2026-05-14T16:27:47.989Z",
+      "soop_user_id": "dmsthfdldia"
     },
     {
       "team_name": "BGM",
@@ -351,7 +361,8 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:47.997Z"
+      "last_changed_at": "2026-05-14T16:27:47.997Z",
+      "soop_user_id": "ldk8481"
     },
     {
       "team_name": "BGM",
@@ -386,7 +397,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.004Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=430",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "hy4985"
     },
     {
       "team_name": "BGM",
@@ -419,9 +431,11 @@
       "last_match_at": "2026-05-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.006Z",
+      "last_changed_at": "2026-05-15T14:54:12.174Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=761",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "youaregood",
+      "generated_at": "2026-05-15T14:54:12.174Z"
     },
     {
       "team_name": "BGM",
@@ -456,7 +470,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.008Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=759",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "jjjjeong"
     },
     {
       "team_name": "BGM",
@@ -491,7 +506,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.011Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=822",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "chanmeyo"
     },
     {
       "team_name": "BGM",
@@ -526,7 +542,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.014Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=978",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "eun0c0"
     },
     {
       "team_name": "BGM",
@@ -561,7 +578,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.014Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=477",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "s2appeal"
     },
     {
       "team_name": "BGM",
@@ -594,7 +612,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.018Z"
+      "last_changed_at": "2026-05-14T16:27:48.018Z",
+      "soop_user_id": "ghlidhjgioew"
     },
     {
       "team_name": "BGM",
@@ -627,7 +646,9 @@
       "last_match_at": "2026-03-24T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.019Z"
+      "last_changed_at": "2026-05-15T14:54:12.174Z",
+      "soop_user_id": "hckkhc21",
+      "generated_at": "2026-05-15T14:54:12.174Z"
     },
     {
       "team_name": "BGM",
@@ -662,7 +683,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.021Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=937",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "cheto1206"
     },
     {
       "team_name": "BGM",
@@ -695,7 +717,8 @@
       "last_match_at": "2026-05-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.021Z"
+      "last_changed_at": "2026-05-14T16:27:48.021Z",
+      "soop_user_id": "jhw1729"
     },
     {
       "team_name": "BGM",
@@ -713,11 +736,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:bgm",
         "team_code:bgm",
         "team_ko:BGM",
         "team_en:bgm",
-        "gender:female",
         "race:zerg",
         "tier:8"
       ],
@@ -728,7 +751,8 @@
       "last_match_at": "2026-05-06T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.023Z"
+      "last_changed_at": "2026-05-14T16:27:48.023Z",
+      "soop_user_id": "xzqwe1"
     },
     {
       "team_name": "BGM",
@@ -761,7 +785,8 @@
       "last_match_at": null,
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.023Z"
+      "last_changed_at": "2026-05-14T16:27:48.023Z",
+      "soop_user_id": "yeonvelyo3o"
     },
     {
       "team_name": "BGM",
@@ -779,11 +804,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:bgm",
         "team_code:bgm",
         "team_ko:BGM",
         "team_en:bgm",
-        "gender:female",
         "race:zerg",
         "tier:9"
       ],
@@ -794,7 +819,9 @@
       "last_match_at": "2026-05-11T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.024Z"
+      "last_changed_at": "2026-05-15T14:54:12.174Z",
+      "soop_user_id": "nbomichae7",
+      "generated_at": "2026-05-15T14:54:12.174Z"
     }
   ],
   "source_file": "tmp/bgm_roster_record_metadata.json",

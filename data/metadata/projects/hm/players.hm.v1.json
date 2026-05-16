@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.438Z",
+  "generated_at": "2026-05-15T18:10:13.785Z",
   "project": "hm",
   "team_name": "HM",
   "team_code": "hm",
@@ -43,7 +43,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.402Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=11",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "ghtjs3833"
     },
     {
       "team_name": "HM",
@@ -78,7 +79,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.408Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=178",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "bts150"
     },
     {
       "team_name": "HM",
@@ -111,7 +113,8 @@
       "last_match_at": "2025-10-16T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-05-14T16:27:48.408Z"
+      "last_changed_at": "2026-05-14T16:27:48.408Z",
+      "soop_user_id": "jhyhlli123"
     },
     {
       "team_name": "HM",
@@ -144,7 +147,8 @@
       "last_match_at": "2025-10-03T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-05-14T16:27:48.409Z"
+      "last_changed_at": "2026-05-14T16:27:48.409Z",
+      "soop_user_id": "heksd"
     },
     {
       "team_name": "HM",
@@ -177,7 +181,8 @@
       "last_match_at": "2026-05-09T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.410Z"
+      "last_changed_at": "2026-05-14T16:27:48.410Z",
+      "soop_user_id": "dohyun83"
     },
     {
       "team_name": "HM",
@@ -212,7 +217,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.411Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=71",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "sr629"
     },
     {
       "team_name": "HM",
@@ -245,7 +251,8 @@
       "last_match_at": "2026-04-20T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.413Z"
+      "last_changed_at": "2026-05-14T16:27:48.413Z",
+      "soop_user_id": "ekfrqkf"
     },
     {
       "team_name": "HM",
@@ -280,7 +287,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.418Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=715",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "lkim12"
     },
     {
       "team_name": "HM",
@@ -313,7 +321,8 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.423Z"
+      "last_changed_at": "2026-05-14T16:27:48.423Z",
+      "soop_user_id": "snowssa"
     },
     {
       "team_name": "HM",
@@ -346,7 +355,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.425Z"
+      "last_changed_at": "2026-05-14T16:27:48.425Z",
+      "soop_user_id": "bangsong12"
     },
     {
       "team_name": "HM",
@@ -379,9 +389,10 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.427Z",
+      "last_changed_at": "2026-05-15T14:34:51.057Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=703",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "asdsa1113"
     },
     {
       "team_name": "HM",
@@ -414,7 +425,8 @@
       "last_match_at": "2026-05-09T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.428Z"
+      "last_changed_at": "2026-05-14T16:27:48.428Z",
+      "soop_user_id": "goyo030"
     },
     {
       "team_name": "HM",
@@ -449,7 +461,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.431Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=961",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "jsg0301"
     },
     {
       "team_name": "HM",
@@ -467,11 +480,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:hm",
         "team_code:hm",
         "team_ko:HM",
         "team_en:hm",
-        "gender:female",
         "race:terran",
         "tier:8"
       ],
@@ -482,7 +495,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.432Z"
+      "last_changed_at": "2026-05-14T16:27:48.432Z",
+      "soop_user_id": "onzzang"
     },
     {
       "team_name": "HM",
@@ -517,7 +531,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.433Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1012",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "jjooree"
     },
     {
       "team_name": "HM",
@@ -550,7 +565,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.435Z"
+      "last_changed_at": "2026-05-14T16:27:48.435Z",
+      "soop_user_id": "yeom1020"
     },
     {
       "team_name": "HM",
@@ -585,7 +601,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.436Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1014",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "a4s5kzg7wmk"
     },
     {
       "team_name": "HM",
@@ -603,11 +620,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:hm",
         "team_code:hm",
         "team_ko:HM",
         "team_en:hm",
-        "gender:female",
         "race:protoss",
         "tier:9"
       ],
@@ -618,7 +635,8 @@
       "last_match_at": null,
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.437Z"
+      "last_changed_at": "2026-05-15T14:34:51.057Z",
+      "soop_user_id": "ara9687"
     },
     {
       "team_name": "HM",
@@ -630,28 +648,29 @@
       "display_name": "혁민",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=1184",
       "profile_kind": "mix",
-      "tier": "-",
+      "tier": "9",
       "race": "Zerg",
       "source": "roster_sync",
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:male",
         "team:hm",
         "team_code:hm",
         "team_ko:HM",
         "team_en:hm",
-        "gender:male",
         "race:zerg",
-        "tier:unknown"
+        "tier:9"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "unknown",
+      "tier_key": "9",
       "last_checked_at": "2026-05-14T15:53:53.393Z",
       "last_match_at": "2026-05-11T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.437Z"
+      "last_changed_at": "2026-05-15T17:50:27.873Z",
+      "soop_user_id": "suhi370erw"
     },
     {
       "team_name": "HM",
@@ -686,7 +705,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.438Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=131",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "nalra82"
     }
   ],
   "source_file": "tmp/hm_roster_record_metadata.json",

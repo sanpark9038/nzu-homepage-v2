@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.126Z",
+  "generated_at": "2026-05-15T18:10:13.521Z",
   "project": "c9",
   "team_name": "씨나인",
   "team_code": "c9",
@@ -45,7 +45,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.074Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=37",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "rlaxordyd"
     },
     {
       "team_name": "씨나인",
@@ -81,7 +82,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.077Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=38",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "byflash"
     },
     {
       "team_name": "씨나인",
@@ -117,7 +119,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.080Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=4",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "jk890202"
     },
     {
       "team_name": "씨나인",
@@ -153,7 +156,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.082Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=70",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dbsdydx"
     },
     {
       "team_name": "씨나인",
@@ -187,9 +191,10 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.084Z",
+      "last_changed_at": "2026-05-15T14:28:38.735Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=191",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "jmc06170"
     },
     {
       "team_name": "씨나인",
@@ -223,9 +228,10 @@
       "last_match_at": "2026-04-23T00:00:00.000Z",
       "check_priority": "normal",
       "check_interval_days": 3,
-      "last_changed_at": "2026-05-14T16:27:48.087Z",
+      "last_changed_at": "2026-05-15T14:28:38.735Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=398",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "yjk011599"
     },
     {
       "team_name": "씨나인",
@@ -258,7 +264,8 @@
       "last_match_at": "2025-08-01T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-05-14T16:27:48.087Z"
+      "last_changed_at": "2026-05-14T16:27:48.087Z",
+      "soop_user_id": "vlfvlf789"
     },
     {
       "team_name": "씨나인",
@@ -294,7 +301,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.089Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=415",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "qpqpro"
     },
     {
       "team_name": "씨나인",
@@ -330,7 +338,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.092Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=347",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "tjgpdus97"
     },
     {
       "team_name": "씨나인",
@@ -366,7 +375,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.095Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=564",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "yochba0402"
     },
     {
       "team_name": "씨나인",
@@ -402,7 +412,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.098Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=835",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "mew030709"
     },
     {
       "team_name": "씨나인",
@@ -438,7 +449,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.099Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=400",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "rhf104"
     },
     {
       "team_name": "씨나인",
@@ -474,7 +486,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.104Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=825",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "moguleave"
     },
     {
       "team_name": "씨나인",
@@ -510,7 +523,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.108Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=899",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "imducko3o"
     },
     {
       "team_name": "씨나인",
@@ -544,9 +558,10 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.114Z",
+      "last_changed_at": "2026-05-15T14:28:38.735Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=880",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "queen030"
     },
     {
       "team_name": "씨나인",
@@ -579,7 +594,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.118Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=777",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "ouo20411"
     },
     {
       "team_name": "씨나인",
@@ -615,7 +631,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.122Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=973",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dlwldyal1004"
     },
     {
       "team_name": "씨나인",
@@ -652,7 +669,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.123Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=23",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "y1026"
     },
     {
       "team_name": "씨나인",
@@ -688,7 +706,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.126Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=19",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "rlekfu6"
     }
   ],
   "source_file": "tmp/씨나인_roster_record_metadata.json",

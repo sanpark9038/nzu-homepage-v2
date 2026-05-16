@@ -6,16 +6,12 @@ const {
   defaultProfileUrlForPlayer,
   getEloboardProfileKind,
 } = require("./lib/eloboard-special-cases");
+const { loadProjectPlayerMetadata, PROJECTS_DIR } = require("./lib/project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const SOURCE_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const OUT_DIR = path.join(ROOT, "data", "metadata");
 const MASTER_OUT_PATH = path.join(OUT_DIR, "players.master.v1.json");
 const REPORT_OUT_PATH = path.join(ROOT, "tmp", "metadata_db_build_report.json");
-
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
-}
 
 function writeJson(filePath, obj) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -36,15 +32,8 @@ function soopChannelUrl(soopUserId) {
 }
 
 function main() {
-  if (!fs.existsSync(SOURCE_PATH)) {
-    throw new Error(`Missing source: ${SOURCE_PATH}`);
-  }
-
   const now = new Date().toISOString();
-  const rows = readJson(SOURCE_PATH);
-  if (!Array.isArray(rows)) {
-    throw new Error("scripts/player_metadata.json must be an array");
-  }
+  const rows = loadProjectPlayerMetadata();
 
   const invalidRows = [];
   const byComposite = new Map();
@@ -80,7 +69,7 @@ function main() {
   const masterPlayers = [...byComposite.values()]
     .map((row) => {
       const key = buildEloboardCompositeKey(row);
-      const profile = profileUrl(row.gender, row.wr_id, row.name);
+      const profile = String(row.profile_url || "").trim() || profileUrl(row.gender, row.wr_id, row.name);
       const aliases = [...(nameSetByComposite.get(key) || new Set())].filter((name) => name !== row.name);
       return {
         entity_id: buildEloboardEntityId({ ...row, profile_url: profile }),
@@ -91,7 +80,7 @@ function main() {
         soop_user_id: String(row.soop_user_id || "").trim() || undefined,
         profile_kind: getEloboardProfileKind(profile),
         names: {
-          display: row.name,
+          display: row.display_name || row.name,
           aliases,
         },
         profiles: {
@@ -99,8 +88,8 @@ function main() {
           ...(soopChannelUrl(row.soop_user_id) ? { soop: soopChannelUrl(row.soop_user_id) } : {}),
         },
         source: {
-          kind: "manual_or_scraped_mapping",
-          origin_file: "scripts/player_metadata.json",
+          kind: "project_player_metadata",
+          origin_file: row.source_path || PROJECTS_DIR,
         },
         meta_tags: [
           "domain:player",
@@ -138,6 +127,7 @@ function main() {
   const report = {
     generated_at: now,
     source_rows: rows.length,
+    source_path: PROJECTS_DIR,
     valid_composite_rows: byComposite.size,
     invalid_rows: invalidRows.length,
     duplicate_composite_rows: duplicateRows.length,

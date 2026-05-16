@@ -1,14 +1,10 @@
 const fs = require("fs");
 const path = require("path");
+const { loadProjectPlayerMetadata, PROJECTS_DIR } = require("./lib/project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const SOURCE_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const OUT_JSON = path.join(ROOT, "tmp", "metadata_gender_conflicts.json");
 const OUT_CSV = path.join(ROOT, "tmp", "metadata_gender_conflicts.csv");
-
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
-}
 
 function csvEscape(v) {
   const s = String(v ?? "");
@@ -17,14 +13,7 @@ function csvEscape(v) {
 }
 
 function main() {
-  if (!fs.existsSync(SOURCE_PATH)) {
-    throw new Error(`Missing source file: ${SOURCE_PATH}`);
-  }
-
-  const rows = readJson(SOURCE_PATH);
-  if (!Array.isArray(rows)) {
-    throw new Error("scripts/player_metadata.json must be an array");
-  }
+  const rows = loadProjectPlayerMetadata();
 
   const byWrId = new Map();
   for (const row of rows) {
@@ -70,7 +59,7 @@ function main() {
 
   const jsonOut = {
     generated_at: new Date().toISOString(),
-    source_path: SOURCE_PATH,
+    source_path: PROJECTS_DIR,
     cross_gender_overlap_count: crossGenderOverlaps.length,
     conflict_count: conflicts.length,
     cross_gender_overlaps: crossGenderOverlaps,
@@ -97,7 +86,7 @@ function main() {
   }
   fs.writeFileSync(OUT_CSV, "\uFEFF" + csvLines.join("\n"), "utf8");
 
-  console.log(`source: ${SOURCE_PATH}`);
+  console.log(`source: ${PROJECTS_DIR}`);
   console.log(`conflicts: ${conflicts.length}`);
   console.log(`json: ${OUT_JSON}`);
   console.log(`csv: ${OUT_CSV}`);

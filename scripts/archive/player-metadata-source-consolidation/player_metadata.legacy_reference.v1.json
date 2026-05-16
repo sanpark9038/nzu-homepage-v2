@@ -535,11 +535,6 @@
   {
     "wr_id": 100,
     "name": "전흥식",
-    "gender": "male"
-  },
-  {
-    "wr_id": 100,
-    "name": "전흥식",
     "gender": "male",
     "soop_user_id": "zealotmaru"
   },
@@ -842,12 +837,6 @@
     "name": "유복실",
     "soop_user_id": "yoomingseo",
     "gender": "female"
-  },
-  {
-    "wr_id": 301,
-    "name": "킁식",
-    "gender": "male",
-    "soop_user_id": "zealotmaru"
   },
   {
     "wr_id": 304,

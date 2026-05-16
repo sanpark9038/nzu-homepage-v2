@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-04-28T00:00:00.000Z",
+  "updated_at": "2026-05-15T15:01:05.440Z",
   "description": "Homepage display aliases. Match data collection should keep canonical player name.",
   "global": [
     {
@@ -175,6 +175,12 @@
       {
         "name": "???",
         "display_name": "???"
+      }
+    ],
+    "fa": [
+      {
+        "name": "이광용",
+        "display_name": "프발"
       }
     ]
   }

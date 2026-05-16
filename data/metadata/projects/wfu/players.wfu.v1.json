@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.748Z",
+  "generated_at": "2026-05-15T18:10:14.145Z",
   "project": "wfu",
   "team_name": "와플대",
   "team_code": "wfu",
   "team_name_en": "WFU",
-  "roster_count": 13,
+  "roster_count": 12,
   "roster": [
     {
       "team_name": "와플대",
@@ -23,14 +23,14 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:male",
+        "display_alias:true",
         "team:wfu",
         "team_code:wfu",
         "team_ko:와플대",
         "team_en:wfu",
-        "gender:male",
         "race:protoss",
-        "tier:jack",
-        "display_alias:true"
+        "tier:jack"
       ],
       "role_title": "",
       "role_priority": null,
@@ -39,7 +39,8 @@
       "last_match_at": "2026-05-11T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.723Z"
+      "last_changed_at": "2026-05-14T16:27:48.723Z",
+      "soop_user_id": "khy12088wsss"
     },
     {
       "team_name": "와플대",
@@ -74,7 +75,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.724Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=91",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "daegalheo"
     },
     {
       "team_name": "와플대",
@@ -108,41 +110,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.724Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=52",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "와플대",
-      "team_code": "wfu",
-      "entity_id": "eloboard:female:27",
-      "wr_id": 27,
-      "gender": "female",
-      "name": "꼬니부깅",
-      "tier": "4",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:wfu",
-        "gender:female",
-        "team:wfu",
-        "team_code:wfu",
-        "team_ko:와플대",
-        "team_en:wfu",
-        "race:protoss",
-        "tier:4"
-      ],
-      "missing_in_master": false,
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "4",
-      "display_name": "꼬니부깅",
-      "last_checked_at": "2026-05-14T16:12:52.550Z",
-      "last_match_at": "2026-03-02T00:00:00.000Z",
-      "check_priority": "low",
-      "check_interval_days": 7,
-      "last_changed_at": "2026-05-14T16:27:48.726Z",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=27",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "isangwk"
     },
     {
       "team_name": "와플대",
@@ -176,7 +145,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.730Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=690",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "totlllsz"
     },
     {
       "team_name": "와플대",
@@ -210,7 +180,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.734Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=772",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "hee4343"
     },
     {
       "team_name": "와플대",
@@ -243,7 +214,8 @@
       "last_match_at": "2026-05-08T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.735Z"
+      "last_changed_at": "2026-05-14T16:27:48.735Z",
+      "soop_user_id": "nylove276"
     },
     {
       "team_name": "와플대",
@@ -259,6 +231,7 @@
       "meta_tags": [
         "domain:player",
         "gender:female",
+        "project:wfu",
         "team:wfu",
         "team_code:wfu",
         "team_ko:와플대",
@@ -274,9 +247,10 @@
       "last_match_at": "2026-05-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.736Z",
+      "last_changed_at": "2026-05-15T13:58:36.118Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=844",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "shj06170"
     },
     {
       "team_name": "와플대",
@@ -309,7 +283,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.740Z"
+      "last_changed_at": "2026-05-14T16:27:48.740Z",
+      "soop_user_id": "gkgus99"
     },
     {
       "team_name": "와플대",
@@ -343,7 +318,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.743Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=911",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "kimp1ay"
     },
     {
       "team_name": "와플대",
@@ -361,11 +337,11 @@
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
+        "gender:female",
         "team:wfu",
         "team_code:wfu",
         "team_ko:와플대",
         "team_en:wfu",
-        "gender:female",
         "race:zerg",
         "tier:8"
       ],
@@ -376,7 +352,8 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.745Z"
+      "last_changed_at": "2026-05-14T16:27:48.745Z",
+      "soop_user_id": "as1823"
     },
     {
       "team_name": "와플대",
@@ -394,6 +371,7 @@
       "meta_tags": [
         "domain:player",
         "gender:male",
+        "project:wfu",
         "team:wfu",
         "team_code:wfu",
         "team_ko:와플대",
@@ -409,7 +387,8 @@
       "last_match_at": "2026-05-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.747Z"
+      "last_changed_at": "2026-05-15T13:58:36.118Z",
+      "soop_user_id": "tkdduddb06"
     },
     {
       "team_name": "와플대",
@@ -443,7 +422,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.748Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=211",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "julyzerg"
     }
   ],
   "source_file": "tmp/와플대_roster_record_metadata.json",

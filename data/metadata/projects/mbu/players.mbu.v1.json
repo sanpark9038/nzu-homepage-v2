@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.582Z",
+  "generated_at": "2026-05-15T18:10:13.946Z",
   "project": "mbu",
   "team_name": "엠비대",
   "team_code": "mbu",
@@ -45,44 +45,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.554Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=6",
-      "profile_kind": "default"
-    },
-    {
-      "team_name": "엠비대",
-      "team_code": "mbu",
-      "entity_id": "eloboard:male:27",
-      "wr_id": 27,
-      "gender": "male",
-      "name": "김준혁",
-      "tier": "잭",
-      "race": "Zerg",
-      "source": "roster_sync",
-      "meta_tags": [
-        "domain:player",
-        "project:mbu",
-        "team_alias:엠비대",
-        "team_alias:mbu",
-        "gender:male",
-        "display_alias:true",
-        "team:mbu",
-        "team_code:mbu",
-        "team_ko:엠비대",
-        "team_en:mbu",
-        "race:zerg",
-        "tier:jack"
-      ],
-      "missing_in_master": false,
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "jack",
-      "display_name": "얍삽",
-      "last_checked_at": "2026-05-14T16:00:32.833Z",
-      "last_match_at": "2026-05-10T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.555Z",
-      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=27",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "lyh8808"
     },
     {
       "team_name": "엠비대",
@@ -119,7 +83,46 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.556Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=89",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "rlarnfk24"
+    },
+    {
+      "team_name": "엠비대",
+      "team_code": "mbu",
+      "entity_id": "eloboard:male:27",
+      "wr_id": 27,
+      "gender": "male",
+      "name": "얍삽e",
+      "tier": "잭",
+      "race": "Zerg",
+      "source": "roster_sync",
+      "meta_tags": [
+        "domain:player",
+        "project:mbu",
+        "team_alias:엠비대",
+        "team_alias:mbu",
+        "gender:male",
+        "display_alias:true",
+        "team:mbu",
+        "team_code:mbu",
+        "team_ko:엠비대",
+        "team_en:mbu",
+        "race:zerg",
+        "tier:jack"
+      ],
+      "missing_in_master": false,
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "jack",
+      "display_name": "얍삽e",
+      "last_checked_at": "2026-05-14T16:00:32.833Z",
+      "last_match_at": "2026-05-10T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-05-15T14:22:34.568Z",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=27",
+      "profile_kind": "default",
+      "soop_user_id": "wnsgur2da"
     },
     {
       "team_name": "엠비대",
@@ -155,7 +158,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.557Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=183",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "jackpot"
     },
     {
       "team_name": "엠비대",
@@ -188,7 +192,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.559Z"
+      "last_changed_at": "2026-05-14T16:27:48.559Z",
+      "soop_user_id": "paralyze92"
     },
     {
       "team_name": "엠비대",
@@ -196,7 +201,7 @@
       "entity_id": "eloboard:male:176",
       "wr_id": 176,
       "gender": "male",
-      "name": "박종승",
+      "name": "빡죠스",
       "tier": "스페이드",
       "race": "Protoss",
       "source": "roster_sync",
@@ -223,9 +228,10 @@
       "last_match_at": "2026-05-07T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.560Z",
+      "last_changed_at": "2026-05-15T14:22:34.568Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=176",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "askl021"
     },
     {
       "team_name": "엠비대",
@@ -258,7 +264,8 @@
       "last_match_at": "2025-12-16T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-05-14T16:27:48.560Z"
+      "last_changed_at": "2026-05-15T14:22:34.568Z",
+      "soop_user_id": "kalmian"
     },
     {
       "team_name": "엠비대",
@@ -294,7 +301,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.563Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=513",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "ghkdud1617"
     },
     {
       "team_name": "엠비대",
@@ -327,7 +335,8 @@
       "last_match_at": "2026-05-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.565Z"
+      "last_changed_at": "2026-05-14T16:27:48.565Z",
+      "soop_user_id": "bora99"
     },
     {
       "team_name": "엠비대",
@@ -363,7 +372,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.567Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=684",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "synyoung"
     },
     {
       "team_name": "엠비대",
@@ -396,7 +406,8 @@
       "last_match_at": "2026-05-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.570Z"
+      "last_changed_at": "2026-05-14T16:27:48.570Z",
+      "soop_user_id": "gkdud3294"
     },
     {
       "team_name": "엠비대",
@@ -430,9 +441,10 @@
       "last_match_at": "2026-05-04T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.573Z",
+      "last_changed_at": "2026-05-15T14:22:34.568Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=702",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "rabbitmiffy"
     },
     {
       "team_name": "엠비대",
@@ -465,7 +477,8 @@
       "last_match_at": "2026-05-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.576Z"
+      "last_changed_at": "2026-05-14T16:27:48.576Z",
+      "soop_user_id": "have1y"
     },
     {
       "team_name": "엠비대",
@@ -499,9 +512,10 @@
       "last_match_at": "2026-03-28T00:00:00.000Z",
       "check_priority": "low",
       "check_interval_days": 7,
-      "last_changed_at": "2026-05-14T16:27:48.577Z",
+      "last_changed_at": "2026-05-15T14:24:13.473Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=977",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dyaan0v0"
     },
     {
       "team_name": "엠비대",
@@ -537,7 +551,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.578Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1000",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "arr0530"
     },
     {
       "team_name": "엠비대",
@@ -570,7 +585,8 @@
       "last_match_at": "2026-05-07T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.580Z"
+      "last_changed_at": "2026-05-15T14:22:34.568Z",
+      "soop_user_id": "tiger3006"
     },
     {
       "team_name": "엠비대",
@@ -603,7 +619,8 @@
       "last_match_at": "2026-05-10T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.580Z"
+      "last_changed_at": "2026-05-15T14:22:34.568Z",
+      "soop_user_id": "dlqudgk1227"
     },
     {
       "team_name": "엠비대",
@@ -639,7 +656,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.581Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1021",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "chuwari13"
     },
     {
       "team_name": "엠비대",
@@ -675,7 +693,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.582Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1023",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "hamhee"
     }
   ],
   "source_file": "tmp/엠비대_roster_record_metadata.json",

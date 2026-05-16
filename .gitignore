@@ -53,9 +53,6 @@ build_error.txt
 .tmp/
 /tmp/*
 !/tmp/final_clean.json
-!/tmp/player_metadata_integrity_report.json
-!/tmp/player_metadata_canonical_preview.json
-!/tmp/player_metadata.cleaned.json
 
 # pipeline data & warehouse
 /data/metadata/players.master.v1.json

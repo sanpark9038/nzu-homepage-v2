@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.495Z",
+  "generated_at": "2026-05-15T18:10:13.833Z",
   "project": "jsa",
   "team_name": "JSA",
   "team_code": "jsa",
@@ -39,7 +39,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.446Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=3",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "sharpragu"
     },
     {
       "team_name": "JSA",
@@ -72,7 +73,8 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.447Z"
+      "last_changed_at": "2026-05-14T16:27:48.447Z",
+      "soop_user_id": "rladuddo99"
     },
     {
       "team_name": "JSA",
@@ -106,7 +108,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.452Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=2",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dpfgc3"
     },
     {
       "team_name": "JSA",
@@ -140,7 +143,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.453Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=60",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dgh9641"
     },
     {
       "team_name": "JSA",
@@ -174,7 +178,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.454Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=182",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "shyshy123"
     },
     {
       "team_name": "JSA",
@@ -208,7 +213,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.455Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=18",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "bwstar"
     },
     {
       "team_name": "JSA",
@@ -242,7 +248,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.456Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=173",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "vhrtmspt"
     },
     {
       "team_name": "JSA",
@@ -276,7 +283,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.459Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=346",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "gddms97"
     },
     {
       "team_name": "JSA",
@@ -310,7 +318,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.463Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=578",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "dkfka8945"
     },
     {
       "team_name": "JSA",
@@ -343,7 +352,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.467Z"
+      "last_changed_at": "2026-05-14T16:27:48.467Z",
+      "soop_user_id": "phh95426"
     },
     {
       "team_name": "JSA",
@@ -376,7 +386,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.468Z"
+      "last_changed_at": "2026-05-14T16:27:48.468Z",
+      "soop_user_id": "superbsw123"
     },
     {
       "team_name": "JSA",
@@ -410,7 +421,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.473Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=689",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "ftrudals"
     },
     {
       "team_name": "JSA",
@@ -443,7 +455,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.476Z"
+      "last_changed_at": "2026-05-14T16:27:48.476Z",
+      "soop_user_id": "mooaoom"
     },
     {
       "team_name": "JSA",
@@ -477,7 +490,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.479Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=680",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "fudnjs0235"
     },
     {
       "team_name": "JSA",
@@ -510,7 +524,8 @@
       "last_match_at": "2026-05-12T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.484Z"
+      "last_changed_at": "2026-05-14T16:27:48.484Z",
+      "soop_user_id": "wlsdkd1"
     },
     {
       "team_name": "JSA",
@@ -542,9 +557,11 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.487Z",
+      "last_changed_at": "2026-05-15T14:48:49.356Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=962",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "owoouoowo",
+      "generated_at": "2026-05-15T14:48:49.356Z"
     },
     {
       "team_name": "JSA",
@@ -578,7 +595,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.490Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=910",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "wjddmstj79"
     },
     {
       "team_name": "JSA",
@@ -612,7 +630,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.494Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=972",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "begoniah"
     },
     {
       "team_name": "JSA",
@@ -645,7 +664,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.495Z"
+      "last_changed_at": "2026-05-14T16:27:48.495Z",
+      "soop_user_id": "kjhanna824"
     }
   ],
   "source_file": "tmp/jsa_roster_record_metadata.json",

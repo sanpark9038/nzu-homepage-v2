@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-04-10T00:30:00.000Z",
+  "updated_at": "2026-05-15T17:50:27.873Z",
   "description": "Players excluded from match collection pipeline.",
   "players": [
     {
@@ -57,29 +57,29 @@
       "entity_id": "eloboard:female:951",
       "wr_id": 951,
       "name": "단이",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-09T00:00:00.000Z"
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:03:41.507Z"
     },
     {
       "entity_id": "eloboard:female:998",
       "wr_id": 998,
       "name": "박쭈이",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-09T00:00:00.000Z"
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:03:41.507Z"
     },
     {
       "entity_id": "eloboard:female:1003",
       "wr_id": 1003,
       "name": "우질",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-09T00:00:00.000Z"
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:03:41.507Z"
     },
     {
       "entity_id": "eloboard:female:955",
       "wr_id": 955,
       "name": "찡찡시아",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-09T00:00:00.000Z"
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:03:41.507Z"
     },
     {
       "entity_id": "eloboard:male:mix:1068",
@@ -92,22 +92,22 @@
       "entity_id": "eloboard:male:mix:192",
       "wr_id": 192,
       "name": "강만식",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-09T00:00:00.000Z"
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:03:41.507Z"
     },
     {
       "entity_id": "eloboard:female:352",
       "wr_id": 352,
       "name": "김하선",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-09T00:00:00.000Z"
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:03:41.507Z"
     },
     {
       "entity_id": "eloboard:male:mix:395",
       "wr_id": 395,
       "name": "서도일",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-09T00:00:00.000Z"
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:04:33.106Z"
     },
     {
       "name": "저라뎃",
@@ -133,49 +133,48 @@
       "entity_id": "eloboard:male:66",
       "wr_id": 66,
       "name": "박지수",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-10T00:30:00.000Z"
-    }
-    ,
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:04:33.106Z"
+    },
     {
       "entity_id": "eloboard:male:118",
       "wr_id": 118,
-      "name": "\uAE40\uC218\uD658",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-17T00:00:00.000Z"
+      "name": "김수환",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:03:41.507Z"
     },
     {
       "entity_id": "eloboard:male:mix:256",
       "wr_id": 256,
-      "name": "\uC218\uC785\uBFCC\uB4DC",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-17T00:00:00.000Z"
+      "name": "수입뿌드",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:04:33.106Z"
     },
     {
       "entity_id": "eloboard:male:mix:329",
       "wr_id": 329,
-      "name": "\uCE74\uB9AC\uC2A4",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-17T00:00:00.000Z"
+      "name": "카리스",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:04:33.106Z"
     },
     {
       "entity_id": "eloboard:male:mix:347",
       "wr_id": 347,
-      "name": "\uD2B8\uD560",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-17T00:00:00.000Z"
+      "name": "트할",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:04:33.106Z"
     },
     {
       "entity_id": "eloboard:female:856",
       "wr_id": 856,
-      "name": "\uD55C\uC18C\uB054",
-      "reason": "user_excluded",
-      "updated_at": "2026-04-17T00:00:00.000Z"
+      "name": "한소끔",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T17:50:27.873Z"
     },
     {
       "entity_id": "eloboard:female:999",
       "wr_id": 999,
-      "name": "\uC5F0\uB610",
+      "name": "연또",
       "reason": "retired_profile_after_race_change",
       "updated_at": "2026-04-20T00:00:00.000Z"
     },
@@ -190,8 +189,78 @@
       "entity_id": "eloboard:male:123",
       "wr_id": 123,
       "name": "오은유",
-      "reason": "user_excluded_no_match_collection",
-      "updated_at": "2026-04-28T00:00:00.000+09:00"
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:04:33.106Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:159",
+      "wr_id": 159,
+      "name": "저라뎃",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T13:51:21.994Z"
+    },
+    {
+      "entity_id": "eloboard:male:199",
+      "wr_id": 199,
+      "name": "탱크",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:01:05.440Z"
+    },
+    {
+      "entity_id": "eloboard:female:776",
+      "wr_id": 776,
+      "name": "밍도릿",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:01:05.440Z"
+    },
+    {
+      "entity_id": "eloboard:female:965",
+      "wr_id": 965,
+      "name": "뀨알",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:01:05.440Z"
+    },
+    {
+      "entity_id": "eloboard:female:354",
+      "wr_id": 354,
+      "name": "햄찌야",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:03:41.507Z"
+    },
+    {
+      "entity_id": "eloboard:male:185",
+      "wr_id": 185,
+      "name": "박한별",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:04:33.106Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:777",
+      "wr_id": 777,
+      "name": "엘사",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T15:04:33.106Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:831",
+      "wr_id": 831,
+      "name": "니칸",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T17:50:27.873Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:377",
+      "wr_id": 377,
+      "name": "모토케이",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T17:50:27.873Z"
+    },
+    {
+      "entity_id": "eloboard:female:1033",
+      "wr_id": 1033,
+      "name": "성예린",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "updated_at": "2026-05-15T17:50:27.873Z"
     }
   ]
 }

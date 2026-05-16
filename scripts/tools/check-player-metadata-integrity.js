@@ -1,15 +1,10 @@
 const fs = require("fs");
 const path = require("path");
+const { loadProjectPlayerMetadata, PROJECTS_DIR } = require("./lib/project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const SOURCE_PATH = path.join(ROOT, "scripts", "player_metadata.json");
 const REPORT_PATH = path.join(ROOT, "tmp", "player_metadata_integrity_report.json");
 const PREVIEW_PATH = path.join(ROOT, "tmp", "player_metadata_canonical_preview.json");
-
-function readJsonUtf8(filePath) {
-  const raw = fs.readFileSync(filePath);
-  return JSON.parse(Buffer.from(raw).toString("utf8"));
-}
 
 function isSuspiciousName(name) {
   if (typeof name !== "string" || !name.trim()) return true;
@@ -34,14 +29,7 @@ function scoreNameQuality(name) {
 }
 
 function main() {
-  if (!fs.existsSync(SOURCE_PATH)) {
-    throw new Error(`Missing source file: ${SOURCE_PATH}`);
-  }
-
-  const items = readJsonUtf8(SOURCE_PATH);
-  if (!Array.isArray(items)) {
-    throw new Error("player_metadata.json must be an array");
-  }
+  const items = loadProjectPlayerMetadata();
 
   const byWrId = new Map();
   const byName = new Map();
@@ -137,7 +125,7 @@ function main() {
   }
 
   const report = {
-    source_path: SOURCE_PATH,
+      source_path: PROJECTS_DIR,
     generated_at: new Date().toISOString(),
     totals: {
       rows: items.length,
@@ -169,7 +157,7 @@ function main() {
   fs.writeFileSync(PREVIEW_PATH, JSON.stringify(canonicalPreview, null, 2), "utf8");
 
   console.log("Integrity check complete.");
-  console.log(`- Source: ${SOURCE_PATH}`);
+  console.log(`- Source: ${PROJECTS_DIR}`);
   console.log(`- Report: ${REPORT_PATH}`);
   console.log(`- Canonical preview: ${PREVIEW_PATH}`);
   console.log(`- Rows: ${report.totals.rows}`);

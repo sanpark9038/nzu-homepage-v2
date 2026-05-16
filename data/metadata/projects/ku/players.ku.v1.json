@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-14T16:27:48.553Z",
+  "generated_at": "2026-05-15T18:10:13.896Z",
   "project": "ku",
   "team_name": "케이대",
   "team_code": "ku",
@@ -45,7 +45,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.501Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=25",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "tmsh401"
     },
     {
       "team_name": "케이대",
@@ -81,7 +82,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.505Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=8",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "kkmkhh1234"
     },
     {
       "team_name": "케이대",
@@ -117,7 +119,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.508Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=10",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "neverdieyj"
     },
     {
       "team_name": "케이대",
@@ -153,7 +156,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.509Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=73",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "hongduck9737"
     },
     {
       "team_name": "케이대",
@@ -189,7 +193,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.510Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=54",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "understay"
     },
     {
       "team_name": "케이대",
@@ -225,7 +230,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.511Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=31",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "wjdalsrl95"
     },
     {
       "team_name": "케이대",
@@ -259,9 +265,11 @@
       "last_match_at": "2026-05-01T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.512Z",
+      "last_changed_at": "2026-05-15T14:48:49.356Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=212",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "minyoo3972",
+      "generated_at": "2026-05-15T14:48:49.356Z"
     },
     {
       "team_name": "케이대",
@@ -297,7 +305,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.513Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=157",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "zcv0320"
     },
     {
       "team_name": "케이대",
@@ -333,7 +342,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.514Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=328",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "ever316"
     },
     {
       "team_name": "케이대",
@@ -369,7 +379,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.517Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=599",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "seul0316"
     },
     {
       "team_name": "케이대",
@@ -405,7 +416,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.523Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=725",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "bagguul"
     },
     {
       "team_name": "케이대",
@@ -441,7 +453,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.526Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=506",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "9rumee"
     },
     {
       "team_name": "케이대",
@@ -477,7 +490,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.529Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=425",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "clclcl8888"
     },
     {
       "team_name": "케이대",
@@ -510,7 +524,8 @@
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.533Z"
+      "last_changed_at": "2026-05-14T16:27:48.533Z",
+      "soop_user_id": "agah1106"
     },
     {
       "team_name": "케이대",
@@ -546,7 +561,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.537Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=868",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "goni2677"
     },
     {
       "team_name": "케이대",
@@ -582,7 +598,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.542Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=602",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "qkrgkdms01"
     },
     {
       "team_name": "케이대",
@@ -618,7 +635,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.544Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=935",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "seols2"
     },
     {
       "team_name": "케이대",
@@ -654,7 +672,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.546Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=934",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "wittyku"
     },
     {
       "team_name": "케이대",
@@ -690,7 +709,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.549Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=936",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "sa03030"
     },
     {
       "team_name": "케이대",
@@ -726,7 +746,8 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.551Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=987",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "thdeksql"
     },
     {
       "team_name": "케이대",
@@ -759,7 +780,8 @@
       "last_match_at": "2026-05-13T00:00:00.000Z",
       "check_priority": "high",
       "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.552Z"
+      "last_changed_at": "2026-05-14T16:27:48.552Z",
+      "soop_user_id": "kjy3443"
     },
     {
       "team_name": "케이대",
@@ -792,7 +814,8 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.552Z",
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=205",
-      "profile_kind": "mix"
+      "profile_kind": "mix",
+      "soop_user_id": "zpdl1313"
     },
     {
       "team_name": "케이대",
@@ -828,7 +851,8 @@
       "check_interval_days": 7,
       "last_changed_at": "2026-05-14T16:27:48.553Z",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=50",
-      "profile_kind": "default"
+      "profile_kind": "default",
+      "soop_user_id": "skygkrtn"
     }
   ],
   "source_file": "tmp/케이대_roster_record_metadata.json",
