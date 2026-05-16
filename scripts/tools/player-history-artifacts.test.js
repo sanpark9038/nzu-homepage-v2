@@ -98,6 +98,36 @@ runTest("buildPlayerHistoryArtifacts writes per-player newest-first history and 
   }
 });
 
+runTest("buildPlayerHistoryArtifacts removes stale json artifacts before writing", () => {
+  cleanup();
+  try {
+    fs.mkdirSync(TMP_DIR, { recursive: true });
+    fs.writeFileSync(path.join(TMP_DIR, "stale-player.json"), "{}", "utf8");
+    fs.writeFileSync(path.join(TMP_DIR, "keep.txt"), "not json", "utf8");
+
+    buildPlayerHistoryArtifacts({
+      outputDir: TMP_DIR,
+      generatedAt: "2026-05-03T00:00:00.000Z",
+      rows: [
+        {
+          match_date: "2026-04-01",
+          player_entity_id: "eloboard:male:913",
+          player_name: "player-a",
+          opponent_entity_id: "eloboard:female:777",
+          opponent_name: "opponent-a",
+          is_win: "true",
+        },
+      ],
+    });
+
+    assert.equal(fs.existsSync(path.join(TMP_DIR, "stale-player.json")), false);
+    assert.equal(fs.existsSync(path.join(TMP_DIR, "keep.txt")), true);
+    assert.equal(fs.existsSync(path.join(TMP_DIR, "eloboard-male-913.json")), true);
+  } finally {
+    cleanup();
+  }
+});
+
 runTest("player history R2 config can target a dedicated bucket without changing board image R2 env", () => {
   const config = getR2Config(
     {

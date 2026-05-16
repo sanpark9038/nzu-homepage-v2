@@ -4,8 +4,10 @@ const {
   extractSourceMatchFields,
   findEntityForSourceFile,
   isSourceCsvFileName,
+  normalizeIdentityLookupName,
   normalizePlayerNameFromFileName,
   parseEntityIdFromSourceFileName,
+  resolveOpponentEntityId,
   sourceCandidateBucketKey,
 } = require("./build-aggregates-incremental");
 
@@ -72,4 +74,22 @@ runTest("warehouse source row parser accepts current normalized CSV headers", ()
   );
 
   assert.equal(extractSourceMatchFields({ date: "2026-05-12", result: "win" }).isWin, true);
+});
+
+runTest("warehouse opponent identity lookup normalizes spacing and case", () => {
+  assert.equal(normalizeIdentityLookupName(" Opponent A "), "opponenta");
+  assert.equal(normalizeIdentityLookupName("Opponent  A"), "opponenta");
+});
+
+runTest("warehouse opponent identity lookup resolves only unique canonical names", () => {
+  const rosterIndex = {
+    byOpponentName: new Map([
+      ["opponenta", new Set(["eloboard:female:1"])],
+      ["sharedname", new Set(["eloboard:female:2", "eloboard:male:3"])],
+    ]),
+  };
+
+  assert.equal(resolveOpponentEntityId("Opponent A", rosterIndex), "eloboard:female:1");
+  assert.equal(resolveOpponentEntityId("shared name", rosterIndex), "");
+  assert.equal(resolveOpponentEntityId("unknown", rosterIndex), "");
 });

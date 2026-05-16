@@ -23,6 +23,7 @@ const FACT_HEADERS = [
   "team",
   "tier",
   "race",
+  "opponent_entity_id",
   "opponent_name",
   "opponent_race",
   "map_name",
@@ -194,6 +195,13 @@ function hashMatch(parts) {
   return crypto.createHash("sha1").update(parts.join("|"), "utf8").digest("hex");
 }
 
+function normalizeIdentityLookupName(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+}
+
 function normalizePlayerNameFromFileName(fileName) {
   return fileName
     .replace(/^eloboard_(?:male|female|male_mix)_\d+_/, "")
@@ -255,9 +263,10 @@ function readJson(filePath, fallback) {
 function buildRosterIndexFromProjects() {
   const byName = new Map();
   const byEntityId = new Map();
+  const byOpponentName = new Map();
   const duplicateEntityIds = new Set();
   if (!fs.existsSync(PROJECTS_DIR)) {
-    return { byName, byEntityId, duplicateEntityIds };
+    return { byName, byEntityId, byOpponentName, duplicateEntityIds };
   }
 
   const dirs = fs
@@ -283,9 +292,24 @@ function buildRosterIndexFromProjects() {
       };
       byEntityId.set(entityId, canonical);
       if (!byName.has(name)) byName.set(name, canonical);
+      for (const candidateName of [name, row.display_name]) {
+        const key = normalizeIdentityLookupName(candidateName);
+        if (!key) continue;
+        const bucket = byOpponentName.get(key) || new Set();
+        bucket.add(entityId);
+        byOpponentName.set(key, bucket);
+      }
     }
   }
-  return { byName, byEntityId, duplicateEntityIds };
+  return { byName, byEntityId, byOpponentName, duplicateEntityIds };
+}
+
+function resolveOpponentEntityId(opponentName, rosterIndex) {
+  const key = normalizeIdentityLookupName(opponentName);
+  if (!key) return "";
+  const bucket = rosterIndex.byOpponentName && rosterIndex.byOpponentName.get(key);
+  if (!bucket || bucket.size !== 1) return "";
+  return Array.from(bucket)[0] || "";
 }
 
 function listSourceCsvFiles() {
@@ -602,6 +626,7 @@ function main() {
           team: teamCode,
           tier: entity.tier || "",
           race: entity.race || "",
+          opponent_entity_id: resolveOpponentEntityId(normalizedFields.opponentName, rosterIndex),
           opponent_name: normalizedFields.opponentName,
           opponent_race: normalizedFields.opponentRace,
           map_name: normalizedFields.mapName,
@@ -647,6 +672,7 @@ function main() {
         team: teamCode,
         tier: entity.tier || "",
         race: entity.race || "",
+        opponent_entity_id: resolveOpponentEntityId(opponentName, rosterIndex),
         opponent_name: opponentName,
         opponent_race: opponentRace,
         map_name: mapName,
@@ -726,6 +752,8 @@ module.exports = {
   findEntityForSourceFile,
   isSourceCsvFileName,
   normalizePlayerNameFromFileName,
+  normalizeIdentityLookupName,
   parseEntityIdFromSourceFileName,
+  resolveOpponentEntityId,
   sourceCandidateBucketKey,
 };

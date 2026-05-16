@@ -391,3 +391,19 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   populate `opponent_entity_id` in warehouse/player-history artifacts first,
   then rerun this report and only remove name fallback after coverage is high
   enough to preserve H2H behavior.
+
+### 2026-05-16 Warehouse Opponent Identity Enrichment
+
+- `build-aggregates-incremental.js` now writes `opponent_entity_id` into
+  `fact_matches.csv` when `opponent_name` resolves to exactly one canonical
+  project-metadata player. Ambiguous or unknown opponent names remain blank.
+- `export-player-history-artifacts.js` now removes stale JSON artifacts from
+  the output directory before writing the current artifact set, so reports do
+  not accidentally read retired player-history files.
+- Local rebuild plus export verified the current artifact set is internally
+  consistent: `players_written=329`, `match_rows_written=143664`, and
+  `verify:warehouse` passed with `fact_rows=143664`.
+- Opponent identity coverage improved from `0%` to `86.98%`
+  (`124964/143664` rows). `ready_to_remove_name_fallback=false`, so the
+  public H2H fallback remains necessary until the remaining unknown/ambiguous
+  opponent names are resolved safely.

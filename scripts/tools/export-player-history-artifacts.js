@@ -147,6 +147,11 @@ function buildPlayerHistoryArtifacts(options = {}) {
   const rows = Array.isArray(options.rows) ? options.rows : readCsv(inputPath);
 
   fs.mkdirSync(outputDir, { recursive: true });
+  for (const file of fs.readdirSync(outputDir)) {
+    if (file.endsWith(".json")) {
+      fs.unlinkSync(path.join(outputDir, file));
+    }
+  }
   const byPlayer = new Map();
   for (const row of rows) {
     const entityId = String(row.player_entity_id || "").trim();
