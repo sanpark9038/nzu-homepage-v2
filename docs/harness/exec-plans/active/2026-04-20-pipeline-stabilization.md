@@ -50,10 +50,10 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 - [x] Fix the pre-existing `app/api/stats/h2h/route.ts` tuple typing error that was blocking `next build`.
 - [x] Add guarded prod-sync identity checks so same-name different-identity rows fail closed instead of silently merging.
 - [x] Confirm the canonical durable serving key for `players` / `players_staging` and document how mix/non-mix variants should collapse.
-- [ ] Verify whether Supabase already has a unique constraint/index for the canonical serving key. If not, define the migration needed before any `onConflict` flip.
+- [x] Verify whether Supabase already has a unique constraint/index for the canonical serving key. If not, define the migration needed before any `onConflict` flip.
 - [x] Add repo-visible staging-table typing or schema notes so identifier-based sync work is not happening against an implicit table contract.
 - [x] Verify the live Supabase rollout for hero media: table/policy present, storage bucket configured, and active media serves cleanly on homepage/admin after upload/delete.
-- [ ] Only after the above: decide whether `onConflict: 'name'` can move to an identifier-based key safely.
+- [x] Only after the above: decide whether `onConflict: 'name'` can move to an identifier-based key safely.
 - [x] Add optional opponent durable identity support to repo-visible contracts (`opponent_entity_id`) without making it a deployment blocker.
 - [x] Fix the scheduled ops-pipeline regression where ops alert team labels drifted across encodings and caused `test:pipeline:daily` to fail before manual refresh started.
 - [x] Make Discord failure summaries distinguish workflow preflight failures from real collection/apply failures so scheduled alerts do not misreport the broken stage.
@@ -64,23 +64,21 @@ Close the highest-risk pipeline stability gaps before deployment: silent name co
 - [ ] Decide whether `/admin/tournament` should stay deployment-visible as read-only UI, or be folded into the same Vercel read-only pattern as `/admin/roster`.
 - [x] Re-scope the deployment commit so current admin/Vercel stabilization work is explicitly tracked instead of drifting outside the deployment scope doc.
 
-### Current note on the remaining identity blocker
+### Current note on the serving identity blocker
 
-- a draft migration now exists at `scripts/sql/add-serving-identity-key.sql`
-- a read-only live-schema check now exists at `scripts/sql/check-serving-identity-schema.sql`
-- pass/fail interpretation now lives in `docs/harness/SERVING_IDENTITY_NOTES.md#operator-check`
-- post-check implementation order now lives in `docs/harness/SERVING_IDENTITY_NOTES.md#implementation-order-after-pass`
-- it is not proof of live schema
-- do not switch sync writes to `serving_identity_key` until the real Supabase state is verified
+- Resolved for the active serving pipeline as of 2026-05-16.
+- The Supabase schema migration and follow-up partial-index replacement were already applied and verified in the earlier real sync runs documented below.
+- Current staging/prod sync code writes `serving_identity_key` when the column is available and falls back to `name` only for non-migrated environments.
+- Current read-only REST readiness check on 2026-05-16 found both `players` and `players_staging` columns present, `318` rows in both tables, `0` missing Eloboard IDs, and `0` duplicate serving-identity buckets.
+- Keep `scripts/sql/check-serving-identity-schema.sql` as the SQL-capable proof path for future schema drift checks, because the REST readiness check still cannot inspect pg indexes directly.
 
 ## Blockers
 
-- no repo-visible proof yet of a unique constraint or index for the canonical serving identity on `players` / `players_staging`
-- `hero_media` table, `hero_media_single_active_idx`, `hero_media_public_read`, and `hero-media` public bucket were manually verified in Supabase
-- homepage integrity now reports `summary.hero_media`, and `check-daily-status` surfaces it without escalating it into daily ops alerts
-- stale delete is now more conservative, but `upsert(..., { onConflict: 'name' })` and delete-by-name remain the primary live-schema blocker
-- the latest real `with-sync` attempt failed before serving sync because `ku` hit `pipeline_failure (fetch_fail=1, csv_fail=0)` from an invalid placeholder-based CSV filename; the export script is now patched, but the run has not been retried yet
-- after the placeholder-filename fix, the next real `with-sync` run advanced into `supabase_staging_sync` and then failed closed on a legacy/current profile collision for `연또`; the repo now treats the legacy profile as retired and keeps only the current canonical profile in active sync paths
+- No current blocker remains for the canonical player metadata source or serving roster alignment.
+- `hero_media` table, `hero_media_single_active_idx`, `hero_media_public_read`, and `hero-media` public bucket were manually verified in Supabase.
+- Homepage integrity now reports `summary.hero_media`, and `check-daily-status` surfaces it without escalating it into daily ops alerts.
+- The former serving-identity blocker is closed: active staging/prod sync can use `serving_identity_key`, stale delete compares durable serving identities first, and the latest live serving roster diff is clean.
+- Remaining plan work is narrower and separate from the player metadata source: replace the remaining public history/H2H name fallback once opponent durable identity is consistently served, and decide whether `/admin/tournament` should use the same deployment read-only pattern as `/admin/roster`.
 
 ### Latest status note
 
@@ -345,3 +343,32 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   not accidentally reintroduced as a removable tmp-root target. Dry-run cleanup
   found no root cleanup targets after this guard, and duplicate cleanup found
   only two small legacy match JSON duplicates. No deletion was performed.
+
+### 2026-05-16 Player Metadata And Serving Stability Checkpoint
+
+- Canonical player metadata source is now
+  `data/metadata/projects/*/players.*.v1.json`. The legacy
+  `scripts/player_metadata.json` file is archived and active dependency checks
+  report `legacy_dependency_paths=0`.
+- Latest source-consolidation report is stable: `project_rows=334`,
+  `legacy_rows=370`, `safe candidates=0`, `manual candidates=0`, and
+  `excluded candidates=14`.
+- The approved production sync after the player-history recovery succeeded:
+  `26` changed serving records were upserted, `292` unchanged records were
+  skipped, player-history artifacts were uploaded, and the freshness sentinel
+  passed for `male:37`.
+- Current read-only serving diff on 2026-05-16 is clean:
+  `comparison_source=supabase:players`, `canonical_rows=318`,
+  `serving_rows=318`, `added=0`, `removed=0`, `changed=0`.
+- Current read-only freshness sentinel on 2026-05-16 is clean:
+  `male:37` has `source_latest_date=2026-05-15` and
+  `serving_latest_date=2026-05-15`.
+- Current read-only serving identity readiness on 2026-05-16 confirms both
+  `players` and `players_staging` have `serving_identity_key`, both have
+  `318` rows, and both have `0` missing Eloboard IDs and `0` duplicate
+  serving-identity buckets. REST still cannot inspect pg indexes, so keep the
+  SQL check script for future schema drift checks.
+- Conclusion: player metadata source consolidation and serving roster alignment
+  are stable. The plan stays active only for separate follow-ups: public
+  history/H2H opponent durable identity and the `/admin/tournament`
+  deployment-read-only decision.
