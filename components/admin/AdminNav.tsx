@@ -7,7 +7,7 @@ const ADMIN_LINKS = [
   { href: "/admin/ops", label: "운영 현황" },
   { href: "/admin/tournament", label: "토너먼트 관리" },
   { href: "/admin/roster", label: "로스터 교정" },
-  { href: "/admin/roster/ops-review", label: "Roster Review" },
+  { href: "/admin/roster/ops-review", label: "로스터 점검" },
   { href: "/admin/universities", label: "대학 관리" },
   { href: "/admin/hero-media", label: "히어로 미디어" },
   { href: "/admin/prediction", label: "예측 경기 설정" },
