@@ -426,7 +426,7 @@
       "soop_user_id": "julyzerg"
     }
   ],
-  "source_file": "tmp/와플대_roster_record_metadata.json",
+  "source_file": "data/metadata/projects/wfu/players.wfu.v1.json",
   "roster_ordering": {
     "role_priority_first": true,
     "tier_order": [

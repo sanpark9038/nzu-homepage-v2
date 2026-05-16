@@ -967,7 +967,7 @@
       "soop_user_id": "peros777"
     }
   ],
-  "source_file": "tmp/뉴캣슬_roster_record_metadata.json",
+  "source_file": "data/metadata/projects/ncs/players.ncs.v1.json",
   "roster_ordering": {
     "role_priority_first": true,
     "tier_order": [

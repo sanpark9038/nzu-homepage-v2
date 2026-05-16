@@ -710,7 +710,7 @@
       "soop_user_id": "rlekfu6"
     }
   ],
-  "source_file": "tmp/씨나인_roster_record_metadata.json",
+  "source_file": "data/metadata/projects/c9/players.c9.v1.json",
   "roster_ordering": {
     "role_priority_first": true,
     "tier_order": [

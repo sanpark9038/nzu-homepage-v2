@@ -697,7 +697,7 @@
       "soop_user_id": "hamhee"
     }
   ],
-  "source_file": "tmp/엠비대_roster_record_metadata.json",
+  "source_file": "data/metadata/projects/mbu/players.mbu.v1.json",
   "roster_ordering": {
     "role_priority_first": true,
     "tier_order": [

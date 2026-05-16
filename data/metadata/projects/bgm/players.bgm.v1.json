@@ -824,7 +824,7 @@
       "generated_at": "2026-05-15T14:54:12.174Z"
     }
   ],
-  "source_file": "tmp/bgm_roster_record_metadata.json",
+  "source_file": "data/metadata/projects/bgm/players.bgm.v1.json",
   "roster_ordering": {
     "role_priority_first": true,
     "tier_order": [

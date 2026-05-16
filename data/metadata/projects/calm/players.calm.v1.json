@@ -778,7 +778,7 @@
       "soop_user_id": "brainzerg7"
     }
   ],
-  "source_file": "tmp/calm_roster_record_metadata.json",
+  "source_file": "data/metadata/projects/calm/players.calm.v1.json",
   "roster_ordering": {
     "role_priority_first": true,
     "tier_order": [

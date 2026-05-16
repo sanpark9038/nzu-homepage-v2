@@ -775,7 +775,7 @@
       "soop_user_id": "tjgus5570"
     }
   ],
-  "source_file": "tmp/수술대_roster_record_metadata.json",
+  "source_file": "data/metadata/projects/ssu/players.ssu.v1.json",
   "roster_ordering": {
     "role_priority_first": true,
     "tier_order": [

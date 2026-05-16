@@ -325,7 +325,7 @@
       "tier_key": "jack"
     }
   ],
-  "source_file": "tmp/yb_roster_record_metadata.json",
+  "source_file": "data/metadata/projects/yb/players.yb.v1.json",
   "roster_ordering": {
     "role_priority_first": true,
     "tier_order": [

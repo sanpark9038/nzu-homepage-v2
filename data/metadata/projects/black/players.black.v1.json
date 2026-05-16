@@ -684,7 +684,7 @@
       "soop_user_id": "firebathero"
     }
   ],
-  "source_file": "tmp/흑카데미_roster_record_metadata.json",
+  "source_file": "data/metadata/projects/black/players.black.v1.json",
   "roster_ordering": {
     "role_priority_first": true,
     "tier_order": [

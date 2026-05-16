@@ -94,3 +94,21 @@ test("legacy player metadata is archived outside the active scripts root", () =>
   assert.match(source, /player_metadata\.legacy_reference\.v1\.json/);
   assert.doesNotMatch(source, /scripts", "player_metadata\.json"/);
 });
+
+test("project metadata does not point canonical source_file fields at tmp artifacts", () => {
+  const projectsDir = path.join(ROOT, "data", "metadata", "projects");
+  const offenders = [];
+
+  for (const project of fs.readdirSync(projectsDir, { withFileTypes: true })) {
+    if (!project.isDirectory()) continue;
+    const filePath = path.join(projectsDir, project.name, `players.${project.name}.v1.json`);
+    if (!fs.existsSync(filePath)) continue;
+    const doc = JSON.parse(readProjectFile(path.relative(ROOT, filePath)));
+    const sourceFile = String(doc.source_file || "").replace(/\\/g, "/");
+    if (sourceFile.startsWith("tmp/")) {
+      offenders.push(path.relative(ROOT, filePath).replace(/\\/g, "/"));
+    }
+  }
+
+  assert.deepEqual(offenders, []);
+});

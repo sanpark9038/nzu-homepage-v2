@@ -475,3 +475,15 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   future work does not mistake it for an active data path.
 - This keeps external/unknown opponents as match-history display strings unless
   an explicit operator review promotes them into canonical metadata.
+
+### 2026-05-16 Tracked Tmp Source Cleanup
+
+- Removed the remaining tracked `tmp/*_roster_record_metadata.json` files from
+  git. They were old intermediate extraction artifacts, not canonical metadata,
+  and some contained broken display-name encodings.
+- Updated project metadata files whose top-level `source_file` still pointed at
+  those `tmp/` artifacts so they now point at their canonical
+  `data/metadata/projects/<code>/players.<code>.v1.json` file.
+- Added a source-consolidation contract test so project metadata cannot regain
+  `tmp/` `source_file` references. `/tmp/*` remains ignored, so future temporary
+  reports should stay outside tracked source data.
