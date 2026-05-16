@@ -107,6 +107,24 @@ function recommendUnresolvedOpponent(row, candidateStatus) {
   return "ignore_low_frequency";
 }
 
+function summarizeRecommendedActions(rows) {
+  const counts = new Map();
+  for (const row of rows) {
+    incrementCount(counts, row.recommended_action || "unknown");
+  }
+  return sortCountObject(counts);
+}
+
+function groupTopUnresolvedByAction(rows, perActionLimit = 20) {
+  const grouped = {};
+  for (const row of rows) {
+    const key = row.recommended_action || "unknown";
+    if (!grouped[key]) grouped[key] = [];
+    if (grouped[key].length < perActionLimit) grouped[key].push(row);
+  }
+  return grouped;
+}
+
 function summarizeUnresolvedOpponents(unresolvedByName, candidateIndex, limit = 50) {
   const rows = Array.from(unresolvedByName.values()).sort((a, b) => {
     if (b.match_rows !== a.match_rows) return b.match_rows - a.match_rows;
@@ -122,26 +140,30 @@ function summarizeUnresolvedOpponents(unresolvedByName, candidateIndex, limit = 
     top: [],
   };
 
+  const all = [];
+
   for (const row of rows) {
     const classified = classifyOpponentName(row.opponent_name, candidateIndex);
     if (classified.status === "no_candidate") summary.no_candidate_names += 1;
     if (classified.status === "ambiguous_candidate") summary.ambiguous_candidate_names += 1;
     if (classified.status === "unique_candidate") summary.unique_candidate_names += 1;
-    if (summary.top.length < limit) {
-      summary.top.push({
-        opponent_name: row.opponent_name,
-        lookup_name: row.lookup_name,
-        match_rows: row.match_rows,
-        latest_match_date: row.latest_match_date || null,
-        opponent_race_counts: sortCountObject(row.opponent_race_counts || new Map()),
-        player_samples: row.player_samples,
-        candidate_status: classified.status,
-        candidate_count: classified.candidates.length,
-        candidates: classified.candidates.slice(0, 5),
-        recommended_action: recommendUnresolvedOpponent(row, classified.status),
-      });
-    }
+    all.push({
+      opponent_name: row.opponent_name,
+      lookup_name: row.lookup_name,
+      match_rows: row.match_rows,
+      latest_match_date: row.latest_match_date || null,
+      opponent_race_counts: sortCountObject(row.opponent_race_counts || new Map()),
+      player_samples: row.player_samples,
+      candidate_status: classified.status,
+      candidate_count: classified.candidates.length,
+      candidates: classified.candidates.slice(0, 5),
+      recommended_action: recommendUnresolvedOpponent(row, classified.status),
+    });
   }
+
+  summary.recommended_action_counts = summarizeRecommendedActions(all);
+  summary.top = all.slice(0, limit);
+  summary.by_recommended_action = groupTopUnresolvedByAction(all, 20);
 
   return summary;
 }
@@ -252,6 +274,7 @@ function formatMarkdown(report) {
     `- unresolved_no_candidate_names: ${report.unresolved_opponents.no_candidate_names}`,
     `- unresolved_ambiguous_candidate_names: ${report.unresolved_opponents.ambiguous_candidate_names}`,
     `- unresolved_unique_candidate_names: ${report.unresolved_opponents.unique_candidate_names}`,
+    `- unresolved_recommended_action_counts: ${JSON.stringify(report.unresolved_opponents.recommended_action_counts)}`,
     "",
     "## Incomplete Samples",
     "",
@@ -276,6 +299,26 @@ function formatMarkdown(report) {
         `- ${item.opponent_name}: ${item.match_rows} rows, latest=${item.latest_match_date || "n/a"}, ${item.candidate_status}, ${item.recommended_action}, candidates=${item.candidate_count}`
       );
     }
+  }
+
+  lines.push("", "## Review Groups", "");
+  const groupOrder = [
+    "metadata_review_needed",
+    "manual_disambiguation_needed",
+    "external_or_metadata_review_needed",
+    "external_candidate",
+    "ignore_low_frequency",
+  ];
+  for (const action of groupOrder) {
+    const rows = report.unresolved_opponents.by_recommended_action?.[action] || [];
+    if (!rows.length) continue;
+    lines.push(`### ${action}`, "");
+    for (const item of rows) {
+      lines.push(
+        `- ${item.opponent_name}: ${item.match_rows} rows, latest=${item.latest_match_date || "n/a"}, ${item.candidate_status}, candidates=${item.candidate_count}`
+      );
+    }
+    lines.push("");
   }
 
   return `${lines.join("\n")}\n`;
@@ -313,6 +356,8 @@ module.exports = {
   loadOpponentCandidateIndex,
   normalizeIdentityLookupName,
   recommendUnresolvedOpponent,
+  groupTopUnresolvedByAction,
   summarizeUnresolvedOpponents,
+  summarizeRecommendedActions,
   writeReport,
 };

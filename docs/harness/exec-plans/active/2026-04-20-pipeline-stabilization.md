@@ -433,3 +433,22 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - This keeps the pipeline simple: one report shows coverage, unresolved impact,
   and review priority, while canonical metadata remains unchanged until an
   explicit operator review decides what belongs there.
+
+### 2026-05-16 Unresolved Opponent Review Grouping
+
+- Extended the existing `report:player-history:opponent-identity` output instead
+  of creating another registry, metadata file, or exception list.
+- The report now summarizes unresolved opponent names by `recommended_action`
+  and prints grouped review sections, so external candidates, metadata-review
+  candidates, and low-frequency ignored names are separated without changing
+  canonical player metadata.
+- Current local report from `tmp/player-history-artifacts` remains
+  `match_rows=143664`, `rows_with_opponent_entity_id=124964`,
+  `opponent_entity_id_coverage_pct=86.98`, and
+  `ready_to_remove_name_fallback=false`.
+- Current unresolved action counts are `ignore_low_frequency=79`,
+  `external_candidate=69`, and `external_or_metadata_review_needed=57`.
+  No unresolved names are safe automatic alias/metadata candidates yet.
+- Decision: keep the canonical source surface small. Do not add unresolved
+  opponents to `data/metadata/projects/*/players.*.v1.json` until an explicit
+  review confirms they are real in-scope players rather than external opponents.

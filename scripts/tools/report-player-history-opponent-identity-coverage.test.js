@@ -7,8 +7,10 @@ const {
   buildCoverageReport,
   classifyOpponentName,
   formatMarkdown,
+  groupTopUnresolvedByAction,
   normalizeIdentityLookupName,
   recommendUnresolvedOpponent,
+  summarizeRecommendedActions,
   summarizeUnresolvedOpponents,
 } = require("./report-player-history-opponent-identity-coverage");
 
@@ -109,6 +111,8 @@ runTest("buildCoverageReport measures opponent entity id and name coverage", () 
       assert.equal(report.unresolved_opponents.top[0].latest_match_date, "2026-05-01");
       assert.deepEqual(report.unresolved_opponents.top[0].opponent_race_counts, { Z: 1 });
       assert.equal(report.unresolved_opponents.top[0].recommended_action, "ignore_low_frequency");
+      assert.deepEqual(report.unresolved_opponents.recommended_action_counts, { ignore_low_frequency: 1 });
+      assert.equal(report.unresolved_opponents.by_recommended_action.ignore_low_frequency.length, 1);
     });
   });
 });
@@ -150,6 +154,19 @@ runTest("formatMarkdown includes the fallback removal decision", () => {
       no_candidate_names: 1,
       ambiguous_candidate_names: 0,
       unique_candidate_names: 0,
+      recommended_action_counts: { ignore_low_frequency: 1 },
+      by_recommended_action: {
+        ignore_low_frequency: [
+          {
+            opponent_name: "unknown",
+            match_rows: 1,
+            latest_match_date: "2026-05-01",
+            candidate_status: "no_candidate",
+            candidate_count: 0,
+            recommended_action: "ignore_low_frequency",
+          },
+        ],
+      },
       top: [
         {
           opponent_name: "unknown",
@@ -166,6 +183,8 @@ runTest("formatMarkdown includes the fallback removal decision", () => {
   assert.match(markdown, /ready_to_remove_name_fallback: false/);
   assert.match(markdown, /opponent_entity_id_coverage_pct: 0/);
   assert.match(markdown, /Top Unresolved Opponents/);
+  assert.match(markdown, /Review Groups/);
+  assert.match(markdown, /ignore_low_frequency/);
 });
 
 runTest("classifyOpponentName separates unique, ambiguous, and missing candidates", () => {
@@ -225,6 +244,11 @@ runTest("summarizeUnresolvedOpponents ranks unresolved names by match rows", () 
   assert.equal(summary.top[0].latest_match_date, "2026-05-01");
   assert.deepEqual(summary.top[0].opponent_race_counts, { T: 100, P: 5 });
   assert.equal(summary.top[0].recommended_action, "metadata_review_needed");
+  assert.deepEqual(summary.recommended_action_counts, {
+    ignore_low_frequency: 1,
+    metadata_review_needed: 1,
+  });
+  assert.equal(summary.by_recommended_action.metadata_review_needed[0].opponent_name, "a");
 });
 
 runTest("recommendUnresolvedOpponent keeps low-count missing names out of metadata by default", () => {
@@ -235,4 +259,22 @@ runTest("recommendUnresolvedOpponent keeps low-count missing names out of metada
   assert.equal(recommendUnresolvedOpponent({ match_rows: 25 }, "no_candidate"), "external_candidate");
   assert.equal(recommendUnresolvedOpponent({ match_rows: 2 }, "no_candidate"), "ignore_low_frequency");
   assert.equal(recommendUnresolvedOpponent({ match_rows: 1 }, "ambiguous_candidate"), "manual_disambiguation_needed");
+});
+
+runTest("recommended action helpers summarize and group review rows without creating registry data", () => {
+  const rows = [
+    { opponent_name: "a", recommended_action: "external_candidate" },
+    { opponent_name: "b", recommended_action: "external_candidate" },
+    { opponent_name: "c", recommended_action: "ignore_low_frequency" },
+  ];
+
+  assert.deepEqual(summarizeRecommendedActions(rows), {
+    external_candidate: 2,
+    ignore_low_frequency: 1,
+  });
+  assert.deepEqual(Object.keys(groupTopUnresolvedByAction(rows, 1)).sort(), [
+    "external_candidate",
+    "ignore_low_frequency",
+  ]);
+  assert.deepEqual(groupTopUnresolvedByAction(rows, 1).external_candidate.map((row) => row.opponent_name), ["a"]);
 });
