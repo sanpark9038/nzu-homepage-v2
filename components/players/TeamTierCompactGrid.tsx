@@ -2,6 +2,7 @@ import { getUniversityLabel } from "@/lib/university-config";
 import type { Player } from "@/types";
 
 import { TierPlayerCard } from "./TierPlayerCard";
+import { TIER_PLAYER_GRID_CLASS } from "./tier-grid-layout";
 
 type TeamTierCompactGridProps = {
   players: Player[];
@@ -24,13 +25,9 @@ export function TeamTierCompactGrid({ players, selectedUniversity }: TeamTierCom
         </div>
       </div>
 
-      <div className="grid grid-cols-1 justify-items-center gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+      <div className={TIER_PLAYER_GRID_CLASS}>
         {players.map((player) => (
-          <TierPlayerCard
-            key={player.id}
-            player={player}
-            className="max-w-56"
-          />
+          <TierPlayerCard key={player.id} player={player} />
         ))}
       </div>
     </section>

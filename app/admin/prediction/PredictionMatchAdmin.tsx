@@ -41,6 +41,7 @@ type StatusFilter = "all" | "draft" | "open" | "closed" | "result";
 
 const DEFAULT_MATCH_OFFSET_DAYS = 1;
 const PLAYER_SEARCH_RESULT_LIMIT = 8;
+const FORCE_DELETE_CONFIRMATION = "투표 포함 삭제";
 
 function normalizeText(value: unknown) {
   return String(value || "").trim();
@@ -132,6 +133,7 @@ function createEmptyMatch(type: MatchType, index: number): PredictionConfigMatch
     entry_order_status: "unknown",
     entry_matchups: [],
     start_at: startAt,
+    start_time_tbd: false,
     close_at: closeAtForStart(startAt),
     status: "draft",
     result_team_code: null,
@@ -150,6 +152,7 @@ function normalizeClientMatch(match: PredictionConfigMatch, index: number): Pred
     team_mode: type === "individual" ? "direct" : normalizeTeamMode(match.team_mode),
     title: normalizeText(match.title) || (type === "team" ? "새 팀전 예측" : "새 개인전 예측"),
     start_at: startAt,
+    start_time_tbd: match.start_time_tbd === true,
     close_at: normalizeText(match.close_at) || closeAtForStart(startAt),
     status: normalizeText(match.status) || "draft",
     team_a_player_ids: normalizePlayerSlots(match.team_a_player_ids),
@@ -586,6 +589,8 @@ export function PredictionMatchAdmin({
     () => paginatePredictionVoterRows(filteredVoterRows, currentVoterPage, voterPageSize),
     [currentVoterPage, filteredVoterRows]
   );
+  const getMatchVoteCount = (matchId?: string | null) =>
+    votes.filter((vote) => vote.match_id === matchId).length;
 
   const updateMatchById = (matchId: string, patch: Partial<PredictionConfigMatch>) => {
     setMatches((current) =>
@@ -734,7 +739,7 @@ export function PredictionMatchAdmin({
         setSelectedId(selectedMatch?.id || next[0]?.id || null);
       }
       if (Array.isArray(json.votes)) setVotes(json.votes);
-      setStatus({ type: "success", message: "예측 설정을 저장했습니다." });
+      setStatus({ type: "success", message: "승부예측이 등록되었습니다. 공개 페이지에서 바로 확인할 수 있습니다." });
     } catch (err) {
       const message = err instanceof Error ? err.message : "예측 저장에 실패했습니다.";
       setStatus({
@@ -790,6 +795,67 @@ export function PredictionMatchAdmin({
         message:
           message === "prediction_delete_has_votes"
             ? "이미 투표가 있는 예측은 삭제할 수 없습니다. 숨기기를 사용해 주세요."
+            : message === "prediction_match_not_found"
+              ? "이미 삭제되었거나 찾을 수 없는 예측입니다."
+              : message,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteWithVotes = async (match: PredictionConfigMatch) => {
+    if (readOnly) {
+      setStatus({ type: "error", message: getAdminWriteDisabledMessage("prediction admin") });
+      return;
+    }
+    if (!match.id) return;
+
+    const title = match.title || "예측";
+    const voteCount = getMatchVoteCount(match.id);
+    const typed = window.prompt(
+      `${title} 예측과 연결된 투표 ${voteCount.toLocaleString("ko-KR")}개를 모두 삭제합니다.\n삭제 문구를 정확히 입력해야 진행됩니다: ${FORCE_DELETE_CONFIRMATION}`
+    );
+    if (typed !== FORCE_DELETE_CONFIRMATION) {
+      setStatus({ type: "error", message: "삭제 문구를 정확히 입력하지 않아 취소했습니다." });
+      return;
+    }
+
+    setIsSaving(true);
+    setStatus(null);
+    try {
+      const res = await fetch("/api/admin/prediction", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          match_id: match.id,
+          delete_votes: true,
+          confirm_text: FORCE_DELETE_CONFIRMATION,
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        matches?: PredictionConfigMatch[];
+        votes?: PredictionVoteRow[];
+        message?: string;
+      };
+      if (!res.ok || json.ok === false) {
+        throw new Error(json.message || "예측과 투표 삭제에 실패했습니다.");
+      }
+      const nextMatches = Array.isArray(json.matches)
+        ? json.matches.map((row, index) => normalizeClientMatch(row, index))
+        : matches.filter((row) => row.id !== match.id);
+      setMatches(nextMatches);
+      if (Array.isArray(json.votes)) setVotes(json.votes);
+      setSelectedId((current) => (current === match.id ? nextMatches[0]?.id || null : current));
+      setStatus({ type: "success", message: "예측과 연결된 투표를 완전히 삭제했습니다." });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "예측과 투표 삭제에 실패했습니다.";
+      setStatus({
+        type: "error",
+        message:
+          message === "prediction_force_delete_confirmation_required"
+            ? "삭제 문구를 정확히 입력해야 합니다."
             : message === "prediction_match_not_found"
               ? "이미 삭제되었거나 찾을 수 없는 예측입니다."
               : message,
@@ -947,6 +1013,11 @@ export function PredictionMatchAdmin({
           )}
         >
           {status.message}
+          {status.type === "success" && status.message.includes("승부예측이 등록되었습니다") ? (
+            <a href="/prediction" className="ml-3 inline-flex text-white underline underline-offset-4">
+              승부예측 페이지 보기
+            </a>
+          ) : null}
         </div>
       ) : null}
 
@@ -1121,6 +1192,15 @@ export function PredictionMatchAdmin({
                     }}
                     className="h-12 w-full rounded-lg border border-white/10 bg-black/35 px-3 text-white outline-none [color-scheme:dark] focus:border-nzu-green/45"
                   />
+                  <span className="mt-2 flex items-center gap-2 text-xs font-black text-white/60">
+                    <input
+                      type="checkbox"
+                      checked={selectedMatch.start_time_tbd === true}
+                      onChange={(event) => updateSelected({ start_time_tbd: event.target.checked })}
+                      className="size-4 accent-nzu-green"
+                    />
+                    경기 시간 미정
+                  </span>
                 </label>
                 <label>
                   <span className="mb-1 block text-sm font-black text-white/65">투표 마감</span>
@@ -1412,6 +1492,15 @@ export function PredictionMatchAdmin({
             >
               <Trash2 className="mr-2 inline-block" size={16} />
               완전 삭제
+            </button>
+            <button
+              type="button"
+              disabled={readOnly || isSaving}
+              onClick={() => void handleDeleteWithVotes(selectedMatch)}
+              className="mt-2 w-full rounded-lg border border-red-500/35 bg-red-600/15 px-4 py-3 text-sm font-black text-red-100 disabled:opacity-45"
+            >
+              <Trash2 className="mr-2 inline-block" size={16} />
+              투표 포함 완전 삭제
             </button>
           </aside>
         </section>

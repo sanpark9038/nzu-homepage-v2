@@ -70,24 +70,33 @@
   --sidebar-width: 256px;
 
   /* Force Dark Mode (Premium Deep Green/Black) as default */
-  --background: #0C1214; /* 차콜-티얼 계열의 전역 다크 배경 */
+  --background: #10171c; /* readable charcoal dark background */
   --foreground: #E8F0EA;
-  --card: #141B1E;
+  --card: #151e24;
   --card-foreground: #E8F0EA;
-  --popover: #141B1E;
+  --popover: #151e24;
   --popover-foreground: #E8F0EA;
   --primary: #00A86B;
   --primary-foreground: #FFFFFF;
-  --secondary: #182126;
+  --secondary: #19242b;
   --secondary-foreground: #AAC3B5;
-  --muted: #151D21;
+  --muted: #19242b;
   --muted-foreground: #769185;
-  --accent: #1A2529;
+  --accent: #1d2930;
   --accent-foreground: #C7DED2;
   --border: #243238;
-  --input: #182126;
+  --input: #19242b;
   --ring: #00A86B;
   --radius: 0.75rem;
+
+  --hosaga-text-label: 0.8125rem;
+  --hosaga-text-body: 1rem;
+  --hosaga-text-value: 1.0625rem;
+  --hosaga-text-title: 1.25rem;
+  --hosaga-surface: #151e24;
+  --hosaga-surface-subtle: #19242b;
+  --hosaga-surface-raised: #1d2930;
+  --hosaga-border-subtle: rgba(255, 255, 255, 0.1);
 
   /* === HOSAGA 브랜드 컬러 (Common) === */
   --nzu-green:       #00A86B;
@@ -123,6 +132,7 @@
     color: var(--foreground);
     line-height: 1.6;
     font-family: var(--font-pretendard);
+    font-size: var(--hosaga-text-body);
   }
 
   #main-scroll-container {
@@ -148,6 +158,45 @@
 
 /* === HOSAGA 유틸리티 === */
 @layer utilities {
+  .ui-surface {
+    background-color: var(--hosaga-surface);
+    border-color: var(--hosaga-border-subtle);
+  }
+
+  .ui-subtle-surface {
+    background-color: var(--hosaga-surface-subtle);
+    border-color: var(--hosaga-border-subtle);
+  }
+
+  .ui-label {
+    font-size: var(--hosaga-text-label);
+    line-height: 1.35;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    color: rgba(232, 240, 234, 0.62);
+  }
+
+  .ui-copy {
+    font-size: var(--hosaga-text-body);
+    line-height: 1.65;
+    font-weight: 700;
+    color: rgba(232, 240, 234, 0.72);
+  }
+
+  .ui-value {
+    font-size: var(--hosaga-text-value);
+    line-height: 1.25;
+    font-weight: 950;
+    color: var(--foreground);
+  }
+
+  .ui-card-title {
+    font-size: var(--hosaga-text-title);
+    line-height: 1.25;
+    font-weight: 950;
+    color: var(--foreground);
+  }
+
   /* 그린 텍스트 */
   .text-nzu-green  { color: var(--nzu-green); }
   .text-nzu-gold   { color: var(--nzu-gold); }

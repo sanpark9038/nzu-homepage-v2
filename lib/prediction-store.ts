@@ -37,6 +37,7 @@ export type PredictionConfigMatch = {
   entry_order_status?: PredictionEntryOrderStatus | string;
   entry_matchups?: PredictionEntryMatchupConfig[];
   start_at?: string;
+  start_time_tbd?: boolean;
   close_at?: string;
   title?: string;
   status?: PredictionStoredStatus | string;
@@ -282,6 +283,20 @@ export function assertPredictionMatchCanBeDeleted(
   return true;
 }
 
+export function removePredictionMatchAndVotes(
+  state: Pick<PredictionState, "matches" | "votes">,
+  matchId: string
+) {
+  const normalizedMatchId = normalizeText(matchId);
+  if (!state.matches.some((match) => normalizeText(match.id) === normalizedMatchId)) {
+    throw new Error("prediction_match_not_found");
+  }
+  return {
+    matches: state.matches.filter((match) => normalizeText(match.id) !== normalizedMatchId),
+    votes: state.votes.filter((vote) => normalizeText(vote.match_id) !== normalizedMatchId),
+  };
+}
+
 export function getPredictionMyVotes(votes: PredictionVoteRow[], voterId: string) {
   const normalizedVoterId = normalizeText(voterId);
   if (!normalizedVoterId) return {};
@@ -352,6 +367,7 @@ function normalizeMatchConfig(match: PredictionConfigMatch, index: number): Pred
     entry_order_status: normalizeEntryOrderStatus(match.entry_order_status),
     entry_matchups: normalizeEntryMatchups(match.entry_matchups),
     start_at: startAt,
+    start_time_tbd: match.start_time_tbd === true,
     close_at: normalizeText(match.close_at) || defaultCloseAt(startAt),
     title,
     status: normalizeStoredStatus(match.status),
@@ -378,6 +394,7 @@ function remoteMatchToConfig(row: PredictionMatchRow): PredictionConfigMatch {
     entry_order_status: normalizeEntryOrderStatus(row.entry_order_status),
     entry_matchups: normalizeEntryMatchups(row.entry_matchups),
     start_at: row.start_at,
+    start_time_tbd: row.start_time_tbd,
     close_at: row.close_at,
     title: row.title,
     status: normalizeStoredStatus(row.status),
@@ -469,6 +486,7 @@ function matchToRemoteRow(match: PredictionConfigMatch, index: number): Predicti
     entry_order_status: normalizeEntryOrderStatus(normalized.entry_order_status),
     entry_matchups: normalizeEntryMatchups(normalized.entry_matchups),
     start_at: normalizeText(normalized.start_at) || new Date().toISOString(),
+    start_time_tbd: normalized.start_time_tbd === true,
     close_at: normalizeText(normalized.close_at) || defaultCloseAt(normalized.start_at || ""),
     status: normalizeStoredStatus(normalized.status),
     result_team_code: normalizeNullableText(normalized.result_team_code),
@@ -513,6 +531,13 @@ function deleteLocalPredictionMatch(matchId: string) {
   );
 }
 
+function deleteLocalPredictionMatchWithVotes(matchId: string) {
+  const state = readLocalPredictionState();
+  const next = removePredictionMatchAndVotes(state, matchId);
+  writePredictionMatches(next.matches);
+  writePredictionVotes(next.votes);
+}
+
 async function deleteRemotePredictionMatch(matchId: string) {
   const normalizedMatchId = normalizeText(matchId);
   const supabase = createSupabaseAdminClient();
@@ -544,6 +569,33 @@ async function deleteRemotePredictionMatch(matchId: string) {
   if (error) throw error;
 }
 
+async function deleteRemotePredictionMatchWithVotes(matchId: string) {
+  const normalizedMatchId = normalizeText(matchId);
+  const supabase = createSupabaseAdminClient();
+
+  const { data: matches, error: matchError } = await supabase
+    .from("prediction_matches")
+    .select("id")
+    .eq("id", normalizedMatchId)
+    .limit(1);
+  if (matchError) throw matchError;
+  if (!Array.isArray(matches) || matches.length === 0) {
+    throw new Error("prediction_match_not_found");
+  }
+
+  const { error: voteDeleteError } = await supabase
+    .from("prediction_votes")
+    .delete()
+    .eq("match_id", normalizedMatchId);
+  if (voteDeleteError) throw voteDeleteError;
+
+  const { error } = await supabase
+    .from("prediction_matches")
+    .delete()
+    .eq("id", normalizedMatchId);
+  if (error) throw error;
+}
+
 export async function deletePredictionMatch(matchId: string) {
   assertPredictionWriteAllowed();
   if (hasPredictionRemoteEnv()) {
@@ -551,6 +603,15 @@ export async function deletePredictionMatch(matchId: string) {
     return;
   }
   deleteLocalPredictionMatch(matchId);
+}
+
+export async function deletePredictionMatchWithVotes(matchId: string) {
+  assertPredictionWriteAllowed();
+  if (hasPredictionRemoteEnv()) {
+    await deleteRemotePredictionMatchWithVotes(matchId);
+    return;
+  }
+  deleteLocalPredictionMatchWithVotes(matchId);
 }
 
 export function derivePredictionMatchStatus(

@@ -56,7 +56,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
         )}
       >
         {isLive ? (
-          <span className="pointer-events-none absolute right-2 top-2 z-20 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white">
+          <span className="ui-label pointer-events-none absolute right-2 top-2 z-20 rounded-full bg-red-600 px-2 py-0.5 text-white">
             LIVE
           </span>
         ) : null}
@@ -67,7 +67,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
             className="absolute left-3 top-3 h-[4.75rem] w-[4.75rem] overflow-hidden rounded-xl border border-white/10 bg-muted/30"
             aria-label={`${player.name} profile`}
           >
-            <span className="absolute inset-0 flex items-center justify-center text-lg font-black text-white/45">
+            <span className="ui-value absolute inset-0 flex items-center justify-center text-white/45">
               {player.name.slice(0, 1)}
             </span>
             <Image
@@ -83,7 +83,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
           <div className="pl-[5.25rem]">
             <Link
               href={buildPlayerHref(player)}
-              className="block min-w-0 truncate text-[1.16rem] font-black leading-tight tracking-tight text-foreground transition-colors hover:text-nzu-green"
+              className="ui-card-title block min-w-0 truncate tracking-tight transition-colors hover:text-nzu-green"
               aria-label={`${player.name} 전적 보기`}
             >
               {player.name}
@@ -96,7 +96,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
           </div>
 
           <div className="overflow-hidden">
-            <span className="block truncate rounded-full border border-white/10 bg-black/15 px-2.5 py-1.5 text-center text-[10px] font-[1000] tracking-tight text-white/72">
+            <span className="ui-label block truncate rounded-full border border-white/10 bg-black/15 px-2.5 py-1.5 text-center text-white/72">
               {universityLabel}
             </span>
           </div>
@@ -104,7 +104,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
           <div className="mt-auto flex flex-col gap-2">
             <Link
               href={buildPlayerHref(player)}
-              className="rounded-xl border border-nzu-green/45 bg-nzu-green/90 py-2 text-center text-[11px] font-black tracking-tight text-black transition-colors hover:border-white hover:bg-white"
+              className="ui-label rounded-xl border border-nzu-green/45 bg-nzu-green/90 py-2 text-center text-black transition-colors hover:border-white hover:bg-white"
             >
               전적 보기
             </Link>

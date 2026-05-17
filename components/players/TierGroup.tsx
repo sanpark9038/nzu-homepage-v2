@@ -2,6 +2,7 @@ import { cn, normalizeRace } from "@/lib/utils";
 import type { Player } from "@/types";
 
 import { TierPlayerCard } from "./TierPlayerCard";
+import { TIER_PLAYER_GRID_CLASS } from "./tier-grid-layout";
 
 type TierGroupProps = {
   rankName: string;
@@ -34,7 +35,7 @@ export function TierGroup({ rankName, players, showRaceGroups, emptyMessage }: T
           <p className="text-xs font-bold tracking-widest text-foreground/20">{emptyMessage}</p>
         </div>
       ) : !showRaceGroups ? (
-        <div className="grid grid-cols-1 justify-items-center gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
+        <div className={TIER_PLAYER_GRID_CLASS}>
           {players.map((player) => (
             <TierPlayerCard key={player.id} player={player} />
           ))}
@@ -63,7 +64,7 @@ export function TierGroup({ rankName, players, showRaceGroups, emptyMessage }: T
                 </div>
 
                 {racePlayers.length > 0 ? (
-                  <div className="grid grid-cols-1 justify-items-center gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
+                  <div className={TIER_PLAYER_GRID_CLASS}>
                     {racePlayers.map((player) => (
                       <TierPlayerCard key={player.id} player={player} />
                     ))}

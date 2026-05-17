@@ -19,7 +19,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-full bg-background text-foreground">
       <main>
-        <section className="group relative isolate h-[calc(100svh-4rem)] min-h-[560px] w-full overflow-hidden">
+        <section className="group relative isolate h-[100svh] min-h-[560px] w-full overflow-hidden">
           {heroMediaType === "video" ? (
             <video
               key={heroMediaUrl}
@@ -67,16 +67,16 @@ export default async function HomePage() {
 
               <div className="relative -left-[2rem] top-3 mt-8 flex translate-y-2 flex-col gap-3 opacity-[0.03] transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 sm:flex-row md:-left-[9.5rem] md:top-5 lg:-left-[20rem] lg:top-7">
                 <Link
-                  href="/entry"
+                  href="/prediction"
                   className="inline-flex min-h-12 items-center justify-center rounded-full bg-nzu-green px-6 text-sm font-black tracking-tight text-black transition-transform duration-200 hover:-translate-y-0.5"
                 >
-                  엔트리 바로 시작
+                  승부예측
                 </Link>
                 <Link
-                  href="/teams"
+                  href="/schedule"
                   className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/16 bg-black/24 px-6 text-sm font-black tracking-tight text-white backdrop-blur-md transition-colors duration-200 hover:border-white/28 hover:bg-black/36"
                 >
-                  참가팀 확인
+                  일정
                 </Link>
               </div>
             </div>

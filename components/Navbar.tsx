@@ -14,6 +14,7 @@ type NavbarSession = Pick<PublicAuthSession, "avatarUrl" | "displayName" | "prov
 export default function Navbar() {
   const pathname = usePathname();
   const [session, setSession] = useState<NavbarSession | null>(null);
+  const isHome = pathname === "/";
 
   useEffect(() => {
     let active = true;
@@ -33,7 +34,12 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-[100] w-full border-b border-white/5 bg-background/60 backdrop-blur-3xl transition-all duration-300">
+    <header
+      className={cn(
+        "z-[100] w-full border-b border-white/8 backdrop-blur-2xl transition-all duration-300",
+        isHome ? "fixed top-0 bg-background/18" : "sticky top-0 bg-background/72"
+      )}
+    >
       <div className="flex h-16 w-full items-center justify-between gap-4 px-4 lg:gap-8 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center group">
           <span className="text-xl font-black tracking-tighter text-white transition-colors duration-300 group-hover:text-nzu-green">
@@ -51,17 +57,17 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative flex items-center gap-2 rounded-full px-6 py-2 text-[14px] font-black tracking-tight transition-all duration-300",
+                  "ui-label relative flex min-h-[40px] items-center gap-2 rounded-full px-5 py-2 tracking-tight transition-all duration-300",
                   isActive
-                    ? "bg-nzu-green/10 text-nzu-green"
-                    : "text-foreground/40 hover:bg-white/5 hover:text-foreground"
+                    ? "bg-nzu-green/16 text-nzu-green shadow-[0_0_0_1px_rgba(0,168,107,0.12)]"
+                    : "text-foreground/56 hover:bg-white/7 hover:text-foreground"
                 )}
               >
                 {item.label}
                 {showTierLiveBadge ? (
                   <span
                     className={cn(
-                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em]",
+                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[0.6875rem] font-black uppercase tracking-[0.18em]",
                       isActive
                         ? "border-red-400/50 bg-red-500/18 text-red-200"
                         : "border-red-400/30 bg-red-500/12 text-red-300"
@@ -75,11 +81,11 @@ export default function Navbar() {
           })}
         </nav>
 
-        <div className="flex items-center gap-2 text-foreground/40 lg:gap-4">
+        <div className="flex items-center gap-2 text-foreground/56 lg:gap-4">
           <div className="mx-2 hidden h-6 w-[1px] bg-white/10 lg:block" />
           {session ? (
             <div className="flex items-center gap-2">
-              <div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-black text-foreground md:flex">
+              <div className="ui-label hidden min-h-[40px] items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-foreground md:flex">
                 <User size={18} />
                 <span className="max-w-[160px] truncate" title={session.displayName}>
                   {session.displayName}
@@ -87,7 +93,7 @@ export default function Navbar() {
               </div>
               <a
                 href="/api/auth/soop/logout"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-black text-foreground transition-all hover:bg-white/5 lg:px-4"
+                className="ui-label flex min-h-[40px] items-center gap-2 rounded-full px-3 py-2 text-foreground transition-all hover:bg-white/7 lg:px-4"
               >
                 <LogOut size={18} />
                 <span>LOGOUT</span>
@@ -96,13 +102,16 @@ export default function Navbar() {
           ) : (
             <a
               href="/api/auth/soop/start?next=/board"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-black text-foreground transition-all hover:bg-white/5 lg:px-4"
+              className="ui-label flex min-h-[40px] items-center gap-2 rounded-full px-3 py-2 text-foreground transition-all hover:bg-white/7 lg:px-4"
             >
               <User size={18} />
               <span>LOGIN</span>
             </a>
           )}
-          <button type="button" className="rounded-lg p-2 transition-all hover:bg-white/5 hover:text-foreground">
+          <button
+            type="button"
+            className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full transition-all hover:bg-white/7 hover:text-foreground"
+          >
             <Grid size={20} />
           </button>
         </div>

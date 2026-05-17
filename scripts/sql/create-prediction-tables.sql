@@ -17,6 +17,7 @@ create table if not exists public.prediction_matches (
     check (entry_order_status in ('unknown', 'confirmed')),
   entry_matchups jsonb not null default '[]'::jsonb,
   start_at timestamptz not null,
+  start_time_tbd boolean not null default false,
   close_at timestamptz not null,
   status text not null default 'open'
     check (status in ('draft', 'open', 'closed', 'archived')),
@@ -51,6 +52,9 @@ alter table public.prediction_matches
 
 alter table public.prediction_matches
   add column if not exists entry_matchups jsonb not null default '[]'::jsonb;
+
+alter table public.prediction_matches
+  add column if not exists start_time_tbd boolean not null default false;
 
 create table if not exists public.prediction_votes (
   id uuid primary key default gen_random_uuid(),

@@ -21,7 +21,7 @@ export function TierQuickH2HButton({ player, className }: TierQuickH2HButtonProp
       data-player-tier={player.tier}
       data-player-university={player.university || ""}
       className={cn(
-        "group/h2h flex w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-foreground/5 py-3 text-[12px] font-[900] tracking-tight text-foreground/80 shadow-lg shadow-black/5 transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95",
+        "ui-label group/h2h flex w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-foreground/5 py-3 text-foreground/80 shadow-lg shadow-black/5 transition-all hover:bg-foreground/10 hover:text-foreground active:scale-95",
         className
       )}
     >

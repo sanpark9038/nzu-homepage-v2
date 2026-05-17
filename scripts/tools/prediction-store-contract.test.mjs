@@ -335,6 +335,44 @@ test("prediction matches can be physically deleted only when no votes exist", ()
   );
 });
 
+test("force deleting a prediction match removes only that match and its votes", () => {
+  const state = {
+    matches: [
+      { id: "match-keep", team_a_code: "team-a", team_b_code: "team-b" },
+      { id: "match-test", team_a_code: "team-a", team_b_code: "team-b" },
+    ],
+    votes: [
+      {
+        voter_id: "soop:user-1",
+        match_id: "match-test",
+        picked_team_code: "team-a",
+        updated_at: "2026-05-05T11:00:00.000Z",
+      },
+      {
+        voter_id: "soop:user-2",
+        match_id: "match-keep",
+        picked_team_code: "team-b",
+        updated_at: "2026-05-05T11:05:00.000Z",
+      },
+    ],
+  };
+
+  const next = predictionStore.removePredictionMatchAndVotes(state, "match-test");
+
+  assert.deepEqual(
+    next.matches.map((match) => match.id),
+    ["match-keep"]
+  );
+  assert.deepEqual(
+    next.votes.map((vote) => vote.match_id),
+    ["match-keep"]
+  );
+  assert.throws(
+    () => predictionStore.removePredictionMatchAndVotes(state, "missing-match"),
+    /prediction_match_not_found/
+  );
+});
+
 test("derivePredictionMatchStatus handles open, warning, closed, and published states", () => {
   const now = new Date("2026-05-05T12:00:00.000Z");
 
@@ -744,6 +782,37 @@ test("buildTournamentPredictionMatches supports individual winner predictions", 
   assert.equal(matches[0].teamA.teamName, "김지성");
   assert.equal(matches[0].teamB.teamName, "박하악");
   assert.deepEqual(matches[0].entryMatchups, []);
+});
+
+test("prediction match snapshots preserve a start time TBD flag", () => {
+  const playerA = makePredictionPlayer({
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "Player A",
+  });
+  const playerB = makePredictionPlayer({
+    id: "22222222-2222-4222-8222-222222222222",
+    name: "Player B",
+  });
+
+  const [match] = tournamentPrediction.buildTournamentPredictionMatches([playerA, playerB], {
+    matches: [
+      {
+        id: "33333333-3333-4333-8333-333333333333",
+        match_type: "individual",
+        team_a_player_ids: [playerA.id],
+        team_b_player_ids: [playerB.id],
+        team_a_code: `player:${playerA.id}`,
+        team_b_code: `player:${playerB.id}`,
+        start_at: "2026-05-24T11:00:00.000Z",
+        close_at: "2026-05-24T10:30:00.000Z",
+        status: "open",
+        start_time_tbd: true,
+      },
+    ],
+    votes: [],
+  });
+
+  assert.equal(match.startTimeTbd, true);
 });
 
 test("prediction writes fail closed on Vercel without Supabase admin env", () => {

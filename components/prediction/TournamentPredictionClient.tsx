@@ -32,6 +32,7 @@ type PredictionMatch = {
   teamMode: "existing" | "direct";
   title: string;
   startAt: string;
+  startTimeTbd?: boolean;
   lockAt: string;
   status: "draft" | "open" | "closing_soon" | "closed" | "result_published" | "archived";
   resultTeamCode: string | null;
@@ -68,21 +69,21 @@ function formatRemaining(lockAt: string, nowMs: number) {
   const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
   const minutes = totalMinutes % 60;
 
-  if (days > 0) return `${days}일 ${hours}시간`;
-  if (hours > 0) return `${hours}시간 ${minutes}분`;
-  return `${minutes}분`;
+  if (days > 0) return String(days) + "일 " + String(hours) + "시간";
+  if (hours > 0) return String(hours) + "시간 " + String(minutes) + "분";
+  return String(minutes) + "분";
 }
 
 function formatMatchStatus(match: PredictionMatch, nowMs: number | null) {
   if (match.status === "result_published") return "결과 공개";
   if (match.status === "closed") return "마감";
   if (nowMs === null) return match.status === "closing_soon" ? "마감 임박" : "투표 중";
-  if (match.status === "closing_soon") return `마감 임박 ${formatRemaining(match.lockAt, nowMs)}`;
+  if (match.status === "closing_soon") return "마감 임박 " + formatRemaining(match.lockAt, nowMs);
   if (match.status === "draft") return "준비 중";
-  return `마감까지 ${formatRemaining(match.lockAt, nowMs)}`;
+  return "투표 중";
 }
 
-function formatDateLabel(startAt: string) {
+function formatDateTimeLabel(value: string) {
   return new Intl.DateTimeFormat("ko-KR", {
     month: "2-digit",
     day: "2-digit",
@@ -91,7 +92,24 @@ function formatDateLabel(startAt: string) {
     minute: "2-digit",
     hour12: false,
     timeZone: "Asia/Seoul",
-  }).format(new Date(startAt));
+  }).format(new Date(value));
+}
+
+function formatDateOnlyLabel(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+    timeZone: "Asia/Seoul",
+  }).format(new Date(value));
+}
+
+function formatStartLabel(match: PredictionMatch) {
+  return match.startTimeTbd ? `${formatDateOnlyLabel(match.startAt)} 시간 미정` : formatDateTimeLabel(match.startAt);
+}
+
+function formatDeadlineLabel(lockAt: string) {
+  return formatDateTimeLabel(lockAt);
 }
 
 function formatPercent(part: number, total: number) {
@@ -119,7 +137,7 @@ function MatchTypeBadge({ type }: { type: PredictionMatch["matchType"] }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs font-black",
+        "ui-label inline-flex items-center justify-center rounded-full border px-2.5 py-0.5",
         type === "team"
           ? "border-violet-300/45 bg-violet-500/15 text-violet-100"
           : "border-cyan-300/45 bg-cyan-500/15 text-cyan-100"
@@ -127,6 +145,23 @@ function MatchTypeBadge({ type }: { type: PredictionMatch["matchType"] }) {
     >
       {type === "team" ? "팀전" : "개인전"}
     </span>
+  );
+}
+
+function MatchMetaItem({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="ui-subtle-surface flex min-h-[54px] items-center justify-between gap-3 border-white/8 px-4 py-2 md:border-r md:last:border-r-0">
+      <span className="ui-label uppercase">{label}</span>
+      <strong className={cn("ui-value", accent ? "text-nzu-green" : "")}>{value}</strong>
+    </div>
   );
 }
 
@@ -138,6 +173,19 @@ function PlayerLine({ player }: { player: MatchPlayer | null }) {
       <RaceLetterBadge race={player.race || "T"} size="sm" />
       <TierBadge tier={player.tier || "미정"} size="xs" />
     </span>
+  );
+}
+
+function IndividualMatchupLine({ match }: { match: PredictionMatch }) {
+  const leftPlayer = match.teamA.players[0] || null;
+  const rightPlayer = match.teamB.players[0] || null;
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center justify-center gap-2 text-sm font-bold text-white/72">
+      <PlayerLine player={leftPlayer} />
+      <span className="ui-label text-white/36">VS</span>
+      <PlayerLine player={rightPlayer} />
+    </div>
   );
 }
 
@@ -167,7 +215,7 @@ function PickButton({
       disabled={!canVote || busy}
       onClick={onPick}
       className={cn(
-        "flex min-h-[118px] flex-col items-center justify-center rounded-xl border px-4 py-4 text-center transition-all",
+        "flex min-h-[68px] flex-col items-center justify-center rounded-lg border px-3 py-2 text-center transition-all",
         winner
           ? "border-nzu-green/60 bg-nzu-green/14 text-white"
           : selected
@@ -177,8 +225,8 @@ function PickButton({
               : "border-white/10 bg-white/[0.04] text-white/85 hover:-translate-y-0.5 hover:border-nzu-green/40 hover:bg-white/[0.065]"
       )}
     >
-      <strong className="text-xl font-black leading-tight md:text-2xl">{team.teamName} 승리</strong>
-      <span className="mt-2 text-sm font-black text-white/72">
+      <strong className="ui-value leading-tight md:text-lg">{team.teamName} 승리</strong>
+      <span className="ui-label mt-1 text-white/72">
         {percent}% · {votes.toLocaleString("ko-KR")}표
       </span>
       {selected ? <span className="mt-1 text-xs font-black text-cyan-100">내 선택</span> : null}
@@ -375,7 +423,7 @@ export function TournamentPredictionClient({
       <section className="space-y-3" aria-hidden={pendingVote ? "true" : undefined}>
         {!session ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-white/62">
-            <span>{message || "로그인 후 승부예측에 참여할 수 있습니다. 투표율과 결과는 누구나 확인할 수 있습니다."}</span>
+            <span>{message || "로그인 후 승부예측에 참여할 수 있습니다. 투표 현황과 결과는 누구나 확인할 수 있습니다."}</span>
             <a
               href="/api/auth/soop/start?next=/prediction"
               className="rounded-lg bg-nzu-green px-4 py-2 text-xs font-black text-black transition hover:brightness-110"
@@ -406,20 +454,14 @@ export function TournamentPredictionClient({
           const entryMatchupPanelId = `entry-matchups-${match.id}`;
 
           return (
-            <article
-              key={match.id}
-              className="overflow-hidden rounded-xl border border-white/8 bg-[linear-gradient(180deg,rgba(9,18,19,0.94),rgba(6,10,11,0.9))] shadow-[0_18px_50px_rgba(0,0,0,0.16)]"
-            >
-              <div className="border-b border-white/8 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-black text-white/44">
-                  <span>{formatDateLabel(match.startAt)}</span>
-                  <span>
-                    총 {match.totalTeamVotes.toLocaleString("ko-KR")}표 · {formatMatchStatus(match, nowMs)}
-                  </span>
-                </div>
+            <article key={match.id} className="ui-surface overflow-hidden rounded-xl border border-white/8">
+              <div className="grid border-b border-white/8 md:grid-cols-3">
+                <MatchMetaItem label="경기 시작" value={formatStartLabel(match)} accent />
+                <MatchMetaItem label="마감" value={formatDeadlineLabel(match.lockAt)} />
+                <MatchMetaItem label="총 투표" value={`${match.totalTeamVotes.toLocaleString("ko-KR")}표`} />
               </div>
 
-              <div className="grid gap-3 p-4 lg:grid-cols-[minmax(0,1fr)_300px_minmax(0,1fr)] lg:items-stretch">
+              <div className="grid gap-2 p-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(260px,340px)_minmax(0,0.95fr)] lg:items-center">
                 <PickButton
                   team={match.teamA}
                   votes={leftVotes}
@@ -431,17 +473,17 @@ export function TournamentPredictionClient({
                   onPick={() => requestVoteConfirmation(match, match.teamA)}
                 />
 
-                <div className="flex min-h-[118px] flex-col items-center justify-center rounded-xl bg-black/12 px-4 py-4 text-center">
+                <div className="flex min-h-[88px] flex-col items-center justify-center rounded-xl bg-black/18 px-3 py-2 text-center">
                   <MatchTypeBadge type={match.matchType} />
-                  <h2 className="mt-3 text-xl font-black text-white">{match.title}</h2>
-                  <p className="mt-1 text-sm font-bold text-white/45">
-                    {match.matchType === "team"
-                      ? "최종 승리팀만 예측합니다."
-                      : `${match.teamA.teamName} vs ${match.teamB.teamName}`}
-                  </p>
+                  <h2 className="ui-card-title mt-2 leading-snug md:text-xl">{match.title}</h2>
+                  {match.matchType === "team" ? (
+                    <p className="mt-0.5 text-xs font-bold text-white/45">최종 승리팀만 예측합니다.</p>
+                  ) : (
+                    <IndividualMatchupLine match={match} />
+                  )}
                   <span
                     className={cn(
-                      "mt-3 rounded-full px-3 py-1 text-xs font-black",
+                      "ui-label mt-2 rounded-full px-2.5 py-0.5",
                       match.status === "closing_soon"
                         ? "bg-amber-400/15 text-amber-100"
                         : isVotingOpen(match)
@@ -486,7 +528,7 @@ export function TournamentPredictionClient({
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-center">
                     <div className="flex flex-wrap items-center justify-center gap-2 max-md:w-full">
                       <h3 className="text-sm font-black text-white">엔트리 매치업 안내</h3>
-                      <span className="rounded-full border border-white/12 bg-white/[0.045] px-2.5 py-1 text-[11px] font-black text-white/58">
+                      <span className="ui-label rounded-full border border-white/12 bg-white/[0.045] px-2.5 py-1 text-white/58">
                         {match.entryOrderStatus === "confirmed" ? "경기 순서 확정" : "경기 순서 미정"}
                       </span>
                     </div>

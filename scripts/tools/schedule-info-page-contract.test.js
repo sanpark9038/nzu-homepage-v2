@@ -55,6 +55,8 @@ test("schedule info list renders day week month controls with today as default",
   assert.match(source, /dayFilter/);
   assert.match(source, /useState<ViewMode>\("day"\)/);
   assert.match(source, /useState<DayFilter>\("today"\)/);
+  assert.doesNotMatch(source, /value:\s*"all"/);
+  assert.doesNotMatch(source, /dayFilter === "all"/);
   assert.match(source, /일별/);
   assert.match(source, /주별/);
   assert.match(source, /월별/);
@@ -86,7 +88,7 @@ test("schedule info list renders weekly and monthly calendar grids", () => {
   assert.match(source, /getUTCDay/);
   assert.match(source, /getUTCDate/);
   assert.match(source, /setUTCDate/);
-  assert.match(source, /dayFilter === "all"\) return scheduleDate >= todayKey/);
+  assert.doesNotMatch(source, /dayFilter === "all"\) return scheduleDate >= todayKey/);
   assert.match(source, /isCalendarRangeWithinBounds/);
   assert.match(source, /firstDateKey/);
   assert.match(source, /lastDateKey/);
@@ -112,14 +114,22 @@ test("schedule info list uses readable typography scale for controls and cards",
   const source = readProjectFile("components/schedule/ScheduleInfoList.tsx");
 
   assert.match(source, /schedule-readability-shell/);
+  assert.match(source, /schedule-filter-toolbar/);
+  assert.match(source, /schedule-view-segment/);
+  assert.match(source, /schedule-date-filter-bar/);
   assert.match(source, /schedule-control-button/);
   assert.match(source, /schedule-filter-button/);
   assert.match(source, /schedule-date-pill/);
   assert.match(source, /schedule-info-card/);
+  assert.match(source, /schedule-card-meta-badge/);
   assert.match(source, /schedule-card-title/);
   assert.match(source, /schedule-card-body/);
+  assert.doesNotMatch(source, /grid-cols-\[5\.75rem_minmax\(0,1fr\)_auto\]/);
+  assert.doesNotMatch(source, /min-h-\[4\.75rem\] w-\[5\.25rem\]/);
   assert.match(source, /text-base md:text-lg/);
-  assert.match(source, /min-h-12/);
+  assert.match(source, /rounded-full border border-white\/10 bg-white\/\[0\.035\] p-1/);
+  assert.match(source, /bg-nzu-green px-5 text-base font-black text-black/);
+  assert.match(source, /bg-white\/\[0\.04\] px-4 text-sm font-black text-white\/74/);
   assert.match(source, /text-lg font-black leading-7 md:text-xl/);
   assert.match(source, /text-base font-medium leading-8/);
 });

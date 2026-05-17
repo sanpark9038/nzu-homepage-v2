@@ -214,6 +214,7 @@ export type Database = {
           result_published_at: string | null
           result_team_code: string | null
           start_at: string
+          start_time_tbd: boolean
           status: string
           team_a_code: string
           team_a_name: string | null
@@ -237,6 +238,7 @@ export type Database = {
           result_published_at?: string | null
           result_team_code?: string | null
           start_at: string
+          start_time_tbd?: boolean
           status?: string
           team_a_code: string
           team_a_name?: string | null
@@ -260,6 +262,7 @@ export type Database = {
           result_published_at?: string | null
           result_team_code?: string | null
           start_at?: string
+          start_time_tbd?: boolean
           status?: string
           team_a_code?: string
           team_a_name?: string | null

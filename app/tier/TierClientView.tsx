@@ -9,6 +9,7 @@ import { LiveToggle, PlayerSearch, RaceToggle, SmartStickyHeader, UnivFilter } f
 import { TeamTierCompactGrid } from "@/components/players/TeamTierCompactGrid";
 import { TierGroup } from "@/components/players/TierGroup";
 import { TierLiveHoverPreviewLayer } from "@/components/players/TierLiveHoverPreview";
+import { TIER_PLAYER_GRID_CLASS } from "@/components/players/tier-grid-layout";
 import type { UniversityMetadataEntry } from "@/lib/university-metadata";
 import {
   NAMED_TIER_LABELS,
@@ -69,7 +70,7 @@ function readBrowserQueryString(fallback: string) {
 
 function TierGridSkeleton() {
   return (
-    <div className="grid grid-cols-1 justify-items-center gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7">
+    <div className={TIER_PLAYER_GRID_CLASS}>
       {Array.from({ length: 18 }).map((_, index) => (
         <div
           key={index}

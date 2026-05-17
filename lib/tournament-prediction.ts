@@ -72,6 +72,7 @@ export type PredictionMatchSnapshot = {
   teamMode: "existing" | "direct";
   title: string;
   startAt: string;
+  startTimeTbd: boolean;
   lockAt: string;
   status: PredictionDerivedStatus;
   resultTeamCode: string | null;
@@ -300,6 +301,7 @@ export function buildTournamentPredictionMatches(
       teamMode,
       title: String(match.title || `${teamA.teamName} vs ${teamB.teamName}`),
       startAt,
+      startTimeTbd: match.start_time_tbd === true,
       lockAt,
       status,
       resultTeamCode: String(match.result_team_code || "").trim() || null,
