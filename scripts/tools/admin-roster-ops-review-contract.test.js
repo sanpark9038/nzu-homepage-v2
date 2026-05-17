@@ -19,34 +19,96 @@ function test(name, fn) {
   }
 }
 
-test("ops review helper exposes read-only grouped review data", () => {
+test("ops review helper exposes grouped approval queue data and decision filtering", () => {
   const source = readProjectFile("lib/admin-roster-ops-review.ts");
   assert.match(source, /export async function buildRosterOpsReview/);
-  assert.match(source, /data", "metadata", "projects"/);
+  assert.match(source, /buildRosterChangeItems/);
+  assert.match(source, /readRosterReviewDecisions/);
+  assert.match(source, /rosterReviewDecisionKey/);
+  assert.match(source, /affiliation_change/);
+  assert.match(source, /tier_change/);
+  assert.match(source, /new_candidate/);
   assert.match(source, /missing_soop_ids/);
   assert.match(source, /zero_record_players/);
-  assert.match(source, /roster_change_review/);
-  assert.match(source, /excluded_players/);
-  assert.match(source, /new_player_candidates/);
-  assert.doesNotMatch(source, /scripts[/\\]", "player_metadata\.json"|player_metadata\.json|players\.master\.v1\.json/);
   assert.doesNotMatch(source, /writeFileSync|rmSync|saveRemoteRosterAdminCorrection/);
 });
 
-test("admin ops review API returns buildRosterOpsReview result", () => {
+test("ops review decision store persists operator exclusions", () => {
+  const source = readProjectFile("lib/roster-review-decisions.ts");
+  assert.match(source, /ROSTER_REVIEW_DECISIONS_PATH/);
+  assert.match(source, /roster_review_decisions\.v1\.json/);
+  assert.match(source, /saveExcludedRosterReviewDecision/);
+  assert.match(source, /decision: "excluded"/);
+  assert.match(source, /operator_excluded/);
+});
+
+test("zero-record review does not expand a team-level alert to every team member", () => {
+  const source = readProjectFile("lib/admin-roster-ops-review.ts");
+  assert.match(source, /extractZeroRecordAlertNames/);
+  assert.match(source, /namesFromMessage/);
+  assert.doesNotMatch(source, /teamPlayers = players\.filter/);
+});
+
+test("admin ops review API is admin-only and read-only", () => {
   const source = readProjectFile("app/api/admin/roster/ops-review/route.ts");
   assert.match(source, /buildRosterOpsReview/);
+  assert.match(source, /ADMIN_SESSION_COOKIE/);
+  assert.match(source, /assertValidAdminSession/);
   assert.match(source, /NextResponse\.json\(\{\s*ok:\s*true/);
   assert.doesNotMatch(source, /POST|PATCH|DELETE/);
 });
 
-test("admin ops review page renders review groups without mutation controls", () => {
+test("admin ops review decision API saves exclusions through admin session", () => {
+  const source = readProjectFile("app/api/admin/roster/ops-review/decisions/route.ts");
+  assert.match(source, /POST/);
+  assert.match(source, /ADMIN_SESSION_COOKIE/);
+  assert.match(source, /assertValidAdminSession/);
+  assert.match(source, /isAdminWriteDisabled/);
+  assert.match(source, /saveExcludedRosterReviewDecision/);
+  assert.match(source, /action !== "exclude"/);
+});
+
+test("admin ops review page is an approval inbox, not a raw report", () => {
   const source = readProjectFile("app/admin/roster/ops-review/page.tsx");
-  assert.match(source, /missing_soop_ids/);
-  assert.match(source, /zero_record_players/);
-  assert.match(source, /roster_change_review/);
-  assert.match(source, /excluded_players/);
-  assert.match(source, /new_player_candidates/);
+  assert.match(source, /승인 대기함/);
+  assert.match(source, /대표님 검토 필요/);
+  assert.match(source, /소속변동감지/);
+  assert.match(source, /티어변동감지/);
+  assert.match(source, /신규후보/);
+  assert.match(source, /전적 수집: 정상 진행 중/);
+  assert.match(source, /기준데이터 반영: 대기 중/);
+  assert.match(source, /기준데이터 미반영/);
+  assert.match(source, /현재 기준데이터/);
+  assert.match(source, /새로 감지된 값/);
+  assert.match(source, /\{title\} \{items\.length\}건/);
+  assert.match(source, /다음 데이터파이프라인 때 반영됩니다/);
+  assert.match(source, /등록/);
+  assert.match(source, /반영/);
+  assert.match(source, /제외/);
+  assert.match(source, /RosterReviewDecisionButtons/);
+  assert.doesNotMatch(source, /무시/);
+  assert.doesNotMatch(source, /보류/);
+  assert.doesNotMatch(source, /등록 검토|반영 검토/);
+  assert.doesNotMatch(source, /JSON\.stringify|<pre|JsonList|운영 점검 리포트/);
+  assert.doesNotMatch(source, /Roster Ops Review|Decision queue|Data quality checks|Recovery reference|Open roster editor/);
   assert.doesNotMatch(source, /fetch\(/);
+});
+
+test("admin ops review exclusion button posts operator decision", () => {
+  const source = readProjectFile("components/admin/roster/RosterReviewDecisionButtons.tsx");
+  assert.match(source, /fetch\("\/api\/admin\/roster\/ops-review\/decisions"/);
+  assert.match(source, /action: "exclude"/);
+  assert.match(source, /router\.refresh/);
+  assert.match(source, /제외/);
+});
+
+test("admin ops review page keeps secondary quality checks below the approval inbox", () => {
+  const source = readProjectFile("app/admin/roster/ops-review/page.tsx");
+  assert.match(source, /추가 점검/);
+  assert.match(source, /SOOP ID 누락/);
+  assert.match(source, /전적 0건 선수/);
+  assert.match(source, /수집 제외 선수/);
+  assert.match(source, /PlayerList/);
 });
 
 test("package exposes the ops review contract test", () => {
@@ -55,41 +117,6 @@ test("package exposes the ops review contract test", () => {
     pkg.scripts["test:admin-roster-ops-review"],
     "node scripts/tools/admin-roster-ops-review-contract.test.js"
   );
-});
-
-test("admin ops review page exposes operator information architecture", () => {
-  const source = readProjectFile("app/admin/roster/ops-review/page.tsx");
-  assert.match(source, /decision_queue/);
-  assert.match(source, /data_quality/);
-  assert.match(source, /reference/);
-  assert.match(source, /ReviewQueueSection/);
-  assert.match(source, /nextAction/);
-  assert.match(source, /로스터 편집 열기/);
-});
-
-test("admin ops review page uses Korean operator-facing labels", () => {
-  const source = readProjectFile("app/admin/roster/ops-review/page.tsx");
-  const nav = readProjectFile("components/admin/AdminNav.tsx");
-  assert.match(source, /로스터 운영 점검/);
-  assert.match(source, /판단 대기/);
-  assert.match(source, /데이터 품질 점검/);
-  assert.match(source, /복구 참고/);
-  assert.match(source, /로스터 편집 열기/);
-  assert.match(source, /SOOP ID 누락/);
-  assert.match(source, /전적 0건 선수/);
-  assert.match(source, /로스터 변경 검토/);
-  assert.match(source, /수집 제외 선수/);
-  assert.match(source, /신규 선수 후보/);
-  assert.match(nav, /로스터 점검/);
-  assert.doesNotMatch(source, /Roster Ops Review|Decision queue|Data quality checks|Recovery reference|Open roster editor|Missing SOOP IDs|Zero-record players|Roster change review|Excluded players|New player candidates/);
-  assert.doesNotMatch(nav, /Roster Review/);
-});
-
-test("admin ops review summary cards use Korean group titles", () => {
-  const source = readProjectFile("app/admin/roster/ops-review/page.tsx");
-  assert.match(source, /SUMMARY_GROUP_KEYS/);
-  assert.match(source, /GROUP_META\[key\]\.title/);
-  assert.doesNotMatch(source, /Object\.values\(groups\)\.map/);
 });
 
 test("admin ops review player rows use duplicate-safe render keys", () => {

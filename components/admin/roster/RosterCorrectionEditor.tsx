@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AdminReadonlyNotice } from "@/components/admin/AdminReadonlyNotice";
 import { getAdminWriteDisabledMessage } from "@/lib/admin-runtime";
 import type { ManualMode } from "./types";
@@ -9,6 +10,7 @@ import { useRosterAdminData } from "./useRosterAdminData";
 const TIER_OPTIONS = ["갓", "킹", "잭", "조커", "스페이드", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 export default function RosterCorrectionEditor({ readOnly = false }: { readOnly?: boolean }) {
+  const searchParams = useSearchParams();
   const { loading, players, teams, loadData } = useRosterAdminData();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -61,12 +63,25 @@ export default function RosterCorrectionEditor({ readOnly = false }: { readOnly?
 
   useEffect(() => {
     if (!selected) return;
-    setTeamCode(selected.team_code);
-    setTier(String(selected.tier || ""));
+    setTeamCode(searchParams.get("team_code") || selected.team_code);
+    setTier(searchParams.get("tier") || String(selected.tier || ""));
     setManualMode(selected.manual_mode || "temporary");
     setExcluded(Boolean(selected.excluded));
     setExclusionReason(String(selected.exclusion_reason || "user_excluded"));
-  }, [selected]);
+  }, [searchParams, selected]);
+
+  useEffect(() => {
+    const reviewEntityId = searchParams.get("entity_id");
+    if (!reviewEntityId || loading) return;
+    const target = players.find((player) => player.entity_id === reviewEntityId);
+    if (!target) {
+      setQuery(reviewEntityId);
+      return;
+    }
+    setMode("move");
+    setQuery(target.name || reviewEntityId);
+    setSelectedId(target.entity_id);
+  }, [loading, players, searchParams]);
 
   async function saveMove() {
     if (readOnly) {

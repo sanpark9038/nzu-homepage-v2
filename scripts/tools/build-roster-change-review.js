@@ -4,6 +4,7 @@ const path = require("node:path");
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const SOURCE_REPORT = path.join(REPORTS_DIR, "team_roster_sync_report.json");
+const REVIEW_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "roster_review_decisions.v1.json");
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
@@ -13,6 +14,16 @@ function clean(value) {
   return String(value || "").trim();
 }
 
+function readReviewDecisions(decisionsPath = REVIEW_DECISIONS_PATH) {
+  if (!decisionsPath || !fs.existsSync(decisionsPath)) return [];
+  try {
+    const doc = readJson(decisionsPath);
+    return Array.isArray(doc.decisions) ? doc.decisions : [];
+  } catch {
+    return [];
+  }
+}
+
 function rowIdentity(row) {
   return {
     entity_id: clean(row && row.entity_id),
@@ -20,7 +31,43 @@ function rowIdentity(row) {
   };
 }
 
-function buildReview(syncReport) {
+function decisionUrl(kind, row) {
+  const params = new URLSearchParams();
+  params.set("review", kind);
+  if (row.entity_id) params.set("entity_id", row.entity_id);
+  if (kind === "affiliation_change" || kind === "new_candidate") params.set("team_code", row.to);
+  if (kind === "tier_change") params.set("tier", row.to);
+  if (kind === "race_change") params.set("race", row.to);
+  return `/admin/roster?${params.toString()}`;
+}
+
+function queueItem(kind, row) {
+  return {
+    ...row,
+    review_kind: kind,
+    operator_status: "pending",
+    match_collection_note:
+      kind === "new_candidate"
+        ? "Match collection starts after the candidate is approved into the roster baseline."
+        : "Match collection continues independently from this roster baseline review.",
+    decision_url: decisionUrl(kind, row),
+  };
+}
+
+function decisionMatchKey(row) {
+  return [
+    clean(row.review_kind),
+    clean(row.entity_id),
+    clean(row.observed_from || row.from),
+    clean(row.observed_to || row.to),
+  ].join("|");
+}
+
+function isExcludedByOperator(item, excludedDecisionKeys) {
+  return excludedDecisionKeys.has(decisionMatchKey(item));
+}
+
+function buildReview(syncReport, options = {}) {
   const moved = (Array.isArray(syncReport && syncReport.moved) ? syncReport.moved : []).map((row) => ({
     ...rowIdentity(row),
     from: clean(row.from),
@@ -58,20 +105,36 @@ function buildReview(syncReport) {
     reason: clean(row.reason),
     detail: clean(row.detail),
   }));
+  const allItems = [
+    ...moved.map((row) => queueItem("affiliation_change", row)),
+    ...tierChanged.map((row) => queueItem("tier_change", row)),
+    ...raceChanged.map((row) => queueItem("race_change", row)),
+    ...added.map((row) => queueItem("new_candidate", row)),
+    ...conflicts.map((row) => queueItem("conflict", row)),
+  ];
+  const excludedDecisionKeys = new Set(
+    readReviewDecisions(options.decisionsPath)
+      .filter((row) => clean(row.decision) === "excluded")
+      .map(decisionMatchKey)
+  );
+  const items = allItems.filter((item) => !isExcludedByOperator(item, excludedDecisionKeys));
+  const excludedByOperator = allItems.length - items.length;
 
   return {
     generated_at: new Date().toISOString(),
     source_generated_at: clean(syncReport && syncReport.generated_at),
     source_report_only: Boolean(syncReport && syncReport.report_only),
     summary: {
-      total_review_items: moved.length + tierChanged.length + raceChanged.length + added.length + conflicts.length,
-      moved: moved.length,
-      tier_changed: tierChanged.length,
-      race_changed: raceChanged.length,
-      added: added.length,
-      conflicts: conflicts.length,
+      total_review_items: items.length,
+      moved: items.filter((item) => item.review_kind === "affiliation_change").length,
+      tier_changed: items.filter((item) => item.review_kind === "tier_change").length,
+      race_changed: items.filter((item) => item.review_kind === "race_change").length,
+      added: items.filter((item) => item.review_kind === "new_candidate").length,
+      conflicts: items.filter((item) => item.review_kind === "conflict").length,
       guarded_teams: guardedTeams.length,
+      excluded_by_operator: excludedByOperator,
     },
+    items,
     operator_flow: {
       edit_page: "/admin/roster",
       correction_storage: "roster_admin_corrections when remote admin storage is available, otherwise local admin fallback",

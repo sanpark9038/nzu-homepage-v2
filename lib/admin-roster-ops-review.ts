@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { readRosterReviewDecisions, rosterReviewDecisionKey } from "@/lib/roster-review-decisions";
 
 const ROOT = process.cwd();
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
@@ -61,6 +62,31 @@ export type RosterOpsReview = {
     new_player_candidates: RosterOpsReviewGroup<JsonObject>;
   };
 };
+
+type RosterChangeItem = JsonObject & {
+  review_kind?: string;
+  entity_id?: string;
+  name?: string;
+  from?: string;
+  to?: string;
+  decision_url?: string;
+};
+
+function isOperatorExcludedReviewItem(row: RosterChangeItem): boolean {
+  const excludedKeys = new Set(
+    readRosterReviewDecisions()
+      .filter((decision) => decision.decision === "excluded")
+      .map(rosterReviewDecisionKey)
+  );
+  return excludedKeys.has(
+    rosterReviewDecisionKey({
+      review_kind: trim(row.review_kind),
+      entity_id: trim(row.entity_id),
+      observed_from: trim(row.from),
+      observed_to: trim(row.to),
+    })
+  );
+}
 
 function readJson<T>(filePath: string): T | null {
   if (!fs.existsSync(filePath)) return null;
@@ -160,6 +186,62 @@ function pickReportRows(doc: JsonObject | null, keys: string[]): JsonObject[] {
   return [];
 }
 
+function namesFromMessage(message: string): string[] {
+  const match = message.match(/\(([^)]+)\)/);
+  if (!match) return [];
+  return match[1]
+    .split(/[,/]/)
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+function extractZeroRecordAlertNames(alert: JsonObject, message: string): string[] {
+  const directNames = [alert.name, alert.player_name, alert.display_name].map(trim).filter(Boolean);
+  return [...new Set([...directNames, ...namesFromMessage(message)])];
+}
+
+function formatZeroRecordReason(message: string): string {
+  const names = namesFromMessage(message);
+  if (names.length > 0) return `전적 0건 감지: ${names.join(", ")}`;
+  return "전적 0건 감지";
+}
+
+function withDecisionUrl(kind: string, row: JsonObject): RosterChangeItem {
+  const params = new URLSearchParams();
+  params.set("review", kind);
+  const entityId = trim(row.entity_id);
+  const to = trim(row.to);
+  if (entityId) params.set("entity_id", entityId);
+  if ((kind === "affiliation_change" || kind === "new_candidate") && to) params.set("team_code", to);
+  if (kind === "tier_change" && to) params.set("tier", to);
+  if (kind === "race_change" && to) params.set("race", to);
+  return {
+    ...row,
+    review_kind: kind,
+    operator_status: trim(row.operator_status) || "pending",
+    decision_url: trim(row.decision_url) || `/admin/roster?${params.toString()}`,
+  };
+}
+
+function buildRosterChangeItems(doc: JsonObject | null, kinds?: string[]): RosterChangeItem[] {
+  if (!doc) return [];
+  const directRows = pickReportRows(doc, ["items", "review_items", "changes"]).map((row) =>
+    withDecisionUrl(trim(row.review_kind) || "roster_change", row)
+  );
+  const review = doc.review && typeof doc.review === "object" ? (doc.review as JsonObject) : doc;
+  const rows = directRows.length
+    ? directRows
+    : [
+        ...toArray(review.moved).map((row) => withDecisionUrl("affiliation_change", row)),
+        ...toArray(review.tier_changed).map((row) => withDecisionUrl("tier_change", row)),
+        ...toArray(review.race_changed).map((row) => withDecisionUrl("race_change", row)),
+        ...toArray(review.added).map((row) => withDecisionUrl("new_candidate", row)),
+        ...toArray(review.conflicts).map((row) => withDecisionUrl("conflict", row)),
+      ];
+  if (!kinds || kinds.length === 0) return rows;
+  return rows.filter((row) => kinds.includes(trim(row.review_kind)) && !isOperatorExcludedReviewItem(row));
+}
+
 function buildZeroRecordPlayers(players: RosterOpsReviewPlayer[]): RosterOpsReviewGroup<RosterOpsReviewPlayer> {
   const source = latestReportFile("daily_pipeline_alerts_latest.json");
   const doc = source ? readJson<JsonObject>(source) : null;
@@ -173,6 +255,7 @@ function buildZeroRecordPlayers(players: RosterOpsReviewPlayer[]): RosterOpsRevi
     if (rule !== "zero_record_players" && !message.includes("zero")) continue;
 
     const candidates = toArray(alert.players).concat(toArray(alert.items));
+    const reason = formatZeroRecordReason(message);
     for (const candidate of candidates) {
       const entityId = trim(candidate.entity_id);
       const wrId = trim(candidate.wr_id);
@@ -181,14 +264,14 @@ function buildZeroRecordPlayers(players: RosterOpsReviewPlayer[]): RosterOpsRevi
         (entityId && index.byEntityId.get(entityId)) ||
         (wrId && index.byWrId.get(wrId)) ||
         (name && index.byName.get(name));
-      if (known) rows.push({ ...known, reason: message || rule, source: source ? path.relative(ROOT, source) : undefined });
+      if (known) rows.push({ ...known, reason, source: source ? path.relative(ROOT, source) : undefined });
     }
 
     if (candidates.length === 0) {
-      const teamCode = trim(alert.team_code);
-      const teamName = trim(alert.team);
-      const teamPlayers = players.filter((player) => player.team_code === teamCode || player.team_name === teamName);
-      for (const player of teamPlayers) rows.push({ ...player, reason: message || rule, source: source ? path.relative(ROOT, source) : undefined });
+      for (const name of extractZeroRecordAlertNames(alert, message)) {
+        const known = index.byName.get(name);
+        if (known) rows.push({ ...known, reason, source: source ? path.relative(ROOT, source) : undefined });
+      }
     }
   }
 
@@ -215,10 +298,23 @@ function uniquePlayers(players: RosterOpsReviewPlayer[]): RosterOpsReviewPlayer[
 function buildRosterChangeReview(): RosterOpsReviewGroup<JsonObject> {
   const source = latestReportFile("roster_change_review_latest.json");
   const doc = source ? readJson<JsonObject>(source) : null;
-  const rows = pickReportRows(doc, ["items", "review_items", "changes"]);
+  const rows = buildRosterChangeItems(doc, ["affiliation_change", "tier_change", "race_change", "conflict"]);
   return {
     key: "roster_change_review",
     title: "Roster change review",
+    count: rows.length,
+    items: rows,
+    source: source ? path.relative(ROOT, source) : null,
+  };
+}
+
+function buildNewPlayerCandidates(): RosterOpsReviewGroup<JsonObject> {
+  const source = latestReportFile("roster_change_review_latest.json");
+  const doc = source ? readJson<JsonObject>(source) : null;
+  const rows = buildRosterChangeItems(doc, ["new_candidate"]);
+  return {
+    key: "new_player_candidates",
+    title: "New player candidates",
     count: rows.length,
     items: rows,
     source: source ? path.relative(ROOT, source) : null,
@@ -286,13 +382,7 @@ export async function buildRosterOpsReview(): Promise<RosterOpsReview> {
       zero_record_players: buildZeroRecordPlayers(approvedPlayers),
       roster_change_review: buildRosterChangeReview(),
       excluded_players: buildExcludedPlayers(approvedPlayers),
-      new_player_candidates: {
-        key: "new_player_candidates",
-        title: "New player candidates",
-        count: 0,
-        items: [],
-        source: null,
-      },
+      new_player_candidates: buildNewPlayerCandidates(),
     },
   };
 }

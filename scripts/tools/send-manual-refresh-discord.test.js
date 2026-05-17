@@ -7,6 +7,7 @@ const {
   applyFailureStageToMessage,
   buildAffiliationConfidenceLookup,
   buildCollectionSourceHealthSummary,
+  buildRosterReviewSummaryLines,
   comparePlayerChanges,
   describeFailureStage,
   describeAlertTone,
@@ -46,6 +47,9 @@ runTest("describeAlertTone treats medium-only as operational notices", () => {
   const actual = describeAlertTone({ critical: 0, high: 0, medium: 13, low: 0, total: 13 });
   assert.equal(actual.headlineSuffix, "(변동 알림)");
   assert.equal(actual.summaryLabel, "변동 알림");
+  assert.match(actual.followup, /전적데이터 반영은 정상 완료/);
+  assert.match(actual.followup, /선수 기준데이터 후보는 운영상 검토용/);
+  assert.doesNotMatch(actual.followup, /^반영은 정상 완료/);
   assert.equal(actual.isWarning, false);
 });
 
@@ -637,6 +641,47 @@ runTest("buildDiscordSummaryCheck does not fallback to baseline joiners after su
 
   assert.deepEqual(actual.joiners, []);
   assert.equal(actual.joiners_source, "previous_roster_state");
+});
+
+runTest("report-only roster review summary uses Korean review labels and keeps match collection separate", () => {
+  const lines = buildRosterReviewSummaryLines({
+    reportOnly: true,
+    tierChanges: [
+      { player_name: "알파", team_name: "yb", old_tier: "5", new_tier: "4" },
+      { player_name: "브라보", team_name: "fa", old_tier: "7", new_tier: "6" },
+      { player_name: "찰리", team_name: "ku", old_tier: "3", new_tier: "2" },
+      { player_name: "델타", team_name: "hm", old_tier: "8", new_tier: "7" },
+    ],
+    affiliationChanges: [
+      { player_name: "저라뎃", old_team: "yb", new_team: "무소속", change_confidence: "confirmed" },
+      { player_name: "우리밍", old_team: "yb", new_team: "무소속", change_confidence: "confirmed" },
+      { player_name: "하랑", old_team: "yb", new_team: "무소속", change_confidence: "confirmed" },
+      { player_name: "하루묭", old_team: "yb", new_team: "무소속", change_confidence: "confirmed" },
+      { player_name: "선수A", old_team: "ku", new_team: "fa", change_confidence: "confirmed" },
+      { player_name: "선수B", old_team: "hm", new_team: "fa", change_confidence: "confirmed" },
+    ],
+    joiners: [
+      { player_name: "오뀨", team_name: "무소속" },
+      { player_name: "다예", team_name: "무소속" },
+    ],
+    removals: [],
+    newMatches: 34,
+    deltaComparable: true,
+  });
+  const message = lines.join("\n");
+
+  assert.match(message, /대표님 검토 필요: 12건/);
+  assert.match(message, /아래 항목은 선수 기준데이터에 자동 반영되지 않았습니다\./);
+  assert.match(message, /대표님 확인 후 반영 여부를 결정해주세요\./);
+  assert.match(message, /전적데이터 수집과 신규 전적 반영은 이 검토 상태와 별도로 계속 진행됩니다\./);
+  assert.match(message, /관리자 검토: \/admin\/roster\/ops-review/);
+  assert.match(message, /티어변동감지 4건/);
+  assert.match(message, /소속변동감지 6건/);
+  assert.match(message, /신규후보 2건/);
+  assert.match(message, /신규 전적: 34건/);
+  assert.doesNotMatch(message, /소속 변동/);
+  assert.doesNotMatch(message, /신규 합류/);
+  assert.doesNotMatch(message, /Fallback affiliation changes/);
 });
 
 runTest("resolveLatestReportFile prefers merged daily snapshot over newer chunk snapshot", () => {

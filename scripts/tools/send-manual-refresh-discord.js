@@ -472,7 +472,7 @@ function describeAlertTone(alertCounts) {
     return {
       headlineSuffix: "(변동 알림)",
       summaryLabel: "변동 알림",
-      followup: "반영은 정상 완료되었고, 아래 항목은 운영상 참고용입니다.",
+      followup: "전적데이터 반영은 정상 완료되었고, 선수 기준데이터 후보는 운영상 검토용입니다.",
       isWarning: false,
     };
   }
@@ -871,6 +871,7 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     joinersForMessage.length ||
     removals.length ||
     (deltaComparable ? newMatches > 0 : false);
+  const rosterSyncReportOnly = isRosterSyncReportOnly();
 
   const lines = [
     `산박대표님.일일 업데이트보고입니다. ${alertTone.headlineSuffix} (${dateLabelFromSnapshot(snapshot)})`.trim(),
@@ -972,7 +973,7 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     lines.push(
       `변동 알림: ${alertCounts.total}건 (critical ${alertCounts.critical}, high ${alertCounts.high}, medium ${alertCounts.medium}, low ${alertCounts.low})`
     );
-    lines.push("반영은 정상 완료되었고, 아래 항목은 운영상 참고용입니다.");
+    lines.push("전적데이터 반영은 정상 완료되었고, 선수 기준데이터 후보는 운영상 검토용입니다.");
   }
   if (runUrl) {
     lines.push("");
@@ -1001,7 +1002,7 @@ function describeAlertTone(alertCounts) {
     return {
       headlineSuffix: "(변동 알림)",
       summaryLabel: "변동 알림",
-      followup: "반영은 정상 완료되었고, 아래 항목은 운영상 참고용입니다.",
+      followup: "전적데이터 반영은 정상 완료되었고, 선수 기준데이터 후보는 운영상 검토용입니다.",
       isWarning: false,
     };
   }
@@ -1088,6 +1089,87 @@ function pushLimitedRows(lines, rows, formatter, limit = 5) {
   }
 }
 
+function isRosterSyncReportOnly() {
+  const syncReport = readJsonIfExists(path.join(REPORTS_DIR, "team_roster_sync_report.json"));
+  return Boolean(syncReport && syncReport.report_only);
+}
+
+function buildRosterReviewSummaryLines({
+  reportOnly,
+  tierChanges,
+  affiliationChanges,
+  joiners,
+  removals,
+  newMatches,
+  deltaComparable,
+}) {
+  const tierRows = Array.isArray(tierChanges) ? tierChanges : [];
+  const affiliationRows = Array.isArray(affiliationChanges) ? affiliationChanges : [];
+  const joinerRows = Array.isArray(joiners) ? joiners : [];
+  const removalRows = Array.isArray(removals) ? removals : [];
+  const reviewTotal = tierRows.length + affiliationRows.length + joinerRows.length + removalRows.length;
+  const lines = [];
+
+  if (reportOnly && reviewTotal > 0) {
+    lines.push(`대표님 검토 필요: ${reviewTotal}건`);
+    lines.push("");
+    lines.push("아래 항목은 선수 기준데이터에 자동 반영되지 않았습니다.");
+    lines.push("대표님 확인 후 반영 여부를 결정해주세요.");
+    lines.push("전적데이터 수집과 신규 전적 반영은 이 검토 상태와 별도로 계속 진행됩니다.");
+    lines.push("관리자 검토: /admin/roster/ops-review");
+    lines.push("");
+  }
+
+  if (tierRows.length) {
+    lines.push(`${reportOnly ? "티어변동감지" : "티어 변동"} ${tierRows.length}건`);
+    pushLimitedRows(
+      lines,
+      tierRows,
+      (item) => `- ${item.player_name} (${item.team_name}) : ${item.old_tier} -> ${item.new_tier}`
+    );
+    lines.push("");
+  }
+
+  if (affiliationRows.length) {
+    lines.push(`${reportOnly ? "소속변동감지" : "소속 변동"} ${affiliationRows.length}건`);
+    pushLimitedRows(
+      lines,
+      affiliationRows,
+      (item) => `- ${item.player_name} : ${item.old_team} -> ${item.new_team}`
+    );
+    lines.push("");
+  }
+
+  if (joinerRows.length) {
+    lines.push(`${reportOnly ? "신규후보" : "신규 합류"} ${joinerRows.length}건`);
+    pushLimitedRows(
+      lines,
+      joinerRows,
+      (item) => `- ${item.player_name} (${item.team_name})`
+    );
+    lines.push("");
+  }
+
+  if (removalRows.length) {
+    lines.push(`${reportOnly ? "제외후보" : "명단 제외"} ${removalRows.length}건`);
+    pushLimitedRows(
+      lines,
+      removalRows,
+      (item) => `- ${item.player_name} (${item.team_name})`
+    );
+    lines.push("");
+  }
+
+  lines.push("신규 전적");
+  if (deltaComparable) {
+    lines.push(`- 신규 전적: ${Number(newMatches || 0)}건`);
+  } else {
+    lines.push("- 직전 스냅샷 비교가 없어 신규 전적 증감은 판단하지 않았습니다.");
+  }
+
+  return lines;
+}
+
 function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const previousRosterStatePlayers = loadCurrentRosterStateSnapshot(REPORTS_DIR);
   const beforePlayers = previousRosterStatePlayers.length
@@ -1134,6 +1216,7 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     joinersForMessage.length ||
     removals.length ||
     (deltaComparable ? newMatches > 0 : false);
+  const rosterSyncReportOnly = isRosterSyncReportOnly();
 
   const lines = [
     `산박대표님.일일 업데이트보고입니다. ${alertTone.headlineSuffix} (${dateLabelFromSnapshot(snapshot)})`.trim(),
@@ -1235,7 +1318,105 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     lines.push(
       `변동 알림: ${alertCounts.total}건 (critical ${alertCounts.critical}, high ${alertCounts.high}, medium ${alertCounts.medium}, low ${alertCounts.low})`
     );
-    lines.push("반영은 정상 완료되었고, 아래 항목은 운영상 참고용입니다.");
+    lines.push("전적데이터 반영은 정상 완료되었고, 선수 기준데이터 후보는 운영상 검토용입니다.");
+  }
+  if (runUrl) {
+    lines.push("");
+    lines.push(`실행 링크: <${runUrl}>`);
+  }
+
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
+  const previousRosterStatePlayers = loadCurrentRosterStateSnapshot(REPORTS_DIR);
+  const beforePlayers = previousRosterStatePlayers.length
+    ? previousRosterStatePlayers
+    : loadBaselinePlayers(BASELINE_PATH);
+  const afterPlayers = loadCurrentRosterState(PROJECTS_DIR);
+  const collectionHealth = readJsonIfExists(COLLECTION_SOURCES_HEALTH_PATH);
+  const { tierChanges, affiliationChanges, joiners, removals } = comparePlayerChanges(beforePlayers, afterPlayers);
+  const todayTop = buildTodayTopPlayers(afterPlayers);
+  const summaryCheck = buildDiscordSummaryCheck({
+    reportsDir: REPORTS_DIR,
+    baselinePath: BASELINE_PATH,
+    projectsDir: PROJECTS_DIR,
+    snapshot,
+    alertsDoc,
+    currentPlayers: afterPlayers,
+    previousRosterStatePlayers,
+  });
+  writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
+
+  const alertCounts = summaryCheck.alerts.counts || countAlertsBySeverity([]);
+  const alertTone = describeAlertTone(alertCounts);
+  const deltaComparable = Boolean(snapshot && snapshot.delta_reference && snapshot.delta_reference.comparable);
+  const newMatches = summaryCheck.new_matches_total;
+  const joinersForMessage = Array.isArray(summaryCheck.joiners) && summaryCheck.joiners.length
+    ? summaryCheck.joiners
+    : joiners;
+  const affiliationChangesForMessage =
+    Array.isArray(summaryCheck.affiliation_changes) && summaryCheck.affiliation_changes.length
+      ? summaryCheck.affiliation_changes
+      : affiliationChanges;
+  const hasRosterReview =
+    tierChanges.length || affiliationChangesForMessage.length || joinersForMessage.length || removals.length;
+  const hasPrimaryChanges = hasRosterReview || (deltaComparable ? newMatches > 0 : false);
+
+  const lines = [
+    `산박대표님.일일 업데이트보고입니다. ${alertTone.headlineSuffix} (${dateLabelFromSnapshot(snapshot)})`.trim(),
+    "",
+  ];
+
+  const syncModeLabel = supabaseSyncModeLabel();
+  if (syncModeLabel) {
+    lines.push(syncModeLabel);
+    const syncWarning = workflowSyncWarning();
+    if (syncWarning) lines.push(`- ${syncWarning}`);
+    lines.push("");
+  }
+
+  const collectionHealthSummary = buildCollectionSourceHealthSummary(collectionHealth);
+  if (collectionHealthSummary) {
+    lines.push(collectionHealthSummary);
+    lines.push("");
+  }
+
+  if (!hasPrimaryChanges && !todayTop.players.length) {
+    lines.push("오늘 선수 기준데이터 검토 항목은 없습니다.");
+    if (!deltaComparable) {
+      lines.push("직전 스냅샷 비교가 없어 신규 전적 증감은 판단하지 않았습니다.");
+    }
+  } else {
+    lines.push(
+      ...buildRosterReviewSummaryLines({
+        reportOnly: isRosterSyncReportOnly(),
+        tierChanges,
+        affiliationChanges: affiliationChangesForMessage,
+        joiners: joinersForMessage,
+        removals,
+        newMatches,
+        deltaComparable,
+      })
+    );
+
+    if (todayTop.players.length) {
+      lines.push("");
+      lines.push(`오늘 경기 기록 상위 선수 (${todayTop.targetDate})`);
+      pushLimitedRows(
+        lines,
+        todayTop.players,
+        (item) => `- ${item.player_name} (${item.team_name}) : ${item.today_matches}건`
+      );
+    }
+  }
+
+  if ((alertCounts.total || 0) > 0) {
+    lines.push("");
+    lines.push(
+      `운영 알림: ${alertCounts.total}건 (critical ${alertCounts.critical}, high ${alertCounts.high}, medium ${alertCounts.medium}, low ${alertCounts.low})`
+    );
+    if (alertTone.followup) lines.push(alertTone.followup);
   }
   if (runUrl) {
     lines.push("");
@@ -1307,6 +1488,7 @@ module.exports = {
   buildAffiliationConfidenceLookup,
   applyFailureStageToMessage,
   buildCollectionSourceHealthSummary,
+  buildRosterReviewSummaryLines,
   describeFailureStage,
   buildReadableSuccessMessage,
   comparePlayerChanges,

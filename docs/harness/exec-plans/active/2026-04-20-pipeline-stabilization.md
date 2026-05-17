@@ -568,3 +568,123 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   - `npm.cmd run build`
 - The build route table now reports `/admin/tournament` as a dynamic route, not
   a static route, so deployment read-only state is evaluated by the server page.
+
+### 2026-05-17 Discord Roster Review Wording Follow-Up
+
+- Investigation of scheduled run `25974128302` found roster sync was
+  `report_only=true` and project roster writes were skipped, but the Discord
+  success message still presented roster observations as definitive
+  `소속 변동` / `신규 합류` sections.
+- Decision: report-only roster observations are operator review items, not
+  confirmed baseline changes. Discord must say `대표님 검토 필요`, then group
+  counts as `티어변동감지`, `소속변동감지`, `신규후보`, and avoid unnecessary
+  English fallback wording.
+- Clarification: "기준데이터에 자동 반영되지 않았습니다" means player roster
+  baseline fields such as tier/team/new-candidate status are not auto-confirmed.
+  It does not mean match-history collection stops. Existing players should
+  continue collecting match data independently of pending tier/team review.
+- Added a contract in `send-manual-refresh-discord.test.js` proving report-only
+  roster review messages keep match collection separate and do not emit
+  definitive `소속 변동`, `신규 합류`, or `Fallback affiliation changes` wording.
+- Verification passed:
+  - `node scripts\tools\send-manual-refresh-discord.test.js`
+  - `npm.cmd run test:pipeline:manual-refresh`
+  - `npm.cmd run test:pipeline:verify:discord`
+  - `npm.cmd run test:roster:change-review`
+
+### 2026-05-17 Admin Roster Approval Queue Follow-Up
+
+- Decision: make `/admin/roster/ops-review` the operator-facing approval queue
+  for roster observations. The page remains read-only for direct mutation, and
+  the actual baseline decision still flows through the existing roster
+  correction path.
+- `roster_change_review_latest.json` now exposes flattened pending queue items
+  with `review_kind`, `operator_status`, `match_collection_note`, and
+  `decision_url`.
+- `lib/admin-roster-ops-review.ts` now reads nested `review.moved`,
+  `review.tier_changed`, `review.race_changed`, `review.added`, and
+  `review.conflicts` rows instead of relying only on top-level `items`.
+- `/admin/roster/ops-review` now shows:
+  - `대표님 검토 필요`
+  - `기준데이터 미반영`
+  - `전적 수집은 계속 진행됩니다`
+  - `반영 검토`, `보류`, `무시`
+- `반영 검토` links to `/admin/roster` with review query parameters, and
+  `RosterCorrectionEditor` preselects matching existing players from those
+  parameters.
+- The ops review API now checks the admin session cookie before returning
+  review data.
+- Discord report-only roster review messages now include
+  `관리자 검토: /admin/roster/ops-review`.
+- Verification passed:
+  - `npm.cmd run test:admin-roster-ops-review`
+  - `npm.cmd run test:roster:change-review`
+  - `npm.cmd run test:pipeline:verify:discord`
+  - `node scripts\tools\send-manual-refresh-discord.test.js`
+  - `node --check scripts\tools\build-roster-change-review.js`
+  - `node --check scripts\tools\send-manual-refresh-discord.js`
+  - `npm.cmd run build`
+
+### 2026-05-17 Admin Roster Approval Queue UI Tightening
+
+- Feedback: the first ops-review UI was technically connected, but it still
+  felt like a dense operations report rather than an at-a-glance approval inbox.
+- Decision: make the first viewport answer only the operator questions:
+  - how many items need review,
+  - which bucket they are in,
+  - whether match collection is still running,
+  - whether baseline application is pending.
+- `/admin/roster/ops-review` now presents:
+  - `승인 대기함`
+  - `대표님 검토 필요`
+  - `소속변동감지`, `티어변동감지`, `신규후보`
+  - `전적 수집: 정상 진행 중`
+  - `기준데이터 반영: 대기 중`
+  - row-level `현재 기준데이터`, `새로 감지된 값`, `기준데이터 미반영`
+- Raw JSON-style details were removed from the default approval inbox view.
+- SOOP ID, zero-record, and excluded-player lists were moved below as
+  `추가 점검`.
+- Verification passed:
+  - `npm.cmd run test:admin-roster-ops-review`
+  - `npm.cmd run test:roster:change-review`
+  - `node --check scripts\tools\build-roster-change-review.js`
+  - `npm.cmd run build`
+- Browser check: `/admin/roster/ops-review` still redirects unauthenticated
+  users to `/admin/login?next=%2Fadmin%2Froster%2Fops-review`, with no browser
+  console errors.
+- Follow-up fix: zero-record alerts such as `zero_record_players=1 (이영숙)`
+  must not expand to every player on the same team. The ops review helper now
+  extracts the named player from the alert message and displays a Korean reason
+  such as `전적 0건 감지: 이영숙`.
+- UI wording follow-up: approval inbox section headers now include the count
+  inline, for example `신규후보 18건`, and the inactive `무시` button label was
+  changed to `제외` to match the intended operator decision.
+- Button wording follow-up: `등록 검토` / `반영 검토` were shortened to the
+  outcome-oriented labels `등록` / `반영`, and `보류` was removed because leaving
+  an item untouched already represents no decision. The inactive action set is
+  now `등록` or `반영`, plus `제외`, with row helper text saying
+  `다음 데이터파이프라인 때 반영됩니다`.
+
+### 2026-05-17 Roster Review Exclusion Decisions
+
+- Concern: if `제외` only changes the current UI state, an eloboard player can be
+  collected again and reappear as the same candidate in the next review.
+- Decision: `제외` must be stored as an operator decision and suppress the same
+  `review_kind + entity_id + observed_from + observed_to` from later review
+  queues.
+- Added `data/metadata/roster_review_decisions.v1.json` as the decision store
+  path. The file is created on first exclusion and stores `decision=excluded`.
+- Added `/api/admin/roster/ops-review/decisions` for authenticated admin
+  exclusion decisions. It respects the admin write-disabled guard.
+- Added `RosterReviewDecisionButtons` so the `제외` button posts the decision and
+  refreshes the approval inbox.
+- `build-roster-change-review.js` now reads review decisions and filters
+  operator-excluded repeated candidates before writing
+  `roster_change_review_latest.json`.
+- `lib/admin-roster-ops-review.ts` also applies the same decision filter when
+  rendering the current approval inbox.
+- Verification passed:
+  - `npm.cmd run test:admin-roster-ops-review`
+  - `npm.cmd run test:roster:change-review`
+  - `node --check scripts\tools\build-roster-change-review.js`
+  - `npm.cmd run build`
