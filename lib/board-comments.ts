@@ -30,7 +30,7 @@ export function isBoardCommentsStorageMissing(error: unknown) {
 export function normalizeBoardCommentInput(value: unknown) {
   const row = (value || {}) as Partial<BoardCommentInsert>;
   return {
-    content: normalizeText(row.content).slice(0, BOARD_COMMENT_MAX_LENGTH),
+    content: normalizeText(row.content),
   };
 }
 
