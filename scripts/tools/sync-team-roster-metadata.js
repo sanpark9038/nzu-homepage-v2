@@ -43,6 +43,11 @@ function readJson(p) {
   return JSON.parse(fs.readFileSync(p, "utf8").replace(/^\uFEFF/, ""));
 }
 
+function readJsonIfExists(p, fallback = null) {
+  if (!fs.existsSync(p)) return fallback;
+  return readJson(p);
+}
+
 function buildLegacyEntityIdsBySuccessor(manualOverrides) {
   const lookup = new Map();
   for (const row of Array.isArray(manualOverrides) ? manualOverrides : []) {
@@ -1064,6 +1069,7 @@ module.exports = {
   findBaselineIdentityMigrationCandidate,
   reconcileObservedIdentityMigrations,
   restoreMissingFaBaselinePlayers,
+  readJsonIfExists,
   readManualRefreshBaselinePlayers,
   shouldWriteRosterFiles,
   shouldRetainPreviousAffiliation,

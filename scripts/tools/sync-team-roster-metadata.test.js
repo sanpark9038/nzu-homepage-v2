@@ -1,4 +1,7 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 
 const {
   buildLegacyEntityIdsBySuccessor,
@@ -15,6 +18,7 @@ const {
   shouldRetainPreviousAffiliation,
   shouldGuardObservedRoster,
   upsertRosterEntry,
+  readJsonIfExists,
 } = require("./sync-team-roster-metadata");
 
 function runTest(name, fn) {
@@ -215,6 +219,18 @@ runTest("buildExcludedEntityIds reads explicit excluded entity ids", () => {
   ]);
 
   assert.deepEqual([...actual], ["eloboard:female:1"]);
+});
+
+runTest("readJsonIfExists returns fallback for missing optional metadata files", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "roster-sync-json-"));
+  const missingPath = path.join(dir, "missing.json");
+  const existingPath = path.join(dir, "existing.json");
+  fs.writeFileSync(existingPath, JSON.stringify({ players: [{ entity_id: "eloboard:female:1" }] }), "utf8");
+
+  assert.deepEqual(readJsonIfExists(missingPath, { players: [] }), { players: [] });
+  assert.deepEqual(readJsonIfExists(existingPath, { players: [] }), {
+    players: [{ entity_id: "eloboard:female:1" }],
+  });
 });
 
 runTest("buildLegacyEntityIdsBySuccessor maps current entity ids to deprecated predecessors", () => {

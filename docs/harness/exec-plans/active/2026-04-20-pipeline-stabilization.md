@@ -649,6 +649,7 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   - `npm.cmd run test:roster:change-review`
   - `node --check scripts\tools\build-roster-change-review.js`
   - `npm.cmd run build`
+
 - Browser check: `/admin/roster/ops-review` still redirects unauthenticated
   users to `/admin/login?next=%2Fadmin%2Froster%2Fops-review`, with no browser
   console errors.
@@ -688,3 +689,18 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   - `npm.cmd run test:roster:change-review`
   - `node --check scripts\tools\build-roster-change-review.js`
   - `npm.cmd run build`
+
+### 2026-05-18 Scheduled Pipeline Regression Follow-Up
+
+- Scheduled run `26004079044` failed during `collect_chunked` before any
+  successful roster-review success summary could be sent to Discord.
+- Root cause: `sync-team-roster-metadata.js` called `readJsonIfExists()` when
+  loading optional collection exclusions, but that helper was not defined in
+  the same file. The missing helper only surfaced in the main roster-sync
+  execution path, while the existing health gate did not run
+  `test:roster:sync`.
+- Fix: add the optional JSON helper, export it for contract coverage, and add a
+  regression test proving missing optional metadata files fall back safely.
+- Gate hardening: wire `test:roster:sync` into both `pipeline:health` and
+  `verify:predeploy` so the scheduled preflight catches this class before
+  `collect_chunked`.
