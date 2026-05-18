@@ -201,6 +201,47 @@ export type Database = {
         }
         Relationships: []
       }
+      board_comments: {
+        Row: {
+          id: string
+          post_id: string
+          author_id: string
+          author_name: string
+          content: string
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          author_id: string
+          author_name: string
+          content: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          author_id?: string
+          author_name?: string
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "board_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prediction_matches: {
         Row: {
           archived_at: string | null
