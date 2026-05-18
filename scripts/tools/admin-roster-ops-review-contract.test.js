@@ -27,6 +27,7 @@ test("ops review helper exposes grouped approval queue data and decision filteri
   assert.match(source, /rosterReviewDecisionKey/);
   assert.match(source, /affiliation_change/);
   assert.match(source, /tier_change/);
+  assert.match(source, /excluded_candidate/);
   assert.match(source, /new_candidate/);
   assert.match(source, /missing_soop_ids/);
   assert.match(source, /zero_record_players/);
@@ -86,6 +87,8 @@ test("admin ops review page is an approval inbox, not a raw report", () => {
   assert.match(source, /반영/);
   assert.match(source, /제외/);
   assert.match(source, /RosterReviewDecisionButtons/);
+  assert.match(source, /excludedCandidateItems/);
+  assert.match(source, /decisionTotal = affiliationItems\.length \+ tierItems\.length \+ newCandidateItems\.length \+ excludedCandidateItems\.length/);
   assert.doesNotMatch(source, /무시/);
   assert.doesNotMatch(source, /보류/);
   assert.doesNotMatch(source, /등록 검토|반영 검토/);

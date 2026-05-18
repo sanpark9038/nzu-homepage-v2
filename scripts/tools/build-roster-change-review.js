@@ -4,7 +4,15 @@ const path = require("node:path");
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const SOURCE_REPORT = path.join(REPORTS_DIR, "team_roster_sync_report.json");
+const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
+const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const REVIEW_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "roster_review_decisions.v1.json");
+const {
+  buildPlayerKey,
+  loadBaselinePlayers,
+  loadCurrentRosterState,
+  loadCurrentRosterStateSnapshot,
+} = require("./lib/discord-summary");
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
@@ -29,6 +37,105 @@ function rowIdentity(row) {
     entity_id: clean(row && row.entity_id),
     name: clean(row && (row.name || row.name_prev || row.player_name)),
   };
+}
+
+function playerName(player) {
+  return clean(player && (player.player_name || player.display_name || player.name));
+}
+
+function playerTier(player) {
+  return clean(player && (player.tier || player.player_tier));
+}
+
+function playerTeam(player) {
+  return clean(player && (player.team_name || player.team_code));
+}
+
+function playerEntityId(player) {
+  return clean(player && player.entity_id);
+}
+
+function loadComparisonPlayers(options = {}) {
+  const previousRosterStatePlayers = Array.isArray(options.previousRosterStatePlayers)
+    ? options.previousRosterStatePlayers
+    : options.reportsDir
+      ? loadCurrentRosterStateSnapshot(options.reportsDir)
+      : [];
+  const baselinePlayers = previousRosterStatePlayers.length
+    ? previousRosterStatePlayers
+    : Array.isArray(options.baselinePlayers)
+    ? options.baselinePlayers
+    : options.baselinePath && fs.existsSync(options.baselinePath)
+      ? loadBaselinePlayers(options.baselinePath)
+      : [];
+  const currentPlayers = Array.isArray(options.currentPlayers)
+    ? options.currentPlayers
+    : options.projectsDir && fs.existsSync(options.projectsDir)
+      ? loadCurrentRosterState(options.projectsDir)
+      : [];
+  return { baselinePlayers, currentPlayers };
+}
+
+function buildBaselineComparisonRows(options = {}) {
+  const { baselinePlayers, currentPlayers } = loadComparisonPlayers(options);
+  if (!baselinePlayers.length || !currentPlayers.length) {
+    return { tierChanged: [], removed: [] };
+  }
+
+  const currentByKey = new Map(currentPlayers.map((player) => [buildPlayerKey(player), player]));
+  const tierChanged = [];
+  const removed = [];
+
+  for (const previous of baselinePlayers) {
+    const key = buildPlayerKey(previous);
+    if (!key) continue;
+    const current = currentByKey.get(key);
+    const previousTier = playerTier(previous);
+    const previousName = playerName(previous);
+    const previousTeam = playerTeam(previous);
+    const entityId = playerEntityId(previous);
+
+    if (!current) {
+      removed.push({
+        entity_id: entityId,
+        name: previousName,
+        from: previousTeam,
+        to: "",
+        action: "confirm_exclusion_or_ignore",
+        source: "baseline_comparison",
+      });
+      continue;
+    }
+
+    const currentTier = playerTier(current);
+    if (previousTier && currentTier && previousTier !== currentTier) {
+      tierChanged.push({
+        entity_id: playerEntityId(current) || entityId,
+        name: playerName(current) || previousName,
+        from: previousTier,
+        to: currentTier,
+        action: "confirm_tier_or_ignore",
+        source: "baseline_comparison",
+      });
+    }
+  }
+
+  return { tierChanged, removed };
+}
+
+function changeKey(kind, row) {
+  return [kind, clean(row.entity_id), clean(row.name), clean(row.from), clean(row.to)].join("|");
+}
+
+function appendMissingRows(kind, rows, supplementalRows) {
+  const seen = new Set(rows.map((row) => changeKey(kind, row)));
+  const missing = supplementalRows.filter((row) => {
+    const key = changeKey(kind, row);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return [...rows, ...missing];
 }
 
 function decisionUrl(kind, row) {
@@ -68,6 +175,7 @@ function isExcludedByOperator(item, excludedDecisionKeys) {
 }
 
 function buildReview(syncReport, options = {}) {
+  const baselineComparison = buildBaselineComparisonRows(options);
   const moved = (Array.isArray(syncReport && syncReport.moved) ? syncReport.moved : []).map((row) => ({
     ...rowIdentity(row),
     from: clean(row.from),
@@ -75,12 +183,16 @@ function buildReview(syncReport, options = {}) {
     confidence: clean(row.change_confidence || "inferred"),
     action: "confirm_move_or_ignore",
   }));
-  const tierChanged = (Array.isArray(syncReport && syncReport.tier_changed) ? syncReport.tier_changed : []).map((row) => ({
-    ...rowIdentity(row),
-    from: clean(row.from),
-    to: clean(row.to),
-    action: "confirm_tier_or_ignore",
-  }));
+  const tierChanged = appendMissingRows(
+    "tier_change",
+    (Array.isArray(syncReport && syncReport.tier_changed) ? syncReport.tier_changed : []).map((row) => ({
+      ...rowIdentity(row),
+      from: clean(row.from),
+      to: clean(row.to),
+      action: "confirm_tier_or_ignore",
+    })),
+    baselineComparison.tierChanged
+  );
   const raceChanged = (Array.isArray(syncReport && syncReport.race_changed) ? syncReport.race_changed : []).map((row) => ({
     ...rowIdentity(row),
     from: clean(row.from),
@@ -100,6 +212,7 @@ function buildReview(syncReport, options = {}) {
     to: clean(row.team_next),
     action: "manual_review_required",
   }));
+  const removed = baselineComparison.removed;
   const guardedTeams = (Array.isArray(syncReport && syncReport.guarded_teams) ? syncReport.guarded_teams : []).map((row) => ({
     team_code: clean(row.team_code),
     reason: clean(row.reason),
@@ -110,6 +223,7 @@ function buildReview(syncReport, options = {}) {
     ...tierChanged.map((row) => queueItem("tier_change", row)),
     ...raceChanged.map((row) => queueItem("race_change", row)),
     ...added.map((row) => queueItem("new_candidate", row)),
+    ...removed.map((row) => queueItem("excluded_candidate", row)),
     ...conflicts.map((row) => queueItem("conflict", row)),
   ];
   const excludedDecisionKeys = new Set(
@@ -130,6 +244,7 @@ function buildReview(syncReport, options = {}) {
       tier_changed: items.filter((item) => item.review_kind === "tier_change").length,
       race_changed: items.filter((item) => item.review_kind === "race_change").length,
       added: items.filter((item) => item.review_kind === "new_candidate").length,
+      removed: items.filter((item) => item.review_kind === "excluded_candidate").length,
       conflicts: items.filter((item) => item.review_kind === "conflict").length,
       guarded_teams: guardedTeams.length,
       excluded_by_operator: excludedByOperator,
@@ -147,6 +262,7 @@ function buildReview(syncReport, options = {}) {
       tier_changed: tierChanged,
       race_changed: raceChanged,
       added,
+      removed,
       conflicts,
       guarded_teams: guardedTeams,
     },
@@ -178,6 +294,7 @@ function buildMarkdown(review) {
     `- Tier changes: ${review.summary.tier_changed}`,
     `- Race changes: ${review.summary.race_changed}`,
     `- New players: ${review.summary.added}`,
+    `- Exclusion candidates: ${review.summary.removed}`,
     `- Conflicts: ${review.summary.conflicts}`,
     `- Guarded teams: ${review.summary.guarded_teams}`,
     "",
@@ -217,6 +334,15 @@ function buildMarkdown(review) {
       { key: "confidence", label: "confidence" },
     ]),
     "",
+    "## Exclusion Candidates",
+    "",
+    markdownTable(review.review.removed, [
+      { key: "entity_id", label: "entity_id" },
+      { key: "name", label: "name" },
+      { key: "from", label: "from" },
+      { key: "source", label: "source" },
+    ]),
+    "",
     "## Conflicts",
     "",
     markdownTable(review.review.conflicts, [
@@ -246,7 +372,11 @@ function main() {
   if (!sourcePath || !fs.existsSync(sourcePath)) {
     throw new Error(`Missing roster sync report: ${sourcePath || "<none>"}`);
   }
-  const review = buildReview(readJson(sourcePath));
+  const review = buildReview(readJson(sourcePath), {
+    reportsDir: REPORTS_DIR,
+    baselinePath: BASELINE_PATH,
+    projectsDir: PROJECTS_DIR,
+  });
   const result = writeReview(review);
   console.log(JSON.stringify({
     ok: true,

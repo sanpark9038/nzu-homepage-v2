@@ -10,7 +10,7 @@ import LogoutButton from "../../ops/LogoutButton";
 export const dynamic = "force-dynamic";
 
 type ReviewItem = Record<string, unknown>;
-type ReviewKind = "affiliation_change" | "tier_change" | "new_candidate";
+type ReviewKind = "affiliation_change" | "tier_change" | "new_candidate" | "excluded_candidate";
 
 const REVIEW_SECTIONS: Array<{
   kind: ReviewKind;
@@ -35,6 +35,12 @@ const REVIEW_SECTIONS: Array<{
     title: "신규후보",
     empty: "신규후보 항목 없음",
     actionLabel: "등록",
+  },
+  {
+    kind: "excluded_candidate",
+    title: "제외후보",
+    empty: "제외후보가 없습니다.",
+    actionLabel: "제외 확인",
   },
 ];
 
@@ -179,7 +185,8 @@ export default async function RosterOpsReviewPage() {
   const affiliationItems = filterByKind(rosterItems, "affiliation_change");
   const tierItems = filterByKind(rosterItems, "tier_change");
   const newCandidateItems = filterByKind(newCandidates, "new_candidate");
-  const decisionTotal = affiliationItems.length + tierItems.length + newCandidateItems.length;
+  const excludedCandidateItems = filterByKind(rosterItems, "excluded_candidate");
+  const decisionTotal = affiliationItems.length + tierItems.length + newCandidateItems.length + excludedCandidateItems.length;
 
   return (
     <main className="min-h-screen bg-background p-6 text-foreground md:p-10">
@@ -202,7 +209,7 @@ export default async function RosterOpsReviewPage() {
           </div>
         </div>
 
-        <section className="grid gap-3 rounded-lg border border-border bg-card p-4 text-sm md:grid-cols-5">
+        <section className="grid gap-3 rounded-lg border border-border bg-card p-4 text-sm md:grid-cols-6">
           <div>
             <p className="text-2xl font-black">{affiliationItems.length}</p>
             <p className="mt-1 text-xs font-bold text-muted-foreground">소속변동감지</p>
@@ -214,6 +221,10 @@ export default async function RosterOpsReviewPage() {
           <div>
             <p className="text-2xl font-black">{newCandidateItems.length}</p>
             <p className="mt-1 text-xs font-bold text-muted-foreground">신규후보</p>
+          </div>
+          <div>
+            <p className="text-2xl font-black">{excludedCandidateItems.length}</p>
+            <p className="mt-1 text-xs font-bold text-muted-foreground">제외후보</p>
           </div>
           <div>
             <p className="text-sm font-black text-foreground">전적 수집: 정상 진행 중</p>

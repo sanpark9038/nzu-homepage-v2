@@ -298,7 +298,13 @@ function uniquePlayers(players: RosterOpsReviewPlayer[]): RosterOpsReviewPlayer[
 function buildRosterChangeReview(): RosterOpsReviewGroup<JsonObject> {
   const source = latestReportFile("roster_change_review_latest.json");
   const doc = source ? readJson<JsonObject>(source) : null;
-  const rows = buildRosterChangeItems(doc, ["affiliation_change", "tier_change", "race_change", "conflict"]);
+  const rows = buildRosterChangeItems(doc, [
+    "affiliation_change",
+    "tier_change",
+    "excluded_candidate",
+    "race_change",
+    "conflict",
+  ]);
   return {
     key: "roster_change_review",
     title: "Roster change review",

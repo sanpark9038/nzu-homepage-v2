@@ -100,6 +100,43 @@ runTest("roster change review separates approval queue item kinds", () => {
   );
 });
 
+runTest("roster change review includes baseline comparison tier and exclusion candidates", () => {
+  const review = buildReview(
+    {
+      generated_at: "2026-05-15T00:00:00.000Z",
+      report_only: true,
+      moved: [],
+      tier_changed: [],
+      race_changed: [],
+      added: [],
+      observed_conflicts: [],
+      guarded_teams: [],
+    },
+    {
+      previousRosterStatePlayers: [
+        { entity_id: "eloboard:female:10", name: "Tier A", team_code: "yb", tier: "7" },
+        { entity_id: "eloboard:female:11", name: "Removed B", team_code: "fa", tier: "6" },
+      ],
+      baselinePlayers: [
+        { entity_id: "eloboard:female:10", name: "Tier A", team_code: "yb", tier: "6" },
+      ],
+      currentPlayers: [
+        { entity_id: "eloboard:female:10", name: "Tier A", team_code: "yb", tier: "6" },
+      ],
+    }
+  );
+
+  assert.equal(review.summary.total_review_items, 2);
+  assert.equal(review.summary.tier_changed, 1);
+  assert.equal(review.summary.removed, 1);
+  assert.deepEqual(
+    review.items.map((item) => item.review_kind),
+    ["tier_change", "excluded_candidate"]
+  );
+  assert.equal(review.items[0].source, "baseline_comparison");
+  assert.equal(review.items[1].decision_url, "/admin/roster?review=excluded_candidate&entity_id=eloboard%3Afemale%3A11");
+});
+
 runTest("roster change review suppresses operator-excluded repeated candidates", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "roster-review-decisions-"));
   const decisionsPath = path.join(dir, "roster_review_decisions.v1.json");

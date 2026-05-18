@@ -704,3 +704,26 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - Gate hardening: wire `test:roster:sync` into both `pipeline:health` and
   `verify:predeploy` so the scheduled preflight catches this class before
   `collect_chunked`.
+
+### 2026-05-18 Admin Review / Discord Count Parity
+
+- Observation: the recovered scheduled run succeeded and sent the new
+  report-only wording to Discord, but the Discord `대표님 검토 필요` total can be
+  broader than the first `/admin/roster/ops-review` approval count.
+- Root cause: Discord compares the previous `current_roster_state.json`
+  snapshot, or the manual-refresh baseline when no snapshot exists, against
+  current project roster metadata. The admin review report only exposed rows
+  from `team_roster_sync_report.json`, so snapshot-visible tier changes and
+  exclusion candidates could be missing from the approval inbox.
+- Decision: `build-roster-change-review.js` now supplements the review report
+  with the same previous-snapshot/baseline comparison priority used by the
+  Discord summary. Supplemental rows are marked `source=baseline_comparison`.
+- `/admin/roster/ops-review` now includes `excluded_candidate` rows in the
+  approval inbox total and renders them as an explicit exclusion-candidate
+  bucket, while secondary quality lists remain below the approval queue.
+- Verification passed:
+  - `npm.cmd run test:roster:change-review`
+  - `npm.cmd run test:admin-roster-ops-review`
+  - `node --check scripts\tools\build-roster-change-review.js`
+  - `npm.cmd run build`
+  - `npm.cmd run pipeline:health`
