@@ -6,7 +6,7 @@ import {
   getBoardCategoryLabel,
   getBoardCategoryTone,
   hasBoardMedia,
-  listBoardPosts,
+  listBoardPostsWithCommentCounts,
 } from "@/lib/board";
 import {
   parsePublicAuthSessionCookieValue,
@@ -52,7 +52,7 @@ export default async function BoardPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const cookieStore = await cookies();
-  const board = await listBoardPosts();
+  const board = await listBoardPostsWithCommentCounts();
   const session = parsePublicAuthSessionCookieValue(cookieStore.get(PUBLIC_AUTH_SESSION_COOKIE)?.value);
   const params = ((await searchParams) || {}) as Record<string, string | string[] | undefined>;
   const loginStatus = typeof params.login === "string" ? params.login : "";
@@ -145,6 +145,9 @@ export default async function BoardPage({
                             className="inline-flex max-w-full items-center gap-2 font-bold tracking-tight text-white transition hover:text-nzu-green"
                           >
                             <span className="truncate">{post.title}</span>
+                            {post.comment_count > 0 ? (
+                              <span className="shrink-0 text-xs font-black text-nzu-green">[{post.comment_count}]</span>
+                            ) : null}
                             {hasImage ? <ImageIcon size={14} className="shrink-0 text-white/45" /> : null}
                             {hasVideo ? <PlayCircle size={14} className="shrink-0 text-white/45" /> : null}
                           </Link>

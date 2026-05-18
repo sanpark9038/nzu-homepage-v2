@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { ImageIcon, MessageCircleMore, Pencil, PlayCircle } from "lucide-react";
+import { ImageIcon, Pencil, PlayCircle } from "lucide-react";
 
+import { BoardComments } from "@/components/board/BoardComments";
 import { BoardPostDeleteButton } from "@/components/board/BoardPostDeleteButton";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import {
@@ -11,6 +12,7 @@ import {
   getBoardCategoryTone,
   getBoardPostById,
 } from "@/lib/board";
+import { buildBoardCommentAuthorId, listVisibleBoardComments } from "@/lib/board-comments";
 import { renderBoardContentToHtml } from "@/lib/board-content";
 import { parsePublicAuthSessionCookieValue, PUBLIC_AUTH_SESSION_COOKIE } from "@/lib/public-auth";
 
@@ -63,6 +65,8 @@ export default async function BoardDetailPage({
   const paramsData = ((await searchParams) || {}) as Record<string, string | string[] | undefined>;
   const downloadStatus = typeof paramsData.download === "string" ? paramsData.download : "";
   const renderedContent = renderBoardContentToHtml(post.content);
+  const comments = await listVisibleBoardComments(post.id);
+  const currentAuthorId = session ? buildBoardCommentAuthorId(session.provider, session.providerUserId) : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -178,17 +182,14 @@ export default async function BoardDetailPage({
           ) : null}
         </article>
 
-        <section className="rounded-[1.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,18,0.98),rgba(7,10,11,0.94))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.16)]">
-          <div className="flex items-center gap-2 text-sm font-black tracking-tight text-white">
-            <MessageCircleMore size={18} className="text-white/60" />
-            <span>댓글</span>
-            <span className="text-white/32">0</span>
-          </div>
-          <div className="mt-4 rounded-[1.2rem] border border-dashed border-white/10 bg-white/[0.02] px-4 py-10 text-center">
-            <div className="text-sm font-black uppercase tracking-[0.18em] text-white/30">Coming Soon</div>
-            <p className="mt-3 text-sm font-medium text-white/58">댓글 기능은 준비중입니다. 현재는 게시글 읽기와 다운로드 흐름을 먼저 안정화하고 있습니다.</p>
-          </div>
-        </section>
+        <BoardComments
+          postId={post.id}
+          initialComments={comments.comments}
+          storageReady={comments.storageReady}
+          session={session}
+          currentAuthorId={currentAuthorId}
+          isAdmin={isAdmin}
+        />
       </main>
     </div>
   );

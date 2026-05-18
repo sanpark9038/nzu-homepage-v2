@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 import { supabase as publicSupabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
+import { getVisibleBoardCommentCounts } from "@/lib/board-comments";
 
 export type BoardPostRow = Database["public"]["Tables"]["board_posts"]["Row"];
 export type BoardPostInsert = Database["public"]["Tables"]["board_posts"]["Insert"];
@@ -333,6 +334,31 @@ export async function listBoardPosts(limit = BOARD_POST_LIMIT) {
     }
     throw error;
   }
+}
+
+export type BoardPostWithCommentCount = BoardPostRow & {
+  comment_count: number;
+};
+
+export async function listBoardPostsWithCommentCounts(limit = BOARD_POST_LIMIT) {
+  const result = await listBoardPosts(limit);
+  if (!result.posts.length) {
+    return {
+      ...result,
+      posts: [] as BoardPostWithCommentCount[],
+      commentsStorageReady: true,
+    };
+  }
+
+  const counts = await getVisibleBoardCommentCounts(result.posts.map((post) => post.id));
+  return {
+    ...result,
+    posts: result.posts.map((post) => ({
+      ...post,
+      comment_count: Number(counts.get(post.id) || 0),
+    })),
+    commentsStorageReady: true,
+  };
 }
 
 export async function listScheduleInfoPosts(options: { fromDate?: string; toDate?: string; limit?: number } = {}) {
