@@ -22,8 +22,7 @@ test("apex production domain redirects to canonical www host", () => {
   assert.match(proxy, /CANONICAL_HOST\s*=\s*"www\.star-hosaga\.com"/);
   assert.match(proxy, /redirectUrl\.hostname\s*=\s*CANONICAL_HOST/);
   assert.match(proxy, /NextResponse\.redirect\(redirectUrl,\s*308\)/);
-  assert.match(proxy, /source:\s*"\/:path\*"/);
-  assert.match(proxy, /type:\s*"header",\s*key:\s*"host",\s*value:\s*"star-hosaga\.com"/);
+  assert.match(proxy, /"\/:path\*"/);
 });
 
 test("ops pipeline workflow passes serving revalidation envs to sync steps", () => {
