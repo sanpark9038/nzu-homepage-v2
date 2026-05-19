@@ -60,6 +60,9 @@ function loadProjectModule(filePath) {
 const { buildPredictionUniversityTeams } = loadProjectModule(
   path.join(repoRoot, "lib", "prediction-admin-teams.ts")
 );
+const { buildTournamentPredictionMatches } = loadProjectModule(
+  path.join(repoRoot, "lib", "tournament-prediction.ts")
+);
 
 function makePlayer(overrides = {}) {
   return {
@@ -98,4 +101,36 @@ test("admin prediction page no longer imports tournament home team slots for exi
 
   assert.match(source, /buildPredictionUniversityTeams/);
   assert.doesNotMatch(source, /buildTournamentHomeTeams/);
+});
+
+test("public prediction snapshots resolve existing teams from university affiliations", () => {
+  const players = [
+    makePlayer({ id: "mbu-1", name: "MBU One", university: "MBU" }),
+    makePlayer({ id: "calm-1", name: "CALM One", university: "CALM" }),
+  ];
+
+  const matches = buildTournamentPredictionMatches(players, {
+    matches: [
+      {
+        id: "match-1",
+        title: "MBU vs CALM",
+        match_type: "team",
+        team_mode: "existing",
+        team_a_code: "MBU",
+        team_a_name: "MBU",
+        team_a_player_ids: ["mbu-1"],
+        team_b_code: "CALM",
+        team_b_name: "CALM",
+        team_b_player_ids: ["calm-1"],
+        start_at: "2026-05-21T11:00:00.000Z",
+        close_at: "2026-05-21T10:30:00.000Z",
+        status: "open",
+      },
+    ],
+    votes: [],
+  });
+
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].teamA.teamCode, "MBU");
+  assert.equal(matches[0].teamB.teamCode, "CALM");
 });

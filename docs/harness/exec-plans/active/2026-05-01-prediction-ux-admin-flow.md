@@ -512,6 +512,7 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 ### Completed
 
 - Changed `/admin/prediction` existing-team options to use player `university` affiliations instead of the temporary tournament home team slots.
+- Changed public prediction snapshots to resolve those university-affiliation team codes while retaining the previous temporary tournament team codes as fallback.
 - Excluded blank and free-agent affiliations from those existing-team options.
 - Kept direct event teams separate from official affiliation teams.
 

@@ -1,4 +1,5 @@
 import type { Database } from "@/lib/database.types";
+import { buildPredictionUniversityTeams } from "@/lib/prediction-admin-teams";
 import { buildTournamentHomeTeams } from "@/lib/tournament-home";
 import {
   derivePredictionMatchStatus,
@@ -145,12 +146,12 @@ function normalizeEntryOrderStatus(value: unknown): PredictionEntryOrderStatus {
   return String(value || "").trim().toLowerCase() === "confirmed" ? "confirmed" : "unknown";
 }
 
-function toPredictionPlayer(player: Pick<Player, "id" | "name" | "race" | "tier">) {
+function toPredictionPlayer(player: Pick<Player, "id" | "name"> & { race?: string | null; tier?: string | null }) {
   return {
     id: player.id,
     name: player.name,
-    race: player.race,
-    tier: player.tier,
+    race: player.race || "",
+    tier: player.tier || "",
   };
 }
 
@@ -196,7 +197,11 @@ export function buildTournamentPredictionMatches(
   state?: { matches?: PredictionConfigMatch[]; votes?: PredictionVoteRow[] }
 ): PredictionMatchSnapshot[] {
   const teams = buildTournamentHomeTeams(allPlayers);
-  const teamMap = new Map(teams.map((team) => [team.teamCode, team]));
+  const existingTeams = buildPredictionUniversityTeams(allPlayers);
+  const teamMap = new Map([
+    ...teams.map((team) => [team.teamCode, team] as const),
+    ...existingTeams.map((team) => [team.teamCode, team] as const),
+  ]);
   const playerMap = new Map(allPlayers.map((player) => [String(player.id), player]));
   const config = readPredictionConfig();
   const configMatches =
