@@ -28,6 +28,17 @@ test("prediction admin supports explicit start-time TBD and clearer save confirm
   assert.match(source, /\uC2B9\uBD80\uC608\uCE21\uC774 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4/);
 });
 
+test("prediction admin title input preserves editing text until save", () => {
+  const source = readProjectFile("app/admin/prediction/PredictionMatchAdmin.tsx");
+
+  assert.match(source, /function normalizeClientTitle/);
+  assert.match(source, /function normalizeSaveTitle/);
+  assert.match(source, /title:\s*normalizeClientTitle\(match\.title,\s*type\)/);
+  assert.match(source, /prepared\.title\s*=\s*normalizeSaveTitle\(match\.title,\s*type\)/);
+  assert.match(source, /onChange=\{\(event\) => updateSelected\(\{ title: event\.target\.value \}\)\}/);
+  assert.doesNotMatch(source, /title:\s*normalizeText\(match\.title\)\s*\|\|/);
+});
+
 test("public prediction cards emphasize start, deadline, and total votes", () => {
   const source = readProjectFile("components/prediction/TournamentPredictionClient.tsx");
 

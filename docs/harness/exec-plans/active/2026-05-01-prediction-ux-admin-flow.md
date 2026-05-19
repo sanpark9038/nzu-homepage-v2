@@ -186,6 +186,8 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 ## New Failure Modes Found
 
 - Production admin prediction writes can appear available while still depending on local JSON writes. The implementation should fail closed or use Supabase-backed storage before launch.
+- Public prediction cards can feel incorrectly prioritized when remote rows arrive in registration order. Public snapshots should sort by nearest vote close time first.
+- Admin title editing must preserve raw in-progress input. Trimming/default-title fallback belongs at save time, not every client state update.
 
 ## 2026-05-05 Implementation Slice Result
 

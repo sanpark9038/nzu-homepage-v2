@@ -121,6 +121,11 @@ function computeLockAt(startAt: string) {
   return new Date(start.getTime() - 30 * 60 * 1000).toISOString();
 }
 
+function timestampForSort(value: string) {
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
+}
+
 function normalizeIdList(value: unknown) {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();
@@ -322,5 +327,13 @@ export function buildTournamentPredictionMatches(
     };
   });
 
-  return snapshotRows.filter((match): match is PredictionMatchSnapshot => match !== null);
+  return snapshotRows
+    .filter((match): match is PredictionMatchSnapshot => match !== null)
+    .sort(
+      (left, right) =>
+        timestampForSort(left.lockAt) - timestampForSort(right.lockAt) ||
+        timestampForSort(left.startAt) - timestampForSort(right.startAt) ||
+        left.title.localeCompare(right.title, "ko-KR") ||
+        left.id.localeCompare(right.id)
+    );
 }

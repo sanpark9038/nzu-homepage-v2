@@ -64,8 +64,10 @@ function getPreviewAnchor(target: EventTarget | null) {
 
 export function TierLiveHoverPreviewLayer() {
   const activeAnchorRef = useRef<HTMLElement | null>(null);
+  const activeThumbnailUrlRef = useRef<string | null>(null);
   const [shouldRender, setShouldRender] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [loadedThumbnailUrl, setLoadedThumbnailUrl] = useState<string | null>(null);
   const [preview, setPreview] = useState<LivePreview | null>(null);
   const [previewPosition, setPreviewPosition] =
     useState<PreviewPosition | null>(null);
@@ -78,7 +80,12 @@ export function TierLiveHoverPreviewLayer() {
 
       if (!thumbnailUrl || !playerName) return;
 
+      const isSamePreview =
+        activeAnchorRef.current === anchor &&
+        activeThumbnailUrlRef.current === thumbnailUrl;
       activeAnchorRef.current = anchor;
+      activeThumbnailUrlRef.current = thumbnailUrl;
+      if (!isSamePreview) setLoadedThumbnailUrl(null);
       setPreview({
         thumbnailUrl,
         playerName,
@@ -189,11 +196,15 @@ export function TierLiveHoverPreviewLayer() {
           >
             <div className="relative aspect-video w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
               <Image
+                key={preview.thumbnailUrl}
                 src={preview.thumbnailUrl}
                 alt={`${preview.playerName} live preview`}
                 fill
                 unoptimized
-                className="object-cover"
+                className={`object-cover transition-opacity duration-75 ${
+                  loadedThumbnailUrl === preview.thumbnailUrl ? "opacity-100" : "opacity-0"
+                }`}
+                onLoad={() => setLoadedThumbnailUrl(preview.thumbnailUrl)}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/25 to-transparent" />
               <div className="absolute left-3 top-3 rounded-full bg-black/85 px-3 py-1.5 text-[12px] font-black tracking-tight text-white">

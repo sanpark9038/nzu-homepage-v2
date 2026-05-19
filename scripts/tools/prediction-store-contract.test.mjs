@@ -212,6 +212,48 @@ test("buildTournamentPredictionMatches respects an explicitly empty remote state
   assert.deepEqual(matches, []);
 });
 
+test("buildTournamentPredictionMatches sorts public cards by nearest vote deadline", () => {
+  const playerA = makePredictionPlayer({
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "Player A",
+  });
+  const playerB = makePredictionPlayer({
+    id: "22222222-2222-4222-8222-222222222222",
+    name: "Player B",
+  });
+
+  const matches = tournamentPrediction.buildTournamentPredictionMatches([playerA, playerB], {
+    matches: [
+      {
+        id: "later-deadline",
+        match_type: "individual",
+        team_a_player_ids: [playerA.id],
+        team_b_player_ids: [playerB.id],
+        title: "Later deadline",
+        start_at: "2026-05-24T12:00:00.000Z",
+        close_at: "2026-05-24T11:30:00.000Z",
+        status: "open",
+      },
+      {
+        id: "earlier-deadline",
+        match_type: "individual",
+        team_a_player_ids: [playerA.id],
+        team_b_player_ids: [playerB.id],
+        title: "Earlier deadline",
+        start_at: "2026-05-20T12:00:00.000Z",
+        close_at: "2026-05-20T11:30:00.000Z",
+        status: "open",
+      },
+    ],
+    votes: [],
+  });
+
+  assert.deepEqual(
+    matches.map((match) => match.id),
+    ["earlier-deadline", "later-deadline"]
+  );
+});
+
 test("prediction admin voter helpers summarize and label SOOP fixed ids", () => {
   const match = {
     id: "match-1",

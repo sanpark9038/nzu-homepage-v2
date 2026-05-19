@@ -47,6 +47,19 @@ function normalizeText(value: unknown) {
   return String(value || "").trim();
 }
 
+function defaultMatchTitle(type: MatchType) {
+  return type === "team" ? "새 팀전 예측" : "새 개인전 예측";
+}
+
+function normalizeClientTitle(value: unknown, type: MatchType) {
+  if (value === null || value === undefined) return defaultMatchTitle(type);
+  return String(value);
+}
+
+function normalizeSaveTitle(value: unknown, type: MatchType) {
+  return normalizeText(value) || defaultMatchTitle(type);
+}
+
 function toKstDateTimeInput(value: string | undefined | null) {
   if (!value) return "";
   const date = new Date(value);
@@ -123,7 +136,7 @@ function createEmptyMatch(type: MatchType, index: number): PredictionConfigMatch
     id,
     match_type: type,
     team_mode: "direct",
-    title: type === "team" ? "새 팀전 예측" : "새 개인전 예측",
+    title: defaultMatchTitle(type),
     team_a_code: type === "team" ? `event-a-${id.slice(0, 8)}` : "",
     team_b_code: type === "team" ? `event-b-${id.slice(0, 8)}` : "",
     team_a_name: type === "team" ? "A팀" : "",
@@ -150,7 +163,7 @@ function normalizeClientMatch(match: PredictionConfigMatch, index: number): Pred
     id: normalizeText(match.id) || crypto.randomUUID(),
     match_type: type,
     team_mode: type === "individual" ? "direct" : normalizeTeamMode(match.team_mode),
-    title: normalizeText(match.title) || (type === "team" ? "새 팀전 예측" : "새 개인전 예측"),
+    title: normalizeClientTitle(match.title, type),
     start_at: startAt,
     start_time_tbd: match.start_time_tbd === true,
     close_at: normalizeText(match.close_at) || closeAtForStart(startAt),
@@ -178,6 +191,7 @@ function prepareMatchForSave(match: PredictionConfigMatch, index: number): Predi
     },
     index
   );
+  prepared.title = normalizeSaveTitle(match.title, type);
 
   if (type === "individual") {
     prepared.team_mode = "direct";

@@ -212,6 +212,8 @@ test("tier live hover preview uses one delegated fixed layer and lazy-mounts the
   assert.match(source, /focusin/);
   assert.match(source, /focusout/);
   assert.match(source, /shouldRender/);
+  assert.match(source, /loadedThumbnailUrl/);
+  assert.match(source, /activeThumbnailUrlRef/);
   assert.match(source, /previewPosition/);
   assert.match(source, /getPreviewPosition/);
   assert.match(source, /data-live-thumbnail-hover-preview/);
@@ -222,6 +224,9 @@ test("tier live hover preview uses one delegated fixed layer and lazy-mounts the
   assert.doesNotMatch(source, /bottom-\[calc\(100%\+0\.75rem\)\]/);
   assert.doesNotMatch(source, /absolute bottom/);
   assert.match(source, /src=\{preview\.thumbnailUrl\}/);
+  assert.match(source, /key=\{preview\.thumbnailUrl\}/);
+  assert.match(source, /onLoad=\{\(\) => setLoadedThumbnailUrl\(preview\.thumbnailUrl\)\}/);
+  assert.match(source, /loadedThumbnailUrl === preview\.thumbnailUrl \? "opacity-100" : "opacity-0"/);
   assert.match(source, /fill/);
   assert.match(source, /unoptimized/);
   assert.doesNotMatch(source, /shadow-/);
