@@ -54,7 +54,7 @@ export function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/:path*",
+    { source: "/:path*", has: [{ type: "header", key: "host", value: "star-hosaga.com" }] },
     { source: "/tier", has: [{ type: "query", key: "liveOnly" }] },
     { source: "/tier", has: [{ type: "query", key: "search" }] },
     { source: "/tier", has: [{ type: "query", key: "race" }] },
