@@ -507,6 +507,23 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 - `npm.cmd run build`
 - Browser smoke on `http://localhost:3000/admin/prediction`: A/B entry matchup dropdowns showed only each side's configured team players, selecting values updated the displayed player metadata, and no browser errors were reported.
 
+## 2026-05-19 Existing-Team Source Correction
+
+### Completed
+
+- Changed `/admin/prediction` existing-team options to use player `university` affiliations instead of the temporary tournament home team slots.
+- Excluded blank and free-agent affiliations from those existing-team options.
+- Kept direct event teams separate from official affiliation teams.
+
+### Verification
+
+- `node scripts\tools\prediction-admin-university-teams.test.mjs`
+- `npm.cmd run test:prediction-cache-contract`
+- `npm.cmd run test:prediction-store-contract`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `npm.cmd run build`
+
 ## 2026-05-11 Prediction UI Friction Follow-up
 
 ### Completed

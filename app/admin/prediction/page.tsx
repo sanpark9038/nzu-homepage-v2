@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { playerService } from "@/lib/player-service";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
-import { buildTournamentHomeTeams } from "@/lib/tournament-home";
+import { buildPredictionUniversityTeams } from "@/lib/prediction-admin-teams";
 import { loadPredictionState } from "@/lib/prediction-store";
 import { PredictionMatchAdmin } from "./PredictionMatchAdmin";
 import LogoutButton from "../ops/LogoutButton";
@@ -20,7 +20,7 @@ export default async function AdminPredictionPage() {
   }
 
   const players = await playerService.getCachedPlayersList();
-  const teams = buildTournamentHomeTeams(players);
+  const teams = buildPredictionUniversityTeams(players);
   const predictionState = await loadPredictionState();
 
   const playerList = players.map((player) => ({
