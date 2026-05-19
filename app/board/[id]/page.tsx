@@ -71,8 +71,8 @@ export default async function BoardDetailPage({
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-8 md:px-8">
-        <section className="rounded-[1.5rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,18,0.98),rgba(7,10,11,0.94))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.16)]">
-          <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-white/42">
+        <section className="rounded-[1.5rem] border border-white/12 bg-[linear-gradient(180deg,rgba(13,21,23,0.98),rgba(8,13,14,0.96))] shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
+          <div className="flex flex-wrap items-center gap-2 border-b border-white/12 px-5 py-4 text-sm font-bold text-white/56">
             <Link href="/board" className="transition hover:text-white">
               게시판
             </Link>
@@ -80,28 +80,27 @@ export default async function BoardDetailPage({
             <span>전체글</span>
           </div>
 
-          <div className="mt-4 flex flex-col gap-4 border-t border-white/6 pt-4">
+          <div className="flex flex-col gap-4 px-5 py-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   {categoryLabel ? (
                     <span className={`text-sm font-black ${categoryTone}`}>{categoryLabel}</span>
                   ) : null}
-                  <h1 className="text-3xl font-black tracking-[-0.04em] text-white">{post.title}</h1>
+                  <h1 className="text-2xl font-black tracking-tight text-white md:text-3xl">{post.title}</h1>
                   {post.image_url ? <ImageIcon size={16} className="text-white/40" /> : null}
                   {post.video_url ? <PlayCircle size={16} className="text-white/40" /> : null}
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium text-white/55">
+                <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 pt-3 text-sm font-semibold text-white/66">
                   <span>{post.author_name}</span>
                   <span>{formatDetailDate(post.created_at)}</span>
                   <span>조회수 -</span>
-                  <span>추천수 -</span>
                 </div>
               </div>
               {canEdit ? (
                 <Link
                   href={`/board/${post.id}/edit`}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.03] px-5 text-sm font-black text-white transition hover:border-white/22 hover:bg-white/[0.06]"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/18 bg-white/[0.04] px-5 text-sm font-black text-white transition hover:border-white/30 hover:bg-white/[0.08]"
                 >
                   <Pencil size={16} />
                   수정
@@ -110,7 +109,7 @@ export default async function BoardDetailPage({
               {canEdit ? <BoardPostDeleteButton postId={post.id} /> : null}
               <Link
                 href="/board"
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/12 bg-white/[0.03] px-5 text-sm font-black text-white transition hover:border-white/22 hover:bg-white/[0.06]"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/18 bg-white/[0.04] px-5 text-sm font-black text-white transition hover:border-white/30 hover:bg-white/[0.08]"
               >
                 게시판으로 돌아가기
               </Link>
@@ -130,9 +129,9 @@ export default async function BoardDetailPage({
           </section>
         ) : null}
 
-        <article className="rounded-[1.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,18,0.98),rgba(7,10,11,0.94))] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.16)]">
+        <article className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(13,21,23,0.98),rgba(8,13,14,0.96))] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
           <div
-            className="max-w-none space-y-3 text-[15px] font-medium leading-8 text-white/78 [&_a]:font-bold [&_blockquote]:my-0 [&_code]:font-semibold [&_ol]:my-0 [&_p]:my-0 [&_strong]:text-white [&_ul]:my-0"
+            className="max-w-none space-y-4 text-base font-medium leading-8 text-white/84 [&_a]:font-bold [&_blockquote]:my-0 [&_code]:font-semibold [&_ol]:my-0 [&_p]:my-0 [&_strong]:text-white [&_ul]:my-0"
             dangerouslySetInnerHTML={{ __html: renderedContent }}
           />
 

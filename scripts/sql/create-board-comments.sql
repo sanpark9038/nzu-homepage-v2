@@ -20,6 +20,9 @@ create index if not exists board_comments_author_recent_idx
 
 alter table public.board_comments enable row level security;
 
+grant select on table public.board_comments to anon, authenticated;
+grant select, insert, update, delete on table public.board_comments to service_role;
+
 do $$
 begin
   if not exists (
@@ -39,3 +42,5 @@ $$;
 
 comment on table public.board_comments is
   'Public board comments MVP. Writes and soft deletes are performed through server API routes.';
+
+notify pgrst, 'reload schema';

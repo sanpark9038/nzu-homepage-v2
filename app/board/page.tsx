@@ -124,7 +124,6 @@ export default async function BoardPage({
                   <th className="w-[160px] px-4 py-3">글쓴이</th>
                   <th className="w-[140px] px-4 py-3">날짜</th>
                   <th className="w-[90px] px-4 py-3 text-right">조회</th>
-                  <th className="w-[90px] px-4 py-3 text-right md:px-5">추천</th>
                 </tr>
               </thead>
               <tbody>
@@ -155,13 +154,12 @@ export default async function BoardPage({
                         <td className="px-4 py-3 text-sm font-semibold text-white/68">{post.author_name}</td>
                         <td className="px-4 py-3 text-sm text-white/54">{formatBoardListDate(post.created_at)}</td>
                         <td className="px-4 py-3 text-right text-sm text-white/46">-</td>
-                        <td className="px-4 py-3 text-right text-sm text-white/46 md:px-5">-</td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-4 py-16 text-center md:px-5">
+                    <td colSpan={5} className="px-4 py-16 text-center md:px-5">
                       <div className="text-2xl font-black tracking-tight text-white">첫 글을 남겨 주세요</div>
                       <p className="mt-3 text-sm font-medium text-white/55">
                         짧은 소식이나 의견부터 편하게 시작해도 좋습니다.

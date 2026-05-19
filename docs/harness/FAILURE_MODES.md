@@ -455,3 +455,46 @@ Filesystem metadata is not durable evidence that Eloboard was queried.
    by `check_interval_days`.
 4. Keep this contract wired into both `pipeline:health` and
    `verify:predeploy`.
+
+## FM-010: Mixed-section rows can contaminate default match collection
+
+### Status
+
+- documented
+- mitigated in `report-team-records.js`
+- covered by `scripts/tools/report-team-records-parser.test.js`
+
+### Summary
+
+Eloboard default male/female profile pages can display a separate mixed match
+section near the default match section. If the requested default section is
+empty, the collector must not fall back to the first populated board on the
+page, because that can import mixed records into default male/female history.
+
+The stronger project rule is that mixed match history is not a collection source
+at all. Male, female, and mix metadata identities must all refuse mixed-history
+rows and mixed-history endpoints.
+
+### Confirmed example
+
+- Player identity: `eloboard:female:1036`
+- Profile URL: `https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1036`
+- Observed page shape: female section empty, mixed section populated
+- Risky behavior: treating the mixed rows as female collection rows
+
+### Root cause
+
+The parser briefly allowed a page-level populated-board fallback after the
+section-specific selector found no rows. That made an empty requested section
+look collectible when another section on the same page had rows.
+
+### Preventive harness actions
+
+1. Default male/female collection must remain section-specific.
+2. Empty default sections stay empty; they do not fall back to mixed rows.
+3. Mixed rows are never collected through `bj_m_list`, `profile_kind: "mix"`,
+   women-site male variants, or mixed endpoint mode.
+4. Mixed-profile collection must return `mixed_collection_disabled`, not call
+   `mix_view_list.php`.
+5. Keep the parser contract wired into `pipeline:health` and
+   `verify:predeploy`.

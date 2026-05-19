@@ -99,6 +99,27 @@ and the mix/non-mix collapse rule, see:
 
 - [docs/harness/SERVING_IDENTITY_NOTES.md](docs/harness/SERVING_IDENTITY_NOTES.md)
 
+## Eloboard Match-Section Boundary
+
+Default male/female individual collection must only ingest rows from the
+matching non-mixed match section for that profile.
+
+Mixed-section rows are not a fallback source for default male/female collection.
+If a `bj_list` profile summary includes totals that are only represented under
+the mixed match section, and the requested non-mixed section is empty, the
+collector must treat the requested section as empty instead of importing mixed
+rows.
+
+Mixed match rows are never valid for this pipeline's match-history collection.
+This applies to male, female, and mix metadata identities, including
+`bo_table=bj_m_list`, `profile_kind: "mix"`, and women-site profiles that
+represent male or mixed roster variants. The collector must not call the mixed
+history endpoint, must not ingest mixed-section rows, and must treat mixed-only
+profiles as intentionally disabled for match collection.
+
+This boundary protects rankings, H2H, player-history freshness, and Discord
+pipeline alerts from cross-domain record contamination.
+
 Opponent durable identity is an optional extension to the current contract:
 
 - player-side durable identity remains `eloboard_id`

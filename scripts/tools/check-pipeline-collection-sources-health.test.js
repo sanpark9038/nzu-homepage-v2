@@ -46,9 +46,10 @@ runTest("parseProfileBootstrap extracts p_name and last_id", () => {
   assert.equal(bootstrap.has_list_board, true);
 });
 
-runTest("selectMode chooses mix endpoint for mix boards", () => {
+runTest("selectMode disables mix boards instead of choosing mix endpoint", () => {
   const mode = selectMode("https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=304");
-  assert.equal(mode.endpoint, "mix_view_list.php");
+  assert.equal(mode.endpoint, null);
+  assert.equal(mode.disabled_reason, "mixed_match_collection_disabled");
 });
 
 runTest("formatMarkdown summarizes health checks", () => {

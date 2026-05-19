@@ -28,6 +28,9 @@ test("board comments SQL creates soft-delete table and visible indexes", () => {
   assert.match(sql, /board_comments_post_visible_created_idx/);
   assert.match(sql, /where deleted_at is null/);
   assert.match(sql, /enable row level security/);
+  assert.match(sql, /grant select on table public\.board_comments to anon, authenticated/);
+  assert.match(sql, /grant select, insert, update, delete on table public\.board_comments to service_role/);
+  assert.match(sql, /notify pgrst, 'reload schema'/);
 });
 
 test("board comments helper owns normalization, limits, counts, and permissions", () => {

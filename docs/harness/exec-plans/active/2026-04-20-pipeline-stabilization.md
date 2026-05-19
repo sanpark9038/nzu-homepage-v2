@@ -727,3 +727,117 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   - `node --check scripts\tools\build-roster-change-review.js`
   - `npm.cmd run build`
   - `npm.cmd run pipeline:health`
+
+### 2026-05-18 Board Comments Supabase Exposure Prep
+
+- Re-entry confirmed local `main` is ahead of `origin/main` by `10` commits.
+  Push and deployment remain explicitly unapproved.
+- Live Supabase Data API probe found `board_posts` visible, but
+  `board_comments` write/read through PostgREST failed with `PGRST205`
+  (`public.board_comments` missing from schema cache).
+- This matches Supabase's current Data API default change: new `public` tables
+  need explicit grants before `supabase-js` can see them.
+- Updated `scripts/sql/create-board-comments.sql` to include explicit Data API
+  grants for `anon`, `authenticated`, and `service_role`, plus `notify pgrst,
+  'reload schema'`.
+- Updated `test:board:comments` so future edits must keep those grants and the
+  schema reload notification.
+- Local verification passed: `npm.cmd run test:board:comments`.
+- 2026-05-19 follow-up: Supabase MCP tools are visible and project
+  `ttglvnnzssaaypmcrmdt` (`nzu-homepage`) is reachable.
+- Applied `scripts/sql/create-board-comments.sql` through MCP `execute_sql`.
+- SQL verification confirmed `public.board_comments` now exists with the
+  expected columns, indexes, RLS enabled, and
+  `board_comments_public_read_visible` select policy.
+- PostgREST Data API smoke now returns `200` for
+  `/rest/v1/board_comments?select=id&limit=1`, so the previous `PGRST205`
+  schema-cache blocker is cleared.
+- Supabase advisors did not report new board-comments security findings.
+  Performance advisors reported the new board comment indexes as unused, which
+  is expected immediately after table creation.
+- Local verification passed again: `npm.cmd run test:board:comments`.
+- Local dev API smoke passed against published board post
+  `900f4955-c59c-4b51-b5a6-2a232b4ee6fc`: unauthenticated comment create
+  returned `401`, authenticated create returned `200`, follow-up GET showed the
+  comment, unauthenticated delete returned `403`, authenticated author delete
+  returned `200`, and final GET no longer showed the deleted comment.
+- Direct SQL follow-up confirmed the smoke comment row remains only as a
+  soft-deleted row (`deleted_at is not null`).
+- Agent-browser `/board` verification loaded the board page and reported no
+  console errors before the API smoke.
+- Board detail readability follow-up stayed limited to board pages/components:
+  `app/board/[id]/page.tsx`, `app/board/page.tsx`, and
+  `components/board/BoardComments.tsx`.
+- Updated the board detail and comments cards with clearer section dividers,
+  slightly stronger card contrast, larger/more readable title/comment text, and
+  clearer comment input affordance. User-visible labels were preserved.
+- Hid inactive recommendation display until a real recommendation feature
+  exists: removed `추천수 -` from board detail metadata and removed the
+  `추천` column/placeholder from the board list table.
+- Verification passed after the readability/recommendation-display changes:
+  `npm.cmd run test:board:comments`, `npx.cmd tsc --noEmit`, browser checks for
+  `/board` and `/board/900f4955-c59c-4b51-b5a6-2a232b4ee6fc`, and no browser
+  console errors.
+- Push and deployment remain explicitly unapproved.
+
+### 2026-05-18 HM Mixed-Only Player Collection Failure
+
+- Latest Discord failure matched GitHub Actions run `26032117182`
+  (`NZU Ops Pipeline`, `workflow_dispatch`, commit `905b511`, collect-only).
+- Run artifact `pipeline-reports-26032117182` showed all five chunks exited 0,
+  but merged strict alerts failed on `HM / pipeline_failure / fetch_fail=1,
+  csv_fail=1`.
+- Failed player was `eloboard:female:1036` / `이아라` with profile URL
+  `https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1036`.
+- Root cause: the profile summary reports `3전 0승 3패`, but the current parser
+  selected the empty female section board. The actual three rows are visible in
+  the mixed section board on the same profile page, so validation failed with
+  `display_total_consistent=false`.
+- Fix: `report-team-records.js` is now import-safe for parser tests and
+  `extractInitialRows()` falls back to the first populated visible `list-board`
+  when the selected section board is empty.
+- Added `scripts/tools/report-team-records-parser.test.js` and wired
+  `test:report-team-records-parser` into both `pipeline:health` and
+  `verify:predeploy`.
+- Verification passed:
+  - `npm.cmd run test:report-team-records-parser`
+  - `npm.cmd run test:player-collection-freshness-contract`
+  - exact live single-player command for `HM / 이아라 / wr_id=1036`
+    returned `validation_failed_count=0`, `period_total=3`, and three losses on
+    `2026-05-16`
+  - `npm.cmd run pipeline:health`
+- Push/deployment still remain unapproved. The next scheduled Discord result
+  still needs to be checked after this fix is pushed/merged only if the operator
+  approves that later step.
+
+### 2026-05-18 Mixed-Section Boundary Correction
+
+- Correction to the previous HM triage: mixed-section rows must never be used
+  as fallback rows for default male/female collection.
+- The page shape for `eloboard:female:1036` is therefore not a case where the
+  female collector should import the three mixed rows. It is a section-boundary
+  case: the requested female section is empty, while mixed rows belong to a
+  separate domain.
+- Locked rule: mixed match history is never collected by this pipeline. This
+  applies to male, female, and mix metadata identities, including women-site
+  male/mix variants such as `bj_m_list`.
+- Default male/female collection is section-specific. Empty default sections
+  stay empty. Mixed rows are not a fallback source and are not valid under an
+  explicit mixed profile identity either.
+- Reverted the unsafe populated-board fallback in `extractInitialRows()`.
+- Added the durable contract to `PIPELINE_DATA_CONTRACT.md` and recorded the
+  failure pattern as `FM-010` in `docs/harness/FAILURE_MODES.md`.
+- `report-team-records.js` now disables mixed profile collection as
+  `mixed_collection_disabled` instead of calling `mix_view_list.php`.
+- `check-pipeline-collection-sources-health.js` now treats `bj_m_list` as a
+  disabled collection source instead of a mixed history endpoint.
+- Regression gates now cover both parser behavior and source-health endpoint
+  selection:
+  - `test:report-team-records-parser`
+  - `test:pipeline:collection-sources:health`
+  - both are wired into `pipeline:health` and `verify:predeploy`
+- Local verification after the stronger rule passed:
+  `npm.cmd run pipeline:health`.
+- The scheduled Discord alert should not be "fixed" by importing mixed rows.
+  Any remaining alert for this player needs a separate policy decision around
+  empty default sections whose profile summary includes mixed-only totals.

@@ -45,11 +45,11 @@
     {
       "id": "player_paginated_history",
       "role": "full match history collection",
-      "url_pattern": "https://eloboard.com/<women|men>/bbs/<view_list.php|mix_view_list.php>",
+      "url_pattern": "https://eloboard.com/<women|men>/bbs/view_list.php",
       "consumed_by": [
         "scripts/tools/report-team-records.js"
       ],
-      "method": "POST p_name and last_id, parse paginated rows, continue until exhausted, older than start date, or cache anchor is reached.",
+      "method": "POST p_name and last_id, parse paginated rows, continue until exhausted, older than start date, or cache anchor is reached. Mixed match-history endpoints such as mix_view_list.php are explicitly disabled and must not be collected.",
       "outputs": [
         "tmp/<team>_<player>_matches.json via export-team-roster-detailed.js",
         "period_total / wins / losses / min_date / max_date"

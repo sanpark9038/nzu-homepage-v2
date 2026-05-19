@@ -42,10 +42,6 @@ const CACHE_PATH = path.join(process.cwd(), "tmp", ".cache", "roster_report_cach
 const MAX_RETRIES = 3;
 const RETRY_BASE_MS = 500;
 
-if (!TEAM_NAME) {
-  throw new Error("Missing required arg: --univ <teamName>");
-}
-
 const K_WIN = "\uC2B9";
 const K_LOSS = "\uD328";
 const K_FEMALE_SECTION = "\uC5EC\uC131\uBC00\uB9AC\uC804\uC801";
@@ -250,15 +246,17 @@ function selectMode(player) {
   const usesMixEndpoint = shouldUseMixEndpoint(player);
   if (usesMixEndpoint) {
     return {
-      mode: "special_mix",
-      endpoint: "mix_view_list.php",
-      sectionMarker: "\uBC00\uB9AC \uC804\uC801",
+      mode: "mixed_collection_disabled",
+      endpoint: null,
+      sectionMarker: null,
+      collect_matches: false,
     };
   }
   return {
     mode: "female_or_default",
     endpoint: "view_list.php",
     sectionMarker: K_FEMALE_SECTION,
+    collect_matches: true,
   };
 }
 
@@ -312,6 +310,13 @@ function parseRowsFromBoard($, boardEl) {
 }
 
 function extractInitialRows(profileHtml, mode) {
+  if (mode && (mode.mode === "special_mix" || mode.mode === "mixed_collection_disabled")) {
+    return {
+      rows: [],
+      initialLastId: 0,
+    };
+  }
+
   const $ = cheerio.load(profileHtml);
   let board = null;
   let initialLastId = 0;
@@ -341,11 +346,7 @@ function extractInitialRows(profileHtml, mode) {
     }
   }
 
-  if (mode.mode === "special_mix") {
-    if (!board || !board.length) {
-      board = $("div.list-board").first();
-    }
-  } else if (!board || !board.length) {
+  if (!board || !board.length) {
     const marker = $("strong")
       .toArray()
       .find((el) => $(el).text().includes(mode.sectionMarker));
@@ -456,6 +457,39 @@ async function collectPlayer(player, cacheEntry = null) {
 
   const mode = selectMode(resolvedPlayer);
   const displayStats = parseDisplayStats(profileHtml);
+  if (mode.collect_matches === false) {
+    return {
+      ...resolvedPlayer,
+      mode: mode.mode,
+      endpoint: mode.endpoint,
+      p_name: resolvedPlayer.name,
+      period_total: 0,
+      period_wins: 0,
+      period_losses: 0,
+      period_win_rate: 0,
+      period_min_date: null,
+      period_max_date: null,
+      pages_scanned: 0,
+      unknown_outcome_rows: 0,
+      validation: {
+        no_unknown_outcome: true,
+        no_out_of_range: true,
+        wins_losses_match_total: true,
+        display_total_consistent: true,
+      },
+      validation_pass: true,
+      display_stats: displayStats,
+      scan_strategy: "mixed_collection_disabled",
+      matches: INCLUDE_MATCHES ? [] : undefined,
+      _cache_payload: {
+        latest_key: null,
+        matches: [],
+        updated_at: new Date().toISOString(),
+        period_from: START_DATE,
+        period_to: END_DATE,
+      },
+    };
+  }
   const pName = parsePNameFromProfile(profileHtml, mode.endpoint, resolvedPlayer.name);
   const initial = extractInitialRows(profileHtml, mode);
 
@@ -598,6 +632,10 @@ function printSummaryTable(rows) {
 }
 
 async function main() {
+  if (!TEAM_NAME) {
+    throw new Error("Missing required arg: --univ <teamName>");
+  }
+
   const cache = loadCache();
   if (!cache.teams[TEAM_NAME]) cache.teams[TEAM_NAME] = {};
 
@@ -695,7 +733,14 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  extractInitialRows,
+  selectMode,
+};

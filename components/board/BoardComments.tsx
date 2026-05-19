@@ -49,9 +49,9 @@ export function BoardComments({
 
   if (!storageReady) {
     return (
-      <section className="rounded-[1.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,18,0.98),rgba(7,10,11,0.94))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.16)]">
-        <h2 className="text-sm font-black text-white">댓글</h2>
-        <p className="mt-3 text-sm font-medium text-white/58">댓글 기능을 준비 중입니다.</p>
+      <section className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(13,21,23,0.98),rgba(8,13,14,0.96))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
+        <h2 className="border-b border-white/12 pb-4 text-base font-black text-white">댓글</h2>
+        <p className="mt-4 text-sm font-medium text-white/66">댓글 기능을 준비 중입니다.</p>
       </section>
     );
   }
@@ -103,19 +103,19 @@ export function BoardComments({
   }
 
   return (
-    <section className="rounded-[1.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,18,0.98),rgba(7,10,11,0.94))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.16)]">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-black text-white">댓글</h2>
-        <span className="text-xs font-bold text-white/42">{commentCountLabel}</span>
+    <section className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(13,21,23,0.98),rgba(8,13,14,0.96))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
+      <div className="flex items-center justify-between gap-3 border-b border-white/12 pb-4">
+        <h2 className="text-base font-black text-white">댓글</h2>
+        <span className="text-sm font-bold text-white/58">{commentCountLabel}</span>
       </div>
 
-      <div className="mt-4 divide-y divide-white/8">
+      <div className="divide-y divide-white/10">
         {comments.length ? (
           comments.map((comment) => (
-            <div key={comment.id} className="py-4">
+            <div key={comment.id} className="py-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-white/46">
-                  <span className="text-white/78">{comment.author_name}</span>
+                <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-white/56">
+                  <span className="text-white/86">{comment.author_name}</span>
                   <span>{formatCommentDate(comment.created_at)}</span>
                 </div>
                 {canDeleteComment(comment, currentAuthorId, isAdmin) ? (
@@ -123,23 +123,23 @@ export function BoardComments({
                     type="button"
                     onClick={() => deleteComment(comment.id)}
                     disabled={isPending}
-                    className="rounded-lg border border-white/10 px-3 py-1 text-xs font-bold text-white/58 transition hover:border-white/22 hover:text-white"
+                    className="rounded-lg border border-white/16 bg-white/[0.03] px-3 py-1 text-xs font-bold text-white/66 transition hover:border-white/28 hover:text-white"
                   >
                     삭제
                   </button>
                 ) : null}
               </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-7 text-white/76">{comment.content}</p>
+              <p className="mt-3 whitespace-pre-wrap text-[15px] font-medium leading-7 text-white/84">{comment.content}</p>
             </div>
           ))
         ) : (
-          <p className="rounded-[1.1rem] border border-dashed border-white/10 bg-white/[0.02] px-4 py-8 text-center text-sm font-medium text-white/50">
+          <p className="mt-5 rounded-[1.1rem] border border-dashed border-white/14 bg-white/[0.03] px-4 py-8 text-center text-sm font-medium text-white/58">
             아직 댓글이 없습니다.
           </p>
         )}
       </div>
 
-      <div className="mt-5 border-t border-white/8 pt-4">
+      <div className="mt-5 border-t border-white/12 pt-5">
         {session ? (
           <form onSubmit={submitComment} className="space-y-3">
             <textarea
@@ -147,22 +147,22 @@ export function BoardComments({
               onChange={(event) => setContent(event.target.value.slice(0, 300))}
               maxLength={300}
               rows={3}
-              className="w-full resize-none rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-medium text-white outline-none transition placeholder:text-white/28 focus:border-nzu-green/50"
+              className="w-full resize-none rounded-xl border border-white/16 bg-black/28 px-4 py-3 text-[15px] font-medium leading-7 text-white outline-none transition placeholder:text-white/36 focus:border-nzu-green/60 focus:bg-black/36"
               placeholder="댓글을 입력하세요."
             />
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="text-xs font-bold text-white/38">{content.length}/300</span>
+              <span className="text-xs font-bold text-white/52">{content.length}/300</span>
               <button
                 type="submit"
                 disabled={isPending || !content.trim() || remaining < 0}
-                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-nzu-green px-4 text-sm font-black text-black transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-nzu-green px-5 text-sm font-black text-black transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 등록
               </button>
             </div>
           </form>
         ) : (
-          <p className="text-sm font-medium text-white/58">SOOP 로그인 후 댓글을 작성할 수 있습니다.</p>
+          <p className="text-sm font-medium text-white/66">SOOP 로그인 후 댓글을 작성할 수 있습니다.</p>
         )}
         {message ? <p className="mt-3 text-sm font-bold text-amber-200">{message}</p> : null}
       </div>

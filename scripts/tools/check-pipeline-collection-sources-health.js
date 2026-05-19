@@ -120,20 +120,23 @@ function selectMode(profileUrl) {
   const text = String(profileUrl || "");
   if (text.includes("bo_table=bj_m_list")) {
     return {
-      endpoint: "mix_view_list.php",
+      endpoint: null,
       boardBase: text.includes("/men/") ? "https://eloboard.com/men/bbs" : "https://eloboard.com/women/bbs",
+      disabled_reason: "mixed_match_collection_disabled",
     };
   }
 
   return {
     endpoint: "view_list.php",
     boardBase: text.includes("/men/") ? "https://eloboard.com/men/bbs" : "https://eloboard.com/women/bbs",
+    disabled_reason: null,
   };
 }
 
 function parseProfileBootstrap(profileHtml, profileUrl, fallbackName) {
-  const endpoint = selectMode(profileUrl).endpoint;
-  const endpointIndex = profileHtml.indexOf(endpoint);
+  const mode = selectMode(profileUrl);
+  const endpoint = mode.endpoint;
+  const endpointIndex = endpoint ? profileHtml.indexOf(endpoint) : -1;
   const slice =
     endpointIndex >= 0
       ? profileHtml.slice(Math.max(0, endpointIndex - 3000), endpointIndex + 3000)
@@ -152,6 +155,7 @@ function parseProfileBootstrap(profileHtml, profileUrl, fallbackName) {
   return {
     p_name: pName,
     endpoint,
+    disabled_reason: mode.disabled_reason,
     last_id: Number.isFinite(rawLastId) ? rawLastId : 0,
     has_list_board: hasListBoard,
     has_updates: hasUpdates,
@@ -211,6 +215,14 @@ async function checkPlayerProfile(samplePlayer, rosterUrl = "") {
 async function checkPaginatedHistory(profileCheck) {
   const bootstrap = profileCheck.bootstrap;
   const mode = selectMode(profileCheck.profile_url);
+  if (!mode.endpoint) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: mode.disabled_reason || "history_collection_disabled",
+      url: null,
+    };
+  }
   const pageUrl = `${mode.boardBase}/${mode.endpoint}`;
   const lastId = Number(bootstrap.last_id || 0);
   if (!bootstrap.p_name || lastId <= 0) {
