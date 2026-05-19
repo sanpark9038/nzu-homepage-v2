@@ -60,6 +60,9 @@ function loadProjectModule(filePath) {
 const { buildPredictionUniversityTeams } = loadProjectModule(
   path.join(repoRoot, "lib", "prediction-admin-teams.ts")
 );
+const { getUniversityNameMap } = loadProjectModule(
+  path.join(repoRoot, "lib", "university-metadata.ts")
+);
 const { buildTournamentPredictionMatches } = loadProjectModule(
   path.join(repoRoot, "lib", "tournament-prediction.ts")
 );
@@ -77,6 +80,7 @@ function makePlayer(overrides = {}) {
 }
 
 test("admin prediction existing teams come from player university affiliations", () => {
+  const universityNames = getUniversityNameMap();
   const teams = buildPredictionUniversityTeams([
     makePlayer({ id: "ku-1", name: "KU One", university: "KU" }),
     makePlayer({ id: "ku-2", name: "KU Two", university: "KU" }),
@@ -85,14 +89,10 @@ test("admin prediction existing teams come from player university affiliations",
     makePlayer({ id: "blank-1", name: "Blank", university: "" }),
   ]);
 
-  assert.deepEqual(
-    teams.map((team) => team.teamCode),
-    ["JSA", "KU"]
-  );
-  assert.deepEqual(
-    teams.map((team) => team.players.map((player) => player.id)),
-    [["jsa-1"], ["ku-1", "ku-2"]]
-  );
+  assert.deepEqual([...teams.map((team) => team.teamCode)].sort(), ["JSA", "KU"]);
+  assert.equal(teams.find((team) => team.teamCode === "KU")?.teamName, universityNames.KU);
+  assert.deepEqual(teams.find((team) => team.teamCode === "JSA")?.players.map((player) => player.id), ["jsa-1"]);
+  assert.deepEqual(teams.find((team) => team.teamCode === "KU")?.players.map((player) => player.id), ["ku-1", "ku-2"]);
   assert.equal(teams.find((team) => team.teamCode === "FA"), undefined);
 });
 

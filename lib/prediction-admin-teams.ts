@@ -1,3 +1,5 @@
+import { getUniversityNameMap } from "@/lib/university-metadata";
+
 type PredictionAdminPlayer = {
   id: string;
   name: string;
@@ -50,6 +52,7 @@ function isOfficialAffiliation(value: string) {
 }
 
 export function buildPredictionUniversityTeams(players: PredictionAdminPlayer[]): PredictionAdminTeam[] {
+  const universityNameMap = getUniversityNameMap();
   const grouped = new Map<string, PredictionAdminTeam>();
 
   for (const player of players) {
@@ -59,7 +62,7 @@ export function buildPredictionUniversityTeams(players: PredictionAdminPlayer[])
     if (!grouped.has(university)) {
       grouped.set(university, {
         teamCode: university,
-        teamName: university,
+        teamName: universityNameMap[university] || university,
         players: [],
       });
     }
