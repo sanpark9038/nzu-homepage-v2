@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ADMIN_SESSION_COOKIE, isAdminConfigured, isValidAdminSession } from "@/lib/admin-auth";
 
-const APEX_HOST = "star-hosaga.com";
-const CANONICAL_HOST = "www.star-hosaga.com";
-const TIER_QUERY_KEYS = ["liveOnly", "search", "race", "univ", "tier", "raceToggle"];
-
 function isAllowedPath(pathname: string) {
   return (
     pathname === "/admin/login" ||
@@ -13,22 +9,10 @@ function isAllowedPath(pathname: string) {
   );
 }
 
-function getRequestHost(req: NextRequest) {
-  return (req.headers.get("host") || "").split(":")[0].toLowerCase();
-}
-
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const host = getRequestHost(req);
 
-  if (host === APEX_HOST) {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.hostname = CANONICAL_HOST;
-    redirectUrl.protocol = "https:";
-    return NextResponse.redirect(redirectUrl, 308);
-  }
-
-  if (pathname === "/tier" && TIER_QUERY_KEYS.some((key) => req.nextUrl.searchParams.has(key))) {
+  if (pathname === "/tier") {
     const rewriteUrl = req.nextUrl.clone();
     rewriteUrl.pathname = "/tier/query";
     return NextResponse.rewrite(rewriteUrl);
@@ -54,7 +38,6 @@ export function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/:path*",
     { source: "/tier", has: [{ type: "query", key: "liveOnly" }] },
     { source: "/tier", has: [{ type: "query", key: "search" }] },
     { source: "/tier", has: [{ type: "query", key: "race" }] },
