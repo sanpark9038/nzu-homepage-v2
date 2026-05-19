@@ -15,6 +15,16 @@ test("serving revalidation endpoint bypasses admin-session proxy and relies on i
   assert.match(proxy, /\/api\/admin\/revalidate-serving/);
 });
 
+test("apex production domain redirects to canonical www host", () => {
+  const proxy = readProjectFile("proxy.ts");
+
+  assert.match(proxy, /APEX_HOST\s*=\s*"star-hosaga\.com"/);
+  assert.match(proxy, /CANONICAL_HOST\s*=\s*"www\.star-hosaga\.com"/);
+  assert.match(proxy, /redirectUrl\.hostname\s*=\s*CANONICAL_HOST/);
+  assert.match(proxy, /NextResponse\.redirect\(redirectUrl,\s*308\)/);
+  assert.match(proxy, /"\/:path\*"/);
+});
+
 test("ops pipeline workflow passes serving revalidation envs to sync steps", () => {
   const workflow = readProjectFile(".github/workflows/ops-pipeline-cache.yml");
 
