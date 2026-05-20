@@ -987,3 +987,9 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - Remaining work: apply `scripts/sql/create-board-comments.sql` to production
   Supabase before expecting the optimized path to be active on the deployed
   site.
+- Production apply follow-up: SQL was applied to Supabase project
+  `ttglvnnzssaaypmcrmdt` via `supabase db query --linked --file` from a
+  temporary CLI workdir because the repo `.env.local` currently makes
+  `supabase link` fail parsing. REST RPC smoke with anon access returned
+  `200 []` for `post_ids=[]`, confirming the optimized path is available once
+  this code is deployed.

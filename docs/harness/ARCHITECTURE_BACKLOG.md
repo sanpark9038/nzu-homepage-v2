@@ -95,8 +95,11 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
   `security invoker` RPC that groups visible comments in Postgres. The board
   comment helper calls the RPC first and falls back to the previous row-based
   count path when the RPC has not been applied yet.
-- Remaining work: apply the SQL to production Supabase before expecting the
-  optimized count path to be active in production.
+- 2026-05-20 production apply: applied the SQL to project
+  `ttglvnnzssaaypmcrmdt` via Supabase CLI from a temporary workdir, then
+  verified Data API RPC access with a `200 []` response for an empty
+  `post_ids` call.
+- Remaining work: monitor board list latency as comment volume grows.
 
 ### A7. R2 Client Reuse
 
