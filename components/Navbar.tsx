@@ -36,8 +36,8 @@ export default function Navbar() {
   return (
     <header
       className={cn(
-        "z-[100] w-full border-b border-white/8 backdrop-blur-2xl transition-all duration-300",
-        isHome ? "fixed top-0 bg-background/18" : "sticky top-0 bg-background/72"
+        "z-[100] w-full border-b border-white/8 backdrop-blur-2xl transition-colors duration-200",
+        isHome ? "fixed top-0 bg-background/44" : "sticky top-0 bg-background/72"
       )}
     >
       <div className="flex h-16 w-full items-center justify-between gap-4 px-4 lg:gap-8 lg:px-8">
@@ -57,7 +57,7 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "ui-label relative flex min-h-[40px] items-center gap-2 rounded-full px-5 py-2 tracking-tight transition-all duration-300",
+                  "ui-label relative flex min-h-[40px] items-center gap-2 rounded-full px-5 py-2 tracking-tight transition-colors duration-200",
                   isActive
                     ? "bg-nzu-green/16 text-nzu-green shadow-[0_0_0_1px_rgba(0,168,107,0.12)]"
                     : "text-foreground/56 hover:bg-white/7 hover:text-foreground"
@@ -93,7 +93,7 @@ export default function Navbar() {
               </div>
               <a
                 href="/api/auth/soop/logout"
-                className="ui-label flex min-h-[40px] items-center gap-2 rounded-full px-3 py-2 text-foreground transition-all hover:bg-white/7 lg:px-4"
+                className="ui-label flex min-h-[40px] items-center gap-2 rounded-full px-3 py-2 text-foreground transition-colors hover:bg-white/7 lg:px-4"
               >
                 <LogOut size={18} />
                 <span>LOGOUT</span>
@@ -102,7 +102,7 @@ export default function Navbar() {
           ) : (
             <a
               href="/api/auth/soop/start?next=/board"
-              className="ui-label flex min-h-[40px] items-center gap-2 rounded-full px-3 py-2 text-foreground transition-all hover:bg-white/7 lg:px-4"
+              className="ui-label flex min-h-[40px] items-center gap-2 rounded-full px-3 py-2 text-foreground transition-colors hover:bg-white/7 lg:px-4"
             >
               <User size={18} />
               <span>LOGIN</span>
@@ -110,7 +110,7 @@ export default function Navbar() {
           )}
           <button
             type="button"
-            className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full transition-all hover:bg-white/7 hover:text-foreground"
+            className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full transition-colors hover:bg-white/7 hover:text-foreground"
           >
             <Grid size={20} />
           </button>

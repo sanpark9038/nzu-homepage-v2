@@ -8,6 +8,10 @@ Active and resumable plans currently live under [harness/exec-plans/](./harness/
 
 Use an active plan when work is multi-step, spans sessions, or changes pipeline behavior.
 
+Before choosing a plan, read the active index:
+
+- [harness/exec-plans/active/README.md](./harness/exec-plans/active/README.md)
+
 ## Rules
 
 - Keep one task per plan file.

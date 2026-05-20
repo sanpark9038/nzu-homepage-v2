@@ -14,6 +14,15 @@ If the next step is not clearly supported by:
 
 stop and recover before editing anything else.
 
+## Current Project Invariant
+
+For this project, the default steering invariant is:
+
+`simple pipeline, stable collection/serving, accurate identity-first canonical source data`.
+
+When a suggestion competes with this invariant, classify it in
+`ARCHITECTURE_BACKLOG.md` instead of implementing it immediately.
+
 ## Mandatory Hooks
 
 ### Hook 1: Scope Drift
@@ -81,12 +90,15 @@ Trigger this hook when:
 - the active plan no longer matches the work being done
 - the session has branched into multiple subproblems
 - the next step cannot be named in one sentence
+- an architecture backlog item starts being implemented without being promoted
+  into the current active plan
 
 Response:
 
 1. stop editing
 2. update or reopen the active plan
-3. resume only after the next concrete step is written down
+3. check `docs/harness/exec-plans/active/README.md`
+4. resume only after the next concrete step is written down
 
 ### Hook 6: Recovery Drift
 

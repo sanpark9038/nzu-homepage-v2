@@ -26,8 +26,10 @@ test("navbar uses one shared component with home overlay and default sticky stat
   assert.match(source, /isHome\s*\?\s*"fixed top-0/);
   assert.match(source, /:\s*"sticky top-0/);
   assert.match(source, /backdrop-blur-2xl/);
-  assert.match(source, /bg-background\/18/);
+  assert.match(source, /bg-background\/44/);
+  assert.doesNotMatch(source, /bg-background\/18/);
   assert.match(source, /bg-background\/72/);
+  assert.doesNotMatch(source, /transition-all/);
 });
 
 test("navbar buttons use shared readable sizing instead of tiny per-page typography", () => {
@@ -44,5 +46,14 @@ test("home hero fills the viewport when the navbar is overlaid", () => {
   const source = readProjectFile("app/page.tsx");
 
   assert.match(source, /h-\[100svh\]/);
+  assert.match(source, /min-h-\[min\(560px,100svh\)\]/);
+  assert.doesNotMatch(source, /min-h-\[560px\]/);
   assert.doesNotMatch(source, /h-\[calc\(100svh-4rem\)\]/);
+});
+
+test("home hero does not change opacity on page hover", () => {
+  const source = readProjectFile("app/page.tsx");
+
+  assert.doesNotMatch(source, /group-hover:opacity/);
+  assert.doesNotMatch(source, /opacity-\[0\.03\]/);
 });

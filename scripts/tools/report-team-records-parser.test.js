@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { extractInitialRows, selectMode } = require("./report-team-records");
+const { collectionDisplayTotal, extractInitialRows, selectMode } = require("./report-team-records");
 
 const FEMALE_SECTION = "\uC5EC\uC131\uBC00\uB9AC\uC804\uC801";
 const MIXED_SECTION = "\uD63C\uC131\uBC00\uB9AC\uC804\uC801";
@@ -70,4 +70,73 @@ test("selectMode disables mixed profile collection instead of using mix endpoint
   assert.equal(mode.mode, "mixed_collection_disabled");
   assert.equal(mode.endpoint, null);
   assert.equal(mode.collect_matches, false);
+});
+
+test("collectionDisplayTotal uses female section total instead of mixed page total", () => {
+  const displayStats = {
+    total: { total: 3, wins: 0, losses: 3 },
+    female: { total: 0, wins: 0, losses: 0 },
+    male: null,
+  };
+
+  const total = collectionDisplayTotal(
+    {
+      name: "Female default profile",
+      profile_url: "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1036",
+    },
+    {
+      mode: "female_or_default",
+      endpoint: "view_list.php",
+      collect_matches: true,
+    },
+    displayStats
+  );
+
+  assert.equal(total, 0);
+});
+
+test("collectionDisplayTotal treats ambiguous women total as section-empty", () => {
+  const displayStats = {
+    total: { total: 3, wins: 0, losses: 3 },
+    female: null,
+    male: null,
+  };
+
+  const total = collectionDisplayTotal(
+    {
+      name: "Female default profile",
+      profile_url: "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1036",
+    },
+    {
+      mode: "female_or_default",
+      endpoint: "view_list.php",
+      collect_matches: true,
+    },
+    displayStats
+  );
+
+  assert.equal(total, 0);
+});
+
+test("collectionDisplayTotal keeps total fallback for men profile guardrail", () => {
+  const displayStats = {
+    total: { total: 10, wins: 6, losses: 4 },
+    female: null,
+    male: null,
+  };
+
+  const total = collectionDisplayTotal(
+    {
+      name: "Men default profile",
+      profile_url: "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=37",
+    },
+    {
+      mode: "female_or_default",
+      endpoint: "view_list.php",
+      collect_matches: true,
+    },
+    displayStats
+  );
+
+  assert.equal(total, 10);
 });

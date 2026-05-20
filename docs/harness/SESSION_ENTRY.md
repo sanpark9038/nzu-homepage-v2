@@ -7,6 +7,17 @@ This file exists to keep the agent on-track at the start of every session.
 
 Starting meaningful work without following this checklist is a harness violation.
 
+## Current priority pointer
+
+After the mandatory orient commands, read:
+
+1. [exec-plans/active/README.md](./exec-plans/active/README.md)
+2. the primary active plan named there
+3. [ARCHITECTURE_BACKLOG.md](./ARCHITECTURE_BACKLOG.md) only when the task is architectural or performance-related
+
+Do not infer today's priority from chat memory when this pointer and the active
+plan disagree. Update the repo docs first.
+
 ## Mandatory entry order
 
 Do not skip steps.
@@ -44,6 +55,7 @@ Get-ChildItem docs\harness\exec-plans\active
 ## Required reading rule
 
 - Read [LESSONS_LEARNED.md](../../LESSONS_LEARNED.md) at session start before meaningful work.
+- Read [exec-plans/active/README.md](./exec-plans/active/README.md) before choosing an active plan.
 - If `docs/harness/exec-plans/active/` contains one or more plan files:
   read the most relevant active plan before changing code or docs.
 - If `docs/harness/exec-plans/active/` is empty:

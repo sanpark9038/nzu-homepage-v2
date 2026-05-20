@@ -434,8 +434,18 @@ function appendRows(bucket, seen, rows, anchorKey = null) {
   return { unknownOutcomeRows, hitAnchor };
 }
 
-function totalDisplayCount(displayStats) {
-  return Number(displayStats && displayStats.total && displayStats.total.total ? displayStats.total.total : 0) || 0;
+function statTotal(stats) {
+  return Number(stats && stats.total ? stats.total : 0) || 0;
+}
+
+function collectionDisplayTotal(player, mode, displayStats) {
+  if (!mode || mode.collect_matches === false) return 0;
+  const url = String(player && player.profile_url ? player.profile_url : "");
+  const isMenBoard = url.includes("/men/");
+  const sectionStats = isMenBoard ? displayStats && displayStats.male : displayStats && displayStats.female;
+  if (sectionStats) return statTotal(sectionStats);
+  if (!isMenBoard) return 0;
+  return statTotal(displayStats && displayStats.total);
 }
 
 async function collectPlayer(player, cacheEntry = null) {
@@ -504,7 +514,7 @@ async function collectPlayer(player, cacheEntry = null) {
 
   let pagesScanned = 0;
   let lastId = initial.initialLastId;
-  const displayTotal = totalDisplayCount(displayStats);
+  const displayTotal = collectionDisplayTotal(resolvedPlayer, mode, displayStats);
   const isMenBoard = resolvedPlayer.profile_url.includes("/men/");
   // Some profile pages intermittently render summary stats but omit the initial list board.
   // Force a paginated fetch in that case instead of accepting a silent 0-match result.
@@ -741,6 +751,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  collectionDisplayTotal,
   extractInitialRows,
   selectMode,
 };

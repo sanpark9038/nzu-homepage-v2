@@ -3,6 +3,41 @@
 Created: 2026-04-20
 Status: in-progress
 
+## Current Steering Snapshot - 2026-05-20
+
+Today's objective:
+
+- Prevent repeat critical data-pipeline alerts before taking on product polish or broad architecture cleanup.
+- Keep the already-verified home-page header/hero stabilization patch deployable.
+- Do not push or deploy without explicit operator approval.
+
+Final objective:
+
+- Keep the data pipeline and canonical source data simple, stable, and accurate.
+- Prefer durable identifiers over display names.
+- Keep mixed/default match-history boundaries strict.
+- Preserve fail-closed sync and alert behavior so Discord/GitHub signals remain actionable.
+
+Current completed slice:
+
+- `HM / eloboard:female:1036` no longer fails collection validation just because a women default page exposes an ambiguous page-level total for mixed-only rows.
+- Mixed rows are still not imported into default female history.
+- Targeted live collection and the daily export wrapper verified `fetch=ok csv=ok`.
+
+Current next step:
+
+- Operator decision: either approve commit/push/deploy for the verified fixes, or continue with harness pruning only.
+
+Architecture backlog status:
+
+- The sub-AI CTO-style questions are captured in `docs/harness/ARCHITECTURE_BACKLOG.md`.
+- They are candidates, not approved implementation work.
+- Highest likely follow-ups after this slice are warehouse pre-aggregation, H2H DB/query shape, and prediction vote query filtering.
+
+Drift guard:
+
+- If work moves away from pipeline reliability, home stabilization, or explicit harness pruning, stop and reopen `docs/harness/exec-plans/active/README.md` and `docs/harness/DRIFT_HOOKS.md`.
+
 ## Goal
 
 Close the highest-risk pipeline stability gaps before deployment: silent name collisions, serving-data resets on missing source stats, stale public cache after successful sync, and hero media admin/serving stabilization.
@@ -841,3 +876,26 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - The scheduled Discord alert should not be "fixed" by importing mixed rows.
   Any remaining alert for this player needs a separate policy decision around
   empty default sections whose profile summary includes mixed-only totals.
+
+### 2026-05-20 HM Mixed-Only Validation Refinement
+
+- Scheduled run `26129535426` again failed strict merged alerts on
+  `HM / pipeline_failure / fetch_fail=1, csv_fail=1` for
+  `eloboard:female:1036`.
+- The policy from the 2026-05-18 boundary correction still stands: do not import
+  mixed-section rows into default female history.
+- Root cause of the repeat alert: `report-team-records.js` still used the
+  ambiguous page-level `total` display count as the default female validation
+  count when section-specific `female` stats were absent. On this profile the
+  page-level total is mixed-only, so a correct empty female section was treated
+  as `display_total_consistent=false`.
+- Fix: `collectionDisplayTotal()` now treats women default pages as
+  section-specific. If a female display count is absent, the validation count is
+  `0` instead of the ambiguous page-level total. Men default pages keep the
+  page-level total fallback guardrail.
+- Regression coverage: `scripts/tools/report-team-records-parser.test.js`
+  now covers women mixed-only totals and men total fallback behavior.
+- Live targeted verification passed for `HM / eloboard:female:1036`:
+  `validation_failed_count=0`, `period_total=0`,
+  `validation.display_total_consistent=true`, and the daily export wrapper
+  returned `fetch=ok csv=ok`.

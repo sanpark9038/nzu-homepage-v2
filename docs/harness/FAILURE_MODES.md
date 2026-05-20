@@ -498,3 +498,12 @@ look collectible when another section on the same page had rows.
    `mix_view_list.php`.
 5. Keep the parser contract wired into `pipeline:health` and
    `verify:predeploy`.
+
+### 2026-05-20 refinement
+
+Women default profile pages can expose only an ambiguous page-level `total`
+display count even when the default female section is empty and the visible
+matches are mixed-only. The collector must not use that ambiguous total as the
+female validation count. For women default collection, absent section-specific
+female stats mean the validation display count is `0`; men default collection
+keeps the page-level total fallback guardrail.
