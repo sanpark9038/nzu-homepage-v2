@@ -29,8 +29,8 @@ Current completed slice:
 Current next step:
 
 - Continue the pipeline-aligned architecture backlog one item at a time. Current
-  local slice: reduce serving/runtime fragility with explicit SOOP auth
-  timeouts, mtime-guarded roster serving metadata, and R2 client reuse.
+  local slice: remove remaining warehouse player-detail runtime scans of the
+  large raw fact CSV by adding a pre-aggregated detail snapshot.
 
 Architecture backlog status:
 
@@ -40,9 +40,9 @@ Architecture backlog status:
 - Latest follow-up candidates after this slice are board comment count
   aggregation, remaining warehouse detail pre-aggregation, and H2H DB/query
   shape.
-- Board comment count aggregation is now the active local slice; remaining
-  likely follow-ups are production SQL apply, warehouse detail
-  pre-aggregation, and H2H DB/query shape.
+- Board comment count aggregation and production SQL apply are complete for
+  this local slice. Warehouse detail pre-aggregation is now active; remaining
+  likely follow-up after that is H2H DB/query shape.
 
 Drift guard:
 
@@ -927,6 +927,29 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - This is a conservative interim improvement, not the final warehouse
   architecture. Player detail breakdowns still need a future pre-aggregated
   artifact or indexed DB-backed query if that API path becomes hot.
+
+### 2026-05-20 Warehouse Detail Pre-Aggregation Slice
+
+- Follow-up from architecture backlog item A2.
+- Root cause: after the lazy-load improvement, player detail requests still
+  needed `fact_matches.csv` to compute map, opponent race, and opponent
+  breakdowns.
+- Fix: `scripts/tools/build-aggregates-incremental.js` now emits
+  `agg_player_detail_breakdowns.csv`, a daily/player/detail aggregate with
+  `map`, `opponent`, and `opponent_race` rows.
+- Serving path: `lib/warehouse-stats.ts` now reads that detail aggregate for
+  player details and no longer reads raw `fact_matches.csv` for warehouse
+  stats requests.
+- Contract coverage:
+  - `test:warehouse:aggregates` covers detail aggregate rollup behavior.
+  - `test:warehouse:stats` now proves player detail requests read the detail
+    aggregate and do not synchronously read `fact_matches.csv`.
+- Local pipeline run: `npm.cmd run build:aggregates` generated
+  `agg_player_detail_total=211356` from `fact_total=143664`. `data/warehouse/`
+  remains ignored, so this is a local/generated artifact rather than a commit
+  payload.
+- Remaining work: decide whether warehouse serving should stay local-artifact
+  based or move these aggregates into Supabase for deployment/runtime parity.
 
 ### 2026-05-20 Prediction Vote Scoped Read
 

@@ -11,6 +11,7 @@ const FACT_PATH = path.join(WAREHOUSE_DIR, "fact_matches.csv");
 const DIM_PATH = path.join(WAREHOUSE_DIR, "dim_player_roster_history.csv");
 const AGG_PLAYER_PATH = path.join(WAREHOUSE_DIR, "agg_daily_player.csv");
 const AGG_TEAM_PATH = path.join(WAREHOUSE_DIR, "agg_daily_team.csv");
+const AGG_PLAYER_DETAIL_PATH = path.join(WAREHOUSE_DIR, "agg_player_detail_breakdowns.csv");
 const REPORT_PATH = path.join(TMP_DIR, "warehouse_build_report.json");
 const STATE_PATH = path.join(CACHE_DIR, "warehouse_state.json");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
@@ -68,6 +69,19 @@ const AGG_TEAM_HEADERS = [
   "losses",
   "win_rate",
   "unique_players",
+];
+
+const AGG_PLAYER_DETAIL_HEADERS = [
+  "match_date",
+  "player_entity_id",
+  "player_name",
+  "team",
+  "breakdown_type",
+  "breakdown_value",
+  "matches",
+  "wins",
+  "losses",
+  "win_rate",
 ];
 
 function argValue(flag, fallback = null) {
@@ -530,6 +544,65 @@ function recalcTeamAggForDates(factRows, targetDates, existingRows) {
   );
 }
 
+function recalcPlayerDetailAggForDates(factRows, targetDates, existingRows) {
+  const dateSet = new Set(targetDates);
+  const keep = existingRows.filter((r) => !dateSet.has(r.match_date));
+  const grouped = new Map();
+  const breakdownOrder = new Map([
+    ["map", 0],
+    ["opponent", 1],
+    ["opponent_race", 2],
+  ]);
+
+  const addBreakdown = (row, breakdownType, breakdownValue) => {
+    const value = String(breakdownValue || "").trim() || "Unknown";
+    const key = `${row.match_date}|${row.player_entity_id}|${breakdownType}|${value}`;
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        match_date: row.match_date,
+        player_entity_id: row.player_entity_id,
+        player_name: row.player_name,
+        team: row.team,
+        breakdown_type: breakdownType,
+        breakdown_value: value,
+        matches: 0,
+        wins: 0,
+        losses: 0,
+      });
+    }
+    const g = grouped.get(key);
+    g.matches += 1;
+    if (toBool(row.is_win)) g.wins += 1;
+    else g.losses += 1;
+  };
+
+  for (const row of factRows) {
+    if (!dateSet.has(row.match_date)) continue;
+    addBreakdown(row, "map", row.map_name);
+    addBreakdown(row, "opponent", row.opponent_name);
+    addBreakdown(row, "opponent_race", row.opponent_race);
+  }
+
+  const recalc = [...grouped.values()].map((r) => ({
+    ...r,
+    matches: String(r.matches),
+    wins: String(r.wins),
+    losses: String(r.losses),
+    win_rate: toWinRate(r.wins, r.matches),
+  }));
+
+  return [...keep, ...recalc].sort((a, b) => {
+    const datePlayerCompare = `${a.match_date}|${a.player_entity_id}`.localeCompare(
+      `${b.match_date}|${b.player_entity_id}`
+    );
+    if (datePlayerCompare !== 0) return datePlayerCompare;
+    const typeCompare =
+      (breakdownOrder.get(a.breakdown_type) ?? 99) - (breakdownOrder.get(b.breakdown_type) ?? 99);
+    if (typeCompare !== 0) return typeCompare;
+    return String(a.breakdown_value || "").localeCompare(String(b.breakdown_value || ""));
+  });
+}
+
 function main() {
   const nowIso = new Date().toISOString();
   const rebuild = hasFlag("--rebuild");
@@ -548,6 +621,7 @@ function main() {
   const dimRows = readCsv(DIM_PATH);
   const aggPlayerRows = rebuild ? [] : readCsv(AGG_PLAYER_PATH);
   const aggTeamRows = rebuild ? [] : readCsv(AGG_TEAM_PATH);
+  const aggPlayerDetailRows = rebuild ? [] : readCsv(AGG_PLAYER_DETAIL_PATH);
 
   const existingFactKeys = new Set(factRows.map((r) => r.match_key));
   const changedDates = new Set();
@@ -691,7 +765,10 @@ function main() {
   const insertedDim = ensureDimRows(dimRows, rosterIndex.byEntityId, nowIso);
 
   const fullRecalcDates =
-    rebuild || !fs.existsSync(AGG_PLAYER_PATH) || !fs.existsSync(AGG_TEAM_PATH)
+    rebuild ||
+    !fs.existsSync(AGG_PLAYER_PATH) ||
+    !fs.existsSync(AGG_TEAM_PATH) ||
+    !fs.existsSync(AGG_PLAYER_DETAIL_PATH)
       ? [...new Set(factRows.map((r) => r.match_date))]
       : [...changedDates];
 
@@ -701,6 +778,9 @@ function main() {
   const nextAggTeam = fullRecalcDates.length
     ? recalcTeamAggForDates(factRows, fullRecalcDates, aggTeamRows)
     : aggTeamRows;
+  const nextAggPlayerDetail = fullRecalcDates.length
+    ? recalcPlayerDetailAggForDates(factRows, fullRecalcDates, aggPlayerDetailRows)
+    : aggPlayerDetailRows;
 
   factRows.sort((a, b) => `${a.match_date}|${a.player_entity_id}|${a.match_key}`.localeCompare(`${b.match_date}|${b.player_entity_id}|${b.match_key}`));
   dimRows.sort((a, b) => `${a.entity_id}|${a.valid_from}|${a.valid_to}`.localeCompare(`${b.entity_id}|${b.valid_from}|${b.valid_to}`));
@@ -709,6 +789,7 @@ function main() {
   writeCsv(DIM_PATH, DIM_HEADERS, dimRows);
   writeCsv(AGG_PLAYER_PATH, AGG_PLAYER_HEADERS, nextAggPlayer);
   writeCsv(AGG_TEAM_PATH, AGG_TEAM_HEADERS, nextAggTeam);
+  writeCsv(AGG_PLAYER_DETAIL_PATH, AGG_PLAYER_DETAIL_HEADERS, nextAggPlayerDetail);
 
   const nextState = buildState(allSourceFiles);
   fs.writeFileSync(STATE_PATH, JSON.stringify(nextState, null, 2), "utf8");
@@ -730,11 +811,13 @@ function main() {
     agg_recalc_dates: fullRecalcDates.length,
     agg_player_total: nextAggPlayer.length,
     agg_team_total: nextAggTeam.length,
+    agg_player_detail_total: nextAggPlayerDetail.length,
     paths: {
       fact: FACT_PATH,
       dim: DIM_PATH,
       agg_player: AGG_PLAYER_PATH,
       agg_team: AGG_TEAM_PATH,
+      agg_player_detail: AGG_PLAYER_DETAIL_PATH,
       state: STATE_PATH,
     },
   };
@@ -754,6 +837,7 @@ module.exports = {
   normalizePlayerNameFromFileName,
   normalizeIdentityLookupName,
   parseEntityIdFromSourceFileName,
+  recalcPlayerDetailAggForDates,
   resolveOpponentEntityId,
   sourceCandidateBucketKey,
 };

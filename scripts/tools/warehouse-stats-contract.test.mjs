@@ -59,24 +59,43 @@ function loadProjectModule(filePath) {
 
 const warehouseStatsPath = path.join(repoRoot, "lib", "warehouse-stats.ts");
 const factMatchesPath = path.join(repoRoot, "data", "warehouse", "fact_matches.csv");
+const aggPlayerDetailsPath = path.join(repoRoot, "data", "warehouse", "agg_player_detail_breakdowns.csv");
 
 function loadFreshWarehouseStats() {
   moduleCache.delete(path.normalize(warehouseStatsPath));
   return loadProjectModule(warehouseStatsPath);
 }
 
-function countReadPaths(run) {
+function countReadPaths(run, fixtures = new Map()) {
+  const originalExistsSync = fs.existsSync;
   const originalReadFileSync = fs.readFileSync;
+  const originalStatSync = fs.statSync;
   const readPaths = [];
+  fs.existsSync = function existsSyncWithFixtures(filePath) {
+    const normalizedPath = path.normalize(String(filePath));
+    if (fixtures.has(normalizedPath)) return true;
+    return originalExistsSync.call(this, filePath);
+  };
+  fs.statSync = function statSyncWithFixtures(filePath, ...args) {
+    const normalizedPath = path.normalize(String(filePath));
+    if (fixtures.has(normalizedPath)) {
+      return { mtimeMs: 1, isFile: () => true };
+    }
+    return originalStatSync.call(this, filePath, ...args);
+  };
   fs.readFileSync = function readFileSyncWithAudit(filePath, ...args) {
-    readPaths.push(path.normalize(String(filePath)));
+    const normalizedPath = path.normalize(String(filePath));
+    readPaths.push(normalizedPath);
+    if (fixtures.has(normalizedPath)) return fixtures.get(normalizedPath);
     return originalReadFileSync.call(this, filePath, ...args);
   };
 
   try {
     run();
   } finally {
+    fs.existsSync = originalExistsSync;
     fs.readFileSync = originalReadFileSync;
+    fs.statSync = originalStatSync;
   }
 
   return readPaths;
@@ -101,8 +120,26 @@ test("warehouse overview requests avoid loading raw fact matches", () => {
   );
 });
 
-test("warehouse player detail requests load raw fact matches for detail breakdowns", () => {
+test("warehouse player detail requests use aggregate detail snapshots instead of raw facts", () => {
   const warehouseStats = loadFreshWarehouseStats();
+  const fixtures = new Map([
+    [
+      path.normalize(factMatchesPath),
+      "match_key,match_date,player_entity_id,player_name,team,tier,race,opponent_entity_id,opponent_name,opponent_race,map_name,result,is_win,memo,source_file,source_row_no,ingested_at\n",
+    ],
+    [
+      path.join(repoRoot, "data", "warehouse", "agg_daily_player.csv"),
+      "match_date,player_entity_id,player_name,team,tier,race,matches,wins,losses,win_rate\n",
+    ],
+    [
+      path.join(repoRoot, "data", "warehouse", "agg_daily_team.csv"),
+      "match_date,team,matches,wins,losses,win_rate,unique_players\n",
+    ],
+    [
+      path.normalize(aggPlayerDetailsPath),
+      "match_date,player_entity_id,player_name,team,breakdown_type,breakdown_value,matches,wins,losses,win_rate\n",
+    ],
+  ]);
 
   const readPaths = countReadPaths(() => {
     warehouseStats.getWarehouseStats({
@@ -111,11 +148,16 @@ test("warehouse player detail requests load raw fact matches for detail breakdow
       playerName: "__missing_player__",
       includePlayerDetails: true,
     });
-  });
+  }, fixtures);
 
   assert.equal(
     readPaths.includes(path.normalize(factMatchesPath)),
+    false,
+    "player detail breakdowns should not synchronously read fact_matches.csv"
+  );
+  assert.equal(
+    readPaths.includes(path.normalize(aggPlayerDetailsPath)),
     true,
-    "player detail breakdowns should still read fact_matches.csv when requested"
+    "player detail breakdowns should read the pre-aggregated detail snapshot"
   );
 });

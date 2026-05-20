@@ -3,20 +3,6 @@ import path from "path";
 
 type CsvRow = Record<string, string>;
 
-type FactRow = {
-  matchDate: string;
-  playerEntityId: string;
-  playerName: string;
-  team: string;
-  tier: string;
-  race: string;
-  opponentEntityId?: string;
-  opponentName: string;
-  opponentRace: string;
-  mapName: string;
-  isWin: boolean;
-};
-
 type AggPlayerRow = {
   matchDate: string;
   playerEntityId: string;
@@ -38,6 +24,19 @@ type AggTeamRow = {
   losses: number;
   winRate: number;
   uniquePlayers: number;
+};
+
+type AggPlayerDetailRow = {
+  matchDate: string;
+  playerEntityId: string;
+  playerName: string;
+  team: string;
+  breakdownType: string;
+  breakdownValue: string;
+  matches: number;
+  wins: number;
+  losses: number;
+  winRate: number;
 };
 
 export type WarehouseStatsFilters = {
@@ -99,15 +98,16 @@ export type WarehouseStatsResult = {
 
 type WarehouseCache = {
   mtimes: Record<string, number>;
-  facts: FactRow[] | null;
   aggPlayer: AggPlayerRow[];
   aggTeam: AggTeamRow[];
+  aggPlayerDetail: AggPlayerDetailRow[];
 };
 
 const ROOT = process.cwd();
 const FACT_PATH = path.join(ROOT, "data", "warehouse", "fact_matches.csv");
 const AGG_PLAYER_PATH = path.join(ROOT, "data", "warehouse", "agg_daily_player.csv");
 const AGG_TEAM_PATH = path.join(ROOT, "data", "warehouse", "agg_daily_team.csv");
+const AGG_PLAYER_DETAIL_PATH = path.join(ROOT, "data", "warehouse", "agg_player_detail_breakdowns.csv");
 
 let cache: WarehouseCache | null = null;
 
@@ -176,23 +176,25 @@ function loadWarehouse(): WarehouseCache {
   const factMtime = fs.existsSync(FACT_PATH) ? fs.statSync(FACT_PATH).mtimeMs : 0;
   const aggPlayerMtime = fs.existsSync(AGG_PLAYER_PATH) ? fs.statSync(AGG_PLAYER_PATH).mtimeMs : 0;
   const aggTeamMtime = fs.existsSync(AGG_TEAM_PATH) ? fs.statSync(AGG_TEAM_PATH).mtimeMs : 0;
+  const aggPlayerDetailMtime = fs.existsSync(AGG_PLAYER_DETAIL_PATH)
+    ? fs.statSync(AGG_PLAYER_DETAIL_PATH).mtimeMs
+    : 0;
   const mtimes = {
     [FACT_PATH]: factMtime,
     [AGG_PLAYER_PATH]: aggPlayerMtime,
     [AGG_TEAM_PATH]: aggTeamMtime,
+    [AGG_PLAYER_DETAIL_PATH]: aggPlayerDetailMtime,
   };
 
   if (
     cache &&
     cache.mtimes[FACT_PATH] === mtimes[FACT_PATH] &&
     cache.mtimes[AGG_PLAYER_PATH] === mtimes[AGG_PLAYER_PATH] &&
-    cache.mtimes[AGG_TEAM_PATH] === mtimes[AGG_TEAM_PATH]
+    cache.mtimes[AGG_TEAM_PATH] === mtimes[AGG_TEAM_PATH] &&
+    cache.mtimes[AGG_PLAYER_DETAIL_PATH] === mtimes[AGG_PLAYER_DETAIL_PATH]
   ) {
     return cache;
   }
-
-  const facts =
-    cache && cache.mtimes[FACT_PATH] === mtimes[FACT_PATH] ? cache.facts : null;
 
   const aggPlayer = readCsv(AGG_PLAYER_PATH).map((r) => ({
     matchDate: r.match_date,
@@ -217,27 +219,21 @@ function loadWarehouse(): WarehouseCache {
     uniquePlayers: toInt(r.unique_players),
   }));
 
-  cache = { mtimes, facts, aggPlayer, aggTeam };
-  return cache;
-}
-
-function loadFactRows(wh: WarehouseCache): FactRow[] {
-  if (wh.facts) return wh.facts;
-
-  wh.facts = readCsv(FACT_PATH).map((r) => ({
+  const aggPlayerDetail = readCsv(AGG_PLAYER_DETAIL_PATH).map((r) => ({
     matchDate: r.match_date,
     playerEntityId: r.player_entity_id,
     playerName: r.player_name,
     team: r.team,
-    tier: r.tier,
-    race: r.race,
-    opponentEntityId: r.opponent_entity_id || "",
-    opponentName: r.opponent_name,
-    opponentRace: r.opponent_race,
-    mapName: r.map_name,
-    isWin: String(r.is_win).toLowerCase() === "true",
+    breakdownType: r.breakdown_type,
+    breakdownValue: r.breakdown_value,
+    matches: toInt(r.matches),
+    wins: toInt(r.wins),
+    losses: toInt(r.losses),
+    winRate: toFloat(r.win_rate),
   }));
-  return wh.facts;
+
+  cache = { mtimes, aggPlayer, aggTeam, aggPlayerDetail };
+  return cache;
 }
 
 function byRange<T extends { matchDate: string }>(rows: T[], from: string, to: string): T[] {
@@ -368,48 +364,34 @@ export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStat
   const playerDetails: WarehouseStatsResult["playerDetails"] =
     includePlayerDetails && (playerEntityId || playerName)
       ? (() => {
-          const scopedFacts = byPlayer(
-            byTeam(byRange(loadFactRows(wh), from, to), team),
+          const scopedDetails = byPlayer(
+            byTeam(byRange(wh.aggPlayerDetail, from, to), team),
             playerEntityId,
             playerName
           );
-          const mapG = new Map<string, { matches: number; wins: number; losses: number }>();
-          const raceG = new Map<string, { matches: number; wins: number; losses: number }>();
-          const oppG = new Map<string, { matches: number; wins: number; losses: number }>();
 
-          for (const f of scopedFacts) {
-            const map = f.mapName || "Unknown";
-            const race = f.opponentRace || "Unknown";
-            const opp = f.opponentName || "Unknown";
-            if (!mapG.has(map)) mapG.set(map, { matches: 0, wins: 0, losses: 0 });
-            if (!raceG.has(race)) raceG.set(race, { matches: 0, wins: 0, losses: 0 });
-            if (!oppG.has(opp)) oppG.set(opp, { matches: 0, wins: 0, losses: 0 });
-            const m = mapG.get(map)!;
-            const r = raceG.get(race)!;
-            const o = oppG.get(opp)!;
-            m.matches += 1;
-            r.matches += 1;
-            o.matches += 1;
-            if (f.isWin) {
-              m.wins += 1;
-              r.wins += 1;
-              o.wins += 1;
-            } else {
-              m.losses += 1;
-              r.losses += 1;
-              o.losses += 1;
+          const summarize = (breakdownType: string) => {
+            const grouped = new Map<string, { matches: number; wins: number; losses: number }>();
+            for (const row of scopedDetails) {
+              if (row.breakdownType !== breakdownType) continue;
+              const value = row.breakdownValue || "Unknown";
+              if (!grouped.has(value)) {
+                grouped.set(value, { matches: 0, wins: 0, losses: 0 });
+              }
+              const bucket = grouped.get(value)!;
+              bucket.matches += row.matches;
+              bucket.wins += row.wins;
+              bucket.losses += row.losses;
             }
-          }
+            return [...grouped.entries()]
+              .map(([value, s]) => ({ value, ...s, winRate: toWinRate(s.wins, s.matches) }))
+              .sort((a, b) => b.matches - a.matches || b.winRate - a.winRate);
+          };
 
-          const mapRows = [...mapG.entries()]
-            .map(([mapName, s]) => ({ mapName, ...s, winRate: toWinRate(s.wins, s.matches) }))
-            .sort((a, b) => b.matches - a.matches || b.winRate - a.winRate);
-          const raceRows = [...raceG.entries()]
-            .map(([race, s]) => ({ race, ...s, winRate: toWinRate(s.wins, s.matches) }))
-            .sort((a, b) => b.matches - a.matches || b.winRate - a.winRate);
-          const oppRows = [...oppG.entries()]
-            .map(([opponentName, s]) => ({ opponentName, ...s, winRate: toWinRate(s.wins, s.matches) }))
-            .sort((a, b) => b.matches - a.matches || b.winRate - a.winRate)
+          const mapRows = summarize("map").map(({ value, ...stats }) => ({ mapName: value, ...stats }));
+          const raceRows = summarize("opponent_race").map(({ value, ...stats }) => ({ race: value, ...stats }));
+          const oppRows = summarize("opponent")
+            .map(({ value, ...stats }) => ({ opponentName: value, ...stats }))
             .slice(0, 50);
 
           return {
@@ -442,11 +424,16 @@ export function warehouseDataHealth(): {
   paths: Record<string, string>;
 } {
   return {
-    exists: fs.existsSync(FACT_PATH) && fs.existsSync(AGG_PLAYER_PATH) && fs.existsSync(AGG_TEAM_PATH),
+    exists:
+      fs.existsSync(FACT_PATH) &&
+      fs.existsSync(AGG_PLAYER_PATH) &&
+      fs.existsSync(AGG_TEAM_PATH) &&
+      fs.existsSync(AGG_PLAYER_DETAIL_PATH),
     paths: {
       fact: FACT_PATH,
       aggPlayer: AGG_PLAYER_PATH,
       aggTeam: AGG_TEAM_PATH,
+      aggPlayerDetail: AGG_PLAYER_DETAIL_PATH,
     },
   };
 }

@@ -50,9 +50,13 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 - 2026-05-20 partial: `lib/warehouse-stats.ts` now keeps overview requests on
   `agg_daily_player.csv` / `agg_daily_team.csv` and lazily reads
   `fact_matches.csv` only for player detail breakdowns.
-- Remaining work: move the detail breakdowns themselves to a pre-aggregated
-  artifact or indexed DB query when that page/API path becomes the active
-  objective.
+- 2026-05-20 partial: the warehouse builder now emits
+  `agg_player_detail_breakdowns.csv` for map, opponent, and opponent-race
+  breakdowns, and `lib/warehouse-stats.ts` serves player detail requests from
+  that aggregate instead of reading `fact_matches.csv`.
+- Remaining work: decide whether these warehouse aggregates should move into
+  Supabase or another deployment-visible store instead of staying as ignored
+  local artifacts.
 
 ### A3. Player H2H History Memory Pressure
 
@@ -88,7 +92,7 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 
 - Area: `lib/board-comments.ts`
 - Question: visible comment counts should avoid fetching one row per comment just to count by post.
-- Current classification: `now`
+- Current classification: `later`
 - Reason: board usage can grow, and list pages need cheap count summaries.
 - 2026-05-20 partial: `scripts/sql/create-board-comments.sql` now defines
   `public.board_visible_comment_counts(post_ids uuid[])`, a stable

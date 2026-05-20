@@ -7,6 +7,7 @@ const {
   normalizeIdentityLookupName,
   normalizePlayerNameFromFileName,
   parseEntityIdFromSourceFileName,
+  recalcPlayerDetailAggForDates,
   resolveOpponentEntityId,
   sourceCandidateBucketKey,
 } = require("./build-aggregates-incremental");
@@ -92,4 +93,89 @@ runTest("warehouse opponent identity lookup resolves only unique canonical names
   assert.equal(resolveOpponentEntityId("Opponent A", rosterIndex), "eloboard:female:1");
   assert.equal(resolveOpponentEntityId("shared name", rosterIndex), "");
   assert.equal(resolveOpponentEntityId("unknown", rosterIndex), "");
+});
+
+runTest("warehouse player detail aggregate rolls up map race and opponent breakdowns by date", () => {
+  const rows = recalcPlayerDetailAggForDates(
+    [
+      {
+        match_date: "2026-05-20",
+        player_entity_id: "player:1",
+        player_name: "Alpha",
+        team: "HM",
+        opponent_name: "Beta",
+        opponent_race: "P",
+        map_name: "Polypoid",
+        is_win: "true",
+      },
+      {
+        match_date: "2026-05-20",
+        player_entity_id: "player:1",
+        player_name: "Alpha",
+        team: "HM",
+        opponent_name: "Beta",
+        opponent_race: "P",
+        map_name: "Polypoid",
+        is_win: "false",
+      },
+    ],
+    ["2026-05-20"],
+    [
+      {
+        match_date: "2026-05-19",
+        player_entity_id: "player:1",
+        player_name: "Alpha",
+        team: "HM",
+        breakdown_type: "map",
+        breakdown_value: "Eclipse",
+        matches: "1",
+        wins: "1",
+        losses: "0",
+        win_rate: "100.00",
+      },
+    ]
+  );
+
+  assert.deepEqual(
+    rows.filter((row) => row.match_date === "2026-05-20"),
+    [
+      {
+        match_date: "2026-05-20",
+        player_entity_id: "player:1",
+        player_name: "Alpha",
+        team: "HM",
+        breakdown_type: "map",
+        breakdown_value: "Polypoid",
+        matches: "2",
+        wins: "1",
+        losses: "1",
+        win_rate: "50.00",
+      },
+      {
+        match_date: "2026-05-20",
+        player_entity_id: "player:1",
+        player_name: "Alpha",
+        team: "HM",
+        breakdown_type: "opponent",
+        breakdown_value: "Beta",
+        matches: "2",
+        wins: "1",
+        losses: "1",
+        win_rate: "50.00",
+      },
+      {
+        match_date: "2026-05-20",
+        player_entity_id: "player:1",
+        player_name: "Alpha",
+        team: "HM",
+        breakdown_type: "opponent_race",
+        breakdown_value: "P",
+        matches: "2",
+        wins: "1",
+        losses: "1",
+        win_rate: "50.00",
+      },
+    ]
+  );
+  assert.equal(rows.some((row) => row.match_date === "2026-05-19"), true);
 });
