@@ -12,6 +12,9 @@ const BOARD_IMAGE_TYPES = {
   "image/webp": { extension: "webp", signature: isWebp },
 } as const;
 
+let cachedR2Client: S3Client | null = null;
+let cachedR2ClientKey = "";
+
 export type BoardImageMimeType = keyof typeof BOARD_IMAGE_TYPES;
 
 export class BoardImageUploadError extends Error {
@@ -123,6 +126,17 @@ function createR2Client(config: ReturnType<typeof getR2Config>) {
   });
 }
 
+function getR2Client(config: ReturnType<typeof getR2Config>) {
+  const clientKey = [config.accountId, config.accessKeyId, config.secretAccessKey].join("|");
+  if (cachedR2Client && cachedR2ClientKey === clientKey) {
+    return cachedR2Client;
+  }
+
+  cachedR2Client = createR2Client(config);
+  cachedR2ClientKey = clientKey;
+  return cachedR2Client;
+}
+
 export async function uploadBoardImageToR2(file: File) {
   const mimeType = getBoardImageMimeType(file);
   if (file.size > getBoardImageMaxBytes(mimeType)) {
@@ -134,7 +148,7 @@ export async function uploadBoardImageToR2(file: File) {
 
   const config = getR2Config();
   const key = buildBoardImageKey(BOARD_IMAGE_TYPES[mimeType].extension);
-  const client = createR2Client(config);
+  const client = getR2Client(config);
 
   await client.send(
     new PutObjectCommand({
@@ -176,7 +190,7 @@ export async function deleteBoardImageFromR2(value: string | null | undefined) {
   const key = getBoardImageObjectKeyFromPublicUrl(value);
   if (!key) return { deleted: false, key: null };
 
-  const client = createR2Client(config);
+  const client = getR2Client(config);
   await client.send(
     new DeleteObjectCommand({
       Bucket: config.bucketName,

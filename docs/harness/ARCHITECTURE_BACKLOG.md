@@ -29,9 +29,16 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 
 - Area: `lib/player-serving-metadata.ts`
 - Question: repeated synchronous roster/override file reads may add Vercel Function latency.
-- Current classification: `later`
-- Reason: plausible micro-optimization, but no current critical alert or measured latency proof.
-- Next evidence needed: route-level timing or repeated call profile showing this path is hot.
+- Current classification: `now`
+- Reason: serving path is hot enough to justify a small mtime cache guard, and
+  the change avoids repeated project roster JSON parsing without changing
+  public player semantics.
+- 2026-05-20 partial: project roster overrides and SOOP identity overrides now
+  use a project roster file mtime key and return cached maps when no
+  `players.<code>.v1.json` file changed.
+- Remaining work: if route timing still shows pressure, move project roster
+  metadata into a generated serving artifact rather than scanning project
+  directories at runtime.
 
 ### A2. Large Warehouse CSV Runtime Parsing
 
@@ -91,7 +98,11 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 - Question: board image upload/delete should avoid constructing a new `S3Client` for every call.
 - Current classification: `next`
 - Reason: small, surgical optimization with clear server-side connection reuse benefits.
-- Next evidence needed: add a focused contract around client reuse/config changes before refactoring.
+- 2026-05-20 partial: `uploadBoardImageToR2()` and
+  `deleteBoardImageFromR2()` now share a module-scoped, config-keyed
+  `S3Client` in warm server instances.
+- Remaining work: only revisit if upload/delete latency remains high after
+  production observation.
 
 ### A8. Roster Admin Store Load Shape
 
@@ -100,6 +111,19 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 - Current classification: `hold`
 - Reason: valid concern, but admin correctness and review visibility matter more than premature pagination.
 - Next evidence needed: inspect current admin workflows, expected correction volume, and whether filtering/pagination would hide operator-critical context.
+
+### A9. SOOP OAuth Fetch Timeout
+
+- Area: `lib/soop-auth.ts`
+- Question: third-party OAuth token/userinfo calls should not wait indefinitely
+  on SOOP upstream delays.
+- Current classification: `now`
+- Reason: external platform latency is outside NZU control and can hold Vercel
+  request handlers open until platform timeout.
+- 2026-05-20 partial: SOOP token exchange and station-info calls now go through
+  a shared fetch wrapper with an explicit 8-second `AbortController` timeout.
+- Remaining work: if real OAuth failures become frequent, add user-facing
+  retry/error messaging and structured operational logging.
 
 ## Current Not-A-Source Notes
 

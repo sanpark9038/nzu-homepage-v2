@@ -65,12 +65,41 @@ let cachedDisplayAliasesMtimeMs: number | null = null;
 let cachedDisplayAliases = new Map<string, string>();
 let cachedManualOverridesMtimeMs: number | null = null;
 let cachedManualOverrides = new Map<string, RosterPlayerOverride>();
+let cachedRosterOverridesMtimeKey: string | null = null;
+let cachedRosterOverrides = new Map<string, RosterPlayerOverride>();
+let cachedSoopIdentityOverridesMtimeKey: string | null = null;
+let cachedSoopIdentityOverrides = new Map<string, SoopIdentityOverride>();
 
 function readJsonFile<T>(filePath: string): T | null {
   const req = eval("require") as NodeRequire;
   const fs = req("fs") as typeof import("fs");
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as T;
+  } catch {
+    return null;
+  }
+}
+
+function getProjectRosterFiles(
+  fs: typeof import("fs"),
+  path: typeof import("path"),
+  projectsDir: string
+) {
+  if (!fs.existsSync(projectsDir)) return [];
+
+  return fs
+    .readdirSync(projectsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => {
+      const code = entry.name;
+      return path.join(projectsDir, code, `players.${code}.v1.json`);
+    })
+    .filter((filePath) => fs.existsSync(filePath));
+}
+
+function getProjectRosterMtimeKey(fs: typeof import("fs"), filePaths: string[]) {
+  try {
+    return filePaths.map((filePath) => `${filePath}:${fs.statSync(filePath).mtimeMs}`).join("|");
   } catch {
     return null;
   }
@@ -145,15 +174,13 @@ function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
   const fs = req("fs") as typeof import("fs");
   const path = req("path") as typeof import("path");
   const projectsDir = path.join(process.cwd(), "data", "metadata", "projects");
-  if (!fs.existsSync(projectsDir)) return overrides;
+  const rosterFiles = getProjectRosterFiles(fs, path, projectsDir);
+  const mtimeKey = getProjectRosterMtimeKey(fs, rosterFiles);
+  if (mtimeKey !== null && cachedRosterOverridesMtimeKey === mtimeKey) {
+    return cachedRosterOverrides;
+  }
 
-  const projectDirs = fs
-    .readdirSync(projectsDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name);
-
-  for (const code of projectDirs) {
-    const filePath = path.join(projectsDir, code, `players.${code}.v1.json`);
+  for (const filePath of rosterFiles) {
     const doc = readJsonFile<{
       roster?: Array<{
         entity_id?: string;
@@ -180,6 +207,8 @@ function loadRosterOverrides(): Map<string, RosterPlayerOverride> {
     }
   }
 
+  cachedRosterOverrides = overrides;
+  cachedRosterOverridesMtimeKey = mtimeKey;
   return overrides;
 }
 
@@ -285,15 +314,13 @@ function loadSoopIdentityOverrides(): Map<string, SoopIdentityOverride> {
   const fs = req("fs") as typeof import("fs");
   const path = req("path") as typeof import("path");
   const projectsDir = path.join(process.cwd(), "data", "metadata", "projects");
-  if (!fs.existsSync(projectsDir)) return overrides;
+  const rosterFiles = getProjectRosterFiles(fs, path, projectsDir);
+  const mtimeKey = getProjectRosterMtimeKey(fs, rosterFiles);
+  if (mtimeKey !== null && cachedSoopIdentityOverridesMtimeKey === mtimeKey) {
+    return cachedSoopIdentityOverrides;
+  }
 
-  const projectDirs = fs
-    .readdirSync(projectsDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name);
-
-  for (const code of projectDirs) {
-    const filePath = path.join(projectsDir, code, `players.${code}.v1.json`);
+  for (const filePath of rosterFiles) {
     const doc = readJsonFile<{
       roster?: Array<{
         name?: string;
@@ -314,6 +341,8 @@ function loadSoopIdentityOverrides(): Map<string, SoopIdentityOverride> {
     }
   }
 
+  cachedSoopIdentityOverrides = overrides;
+  cachedSoopIdentityOverridesMtimeKey = mtimeKey;
   return overrides;
 }
 

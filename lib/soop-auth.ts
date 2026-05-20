@@ -7,6 +7,7 @@ export const SOOP_AUTH_DEFAULT_NEXT_PATH = "/board";
 export const SOOP_AUTH_URL = "https://openapi.sooplive.com/auth/code";
 export const SOOP_TOKEN_URL = "https://openapi.sooplive.com/auth/token";
 export const SOOP_USERINFO_URL = "https://openapi.sooplive.com/user/stationinfo";
+export const SOOP_AUTH_FETCH_TIMEOUT_MS = 8_000;
 
 type SoopTokenResponse = {
   access_token?: string;
@@ -36,6 +37,25 @@ const AVATAR_CANDIDATE_KEYS = ["profile_image", "profile_img", "profile_image_ur
 
 function normalizeText(value: unknown) {
   return String(value || "").trim();
+}
+
+async function fetchSoopApi(url: string, init: RequestInit) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SOOP_AUTH_FETCH_TIMEOUT_MS);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("soop_auth_fetch_timeout");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export function getSoopClientId() {
@@ -95,7 +115,7 @@ export async function exchangeSoopAuthorizationCode(code: string) {
     code,
   });
 
-  const response = await fetch(SOOP_TOKEN_URL, {
+  const response = await fetchSoopApi(SOOP_TOKEN_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -117,7 +137,7 @@ export async function fetchSoopStationInfo(accessToken: string) {
     access_token: normalizeText(accessToken),
   });
 
-  const response = await fetch(SOOP_USERINFO_URL, {
+  const response = await fetchSoopApi(SOOP_USERINFO_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",

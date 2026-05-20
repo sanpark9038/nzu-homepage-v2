@@ -29,14 +29,17 @@ Current completed slice:
 Current next step:
 
 - Continue the pipeline-aligned architecture backlog one item at a time. Current
-  local slice: reduce warehouse runtime raw CSV loading without changing public
-  API shape.
+  local slice: reduce serving/runtime fragility with explicit SOOP auth
+  timeouts, mtime-guarded roster serving metadata, and R2 client reuse.
 
 Architecture backlog status:
 
 - The sub-AI CTO-style questions are captured in `docs/harness/ARCHITECTURE_BACKLOG.md`.
 - They are candidates, not approved implementation work.
 - Highest likely follow-ups after this slice are warehouse pre-aggregation, H2H DB/query shape, and prediction vote query filtering.
+- Latest follow-up candidates after this slice are board comment count
+  aggregation, remaining warehouse detail pre-aggregation, and H2H DB/query
+  shape.
 
 Drift guard:
 
@@ -940,3 +943,25 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - Remaining work: public prediction rendering still reads visible match votes to
   compute totals. That should move to an aggregate/RPC or summary table when
   the public vote volume warrants the next A4 slice.
+
+### 2026-05-20 Serving Runtime Guard Slice
+
+- Follow-up from architecture backlog items A1, A7, and A9.
+- SOOP OAuth token exchange and station-info calls now use a shared
+  `fetchSoopApi()` wrapper with an explicit 8-second `AbortController`
+  timeout, so upstream delays fail bounded instead of waiting for the platform
+  timeout.
+- Project roster serving overrides and SOOP identity overrides now compute a
+  project roster file mtime key and return cached maps when no
+  `players.<code>.v1.json` file changed. This keeps public player-serving
+  behavior unchanged while avoiding repeated JSON parsing on warm instances.
+- Board R2 image upload/delete now reuse a module-scoped, config-keyed
+  `S3Client` for warm server instances.
+- Regression coverage added:
+  - `test:soop-auth-timeout`
+  - `test:board-r2-upload-contract`
+  - `test:player-serving-metadata`
+- `verify:predeploy` now includes the SOOP timeout and R2 upload contracts.
+- Remaining work: board comment count aggregation should be the next small
+  architecture slice, but it needs an RPC or denormalized counter design rather
+  than a naive Supabase `select("post_id, count")` assumption.

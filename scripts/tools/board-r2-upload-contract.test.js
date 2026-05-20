@@ -37,6 +37,18 @@ test("R2 helper validates board image limits before upload", () => {
   }
 });
 
+test("R2 helper reuses a module-scoped S3 client for warm server instances", () => {
+  const helper = readProjectFile("lib/r2.ts");
+
+  assert.match(helper, /let cachedR2Client:\s*S3Client \| null\s*=\s*null/);
+  assert.match(helper, /let cachedR2ClientKey\s*=\s*""/);
+  assert.match(helper, /function getR2Client\(config: ReturnType<typeof getR2Config>\)/);
+  assert.match(helper, /cachedR2ClientKey === clientKey/);
+  assert.match(helper, /cachedR2Client = createR2Client\(config\)/);
+  assert.match(helper, /const client = getR2Client\(config\)/);
+  assert.equal(helper.includes("const client = createR2Client(config);"), false);
+});
+
 test("R2 board upload environment contract is documented", () => {
   const envExample = readProjectFile(".env.example");
 

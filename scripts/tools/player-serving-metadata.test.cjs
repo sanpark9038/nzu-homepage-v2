@@ -52,6 +52,10 @@ function runTest(name, fn) {
   }
 }
 
+function readProjectFile(filePath) {
+  return fs.readFileSync(path.join(ROOT, filePath), "utf8");
+}
+
 registerTypeScriptRequire();
 
 const {
@@ -73,6 +77,19 @@ runTest("display alias rewrites homepage name and preserves canonical nickname",
   assert.equal(actual.name, "빡죠스");
   assert.equal(actual.nickname, "박종승");
   assert.equal(actual.university, "MBU");
+});
+
+runTest("project roster serving overrides use an mtime cache guard", () => {
+  const source = readProjectFile(path.join("lib", "player-serving-metadata.ts"));
+
+  assert.match(source, /cachedRosterOverridesMtimeKey/);
+  assert.match(source, /cachedRosterOverrides = new Map/);
+  assert.match(source, /function getProjectRosterMtimeKey/);
+  assert.match(source, /fs\.statSync\(filePath\)\.mtimeMs/);
+  assert.match(source, /cachedRosterOverridesMtimeKey === mtimeKey/);
+  assert.match(source, /return cachedRosterOverrides/);
+  assert.match(source, /cachedSoopIdentityOverridesMtimeKey/);
+  assert.match(source, /cachedSoopIdentityOverrides = new Map/);
 });
 
 runTest("mixed identity only overrides soop_id without polluting canonical name", () => {
