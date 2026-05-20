@@ -40,6 +40,9 @@ Architecture backlog status:
 - Latest follow-up candidates after this slice are board comment count
   aggregation, remaining warehouse detail pre-aggregation, and H2H DB/query
   shape.
+- Board comment count aggregation is now the active local slice; remaining
+  likely follow-ups are production SQL apply, warehouse detail
+  pre-aggregation, and H2H DB/query shape.
 
 Drift guard:
 
@@ -965,3 +968,22 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - Remaining work: board comment count aggregation should be the next small
   architecture slice, but it needs an RPC or denormalized counter design rather
   than a naive Supabase `select("post_id, count")` assumption.
+
+### 2026-05-20 Board Comment Count RPC Slice
+
+- Follow-up from architecture backlog item A6.
+- Root cause: board list comment counts used `select("post_id")` against every
+  visible comment for the listed posts and counted rows in Node memory.
+- Fix direction: use a Postgres RPC instead of assuming a Supabase REST
+  group-by shape. `public.board_visible_comment_counts(post_ids uuid[])`
+  returns one row per post with `comment_count`.
+- Security posture: the function is `security invoker`, so normal table
+  permissions and RLS remain the governing access model.
+- Runtime compatibility: `getVisibleBoardCommentCounts()` calls the RPC first
+  and falls back to the previous row-based count path when the RPC is missing,
+  preserving local/dev/prod deploy ordering safety.
+- Regression coverage: `test:board:comments` now checks the SQL function,
+  execute grant, RPC-first helper, and fallback helper.
+- Remaining work: apply `scripts/sql/create-board-comments.sql` to production
+  Supabase before expecting the optimized path to be active on the deployed
+  site.

@@ -88,9 +88,15 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 
 - Area: `lib/board-comments.ts`
 - Question: visible comment counts should avoid fetching one row per comment just to count by post.
-- Current classification: `next`
+- Current classification: `now`
 - Reason: board usage can grow, and list pages need cheap count summaries.
-- Next evidence needed: verify the best Supabase-compatible count/RPC shape and preserve missing-storage fallback behavior.
+- 2026-05-20 partial: `scripts/sql/create-board-comments.sql` now defines
+  `public.board_visible_comment_counts(post_ids uuid[])`, a stable
+  `security invoker` RPC that groups visible comments in Postgres. The board
+  comment helper calls the RPC first and falls back to the previous row-based
+  count path when the RPC has not been applied yet.
+- Remaining work: apply the SQL to production Supabase before expecting the
+  optimized count path to be active in production.
 
 ### A7. R2 Client Reuse
 

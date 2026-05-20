@@ -27,6 +27,11 @@ export function isBoardCommentsStorageMissing(error: unknown) {
   return /board_comments|relation|schema cache|42p01|42703/i.test(message);
 }
 
+function isBoardCommentCountsRpcMissing(error: unknown) {
+  const message = formatErrorSearchText(error);
+  return /board_visible_comment_counts|function|schema cache|PGRST202|42883/i.test(message);
+}
+
 export function normalizeBoardCommentInput(value: unknown) {
   const row = (value || {}) as Partial<BoardCommentInsert>;
   return {
@@ -87,10 +92,38 @@ export async function getVisibleBoardCommentCounts(postIds: string[]) {
   if (!uniqueIds.length) return new Map<string, number>();
 
   try {
+    return await getVisibleBoardCommentCountsFromRpc(uniqueIds);
+  } catch (error) {
+    if (isBoardCommentCountsRpcMissing(error)) {
+      return getVisibleBoardCommentCountsFromRows(uniqueIds);
+    }
+    if (isBoardCommentsStorageMissing(error)) return new Map<string, number>();
+    throw error;
+  }
+}
+
+async function getVisibleBoardCommentCountsFromRpc(postIds: string[]) {
+  const { data, error } = await publicSupabase.rpc("board_visible_comment_counts", {
+    post_ids: postIds,
+  });
+
+  if (error) throw error;
+
+  const counts = new Map<string, number>();
+  for (const row of data || []) {
+    const postId = normalizeText((row as { post_id?: string }).post_id);
+    if (!postId) continue;
+    counts.set(postId, Number((row as { comment_count?: number | string }).comment_count || 0));
+  }
+  return counts;
+}
+
+async function getVisibleBoardCommentCountsFromRows(postIds: string[]) {
+  try {
     const { data, error } = await publicSupabase
       .from("board_comments")
       .select("post_id")
-      .in("post_id", uniqueIds)
+      .in("post_id", postIds)
       .is("deleted_at", null);
 
     if (error) throw error;

@@ -30,6 +30,12 @@ test("board comments SQL creates soft-delete table and visible indexes", () => {
   assert.match(sql, /enable row level security/);
   assert.match(sql, /grant select on table public\.board_comments to anon, authenticated/);
   assert.match(sql, /grant select, insert, update, delete on table public\.board_comments to service_role/);
+  assert.match(sql, /create or replace function public\.board_visible_comment_counts\(post_ids uuid\[\]\)/);
+  assert.match(sql, /returns table \(post_id uuid, comment_count bigint\)/);
+  assert.match(sql, /security invoker/);
+  assert.match(sql, /count\(\*\)::bigint/);
+  assert.match(sql, /group by c\.post_id/);
+  assert.match(sql, /grant execute on function public\.board_visible_comment_counts\(uuid\[\]\) to anon, authenticated, service_role/);
   assert.match(sql, /notify pgrst, 'reload schema'/);
 });
 
@@ -43,6 +49,10 @@ test("board comments helper owns normalization, limits, counts, and permissions"
   assert.match(source, /createBoardComment/);
   assert.match(source, /softDeleteBoardComment/);
   assert.match(source, /getVisibleBoardCommentCounts/);
+  assert.match(source, /getVisibleBoardCommentCountsFromRpc/);
+  assert.match(source, /getVisibleBoardCommentCountsFromRows/);
+  assert.match(source, /\.rpc\("board_visible_comment_counts"/);
+  assert.match(source, /isBoardCommentCountsRpcMissing/);
   assert.match(source, /canDeleteBoardComment/);
   assert.match(source, /deleted_at/);
   assert.match(source, /gte\("created_at"/);

@@ -573,7 +573,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      board_visible_comment_counts: {
+        Args: {
+          post_ids: string[]
+        }
+        Returns: {
+          post_id: string
+          comment_count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

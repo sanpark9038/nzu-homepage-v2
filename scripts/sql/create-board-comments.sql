@@ -23,6 +23,24 @@ alter table public.board_comments enable row level security;
 grant select on table public.board_comments to anon, authenticated;
 grant select, insert, update, delete on table public.board_comments to service_role;
 
+create or replace function public.board_visible_comment_counts(post_ids uuid[])
+returns table (post_id uuid, comment_count bigint)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select
+    c.post_id,
+    count(*)::bigint as comment_count
+  from public.board_comments c
+  where c.deleted_at is null
+    and c.post_id = any(post_ids)
+  group by c.post_id
+$$;
+
+grant execute on function public.board_visible_comment_counts(uuid[]) to anon, authenticated, service_role;
+
 do $$
 begin
   if not exists (
