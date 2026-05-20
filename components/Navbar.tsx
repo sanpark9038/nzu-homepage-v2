@@ -11,10 +11,14 @@ import { cn } from "@/lib/utils";
 
 type NavbarSession = Pick<PublicAuthSession, "avatarUrl" | "displayName" | "provider">;
 
+function resolveNavbarPathname(pathname: string | null) {
+  const browserPathname = typeof window !== "undefined" ? window.location.pathname : null;
+  return browserPathname ?? pathname ?? "/";
+}
+
 export default function Navbar() {
   const pathname = usePathname();
-  const browserPathname = typeof window !== "undefined" ? window.location.pathname : "/";
-  const resolvedPathname = browserPathname || pathname || "/";
+  const resolvedPathname = resolveNavbarPathname(pathname);
   const [session, setSession] = useState<NavbarSession | null>(null);
   const isHome = resolvedPathname === "/";
 

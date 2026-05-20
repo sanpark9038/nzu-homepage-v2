@@ -22,9 +22,11 @@ function test(name, fn) {
 test("navbar uses one shared component with home overlay and default sticky states", () => {
   const source = readProjectFile("components/Navbar.tsx");
 
-  assert.match(source, /const browserPathname = typeof window !== "undefined" \? window\.location\.pathname : "\/"/);
-  assert.match(source, /const resolvedPathname = browserPathname \|\| pathname \|\| "\/"/);
+  assert.match(source, /function resolveNavbarPathname/);
+  assert.match(source, /typeof window !== "undefined" \? window\.location\.pathname : null/);
+  assert.match(source, /browserPathname \?\? pathname \?\? "\/"/);
   assert.match(source, /const isHome = resolvedPathname === "\/"/);
+  assert.doesNotMatch(source, /: "\/";/);
   assert.match(source, /const isActive = resolvedPathname === item\.href/);
   assert.match(source, /isHome\s*\?\s*"fixed top-0/);
   assert.match(source, /:\s*"sticky top-0/);
@@ -33,6 +35,13 @@ test("navbar uses one shared component with home overlay and default sticky stat
   assert.doesNotMatch(source, /bg-background\/18/);
   assert.match(source, /bg-background\/72/);
   assert.doesNotMatch(source, /transition-all/);
+});
+
+test("navbar does not server-default every route to home overlay", () => {
+  const source = readProjectFile("components/Navbar.tsx");
+
+  assert.doesNotMatch(source, /typeof window !== "undefined" \? window\.location\.pathname : "\/"/);
+  assert.match(source, /resolveNavbarPathname\(pathname\)/);
 });
 
 test("navbar buttons use shared readable sizing instead of tiny per-page typography", () => {
