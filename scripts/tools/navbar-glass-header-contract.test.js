@@ -23,7 +23,7 @@ test("navbar uses one shared component with home overlay and default sticky stat
   const source = readProjectFile("components/Navbar.tsx");
 
   assert.match(source, /const browserPathname = typeof window !== "undefined" \? window\.location\.pathname : "\/"/);
-  assert.match(source, /const resolvedPathname = pathname \|\| browserPathname \|\| "\/"/);
+  assert.match(source, /const resolvedPathname = browserPathname \|\| pathname \|\| "\/"/);
   assert.match(source, /const isHome = resolvedPathname === "\/"/);
   assert.match(source, /const isActive = resolvedPathname === item\.href/);
   assert.match(source, /isHome\s*\?\s*"fixed top-0/);
