@@ -989,7 +989,9 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   site.
 - Production apply follow-up: SQL was applied to Supabase project
   `ttglvnnzssaaypmcrmdt` via `supabase db query --linked --file` from a
-  temporary CLI workdir because the repo `.env.local` currently makes
-  `supabase link` fail parsing. REST RPC smoke with anon access returned
+  temporary CLI workdir because the repo `.env.local` had a UTF-8 BOM that made
+  `supabase link` fail parsing. The local `.env.local` BOM was removed without
+  printing secret values, and `supabase link --project-ref ttglvnnzssaaypmcrmdt`
+  now works from the repo root. REST RPC smoke with anon access returned
   `200 []` for `post_ids=[]`, confirming the optimized path is available once
   this code is deployed.
