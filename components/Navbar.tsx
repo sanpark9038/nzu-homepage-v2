@@ -13,7 +13,8 @@ type NavbarSession = Pick<PublicAuthSession, "avatarUrl" | "displayName" | "prov
 
 export default function Navbar() {
   const pathname = usePathname();
-  const resolvedPathname = pathname || "/";
+  const browserPathname = typeof window !== "undefined" ? window.location.pathname : "";
+  const resolvedPathname = browserPathname || pathname || "";
   const [session, setSession] = useState<NavbarSession | null>(null);
   const isHome = resolvedPathname === "/";
 
