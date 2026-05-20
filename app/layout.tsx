@@ -55,7 +55,7 @@ export default function RootLayout({
               <Navbar />
 
               {/* Scrollable Content Container */}
-              <div id="main-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden relative">
+              <div id="main-scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden relative">
                 {children}
                 <ScrollToTop />
               </div>

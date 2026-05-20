@@ -13,8 +13,9 @@ type NavbarSession = Pick<PublicAuthSession, "avatarUrl" | "displayName" | "prov
 
 export default function Navbar() {
   const pathname = usePathname();
+  const resolvedPathname = pathname || "/";
   const [session, setSession] = useState<NavbarSession | null>(null);
-  const isHome = pathname === "/";
+  const isHome = resolvedPathname === "/";
 
   useEffect(() => {
     let active = true;
@@ -49,7 +50,7 @@ export default function Navbar() {
 
         <nav className="hidden flex-1 items-center justify-center gap-2 lg:flex">
           {visibleNavbarLinks.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = resolvedPathname === item.href;
             const showTierLiveBadge = item.href === "/tier";
 
             return (

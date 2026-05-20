@@ -22,7 +22,9 @@ function test(name, fn) {
 test("navbar uses one shared component with home overlay and default sticky states", () => {
   const source = readProjectFile("components/Navbar.tsx");
 
-  assert.match(source, /const isHome = pathname === "\/"/);
+  assert.match(source, /const resolvedPathname = pathname \|\| "\/"/);
+  assert.match(source, /const isHome = resolvedPathname === "\/"/);
+  assert.match(source, /const isActive = resolvedPathname === item\.href/);
   assert.match(source, /isHome\s*\?\s*"fixed top-0/);
   assert.match(source, /:\s*"sticky top-0/);
   assert.match(source, /backdrop-blur-2xl/);
@@ -56,4 +58,12 @@ test("home hero does not change opacity on page hover", () => {
 
   assert.doesNotMatch(source, /group-hover:opacity/);
   assert.doesNotMatch(source, /opacity-\[0\.03\]/);
+});
+
+test("main scroll container only shows a scrollbar when content overflows", () => {
+  const source = readProjectFile("app/layout.tsx");
+
+  assert.match(source, /id="main-scroll-container"/);
+  assert.match(source, /overflow-y-auto/);
+  assert.doesNotMatch(source, /overflow-y-scroll/);
 });
