@@ -921,3 +921,22 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - This is a conservative interim improvement, not the final warehouse
   architecture. Player detail breakdowns still need a future pre-aggregated
   artifact or indexed DB-backed query if that API path becomes hot.
+
+### 2026-05-20 Prediction Vote Scoped Read
+
+- Follow-up from architecture backlog item A4.
+- Root cause: `upsertPredictionVote()` called `loadPredictionState()` without a
+  scope before validating a single user's vote. In remote mode that meant the
+  server loaded all non-archived prediction matches and every row from
+  `prediction_votes`, then found one `voter_id + match_id` pair in memory.
+- Fix: `loadPredictionState()` now accepts optional `matchIds`,
+  `voteMatchIds`, and `voterId` filters. The remote Supabase path applies
+  `.in("id", matchIds)`, `.in("match_id", voteMatchIds)`, and
+  `.eq("voter_id", voterId)` when present.
+- `upsertPredictionVote()` uses those filters for vote validation, so a single
+  vote write no longer needs a full vote-table read.
+- Regression coverage: `test:prediction-store-contract` now includes a contract
+  for the scoped Supabase read path.
+- Remaining work: public prediction rendering still reads visible match votes to
+  compute totals. That should move to an aggregate/RPC or summary table when
+  the public vote volume warrants the next A4 slice.

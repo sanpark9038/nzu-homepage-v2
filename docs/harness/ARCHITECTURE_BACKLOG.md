@@ -62,6 +62,12 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 - Current classification: `next`
 - Reason: likely high-value because the prediction product is active and vote data can grow quickly.
 - Next evidence needed: inspect current Supabase query shape and add focused contract tests before changing storage behavior.
+- 2026-05-20 partial: `upsertPredictionVote()` now loads remote state with
+  `match_id + voter_id` scoped vote reads and target `match_id` scoped match
+  reads before validating a user's vote change.
+- Remaining work: public prediction read paths still need all visible match
+  votes to compute totals. Move those totals to a database aggregate/RPC or
+  pre-aggregated vote summary before public traffic grows.
 
 ### A5. University Metadata Static File Cache
 

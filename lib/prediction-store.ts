@@ -84,6 +84,12 @@ export type PredictionState = {
   remote_enabled: boolean;
 };
 
+type PredictionStateLoadOptions = {
+  matchIds?: string[];
+  voteMatchIds?: string[];
+  voterId?: string;
+};
+
 type WriteGuardInput = {
   hasRemoteEnv?: boolean;
   isVercelDeployment?: boolean;
@@ -424,20 +430,54 @@ function remoteVoteToLocal(row: PredictionVoteRemoteRow): PredictionVoteRow {
   };
 }
 
-async function readRemotePredictionState(): Promise<PredictionState> {
+function scopedState(state: PredictionState, options: PredictionStateLoadOptions = {}): PredictionState {
+  const matchIds = new Set(normalizeTextArray(options.matchIds));
+  const voteMatchIds = new Set(normalizeTextArray(options.voteMatchIds));
+  const voterId = normalizeText(options.voterId);
+
+  return {
+    ...state,
+    matches:
+      matchIds.size > 0
+        ? state.matches.filter((match) => matchIds.has(normalizeText(match.id)))
+        : state.matches,
+    votes: state.votes.filter((vote) => {
+      if (voteMatchIds.size > 0 && !voteMatchIds.has(normalizeText(vote.match_id))) return false;
+      if (voterId && normalizeText(vote.voter_id) !== voterId) return false;
+      return true;
+    }),
+  };
+}
+
+async function readRemotePredictionState(options: PredictionStateLoadOptions = {}): Promise<PredictionState> {
   const supabase = createSupabaseAdminClient();
-  const { data: matches, error: matchError } = await supabase
+  const matchIds = normalizeTextArray(options.matchIds);
+  const voteMatchIds = normalizeTextArray(options.voteMatchIds);
+  const voterId = normalizeText(options.voterId);
+
+  let matchQuery = supabase
     .from("prediction_matches")
     .select("*")
-    .is("archived_at", null)
+    .is("archived_at", null);
+  if (matchIds.length > 0) {
+    matchQuery = matchQuery.in("id", matchIds);
+  }
+  const { data: matches, error: matchError } = await matchQuery
     .order("display_order", { ascending: true })
     .order("start_at", { ascending: true });
 
   if (matchError) throw matchError;
 
-  const { data: votes, error: voteError } = await supabase
+  let voteQuery = supabase
     .from("prediction_votes")
-    .select("*")
+    .select("*");
+  if (voteMatchIds.length > 0) {
+    voteQuery = voteQuery.in("match_id", voteMatchIds);
+  }
+  if (voterId) {
+    voteQuery = voteQuery.eq("voter_id", voterId);
+  }
+  const { data: votes, error: voteError } = await voteQuery
     .order("updated_at", { ascending: false });
 
   if (voteError) throw voteError;
@@ -450,24 +490,24 @@ async function readRemotePredictionState(): Promise<PredictionState> {
   };
 }
 
-function readLocalPredictionState(): PredictionState {
-  return {
+function readLocalPredictionState(options: PredictionStateLoadOptions = {}): PredictionState {
+  return scopedState({
     matches: Array.isArray(readPredictionConfig().matches) ? readPredictionConfig().matches || [] : [],
     votes: readPredictionVotes(),
     source: "json",
     remote_enabled: hasPredictionRemoteEnv(),
-  };
+  }, options);
 }
 
-export async function loadPredictionState(): Promise<PredictionState> {
+export async function loadPredictionState(options: PredictionStateLoadOptions = {}): Promise<PredictionState> {
   if (hasPredictionRemoteEnv()) {
     try {
-      return await readRemotePredictionState();
+      return await readRemotePredictionState(options);
     } catch {
-      return readLocalPredictionState();
+      return readLocalPredictionState(options);
     }
   }
-  return readLocalPredictionState();
+  return readLocalPredictionState(options);
 }
 
 function matchToRemoteRow(match: PredictionConfigMatch, index: number): PredictionMatchInsert {
@@ -730,8 +770,12 @@ export async function upsertPredictionVote(input: {
   pickedPlayerId?: string | null | undefined;
 }) {
   assertPredictionWriteAllowed();
-  const state = await loadPredictionState();
   const matchId = normalizeText(input.matchId);
+  const state = await loadPredictionState({
+    matchIds: [matchId],
+    voteMatchIds: [matchId],
+    voterId: normalizeText(input.voterId),
+  });
   const match = state.matches.find((row) => normalizeText(row.id) === matchId);
   if (!match) throw new Error("prediction_match_not_found");
 

@@ -875,3 +875,15 @@ test("prediction writes fail closed on Vercel without Supabase admin env", () =>
     true
   );
 });
+
+test("remote prediction vote validation scopes Supabase reads to the target voter and match", () => {
+  const source = fs.readFileSync(path.join(repoRoot, "lib", "prediction-store.ts"), "utf8");
+
+  assert.match(source, /type PredictionStateLoadOptions = \{/);
+  assert.match(source, /voteMatchIds\?: string\[\]/);
+  assert.match(source, /voterId\?: string/);
+  assert.match(source, /\.in\("id", matchIds\)/);
+  assert.match(source, /\.in\("match_id", voteMatchIds\)/);
+  assert.match(source, /\.eq\("voter_id", voterId\)/);
+  assert.match(source, /loadPredictionState\(\{\s*matchIds: \[matchId\],\s*voteMatchIds: \[matchId\],\s*voterId: normalizeText\(input\.voterId\),/s);
+});
