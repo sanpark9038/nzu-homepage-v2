@@ -99,7 +99,7 @@ export type WarehouseStatsResult = {
 
 type WarehouseCache = {
   mtimes: Record<string, number>;
-  facts: FactRow[];
+  facts: FactRow[] | null;
   aggPlayer: AggPlayerRow[];
   aggTeam: AggTeamRow[];
 };
@@ -191,19 +191,8 @@ function loadWarehouse(): WarehouseCache {
     return cache;
   }
 
-  const facts = readCsv(FACT_PATH).map((r) => ({
-    matchDate: r.match_date,
-    playerEntityId: r.player_entity_id,
-    playerName: r.player_name,
-    team: r.team,
-    tier: r.tier,
-    race: r.race,
-    opponentEntityId: r.opponent_entity_id || "",
-    opponentName: r.opponent_name,
-    opponentRace: r.opponent_race,
-    mapName: r.map_name,
-    isWin: String(r.is_win).toLowerCase() === "true",
-  }));
+  const facts =
+    cache && cache.mtimes[FACT_PATH] === mtimes[FACT_PATH] ? cache.facts : null;
 
   const aggPlayer = readCsv(AGG_PLAYER_PATH).map((r) => ({
     matchDate: r.match_date,
@@ -230,6 +219,25 @@ function loadWarehouse(): WarehouseCache {
 
   cache = { mtimes, facts, aggPlayer, aggTeam };
   return cache;
+}
+
+function loadFactRows(wh: WarehouseCache): FactRow[] {
+  if (wh.facts) return wh.facts;
+
+  wh.facts = readCsv(FACT_PATH).map((r) => ({
+    matchDate: r.match_date,
+    playerEntityId: r.player_entity_id,
+    playerName: r.player_name,
+    team: r.team,
+    tier: r.tier,
+    race: r.race,
+    opponentEntityId: r.opponent_entity_id || "",
+    opponentName: r.opponent_name,
+    opponentRace: r.opponent_race,
+    mapName: r.map_name,
+    isWin: String(r.is_win).toLowerCase() === "true",
+  }));
+  return wh.facts;
 }
 
 function byRange<T extends { matchDate: string }>(rows: T[], from: string, to: string): T[] {
@@ -268,12 +276,6 @@ export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStat
     playerName
   );
   const scopedAggTeam = byTeam(byRange(wh.aggTeam, from, to), team);
-  const scopedFacts = byPlayer(
-    byTeam(byRange(wh.facts, from, to), team),
-    playerEntityId,
-    playerName
-  );
-
   const totalMatches = scopedAggPlayer.reduce((acc, r) => acc + r.matches, 0);
   const totalWins = scopedAggPlayer.reduce((acc, r) => acc + r.wins, 0);
   const totalLosses = scopedAggPlayer.reduce((acc, r) => acc + r.losses, 0);
@@ -366,6 +368,11 @@ export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStat
   const playerDetails: WarehouseStatsResult["playerDetails"] =
     includePlayerDetails && (playerEntityId || playerName)
       ? (() => {
+          const scopedFacts = byPlayer(
+            byTeam(byRange(loadFactRows(wh), from, to), team),
+            playerEntityId,
+            playerName
+          );
           const mapG = new Map<string, { matches: number; wins: number; losses: number }>();
           const raceG = new Map<string, { matches: number; wins: number; losses: number }>();
           const oppG = new Map<string, { matches: number; wins: number; losses: number }>();

@@ -23,10 +23,14 @@ Current completed slice:
 - `HM / eloboard:female:1036` no longer fails collection validation just because a women default page exposes an ambiguous page-level total for mixed-only rows.
 - Mixed rows are still not imported into default female history.
 - Targeted live collection and the daily export wrapper verified `fetch=ok csv=ok`.
+- Home first-entry header/hero stabilization was pushed after operator approval
+  and verified on both `www.star-hosaga.com` and the apex redirect.
 
 Current next step:
 
-- Operator decision: either approve commit/push/deploy for the verified fixes, or continue with harness pruning only.
+- Continue the pipeline-aligned architecture backlog one item at a time. Current
+  local slice: reduce warehouse runtime raw CSV loading without changing public
+  API shape.
 
 Architecture backlog status:
 
@@ -899,3 +903,21 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   `validation_failed_count=0`, `period_total=0`,
   `validation.display_total_consistent=true`, and the daily export wrapper
   returned `fetch=ok csv=ok`.
+
+### 2026-05-20 Warehouse Runtime Fact Lazy Loading
+
+- Follow-up from architecture backlog item A2.
+- Root cause: `lib/warehouse-stats.ts` already served overview/daily/team/player
+  summaries from pre-aggregated `agg_daily_player.csv` and
+  `agg_daily_team.csv`, but cache misses still synchronously read and parsed the
+  large raw `fact_matches.csv` before the code knew whether player detail
+  breakdowns were requested.
+- Fix: warehouse cache now keeps raw fact rows lazy. Overview requests load only
+  aggregate CSVs; `fact_matches.csv` is read only when
+  `includePlayerDetails=true` and a `playerEntityId` or `playerName` filter is
+  present.
+- Regression coverage: added `test:warehouse:stats` and wired it into both
+  `pipeline:health` and `verify:predeploy`.
+- This is a conservative interim improvement, not the final warehouse
+  architecture. Player detail breakdowns still need a future pre-aggregated
+  artifact or indexed DB-backed query if that API path becomes hot.

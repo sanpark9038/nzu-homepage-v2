@@ -40,6 +40,12 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 - Current classification: `next`
 - Reason: high data-growth risk and directly aligned with simple/stable serving.
 - Next evidence needed: identify current route/helper hot paths and the smallest aggregate artifact that removes repeated runtime scans.
+- 2026-05-20 partial: `lib/warehouse-stats.ts` now keeps overview requests on
+  `agg_daily_player.csv` / `agg_daily_team.csv` and lazily reads
+  `fact_matches.csv` only for player detail breakdowns.
+- Remaining work: move the detail breakdowns themselves to a pre-aggregated
+  artifact or indexed DB query when that page/API path becomes the active
+  objective.
 
 ### A3. Player H2H History Memory Pressure
 
