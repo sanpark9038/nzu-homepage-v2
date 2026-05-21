@@ -31,8 +31,8 @@ test("navbar uses one shared component with home overlay and default sticky stat
   assert.match(source, /isHome\s*\?\s*"fixed top-0/);
   assert.match(source, /:\s*"sticky top-0/);
   assert.match(source, /backdrop-blur-2xl/);
-  assert.match(source, /bg-background\/44/);
-  assert.doesNotMatch(source, /bg-background\/18/);
+  assert.match(source, /bg-background\/18/);
+  assert.doesNotMatch(source, /bg-background\/44/);
   assert.match(source, /bg-background\/72/);
   assert.doesNotMatch(source, /transition-all/);
 });

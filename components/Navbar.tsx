@@ -43,7 +43,7 @@ export default function Navbar() {
     <header
       className={cn(
         "z-[100] w-full border-b border-white/8 backdrop-blur-2xl transition-colors duration-200",
-        isHome ? "fixed top-0 bg-background/44" : "sticky top-0 bg-background/72"
+        isHome ? "fixed top-0 bg-background/18" : "sticky top-0 bg-background/72"
       )}
     >
       <div className="flex h-16 w-full items-center justify-between gap-4 px-4 lg:gap-8 lg:px-8">
