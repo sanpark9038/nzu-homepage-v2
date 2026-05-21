@@ -184,3 +184,35 @@ test("player card payload strips bulky precomputed stats after seeding summaries
     "The server should seed summaries from detailed_stats before stripping the client player payload"
   );
 });
+
+test("player match fallback checks history artifact before lazy database match-history reads", () => {
+  const source = readProjectFile("lib/player-service.ts");
+  const methodStart = source.indexOf("async getPlayerMatches");
+  const methodEnd = source.indexOf("async getRecentMatches", methodStart);
+
+  assert.notEqual(methodStart, -1);
+  assert.notEqual(methodEnd, -1);
+
+  const methodSource = source.slice(methodStart, methodEnd);
+
+  assert.match(
+    source,
+    /const\s+PLAYER_MATCH_HISTORY_METADATA_SELECT\s*=\s*[\s\S]*last_match_at/,
+    "Player match fallback should have a lightweight player select that includes only freshness metadata"
+  );
+  assert.match(
+    methodSource,
+    /\.select\(PLAYER_MATCH_HISTORY_METADATA_SELECT\)/,
+    "Player match fallback should load lightweight player metadata before resolving history"
+  );
+  assert.match(
+    methodSource,
+    /mergeDetailedH2HPlayerHistory\(/,
+    "Player match fallback should reuse the artifact-first lazy history resolver"
+  );
+  assert.doesNotMatch(
+    methodSource,
+    /\.select\(PLAYER_HISTORY_SELECT\)/,
+    "Player match fallback should not eagerly select the bulky match_history column"
+  );
+});

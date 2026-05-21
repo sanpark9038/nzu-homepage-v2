@@ -1221,6 +1221,23 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   2026-05-21 after rerunning outside the sandbox because the first sandboxed
   attempt stopped at `node --test` with `spawn EPERM`.
 
+### 2026-05-22 Player Match Lazy History Fallback
+
+- Follow-up from the same A3 serving-history scope.
+- Root cause: player detail expansion already tries the serving `matches` table
+  first, but when no direct match rows existed, `getPlayerMatches()` selected
+  the full `players.match_history` JSON before checking the R2 player-history
+  artifact.
+- Fix direction: the fallback player lookup now selects only lightweight player
+  metadata plus `last_match_at`. It then reuses the artifact-first lazy history
+  resolver, so the DB `match_history` column is read only when the artifact is
+  missing or older than the serving freshness date.
+- Scope boundary: this is a local serving-path optimization only. It does not
+  change roster decisions, player labels, or production data.
+- Regression coverage: `test:player-page-payload-contract` now checks that
+  `getPlayerMatches()` avoids eager `match_history` reads and uses the lazy
+  artifact resolver.
+
 ### 2026-05-20 Serving Runtime Guard Slice
 
 - Follow-up from architecture backlog items A1, A7, and A9.

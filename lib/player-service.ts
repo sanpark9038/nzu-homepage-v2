@@ -24,8 +24,8 @@ const PLAYER_DETAIL_SELECT = [
   "broadcast_title, broadcast_url, channel_profile_image_url, created_at, detailed_stats, elo_point, eloboard_id, id, is_live, last_synced_at, live_thumbnail_url, name, nickname, photo_url, race, soop_id, tier, tier_rank, total_losses, total_wins, university, win_rate, gender, last_checked_at, last_match_at, last_changed_at, check_priority, check_interval_days",
 ] as const;
 
-const PLAYER_HISTORY_SELECT =
-  "channel_profile_image_url, eloboard_id, id, name, race, photo_url, created_at, last_synced_at, match_history" as const;
+const PLAYER_MATCH_HISTORY_METADATA_SELECT =
+  "channel_profile_image_url, eloboard_id, id, name, race, photo_url, created_at, last_synced_at, last_match_at" as const;
 
 const MATCH_SERVING_SELECT =
   "*, player1:players!player1_id(channel_profile_image_url, id, name, race, photo_url), player2:players!player2_id(channel_profile_image_url, id, name, race, photo_url), winner:players!winner_id(id, name)" as const;
@@ -70,6 +70,13 @@ type MinimalH2HPlayerRow = {
   race?: string | null;
   last_match_at?: string | null;
   match_history?: StoredMatchHistoryItem[] | null;
+};
+
+type PlayerMatchHistoryMetadataRecord = MinimalH2HPlayerRow & {
+  channel_profile_image_url?: string | null;
+  photo_url?: string | null;
+  created_at?: string | null;
+  last_synced_at?: string | null;
 };
 
 function applyServingMetadataLayer(players: Player[]) {
@@ -520,12 +527,14 @@ export const playerService = {
 
     const { data: player, error: playerError } = await supabase
       .from("players")
-      .select(PLAYER_HISTORY_SELECT)
+      .select(PLAYER_MATCH_HISTORY_METADATA_SELECT)
       .eq("id", playerId)
       .single();
 
     if (playerError) throw playerError;
-    const playerWithArtifactHistory = await mergePlayerHistoryArtifact(player);
+    const playerWithArtifactHistory = await mergeDetailedH2HPlayerHistory(
+      player as PlayerMatchHistoryMetadataRecord
+    );
     return synthesizeMatchesFromHistory(
       {
         id: String(playerWithArtifactHistory.id || ""),
