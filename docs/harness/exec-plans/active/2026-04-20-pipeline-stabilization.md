@@ -1260,6 +1260,20 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - Regression coverage: `test:university-metadata-cache` checks the mtime cache
   guard and is included in `verify:predeploy`.
 
+### 2026-05-22 Local Predeploy Verification Checkpoint
+
+- Local commits verified together:
+  - `9411b66` Lazy-load player match history fallback
+  - `cbdd28e` Harden legacy H2H history reads
+  - `5e34ef3` Cache university metadata reads
+- First sandboxed `npm.cmd run verify:predeploy` attempt stopped at
+  `node --test` with `spawn EPERM`, matching the known local sandbox failure
+  mode for Node's test runner.
+- Rerun outside the sandbox completed successfully, including typecheck,
+  all contract/pipeline tests, metadata checks, warehouse aggregate checks, and
+  `next build`.
+- Push/deployment remain unapproved at this checkpoint.
+
 ### 2026-05-20 Serving Runtime Guard Slice
 
 - Follow-up from architecture backlog items A1, A7, and A9.
