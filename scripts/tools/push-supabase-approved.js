@@ -243,6 +243,28 @@ async function main() {
     `[OK] supabase_readiness_check attempts=${readiness.attempts} players_count=${readiness.count ?? "unknown"}`
   );
 
+  runStep("warehouse_aggregates", "scripts/tools/build-aggregates-incremental.js");
+  const warehouseAggregateSyncStep = runStep(
+    "warehouse_aggregate_r2_sync",
+    "scripts/tools/sync-warehouse-aggregates.js",
+    ["--upload-r2-if-configured"],
+    { allowFailure: true }
+  );
+  const warehouseAggregateResult = parseJsonFromStepOutput(warehouseAggregateSyncStep.out);
+  if (warehouseAggregateResult && warehouseAggregateResult.r2 && warehouseAggregateResult.r2.public_base_url) {
+    console.log(`[OK] warehouse_aggregate_r2_sync public_base_url=${warehouseAggregateResult.r2.public_base_url}`);
+  } else if (
+    warehouseAggregateResult &&
+    warehouseAggregateResult.r2 &&
+    warehouseAggregateResult.r2.skipped
+  ) {
+    console.warn(
+      `[WARN] warehouse_aggregate_r2_sync skipped (${warehouseAggregateResult.r2.reason || "no_public_upload"})`
+    );
+  } else if (!warehouseAggregateSyncStep.ok) {
+    console.warn("[WARN] warehouse_aggregate_r2_sync failed; deployed warehouse route will rely on existing artifacts");
+  }
+
   const playerHistoryStep = runStep(
     "player_history_artifacts",
     "scripts/tools/export-player-history-artifacts.js",

@@ -19,3 +19,14 @@ test("prediction public page and API use cached player list reads", () => {
   assert.match(apiSource, /playerService\.getCachedPlayersList\(\)/);
   assert.doesNotMatch(apiSource, /playerService\.getAllPlayers\(\)/);
 });
+
+test("prediction public page and API use aggregate vote totals for public reads", () => {
+  const pageSource = readProjectFile("app/prediction/page.tsx");
+  const apiSource = readProjectFile("app/api/prediction/route.ts");
+
+  assert.match(pageSource, /loadPredictionState\(\{\s*includeVoteTotals: true,\s*\}\)/);
+  assert.doesNotMatch(pageSource, /loadPredictionState\(\)\s*;/);
+
+  assert.match(apiSource, /loadPredictionState\(\{\s*voterId,\s*includeVoteTotals: true,\s*\}\)/);
+  assert.doesNotMatch(apiSource, /loadPredictionState\(\)\s*;/);
+});

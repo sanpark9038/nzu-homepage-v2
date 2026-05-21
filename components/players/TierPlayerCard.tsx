@@ -76,6 +76,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
               width={76}
               height={76}
               sizes="76px"
+              unoptimized
               className="relative z-10 h-full w-full object-cover object-top"
             />
           </Link>

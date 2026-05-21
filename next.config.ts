@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
     proxyClientMaxBodySize: 64 * 1024 * 1024,
   },
   images: {
+    deviceSizes: [640, 768, 1024, 1280],
+    imageSizes: [32, 48, 64, 96, 128, 160, 256, 384],
     remotePatterns: [
       { protocol: 'https', hostname: 'eloboard.com' },
       { protocol: 'http', hostname: 'eloboard.com' },

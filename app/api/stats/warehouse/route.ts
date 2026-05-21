@@ -46,10 +46,10 @@ export async function GET(req: NextRequest) {
   }
 
   const health = warehouseDataHealth();
-  if (!health.exists) {
+  if (!health.servingReady) {
     return NextResponse.json(
       {
-        error: "Warehouse files are missing. Build aggregates first.",
+        error: "Warehouse aggregate files are missing. Build aggregates first.",
         health,
       },
       { status: 503 }

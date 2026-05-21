@@ -115,6 +115,25 @@ runTest("player history artifact result leaves Supabase history full when upload
   assert.deepEqual(buildPlayerHistoryProdSyncEnv({ artifactResult: result, env: {} }), {});
 });
 
+runTest("approved push rebuilds and uploads warehouse aggregate serving snapshots before player history export", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const source = fs.readFileSync(path.join(__dirname, "push-supabase-approved.js"), "utf8");
+  const aggregateBuildIndex = source.indexOf('"warehouse_aggregates"');
+  const aggregateUploadIndex = source.indexOf('"warehouse_aggregate_r2_sync"');
+  const playerHistoryIndex = source.indexOf('"player_history_artifacts"');
+
+  assert.notEqual(aggregateBuildIndex, -1, "approved push should rebuild warehouse aggregates");
+  assert.notEqual(aggregateUploadIndex, -1, "approved push should upload aggregate serving snapshots when configured");
+  assert.notEqual(playerHistoryIndex, -1, "approved push should still export player history artifacts");
+  assert.ok(
+    aggregateBuildIndex < aggregateUploadIndex && aggregateUploadIndex < playerHistoryIndex,
+    "warehouse aggregates should be rebuilt and uploaded before player history artifacts read fact_matches.csv"
+  );
+  assert.match(source, /sync-warehouse-aggregates\.js/);
+  assert.match(source, /--upload-r2-if-configured/);
+});
+
 runTest("cache revalidation result reports skipped when the revalidation script skips env", () => {
   const actual = cacheRevalidationResultFromStep({
     ok: true,

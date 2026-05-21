@@ -29,10 +29,13 @@ function serializePublicSession(session: Awaited<ReturnType<typeof getPublicSess
 
 export async function GET() {
   const players = await playerService.getCachedPlayersList();
-  const state = await loadPredictionState();
-  const matches = buildTournamentPredictionMatches(players, state);
   const session = await getPublicSession();
   const voterId = session ? getPredictionVoterId(session) : "";
+  const state = await loadPredictionState({
+    voterId,
+    includeVoteTotals: true,
+  });
+  const matches = buildTournamentPredictionMatches(players, state);
   return NextResponse.json({
     ok: true,
     matches,
@@ -84,7 +87,10 @@ export async function POST(req: Request) {
   }
 
   const players = await playerService.getCachedPlayersList();
-  const state = await loadPredictionState();
+  const state = await loadPredictionState({
+    voterId,
+    includeVoteTotals: true,
+  });
   const matches = buildTournamentPredictionMatches(players, state);
   return NextResponse.json({
     ok: true,

@@ -136,6 +136,7 @@ function PlayerSearchResultInner({
   const liveThumbnailUrl = buildSoopThumbnailProxyUrl(player.live_thumbnail_url) || player.live_thumbnail_url || "";
   const canShowLiveThumbnail = Boolean(liveThumbnailUrl) && failedThumbnailSrc !== liveThumbnailUrl;
   const profileImageUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "/placeholder-player.svg";
+  const profileImageSizes = "112px";
   const universityLabel = getUniversityLabel(player.university);
 
   function handleToggleExpanded() {
@@ -153,10 +154,10 @@ function PlayerSearchResultInner({
             <div className="relative h-28 w-28 overflow-hidden rounded-[1.15rem] border border-white/10 bg-black/30">
               {liveWatchUrl ? (
                 <Link href={liveWatchUrl} target="_blank" rel="noreferrer" className="block h-full w-full">
-                  <Image src={profileImageUrl} alt={player.name} fill className="object-cover object-top transition-transform duration-300 hover:scale-105" />
+                  <Image src={profileImageUrl} alt={player.name} fill sizes={profileImageSizes} className="object-cover object-top transition-transform duration-300 hover:scale-105" />
                 </Link>
               ) : (
-                <Image src={profileImageUrl} alt={player.name} fill className="object-cover object-top" />
+                <Image src={profileImageUrl} alt={player.name} fill sizes={profileImageSizes} className="object-cover object-top" />
               )}
               {player.is_live ? (
                 <div className="absolute right-2 top-2 inline-flex items-center rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black tracking-tight text-white shadow-lg">

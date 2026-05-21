@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-05-21T00:00:00.000+09:00",
+  "description": "Reviewed opponent-name aliases used by player-history opponent identity coverage reports and warehouse opponent identity resolution. Entries only map aliases to existing canonical roster entity_id values; they do not auto-create roster state.",
+  "aliases": [
+    {
+      "entity_id": "eloboard:male:93",
+      "aliases": [
+        "이광용"
+      ],
+      "source": "operator_review_2026-05-21",
+      "note": "Operator confirmed 이광용 is the Protoss player displayed as 프발."
+    },
+    {
+      "entity_id": "eloboard:male:80",
+      "aliases": [
+        "장영근"
+      ],
+      "source": "operator_review_2026-05-21",
+      "note": "Operator confirmed 장영근 is the Protoss player displayed as 난수."
+    },
+    {
+      "entity_id": "eloboard:male:176",
+      "aliases": [
+        "박종승"
+      ],
+      "source": "operator_review_2026-05-21",
+      "note": "Operator confirmed 박종승 is the Protoss player displayed as 빡죠스."
+    }
+  ]
+}

@@ -189,3 +189,44 @@ runTest("roster change review suppresses operator-excluded repeated candidates",
   assert.deepEqual(review.items.map((item) => item.review_kind), ["tier_change"]);
   assert.equal(review.summary.excluded_by_operator, 2);
 });
+
+runTest("roster change review suppresses new candidates reviewed as external opponents", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "opponent-review-decisions-"));
+  const opponentDecisionsPath = path.join(dir, "opponent_identity_review_decisions.v1.json");
+  fs.writeFileSync(
+    opponentDecisionsPath,
+    JSON.stringify(
+      {
+        schema_version: "1.0.0",
+        decisions: [
+          { opponent_name: "다예", decision: "external_opponent" },
+          { opponent_name: "기준후보", decision: "canonical_candidate" },
+        ],
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+
+  const review = buildReview(
+    {
+      generated_at: "2026-05-21T00:00:00.000Z",
+      report_only: true,
+      moved: [],
+      tier_changed: [],
+      race_changed: [],
+      added: [
+        { entity_id: "eloboard:female:1000", name: "다예", to: "fa" },
+        { entity_id: "eloboard:female:1001", name: "기준후보", to: "fa" },
+      ],
+      observed_conflicts: [],
+      guarded_teams: [],
+    },
+    { opponentDecisionsPath }
+  );
+
+  assert.equal(review.summary.added, 1);
+  assert.equal(review.summary.excluded_external_opponents, 1);
+  assert.deepEqual(review.items.map((item) => item.name), ["기준후보"]);
+});

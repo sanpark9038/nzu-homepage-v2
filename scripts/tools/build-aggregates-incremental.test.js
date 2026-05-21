@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 
 const {
+  applyOpponentIdentityAliases,
   extractSourceMatchFields,
   findEntityForSourceFile,
   isSourceCsvFileName,
@@ -93,6 +94,25 @@ runTest("warehouse opponent identity lookup resolves only unique canonical names
   assert.equal(resolveOpponentEntityId("Opponent A", rosterIndex), "eloboard:female:1");
   assert.equal(resolveOpponentEntityId("shared name", rosterIndex), "");
   assert.equal(resolveOpponentEntityId("unknown", rosterIndex), "");
+});
+
+runTest("warehouse opponent identity lookup uses reviewed aliases for known canonical entities", () => {
+  const rosterIndex = {
+    byEntityId: new Map([
+      ["eloboard:male:93", { entity_id: "eloboard:male:93", name: "프발", display_name: "프발" }],
+    ]),
+    byOpponentName: new Map([
+      ["프발", new Set(["eloboard:male:93"])],
+    ]),
+  };
+
+  applyOpponentIdentityAliases(rosterIndex, [
+    { entity_id: "eloboard:male:93", aliases: ["이광용"] },
+    { entity_id: "eloboard:missing:1", aliases: ["ignored"] },
+  ]);
+
+  assert.equal(resolveOpponentEntityId("이광용", rosterIndex), "eloboard:male:93");
+  assert.equal(resolveOpponentEntityId("ignored", rosterIndex), "");
 });
 
 runTest("warehouse player detail aggregate rolls up map race and opponent breakdowns by date", () => {

@@ -15,6 +15,7 @@ const AGG_PLAYER_DETAIL_PATH = path.join(WAREHOUSE_DIR, "agg_player_detail_break
 const REPORT_PATH = path.join(TMP_DIR, "warehouse_build_report.json");
 const STATE_PATH = path.join(CACHE_DIR, "warehouse_state.json");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
+const OPPONENT_IDENTITY_ALIASES_PATH = path.join(ROOT, "data", "metadata", "opponent_identity_aliases.v1.json");
 
 const FACT_HEADERS = [
   "match_key",
@@ -315,7 +316,36 @@ function buildRosterIndexFromProjects() {
       }
     }
   }
+  applyOpponentIdentityAliases(byEntityId, byOpponentName, loadOpponentIdentityAliases());
   return { byName, byEntityId, byOpponentName, duplicateEntityIds };
+}
+
+function loadOpponentIdentityAliases(aliasPath = OPPONENT_IDENTITY_ALIASES_PATH) {
+  const doc = readJson(aliasPath, { aliases: [] });
+  return Array.isArray(doc.aliases) ? doc.aliases : [];
+}
+
+function applyOpponentIdentityAliases(rosterIndexOrByEntityId, aliases, maybeAliases = null) {
+  const byEntityId = rosterIndexOrByEntityId && rosterIndexOrByEntityId.byEntityId
+    ? rosterIndexOrByEntityId.byEntityId
+    : rosterIndexOrByEntityId;
+  const byOpponentName = rosterIndexOrByEntityId && rosterIndexOrByEntityId.byOpponentName
+    ? rosterIndexOrByEntityId.byOpponentName
+    : aliases;
+  const rows = maybeAliases || (rosterIndexOrByEntityId && rosterIndexOrByEntityId.byEntityId ? aliases : []);
+  if (!byEntityId || !byOpponentName) return;
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const entityId = String(row && row.entity_id ? row.entity_id : "").trim();
+    if (!entityId || !byEntityId.has(entityId)) continue;
+    const aliasNames = Array.isArray(row.aliases) ? row.aliases : [];
+    for (const alias of aliasNames) {
+      const key = normalizeIdentityLookupName(alias);
+      if (!key) continue;
+      const bucket = byOpponentName.get(key) || new Set();
+      bucket.add(entityId);
+      byOpponentName.set(key, bucket);
+    }
+  }
 }
 
 function resolveOpponentEntityId(opponentName, rosterIndex) {
@@ -831,6 +861,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  applyOpponentIdentityAliases,
   extractSourceMatchFields,
   findEntityForSourceFile,
   isSourceCsvFileName,

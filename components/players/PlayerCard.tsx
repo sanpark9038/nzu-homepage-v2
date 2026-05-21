@@ -50,6 +50,11 @@ export function PlayerCard({
   const liveThumbnailUrl = buildSoopThumbnailProxyUrl(player.live_thumbnail_url) || player.live_thumbnail_url || "";
   const canShowLiveThumbnail = Boolean(liveThumbnailUrl) && failedThumbnailSrc !== liveThumbnailUrl;
   const hoverSoopHref = (isLive ? soopWatchUrl : soopChannelUrl) || fallbackProfileUrl;
+  const profileImageSizes = isHomeVariant
+    ? "(max-width: 768px) 50vw, (max-width: 1280px) 25vw, 220px"
+    : isTierVariant
+      ? "132px"
+      : "(max-width: 768px) 92vw, (max-width: 1280px) 33vw, 320px";
   const hoverSoopLabel = isLive
     ? "LIVE 시청"
     : soopChannelUrl
@@ -234,6 +239,7 @@ export function PlayerCard({
             src={profileUrl || "/placeholder-player.svg"}
             alt={player.name}
             fill
+            sizes={profileImageSizes}
             className="object-cover object-top transition-transform duration-700 group-hover:scale-110"
           />
         )}

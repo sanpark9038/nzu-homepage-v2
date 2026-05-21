@@ -1,0 +1,913 @@
+{
+  "schema_version": "1.0.0",
+  "updated_at": "2026-05-21T00:00:00.000+09:00",
+  "description": "Operator-reviewed decisions for unresolved player-history opponent identities. This file is an input for future metadata review only; it does not create roster metadata by itself.",
+  "allowed_decisions": [
+    "canonical_candidate",
+    "external_opponent"
+  ],
+  "policy": {
+    "canonical_candidate": "Use only when the opponent should become canonical/project metadata; provide canonical_name or target_entity_id.",
+    "external_opponent": "Use when the opponent should remain an external historical opponent.",
+    "unreviewed": "Leave the opponent out of this file until an operator has made an explicit decision."
+  },
+  "decisions": [
+    {
+      "opponent_name": "다예",
+      "decision": "external_opponent",
+      "review_rank": 1,
+      "match_rows": 788,
+      "latest_match_date": "2026-05-14"
+    },
+    {
+      "opponent_name": "하루묭",
+      "decision": "external_opponent",
+      "review_rank": 2,
+      "match_rows": 587,
+      "latest_match_date": "2026-05-02"
+    },
+    {
+      "opponent_name": "두디",
+      "decision": "external_opponent",
+      "review_rank": 3,
+      "match_rows": 534,
+      "latest_match_date": "2025-10-26"
+    },
+    {
+      "opponent_name": "빵미유",
+      "decision": "external_opponent",
+      "review_rank": 4,
+      "match_rows": 498,
+      "latest_match_date": "2025-11-22"
+    },
+    {
+      "opponent_name": "뿌하",
+      "decision": "external_opponent",
+      "review_rank": 5,
+      "match_rows": 496,
+      "latest_match_date": "2025-12-02"
+    },
+    {
+      "opponent_name": "뷰러",
+      "decision": "external_opponent",
+      "review_rank": 6,
+      "match_rows": 484,
+      "latest_match_date": "2025-11-14"
+    },
+    {
+      "opponent_name": "팥순",
+      "decision": "external_opponent",
+      "review_rank": 7,
+      "match_rows": 480,
+      "latest_match_date": "2026-01-19"
+    },
+    {
+      "opponent_name": "히요코",
+      "decision": "external_opponent",
+      "review_rank": 8,
+      "match_rows": 446,
+      "latest_match_date": "2026-02-02"
+    },
+    {
+      "opponent_name": "은똥",
+      "decision": "external_opponent",
+      "review_rank": 9,
+      "match_rows": 443,
+      "latest_match_date": "2025-12-22"
+    },
+    {
+      "opponent_name": "짱다",
+      "decision": "external_opponent",
+      "review_rank": 10,
+      "match_rows": 436,
+      "latest_match_date": "2025-07-20"
+    },
+    {
+      "opponent_name": "김설",
+      "decision": "external_opponent",
+      "review_rank": 11,
+      "match_rows": 416,
+      "latest_match_date": "2026-02-26"
+    },
+    {
+      "opponent_name": "나능토끼야",
+      "decision": "external_opponent",
+      "review_rank": 12,
+      "match_rows": 399,
+      "latest_match_date": "2025-10-11"
+    },
+    {
+      "opponent_name": "밍도릿",
+      "decision": "external_opponent",
+      "review_rank": 13,
+      "match_rows": 372,
+      "latest_match_date": "2026-03-09"
+    },
+    {
+      "opponent_name": "예빈",
+      "decision": "external_opponent",
+      "review_rank": 14,
+      "match_rows": 365,
+      "latest_match_date": "2025-11-06"
+    },
+    {
+      "opponent_name": "연수",
+      "decision": "external_opponent",
+      "review_rank": 15,
+      "match_rows": 361,
+      "latest_match_date": "2026-02-10"
+    },
+    {
+      "opponent_name": "묘아",
+      "decision": "external_opponent",
+      "review_rank": 16,
+      "match_rows": 355,
+      "latest_match_date": "2026-01-30"
+    },
+    {
+      "opponent_name": "다우미",
+      "decision": "external_opponent",
+      "review_rank": 17,
+      "match_rows": 343,
+      "latest_match_date": "2025-12-31"
+    },
+    {
+      "opponent_name": "전태양",
+      "decision": "external_opponent",
+      "review_rank": 18,
+      "match_rows": 339,
+      "latest_match_date": "2025-10-20"
+    },
+    {
+      "opponent_name": "모꿀몬",
+      "decision": "external_opponent",
+      "review_rank": 19,
+      "match_rows": 327,
+      "latest_match_date": "2025-06-05"
+    },
+    {
+      "opponent_name": "윤진",
+      "decision": "external_opponent",
+      "review_rank": 20,
+      "match_rows": 314,
+      "latest_match_date": "2025-06-12"
+    },
+    {
+      "opponent_name": "무찌",
+      "decision": "external_opponent",
+      "review_rank": 21,
+      "match_rows": 310,
+      "latest_match_date": "2025-09-06"
+    },
+    {
+      "opponent_name": "김태향",
+      "decision": "external_opponent",
+      "review_rank": 22,
+      "match_rows": 304,
+      "latest_match_date": "2026-03-15"
+    },
+    {
+      "opponent_name": "남덕선",
+      "decision": "external_opponent",
+      "review_rank": 23,
+      "match_rows": 303,
+      "latest_match_date": "2026-03-02"
+    },
+    {
+      "opponent_name": "렘레미",
+      "decision": "external_opponent",
+      "review_rank": 24,
+      "match_rows": 303,
+      "latest_match_date": "2025-10-16"
+    },
+    {
+      "opponent_name": "단이",
+      "decision": "external_opponent",
+      "review_rank": 25,
+      "match_rows": 300,
+      "latest_match_date": "2026-03-05"
+    },
+    {
+      "opponent_name": "양유정",
+      "decision": "external_opponent",
+      "review_rank": 26,
+      "match_rows": 294,
+      "latest_match_date": "2025-11-23"
+    },
+    {
+      "opponent_name": "앵지",
+      "decision": "external_opponent",
+      "review_rank": 27,
+      "match_rows": 287,
+      "latest_match_date": "2025-07-13"
+    },
+    {
+      "opponent_name": "뀨알",
+      "decision": "external_opponent",
+      "review_rank": 28,
+      "match_rows": 257,
+      "latest_match_date": "2026-03-19"
+    },
+    {
+      "opponent_name": "수붕",
+      "decision": "external_opponent",
+      "review_rank": 29,
+      "match_rows": 257,
+      "latest_match_date": "2025-11-02"
+    },
+    {
+      "opponent_name": "허로아",
+      "decision": "external_opponent",
+      "review_rank": 30,
+      "match_rows": 257,
+      "latest_match_date": "2025-12-08"
+    },
+    {
+      "opponent_name": "우마루대장",
+      "decision": "external_opponent",
+      "review_rank": 31,
+      "match_rows": 222,
+      "latest_match_date": "2026-02-04"
+    },
+    {
+      "opponent_name": "림예이",
+      "decision": "external_opponent",
+      "review_rank": 32,
+      "match_rows": 203,
+      "latest_match_date": "2025-09-28"
+    },
+    {
+      "opponent_name": "연둥바둥",
+      "decision": "external_opponent",
+      "review_rank": 33,
+      "match_rows": 199,
+      "latest_match_date": "2026-01-07"
+    },
+    {
+      "opponent_name": "우질.",
+      "decision": "external_opponent",
+      "review_rank": 34,
+      "match_rows": 193,
+      "latest_match_date": "2025-12-09"
+    },
+    {
+      "opponent_name": "하솜",
+      "decision": "external_opponent",
+      "review_rank": 35,
+      "match_rows": 167,
+      "latest_match_date": "2025-07-13"
+    },
+    {
+      "opponent_name": "여누띠",
+      "decision": "external_opponent",
+      "review_rank": 36,
+      "match_rows": 166,
+      "latest_match_date": "2025-09-24"
+    },
+    {
+      "opponent_name": "오하얀..",
+      "decision": "external_opponent",
+      "review_rank": 37,
+      "match_rows": 162,
+      "latest_match_date": "2025-07-08"
+    },
+    {
+      "opponent_name": "팡린",
+      "decision": "external_opponent",
+      "review_rank": 38,
+      "match_rows": 161,
+      "latest_match_date": "2025-10-17"
+    },
+    {
+      "opponent_name": "제티.",
+      "decision": "external_opponent",
+      "review_rank": 39,
+      "match_rows": 159,
+      "latest_match_date": "2025-07-04"
+    },
+    {
+      "opponent_name": "여운",
+      "decision": "external_opponent",
+      "review_rank": 40,
+      "match_rows": 155,
+      "latest_match_date": "2025-12-21"
+    },
+    {
+      "opponent_name": "윤진규",
+      "decision": "external_opponent",
+      "review_rank": 41,
+      "match_rows": 155,
+      "latest_match_date": "2026-02-16"
+    },
+    {
+      "opponent_name": "쩡아",
+      "decision": "external_opponent",
+      "review_rank": 42,
+      "match_rows": 148,
+      "latest_match_date": "2025-11-08"
+    },
+    {
+      "opponent_name": "돌애정",
+      "decision": "external_opponent",
+      "review_rank": 43,
+      "match_rows": 138,
+      "latest_match_date": "2026-03-18"
+    },
+    {
+      "opponent_name": "우질",
+      "decision": "external_opponent",
+      "review_rank": 44,
+      "match_rows": 138,
+      "latest_match_date": "2026-03-16"
+    },
+    {
+      "opponent_name": "박쭈이",
+      "decision": "external_opponent",
+      "review_rank": 45,
+      "match_rows": 135,
+      "latest_match_date": "2026-04-21"
+    },
+    {
+      "opponent_name": "오리3",
+      "decision": "external_opponent",
+      "review_rank": 46,
+      "match_rows": 135,
+      "latest_match_date": "2025-12-21"
+    },
+    {
+      "opponent_name": "히추",
+      "decision": "external_opponent",
+      "review_rank": 47,
+      "match_rows": 132,
+      "latest_match_date": "2025-08-25"
+    },
+    {
+      "opponent_name": "최하니",
+      "decision": "external_opponent",
+      "review_rank": 48,
+      "match_rows": 128,
+      "latest_match_date": "2026-02-12"
+    },
+    {
+      "opponent_name": "너부리",
+      "decision": "external_opponent",
+      "review_rank": 49,
+      "match_rows": 127,
+      "latest_match_date": "2025-09-10"
+    },
+    {
+      "opponent_name": "안녕하세연두",
+      "decision": "external_opponent",
+      "review_rank": 50,
+      "match_rows": 127,
+      "latest_match_date": "2025-06-14"
+    },
+    {
+      "opponent_name": "다라츄.",
+      "decision": "external_opponent",
+      "review_rank": 35,
+      "match_rows": 39,
+      "latest_match_date": "2025-03-21",
+      "review_note": "Operator confirmed this dotted Terran opponent is not the canonical roster player 다라츄."
+    },
+    {
+      "opponent_name": "병하.",
+      "decision": "external_opponent",
+      "review_rank": 66,
+      "match_rows": 16,
+      "latest_match_date": "2025-10-24",
+      "review_note": "Operator confirmed this dotted Terran opponent is not the canonical roster player 병하."
+    },
+    {
+      "opponent_name": "김무아..",
+      "decision": "external_opponent",
+      "review_rank": 73,
+      "match_rows": 10,
+      "latest_match_date": "2025-07-07",
+      "review_note": "Operator confirmed this dotted opponent variant is not the canonical roster player 김무아."
+    },
+    {
+      "opponent_name": "이광용",
+      "decision": "canonical_candidate",
+      "target_entity_id": "eloboard:male:93",
+      "canonical_name": "프발",
+      "review_rank": 19,
+      "match_rows": 81,
+      "latest_match_date": "2026-05-08",
+      "review_note": "Operator confirmed 이광용 is the Protoss player displayed as 프발; keep as a collected canonical player."
+    },
+    {
+      "opponent_name": "혜냥.",
+      "decision": "external_opponent",
+      "review_rank": 5,
+      "match_rows": 103,
+      "latest_match_date": "2026-01-28",
+      "review_note": "Operator confirmed this dotted Terran opponent is not the canonical roster player 혜냥."
+    },
+    {
+      "opponent_name": "연또.",
+      "decision": "external_opponent",
+      "review_rank": 7,
+      "match_rows": 100,
+      "latest_match_date": "2026-03-26",
+      "review_note": "Operator confirmed this dotted Zerg opponent is not the canonical roster player 연또."
+    },
+    {
+      "opponent_name": "은조.",
+      "decision": "external_opponent",
+      "review_rank": 22,
+      "match_rows": 66,
+      "latest_match_date": "2025-11-29",
+      "review_note": "Operator confirmed this dotted Terran opponent is not the canonical roster player 은조."
+    },
+    {
+      "opponent_name": "단솔..",
+      "decision": "external_opponent",
+      "review_rank": 41,
+      "match_rows": 31,
+      "latest_match_date": "2026-03-12",
+      "review_note": "Operator confirmed this dotted Terran opponent is not the canonical roster player 단솔."
+    },
+    {
+      "opponent_name": "미진이.",
+      "decision": "external_opponent",
+      "review_rank": 48,
+      "match_rows": 26,
+      "latest_match_date": "2026-03-12",
+      "review_note": "Operator confirmed this dotted Terran opponent is not the canonical roster player 미진이."
+    },
+    {
+      "opponent_name": "구쁘",
+      "decision": "external_opponent",
+      "review_rank": 1,
+      "match_rows": 120,
+      "latest_match_date": "2025-12-07"
+    },
+    {
+      "opponent_name": "민서먕",
+      "decision": "external_opponent",
+      "review_rank": 2,
+      "match_rows": 120,
+      "latest_match_date": "2025-12-07"
+    },
+    {
+      "opponent_name": "안부",
+      "decision": "external_opponent",
+      "review_rank": 3,
+      "match_rows": 113,
+      "latest_match_date": "2025-10-18"
+    },
+    {
+      "opponent_name": "팽유",
+      "decision": "external_opponent",
+      "review_rank": 4,
+      "match_rows": 108,
+      "latest_match_date": "2025-10-09"
+    },
+    {
+      "opponent_name": "세나",
+      "decision": "external_opponent",
+      "review_rank": 6,
+      "match_rows": 102,
+      "latest_match_date": "2025-08-12"
+    },
+    {
+      "opponent_name": "김봄비",
+      "decision": "external_opponent",
+      "review_rank": 1,
+      "match_rows": 99,
+      "latest_match_date": "2025-04-18"
+    },
+    {
+      "opponent_name": "조오리",
+      "decision": "external_opponent",
+      "review_rank": 2,
+      "match_rows": 99,
+      "latest_match_date": "2026-01-16"
+    },
+    {
+      "opponent_name": "엘퀸",
+      "decision": "external_opponent",
+      "review_rank": 3,
+      "match_rows": 97,
+      "latest_match_date": "2025-03-04"
+    },
+    {
+      "opponent_name": "송혜림.",
+      "decision": "external_opponent",
+      "review_rank": 4,
+      "match_rows": 94,
+      "latest_match_date": "2025-06-10"
+    },
+    {
+      "opponent_name": "이루리",
+      "decision": "external_opponent",
+      "review_rank": 5,
+      "match_rows": 94,
+      "latest_match_date": "2025-02-13"
+    },
+    {
+      "opponent_name": "재연",
+      "decision": "external_opponent",
+      "review_rank": 6,
+      "match_rows": 91,
+      "latest_match_date": "2025-04-01"
+    },
+    {
+      "opponent_name": "예꾸",
+      "decision": "external_opponent",
+      "review_rank": 7,
+      "match_rows": 90,
+      "latest_match_date": "2026-01-09"
+    },
+    {
+      "opponent_name": "솜니",
+      "decision": "external_opponent",
+      "review_rank": 8,
+      "match_rows": 88,
+      "latest_match_date": "2025-12-03"
+    },
+    {
+      "opponent_name": "혜지연",
+      "decision": "external_opponent",
+      "review_rank": 9,
+      "match_rows": 88,
+      "latest_match_date": "2025-06-14"
+    },
+    {
+      "opponent_name": "수바",
+      "decision": "external_opponent",
+      "review_rank": 10,
+      "match_rows": 85,
+      "latest_match_date": "2025-11-25"
+    },
+    {
+      "opponent_name": "따뜻",
+      "decision": "external_opponent",
+      "review_rank": 1,
+      "match_rows": 83,
+      "latest_match_date": "2025-06-16"
+    },
+    {
+      "opponent_name": "아망뚜",
+      "decision": "external_opponent",
+      "review_rank": 2,
+      "match_rows": 79,
+      "latest_match_date": "2025-09-22"
+    },
+    {
+      "opponent_name": "채링",
+      "decision": "external_opponent",
+      "review_rank": 3,
+      "match_rows": 71,
+      "latest_match_date": "2025-10-16"
+    },
+    {
+      "opponent_name": "모모",
+      "decision": "external_opponent",
+      "review_rank": 4,
+      "match_rows": 68,
+      "latest_match_date": "2025-08-21"
+    },
+    {
+      "opponent_name": "야리",
+      "decision": "external_opponent",
+      "review_rank": 5,
+      "match_rows": 64,
+      "latest_match_date": "2025-04-14"
+    },
+    {
+      "opponent_name": "권혁찬",
+      "decision": "external_opponent",
+      "review_rank": 6,
+      "match_rows": 61,
+      "latest_match_date": "2026-01-19"
+    },
+    {
+      "opponent_name": "뿌리",
+      "decision": "external_opponent",
+      "review_rank": 7,
+      "match_rows": 59,
+      "latest_match_date": "2025-02-19"
+    },
+    {
+      "opponent_name": "쮸랑",
+      "decision": "external_opponent",
+      "review_rank": 8,
+      "match_rows": 57,
+      "latest_match_date": "2025-11-19"
+    },
+    {
+      "opponent_name": "민트",
+      "decision": "external_opponent",
+      "review_rank": 9,
+      "match_rows": 54,
+      "latest_match_date": "2026-01-08"
+    },
+    {
+      "opponent_name": "초이",
+      "decision": "external_opponent",
+      "review_rank": 10,
+      "match_rows": 51,
+      "latest_match_date": "2026-03-27"
+    },
+    {
+      "opponent_name": "장영근",
+      "decision": "canonical_candidate",
+      "target_entity_id": "eloboard:male:80",
+      "canonical_name": "난수",
+      "review_rank": 5,
+      "match_rows": 40,
+      "latest_match_date": "2026-05-01"
+    },
+    {
+      "opponent_name": "박종승",
+      "decision": "canonical_candidate",
+      "target_entity_id": "eloboard:male:176",
+      "canonical_name": "빡죠스",
+      "review_rank": 8,
+      "match_rows": 36,
+      "latest_match_date": "2026-05-07"
+    },
+    {
+      "opponent_name": "비그리",
+      "decision": "external_opponent",
+      "review_rank": 1,
+      "match_rows": 50,
+      "latest_match_date": "2026-02-18"
+    },
+    {
+      "opponent_name": "성예량",
+      "decision": "external_opponent",
+      "review_rank": 2,
+      "match_rows": 46,
+      "latest_match_date": "2025-04-03"
+    },
+    {
+      "opponent_name": "김준혁",
+      "decision": "external_opponent",
+      "review_rank": 3,
+      "match_rows": 43,
+      "latest_match_date": "2026-05-10"
+    },
+    {
+      "opponent_name": "하연진",
+      "decision": "external_opponent",
+      "review_rank": 4,
+      "match_rows": 41,
+      "latest_match_date": "2025-12-22"
+    },
+    {
+      "opponent_name": "옥이",
+      "decision": "external_opponent",
+      "review_rank": 5,
+      "match_rows": 39,
+      "latest_match_date": "2025-04-19"
+    },
+    {
+      "opponent_name": "유성민",
+      "decision": "external_opponent",
+      "review_rank": 6,
+      "match_rows": 39,
+      "latest_match_date": "2026-03-21"
+    },
+    {
+      "opponent_name": "제쥬순",
+      "decision": "external_opponent",
+      "review_rank": 7,
+      "match_rows": 38,
+      "latest_match_date": "2025-09-18"
+    },
+    {
+      "opponent_name": "순자",
+      "decision": "external_opponent",
+      "review_rank": 8,
+      "match_rows": 36,
+      "latest_match_date": "2025-04-20"
+    },
+    {
+      "opponent_name": "허지율",
+      "decision": "external_opponent",
+      "review_rank": 9,
+      "match_rows": 33,
+      "latest_match_date": "2025-03-27"
+    },
+    {
+      "opponent_name": "은아가",
+      "decision": "external_opponent",
+      "review_rank": 10,
+      "match_rows": 32,
+      "latest_match_date": "2025-09-16"
+    },
+    {
+      "opponent_name": "브희",
+      "decision": "external_opponent",
+      "review_rank": 11,
+      "match_rows": 30,
+      "latest_match_date": "2025-06-08"
+    },
+    {
+      "opponent_name": "송혜림",
+      "decision": "external_opponent",
+      "review_rank": 12,
+      "match_rows": 30,
+      "latest_match_date": "2025-08-17"
+    },
+    {
+      "opponent_name": "김상수",
+      "decision": "external_opponent",
+      "review_rank": 13,
+      "match_rows": 28,
+      "latest_match_date": "2025-10-21"
+    },
+    {
+      "opponent_name": "미니언",
+      "decision": "external_opponent",
+      "review_rank": 14,
+      "match_rows": 28,
+      "latest_match_date": "2026-02-08"
+    },
+    {
+      "opponent_name": "다소냥.",
+      "decision": "external_opponent",
+      "review_rank": 15,
+      "match_rows": 27,
+      "latest_match_date": "2025-09-09"
+    },
+    {
+      "opponent_name": "김석현",
+      "decision": "external_opponent",
+      "review_rank": 16,
+      "match_rows": 26,
+      "latest_match_date": "2025-12-13"
+    },
+    {
+      "opponent_name": "채비",
+      "decision": "external_opponent",
+      "review_rank": 17,
+      "match_rows": 26,
+      "latest_match_date": "2025-09-17"
+    },
+    {
+      "opponent_name": "히갱",
+      "decision": "external_opponent",
+      "review_rank": 18,
+      "match_rows": 26,
+      "latest_match_date": "2025-08-04"
+    },
+    {
+      "opponent_name": "하이유",
+      "decision": "external_opponent",
+      "review_rank": 19,
+      "match_rows": 25,
+      "latest_match_date": "2026-01-13"
+    },
+    {
+      "opponent_name": "다소냥",
+      "decision": "external_opponent",
+      "review_rank": 20,
+      "match_rows": 23,
+      "latest_match_date": "2025-11-05"
+    },
+    {
+      "opponent_name": "옥수수",
+      "decision": "external_opponent",
+      "review_rank": 1,
+      "match_rows": 23,
+      "latest_match_date": "2026-03-12"
+    },
+    {
+      "opponent_name": "밍도릿..",
+      "decision": "external_opponent",
+      "review_rank": 2,
+      "match_rows": 22,
+      "latest_match_date": "2026-01-22"
+    },
+    {
+      "opponent_name": "수핸",
+      "decision": "external_opponent",
+      "review_rank": 3,
+      "match_rows": 22,
+      "latest_match_date": "2025-10-06"
+    },
+    {
+      "opponent_name": "안정우",
+      "decision": "external_opponent",
+      "review_rank": 4,
+      "match_rows": 22,
+      "latest_match_date": "2026-05-08"
+    },
+    {
+      "opponent_name": "송현덕",
+      "decision": "external_opponent",
+      "review_rank": 5,
+      "match_rows": 21,
+      "latest_match_date": "2026-02-15"
+    },
+    {
+      "opponent_name": "짜미",
+      "decision": "external_opponent",
+      "review_rank": 6,
+      "match_rows": 20,
+      "latest_match_date": "2025-12-24"
+    },
+    {
+      "opponent_name": "치쨩",
+      "decision": "external_opponent",
+      "review_rank": 7,
+      "match_rows": 20,
+      "latest_match_date": "2025-11-08"
+    },
+    {
+      "opponent_name": "새밍",
+      "decision": "external_opponent",
+      "review_rank": 8,
+      "match_rows": 19,
+      "latest_match_date": "2025-11-06"
+    },
+    {
+      "opponent_name": "초롱빡",
+      "decision": "external_opponent",
+      "review_rank": 9,
+      "match_rows": 18,
+      "latest_match_date": "2026-03-04"
+    },
+    {
+      "opponent_name": "바미",
+      "decision": "external_opponent",
+      "review_rank": 10,
+      "match_rows": 17,
+      "latest_match_date": "2025-01-29"
+    },
+    {
+      "opponent_name": "홍쥬",
+      "decision": "external_opponent",
+      "review_rank": 11,
+      "match_rows": 17,
+      "latest_match_date": "2025-09-21"
+    },
+    {
+      "opponent_name": "허니콩",
+      "decision": "external_opponent",
+      "review_rank": 12,
+      "match_rows": 14,
+      "latest_match_date": "2025-11-07"
+    },
+    {
+      "opponent_name": "김승현",
+      "decision": "external_opponent",
+      "review_rank": 13,
+      "match_rows": 13,
+      "latest_match_date": "2025-12-22"
+    },
+    {
+      "opponent_name": "박영덕",
+      "decision": "external_opponent",
+      "review_rank": 14,
+      "match_rows": 13,
+      "latest_match_date": "2025-05-22"
+    },
+    {
+      "opponent_name": "비너스",
+      "decision": "external_opponent",
+      "review_rank": 15,
+      "match_rows": 13,
+      "latest_match_date": "2025-07-01"
+    },
+    {
+      "opponent_name": "이인극",
+      "decision": "external_opponent",
+      "review_rank": 16,
+      "match_rows": 13,
+      "latest_match_date": "2025-12-21"
+    },
+    {
+      "opponent_name": "욱하는형",
+      "decision": "external_opponent",
+      "review_rank": 17,
+      "match_rows": 12,
+      "latest_match_date": "2025-12-12"
+    },
+    {
+      "opponent_name": "눈또",
+      "decision": "external_opponent",
+      "review_rank": 18,
+      "match_rows": 10,
+      "latest_match_date": "2025-11-15"
+    },
+    {
+      "opponent_name": "박정일",
+      "decision": "external_opponent",
+      "review_rank": 19,
+      "match_rows": 10,
+      "latest_match_date": "2025-12-01"
+    },
+    {
+      "opponent_name": "파이",
+      "decision": "external_opponent",
+      "review_rank": 20,
+      "match_rows": 10,
+      "latest_match_date": "2025-11-18"
+    }
+  ]
+}

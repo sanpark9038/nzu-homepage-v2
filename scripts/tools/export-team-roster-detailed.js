@@ -20,6 +20,12 @@ const RESUMES_PATH = path.join(
   "metadata",
   "pipeline_collection_resumes.v1.json"
 );
+const OPPONENT_REVIEW_DECISIONS_PATH = path.join(
+  ROOT,
+  "data",
+  "metadata",
+  "opponent_identity_review_decisions.v1.json"
+);
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -228,6 +234,21 @@ function loadCollectionExclusions() {
   return normalizedRows;
 }
 
+function buildExternalOpponentExclusionRows(doc) {
+  const rows = Array.isArray(doc && doc.decisions) ? doc.decisions : [];
+  return rows
+    .filter((row) => String(row && row.decision ? row.decision : "").trim() === "external_opponent")
+    .map((row) => ({
+      name: String(row && row.opponent_name ? row.opponent_name : "").trim(),
+      reason: "external_opponent_reviewed",
+    }))
+    .filter((row) => row.name);
+}
+
+function loadExternalOpponentCollectionExclusions() {
+  return buildExternalOpponentExclusionRows(readJsonIfExists(OPPONENT_REVIEW_DECISIONS_PATH, { decisions: [] }));
+}
+
 function loadCollectionResumes() {
   const doc = readJsonIfExists(RESUMES_PATH, { players: [] });
   const rows = Array.isArray(doc.players) ? doc.players : [];
@@ -351,7 +372,10 @@ async function main() {
   const filteredRoster = filterPlayersByEntityIds(roster, entityIdsArg);
   const players = limit > 0 ? filteredRoster.slice(0, limit) : filteredRoster;
   const rosterAdminState = await loadMergedRosterAdminState();
-  const exclusions = mergeCollectionRows(loadCollectionExclusions(), rosterAdminState.exclusions || []);
+  const exclusions = mergeCollectionRows(
+    [...loadCollectionExclusions(), ...loadExternalOpponentCollectionExclusions()],
+    rosterAdminState.exclusions || []
+  );
   let resumes = mergeCollectionRows(loadCollectionResumes(), rosterAdminState.resumes || []);
 
   const summary = {
@@ -588,6 +612,8 @@ if (require.main === module) {
 
 module.exports = {
   readFileModifiedAt,
+  buildExternalOpponentExclusionRows,
+  exclusionReason,
   shouldFetchWithNoCache,
   shouldSkipByPriorityWindow,
   shouldReuseInactiveExistingJson,

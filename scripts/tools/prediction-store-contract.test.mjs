@@ -118,6 +118,20 @@ test("prediction SQL creates remote match and vote tables", () => {
   assert.match(sql, /alter table public\.prediction_votes enable row level security/i);
 });
 
+test("prediction SQL exposes a security-invoker vote total RPC", () => {
+  const sql = fs.readFileSync(path.join(repoRoot, "scripts", "sql", "create-prediction-tables.sql"), "utf8");
+  const types = fs.readFileSync(path.join(repoRoot, "lib", "database.types.ts"), "utf8");
+
+  assert.match(sql, /create or replace function public\.prediction_visible_vote_totals\(match_ids uuid\[\] default null\)/i);
+  assert.match(sql, /returns table \(\s*match_id uuid,\s*picked_team_code text,\s*picked_player_id text,\s*vote_count bigint\s*\)/i);
+  assert.match(sql, /security invoker/i);
+  assert.match(sql, /group by v\.match_id, v\.picked_team_code, v\.picked_player_id/i);
+  assert.match(sql, /grant execute on function public\.prediction_visible_vote_totals\(uuid\[\]\) to anon, authenticated, service_role/i);
+  assert.match(types, /prediction_visible_vote_totals: \{/);
+  assert.match(types, /match_ids: string\[\] \| null/);
+  assert.match(types, /vote_count: number/);
+});
+
 test("prediction voter ids come from a signed public auth session", () => {
   assert.equal(
     predictionStore.getPredictionVoterId({
@@ -210,6 +224,69 @@ test("buildTournamentPredictionMatches respects an explicitly empty remote state
   });
 
   assert.deepEqual(matches, []);
+});
+
+test("buildTournamentPredictionMatches can use aggregate vote totals without private vote rows", () => {
+  const playerA = makePredictionPlayer({
+    id: "11111111-1111-4111-8111-111111111111",
+    name: "Player A",
+  });
+  const playerB = makePredictionPlayer({
+    id: "22222222-2222-4222-8222-222222222222",
+    name: "Player B",
+  });
+  const matchId = "aggregate-match";
+
+  const [match] = tournamentPrediction.buildTournamentPredictionMatches([playerA, playerB], {
+    matches: [
+      {
+        id: matchId,
+        match_type: "individual",
+        team_a_code: `player:${playerA.id}`,
+        team_b_code: `player:${playerB.id}`,
+        team_a_player_ids: [playerA.id],
+        team_b_player_ids: [playerB.id],
+        start_at: "2026-05-24T12:00:00.000Z",
+        close_at: "2026-05-24T11:30:00.000Z",
+        status: "open",
+      },
+    ],
+    votes: [
+      {
+        voter_id: "soop:current-user",
+        match_id: matchId,
+        picked_team_code: `player:${playerA.id}`,
+        picked_player_id: playerA.id,
+        updated_at: "2026-05-24T11:00:00.000Z",
+      },
+    ],
+    voteTotals: [
+      {
+        match_id: matchId,
+        picked_team_code: `player:${playerA.id}`,
+        picked_player_id: null,
+        vote_count: 12,
+      },
+      {
+        match_id: matchId,
+        picked_team_code: `player:${playerB.id}`,
+        picked_player_id: null,
+        vote_count: 7,
+      },
+      {
+        match_id: matchId,
+        picked_team_code: null,
+        picked_player_id: playerA.id,
+        vote_count: 4,
+      },
+    ],
+  });
+
+  assert.equal(match.totalTeamVotes, 19);
+  assert.equal(match.teamVotes[`player:${playerA.id}`], 12);
+  assert.equal(match.teamVotes[`player:${playerB.id}`], 7);
+  assert.equal(match.totalMvpVotes, 4);
+  assert.equal(match.mvpVotes[playerA.id], 4);
 });
 
 test("buildTournamentPredictionMatches sorts public cards by nearest vote deadline", () => {
@@ -883,7 +960,23 @@ test("remote prediction vote validation scopes Supabase reads to the target vote
   assert.match(source, /voteMatchIds\?: string\[\]/);
   assert.match(source, /voterId\?: string/);
   assert.match(source, /\.in\("id", matchIds\)/);
-  assert.match(source, /\.in\("match_id", voteMatchIds\)/);
+  assert.match(source, /\.in\("match_id", effectiveVoteMatchIds\)/);
   assert.match(source, /\.eq\("voter_id", voterId\)/);
   assert.match(source, /loadPredictionState\(\{\s*matchIds: \[matchId\],\s*voteMatchIds: \[matchId\],\s*voterId: normalizeText\(input\.voterId\),/s);
+});
+
+test("public prediction API reads aggregate totals and only the current voter row", () => {
+  const source = fs.readFileSync(path.join(repoRoot, "app", "api", "prediction", "route.ts"), "utf8");
+
+  assert.match(source, /loadPredictionState\(\{\s*voterId,\s*includeVoteTotals: true,\s*\}\)/);
+  assert.doesNotMatch(source, /loadPredictionState\(\)\s*;/);
+});
+
+test("aggregate prediction reads scope the current voter row to visible matches", () => {
+  const source = fs.readFileSync(path.join(repoRoot, "lib", "prediction-store.ts"), "utf8");
+
+  assert.match(source, /const visibleMatchIds = Array\.isArray\(matches\)/);
+  assert.match(source, /const effectiveVoteMatchIds =[\s\S]*includeVoteTotals && voterId \? visibleMatchIds/);
+  assert.match(source, /Boolean\(voterId && \(!includeVoteTotals \|\| effectiveVoteMatchIds\.length > 0\)\)/);
+  assert.match(source, /\.in\("match_id", effectiveVoteMatchIds\)/);
 });

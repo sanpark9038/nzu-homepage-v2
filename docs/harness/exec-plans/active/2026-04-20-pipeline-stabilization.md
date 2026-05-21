@@ -3,7 +3,7 @@
 Created: 2026-04-20
 Status: in-progress
 
-## Current Steering Snapshot - 2026-05-20
+## Current Steering Snapshot - 2026-05-21
 
 Today's objective:
 
@@ -29,8 +29,8 @@ Current completed slice:
 Current next step:
 
 - Continue the pipeline-aligned architecture backlog one item at a time. Current
-  local slice: remove remaining warehouse player-detail runtime scans of the
-  large raw fact CSV by adding a pre-aggregated detail snapshot.
+  local slice: reduce public prediction vote read amplification while keeping
+  admin review context intact.
 
 Architecture backlog status:
 
@@ -41,8 +41,20 @@ Architecture backlog status:
   aggregation, remaining warehouse detail pre-aggregation, and H2H DB/query
   shape.
 - Board comment count aggregation and production SQL apply are complete for
-  this local slice. Warehouse detail pre-aggregation is now active; remaining
-  likely follow-up after that is H2H DB/query shape.
+  this local slice. Warehouse detail pre-aggregation is complete locally.
+  Current warehouse decision: raw `fact_matches.csv` remains a local
+  source/verification artifact, while `agg_daily_player.csv`,
+  `agg_daily_team.csv`, and `agg_player_detail_breakdowns.csv` are the minimal
+  serving inputs. The runtime health gate now follows that split. Artifact
+  transport uses an R2/public-base snapshot flow rather than moving the
+  aggregates into Supabase.
+- H2H follow-up is limited to report/coverage safety for now. Reviewed opponent
+  aliases can help identify durable entity candidates, but they do not create
+  canonical roster state and do not remove the current name/nickname fallback.
+- Prediction vote reads now have a repo-visible aggregate path: the public page
+  and API use a vote-total RPC when available, while API reads only the current
+  voter's visible-match rows for `myVotes`; admin/default reads keep full vote
+  rows.
 
 Drift guard:
 
@@ -951,6 +963,177 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - Remaining work: decide whether warehouse serving should stay local-artifact
   based or move these aggregates into Supabase for deployment/runtime parity.
 
+### 2026-05-21 Warehouse Aggregate Runtime Boundary
+
+- Follow-up from architecture backlog item A2.
+- Decision: keep `fact_matches.csv` as the local source-of-truth and
+  verification input. Do not require it for deployed warehouse stats serving.
+- Minimal runtime inputs are now the three aggregate snapshots:
+  `agg_daily_player.csv`, `agg_daily_team.csv`, and
+  `agg_player_detail_breakdowns.csv`.
+- `warehouseDataHealth()` now reports `rawFactExists` separately from
+  `servingReady`, and `/api/stats/warehouse` gates on `servingReady`.
+- This makes an aggregate-only deployment path possible without shipping the
+  33MB raw fact CSV.
+- Artifact transport decision: use R2/object storage for the three aggregate
+  CSVs. This keeps Supabase schema unchanged and avoids a DB/RPC migration for
+  a route that is not yet a hot public surface.
+- Added `scripts/tools/sync-warehouse-aggregates.js`:
+  - `--upload-r2-if-configured` uploads the aggregate snapshots under the
+    `warehouse` prefix when R2 envs are present.
+  - `--download-if-configured` materializes the snapshots from
+    `WAREHOUSE_AGGREGATES_PUBLIC_BASE_URL` or an R2 public root when local
+    aggregate files are absent.
+- `pipeline:push:approved` now rebuilds warehouse aggregates and attempts the
+  R2 upload before exporting player-history artifacts, so `fact_matches.csv`
+  and the serving aggregate snapshots are generated from the same local source
+  pass.
+- `prebuild` now runs the download-if-configured path. Local builds skip
+  download when aggregate files already exist; deployment builds can hydrate
+  ignored `data/warehouse/` snapshots if the public aggregate URL env is set.
+- Classification after sub-AI review:
+  - R2 S3Client reuse: verified complete; monitor only.
+  - SOOP OAuth timeout: verified complete; monitor only.
+  - Roster admin store load shape: keep `hold` until correction volume or
+    admin latency evidence justifies pagination/caching, because full context is
+    currently safer for operator review.
+
+### 2026-05-21 H2H Follow-Up Evidence
+
+- Current `player-service` H2H logic already prefers `opponent_entity_id` when
+  it is present, then falls back to normalized player name/nickname matching.
+- Latest opponent identity coverage report still says
+  `ready_to_remove_name_fallback=false`: `124964 / 143664` rows have
+  `opponent_entity_id` (`86.98%`), leaving `18700` unresolved rows across `205`
+  unresolved names.
+- Decision: keep H2H as the next candidate, but do not remove the name fallback
+  yet. The next safe slice should either improve opponent identity coverage in
+  warehouse/player-history artifacts or add a DB/indexed query path that still
+  preserves the current fail-closed ID-first route behavior.
+- Follow-up slice added `data/metadata/opponent_identity_aliases.v1.json`, an
+  empty reviewed-alias hint file for the opponent identity coverage report.
+  `report:player-history:opponent-identity` now reads it only when an alias maps
+  to an existing canonical roster `entity_id`; aliases for unknown entities are
+  ignored, so the report can surface `metadata_review_needed` candidates without
+  auto-creating roster metadata or changing H2H serving behavior.
+- Contract coverage: `test:player-history-opponent-identity-coverage` proves
+  reviewed aliases create candidates only for known roster entities and missing
+  alias files remain harmless.
+- Report-only follow-up: the coverage report now includes a
+  `fallback_dependency` section plus row-counted recommended actions. Current
+  local report still has `ready_to_remove_name_fallback=false`, with
+  `18700 / 143664` rows (`13.02%`) depending on name fallback. The rows are
+  currently classified as `metadata_review_rows=0`,
+  `external_or_metadata_review_rows=15571`, `external_candidate_rows=2912`, and
+  `ignored_low_frequency_rows=217`, so there is still no safe automatic
+  canonical alias promotion from this report alone.
+- Operator review follow-up: the same report now emits an
+  `operator_review_queue` that excludes low-frequency ignore rows and adds a
+  decision prompt per unresolved name. Current local queue has
+  `total_names=126` and `total_rows=18483`; top rows require
+  `classify_as_canonical_or_external`, meaning the operator decision is whether
+  each name should become canonical/project metadata or stay external.
+- Export follow-up: `writeReport()` now writes that queue as separate artifacts
+  at `tmp/reports/player_history_opponent_identity_review_queue_latest.json`
+  and `tmp/reports/player_history_opponent_identity_review_queue_latest.csv`.
+  Each queue row carries race-count, player-sample, and candidate-preview
+  evidence so the operator can choose `canonical_candidate` or
+  `external_opponent` without opening the raw player-history artifacts. The CSV
+  is UTF-8 BOM-prefixed to match existing operator spreadsheet exports.
+- Decision-input follow-up: added
+  `data/metadata/opponent_identity_review_decisions.v1.json` as the empty,
+  repo-visible operator decision input. Valid decisions are
+  `canonical_candidate` and `external_opponent`; names omitted from the file are
+  unreviewed. Canonical candidates must include `canonical_name` or
+  `target_entity_id`.
+  `validate:player-history:opponent-review` validates the file, and
+  `report:player-history:opponent-review-template` can generate a queue-sourced
+  empty decision template when the operator wants to start filling decisions.
+  This still does not mutate roster metadata or H2H runtime behavior.
+- Operator decision follow-up: the operator classified the current top 50 queue
+  names as `external_opponent`. The coverage report now reads
+  `opponent_identity_review_decisions.v1.json`, keeps those rows counted as
+  unresolved external history, and removes reviewed external names from the next
+  operator-review queue. This is report-only and still does not create or delete
+  canonical roster metadata.
+- Collection follow-up: `external_opponent` now means "do not collect this name
+  as a standalone player." `export-team-roster-detailed.js` reads the same
+  decision file as a name-based collection exclusion, and
+  `build-roster-change-review.js` suppresses matching `new_candidate` rows from
+  the roster review queue. This does not remove the opponent name from existing
+  match-history rows; it only prevents reviewed external opponents from becoming
+  collection targets or recurring baseline candidates.
+- Canonical alias follow-up: operator confirmed `이광용` is the Protoss player
+  displayed as `프발` (`eloboard:male:93`), not an external opponent. Added
+  `이광용` to `opponent_identity_aliases.v1.json`, recorded the review decision
+  as `canonical_candidate`, and extended warehouse aggregate opponent identity
+  resolution to read reviewed aliases only when they point at an existing
+  canonical roster entity. After `build:aggregates -- --rebuild` and
+  `export:player-history`, all 81 `이광용` opponent rows resolve to
+  `opponent_entity_id=eloboard:male:93`; local player-history opponent identity
+  coverage is now `87.04%` (`125045 / 143664`).
+- Operator decision follow-up: additional reviewed names were classified as
+  `external_opponent`, including race-mismatch dotted names and the latest
+  high-frequency unresolved queue batches.
+- Operator alias follow-up: operator confirmed `장영근` is the Protoss player
+  displayed as `난수` (`eloboard:male:80`). Added it as a reviewed opponent
+  alias and canonical candidate. After aggregate/player-history regeneration,
+  all 40 `장영근` opponent rows resolve to `opponent_entity_id=eloboard:male:80`.
+- Operator alias follow-up: operator confirmed `박종승` is the Protoss player
+  displayed as `빡죠스` (`eloboard:male:176`). Added it as a reviewed opponent
+  alias and canonical candidate. After aggregate/player-history regeneration,
+  all 36 `박종승` opponent rows resolve to
+  `opponent_entity_id=eloboard:male:176`.
+- Current reviewed-decision file has `86` decisions: `83` external opponents
+  and `3` canonical candidates (`이광용` -> `프발`, `장영근` -> `난수`,
+  `박종승` -> `빡죠스`). The regenerated local operator queue is now `40`
+  names / `995` rows, with `비그리` as the next highest-frequency unresolved
+  name. Local player-history opponent identity coverage is now `87.07%`.
+- Operator decision follow-up: the next 20 unresolved queue names (`비그리`,
+  `성예량`, `김준혁`, `하연진`, `옥이`, `유성민`, `제쥬순`, `순자`,
+  `허지율`, `은아가`, `브희`, `송혜림`, `김상수`, `미니언`, `다소냥.`,
+  `김석현`, `채비`, `히갱`, `하이유`, `다소냥`) were classified as
+  `external_opponent`. Current reviewed-decision file has `106` decisions:
+  `103` external opponents and `3` canonical candidates. The regenerated local
+  operator queue is now `20` names / `329` rows, with `옥수수` as the next
+  highest-frequency unresolved name. Local player-history opponent identity
+  coverage is now `87.09%`.
+- Operator decision follow-up: the remaining 20 operator-review queue names
+  (`옥수수`, `밍도릿..`, `수핸`, `안정우`, `송현덕`, `짜미`, `치쨩`,
+  `새밍`, `초롱빡`, `바미`, `홍쥬`, `허니콩`, `김승현`, `박영덕`,
+  `비너스`, `이인극`, `욱하는형`, `눈또`, `박정일`, `파이`) were
+  classified as `external_opponent`. Current reviewed-decision file has `126`
+  decisions: `123` external opponents and `3` canonical candidates. The
+  regenerated local operator queue is now empty (`0` names / `0` rows). Local
+  player-history opponent identity coverage remains `87.09%`; remaining
+  unresolved rows are below the operator-review threshold or already handled as
+  external history.
+- Local verification checkpoint: `npm.cmd run verify:predeploy` passed on
+  2026-05-21 after rerunning outside the sandbox because the first sandboxed
+  attempt stopped at `node --test` with `spawn EPERM`. This verified the
+  accumulated warehouse aggregate, prediction vote, SOOP/R2 serving guard,
+  board comment RPC, image-optimization, and opponent-review changes together.
+  No push or deployment was performed.
+- Production read-only RPC smoke: calling
+  `prediction_visible_vote_totals(match_ids := '{}')` with the anon client
+  returned PostgREST `PGRST202` (`function not found in schema cache`), so the
+  prediction vote aggregate SQL has not been applied to production yet. Runtime
+  fallback remains necessary until the SQL is applied and the function appears
+  in the REST schema cache.
+- Production apply follow-up: the operator applied the
+  `prediction_visible_vote_totals(uuid[])` SQL through the Supabase Dashboard
+  SQL Editor. A read-only anon RPC smoke with `match_ids=[]` then returned
+  `ok=true` and `rows=0`, confirming the optimized public prediction vote-total
+  path is available in production once the code is deployed.
+- Supabase security advisor follow-up: the operator enabled RLS on
+  `public.eloboard_matches_backup_20260321`,
+  `public.players_backup_20260321`, and `public.players_staging` after the
+  dashboard reported `RLS Disabled in Public` critical alerts. Read-only REST
+  smoke checks confirmed anon reads now return `0` rows for all three tables,
+  while service-role access still sees `players_staging=318` rows and
+  `players_backup_20260321=330` rows. This keeps the staging sync path usable
+  while removing public exposure.
+
 ### 2026-05-20 Prediction Vote Scoped Read
 
 - Follow-up from architecture backlog item A4.
@@ -966,9 +1149,34 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   vote write no longer needs a full vote-table read.
 - Regression coverage: `test:prediction-store-contract` now includes a contract
   for the scoped Supabase read path.
-- Remaining work: public prediction rendering still reads visible match votes to
-  compute totals. That should move to an aggregate/RPC or summary table when
-  the public vote volume warrants the next A4 slice.
+
+### 2026-05-21 Prediction Vote Aggregate Read
+
+- Follow-up from architecture backlog item A4.
+- Root cause: public prediction GET/POST responses still needed vote totals for
+  every visible match. Before this slice, remote mode loaded `prediction_votes`
+  rows and counted them in Node memory, even though public payloads must not
+  expose voter identity fields.
+- Fix direction: `scripts/sql/create-prediction-tables.sql` now defines
+  `public.prediction_visible_vote_totals(match_ids uuid[] default null)`, a
+  stable `security invoker` RPC that groups non-archived prediction votes by
+  `match_id`, `picked_team_code`, and `picked_player_id`.
+- Serving path: the public page calls
+  `loadPredictionState({ includeVoteTotals: true })`, and the public API calls
+  `loadPredictionState({ voterId, includeVoteTotals: true })`. The API path
+  reads aggregate totals through the RPC and only the current voter's rows for
+  visible matches. `buildTournamentPredictionMatches()` can build card totals
+  from `voteTotals`, so public responses do not need full private vote rows.
+- Compatibility: if the RPC is missing, the remote loader falls back to the
+  previous row-based vote read so production can be staged. The SQL has not been
+  applied in production in this local slice.
+- Admin/default behavior remains unchanged: admin reads still load full vote
+  rows for voter review and CSV export.
+- Contract coverage: `test:prediction-store-contract` verifies the RPC SQL/type
+  contract, aggregate snapshot totals, visible-match-scoped `myVotes`, and
+  public API call-site scope.
+  `test:prediction-cache-contract` verifies both the public page and public API
+  stay on the aggregate vote-total read path.
 
 ### 2026-05-20 Serving Runtime Guard Slice
 

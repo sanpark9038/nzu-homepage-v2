@@ -8,6 +8,7 @@ import {
   type PredictionConfigMatch,
   type PredictionDerivedStatus,
   type PredictionEntryOrderStatus,
+  type PredictionVoteTotalRow,
   type PredictionVoteRow,
 } from "@/lib/prediction-store";
 
@@ -199,7 +200,7 @@ function normalizeEntryMatchups(
 
 export function buildTournamentPredictionMatches(
   allPlayers: Player[],
-  state?: { matches?: PredictionConfigMatch[]; votes?: PredictionVoteRow[] }
+  state?: { matches?: PredictionConfigMatch[]; votes?: PredictionVoteRow[]; voteTotals?: PredictionVoteTotalRow[] }
 ): PredictionMatchSnapshot[] {
   const teams = buildTournamentHomeTeams(allPlayers);
   const existingTeams = buildPredictionUniversityTeams(allPlayers);
@@ -217,6 +218,7 @@ export function buildTournamentPredictionMatches(
         : pairTeamsFallback(teams);
 
   const votes = Array.isArray(state?.votes) ? state.votes : readPredictionVotes();
+  const voteTotals = Array.isArray(state?.voteTotals) ? state.voteTotals : null;
 
   const visibleConfigMatches = configMatches.filter(
     (match) => derivePredictionMatchStatus(match) !== "archived"
@@ -282,7 +284,10 @@ export function buildTournamentPredictionMatches(
     const matchId = String(match.id || `match-${index + 1}`).trim();
     const startAt = String(match.start_at || "").trim() || new Date().toISOString();
     const lockAt = String(match.close_at || "").trim() || computeLockAt(startAt);
-    const matchVotes = votes.filter((vote) => vote.match_id === matchId);
+    const matchVotes = voteTotals ? [] : votes.filter((vote) => vote.match_id === matchId);
+    const matchVoteTotals = voteTotals
+      ? voteTotals.filter((row) => String(row.match_id || "").trim() === matchId)
+      : [];
     const status = derivePredictionMatchStatus({ ...match, start_at: startAt, close_at: lockAt });
     const entryMatchups = matchType === "team" ? normalizeEntryMatchups(match, playerMap, entryOrderStatus) : [];
 
@@ -296,12 +301,24 @@ export function buildTournamentPredictionMatches(
       mvpVotes[player.id] = 0;
     }
 
-    for (const vote of matchVotes) {
-      if (vote.picked_team_code && teamVotes[vote.picked_team_code] !== undefined) {
-        teamVotes[vote.picked_team_code] += 1;
+    if (voteTotals) {
+      for (const row of matchVoteTotals) {
+        const count = Number(row.vote_count || 0);
+        if (row.picked_team_code && teamVotes[row.picked_team_code] !== undefined) {
+          teamVotes[row.picked_team_code] += count;
+        }
+        if (row.picked_player_id && mvpVotes[row.picked_player_id] !== undefined) {
+          mvpVotes[row.picked_player_id] += count;
+        }
       }
-      if (vote.picked_player_id && mvpVotes[vote.picked_player_id] !== undefined) {
-        mvpVotes[vote.picked_player_id] += 1;
+    } else {
+      for (const vote of matchVotes) {
+        if (vote.picked_team_code && teamVotes[vote.picked_team_code] !== undefined) {
+          teamVotes[vote.picked_team_code] += 1;
+        }
+        if (vote.picked_player_id && mvpVotes[vote.picked_player_id] !== undefined) {
+          mvpVotes[vote.picked_player_id] += 1;
+        }
       }
     }
 

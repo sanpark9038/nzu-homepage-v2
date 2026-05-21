@@ -582,6 +582,17 @@ export type Database = {
           comment_count: number
         }[]
       }
+      prediction_visible_vote_totals: {
+        Args: {
+          match_ids: string[] | null
+        }
+        Returns: {
+          match_id: string
+          picked_team_code: string | null
+          picked_player_id: string | null
+          vote_count: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

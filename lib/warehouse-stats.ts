@@ -421,14 +421,20 @@ export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStat
 
 export function warehouseDataHealth(): {
   exists: boolean;
+  rawFactExists: boolean;
+  servingReady: boolean;
   paths: Record<string, string>;
 } {
+  const rawFactExists = fs.existsSync(FACT_PATH);
+  const servingReady =
+    fs.existsSync(AGG_PLAYER_PATH) &&
+    fs.existsSync(AGG_TEAM_PATH) &&
+    fs.existsSync(AGG_PLAYER_DETAIL_PATH);
+
   return {
-    exists:
-      fs.existsSync(FACT_PATH) &&
-      fs.existsSync(AGG_PLAYER_PATH) &&
-      fs.existsSync(AGG_TEAM_PATH) &&
-      fs.existsSync(AGG_PLAYER_DETAIL_PATH),
+    exists: rawFactExists && servingReady,
+    rawFactExists,
+    servingReady,
     paths: {
       fact: FACT_PATH,
       aggPlayer: AGG_PLAYER_PATH,

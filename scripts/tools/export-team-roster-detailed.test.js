@@ -6,7 +6,9 @@ const ROOT = path.join(__dirname, "..", "..");
 const TMP_DIR = path.join(ROOT, "tmp");
 
 const {
+  buildExternalOpponentExclusionRows,
   filterPlayersByEntityIds,
+  exclusionReason,
   shouldUseNoCacheForFetch,
   shouldFetchWithNoCache,
   shouldSkipByPriorityWindow,
@@ -184,6 +186,32 @@ runTest("filterPlayersByEntityIds returns full roster when no entity ids are req
   const roster = [{ entity_id: "male:37", name: "A" }];
 
   assert.deepEqual(filterPlayersByEntityIds(roster, ""), roster);
+});
+
+runTest("external opponent review decisions become collection exclusions by player name", () => {
+  const rows = buildExternalOpponentExclusionRows({
+    decisions: [
+      { opponent_name: " 다예 ", decision: "external_opponent" },
+      { opponent_name: "림예이", decision: "external_opponent" },
+      { opponent_name: "기준후보", decision: "canonical_candidate" },
+      { opponent_name: "", decision: "external_opponent" },
+    ],
+  });
+
+  assert.deepEqual(rows, [
+    {
+      name: "다예",
+      reason: "external_opponent_reviewed",
+    },
+    {
+      name: "림예이",
+      reason: "external_opponent_reviewed",
+    },
+  ]);
+  assert.equal(
+    exclusionReason({ name: "다예", wr_id: 999, entity_id: "eloboard:female:999" }, rows),
+    "external_opponent_reviewed"
+  );
 });
 
 runTest("shouldUseNoCacheForFetch honors an explicit force flag", () => {

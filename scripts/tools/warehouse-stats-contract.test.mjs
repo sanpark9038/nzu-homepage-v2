@@ -58,7 +58,10 @@ function loadProjectModule(filePath) {
 }
 
 const warehouseStatsPath = path.join(repoRoot, "lib", "warehouse-stats.ts");
+const warehouseRoutePath = path.join(repoRoot, "app", "api", "stats", "warehouse", "route.ts");
 const factMatchesPath = path.join(repoRoot, "data", "warehouse", "fact_matches.csv");
+const aggPlayerPath = path.join(repoRoot, "data", "warehouse", "agg_daily_player.csv");
+const aggTeamPath = path.join(repoRoot, "data", "warehouse", "agg_daily_team.csv");
 const aggPlayerDetailsPath = path.join(repoRoot, "data", "warehouse", "agg_player_detail_breakdowns.csv");
 
 function loadFreshWarehouseStats() {
@@ -66,18 +69,22 @@ function loadFreshWarehouseStats() {
   return loadProjectModule(warehouseStatsPath);
 }
 
-function countReadPaths(run, fixtures = new Map()) {
+function countReadPaths(run, fixtures = new Map(), missingPaths = new Set()) {
   const originalExistsSync = fs.existsSync;
   const originalReadFileSync = fs.readFileSync;
   const originalStatSync = fs.statSync;
   const readPaths = [];
   fs.existsSync = function existsSyncWithFixtures(filePath) {
     const normalizedPath = path.normalize(String(filePath));
+    if (missingPaths.has(normalizedPath)) return false;
     if (fixtures.has(normalizedPath)) return true;
     return originalExistsSync.call(this, filePath);
   };
   fs.statSync = function statSyncWithFixtures(filePath, ...args) {
     const normalizedPath = path.normalize(String(filePath));
+    if (missingPaths.has(normalizedPath)) {
+      throw Object.assign(new Error(`ENOENT: no such file or directory, stat '${normalizedPath}'`), { code: "ENOENT" });
+    }
     if (fixtures.has(normalizedPath)) {
       return { mtimeMs: 1, isFile: () => true };
     }
@@ -160,4 +167,31 @@ test("warehouse player detail requests use aggregate detail snapshots instead of
     true,
     "player detail breakdowns should read the pre-aggregated detail snapshot"
   );
+});
+
+test("warehouse serving health accepts aggregate snapshots without raw fact source", () => {
+  const warehouseStats = loadFreshWarehouseStats();
+  const fixtures = new Map([
+    [path.normalize(aggPlayerPath), "match_date,player_entity_id,player_name,team,tier,race,matches,wins,losses,win_rate\n"],
+    [path.normalize(aggTeamPath), "match_date,team,matches,wins,losses,win_rate,unique_players\n"],
+    [
+      path.normalize(aggPlayerDetailsPath),
+      "match_date,player_entity_id,player_name,team,breakdown_type,breakdown_value,matches,wins,losses,win_rate\n",
+    ],
+  ]);
+
+  let health = null;
+  countReadPaths(() => {
+    health = warehouseStats.warehouseDataHealth();
+  }, fixtures, new Set([path.normalize(factMatchesPath)]));
+
+  assert.equal(health.rawFactExists, false, "raw fact CSV should be tracked separately from serving readiness");
+  assert.equal(health.servingReady, true, "aggregate snapshots should be enough for warehouse stats serving");
+  assert.equal(health.exists, false, "legacy all-files health should still reflect raw fact absence");
+});
+
+test("warehouse stats API gates runtime serving on aggregate readiness", () => {
+  const source = fs.readFileSync(warehouseRoutePath, "utf8");
+  assert.match(source, /health\.servingReady/);
+  assert.doesNotMatch(source, /if\s*\(\s*!health\.exists\s*\)/);
 });

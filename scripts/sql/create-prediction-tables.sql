@@ -93,6 +93,32 @@ create index if not exists prediction_votes_match_id_idx
 alter table public.prediction_matches enable row level security;
 alter table public.prediction_votes enable row level security;
 
+create or replace function public.prediction_visible_vote_totals(match_ids uuid[] default null)
+returns table (
+  match_id uuid,
+  picked_team_code text,
+  picked_player_id text,
+  vote_count bigint
+)
+language sql
+stable
+security invoker
+as $$
+  select
+    v.match_id,
+    v.picked_team_code,
+    v.picked_player_id,
+    count(*)::bigint as vote_count
+  from public.prediction_votes v
+  join public.prediction_matches m on m.id = v.match_id
+  where m.archived_at is null
+    and (match_ids is null or v.match_id = any(match_ids))
+  group by v.match_id, v.picked_team_code, v.picked_player_id
+  order by v.match_id, v.picked_team_code nulls last, v.picked_player_id nulls last;
+$$;
+
+grant execute on function public.prediction_visible_vote_totals(uuid[]) to anon, authenticated, service_role;
+
 comment on table public.prediction_matches is
   'Tournament prediction matches managed by server-side admin APIs.';
 

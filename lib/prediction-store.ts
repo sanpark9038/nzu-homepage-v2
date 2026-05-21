@@ -3,11 +3,12 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { isVercelDeployment as detectVercelDeployment } from "@/lib/admin-runtime";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
-import type { Tables, TablesInsert } from "@/lib/database.types";
+import type { Database, Tables, TablesInsert } from "@/lib/database.types";
 import type { PublicAuthSession } from "@/lib/public-auth";
 
 type PredictionMatchRow = Tables<"prediction_matches">;
 type PredictionVoteRemoteRow = Tables<"prediction_votes">;
+type PredictionVoteTotalRemoteRow = Database["public"]["Functions"]["prediction_visible_vote_totals"]["Returns"][number];
 type PredictionMatchInsert = TablesInsert<"prediction_matches">;
 type PredictionVoteInsert = TablesInsert<"prediction_votes">;
 
@@ -71,6 +72,13 @@ export type PredictionVoteRow = {
   updated_at: string;
 };
 
+export type PredictionVoteTotalRow = {
+  match_id: string;
+  picked_team_code?: string | null;
+  picked_player_id?: string | null;
+  vote_count: number;
+};
+
 export type PredictionVoteDoc = {
   schema_version?: string;
   updated_at?: string;
@@ -80,6 +88,7 @@ export type PredictionVoteDoc = {
 export type PredictionState = {
   matches: PredictionConfigMatch[];
   votes: PredictionVoteRow[];
+  voteTotals?: PredictionVoteTotalRow[];
   source: "supabase" | "json";
   remote_enabled: boolean;
 };
@@ -88,6 +97,7 @@ type PredictionStateLoadOptions = {
   matchIds?: string[];
   voteMatchIds?: string[];
   voterId?: string;
+  includeVoteTotals?: boolean;
 };
 
 type WriteGuardInput = {
@@ -430,6 +440,15 @@ function remoteVoteToLocal(row: PredictionVoteRemoteRow): PredictionVoteRow {
   };
 }
 
+function remoteVoteTotalToLocal(row: PredictionVoteTotalRemoteRow): PredictionVoteTotalRow {
+  return {
+    match_id: String(row.match_id || ""),
+    picked_team_code: row.picked_team_code,
+    picked_player_id: row.picked_player_id,
+    vote_count: Number(row.vote_count || 0),
+  };
+}
+
 function scopedState(state: PredictionState, options: PredictionStateLoadOptions = {}): PredictionState {
   const matchIds = new Set(normalizeTextArray(options.matchIds));
   const voteMatchIds = new Set(normalizeTextArray(options.voteMatchIds));
@@ -454,6 +473,7 @@ async function readRemotePredictionState(options: PredictionStateLoadOptions = {
   const matchIds = normalizeTextArray(options.matchIds);
   const voteMatchIds = normalizeTextArray(options.voteMatchIds);
   const voterId = normalizeText(options.voterId);
+  const includeVoteTotals = options.includeVoteTotals === true;
 
   let matchQuery = supabase
     .from("prediction_matches")
@@ -467,24 +487,51 @@ async function readRemotePredictionState(options: PredictionStateLoadOptions = {
     .order("start_at", { ascending: true });
 
   if (matchError) throw matchError;
+  const visibleMatchIds = Array.isArray(matches)
+    ? matches.map((row) => normalizeText(row.id)).filter(Boolean)
+    : [];
 
-  let voteQuery = supabase
-    .from("prediction_votes")
-    .select("*");
-  if (voteMatchIds.length > 0) {
-    voteQuery = voteQuery.in("match_id", voteMatchIds);
-  }
-  if (voterId) {
-    voteQuery = voteQuery.eq("voter_id", voterId);
-  }
-  const { data: votes, error: voteError } = await voteQuery
-    .order("updated_at", { ascending: false });
+  let voteTotals: PredictionVoteTotalRow[] | undefined;
+  let shouldReadAllVotes = !includeVoteTotals;
 
-  if (voteError) throw voteError;
+  if (includeVoteTotals) {
+    const rpcMatchIds = matchIds.length > 0 ? matchIds : null;
+    const { data: totals, error: totalsError } = await supabase.rpc("prediction_visible_vote_totals", {
+      match_ids: rpcMatchIds,
+    });
+    if (totalsError) {
+      shouldReadAllVotes = true;
+    } else {
+      voteTotals = Array.isArray(totals) ? totals.map(remoteVoteTotalToLocal) : [];
+    }
+  }
+
+  let votes: PredictionVoteRemoteRow[] = [];
+  const effectiveVoteMatchIds =
+    voteMatchIds.length > 0 ? voteMatchIds : includeVoteTotals && voterId ? visibleMatchIds : [];
+  const shouldReadScopedVotes =
+    Boolean(voterId && (!includeVoteTotals || effectiveVoteMatchIds.length > 0)) || voteMatchIds.length > 0;
+  if (shouldReadAllVotes || shouldReadScopedVotes) {
+    let voteQuery = supabase
+      .from("prediction_votes")
+      .select("*");
+    if (!shouldReadAllVotes && effectiveVoteMatchIds.length > 0) {
+      voteQuery = voteQuery.in("match_id", effectiveVoteMatchIds);
+    }
+    if (!shouldReadAllVotes && voterId) {
+      voteQuery = voteQuery.eq("voter_id", voterId);
+    }
+    const { data, error: voteError } = await voteQuery
+      .order("updated_at", { ascending: false });
+
+    if (voteError) throw voteError;
+    votes = Array.isArray(data) ? data : [];
+  }
 
   return {
     matches: Array.isArray(matches) ? matches.map(remoteMatchToConfig) : [],
-    votes: Array.isArray(votes) ? votes.map(remoteVoteToLocal) : [],
+    votes: votes.map(remoteVoteToLocal),
+    voteTotals,
     source: "supabase",
     remote_enabled: true,
   };
@@ -494,6 +541,7 @@ function readLocalPredictionState(options: PredictionStateLoadOptions = {}): Pre
   return scopedState({
     matches: Array.isArray(readPredictionConfig().matches) ? readPredictionConfig().matches || [] : [],
     votes: readPredictionVotes(),
+    voteTotals: undefined,
     source: "json",
     remote_enabled: hasPredictionRemoteEnv(),
   }, options);

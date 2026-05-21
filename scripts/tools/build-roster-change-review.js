@@ -7,6 +7,12 @@ const SOURCE_REPORT = path.join(REPORTS_DIR, "team_roster_sync_report.json");
 const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const REVIEW_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "roster_review_decisions.v1.json");
+const OPPONENT_REVIEW_DECISIONS_PATH = path.join(
+  ROOT,
+  "data",
+  "metadata",
+  "opponent_identity_review_decisions.v1.json"
+);
 const {
   buildPlayerKey,
   loadBaselinePlayers,
@@ -22,6 +28,10 @@ function clean(value) {
   return String(value || "").trim();
 }
 
+function normalizeName(value) {
+  return clean(value).toLowerCase();
+}
+
 function readReviewDecisions(decisionsPath = REVIEW_DECISIONS_PATH) {
   if (!decisionsPath || !fs.existsSync(decisionsPath)) return [];
   try {
@@ -29,6 +39,22 @@ function readReviewDecisions(decisionsPath = REVIEW_DECISIONS_PATH) {
     return Array.isArray(doc.decisions) ? doc.decisions : [];
   } catch {
     return [];
+  }
+}
+
+function readExternalOpponentNames(decisionsPath = OPPONENT_REVIEW_DECISIONS_PATH) {
+  if (!decisionsPath || !fs.existsSync(decisionsPath)) return new Set();
+  try {
+    const doc = readJson(decisionsPath);
+    const rows = Array.isArray(doc.decisions) ? doc.decisions : [];
+    return new Set(
+      rows
+        .filter((row) => clean(row.decision) === "external_opponent")
+        .map((row) => normalizeName(row.opponent_name))
+        .filter(Boolean)
+    );
+  } catch {
+    return new Set();
   }
 }
 
@@ -174,6 +200,10 @@ function isExcludedByOperator(item, excludedDecisionKeys) {
   return excludedDecisionKeys.has(decisionMatchKey(item));
 }
 
+function isExternalOpponentNewCandidate(item, externalOpponentNames) {
+  return item.review_kind === "new_candidate" && externalOpponentNames.has(normalizeName(item.name));
+}
+
 function buildReview(syncReport, options = {}) {
   const baselineComparison = buildBaselineComparisonRows(options);
   const moved = (Array.isArray(syncReport && syncReport.moved) ? syncReport.moved : []).map((row) => ({
@@ -231,8 +261,14 @@ function buildReview(syncReport, options = {}) {
       .filter((row) => clean(row.decision) === "excluded")
       .map(decisionMatchKey)
   );
-  const items = allItems.filter((item) => !isExcludedByOperator(item, excludedDecisionKeys));
-  const excludedByOperator = allItems.length - items.length;
+  const externalOpponentNames = readExternalOpponentNames(options.opponentDecisionsPath);
+  const items = allItems.filter(
+    (item) => !isExcludedByOperator(item, excludedDecisionKeys) && !isExternalOpponentNewCandidate(item, externalOpponentNames)
+  );
+  const excludedByOperator = allItems.filter((item) => isExcludedByOperator(item, excludedDecisionKeys)).length;
+  const excludedExternalOpponents = allItems.filter((item) =>
+    isExternalOpponentNewCandidate(item, externalOpponentNames)
+  ).length;
 
   return {
     generated_at: new Date().toISOString(),
@@ -248,6 +284,7 @@ function buildReview(syncReport, options = {}) {
       conflicts: items.filter((item) => item.review_kind === "conflict").length,
       guarded_teams: guardedTeams.length,
       excluded_by_operator: excludedByOperator,
+      excluded_external_opponents: excludedExternalOpponents,
     },
     items,
     operator_flow: {

@@ -7,7 +7,9 @@ export const revalidate = 60;
 
 export default async function PredictionPage() {
   const allPlayers = await playerService.getCachedPlayersList();
-  const state = await loadPredictionState();
+  const state = await loadPredictionState({
+    includeVoteTotals: true,
+  });
   const matches = buildTournamentPredictionMatches(allPlayers, state);
 
   return (
