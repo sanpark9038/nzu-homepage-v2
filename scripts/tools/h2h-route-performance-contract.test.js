@@ -108,7 +108,7 @@ test("Detailed H2H loads the second player history artifact only as reciprocal f
   );
   assert.match(
     methodSource,
-    /const\s+p1WithArtifactHistory\s*=\s*await\s+mergePlayerHistoryArtifact\(p1\)/,
+    /const\s+p1WithArtifactHistory\s*=\s*await\s+mergeDetailedH2HPlayerHistory\(p1\)/,
     "Detailed H2H should load P1 history first"
   );
   assert.match(
@@ -118,7 +118,37 @@ test("Detailed H2H loads the second player history artifact only as reciprocal f
   );
   assert.match(
     methodSource,
-    /if\s*\(\s*historyEntries\.length\s*===\s*0\s*\)\s*{[\s\S]*?const\s+p2WithArtifactHistory\s*=\s*await\s+mergePlayerHistoryArtifact\(p2\)[\s\S]*?invertDetailedHistoryEntries/,
+    /if\s*\(\s*historyEntries\.length\s*===\s*0\s*\)\s*{[\s\S]*?const\s+p2WithArtifactHistory\s*=\s*await\s+mergeDetailedH2HPlayerHistory\(p2\)[\s\S]*?invertDetailedHistoryEntries/,
     "Detailed H2H should load P2 history only when P1 has no entries, then invert reciprocal results"
+  );
+});
+
+test("Detailed H2H keeps the initial player lookup lightweight and defers DB history fallback", () => {
+  const source = readProjectFile("lib/player-service.ts");
+  const methodStart = source.indexOf("async getDetailedH2HStats");
+  const methodEnd = source.indexOf("async getH2HNameCandidatesByIds", methodStart);
+  const methodSource = source.slice(methodStart, methodEnd);
+
+  assert.notEqual(methodStart, -1, "Player service should expose getDetailedH2HStats");
+  assert.notEqual(methodEnd, -1, "Test should isolate getDetailedH2HStats");
+  assert.match(
+    methodSource,
+    /\.select\("id, eloboard_id, name, nickname, race, last_match_at"\)/,
+    "Detailed H2H should initially fetch only lightweight player identity/freshness fields"
+  );
+  assert.doesNotMatch(
+    methodSource,
+    /\.select\("[^"]*match_history[^"]*"\)/,
+    "Detailed H2H should not load match_history JSON in the initial player lookup"
+  );
+  assert.match(
+    source,
+    /async\s+function\s+fetchPlayerMatchHistoryById\(/,
+    "Detailed H2H should have a lazy DB fallback for player match_history"
+  );
+  assert.match(
+    source,
+    /async\s+function\s+mergeDetailedH2HPlayerHistory(?:<[^>]+>)?\(/,
+    "Detailed H2H should use a dedicated artifact-first history merge helper"
   );
 });

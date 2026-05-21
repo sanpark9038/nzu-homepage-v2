@@ -173,6 +173,13 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
   external opponents, `3` canonical candidates), and the regenerated operator
   queue is empty (`0` names / `0` rows). Local player-history opponent identity
   coverage remains `87.09%`.
+- 2026-05-21 follow-up: detailed public H2H no longer selects large
+  `match_history` JSON in its initial player lookup. It now checks lightweight
+  player identity/freshness fields first, uses direct serving `matches` when
+  available, then loads the R2 player-history artifact. A DB `match_history`
+  read is deferred until the artifact is missing or older than the player's
+  `last_match_at` date. This reduces common H2H read pressure without removing
+  the current name/nickname fallback.
 - Remaining work: improve opponent identity coverage or introduce an indexed
   DB/query path without weakening the existing canonical ID-first route.
 

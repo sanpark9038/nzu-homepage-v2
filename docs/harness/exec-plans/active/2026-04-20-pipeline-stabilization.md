@@ -29,8 +29,8 @@ Current completed slice:
 Current next step:
 
 - Continue the pipeline-aligned architecture backlog one item at a time. Current
-  local slice: reduce public prediction vote read amplification while keeping
-  admin review context intact.
+  local slice: reduce detailed H2H history read pressure without weakening the
+  canonical ID-first route or removing the still-needed name fallback.
 
 Architecture backlog status:
 
@@ -48,9 +48,11 @@ Architecture backlog status:
   serving inputs. The runtime health gate now follows that split. Artifact
   transport uses an R2/public-base snapshot flow rather than moving the
   aggregates into Supabase.
-- H2H follow-up is limited to report/coverage safety for now. Reviewed opponent
-  aliases can help identify durable entity candidates, but they do not create
-  canonical roster state and do not remove the current name/nickname fallback.
+- H2H follow-up now has two boundaries: reviewed opponent aliases can improve
+  durable entity coverage, and the detailed public H2H path can reduce DB JSON
+  reads by using fresh player-history artifacts first. Neither boundary creates
+  canonical roster state automatically, and the current name/nickname fallback
+  remains until coverage is high enough to remove it safely.
 - Prediction vote reads now have a repo-visible aggregate path: the public page
   and API use a vote-total RPC when available, while API reads only the current
   voter's visible-match rows for `myVotes`; admin/default reads keep full vote
@@ -1141,6 +1143,13 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   dedicated `WAREHOUSE_AGGREGATES_*` envs are absent. The three aggregate CSVs
   were uploaded to the data bucket under `warehouse/`, and a public download
   smoke confirmed all three files are available.
+- Post-deploy verification: replacement production deployment
+  `nzu-homepage-v2-czp53zrba-sanparks-projects.vercel.app` reached `Ready`.
+  Read-only smoke checks returned HTTP 200 for `/`, `/prediction`,
+  `/api/prediction`, and `/api/stats/warehouse`. Vercel production error logs
+  for the first 15 minutes after deployment showed no entries. A production
+  anon RPC smoke for `prediction_visible_vote_totals(match_ids := null)`
+  returned `ok=true`.
 
 ### 2026-05-20 Prediction Vote Scoped Read
 
@@ -1185,6 +1194,32 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   public API call-site scope.
   `test:prediction-cache-contract` verifies both the public page and public API
   stay on the aggregate vote-total read path.
+
+### 2026-05-21 Detailed H2H Lazy History Fallback
+
+- Follow-up from architecture backlog item A3.
+- Root cause: `/api/stats/h2h` already requires canonical player IDs and uses
+  `opponent_entity_id` before name matching, but `getDetailedH2HStats()` still
+  selected `match_history` JSON for both players before checking the serving
+  `matches` table or the R2 player-history artifact.
+- Fix direction: the initial detailed H2H player lookup now selects only
+  `id`, `eloboard_id`, `name`, `nickname`, `race`, and `last_match_at`. If
+  serving `matches` has direct entries, no history JSON is read. Otherwise the
+  detailed path loads the R2 player-history artifact first and uses it when its
+  latest match date is at least the player's `last_match_at` date.
+- Accuracy guard: when the artifact is missing or appears stale, the detailed
+  path lazily fetches only that player's `match_history` and keeps the existing
+  fresher-history comparison before building H2H rows. P2 history is still read
+  only as the reciprocal fallback when P1 history produces no entries.
+- Scope boundary: this does not remove the current name/nickname fallback and
+  does not create or mutate canonical roster metadata.
+- Regression coverage: `test:h2h-route-performance-contract` now checks the
+  lightweight initial select, the artifact-first detailed helper, and the lazy
+  DB fallback shape. `test:player-history-artifacts` still checks stale artifact
+  refusal.
+- Verification checkpoint: `npm.cmd run verify:predeploy` passed on
+  2026-05-21 after rerunning outside the sandbox because the first sandboxed
+  attempt stopped at `node --test` with `spawn EPERM`.
 
 ### 2026-05-20 Serving Runtime Guard Slice
 

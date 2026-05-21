@@ -68,6 +68,7 @@ type MinimalH2HPlayerRow = {
   name: string | null;
   nickname?: string | null;
   race?: string | null;
+  last_match_at?: string | null;
   match_history?: StoredMatchHistoryItem[] | null;
 };
 
@@ -197,8 +198,14 @@ function normalizeStoredMatchHistory(value: unknown): StoredMatchHistoryItem[] {
   return value.filter((item): item is StoredMatchHistoryItem => Boolean(item) && typeof item === "object");
 }
 
+function normalizeMatchHistoryDateKey(value: string | null | undefined) {
+  const raw = String(value || "").trim();
+  const isoDate = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  return isoDate ? isoDate[1] : raw;
+}
+
 function getStoredMatchHistoryDate(item: StoredMatchHistoryItem) {
-  return String(item.match_date || item.matchDate || "").trim();
+  return normalizeMatchHistoryDateKey(item.match_date || item.matchDate);
 }
 
 function getLatestStoredMatchHistoryDate(history: StoredMatchHistoryItem[]) {
@@ -232,6 +239,42 @@ async function mergePlayerHistoryArtifact<T extends { eloboard_id?: string | nul
   return {
     ...player,
     match_history: selectFresherStoredMatchHistory(artifactHistory, player.match_history),
+  };
+}
+
+async function fetchPlayerMatchHistoryById(playerId: string) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("match_history")
+    .eq("id", playerId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching lazy player match_history for H2H:", error);
+    return [];
+  }
+
+  return normalizeStoredMatchHistory((data as { match_history?: unknown } | null)?.match_history);
+}
+
+async function mergeDetailedH2HPlayerHistory<T extends MinimalH2HPlayerRow>(
+  player: T
+): Promise<T & { match_history: StoredMatchHistoryItem[] }> {
+  const artifactHistory = normalizeStoredMatchHistory(await loadPlayerHistoryArtifact(player));
+  const artifactLatest = getLatestStoredMatchHistoryDate(artifactHistory);
+  const servingLatest = normalizeMatchHistoryDateKey(player.last_match_at);
+
+  if (artifactHistory.length > 0 && (!servingLatest || (artifactLatest && artifactLatest >= servingLatest))) {
+    return {
+      ...player,
+      match_history: artifactHistory,
+    };
+  }
+
+  const fallbackHistory = await fetchPlayerMatchHistoryById(player.id);
+  return {
+    ...player,
+    match_history: selectFresherStoredMatchHistory(artifactHistory, fallbackHistory),
   };
 }
 
@@ -563,7 +606,7 @@ export const playerService = {
 
     const { data: players, error: playersError } = await supabase
       .from("players")
-      .select("id, eloboard_id, name, nickname, race, match_history")
+      .select("id, eloboard_id, name, nickname, race, last_match_at")
       .in("id", [p1Id, p2Id]);
 
     if (playersError || !players || players.length < 2) {
@@ -604,11 +647,11 @@ export const playerService = {
       return buildDetailedH2HStats(p1, p2, servingEntries);
     }
 
-    const p1WithArtifactHistory = await mergePlayerHistoryArtifact(p1);
+    const p1WithArtifactHistory = await mergeDetailedH2HPlayerHistory(p1);
     let historyEntries = buildDetailedHistoryEntries(p1WithArtifactHistory, p2);
 
     if (historyEntries.length === 0) {
-      const p2WithArtifactHistory = await mergePlayerHistoryArtifact(p2);
+      const p2WithArtifactHistory = await mergeDetailedH2HPlayerHistory(p2);
       historyEntries = invertDetailedHistoryEntries(
         buildDetailedHistoryEntries(p2WithArtifactHistory, p1)
       );
