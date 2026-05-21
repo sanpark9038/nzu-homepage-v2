@@ -239,16 +239,6 @@ function selectFresherStoredMatchHistory(artifactHistory: unknown, fallbackHisto
   return normalizedArtifactHistory;
 }
 
-async function mergePlayerHistoryArtifact<T extends { eloboard_id?: string | null; match_history?: unknown }>(
-  player: T
-): Promise<T & { match_history: StoredMatchHistoryItem[] }> {
-  const artifactHistory = await loadPlayerHistoryArtifact(player);
-  return {
-    ...player,
-    match_history: selectFresherStoredMatchHistory(artifactHistory, player.match_history),
-  };
-}
-
 async function fetchPlayerMatchHistoryById(playerId: string) {
   const { data, error } = await supabase
     .from("players")
@@ -676,7 +666,7 @@ export const playerService = {
 
     const { data: players, error } = await supabase
       .from("players")
-      .select("id, eloboard_id, name, nickname, match_history")
+      .select("id, eloboard_id, name, nickname, race, last_match_at")
       .in("id", [p1Id, p2Id]);
 
     if (error || !players || players.length < 2) {
@@ -694,8 +684,8 @@ export const playerService = {
     }
 
     const [p1WithArtifactHistory, p2WithArtifactHistory] = await Promise.all([
-      mergePlayerHistoryArtifact(p1),
-      mergePlayerHistoryArtifact(p2),
+      mergeDetailedH2HPlayerHistory(p1),
+      mergeDetailedH2HPlayerHistory(p2),
     ]);
 
     return {
@@ -720,7 +710,7 @@ export const playerService = {
     // ???좎닔???대쫫怨?P1??寃쎄린 湲곕줉??媛?몄샂
     const { data: players, error } = await supabase
       .from('players')
-      .select('id, eloboard_id, name, nickname, match_history')
+      .select("id, eloboard_id, name, nickname, race, last_match_at")
       .in('id', [p1Id, p2Id]);
 
     if (error || !players || players.length < 2) {
@@ -736,8 +726,8 @@ export const playerService = {
     }
 
     const [p1WithArtifactHistory, p2WithArtifactHistory] = await Promise.all([
-      mergePlayerHistoryArtifact(p1),
-      mergePlayerHistoryArtifact(p2),
+      mergeDetailedH2HPlayerHistory(p1),
+      mergeDetailedH2HPlayerHistory(p2),
     ]);
 
     if (!p1WithArtifactHistory.match_history || !Array.isArray(p1WithArtifactHistory.match_history)) {

@@ -166,7 +166,7 @@ runTest("player-service refuses stale player history artifacts when Supabase his
   const source = fs.readFileSync(path.join(ROOT, "lib", "player-service.ts"), "utf8");
 
   assert.match(source, /loadPlayerHistoryArtifact/);
-  assert.match(source, /mergePlayerHistoryArtifact/);
+  assert.match(source, /mergeDetailedH2HPlayerHistory/);
   assert.match(source, /selectFresherStoredMatchHistory/);
   assert.match(
     source,

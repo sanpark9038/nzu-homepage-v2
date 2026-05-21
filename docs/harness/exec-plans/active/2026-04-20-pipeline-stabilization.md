@@ -1237,6 +1237,13 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - Regression coverage: `test:player-page-payload-contract` now checks that
   `getPlayerMatches()` avoids eager `match_history` reads and uses the lazy
   artifact resolver.
+- Follow-up hardening: legacy `getH2HNameCandidatesByIds()` and
+  `getH2HStats()` now use the same lightweight `id`, `eloboard_id`, `name`,
+  `nickname`, `race`, and `last_match_at` lookup before the artifact-first lazy
+  resolver. This keeps old helper paths from reintroducing eager
+  `match_history` reads if they are reused later.
+- Regression coverage: `test:h2h-route-performance-contract` now covers the
+  legacy helpers as well as the active detailed H2H route.
 
 ### 2026-05-20 Serving Runtime Guard Slice
 

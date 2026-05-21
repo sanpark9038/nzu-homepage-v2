@@ -152,3 +152,38 @@ test("Detailed H2H keeps the initial player lookup lightweight and defers DB his
     "Detailed H2H should use a dedicated artifact-first history merge helper"
   );
 });
+
+test("Legacy H2H helpers also avoid eager match_history reads", () => {
+  const source = readProjectFile("lib/player-service.ts");
+  const candidatesStart = source.indexOf("async getH2HNameCandidatesByIds");
+  const statsStart = source.indexOf("async getH2HStats", candidatesStart);
+  const serviceEnd = source.indexOf("\n  }\n};", statsStart);
+
+  assert.notEqual(candidatesStart, -1, "Player service should expose getH2HNameCandidatesByIds");
+  assert.notEqual(statsStart, -1, "Player service should expose getH2HStats");
+  assert.notEqual(serviceEnd, -1, "Test should isolate getH2HStats");
+
+  const candidatesSource = source.slice(candidatesStart, statsStart);
+  const statsSource = source.slice(statsStart, serviceEnd);
+
+  for (const [name, methodSource] of [
+    ["getH2HNameCandidatesByIds", candidatesSource],
+    ["getH2HStats", statsSource],
+  ]) {
+    assert.match(
+      methodSource,
+      /\.select\("id, eloboard_id, name, nickname, race, last_match_at"\)/,
+      `${name} should initially fetch only lightweight player identity/freshness fields`
+    );
+    assert.doesNotMatch(
+      methodSource,
+      /\.select\(["'][^"']*match_history[^"']*["']\)/,
+      `${name} should not eagerly load match_history JSON in the initial player lookup`
+    );
+    assert.match(
+      methodSource,
+      /mergeDetailedH2HPlayerHistory\(/,
+      `${name} should reuse the artifact-first lazy history resolver`
+    );
+  }
+});

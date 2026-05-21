@@ -180,6 +180,11 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
   read is deferred until the artifact is missing or older than the player's
   `last_match_at` date. This reduces common H2H read pressure without removing
   the current name/nickname fallback.
+- 2026-05-22 follow-up: player detail match fallback plus the legacy H2H helper
+  methods now use the same lightweight metadata lookup and artifact-first lazy
+  `match_history` resolver. This closes the remaining eager runtime
+  `match_history` reads in `lib/player-service.ts` public-serving helpers
+  without changing roster identity policy.
 - Remaining work: improve opponent identity coverage or introduce an indexed
   DB/query path without weakening the existing canonical ID-first route.
 
