@@ -25,8 +25,8 @@ test("navbar uses one shared component with home overlay and default sticky stat
   assert.match(source, /function normalizeNavbarPathname/);
   assert.match(source, /pathname === "\/index"/);
   assert.match(source, /function resolveNavbarPathname/);
-  assert.match(source, /typeof window !== "undefined" \? window\.location\.pathname : null/);
-  assert.match(source, /normalizeNavbarPathname\(browserPathname\) \|\| normalizeNavbarPathname\(pathname\)/);
+  assert.doesNotMatch(source, /window\.location\.pathname/);
+  assert.match(source, /return normalizeNavbarPathname\(pathname\)/);
   assert.match(source, /const isHome = resolvedPathname === "\/"/);
   assert.doesNotMatch(source, /: "\/";/);
   assert.match(source, /const isActive = resolvedPathname === item\.href/);

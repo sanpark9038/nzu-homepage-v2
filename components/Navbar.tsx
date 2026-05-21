@@ -18,8 +18,7 @@ function normalizeNavbarPathname(value: string | null | undefined) {
 }
 
 function resolveNavbarPathname(pathname: string | null) {
-  const browserPathname = typeof window !== "undefined" ? window.location.pathname : null;
-  return normalizeNavbarPathname(browserPathname) || normalizeNavbarPathname(pathname);
+  return normalizeNavbarPathname(pathname);
 }
 
 export default function Navbar() {
