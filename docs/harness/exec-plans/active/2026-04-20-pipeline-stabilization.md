@@ -1133,6 +1133,14 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   while service-role access still sees `players_staging=318` rows and
   `players_backup_20260321=330` rows. This keeps the staging sync path usable
   while removing public exposure.
+- Deployment follow-up: commit `22302f8` initially failed Vercel prebuild
+  because warehouse aggregate download fell back to generic `R2_PUBLIC_BASE_URL`
+  and requested `agg_daily_player.csv` from the board-image domain. The sync
+  script now ignores generic `R2_PUBLIC_BASE_URL` for warehouse aggregates and
+  derives the warehouse public base from `PLAYER_HISTORY_PUBLIC_BASE_URL` when
+  dedicated `WAREHOUSE_AGGREGATES_*` envs are absent. The three aggregate CSVs
+  were uploaded to the data bucket under `warehouse/`, and a public download
+  smoke confirmed all three files are available.
 
 ### 2026-05-20 Prediction Vote Scoped Read
 

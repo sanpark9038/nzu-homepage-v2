@@ -62,6 +62,12 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
   three aggregate CSVs. Approved sync rebuilds aggregates and uploads them when
   configured; deployment prebuild can download them when
   `WAREHOUSE_AGGREGATES_PUBLIC_BASE_URL` or an R2 public root is available.
+- 2026-05-21 deployment follow-up: Vercel prebuild showed generic
+  `R2_PUBLIC_BASE_URL` can point at the board-image bucket, so warehouse
+  aggregate sync no longer uses that generic public base. It uses dedicated
+  `WAREHOUSE_AGGREGATES_*` envs or derives a sibling `/warehouse` public base
+  from `PLAYER_HISTORY_PUBLIC_BASE_URL`; the aggregate CSVs were uploaded to the
+  data bucket under `warehouse/`.
 - Current classification: `next`
 - Remaining work: configure the public aggregate base URL in deployment only
   when the warehouse stats route becomes an operator-approved production

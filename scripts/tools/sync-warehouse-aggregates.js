@@ -29,16 +29,34 @@ function normalizePrefix(value) {
   return String(value || DEFAULT_PREFIX).trim().replace(/^\/+|\/+$/g, "") || DEFAULT_PREFIX;
 }
 
+function deriveSiblingPublicBaseUrl(value, sourcePrefix, targetPrefix) {
+  const baseUrl = normalizeBaseUrl(value);
+  if (!baseUrl) return "";
+
+  const normalizedSourcePrefix = normalizePrefix(sourcePrefix);
+  const normalizedTargetPrefix = normalizePrefix(targetPrefix);
+  const suffix = `/${normalizedSourcePrefix}`;
+  const rootBaseUrl = baseUrl.endsWith(suffix) ? baseUrl.slice(0, -suffix.length) : baseUrl;
+  return rootBaseUrl ? `${rootBaseUrl}/${normalizedTargetPrefix}` : "";
+}
+
 function getWarehouseAggregatePublicBaseUrl(env = process.env, prefix = DEFAULT_PREFIX) {
   const explicitBaseUrl = normalizeBaseUrl(env.WAREHOUSE_AGGREGATES_PUBLIC_BASE_URL);
   if (explicitBaseUrl) return explicitBaseUrl;
 
   const normalizedPrefix = normalizePrefix(prefix);
-  const rootBaseUrl = normalizeBaseUrl(
-    env.WAREHOUSE_AGGREGATES_R2_PUBLIC_BASE_URL ||
-      env.PLAYER_HISTORY_R2_PUBLIC_BASE_URL ||
-      env.R2_PUBLIC_BASE_URL
+  const rootBaseUrl = normalizeBaseUrl(env.WAREHOUSE_AGGREGATES_R2_PUBLIC_BASE_URL);
+  if (rootBaseUrl) return `${rootBaseUrl}/${normalizedPrefix}`;
+
+  const playerHistoryBaseUrl = deriveSiblingPublicBaseUrl(
+    env.PLAYER_HISTORY_PUBLIC_BASE_URL || env.PLAYER_HISTORY_R2_PUBLIC_BASE_URL,
+    env.PLAYER_HISTORY_R2_PREFIX || "player-history",
+    normalizedPrefix
   );
+  if (playerHistoryBaseUrl) return playerHistoryBaseUrl;
+
+  // Do not fall back to the generic R2_PUBLIC_BASE_URL. In this project that
+  // URL can point at the board-image bucket, which must not become a data source.
   return rootBaseUrl ? `${rootBaseUrl}/${normalizedPrefix}` : "";
 }
 
@@ -238,6 +256,7 @@ if (require.main === module) {
 
 module.exports = {
   AGGREGATE_FILES,
+  deriveSiblingPublicBaseUrl,
   downloadWarehouseAggregates,
   getWarehouseAggregatePublicBaseUrl,
   getWarehouseAggregateR2Config,

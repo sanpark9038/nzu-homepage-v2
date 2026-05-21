@@ -6,7 +6,9 @@ const path = require("node:path");
 const ROOT = path.join(__dirname, "..", "..");
 const {
   AGGREGATE_FILES,
+  deriveSiblingPublicBaseUrl,
   downloadWarehouseAggregates,
+  getWarehouseAggregatePublicBaseUrl,
   getWarehouseAggregateR2Config,
 } = require("./sync-warehouse-aggregates");
 
@@ -47,6 +49,32 @@ function writeAllAggregates(dir) {
     assert.equal(config.bucketName, "data-bucket");
     assert.equal(config.publicBaseUrl, "https://data.example.com/warehouse-stats");
     assert.equal(config.prefix, "warehouse-stats");
+  });
+
+  await runTest("warehouse aggregate public URL reuses player-history public root but not generic board R2", () => {
+    assert.equal(
+      deriveSiblingPublicBaseUrl("https://data.example.com/player-history", "player-history", "warehouse"),
+      "https://data.example.com/warehouse"
+    );
+    assert.equal(
+      getWarehouseAggregatePublicBaseUrl(
+        {
+          PLAYER_HISTORY_PUBLIC_BASE_URL: "https://data.example.com/player-history",
+          R2_PUBLIC_BASE_URL: "https://images.example.com",
+        },
+        "warehouse"
+      ),
+      "https://data.example.com/warehouse"
+    );
+    assert.equal(
+      getWarehouseAggregatePublicBaseUrl(
+        {
+          R2_PUBLIC_BASE_URL: "https://images.example.com",
+        },
+        "warehouse"
+      ),
+      ""
+    );
   });
 
   await runTest("warehouse aggregate download skips existing local serving snapshots by default", async () => {
