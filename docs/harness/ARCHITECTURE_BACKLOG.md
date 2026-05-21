@@ -222,6 +222,11 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 - Current classification: `later`
 - Reason: valid low-risk cleanup, but lower impact than warehouse/H2H/prediction query shape.
 - Next evidence needed: confirm this file is read in hot request paths.
+- 2026-05-22 follow-up: public entry/tier pages and admin university views read
+  this metadata through `getUniversityOptions()`. `readUniversityMetadata()`
+  now uses a module-scoped mtime cache guard for warm server instances, and
+  `writeUniversityMetadata()` refreshes the cache after writes.
+- Current classification: `done`
 
 ### A6. Board Comment Count Aggregation
 

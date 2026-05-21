@@ -19,6 +19,14 @@ type UniversityMetadataDoc = {
 const ROOT = process.cwd();
 const UNIVERSITIES_PATH = path.join(ROOT, "data", "metadata", "universities.v1.json");
 
+let cachedUniversityMetadata:
+  | {
+      exists: boolean;
+      mtimeMs: number | null;
+      doc: UniversityMetadataDoc;
+    }
+  | null = null;
+
 function buildDefaultUniversities(): UniversityMetadataEntry[] {
   const aliasMap = new Map<UniversityKey, string[]>();
 
@@ -61,8 +69,17 @@ export function readUniversityMetadata(): UniversityMetadataDoc {
     universities: buildDefaultUniversities(),
   };
 
-  if (!fs.existsSync(UNIVERSITIES_PATH)) {
+  let mtimeMs: number | null = null;
+  try {
+    mtimeMs = fs.statSync(UNIVERSITIES_PATH).mtimeMs;
+  } catch {
+    if (cachedUniversityMetadata?.exists === false) return cachedUniversityMetadata.doc;
+    cachedUniversityMetadata = { exists: false, mtimeMs: null, doc: fallback };
     return fallback;
+  }
+
+  if (cachedUniversityMetadata?.exists === true && cachedUniversityMetadata.mtimeMs === mtimeMs) {
+    return cachedUniversityMetadata.doc;
   }
 
   try {
@@ -72,12 +89,15 @@ export function readUniversityMetadata(): UniversityMetadataDoc {
       ? parsed.universities.map(normalizeEntry).filter((entry) => entry.code)
       : fallback.universities;
 
-    return {
+    const doc = {
       schema_version: String(parsed.schema_version || "1.0.0"),
       updated_at: String(parsed.updated_at || fallback.updated_at),
       universities,
     };
+    cachedUniversityMetadata = { exists: true, mtimeMs, doc };
+    return doc;
   } catch {
+    cachedUniversityMetadata = { exists: true, mtimeMs, doc: fallback };
     return fallback;
   }
 }
@@ -91,6 +111,11 @@ export function writeUniversityMetadata(entries: UniversityMetadataEntry[]) {
 
   fs.mkdirSync(path.dirname(UNIVERSITIES_PATH), { recursive: true });
   fs.writeFileSync(UNIVERSITIES_PATH, JSON.stringify(doc, null, 2), "utf8");
+  cachedUniversityMetadata = {
+    exists: true,
+    mtimeMs: fs.statSync(UNIVERSITIES_PATH).mtimeMs,
+    doc,
+  };
   return doc;
 }
 

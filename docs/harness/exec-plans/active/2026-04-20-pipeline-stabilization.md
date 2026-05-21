@@ -1245,6 +1245,21 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
 - Regression coverage: `test:h2h-route-performance-contract` now covers the
   legacy helpers as well as the active detailed H2H route.
 
+### 2026-05-22 University Metadata Mtime Cache
+
+- Follow-up from architecture backlog item A5.
+- Root cause: `getUniversityOptions()` is used by public entry/tier pages and
+  admin university views, but every call re-read and parsed
+  `data/metadata/universities.v1.json` even when the file had not changed.
+- Fix direction: `readUniversityMetadata()` now stores a module-scoped cache
+  keyed by file existence and `mtimeMs`. Warm server instances return the
+  cached document when the metadata file is unchanged, while
+  `writeUniversityMetadata()` refreshes the cache immediately after writes.
+- Scope boundary: no university labels, aliases, hidden flags, or admin API
+  behavior changed.
+- Regression coverage: `test:university-metadata-cache` checks the mtime cache
+  guard and is included in `verify:predeploy`.
+
 ### 2026-05-20 Serving Runtime Guard Slice
 
 - Follow-up from architecture backlog items A1, A7, and A9.
