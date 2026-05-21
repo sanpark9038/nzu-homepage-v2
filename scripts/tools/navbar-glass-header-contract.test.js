@@ -22,9 +22,11 @@ function test(name, fn) {
 test("navbar uses one shared component with home overlay and default sticky states", () => {
   const source = readProjectFile("components/Navbar.tsx");
 
+  assert.match(source, /function normalizeNavbarPathname/);
+  assert.match(source, /pathname === "\/index"/);
   assert.match(source, /function resolveNavbarPathname/);
   assert.match(source, /typeof window !== "undefined" \? window\.location\.pathname : null/);
-  assert.match(source, /browserPathname \?\? pathname \?\? "\/"/);
+  assert.match(source, /normalizeNavbarPathname\(browserPathname\) \|\| normalizeNavbarPathname\(pathname\)/);
   assert.match(source, /const isHome = resolvedPathname === "\/"/);
   assert.doesNotMatch(source, /: "\/";/);
   assert.match(source, /const isActive = resolvedPathname === item\.href/);

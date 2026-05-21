@@ -11,9 +11,15 @@ import { cn } from "@/lib/utils";
 
 type NavbarSession = Pick<PublicAuthSession, "avatarUrl" | "displayName" | "provider">;
 
+function normalizeNavbarPathname(value: string | null | undefined) {
+  const pathname = String(value || "").trim();
+  if (pathname === "/index") return "/";
+  return pathname;
+}
+
 function resolveNavbarPathname(pathname: string | null) {
   const browserPathname = typeof window !== "undefined" ? window.location.pathname : null;
-  return browserPathname ?? pathname ?? "/";
+  return normalizeNavbarPathname(browserPathname) || normalizeNavbarPathname(pathname);
 }
 
 export default function Navbar() {
