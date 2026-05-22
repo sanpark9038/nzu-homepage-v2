@@ -22,7 +22,10 @@ function test(name, fn) {
 test("ops review helper exposes grouped approval queue data and decision filtering", () => {
   const source = readProjectFile("lib/admin-roster-ops-review.ts");
   assert.match(source, /export async function buildRosterOpsReview/);
+  assert.match(source, /report_source/);
   assert.match(source, /buildRosterChangeItems/);
+  assert.match(source, /buildPipelineAlerts/);
+  assert.match(source, /pipeline_alerts/);
   assert.match(source, /readRosterReviewDecisions/);
   assert.match(source, /rosterReviewDecisionKey/);
   assert.match(source, /affiliation_change/);
@@ -32,6 +35,16 @@ test("ops review helper exposes grouped approval queue data and decision filteri
   assert.match(source, /missing_soop_ids/);
   assert.match(source, /zero_record_players/);
   assert.doesNotMatch(source, /writeFileSync|rmSync|saveRemoteRosterAdminCorrection/);
+});
+
+test("ops review can read deployed report snapshots before falling back to local tmp reports", () => {
+  const source = readProjectFile("lib/admin-roster-ops-review.ts");
+  assert.match(source, /OPS_REVIEW_REPORTS_PUBLIC_BASE_URL/);
+  assert.match(source, /fetchRemoteReport/);
+  assert.match(source, /loadReviewReportDocs/);
+  assert.match(source, /remote_public_base/);
+  assert.match(source, /local_tmp_reports/);
+  assert.match(source, /deriveSiblingPublicBaseUrl/);
 });
 
 test("ops review decision store persists operator exclusions", () => {
@@ -88,6 +101,10 @@ test("admin ops review page is an approval inbox, not a raw report", () => {
   assert.match(source, /제외/);
   assert.match(source, /RosterReviewDecisionButtons/);
   assert.match(source, /excludedCandidateItems/);
+  assert.match(source, /groups\.pipeline_alerts/);
+  assert.match(source, /AlertRows/);
+  assert.match(source, /운영 알림/);
+  assert.match(source, /report_source/);
   assert.match(source, /decisionTotal = affiliationItems\.length \+ tierItems\.length \+ newCandidateItems\.length \+ excludedCandidateItems\.length/);
   assert.doesNotMatch(source, /무시/);
   assert.doesNotMatch(source, /보류/);
@@ -95,6 +112,26 @@ test("admin ops review page is an approval inbox, not a raw report", () => {
   assert.doesNotMatch(source, /JSON\.stringify|<pre|JsonList|운영 점검 리포트/);
   assert.doesNotMatch(source, /Roster Ops Review|Decision queue|Data quality checks|Recovery reference|Open roster editor/);
   assert.doesNotMatch(source, /fetch\(/);
+});
+
+test("ops pipeline publishes latest review reports for deployed admin review", () => {
+  const pkg = JSON.parse(readProjectFile("package.json"));
+  assert.equal(
+    pkg.scripts["sync:ops-review-reports"],
+    "node scripts/tools/sync-ops-review-reports.js"
+  );
+
+  const script = readProjectFile("scripts/tools/sync-ops-review-reports.js");
+  assert.match(script, /daily_pipeline_alerts_latest\.json/);
+  assert.match(script, /roster_change_review_latest\.json/);
+  assert.match(script, /ops_review_reports_manifest\.json/);
+  assert.match(script, /OPS_REVIEW_REPORTS_R2_PREFIX/);
+  assert.match(script, /PLAYER_HISTORY_PUBLIC_BASE_URL/);
+  assert.doesNotMatch(script, /env\.R2_PUBLIC_BASE_URL/);
+
+  const workflow = readProjectFile(".github/workflows/ops-pipeline-cache.yml");
+  assert.match(workflow, /Sync ops review reports/);
+  assert.match(workflow, /npm run sync:ops-review-reports -- --upload-r2-if-configured/);
 });
 
 test("admin ops review exclusion button posts operator decision", () => {

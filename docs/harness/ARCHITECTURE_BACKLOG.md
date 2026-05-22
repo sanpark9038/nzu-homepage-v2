@@ -249,11 +249,16 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 
 - Area: `lib/r2.ts`
 - Question: board image upload/delete should avoid constructing a new `S3Client` for every call.
-- Current classification: `next`
-- Reason: small, surgical optimization with clear server-side connection reuse benefits.
+- Current classification: `hold`
+- Reason: the reported risk was valid, but the surgical optimization is already
+  in place. Keep this out of `now` unless production upload/delete latency or
+  socket errors show the current reuse is insufficient.
 - 2026-05-20 partial: `uploadBoardImageToR2()` and
   `deleteBoardImageFromR2()` now share a module-scoped, config-keyed
   `S3Client` in warm server instances.
+- 2026-05-22 v5 review: rechecked `lib/r2.ts` and
+  `test:board-r2-upload-contract`; the warm-instance `S3Client` reuse contract
+  passes.
 - Remaining work: only revisit if upload/delete latency remains high after
   production observation.
 
@@ -264,17 +269,28 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 - Current classification: `hold`
 - Reason: valid concern, but admin correctness and review visibility matter more than premature pagination.
 - Next evidence needed: inspect current admin workflows, expected correction volume, and whether filtering/pagination would hide operator-critical context.
+- 2026-05-22 v5 review: rechecked the concern. The code still reads three
+  local JSON files synchronously and then reads all `roster_admin_corrections`
+  rows, so the performance risk is real but admin-scoped. Do not paginate or
+  filter this path until the operator workflow defines which historical
+  corrections can be hidden safely. If this is promoted later, first add an
+  mtime cache for the local JSON inputs, then design a remote query shape that
+  preserves current correction visibility.
 
 ### A9. SOOP OAuth Fetch Timeout
 
 - Area: `lib/soop-auth.ts`
 - Question: third-party OAuth token/userinfo calls should not wait indefinitely
   on SOOP upstream delays.
-- Current classification: `now`
-- Reason: external platform latency is outside NZU control and can hold Vercel
-  request handlers open until platform timeout.
+- Current classification: `hold`
+- Reason: external platform latency risk was valid, but the bounded fetch
+  behavior is already implemented. Keep this out of `now` unless real OAuth
+  timeout frequency shows the user-facing retry/error path needs more polish.
 - 2026-05-20 partial: SOOP token exchange and station-info calls now go through
   a shared fetch wrapper with an explicit 8-second `AbortController` timeout.
+- 2026-05-22 v5 review: rechecked `lib/soop-auth.ts` and
+  `test:soop-auth-timeout`; both token exchange and station-info fetches use
+  the shared abort-timeout wrapper.
 - Remaining work: if real OAuth failures become frequent, add user-facing
   retry/error messaging and structured operational logging.
 

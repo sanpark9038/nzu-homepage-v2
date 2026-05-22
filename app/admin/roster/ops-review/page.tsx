@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import RosterReviewDecisionButtons from "@/components/admin/roster/RosterReviewDecisionButtons";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
-import { buildRosterOpsReview, type RosterOpsReviewPlayer } from "@/lib/admin-roster-ops-review";
+import {
+  buildRosterOpsReview,
+  type RosterOpsReviewPipelineAlert,
+  type RosterOpsReviewPlayer,
+} from "@/lib/admin-roster-ops-review";
 import LogoutButton from "../../ops/LogoutButton";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +66,10 @@ function filterByKind(items: ReviewItem[], kind: ReviewKind): ReviewItem[] {
   return items.filter((item) => text(item.review_kind) === kind);
 }
 
+function sourceLabel(kind: unknown): string {
+  return text(kind) === "remote_public_base" ? "배포 리포트" : "로컬 리포트";
+}
+
 function PlayerList({ items }: { items: RosterOpsReviewPlayer[] }) {
   if (items.length === 0) {
     return <p className="text-sm text-muted-foreground">항목이 없습니다.</p>;
@@ -90,6 +98,55 @@ function PlayerList({ items }: { items: RosterOpsReviewPlayer[] }) {
               </td>
               <td className="p-2 text-muted-foreground">{item.tier || "-"}</td>
               <td className="p-2 text-muted-foreground">{item.reason || item.source || "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AlertRows({ items }: { items: RosterOpsReviewPipelineAlert[] }) {
+  if (items.length === 0) {
+    return <p className="rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">운영 알림 항목 없음</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[760px] text-sm">
+        <thead className="text-xs text-muted-foreground">
+          <tr>
+            <th className="p-2 text-left">상태</th>
+            <th className="p-2 text-left">팀</th>
+            <th className="p-2 text-left">감지 항목</th>
+            <th className="p-2 text-left">내용</th>
+            <th className="p-2 text-left">처리</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, index) => (
+            <tr key={`${item.rule}:${item.team_code}:${index}`} className="border-t border-border/60">
+              <td className="p-2">
+                <span className="rounded-full bg-muted px-2 py-1 text-xs font-bold text-muted-foreground">
+                  {item.severity || "-"}
+                </span>
+              </td>
+              <td className="p-2 text-muted-foreground">
+                {item.team || "-"} {item.team_code ? `(${item.team_code})` : ""}
+              </td>
+              <td className="p-2 font-semibold text-foreground">{item.rule || "-"}</td>
+              <td className="p-2 text-muted-foreground">
+                <p>{item.message || "-"}</p>
+                {item.names.length > 0 ? <p className="mt-1 text-xs">{item.names.join(", ")}</p> : null}
+              </td>
+              <td className="p-2">
+                <Link
+                  href={item.action_url || "/admin/roster"}
+                  className="inline-flex items-center justify-center rounded-md border border-border px-3 py-1.5 text-xs font-bold text-foreground"
+                >
+                  로스터 교정 열기
+                </Link>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -180,8 +237,10 @@ export default async function RosterOpsReviewPage() {
 
   const review = await buildRosterOpsReview();
   const groups = review.groups;
+  const reportSource = review.report_source;
   const rosterItems = groups.roster_change_review.items as ReviewItem[];
   const newCandidates = groups.new_player_candidates.items as ReviewItem[];
+  const pipelineAlerts = groups.pipeline_alerts.items;
   const affiliationItems = filterByKind(rosterItems, "affiliation_change");
   const tierItems = filterByKind(rosterItems, "tier_change");
   const newCandidateItems = filterByKind(newCandidates, "new_candidate");
@@ -236,6 +295,28 @@ export default async function RosterOpsReviewPage() {
           </div>
         </section>
 
+        <section className="rounded-lg border border-border bg-card p-4 text-sm">
+          <div className="grid gap-3 md:grid-cols-4">
+            <div>
+              <p className="text-xs font-bold text-muted-foreground">리포트 소스</p>
+              <p className="mt-1 font-black text-foreground">{sourceLabel(reportSource.kind)}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-muted-foreground">상태</p>
+              <p className="mt-1 font-black text-foreground">{reportSource.status}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-muted-foreground">생성 시각</p>
+              <p className="mt-1 font-mono text-xs text-muted-foreground">{reportSource.generated_at || "-"}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-muted-foreground">출처</p>
+              <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{reportSource.source || "-"}</p>
+            </div>
+          </div>
+          {reportSource.warning ? <p className="mt-3 text-xs font-bold text-destructive">{reportSource.warning}</p> : null}
+        </section>
+
         <section className="space-y-6 rounded-lg border border-border bg-card p-4">
           {REVIEW_SECTIONS.map((section) => (
             <ApprovalRows
@@ -246,6 +327,13 @@ export default async function RosterOpsReviewPage() {
               items={section.kind === "new_candidate" ? newCandidateItems : filterByKind(rosterItems, section.kind)}
             />
           ))}
+        </section>
+
+        <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+          <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
+            <h2 className="text-base font-black">운영 알림 {groups.pipeline_alerts.count}건</h2>
+          </div>
+          <AlertRows items={pipelineAlerts} />
         </section>
 
         <section className="space-y-4">

@@ -181,6 +181,7 @@
     "onboard:team": "node scripts/tools/onboard-team.js",
     "sync:team:roster": "node scripts/tools/sync-team-roster-metadata.js",
     "sync:id": "node scripts/enhance-players-with-id.js",
+    "sync:ops-review-reports": "node scripts/tools/sync-ops-review-reports.js",
     "sync:matches": "node scripts/sync-bj-matches.js"
   },
   "dependencies": {

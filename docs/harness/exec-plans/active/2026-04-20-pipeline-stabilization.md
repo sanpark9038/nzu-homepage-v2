@@ -1274,6 +1274,37 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   `next build`.
 - Push/deployment remain unapproved at this checkpoint.
 
+### 2026-05-22 Admin Ops Review Pipeline Inbox
+
+- Follow-up from the operator workflow clarification: Discord is the alert
+  channel, `/admin/roster/ops-review` is the review inbox, and
+  `/admin/roster` is the actual correction surface.
+- Root cause under investigation: the deployed ops-review page reads local
+  `tmp/reports` files, while the latest scheduled Discord summary is based on
+  GitHub Actions report artifacts. When those sources diverge, the page can
+  show an empty approval inbox even though the latest run detected reviewable
+  changes or operational alerts.
+- Scope boundary: do not auto-apply roster, tier, candidate, exclusion, or SQL
+  changes. This slice only makes detected report data visible and easier to
+  route to the existing admin correction page.
+- Implementation direction: keep local `tmp/reports` as the fallback source,
+  let GitHub Actions publish compact latest-report snapshots to the configured
+  ops-review public report location, and make the page surface report-source
+  freshness plus grouped `daily_pipeline_alerts` items such as zero-record
+  players.
+- Verification target: extend the admin ops-review contract so missing or stale
+  local reports cannot masquerade as a clean `0` inbox, and so Discord alert
+  categories are visible in the review payload.
+- Implementation checkpoint:
+  - Added `report_source` metadata and `pipeline_alerts` to the ops-review
+    helper payload.
+  - Added the admin `운영 알림` section and report-source status panel.
+  - Added `sync:ops-review-reports` and a non-blocking workflow step that
+    uploads latest report snapshots only when R2/public report env is
+    configured.
+  - Verification passed: `npm.cmd run test:admin-roster-ops-review`,
+    `.\node_modules\.bin\tsc.cmd --noEmit`, and `npm.cmd run build`.
+
 ### 2026-05-20 Serving Runtime Guard Slice
 
 - Follow-up from architecture backlog items A1, A7, and A9.

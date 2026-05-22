@@ -144,6 +144,11 @@ jobs:
           fi
           npm run pipeline:verify:discord -- --markdown >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Sync ops review reports
+        if: always()
+        continue-on-error: true
+        run: npm run sync:ops-review-reports -- --upload-r2-if-configured
+
       - name: Upload reports artifact
         if: always()
         uses: actions/upload-artifact@v4

@@ -6,6 +6,8 @@ const ROOT = process.cwd();
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
+const OPS_REVIEW_REPORTS_PREFIX = "ops-review";
+const REPORT_FETCH_TIMEOUT_MS = 3_000;
 
 type JsonObject = Record<string, unknown>;
 
@@ -52,15 +54,43 @@ export type RosterOpsReviewGroup<T> = {
   source: string | null;
 };
 
+export type RosterOpsReviewReportSource = {
+  kind: "remote_public_base" | "local_tmp_reports";
+  status: "loaded" | "missing";
+  source: string | null;
+  generated_at?: string;
+  warning?: string;
+};
+
+export type RosterOpsReviewPipelineAlert = {
+  severity: string;
+  rule: string;
+  team: string;
+  team_code: string;
+  message: string;
+  names: string[];
+  action_url: string;
+  source?: string;
+};
+
 export type RosterOpsReview = {
   generated_at: string;
+  report_source: RosterOpsReviewReportSource;
   groups: {
     missing_soop_ids: RosterOpsReviewGroup<RosterOpsReviewPlayer>;
     zero_record_players: RosterOpsReviewGroup<RosterOpsReviewPlayer>;
+    pipeline_alerts: RosterOpsReviewGroup<RosterOpsReviewPipelineAlert>;
     roster_change_review: RosterOpsReviewGroup<JsonObject>;
     excluded_players: RosterOpsReviewGroup<RosterOpsReviewPlayer>;
     new_player_candidates: RosterOpsReviewGroup<JsonObject>;
   };
+};
+
+type ReviewReportDocs = {
+  dailyAlerts: JsonObject | null;
+  rosterChangeReview: JsonObject | null;
+  manifest: JsonObject | null;
+  source: RosterOpsReviewReportSource;
 };
 
 type RosterChangeItem = JsonObject & {
@@ -96,6 +126,117 @@ function readJson<T>(filePath: string): T | null {
   } catch {
     return null;
   }
+}
+
+function normalizeBaseUrl(value: unknown) {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function normalizePrefix(value: unknown, fallback = OPS_REVIEW_REPORTS_PREFIX) {
+  return String(value || fallback).trim().replace(/^\/+|\/+$/g, "") || fallback;
+}
+
+export function deriveSiblingPublicBaseUrl(value: unknown, sourcePrefix: unknown, targetPrefix: unknown) {
+  const baseUrl = normalizeBaseUrl(value);
+  if (!baseUrl) return "";
+
+  const normalizedSourcePrefix = normalizePrefix(sourcePrefix, "player-history");
+  const normalizedTargetPrefix = normalizePrefix(targetPrefix, OPS_REVIEW_REPORTS_PREFIX);
+  const suffix = `/${normalizedSourcePrefix}`;
+  const rootBaseUrl = baseUrl.endsWith(suffix) ? baseUrl.slice(0, -suffix.length) : baseUrl;
+  return rootBaseUrl ? `${rootBaseUrl}/${normalizedTargetPrefix}` : "";
+}
+
+function getOpsReviewReportsPublicBaseUrl(env = process.env) {
+  const explicit = normalizeBaseUrl(env.OPS_REVIEW_REPORTS_PUBLIC_BASE_URL);
+  if (explicit) return explicit;
+
+  const prefix = normalizePrefix(env.OPS_REVIEW_REPORTS_R2_PREFIX);
+  const rootBaseUrl = normalizeBaseUrl(env.OPS_REVIEW_REPORTS_R2_PUBLIC_BASE_URL);
+  if (rootBaseUrl) return `${rootBaseUrl}/${prefix}`;
+
+  return deriveSiblingPublicBaseUrl(
+    env.PLAYER_HISTORY_PUBLIC_BASE_URL || env.PLAYER_HISTORY_R2_PUBLIC_BASE_URL,
+    env.PLAYER_HISTORY_R2_PREFIX || "player-history",
+    prefix
+  );
+}
+
+async function fetchRemoteReport(baseUrl: string, fileName: string): Promise<JsonObject | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REPORT_FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${baseUrl}/${fileName}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json().catch(() => null)) as JsonObject | null;
+    return payload && typeof payload === "object" ? payload : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function newestGeneratedAt(...docs: Array<JsonObject | null>) {
+  return docs
+    .map((doc) => trim(doc?.generated_at))
+    .filter(Boolean)
+    .sort()
+    .pop();
+}
+
+function readLocalReport(fileName: string): { doc: JsonObject | null; source: string | null } {
+  const source = latestReportFile(fileName);
+  return {
+    doc: source ? readJson<JsonObject>(source) : null,
+    source: source ? path.relative(ROOT, source) : null,
+  };
+}
+
+async function loadReviewReportDocs(): Promise<ReviewReportDocs> {
+  const remoteBaseUrl = getOpsReviewReportsPublicBaseUrl();
+  if (remoteBaseUrl) {
+    const [dailyAlerts, rosterChangeReview, manifest] = await Promise.all([
+      fetchRemoteReport(remoteBaseUrl, "daily_pipeline_alerts_latest.json"),
+      fetchRemoteReport(remoteBaseUrl, "roster_change_review_latest.json"),
+      fetchRemoteReport(remoteBaseUrl, "ops_review_reports_manifest.json"),
+    ]);
+
+    if (dailyAlerts || rosterChangeReview) {
+      return {
+        dailyAlerts,
+        rosterChangeReview,
+        manifest,
+        source: {
+          kind: "remote_public_base",
+          status: "loaded",
+          source: remoteBaseUrl,
+          generated_at: trim(manifest?.generated_at) || newestGeneratedAt(dailyAlerts, rosterChangeReview),
+        },
+      };
+    }
+  }
+
+  const dailyAlerts = readLocalReport("daily_pipeline_alerts_latest.json");
+  const rosterChangeReview = readLocalReport("roster_change_review_latest.json");
+  const manifest = readLocalReport("ops_review_reports_manifest.json");
+  const source = dailyAlerts.source || rosterChangeReview.source || manifest.source;
+
+  return {
+    dailyAlerts: dailyAlerts.doc,
+    rosterChangeReview: rosterChangeReview.doc,
+    manifest: manifest.doc,
+    source: {
+      kind: "local_tmp_reports",
+      status: source ? "loaded" : "missing",
+      source,
+      generated_at: trim(manifest.doc?.generated_at) || newestGeneratedAt(dailyAlerts.doc, rosterChangeReview.doc),
+      warning: remoteBaseUrl && !source ? "remote reports unavailable and local tmp reports missing" : undefined,
+    },
+  };
 }
 
 function listFilesRecursive(dirPath: string): string[] {
@@ -242,9 +383,11 @@ function buildRosterChangeItems(doc: JsonObject | null, kinds?: string[]): Roste
   return rows.filter((row) => kinds.includes(trim(row.review_kind)) && !isOperatorExcludedReviewItem(row));
 }
 
-function buildZeroRecordPlayers(players: RosterOpsReviewPlayer[]): RosterOpsReviewGroup<RosterOpsReviewPlayer> {
-  const source = latestReportFile("daily_pipeline_alerts_latest.json");
-  const doc = source ? readJson<JsonObject>(source) : null;
+function buildZeroRecordPlayers(
+  players: RosterOpsReviewPlayer[],
+  reports: ReviewReportDocs
+): RosterOpsReviewGroup<RosterOpsReviewPlayer> {
+  const doc = reports.dailyAlerts;
   const alerts = pickReportRows(doc, ["alerts"]);
   const index = indexPlayers(players);
   const rows: RosterOpsReviewPlayer[] = [];
@@ -264,13 +407,13 @@ function buildZeroRecordPlayers(players: RosterOpsReviewPlayer[]): RosterOpsRevi
         (entityId && index.byEntityId.get(entityId)) ||
         (wrId && index.byWrId.get(wrId)) ||
         (name && index.byName.get(name));
-      if (known) rows.push({ ...known, reason, source: source ? path.relative(ROOT, source) : undefined });
+      if (known) rows.push({ ...known, reason, source: reports.source.source || undefined });
     }
 
     if (candidates.length === 0) {
       for (const name of extractZeroRecordAlertNames(alert, message)) {
         const known = index.byName.get(name);
-        if (known) rows.push({ ...known, reason, source: source ? path.relative(ROOT, source) : undefined });
+        if (known) rows.push({ ...known, reason, source: reports.source.source || undefined });
       }
     }
   }
@@ -281,7 +424,37 @@ function buildZeroRecordPlayers(players: RosterOpsReviewPlayer[]): RosterOpsRevi
     title: "Zero-record players",
     count: unique.length,
     items: unique,
-    source: source ? path.relative(ROOT, source) : null,
+    source: reports.source.source,
+  };
+}
+
+function buildPipelineAlerts(reports: ReviewReportDocs): RosterOpsReviewGroup<RosterOpsReviewPipelineAlert> {
+  const alerts = pickReportRows(reports.dailyAlerts, ["alerts"]);
+  const rows = alerts.map((alert) => {
+    const teamCode = trim(alert.team_code);
+    const params = new URLSearchParams();
+    if (teamCode) params.set("team_code", teamCode);
+    const names = extractZeroRecordAlertNames(alert, trim(alert.message));
+    if (names.length === 1) params.set("q", names[0]);
+
+    return {
+      severity: trim(alert.severity) || "info",
+      rule: trim(alert.rule) || "pipeline_alert",
+      team: trim(alert.team),
+      team_code: teamCode,
+      message: trim(alert.message),
+      names,
+      action_url: params.toString() ? `/admin/roster?${params.toString()}` : "/admin/roster",
+      source: reports.source.source || undefined,
+    };
+  });
+
+  return {
+    key: "pipeline_alerts",
+    title: "Pipeline alerts",
+    count: rows.length,
+    items: rows,
+    source: reports.source.source,
   };
 }
 
@@ -295,9 +468,8 @@ function uniquePlayers(players: RosterOpsReviewPlayer[]): RosterOpsReviewPlayer[
   });
 }
 
-function buildRosterChangeReview(): RosterOpsReviewGroup<JsonObject> {
-  const source = latestReportFile("roster_change_review_latest.json");
-  const doc = source ? readJson<JsonObject>(source) : null;
+function buildRosterChangeReview(reports: ReviewReportDocs): RosterOpsReviewGroup<JsonObject> {
+  const doc = reports.rosterChangeReview;
   const rows = buildRosterChangeItems(doc, [
     "affiliation_change",
     "tier_change",
@@ -310,20 +482,19 @@ function buildRosterChangeReview(): RosterOpsReviewGroup<JsonObject> {
     title: "Roster change review",
     count: rows.length,
     items: rows,
-    source: source ? path.relative(ROOT, source) : null,
+    source: reports.source.source,
   };
 }
 
-function buildNewPlayerCandidates(): RosterOpsReviewGroup<JsonObject> {
-  const source = latestReportFile("roster_change_review_latest.json");
-  const doc = source ? readJson<JsonObject>(source) : null;
+function buildNewPlayerCandidates(reports: ReviewReportDocs): RosterOpsReviewGroup<JsonObject> {
+  const doc = reports.rosterChangeReview;
   const rows = buildRosterChangeItems(doc, ["new_candidate"]);
   return {
     key: "new_player_candidates",
     title: "New player candidates",
     count: rows.length,
     items: rows,
-    source: source ? path.relative(ROOT, source) : null,
+    source: reports.source.source,
   };
 }
 
@@ -373,10 +544,12 @@ function buildExcludedPlayers(players: RosterOpsReviewPlayer[]): RosterOpsReview
 
 export async function buildRosterOpsReview(): Promise<RosterOpsReview> {
   const approvedPlayers = loadApprovedPlayers();
+  const reports = await loadReviewReportDocs();
   const missingSoopIds = approvedPlayers.filter((player) => !trim(player.soop_user_id));
 
   return {
     generated_at: new Date().toISOString(),
+    report_source: reports.source,
     groups: {
       missing_soop_ids: {
         key: "missing_soop_ids",
@@ -385,10 +558,11 @@ export async function buildRosterOpsReview(): Promise<RosterOpsReview> {
         items: missingSoopIds,
         source: path.relative(ROOT, PROJECTS_DIR),
       },
-      zero_record_players: buildZeroRecordPlayers(approvedPlayers),
-      roster_change_review: buildRosterChangeReview(),
+      zero_record_players: buildZeroRecordPlayers(approvedPlayers, reports),
+      pipeline_alerts: buildPipelineAlerts(reports),
+      roster_change_review: buildRosterChangeReview(reports),
       excluded_players: buildExcludedPlayers(approvedPlayers),
-      new_player_candidates: buildNewPlayerCandidates(),
+      new_player_candidates: buildNewPlayerCandidates(reports),
     },
   };
 }
