@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { ADMIN_SESSION_COOKIE, assertValidAdminSession } from "@/lib/admin-auth";
 import {
   deletePredictionMatch,
@@ -10,6 +11,10 @@ import {
 
 export const runtime = "nodejs";
 const FORCE_DELETE_CONFIRMATION = "투표 포함 삭제";
+
+function revalidatePredictionPublicViews() {
+  revalidatePath("/prediction");
+}
 
 export async function GET() {
   try {
@@ -35,6 +40,7 @@ export async function POST(req: Request) {
     }
 
     await savePredictionMatches(matches);
+    revalidatePredictionPublicViews();
     const state = await loadPredictionState();
     return NextResponse.json({ ok: true, matches: state.matches, votes: state.votes, source: state.source });
   } catch (error) {
@@ -78,6 +84,7 @@ export async function DELETE(req: Request) {
     } else {
       await deletePredictionMatch(matchId);
     }
+    revalidatePredictionPublicViews();
     const state = await loadPredictionState();
     return NextResponse.json({ ok: true, matches: state.matches, votes: state.votes, source: state.source });
   } catch (error) {

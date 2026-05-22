@@ -953,6 +953,23 @@ test("prediction writes fail closed on Vercel without Supabase admin env", () =>
   );
 });
 
+test("prediction remote read fallback fails closed on Vercel", () => {
+  assert.equal(
+    predictionStore.shouldFallbackToLocalPredictionState({
+      hasRemoteEnv: true,
+      isVercelDeployment: true,
+    }),
+    false
+  );
+  assert.equal(
+    predictionStore.shouldFallbackToLocalPredictionState({
+      hasRemoteEnv: true,
+      isVercelDeployment: false,
+    }),
+    true
+  );
+});
+
 test("remote prediction vote validation scopes Supabase reads to the target voter and match", () => {
   const source = fs.readFileSync(path.join(repoRoot, "lib", "prediction-store.ts"), "utf8");
 

@@ -2,10 +2,13 @@ import Link from "next/link";
 import { ImageIcon, PlayCircle, SquarePen } from "lucide-react";
 
 import {
+  type BoardPostWithCommentCount,
   getBoardCategoryLabel,
   getBoardCategoryTone,
   getCachedBoardPostsWithCommentCounts,
   hasBoardMedia,
+  normalizeBoardListFilter,
+  type BoardListFilter,
 } from "@/lib/board";
 
 export const runtime = "nodejs";
@@ -32,6 +35,29 @@ export function formatBoardListDate(value: string | null) {
     : { timeZone, year: "2-digit", month: "2-digit", day: "2-digit" }).format(date);
 }
 
+function formatScheduleTime(value: string | null | undefined) {
+  const [hour = "", minute = ""] = String(value || "").split(":");
+  if (!/^\d{2}$/.test(hour) || !/^\d{2}$/.test(minute)) return "";
+  return `${hour}:${minute}`;
+}
+
+export function formatBoardScheduleBadge(post: BoardPostWithCommentCount) {
+  if (post.category !== "schedule" || !post.schedule_date) return "";
+  const match = post.schedule_date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return "";
+  const [, , month, day] = match;
+  const timeLabel = formatScheduleTime(post.schedule_start_time);
+  return timeLabel ? `${month}.${day} ${timeLabel}` : `${month}.${day}`;
+}
+
+function boardRowClassName(post: BoardPostWithCommentCount) {
+  const base = "border-b border-white/6 text-white/78 transition";
+  if (post.category === "schedule") {
+    return `${base} bg-sky-300/[0.035] hover:bg-sky-300/[0.07]`;
+  }
+  return `${base} hover:bg-white/[0.025]`;
+}
+
 function renderWriteAction(className: string) {
   return (
     <Link href="/board/write" className={className}>
@@ -41,13 +67,24 @@ function renderWriteAction(className: string) {
   );
 }
 
+function boardFilterHref(filter: BoardListFilter) {
+  return filter === "all" ? "/board" : `/board?filter=${filter}`;
+}
+
+function boardFilterTabClassName(active: boolean) {
+  return active
+    ? "rounded-lg bg-nzu-green/10 px-3 py-2 text-nzu-green transition hover:bg-nzu-green/15"
+    : "rounded-lg bg-white/[0.03] px-3 py-2 text-white/42 transition hover:bg-white/[0.06] hover:text-white/72";
+}
+
 export default async function BoardPage({
   searchParams,
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const board = await getCachedBoardPostsWithCommentCounts();
   const params = ((await searchParams) || {}) as Record<string, string | string[] | undefined>;
+  const boardFilter = normalizeBoardListFilter(params.filter);
+  const board = await getCachedBoardPostsWithCommentCounts(20, boardFilter);
   const loginStatus = typeof params.login === "string" ? params.login : "";
   const downloadStatus = typeof params.download === "string" ? params.download : "";
 
@@ -101,7 +138,19 @@ export default async function BoardPage({
 
         <section className="rounded-[1.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(11,17,19,0.98),rgba(7,9,10,0.96))] shadow-[0_22px_70px_rgba(0,0,0,0.16)]">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/6 px-4 py-3 md:px-5">
-            <div className="flex items-center gap-2 text-sm font-black">
+            <div className="flex items-center gap-2 text-sm font-black [&>span]:hidden">
+              <Link href={boardFilterHref("all")} className={boardFilterTabClassName(boardFilter === "all")}>
+                전체글
+              </Link>
+              <Link href={boardFilterHref("schedule")} className={boardFilterTabClassName(boardFilter === "schedule")}>
+                공지/일정
+              </Link>
+              <Link
+                href={boardFilterHref("past-schedule")}
+                className={boardFilterTabClassName(boardFilter === "past-schedule")}
+              >
+                지난일정
+              </Link>
               <span className="rounded-lg bg-nzu-green/10 px-3 py-2 text-nzu-green">전체글</span>
               <span className="rounded-lg bg-white/[0.03] px-3 py-2 text-white/42">공지/일정</span>
             </div>
@@ -124,10 +173,15 @@ export default async function BoardPage({
                     const { hasImage, hasVideo } = hasBoardMedia(post);
                     const categoryLabel = getBoardCategoryLabel(post.category);
                     const categoryTone = getBoardCategoryTone(post.category);
+                    const scheduleBadge = formatBoardScheduleBadge(post);
 
                     return (
-                      <tr key={post.id} className="border-b border-white/6 text-white/78 transition hover:bg-white/[0.025]">
-                        <td className={`px-4 py-3 text-sm font-black md:px-5 ${categoryTone}`}>
+                      <tr key={post.id} className={boardRowClassName(post)}>
+                        <td
+                          className={`border-l-2 px-4 py-3 text-sm font-black md:px-5 ${
+                            post.category === "schedule" ? "border-sky-300/45" : "border-transparent"
+                          } ${categoryTone}`}
+                        >
                           {categoryLabel || <span aria-hidden="true">&nbsp;</span>}
                         </td>
                         <td className="px-4 py-3">
@@ -135,6 +189,11 @@ export default async function BoardPage({
                             href={`/board/${post.id}`}
                             className="inline-flex max-w-full items-center gap-2 font-bold tracking-tight text-white transition hover:text-nzu-green"
                           >
+                            {scheduleBadge ? (
+                              <span className="inline-flex h-6 w-[6.9rem] shrink-0 items-center justify-center rounded-md border border-sky-300/28 bg-sky-300/12 px-2.5 text-xs font-black leading-none text-sky-100 shadow-[0_0_18px_rgba(125,211,252,0.08)]">
+                                {scheduleBadge}
+                              </span>
+                            ) : null}
                             <span className="truncate">{post.title}</span>
                             {post.comment_count > 0 ? (
                               <span className="shrink-0 text-xs font-black text-nzu-green">[{post.comment_count}]</span>

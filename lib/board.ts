@@ -8,16 +8,26 @@ export type BoardPostRow = Database["public"]["Tables"]["board_posts"]["Row"];
 export type BoardPostInsert = Database["public"]["Tables"]["board_posts"]["Insert"];
 export type BoardPostUpdate = Database["public"]["Tables"]["board_posts"]["Update"];
 export type BoardCategory = "notice" | "schedule" | null;
+export type BoardListFilter = "all" | "schedule" | "past-schedule";
 
 const BOARD_POST_LIMIT = 20;
+const BOARD_SCHEDULE_SCAN_LIMIT = 100;
 export const BOARD_LIST_CACHE_TAG = "board-list";
 const BOARD_LIST_REVALIDATE_SECONDS = 30;
-const BOARD_POST_LIST_COLUMNS = "id,title,author_name,created_at,category,image_url,video_url,published";
+const BOARD_POST_LIST_COLUMNS =
+  "id,title,author_name,created_at,category,image_url,video_url,published,schedule_date,schedule_start_time";
 const IMAGE_URL_EXTENSIONS = new Set([".gif", ".jpeg", ".jpg", ".png", ".webp"]);
 const SOOP_VIDEO_HOSTS = ["sooplive.com", "sooplive.co.kr"];
 
 function normalizeText(value: unknown) {
   return String(value || "").trim();
+}
+
+export function normalizeBoardListFilter(value: unknown): BoardListFilter {
+  const text = normalizeText(Array.isArray(value) ? value[0] : value);
+  if (text === "schedule") return "schedule";
+  if (text === "past-schedule") return "past-schedule";
+  return "all";
 }
 
 function normalizeOptionalUrl(value: unknown) {
@@ -342,15 +352,91 @@ export async function listBoardPosts(limit = BOARD_POST_LIMIT) {
 
 export type BoardPostListRow = Pick<
   BoardPostRow,
-  "id" | "title" | "author_name" | "created_at" | "category" | "image_url" | "video_url" | "published"
+  | "id"
+  | "title"
+  | "author_name"
+  | "created_at"
+  | "category"
+  | "image_url"
+  | "video_url"
+  | "published"
+  | "schedule_date"
+  | "schedule_start_time"
 >;
 
-export async function listBoardPostSummaries(limit = BOARD_POST_LIMIT) {
+function normalizeScheduleTimeForTimestamp(value: string | null | undefined) {
+  const match = String(value || "").match(/^(\d{2}):(\d{2})/);
+  if (!match) return null;
+  const [, hour, minute] = match;
+  return `${hour}:${minute}`;
+}
+
+function getScheduleExpiryMs(post: Pick<BoardPostListRow, "schedule_date" | "schedule_start_time">) {
+  if (!post.schedule_date) return null;
+
+  const time = normalizeScheduleTimeForTimestamp(post.schedule_start_time);
+  const startDate = time
+    ? new Date(`${post.schedule_date}T${time}:00+09:00`)
+    : new Date(`${post.schedule_date}T00:00:00+09:00`);
+  const startMs = startDate.getTime();
+  if (Number.isNaN(startMs)) return null;
+
+  return startMs + 24 * 60 * 60 * 1000;
+}
+
+export function isPastSchedulePost(
+  post: Pick<BoardPostListRow, "category" | "schedule_date" | "schedule_start_time">,
+  now = new Date()
+) {
+  if (post.category !== "schedule") return false;
+  const expiryMs = getScheduleExpiryMs(post);
+  if (expiryMs === null) return false;
+  return expiryMs <= now.getTime();
+}
+
+async function listBoardSchedulePostSummaries(limit: number, mode: "active" | "past" = "active") {
+  try {
+    const safeLimit = Math.min(Math.max(limit, 1), BOARD_SCHEDULE_SCAN_LIMIT);
+    const { data, error } = await publicSupabase
+      .from("board_posts")
+      .select(BOARD_POST_LIST_COLUMNS)
+      .eq("published", true)
+      .eq("category", "schedule")
+      .not("schedule_date", "is", null)
+      .order("schedule_date", { ascending: false, nullsFirst: false })
+      .order("schedule_start_time", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(mode === "past" ? BOARD_SCHEDULE_SCAN_LIMIT : safeLimit);
+
+    if (error) throw error;
+    const posts = ((data || []) as BoardPostListRow[]).filter((post) =>
+      mode === "past" ? isPastSchedulePost(post) : !isPastSchedulePost(post)
+    );
+
+    return {
+      ok: true as const,
+      posts: posts.slice(0, limit),
+      storageReady: true,
+    };
+  } catch (error) {
+    if (isBoardStorageMissing(error) || isBoardReadUnavailable(error)) {
+      return {
+        ok: true as const,
+        posts: [] as BoardPostListRow[],
+        storageReady: false,
+      };
+    }
+    throw error;
+  }
+}
+
+async function listRegularBoardPostSummaries(limit: number) {
   try {
     const { data, error } = await publicSupabase
       .from("board_posts")
       .select(BOARD_POST_LIST_COLUMNS)
       .eq("published", true)
+      .or("category.is.null,category.neq.schedule")
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -373,12 +459,33 @@ export async function listBoardPostSummaries(limit = BOARD_POST_LIMIT) {
   }
 }
 
-export type BoardPostWithCommentCount = BoardPostRow & {
+export async function listBoardPostSummaries(limit = BOARD_POST_LIMIT, filter: BoardListFilter = "all") {
+  if (filter === "past-schedule") {
+    return listBoardSchedulePostSummaries(limit, "past");
+  }
+
+  if (filter === "schedule") {
+    return listBoardSchedulePostSummaries(limit, "active");
+  }
+
+  const [scheduleResult, regularResult] = await Promise.all([
+    listBoardSchedulePostSummaries(limit, "active"),
+    listRegularBoardPostSummaries(limit),
+  ]);
+
+  return {
+    ok: true as const,
+    posts: [...scheduleResult.posts, ...regularResult.posts].slice(0, limit),
+    storageReady: scheduleResult.storageReady && regularResult.storageReady,
+  };
+}
+
+export type BoardPostWithCommentCount = BoardPostListRow & {
   comment_count: number;
 };
 
-export async function listBoardPostsWithCommentCounts(limit = BOARD_POST_LIMIT) {
-  const result = await listBoardPostSummaries(limit);
+export async function listBoardPostsWithCommentCounts(limit = BOARD_POST_LIMIT, filter: BoardListFilter = "all") {
+  const result = await listBoardPostSummaries(limit, filter);
   if (!result.posts.length) {
     return {
       ...result,
@@ -399,7 +506,7 @@ export async function listBoardPostsWithCommentCounts(limit = BOARD_POST_LIMIT) 
 }
 
 export const getCachedBoardPostsWithCommentCounts = unstable_cache(
-  async (limit = BOARD_POST_LIMIT) => listBoardPostsWithCommentCounts(limit),
+  async (limit = BOARD_POST_LIMIT, filter: BoardListFilter = "all") => listBoardPostsWithCommentCounts(limit, filter),
   ["board-posts-with-comment-counts"],
   {
     revalidate: BOARD_LIST_REVALIDATE_SECONDS,

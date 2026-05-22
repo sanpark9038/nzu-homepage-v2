@@ -38,6 +38,20 @@ test("public schedule page uses schedule info board posts without a large hero",
   assert.match(boardSource, /Math\.min\(Math\.max\(options\.limit \|\| 100,\s*1\),\s*500\)/);
 });
 
+test("monthly calendar event chips use scan-friendly time badges and count pills", () => {
+  const source = readProjectFile("components/schedule/ScheduleInfoList.tsx");
+
+  assert.match(source, /schedule-calendar-count-pill/);
+  assert.match(source, /\{dayPosts\.length\}일정/);
+  assert.match(source, /schedule-calendar-event-time-badge/);
+  assert.match(source, /schedule-calendar-event-title/);
+  assert.match(source, /schedule-calendar-event-subtitle/);
+  assert.match(source, /formatTimeLabel\(post\.schedule_start_time\)/);
+  assert.match(source, /min-h-\[4\.6rem\]/);
+  assert.match(source, /flex flex-col items-start/);
+  assert.doesNotMatch(source, /grid-cols-\[3\.45rem_minmax\(0,1fr\)\]/);
+});
+
 test("visible navigation exposes schedule as short schedule label", () => {
   const source = readProjectFile("lib/navigation-config.ts");
 

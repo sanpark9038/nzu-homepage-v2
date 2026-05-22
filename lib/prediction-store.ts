@@ -266,6 +266,22 @@ export function assertPredictionWriteAllowed(input: WriteGuardInput = {}) {
   return true;
 }
 
+export function shouldFallbackToLocalPredictionState(input: WriteGuardInput = {}) {
+  const hasRemoteEnv = input.hasRemoteEnv ?? hasPredictionRemoteEnv();
+  const isVercelDeployment = input.isVercelDeployment ?? detectVercelDeployment();
+  return hasRemoteEnv && !isVercelDeployment;
+}
+
+function emptyRemotePredictionState(options: PredictionStateLoadOptions = {}): PredictionState {
+  return {
+    matches: [],
+    votes: [],
+    voteTotals: options.includeVoteTotals === true ? [] : undefined,
+    source: "supabase",
+    remote_enabled: true,
+  };
+}
+
 export function getPredictionVoterId(session: PublicAuthSession | null | undefined) {
   const provider = normalizeText(session?.provider);
   const providerUserId = normalizeText(session?.providerUserId);
@@ -552,7 +568,7 @@ export async function loadPredictionState(options: PredictionStateLoadOptions = 
     try {
       return await readRemotePredictionState(options);
     } catch {
-      return readLocalPredictionState(options);
+      return shouldFallbackToLocalPredictionState() ? readLocalPredictionState(options) : emptyRemotePredictionState(options);
     }
   }
   return readLocalPredictionState(options);

@@ -19,6 +19,54 @@ test("board SQL defines additive schedule info fields", () => {
   assert.match(sql, /board_posts_schedule_public_idx/i);
 });
 
+test("board list shows schedule timing as a title badge while preserving created date", () => {
+  const listPage = readProjectFile("app/board/page.tsx");
+  const board = readProjectFile("lib/board.ts");
+
+  assert.match(listPage, /formatBoardScheduleBadge\(post\)/);
+  assert.match(listPage, /post\.category === "schedule"/);
+  assert.match(listPage, /post\.schedule_date/);
+  assert.match(listPage, /post\.schedule_start_time/);
+  assert.match(listPage, /const scheduleBadge = formatBoardScheduleBadge\(post\)/);
+  assert.match(listPage, /\{scheduleBadge \? \(/);
+  assert.match(listPage, /bg-sky-300\/\[0\.035\]/);
+  assert.match(listPage, /border-sky-300\/45/);
+  assert.match(listPage, /w-\[6\.9rem\]/);
+  assert.match(listPage, /justify-center/);
+  assert.match(listPage, /formatBoardListDate\(post\.created_at\)/);
+  assert.match(board, /BOARD_POST_LIST_COLUMNS[\s\S]*schedule_date/);
+  assert.match(board, /BOARD_POST_LIST_COLUMNS[\s\S]*schedule_start_time/);
+});
+
+test("board list orders schedule posts by schedule start before regular latest posts", () => {
+  const board = readProjectFile("lib/board.ts");
+
+  assert.match(board, /listBoardSchedulePostSummaries/);
+  assert.match(board, /\.eq\("category", "schedule"\)/);
+  assert.match(board, /\.not\("schedule_date", "is", null\)/);
+  assert.match(board, /\.order\("schedule_date", \{ ascending: false/);
+  assert.match(board, /\.order\("schedule_start_time", \{ ascending: true/);
+  assert.match(board, /listRegularBoardPostSummaries/);
+  assert.match(board, /\.or\("category\.is\.null,category\.neq\.schedule"\)/);
+  assert.match(board, /\[\.\.\.scheduleResult\.posts, \.\.\.regularResult\.posts\]\.slice\(0, limit\)/);
+});
+
+test("board list exposes a past schedule tab backed by expired schedule filtering", () => {
+  const board = readProjectFile("lib/board.ts");
+  const listPage = readProjectFile("app/board/page.tsx");
+
+  assert.match(board, /export type BoardListFilter = "all" \| "schedule" \| "past-schedule"/);
+  assert.match(board, /normalizeBoardListFilter/);
+  assert.match(board, /isPastSchedulePost/);
+  assert.match(board, /listBoardSchedulePostSummaries\(limit,\s*"past"/);
+  assert.match(board, /listBoardSchedulePostSummaries\(limit,\s*"active"/);
+  assert.match(board, /filter === "past-schedule"/);
+  assert.match(board, /filter === "schedule"/);
+  assert.match(listPage, /normalizeBoardListFilter/);
+  assert.match(listPage, /past-schedule/);
+  assert.match(listPage, /boardFilterHref\("past-schedule"\)/);
+});
+
 test("database types include schedule info board fields", () => {
   const types = readProjectFile("lib/database.types.ts");
 

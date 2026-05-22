@@ -534,7 +534,11 @@ function ScheduleCalendarView({
                         {day.dayLabel}
                       </button>
                     </span>
-                    {dayPosts.length ? <span className="text-xs font-black text-sky-100/70">{dayPosts.length}</span> : null}
+                        {dayPosts.length ? (
+                          <span className="schedule-calendar-count-pill rounded-full border border-sky-300/14 bg-sky-300/8 px-2 py-0.5 text-[10px] font-black text-sky-100/68">
+                            {dayPosts.length}일정
+                          </span>
+                        ) : null}
                   </div>
 
                   <div className="max-h-[8.25rem] space-y-2 overflow-y-auto pr-1">
@@ -613,19 +617,24 @@ function ScheduleCalendarDayDialog({
 
 function ScheduleCalendarEvent({ post, onSelect }: { post: BoardPostRow; onSelect: () => void }) {
   const scheduleDateLabel = post.schedule_date ? formatSelectedScheduleDate(post.schedule_date) : "";
+  const timeLabel = formatTimeLabel(post.schedule_start_time);
 
   return (
     <button
       type="button"
       aria-label={scheduleDateLabel ? `${post.title} ${scheduleDateLabel} 일정 보기` : `${post.title} 일정 보기`}
       onClick={onSelect}
-      className="schedule-calendar-event-button group w-full rounded-xl border border-white/8 bg-black/24 px-3 py-2 text-left transition hover:border-nzu-green/45 hover:bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nzu-green/70"
+      className="schedule-calendar-event-button group flex flex-col items-start min-h-[4.6rem] w-full gap-1 rounded-xl border border-white/9 bg-black/28 px-2.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:border-nzu-green/45 hover:bg-black/44 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nzu-green/70"
     >
-      <div className="line-clamp-1 text-xs font-black leading-5 text-white">
-        {post.schedule_start_time ? <span className="mr-1 text-nzu-green">{post.schedule_start_time.slice(0, 5)}</span> : null}
+      <span className="schedule-calendar-event-time-badge inline-flex h-5 items-center justify-center rounded-md border border-nzu-green/22 bg-nzu-green/12 px-2 text-[10px] font-black leading-none text-nzu-green">
+        {post.schedule_start_time ? post.schedule_start_time.slice(0, 5) : "미정"}
+      </span>
+      <span className="schedule-calendar-event-title line-clamp-1 w-full min-w-0 truncate text-[12px] font-black leading-5 text-white">
         {post.title}
-      </div>
-      <div className="line-clamp-1 text-[11px] font-bold text-white/52">{post.schedule_display_name}</div>
+      </span>
+      <span className="schedule-calendar-event-subtitle line-clamp-1 w-full min-w-0 truncate text-[11px] font-bold leading-4 text-white/56">
+        {post.schedule_display_name || timeLabel}
+      </span>
     </button>
   );
 }

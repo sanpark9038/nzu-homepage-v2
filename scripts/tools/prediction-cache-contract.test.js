@@ -69,3 +69,26 @@ test("prediction viewer scope does not request discarded aggregate vote totals",
     "Viewer-only refresh should not ask the store to read aggregate vote totals that are not returned"
   );
 });
+
+test("admin prediction mutations invalidate the public prediction page", () => {
+  const routeSource = readProjectFile("app/api/admin/prediction/route.ts");
+
+  assert.match(routeSource, /import \{ revalidatePath \} from "next\/cache";/);
+  assert.match(routeSource, /function revalidatePredictionPublicViews\(\)/);
+  assert.match(routeSource, /revalidatePath\("\/prediction"\)/);
+  assert.match(routeSource, /await savePredictionMatches\(matches\);[\s\S]*revalidatePredictionPublicViews\(\);/);
+  assert.match(routeSource, /await deletePredictionMatch(?:WithVotes)?\(matchId\);[\s\S]*revalidatePredictionPublicViews\(\);/);
+});
+
+test("admin prediction hide action persists immediately instead of only changing local state", () => {
+  const adminSource = readProjectFile("app/admin/prediction/PredictionMatchAdmin.tsx");
+
+  assert.match(adminSource, /const handleArchive = async \(match: PredictionConfigMatch\) => \{/);
+  assert.match(adminSource, /const archivedAt = new Date\(\)\.toISOString\(\);/);
+  assert.match(adminSource, /body: JSON\.stringify\(\{ matches: matchesToSave \}\)/);
+  assert.match(adminSource, /onClick=\{\(\) => void handleArchive\(match\)\}/);
+  assert.doesNotMatch(
+    adminSource,
+    /onClick=\{\(\) => updateMatchById\(match\.id \|\| "", \{ status: "archived", archived_at: new Date\(\)\.toISOString\(\) \}\)\}/
+  );
+});

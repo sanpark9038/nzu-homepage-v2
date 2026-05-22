@@ -818,6 +818,58 @@ export function PredictionMatchAdmin({
     }
   };
 
+  const handleArchive = async (match: PredictionConfigMatch) => {
+    if (readOnly) {
+      setStatus({ type: "error", message: getAdminWriteDisabledMessage("prediction admin") });
+      return;
+    }
+    if (!match.id) return;
+
+    const archivedAt = new Date().toISOString();
+    setIsSaving(true);
+    setStatus(null);
+    try {
+      const matchesToSave = matches.map((current, index) => {
+        const next = prepareMatchForSave(
+          current.id === match.id
+            ? { ...current, status: "archived", archived_at: archivedAt }
+            : current,
+          index
+        );
+        assertNoDuplicatePlayers(next, playerMap);
+        return next;
+      });
+      const res = await fetch("/api/admin/prediction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matches: matchesToSave }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        matches?: PredictionConfigMatch[];
+        votes?: PredictionVoteRow[];
+        message?: string;
+      };
+      if (!res.ok || json.ok === false) {
+        throw new Error(json.message || "failed to archive prediction match");
+      }
+      const nextMatches = Array.isArray(json.matches)
+        ? json.matches.map((row, index) => normalizeClientMatch(row, index))
+        : matchesToSave
+            .filter((row) => row.id !== match.id)
+            .map((row, index) => normalizeClientMatch(row, index));
+      setMatches(nextMatches);
+      if (Array.isArray(json.votes)) setVotes(json.votes);
+      setSelectedId((current) => (current === match.id ? nextMatches[0]?.id || null : current));
+      setStatus({ type: "success", message: "숨김 처리했습니다. 공개 승부예측에서 제외됩니다." });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "failed to archive prediction match";
+      setStatus({ type: "error", message });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDeleteWithVotes = async (match: PredictionConfigMatch) => {
     if (readOnly) {
       setStatus({ type: "error", message: getAdminWriteDisabledMessage("prediction admin") });
@@ -1135,8 +1187,9 @@ export function PredictionMatchAdmin({
                     </button>
                     <button
                       type="button"
-                      onClick={() => updateMatchById(match.id || "", { status: "archived", archived_at: new Date().toISOString() })}
-                      className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs font-black text-white/72"
+                      disabled={isSaving || readOnly}
+                      onClick={() => void handleArchive(match)}
+                      className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs font-black text-white/72 disabled:opacity-45"
                     >
                       숨기기
                     </button>
@@ -1491,8 +1544,8 @@ export function PredictionMatchAdmin({
 
             <button
               type="button"
-              disabled={readOnly}
-              onClick={() => updateSelected({ status: "archived", archived_at: new Date().toISOString() })}
+              disabled={readOnly || isSaving}
+              onClick={() => void handleArchive(selectedMatch)}
               className="mt-3 w-full rounded-lg border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-200 disabled:opacity-45"
             >
               <EyeOff className="mr-2 inline-block" size={16} />
