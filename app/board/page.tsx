@@ -60,7 +60,7 @@ function boardRowClassName(post: BoardPostWithCommentCount) {
 
 function renderWriteAction(className: string) {
   return (
-    <Link href="/board/write" className={className}>
+    <Link href="/board/write" prefetch={false} className={className}>
       <SquarePen size={16} />
       <span>글쓰기</span>
     </Link>
@@ -139,14 +139,15 @@ export default async function BoardPage({
         <section className="rounded-[1.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(11,17,19,0.98),rgba(7,9,10,0.96))] shadow-[0_22px_70px_rgba(0,0,0,0.16)]">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/6 px-4 py-3 md:px-5">
             <div className="flex items-center gap-2 text-sm font-black [&>span]:hidden">
-              <Link href={boardFilterHref("all")} className={boardFilterTabClassName(boardFilter === "all")}>
+              <Link href={boardFilterHref("all")} prefetch={false} className={boardFilterTabClassName(boardFilter === "all")}>
                 전체글
               </Link>
-              <Link href={boardFilterHref("schedule")} className={boardFilterTabClassName(boardFilter === "schedule")}>
+              <Link href={boardFilterHref("schedule")} prefetch={false} className={boardFilterTabClassName(boardFilter === "schedule")}>
                 공지/일정
               </Link>
               <Link
                 href={boardFilterHref("past-schedule")}
+                prefetch={false}
                 className={boardFilterTabClassName(boardFilter === "past-schedule")}
               >
                 지난일정
@@ -187,6 +188,7 @@ export default async function BoardPage({
                         <td className="px-4 py-3">
                           <Link
                             href={`/board/${post.id}`}
+                            prefetch={false}
                             className="inline-flex max-w-full items-center gap-2 font-bold tracking-tight text-white transition hover:text-nzu-green"
                           >
                             {scheduleBadge ? (

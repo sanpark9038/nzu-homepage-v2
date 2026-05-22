@@ -31,3 +31,13 @@ test("board composer content field has a programmatic label", () => {
   assert.match(composer, /<label htmlFor="board-post-content"/);
   assert.match(composer, /id="board-post-content"/);
 });
+
+test("board list avoids automatic prefetch bursts for secondary board links", () => {
+  const boardPage = readProjectFile("app/board/page.tsx");
+
+  assert.match(boardPage, /href="\/board\/write"\s+prefetch=\{false\}/);
+  assert.match(boardPage, /href=\{boardFilterHref\("all"\)\}\s+prefetch=\{false\}/);
+  assert.match(boardPage, /href=\{boardFilterHref\("schedule"\)\}\s+prefetch=\{false\}/);
+  assert.match(boardPage, /href=\{boardFilterHref\("past-schedule"\)\}\s+prefetch=\{false\}/);
+  assert.match(boardPage, /href=\{`\/board\/\$\{post\.id\}`\}\s+prefetch=\{false\}/);
+});
