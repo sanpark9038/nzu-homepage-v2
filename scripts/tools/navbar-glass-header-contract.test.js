@@ -76,6 +76,16 @@ test("navbar avoids background route prefetch bursts", () => {
   assert.match(source, /prefetch=\{false\}/);
 });
 
+test("navbar exposes participant teams as a primary navigation item", () => {
+  const source = readProjectFile("lib/navigation-config.ts");
+  const navbarSource = readProjectFile("components/Navbar.tsx");
+
+  assert.match(source, /visibleNavbarLinks[\s\S]*href:\s*"\/",\s*label:\s*"\uD648"[\s\S]*href:\s*"\/teams",\s*label:\s*"\uC30D\uB108\uC2A4 \uCC38\uAC00\uD300"[\s\S]*href:\s*"\/board"/);
+  assert.doesNotMatch(source, /hiddenNavbarLinks[\s\S]*href:\s*"\/teams"/);
+  assert.match(navbarSource, /const showTeamsBadge = item\.href === "\/teams"/);
+  assert.match(navbarSource, /border-emerald-300\/25/);
+});
+
 test("home hero fills the viewport when the navbar is overlaid", () => {
   const source = readProjectFile("app/page.tsx");
 

@@ -6,6 +6,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import LogoutButton from "../ops/LogoutButton";
 import { Search, Target, Trash2, Crown, Plus, X } from "lucide-react";
 import { TierBadge } from "@/components/ui/nzu-badges";
+import { TOURNAMENT_TEAM_SIZE } from "@/lib/tournament-constants";
 
 type TournamentPagePlayer = {
   id: string;
@@ -13,6 +14,7 @@ type TournamentPagePlayer = {
   nickname?: string | null;
   race?: string | null;
   tier?: string | null;
+  is_placeholder?: boolean;
 };
 
 type TournamentPageTeam = {
@@ -61,7 +63,8 @@ export default function TournamentManagementClient({ readOnly = false }: { readO
               id: player.id,
               name: player.name,
               race: player.race,
-              tier: player.tier
+              tier: player.tier,
+              is_placeholder: player.is_placeholder
             })),
             playerCount: team.player_count || 0
           })));
@@ -80,6 +83,12 @@ export default function TournamentManagementClient({ readOnly = false }: { readO
 
   const recruitPlayer = async (targetTeamCode: string) => {
     if (!selectedPlayerToRecruit) return;
+    const targetTeam = teams.find((team) => team.teamCode === targetTeamCode);
+    if (targetTeam && targetTeam.players.length >= TOURNAMENT_TEAM_SIZE) {
+      setMessage(`\uCC38\uAC00\uD300\uC740 \uCD5C\uB300 ${TOURNAMENT_TEAM_SIZE}\uBA85\uAE4C\uC9C0 \uAD6C\uC131\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.`);
+      setTimeout(() => setMessage(""), 3000);
+      return;
+    }
     if (readOnly) {
       setMessage("현재 배포 환경에서는 토너먼트 팀을 읽기 전용으로만 확인할 수 있습니다.");
       setTimeout(() => setMessage(""), 3000);
@@ -276,11 +285,14 @@ export default function TournamentManagementClient({ readOnly = false }: { readO
         {/* 2단: 팀 슬롯 그리드 현황 */}
         <section className="mb-12">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {teams.map((team) => (
+            {teams.map((team) => {
+              const isTeamFull = team.players.length >= TOURNAMENT_TEAM_SIZE;
+
+              return (
               <div 
                 key={team.teamCode} 
                 className={`flex flex-col gap-4 rounded-3xl border-2 transition-all p-6 relative overflow-hidden ${
-                  selectedPlayerToRecruit 
+                  selectedPlayerToRecruit && !isTeamFull
                   ? "border-nzu-green/50 bg-nzu-green/10 ring-4 ring-nzu-green/5 scale-[1.02]" 
                   : "bg-white/[0.02] border-white/5"
                 }`}
@@ -288,13 +300,15 @@ export default function TournamentManagementClient({ readOnly = false }: { readO
                 {selectedPlayerToRecruit && (
                   <button 
                     onClick={() => recruitPlayer(team.teamCode)}
-                    disabled={saving || readOnly}
-                    className="absolute inset-0 z-50 bg-nzu-green/10 flex flex-col items-center justify-center gap-4 group/assign hover:bg-nzu-green/20 transition-all duration-300 backdrop-blur-[2px]"
+                    disabled={saving || readOnly || isTeamFull}
+                    className="absolute inset-0 z-50 bg-nzu-green/10 flex flex-col items-center justify-center gap-4 group/assign hover:bg-nzu-green/20 transition-all duration-300 backdrop-blur-[2px] disabled:cursor-not-allowed disabled:bg-black/55"
                   >
-                    <div className="bg-nzu-green p-6 rounded-full shadow-[0_0_50px_rgba(30,215,96,0.4)] group-hover/assign:scale-110 transition-transform">
+                    <div className="bg-nzu-green p-6 rounded-full shadow-[0_0_50px_rgba(30,215,96,0.4)] group-hover/assign:scale-110 transition-transform group-disabled/assign:bg-white/15">
                        <Plus size={40} className="text-black stroke-[3px]" />
                     </div>
-                    <div className="text-xl font-black text-white tracking-widest uppercase drop-shadow-lg">이 팀으로 즉시 영입</div>
+                    <div className="text-xl font-black text-white tracking-widest uppercase drop-shadow-lg">
+                      {isTeamFull ? `${TOURNAMENT_TEAM_SIZE}\uBA85 \uAD6C\uC131 \uC644\uB8CC` : "\uC774 \uD300\uC73C\uB85C \uBC30\uC815"}
+                    </div>
                   </button>
                 )}
                 
@@ -320,7 +334,11 @@ export default function TournamentManagementClient({ readOnly = false }: { readO
                             className="bg-transparent text-sm font-black text-white outline-none appearance-none cursor-pointer text-center w-full"
                           >
                             <option value="" className="bg-black">미지정</option>
-                            {team.players.map((p) => (<option key={p.id} value={p.id} className="bg-black">{p.name}</option>))}
+                            {team.players.map((p) => (
+                              <option key={p.id} value={p.id} disabled={p.is_placeholder} className="bg-black">
+                                {p.name}
+                              </option>
+                            ))}
                           </select>
                        </div>
                     </div>
@@ -354,7 +372,7 @@ export default function TournamentManagementClient({ readOnly = false }: { readO
                         </div>
                         <button
                           onClick={() => removePlayer(team.teamCode, p.id, p.name)}
-                          disabled={saving || readOnly}
+                          disabled={saving || readOnly || p.is_placeholder}
                           className="text-white/5 hover:text-red-500 transition-colors p-2 disabled:cursor-not-allowed disabled:opacity-30"
                         >
                           <Trash2 size={20} />
@@ -363,7 +381,8 @@ export default function TournamentManagementClient({ readOnly = false }: { readO
                     ))}
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           </section>
 

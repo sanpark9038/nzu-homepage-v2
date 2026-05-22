@@ -62,6 +62,7 @@ export default function Navbar() {
           {visibleNavbarLinks.map((item) => {
             const isActive = resolvedPathname === item.href;
             const showTierLiveBadge = item.href === "/tier";
+            const showTeamsBadge = item.href === "/teams";
 
             return (
               <Link
@@ -70,7 +71,11 @@ export default function Navbar() {
                 prefetch={false}
                 className={cn(
                   "ui-label relative flex min-h-[40px] items-center gap-2 rounded-full px-5 py-2 tracking-tight transition-colors duration-200",
-                  isActive
+                  showTeamsBadge && isActive
+                    ? "border border-emerald-300/45 bg-emerald-300/18 text-emerald-100 shadow-[0_0_0_1px_rgba(110,231,183,0.16),0_0_22px_rgba(16,185,129,0.12)]"
+                    : showTeamsBadge
+                      ? "border border-emerald-300/25 bg-emerald-300/10 text-emerald-100 hover:border-emerald-200/45 hover:bg-emerald-300/16 hover:text-white"
+                      : isActive
                     ? "bg-nzu-green/16 text-nzu-green shadow-[0_0_0_1px_rgba(0,168,107,0.12)]"
                     : "text-foreground/56 hover:bg-white/7 hover:text-foreground"
                 )}

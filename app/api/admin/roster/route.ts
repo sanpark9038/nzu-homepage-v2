@@ -9,7 +9,14 @@ import {
   shouldApplyManualRaceOverride,
   shouldApplyManualTierOverride,
 } from "@/lib/roster-admin-store";
-import { updateTournamentTeamCaptain, updateTournamentTeamName } from "@/lib/tournament-home";
+import { TOURNAMENT_TEAM_SIZE } from "@/lib/tournament-constants";
+import {
+  isTournamentHomeSupabaseStoreEnabled,
+  loadTournamentHomeConfig,
+  saveTournamentHomeConfig,
+  updateTournamentTeamCaptain,
+  updateTournamentTeamName,
+} from "@/lib/tournament-home";
 import { supabase } from "@/lib/supabase";
 import { normalizeTier } from "@/lib/utils";
 
@@ -65,6 +72,14 @@ type DbTournamentPlayer = {
   gender?: string | null;
   photo_url?: string | null;
   elo_point?: number | null;
+  is_placeholder?: boolean;
+};
+
+type TournamentPlaceholderPlayerConfig = {
+  name?: string;
+  race?: string;
+  tier?: string;
+  soop_id?: string;
 };
 
 type TournamentHomeTeamConfig = {
@@ -73,6 +88,7 @@ type TournamentHomeTeamConfig = {
   player_ids?: string[];
   captain_player_id?: string;
   captain_player_name?: string;
+  placeholder_players?: TournamentPlaceholderPlayerConfig[];
 };
 
 type TournamentHomeConfig = {
@@ -186,6 +202,62 @@ function writeResumes(rows: ResumeRow[]) {
   });
 }
 
+function cleanText(value: string | null | undefined) {
+  return String(value || "").trim();
+}
+
+function mapTournamentPlaceholderPlayer(
+  teamCode: string,
+  placeholder: TournamentPlaceholderPlayerConfig,
+  index: number
+): DbTournamentPlayer {
+  const name = cleanText(placeholder.name) || `placeholder player ${index + 1}`;
+  return {
+    id: `placeholder:${teamCode}:${index + 1}:${name}`,
+    name,
+    nickname: null,
+    race: cleanText(placeholder.race) || null,
+    tier: cleanText(placeholder.tier) || null,
+    eloboard_id: null,
+    gender: null,
+    photo_url: null,
+    elo_point: null,
+    is_placeholder: true,
+  };
+}
+
+function mapTournamentTeamsForAdmin(
+  doc: TournamentHomeConfig,
+  dbPlayers: DbTournamentPlayer[] | null
+) {
+  const allPlayersMapped = new Map((dbPlayers || []).map((p) => [p.id, p]));
+
+  return (doc.teams || []).map((t, idx: number) => {
+    const teamCode = t.team_code || `t${idx + 1}`;
+    const slotPlayers = (t.player_ids || []).reduce<DbTournamentPlayer[]>((acc, id: string) => {
+      const player = allPlayersMapped.get(id);
+      if (player) acc.push(player);
+      return acc;
+    }, []);
+    const placeholderPlayers = (t.placeholder_players || []).map((placeholder, placeholderIndex) =>
+      mapTournamentPlaceholderPlayer(teamCode, placeholder, placeholderIndex)
+    );
+    return {
+      code: teamCode,
+      name: t.team_name || `team ${idx + 1}`,
+      player_ids: t.player_ids || [],
+      players: [...slotPlayers, ...placeholderPlayers],
+      player_count: slotPlayers.length + placeholderPlayers.length,
+      captainPlayerId: t.captain_player_id || "",
+      is_slot: true,
+    };
+  });
+}
+
+function isTournamentHomeWriteAction(action: string) {
+  return action === "recruit_player" || action === "remove_player_from_slot";
+}
+
 function slug(v: string) {
   return String(v || "")
     .trim()
@@ -195,23 +267,19 @@ function slug(v: string) {
 }
 
 function tierKey(tier: string) {
-  const raw = normalizeTier(tier);
-  const map: Record<string, string> = {
-    갓: "god",
-    GOD: "god",
-    킹: "king",
-    KING: "king",
-    잭: "jack",
-    JACK: "jack",
-    조커: "joker",
-    JOKER: "joker",
-    스페이드: "spade",
-    SPADE: "spade",
-    유스: "9",
-    베이비: "9",
+  const raw = String(tier || "").trim();
+  const normalized = normalizeTier(raw);
+  const key = normalized.toLowerCase();
+  const latinMap: Record<string, string> = {
+    god: "god",
+    king: "king",
+    jack: "jack",
+    joker: "joker",
+    spade: "spade",
+    baby: "9",
   };
-  if (map[raw]) return map[raw];
-  if (/^\d+$/.test(raw)) return raw;
+  if (latinMap[key]) return latinMap[key];
+  if (/^\d+$/.test(normalized)) return normalized;
   return "unknown";
 }
 
@@ -337,10 +405,9 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const sourceParam = searchParams.get("source");
 
-  const tournamentConfigPath = path.join(ROOT, "data", "metadata", "tournament_home_teams.v1.json");
 
   if (sourceParam === "db") {
-    // DB상에 존재하는 모든 선수 정보를 가져옵니다. (JSON 로스터에 없는 선수 검색용)
+    // Read all DB players so tournament admin search can include players outside the JSON roster.
     const { data: dbPlayers, error } = await supabase
       .from("players")
       .select("id, name, nickname, race, tier, eloboard_id, gender, photo_url, elo_point")
@@ -350,79 +417,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: false, message: error.message }, { status: 500 });
     }
 
-    let tournamentTeams: Array<{
-      code: string;
-      name: string;
-      player_ids: string[];
-      players: DbTournamentPlayer[];
-      player_count: number;
-      captainPlayerId: string;
-      is_slot: boolean;
-    }> = [];
-    if (fs.existsSync(tournamentConfigPath)) {
-      const doc = JSON.parse(
-        fs.readFileSync(tournamentConfigPath, "utf8").replace(/^\uFEFF/, "")
-      ) as TournamentHomeConfig;
-      const allPlayersMapped = new Map((dbPlayers || []).map((p) => [p.id, p]));
-
-      tournamentTeams = (doc.teams || []).map((t, idx: number) => {
-        const slotPlayers = (t.player_ids || []).reduce<DbTournamentPlayer[]>((acc, id: string) => {
-          const player = allPlayersMapped.get(id);
-          if (player) acc.push(player);
-          return acc;
-        }, []);
-        return {
-          code: t.team_code || `t${idx + 1}`,
-          name: t.team_name || `임시 ${idx + 1}팀`,
-          player_ids: t.player_ids || [],
-          players: slotPlayers, 
-          player_count: slotPlayers.length,
-          captainPlayerId: t.captain_player_id || "",
-          is_slot: true
-        };
-      });
-    }
+    const tournamentTeams = mapTournamentTeamsForAdmin(await loadTournamentHomeConfig(), dbPlayers || []);
 
     return NextResponse.json({ ok: true, players: dbPlayers, tournament_teams: tournamentTeams });
   }
 
-  // 대회 홈 설정(T1-T6 슬롯) 정보를 가져옵니다.
+  // Read tournament home slots from the configured store.
   const { data: dbPlayers } = await supabase
     .from("players")
     .select("id, name, nickname, race, tier, eloboard_id, gender, photo_url, elo_point");
 
-  let tournamentTeams: Array<{
-    code: string;
-    name: string;
-    player_ids: string[];
-    players: DbTournamentPlayer[];
-    player_count: number;
-    captainPlayerId: string;
-    is_slot: boolean;
-  }> = [];
-  if (fs.existsSync(tournamentConfigPath)) {
-    const doc = JSON.parse(
-      fs.readFileSync(tournamentConfigPath, "utf8").replace(/^\uFEFF/, "")
-    ) as TournamentHomeConfig;
-    const allPlayersMapped = new Map((dbPlayers || []).map((p) => [p.id, p]));
-
-    tournamentTeams = (doc.teams || []).map((t, idx: number) => {
-      const slotPlayers = (t.player_ids || []).reduce<DbTournamentPlayer[]>((acc, id: string) => {
-        const player = allPlayersMapped.get(id);
-        if (player) acc.push(player);
-        return acc;
-      }, []);
-      return {
-        code: t.team_code || `t${idx + 1}`,
-        name: t.team_name || `임시 ${idx + 1}팀`,
-        player_ids: t.player_ids || [],
-        players: slotPlayers,
-        player_count: slotPlayers.length,
-        captainPlayerId: t.captain_player_id || "",
-        is_slot: true
-      };
-    });
-  }
+  const tournamentTeams = mapTournamentTeamsForAdmin(await loadTournamentHomeConfig(), dbPlayers || []);
 
   const projects = loadProjects();
   const rosterAdminState = await loadMergedRosterAdminState();
@@ -469,7 +474,7 @@ export async function GET(req: Request) {
     })
   );
 
-  // entity_id 중복 제거 (여러 프로젝트 파일에 동일 인물이 있을 수 있음)
+  // Remove duplicate entity IDs across project files.
   const playerMap = new Map();
   for (const p of rawPlayers) {
     if (!playerMap.has(p.entity_id)) {
@@ -489,35 +494,33 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (isAdminWriteDisabled()) {
-    return NextResponse.json(
-      { ok: false, message: getAdminWriteDisabledMessage("로스터 편집") },
-      { status: 403 }
-    );
-  }
-
   const body = (await req.json().catch(() => ({}))) as {
     action?: string;
     team_code?: string;
     team_name?: string;
     team_name_en?: string;
-    slot_code?: string; // 추가
-    player_id?: string; // 추가
+    slot_code?: string;
+    player_id?: string;
     player?: RecruitablePlayer;
   };
+  const action = String(body.action || "").trim();
+  const allowTournamentHomeWrite =
+    isTournamentHomeWriteAction(action) && isTournamentHomeSupabaseStoreEnabled();
 
-  if (body.action === "recruit_player") {
+  if (isAdminWriteDisabled() && !allowTournamentHomeWrite) {
+    return NextResponse.json(
+      { ok: false, message: getAdminWriteDisabledMessage("tournament roster") },
+      { status: 403 }
+    );
+  }
+
+  if (action === "recruit_player") {
     const { player, team_code } = body;
     if (!player || !team_code) {
       return NextResponse.json({ ok: false, message: "player and team_code are required" }, { status: 400 });
     }
 
-    const configPath = path.join(ROOT, "data", "metadata", "tournament_home_teams.v1.json");
-    if (!fs.existsSync(configPath)) {
-      return NextResponse.json({ ok: false, message: "tournament config not found" }, { status: 404 });
-    }
-
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8").replace(/^\uFEFF/, "")) as TournamentHomeConfig;
+    const config = await loadTournamentHomeConfig();
     const normalizedTeamCode = String(team_code).trim().toLowerCase();
     const targetTeam = (config.teams || []).find((t) => String(t.team_code).trim().toLowerCase() === normalizedTeamCode);
     
@@ -525,33 +528,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, message: "target slot not found" }, { status: 404 });
     }
 
-    // 1. 중복 체크 (해당 슬롯에 이미 있는지)
+    // 1. Prevent duplicate membership in the same participant team.
     targetTeam.player_ids = targetTeam.player_ids || [];
     if (targetTeam.player_ids.includes(player.id)) {
-      return NextResponse.json({ ok: false, message: "이미 이 팀에 소속된 선수입니다." }, { status: 409 });
+      return NextResponse.json({ ok: false, message: "\uC774\uBBF8 \uC774 \uD300\uC5D0 \uC18C\uC18D\uB41C \uC120\uC218\uC785\uB2C8\uB2E4." }, { status: 409 });
     }
 
-    // 2. 선수 추가 (ID 기반 영입)
+    // 2. Enforce the shared participant team size limit.
+    if (targetTeam.player_ids.length + (targetTeam.placeholder_players || []).length >= TOURNAMENT_TEAM_SIZE) {
+      return NextResponse.json(
+        { ok: false, message: `\uCC38\uAC00\uD300\uC740 \uCD5C\uB300 ${TOURNAMENT_TEAM_SIZE}\uBA85\uAE4C\uC9C0 \uAD6C\uC131\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.` },
+        { status: 409 }
+      );
+    }
+
     targetTeam.player_ids.push(player.id);
-    config.updated_at = new Date().toISOString();
-    
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+    await saveTournamentHomeConfig(config);
 
     return NextResponse.json({ ok: true, recruited: player.name });
   }
 
-  if (body.action === "remove_player_from_slot") {
+  if (action === "remove_player_from_slot") {
     const { slot_code, player_id } = body;
     if (!slot_code || !player_id) {
       return NextResponse.json({ ok: false, message: "slot_code and player_id are required" }, { status: 400 });
     }
 
-    const configPath = path.join(ROOT, "data", "metadata", "tournament_home_teams.v1.json");
-    if (!fs.existsSync(configPath)) {
-      return NextResponse.json({ ok: false, message: "tournament config not found" }, { status: 404 });
-    }
-
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8").replace(/^\uFEFF/, "")) as TournamentHomeConfig;
+    const config = await loadTournamentHomeConfig();
     const normalizedSlotCode = String(slot_code).trim().toLowerCase();
     const targetTeam = (config.teams || []).find((t) => String(t.team_code).trim().toLowerCase() === normalizedSlotCode);
     
@@ -564,9 +567,7 @@ export async function POST(req: Request) {
       targetTeam.captain_player_id = "";
       targetTeam.captain_player_name = "";
     }
-    config.updated_at = new Date().toISOString();
-    
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
+    await saveTournamentHomeConfig(config);
 
     return NextResponse.json({ ok: true });
   }
@@ -640,9 +641,12 @@ export async function PATCH(req: Request) {
   const preTeamCode = String(parsedBody.team_code || "").trim().toLowerCase();
   const allowRosterCorrectionWrite =
     preAction === "set_exclusion" || (!preAction && Boolean(preEntityId) && Boolean(preTeamCode));
-  if (isAdminWriteDisabled() && !allowRosterCorrectionWrite) {
+  const allowTournamentHomeWrite =
+    (preAction === "set_team_captain" || preAction === "update_team_name") &&
+    isTournamentHomeSupabaseStoreEnabled();
+  if (isAdminWriteDisabled() && !allowRosterCorrectionWrite && !allowTournamentHomeWrite) {
     return NextResponse.json(
-      { ok: false, message: getAdminWriteDisabledMessage("로스터 편집") },
+      { ok: false, message: getAdminWriteDisabledMessage("tournament roster") },
       { status: 403 }
     );
   }
@@ -777,7 +781,7 @@ export async function PATCH(req: Request) {
     }
 
     try {
-      updateTournamentTeamCaptain(teamCode, captainPlayerId);
+      await updateTournamentTeamCaptain(teamCode, captainPlayerId);
       return NextResponse.json({
         ok: true,
         updated: {
@@ -802,7 +806,7 @@ export async function PATCH(req: Request) {
     }
 
     try {
-      updateTournamentTeamName(teamCode, teamName);
+      await updateTournamentTeamName(teamCode, teamName);
       return NextResponse.json({
         ok: true,
         updated: {
@@ -949,7 +953,7 @@ export async function DELETE(req: Request) {
 
   if (isAdminWriteDisabled() && !allowRosterCorrectionWrite) {
     return NextResponse.json(
-      { ok: false, message: getAdminWriteDisabledMessage("로스터 편집") },
+      { ok: false, message: getAdminWriteDisabledMessage("tournament roster") },
       { status: 403 }
     );
   }

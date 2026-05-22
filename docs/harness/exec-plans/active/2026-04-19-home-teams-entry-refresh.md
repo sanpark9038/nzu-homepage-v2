@@ -46,6 +46,7 @@ Align the public site so home stays a lightweight landing page, teams live on `/
 - [x] Align `/tier` filter wording with current product copy and review `/match` momentum detail cards for remaining wiring risks
 - [x] Seed `DM` into the shared university dictionary and add admin-managed university metadata for `/tier` and `/entry` list options
 - [x] Harden the ops pipeline so scheduled runs attempt post-merge Supabase sync, gate publish on blocking alerts, and surface skipped sync status more clearly
+- [x] Prepare Supabase-backed participant team persistence so `/admin/tournament` can save team composition in production once the table/env are approved
 
 ## Next steps
 
@@ -60,7 +61,7 @@ Align the public site so home stays a lightweight landing page, teams live on `/
 
 ## Blockers
 
-- none
+- None for the Supabase-backed tournament team store. SQL `scripts/sql/create-tournament-home-config.sql` was applied, the `active` config row was seeded, and production env `TOURNAMENT_HOME_STORE=supabase` was added on 2026-05-22.
 
 ## Session recovery
 

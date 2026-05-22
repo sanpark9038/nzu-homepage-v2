@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Database } from "@/lib/database.types";
+import { createSupabaseAdminClient } from "@/lib/supabase-admin";
+import { TOURNAMENT_TEAM_SIZE } from "@/lib/tournament-constants";
 
 type PlayerRow = Database["public"]["Tables"]["players"]["Row"];
 type Player = Pick<
@@ -37,13 +39,18 @@ type Player = Pick<
   match_history?: PlayerRow["match_history"] | null;
 };
 
-type TournamentPlaceholderPlayerConfig = {
+export type TournamentPlaceholderPlayerConfig = {
   name?: string;
   race?: string;
   tier?: string;
+  soop_id?: string;
+  broadcast_url?: string;
+  photo_url?: string;
+  channel_profile_image_url?: string;
+  university?: string;
 };
 
-type TournamentTeamConfig = {
+export type TournamentTeamConfig = {
   team_code?: string;
   team_name?: string;
   player_ids?: string[];
@@ -53,7 +60,7 @@ type TournamentTeamConfig = {
   placeholder_players?: TournamentPlaceholderPlayerConfig[];
 };
 
-type TournamentHomeConfig = {
+export type TournamentHomeConfig = {
   schema_version?: string;
   updated_at?: string;
   description?: string;
@@ -67,16 +74,24 @@ export type TournamentHomeTeam = {
   players: Array<Player & { isCaptain?: boolean }>;
 };
 
-const TOURNAMENT_TEAM_SIZE = 4;
-
 const TOURNAMENT_HOME_CONFIG_PATH = path.join(
   process.cwd(),
   "data",
   "metadata",
   "tournament_home_teams.v1.json"
 );
+const TOURNAMENT_HOME_CONFIG_ROW_ID = "active";
 
-function readTournamentHomeConfig(): TournamentHomeConfig {
+export function isTournamentHomeSupabaseStoreEnabled(): boolean {
+  const mode = String(process.env.TOURNAMENT_HOME_STORE || "").trim().toLowerCase();
+  const hasSupabaseAdminEnv = Boolean(
+    String(process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim() &&
+      String(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || "").trim()
+  );
+  return mode === "supabase" && hasSupabaseAdminEnv;
+}
+
+export function readTournamentHomeConfig(): TournamentHomeConfig {
   if (!fs.existsSync(TOURNAMENT_HOME_CONFIG_PATH)) {
     return { teams: [] };
   }
@@ -85,7 +100,7 @@ function readTournamentHomeConfig(): TournamentHomeConfig {
   return JSON.parse(raw) as TournamentHomeConfig;
 }
 
-function writeTournamentHomeConfig(config: TournamentHomeConfig) {
+export function writeTournamentHomeConfig(config: TournamentHomeConfig) {
   fs.mkdirSync(path.dirname(TOURNAMENT_HOME_CONFIG_PATH), { recursive: true });
   fs.writeFileSync(
     TOURNAMENT_HOME_CONFIG_PATH,
@@ -101,6 +116,65 @@ function writeTournamentHomeConfig(config: TournamentHomeConfig) {
   );
 }
 
+function normalizeTournamentHomeConfig(config: TournamentHomeConfig): TournamentHomeConfig {
+  return {
+    ...config,
+    teams: Array.isArray(config.teams) ? config.teams : [],
+  };
+}
+
+async function readRemoteTournamentHomeConfig(): Promise<TournamentHomeConfig | null> {
+  if (!isTournamentHomeSupabaseStoreEnabled()) return null;
+
+  try {
+    const supabaseAdmin = createSupabaseAdminClient() as any;
+    const { data, error } = await supabaseAdmin
+      .from("tournament_home_config")
+      .select("config")
+      .eq("id", TOURNAMENT_HOME_CONFIG_ROW_ID)
+      .maybeSingle();
+
+    if (error || !data?.config) return null;
+    return normalizeTournamentHomeConfig(data.config as TournamentHomeConfig);
+  } catch {
+    return null;
+  }
+}
+
+export async function loadTournamentHomeConfig(): Promise<TournamentHomeConfig> {
+  const remoteConfig = await readRemoteTournamentHomeConfig();
+  if (remoteConfig) return remoteConfig;
+  return readTournamentHomeConfig();
+}
+
+export async function saveTournamentHomeConfig(config: TournamentHomeConfig): Promise<void> {
+  const nextConfig = normalizeTournamentHomeConfig({
+    ...config,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (isTournamentHomeSupabaseStoreEnabled()) {
+    const supabaseAdmin = createSupabaseAdminClient() as any;
+    const { error } = await supabaseAdmin
+      .from("tournament_home_config")
+      .upsert(
+        {
+          id: TOURNAMENT_HOME_CONFIG_ROW_ID,
+          config: nextConfig,
+          updated_at: nextConfig.updated_at,
+        },
+        { onConflict: "id" }
+      );
+
+    if (error) {
+      throw new Error(error.message || "failed to save tournament home config");
+    }
+    return;
+  }
+
+  writeTournamentHomeConfig(nextConfig);
+}
+
 function normalizeText(value: string | null | undefined) {
   return String(value || "").trim();
 }
@@ -113,17 +187,23 @@ function createPlaceholderPlayer(
   const playerName = normalizeText(placeholder.name) || `임시선수 ${fallbackIndex + 1}`;
   const race = normalizeText(placeholder.race).toUpperCase() || "T";
   const tier = normalizeText(placeholder.tier) || "S";
+  const soopId = normalizeText(placeholder.soop_id) || null;
+  const broadcastUrl =
+    normalizeText(placeholder.broadcast_url) || (soopId ? `https://ch.sooplive.co.kr/${soopId}` : null);
+  const photoUrl = normalizeText(placeholder.photo_url) || null;
+  const channelProfileImageUrl = normalizeText(placeholder.channel_profile_image_url) || null;
+  const university = normalizeText(placeholder.university) || teamName;
 
   return {
     id: `placeholder:${teamName}:${fallbackIndex + 1}:${playerName}`,
     name: playerName,
     race,
     tier,
-    university: teamName,
-    photo_url: null,
+    university,
+    photo_url: photoUrl,
     broadcast_title: null,
-    broadcast_url: null,
-    channel_profile_image_url: null,
+    broadcast_url: broadcastUrl,
+    channel_profile_image_url: channelProfileImageUrl,
     created_at: null,
     detailed_stats: null,
     elo_point: null,
@@ -133,7 +213,7 @@ function createPlaceholderPlayer(
     live_thumbnail_url: null,
     match_history: null,
     nickname: null,
-    soop_id: null,
+    soop_id: soopId,
     tier_rank: null,
     total_losses: null,
     total_wins: null,
@@ -147,8 +227,10 @@ function createPlaceholderPlayer(
   };
 }
 
-export function buildTournamentHomeTeams(allPlayers: Player[]): TournamentHomeTeam[] {
-  const config = readTournamentHomeConfig();
+export function buildTournamentHomeTeamsFromConfig(
+  allPlayers: Player[],
+  config: TournamentHomeConfig
+): TournamentHomeTeam[] {
   const byId = new Map(allPlayers.map((player) => [normalizeText(player.id), player]));
   const byName = new Map(
     allPlayers.map((player) => [normalizeText(player.name).toLowerCase(), player])
@@ -227,13 +309,21 @@ export function buildTournamentHomeTeams(allPlayers: Player[]): TournamentHomeTe
   });
 }
 
-export function updateTournamentTeamCaptain(teamCode: string, captainPlayerId: string | null) {
+export function buildTournamentHomeTeams(allPlayers: Player[]): TournamentHomeTeam[] {
+  return buildTournamentHomeTeamsFromConfig(allPlayers, readTournamentHomeConfig());
+}
+
+export async function buildTournamentHomeTeamsFromStore(allPlayers: Player[]): Promise<TournamentHomeTeam[]> {
+  return buildTournamentHomeTeamsFromConfig(allPlayers, await loadTournamentHomeConfig());
+}
+
+export async function updateTournamentTeamCaptain(teamCode: string, captainPlayerId: string | null) {
   const normalizedTeamCode = normalizeText(teamCode);
   if (!normalizedTeamCode) {
     throw new Error("team_code is required");
   }
 
-  const config = readTournamentHomeConfig();
+  const config = await loadTournamentHomeConfig();
   const team = (config.teams || []).find(
     (item) => normalizeText(item.team_code) === normalizedTeamCode
   );
@@ -244,16 +334,16 @@ export function updateTournamentTeamCaptain(teamCode: string, captainPlayerId: s
 
   team.captain_player_id = normalizeText(captainPlayerId || "") || "";
   team.captain_player_name = "";
-  writeTournamentHomeConfig(config);
+  await saveTournamentHomeConfig(config);
 }
 
-export function updateTournamentTeamName(teamCode: string, teamName: string) {
+export async function updateTournamentTeamName(teamCode: string, teamName: string) {
   const normalizedTeamCode = normalizeText(teamCode);
   if (!normalizedTeamCode) {
     throw new Error("team_code is required");
   }
 
-  const config = readTournamentHomeConfig();
+  const config = await loadTournamentHomeConfig();
   const team = (config.teams || []).find(
     (item) => normalizeText(item.team_code) === normalizedTeamCode
   );
@@ -263,5 +353,5 @@ export function updateTournamentTeamName(teamCode: string, teamName: string) {
   }
 
   team.team_name = normalizeText(teamName);
-  writeTournamentHomeConfig(config);
+  await saveTournamentHomeConfig(config);
 }

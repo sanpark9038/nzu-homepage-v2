@@ -14,6 +14,7 @@ export type NavbarItem = NavbarLinkItem | NavbarUtilityItem;
 
 export const visibleNavbarLinks: NavbarLinkItem[] = [
   { type: "link", href: "/", label: "홈" },
+  { type: "link", href: "/teams", label: "쌍너스 참가팀" },
   { type: "link", href: "/board", label: "게시판" },
   { type: "link", href: "/schedule", label: "일정" },
   { type: "link", href: "/prediction", label: "승부예측" },
@@ -24,7 +25,6 @@ export const visibleNavbarLinks: NavbarLinkItem[] = [
 ];
 
 export const hiddenNavbarLinks: NavbarLinkItem[] = [
-  { type: "link", href: "/teams", label: "참가팀" },
   { type: "link", href: "/rankings", label: "팀 및 선수 순위" },
 ];
 

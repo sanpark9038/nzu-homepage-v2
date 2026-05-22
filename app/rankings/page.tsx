@@ -1,6 +1,6 @@
 
 import { playerService } from "@/lib/player-service";
-import { buildTournamentHomeTeams } from "@/lib/tournament-home";
+import { buildTournamentHomeTeamsFromStore } from "@/lib/tournament-home";
 import { TierBadge, RaceTag, type Race } from "@/components/ui/nzu-badges";
 import { getUniversityLabel } from "@/lib/university-config";
 import fs from "node:fs";
@@ -69,7 +69,7 @@ function calculateRank<T extends { wins: number; losses: number }>(items: T[]) {
 
 export default async function RankingsPage() {
   const players = await playerService.getCachedPlayersList();
-  const teams = buildTournamentHomeTeams(players);
+  const teams = await buildTournamentHomeTeamsFromStore(players);
   const standings = readStandings();
 
   const teamStandingsMap = new Map(standings.standings?.teams?.map(t => [t.team_code, t]));

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { PlayerCard } from "@/components/players/PlayerCard";
 import { playerService } from "@/lib/player-service";
-import { buildTournamentHomeTeams } from "@/lib/tournament-home";
+import { buildTournamentHomeTeamsFromStore } from "@/lib/tournament-home";
 
 export async function TournamentTeamsView({
   selectedTeamCode = "",
@@ -12,7 +12,7 @@ export async function TournamentTeamsView({
   basePath?: string;
 }) {
   const allPlayers = await playerService.getCachedPlayersList();
-  const teams = buildTournamentHomeTeams(allPlayers);
+  const teams = await buildTournamentHomeTeamsFromStore(allPlayers);
   const activeTeam = teams.find((team) => team.teamCode === selectedTeamCode) || teams[0] || null;
 
   return (

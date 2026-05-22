@@ -1,7 +1,7 @@
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import { playerService } from "@/lib/player-service";
-import { buildTournamentHomeTeams } from "@/lib/tournament-home";
+import { buildTournamentHomeTeamsFromStore } from "@/lib/tournament-home";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import fs from "node:fs";
@@ -32,7 +32,7 @@ export default async function AdminRankingPage() {
   }
 
   const players = await playerService.getAllPlayers();
-  const teams = buildTournamentHomeTeams(players);
+  const teams = await buildTournamentHomeTeamsFromStore(players);
   const standings = readStandings();
 
   return (
