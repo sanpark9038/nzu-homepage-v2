@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { playerService } from "@/lib/player-service";
 import { buildTournamentPredictionMatches } from "@/lib/tournament-prediction";
+import { buildTournamentHomeTeamsFromStore } from "@/lib/tournament-home";
 import {
   getPredictionMyVotes,
   getPredictionVoterId,
@@ -47,11 +48,14 @@ export async function GET(req: Request) {
   }
 
   const players = await playerService.getCachedPlayersList();
-  const state = await loadPredictionState({
-    voterId,
-    includeVoteTotals: true,
-  });
-  const matches = buildTournamentPredictionMatches(players, state);
+  const [state, tournamentTeams] = await Promise.all([
+    loadPredictionState({
+      voterId,
+      includeVoteTotals: true,
+    }),
+    buildTournamentHomeTeamsFromStore(players),
+  ]);
+  const matches = buildTournamentPredictionMatches(players, state, { tournamentTeams });
   return NextResponse.json({
     ok: true,
     matches,
@@ -103,11 +107,14 @@ export async function POST(req: Request) {
   }
 
   const players = await playerService.getCachedPlayersList();
-  const state = await loadPredictionState({
-    voterId,
-    includeVoteTotals: true,
-  });
-  const matches = buildTournamentPredictionMatches(players, state);
+  const [state, tournamentTeams] = await Promise.all([
+    loadPredictionState({
+      voterId,
+      includeVoteTotals: true,
+    }),
+    buildTournamentHomeTeamsFromStore(players),
+  ]);
+  const matches = buildTournamentPredictionMatches(players, state, { tournamentTeams });
   return NextResponse.json({
     ok: true,
     matches,

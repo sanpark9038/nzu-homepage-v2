@@ -1443,3 +1443,45 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   now works from the repo root. REST RPC smoke with anon access returned
   `200 []` for `post_ids=[]`, confirming the optimized path is available once
   this code is deployed.
+
+### 2026-05-22 Public Teams Config Cache Slice
+
+- Follow-up from the public menu smoke check after the board fallback fix.
+- Evidence: deployed `/teams` rendered correctly and had no console/runtime
+  errors, but repeated HTTP probes kept returning `X-Vercel-Cache: MISS` and
+  the route was slower than most public menu pages because the participant team
+  page combines cached player summaries with a fresh Supabase-backed tournament
+  config read.
+- Fix direction: keep the admin-editable Supabase config store, but wrap public
+  `loadTournamentHomeConfig()` reads in a short `unstable_cache` boundary tagged
+  as `tournament-home-config`. `saveTournamentHomeConfig()` invalidates that
+  tag after successful Supabase or local-file writes.
+- Route-shape follow-up: `/teams` no longer reads `searchParams` in the server
+  page. Team selection is handled by a small client tab component that updates
+  the `?team=` URL with `history.pushState`, while the server page only prepares
+  cached team data. `next build` now reports `/teams` as static ISR (`○ /teams
+  1m`) instead of dynamic SSR.
+- Scope guard: no SQL or production data changes. This only reduces repeated
+  runtime config reads while preserving the existing 60-second public page
+  freshness window and admin write behavior.
+- Regression coverage: `test:admin-tournament-readonly` now verifies the cache
+  tag, cached config loader, write invalidation contract, and the static-friendly
+  route shape.
+
+### 2026-05-22 Prediction Tournament Config Source Slice
+
+- Follow-up from the same structure-simplification pass as the public teams
+  cache slice.
+- Root cause: public prediction snapshots could still call
+  `buildTournamentHomeTeams()`, which reads the local tournament config fallback
+  directly. That kept a second config path alive beside the admin-editable,
+  cached tournament config store.
+- Fix direction: `buildTournamentPredictionMatches()` now accepts an optional
+  prepared `tournamentTeams` list. The public prediction page and prediction API
+  load teams through `buildTournamentHomeTeamsFromStore()` and pass them into
+  the snapshot builder, while tests and fallback callers can still use the old
+  synchronous default path.
+- Scope guard: no SQL, production data, or UI label changes. This only aligns
+  public prediction team hydration with the cached participant-team config path.
+- Regression coverage: `test:prediction-cache-contract` now verifies the public
+  page and API use the cached tournament team config path.

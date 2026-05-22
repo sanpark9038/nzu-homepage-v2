@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { revalidateTag, unstable_cache } from "next/cache";
 import type { Database } from "@/lib/database.types";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 import { TOURNAMENT_TEAM_SIZE } from "@/lib/tournament-constants";
@@ -81,6 +82,7 @@ const TOURNAMENT_HOME_CONFIG_PATH = path.join(
   "tournament_home_teams.v1.json"
 );
 const TOURNAMENT_HOME_CONFIG_ROW_ID = "active";
+export const TOURNAMENT_HOME_CACHE_TAG = "tournament-home-config";
 
 export function isTournamentHomeSupabaseStoreEnabled(): boolean {
   const mode = String(process.env.TOURNAMENT_HOME_STORE || "").trim().toLowerCase();
@@ -141,10 +143,21 @@ async function readRemoteTournamentHomeConfig(): Promise<TournamentHomeConfig | 
   }
 }
 
+const getCachedTournamentHomeConfig = unstable_cache(
+  async () => {
+    const remoteConfig = await readRemoteTournamentHomeConfig();
+    if (remoteConfig) return remoteConfig;
+    return readTournamentHomeConfig();
+  },
+  ["tournament-home-config-v1"],
+  {
+    revalidate: 60,
+    tags: [TOURNAMENT_HOME_CACHE_TAG],
+  }
+);
+
 export async function loadTournamentHomeConfig(): Promise<TournamentHomeConfig> {
-  const remoteConfig = await readRemoteTournamentHomeConfig();
-  if (remoteConfig) return remoteConfig;
-  return readTournamentHomeConfig();
+  return getCachedTournamentHomeConfig();
 }
 
 export async function saveTournamentHomeConfig(config: TournamentHomeConfig): Promise<void> {
@@ -169,10 +182,12 @@ export async function saveTournamentHomeConfig(config: TournamentHomeConfig): Pr
     if (error) {
       throw new Error(error.message || "failed to save tournament home config");
     }
+    revalidateTag(TOURNAMENT_HOME_CACHE_TAG, "max");
     return;
   }
 
   writeTournamentHomeConfig(nextConfig);
+  revalidateTag(TOURNAMENT_HOME_CACHE_TAG, "max");
 }
 
 function normalizeText(value: string | null | undefined) {

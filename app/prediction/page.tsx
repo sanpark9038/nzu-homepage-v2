@@ -1,16 +1,20 @@
 import { TournamentPredictionClient } from "@/components/prediction/TournamentPredictionClient";
 import { playerService } from "@/lib/player-service";
 import { buildTournamentPredictionMatches } from "@/lib/tournament-prediction";
+import { buildTournamentHomeTeamsFromStore } from "@/lib/tournament-home";
 import { loadPredictionState } from "@/lib/prediction-store";
 
 export const revalidate = 60;
 
 export default async function PredictionPage() {
   const allPlayers = await playerService.getCachedPlayersList();
-  const state = await loadPredictionState({
-    includeVoteTotals: true,
-  });
-  const matches = buildTournamentPredictionMatches(allPlayers, state);
+  const [state, tournamentTeams] = await Promise.all([
+    loadPredictionState({
+      includeVoteTotals: true,
+    }),
+    buildTournamentHomeTeamsFromStore(allPlayers),
+  ]);
+  const matches = buildTournamentPredictionMatches(allPlayers, state, { tournamentTeams });
 
   return (
     <div className="min-h-screen bg-background text-foreground">

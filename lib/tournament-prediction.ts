@@ -1,6 +1,6 @@
 import type { Database } from "@/lib/database.types";
 import { buildPredictionUniversityTeams } from "@/lib/prediction-admin-teams";
-import { buildTournamentHomeTeams } from "@/lib/tournament-home";
+import { buildTournamentHomeTeams, type TournamentHomeTeam } from "@/lib/tournament-home";
 import {
   derivePredictionMatchStatus,
   readPredictionConfig,
@@ -200,9 +200,10 @@ function normalizeEntryMatchups(
 
 export function buildTournamentPredictionMatches(
   allPlayers: Player[],
-  state?: { matches?: PredictionConfigMatch[]; votes?: PredictionVoteRow[]; voteTotals?: PredictionVoteTotalRow[] }
+  state?: { matches?: PredictionConfigMatch[]; votes?: PredictionVoteRow[]; voteTotals?: PredictionVoteTotalRow[] },
+  options?: { tournamentTeams?: TournamentHomeTeam[] }
 ): PredictionMatchSnapshot[] {
-  const teams = buildTournamentHomeTeams(allPlayers);
+  const teams = options?.tournamentTeams ?? buildTournamentHomeTeams(allPlayers);
   const existingTeams = buildPredictionUniversityTeams(allPlayers);
   const teamMap = new Map([
     ...teams.map((team) => [team.teamCode, team] as const),

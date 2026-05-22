@@ -20,6 +20,19 @@ test("prediction public page and API use cached player list reads", () => {
   assert.doesNotMatch(apiSource, /playerService\.getAllPlayers\(\)/);
 });
 
+test("prediction public page and API use the cached tournament team config path", () => {
+  const pageSource = readProjectFile("app/prediction/page.tsx");
+  const apiSource = readProjectFile("app/api/prediction/route.ts");
+
+  assert.match(pageSource, /buildTournamentHomeTeamsFromStore/);
+  assert.match(pageSource, /tournamentTeams/);
+  assert.match(pageSource, /buildTournamentPredictionMatches\(allPlayers,\s*state,\s*\{\s*tournamentTeams\s*,?\s*\}\)/);
+
+  assert.match(apiSource, /buildTournamentHomeTeamsFromStore/);
+  assert.match(apiSource, /tournamentTeams/);
+  assert.match(apiSource, /buildTournamentPredictionMatches\(players,\s*state,\s*\{\s*tournamentTeams\s*,?\s*\}\)/);
+});
+
 test("prediction public page and API use aggregate vote totals for public reads", () => {
   const pageSource = readProjectFile("app/prediction/page.tsx");
   const apiSource = readProjectFile("app/api/prediction/route.ts");

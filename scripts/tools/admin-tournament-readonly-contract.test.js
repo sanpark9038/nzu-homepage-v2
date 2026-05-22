@@ -106,3 +106,26 @@ test("admin tournament production writes are backed by Supabase config storage",
   assert.match(sql, /alter table public\.tournament_home_config enable row level security/i);
   assert.match(sql, /grant select, insert, update on table public\.tournament_home_config to service_role/i);
 });
+
+test("public tournament team config is cached and invalidated on writes", () => {
+  const homeSource = readProjectFile("lib/tournament-home.ts");
+
+  assert.match(homeSource, /import \{ revalidateTag, unstable_cache \} from "next\/cache";/);
+  assert.match(homeSource, /TOURNAMENT_HOME_CACHE_TAG\s*=\s*"tournament-home-config"/);
+  assert.match(homeSource, /getCachedTournamentHomeConfig\s*=\s*unstable_cache/);
+  assert.match(homeSource, /tags:\s*\[TOURNAMENT_HOME_CACHE_TAG\]/);
+  assert.match(homeSource, /revalidateTag\(TOURNAMENT_HOME_CACHE_TAG,\s*"max"\)/);
+});
+
+test("public teams route keeps team selection out of the server page", () => {
+  const teamsPage = readProjectFile("app/teams/page.tsx");
+  const viewSource = readProjectFile("components/home/TournamentTeamsView.tsx");
+  const clientSource = readProjectFile("components/home/TournamentTeamsClient.tsx");
+
+  assert.doesNotMatch(teamsPage, /searchParams/);
+  assert.match(teamsPage, /<TournamentTeamsView\s*\/>/);
+  assert.match(viewSource, /TournamentTeamsClient/);
+  assert.doesNotMatch(viewSource, /selectedTeamCode|basePath|\?team=/);
+  assert.match(clientSource, /^"use client";/);
+  assert.match(clientSource, /window\.history\.pushState/);
+});
