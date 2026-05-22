@@ -363,7 +363,10 @@ Source: operator-provided sub-AI UX/performance report summary on 2026-05-22.
   a successful vote POST so optimistic vote state can be reconciled.
 - 2026-05-22 verification: `test:prediction-cache-contract` covers the viewer
   refresh path and verifies the lightweight API branch returns before loading
-  cached players and building the full matches payload.
+  cached players, aggregate vote totals, or the full matches payload.
+  `test:prediction-store-contract` also guards that viewer-scoped reads load
+  only the current voter's rows for visible matches instead of falling back to a
+  full vote-table scan when aggregate totals are disabled.
 - Remaining work: if live vote totals need real-time refresh later, add a
   dedicated totals-only endpoint rather than reintroducing full match polling.
 

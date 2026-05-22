@@ -976,7 +976,22 @@ test("aggregate prediction reads scope the current voter row to visible matches"
   const source = fs.readFileSync(path.join(repoRoot, "lib", "prediction-store.ts"), "utf8");
 
   assert.match(source, /const visibleMatchIds = Array\.isArray\(matches\)/);
-  assert.match(source, /const effectiveVoteMatchIds =[\s\S]*includeVoteTotals && voterId \? visibleMatchIds/);
-  assert.match(source, /Boolean\(voterId && \(!includeVoteTotals \|\| effectiveVoteMatchIds\.length > 0\)\)/);
+  assert.match(source, /const effectiveVoteMatchIds =[\s\S]*voterId \? visibleMatchIds : \[\]/);
+  assert.match(source, /Boolean\(voterId && effectiveVoteMatchIds\.length > 0\)/);
   assert.match(source, /\.in\("match_id", effectiveVoteMatchIds\)/);
+});
+
+test("viewer prediction reads scope current voter rows without aggregate totals", () => {
+  const source = fs.readFileSync(path.join(repoRoot, "lib", "prediction-store.ts"), "utf8");
+
+  assert.match(
+    source,
+    /let shouldReadAllVotes = !includeVoteTotals && !voterId && voteMatchIds\.length === 0/,
+    "Viewer-scoped reads should not fall back to full vote-table scans just because aggregate totals are disabled"
+  );
+  assert.match(
+    source,
+    /voteMatchIds\.length > 0 \? voteMatchIds : voterId \? visibleMatchIds : \[\]/,
+    "Viewer-scoped reads should still use the visible match ids when loading the current voter's rows"
+  );
 });

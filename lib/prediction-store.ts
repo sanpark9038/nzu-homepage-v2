@@ -492,7 +492,7 @@ async function readRemotePredictionState(options: PredictionStateLoadOptions = {
     : [];
 
   let voteTotals: PredictionVoteTotalRow[] | undefined;
-  let shouldReadAllVotes = !includeVoteTotals;
+  let shouldReadAllVotes = !includeVoteTotals && !voterId && voteMatchIds.length === 0;
 
   if (includeVoteTotals) {
     const rpcMatchIds = matchIds.length > 0 ? matchIds : null;
@@ -508,9 +508,9 @@ async function readRemotePredictionState(options: PredictionStateLoadOptions = {
 
   let votes: PredictionVoteRemoteRow[] = [];
   const effectiveVoteMatchIds =
-    voteMatchIds.length > 0 ? voteMatchIds : includeVoteTotals && voterId ? visibleMatchIds : [];
+    voteMatchIds.length > 0 ? voteMatchIds : voterId ? visibleMatchIds : [];
   const shouldReadScopedVotes =
-    Boolean(voterId && (!includeVoteTotals || effectiveVoteMatchIds.length > 0)) || voteMatchIds.length > 0;
+    Boolean(voterId && effectiveVoteMatchIds.length > 0) || voteMatchIds.length > 0;
   if (shouldReadAllVotes || shouldReadScopedVotes) {
     let voteQuery = supabase
       .from("prediction_votes")

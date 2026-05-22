@@ -1378,6 +1378,11 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   an actual vote action.
 - Regression coverage: `test:prediction-cache-contract` covers the viewer
   refresh and lightweight API branch.
+- Follow-up read tightening: the viewer API branch now calls
+  `loadPredictionState({ voterId })` without requesting aggregate vote totals,
+  and `readRemotePredictionState()` scopes that viewer read to visible matches
+  for the current voter instead of falling back to an all-votes read when
+  aggregate totals are disabled.
 
 ### 2026-05-20 Serving Runtime Guard Slice
 

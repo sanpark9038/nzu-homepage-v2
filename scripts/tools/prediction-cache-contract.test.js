@@ -52,3 +52,20 @@ test("prediction API exposes a lightweight viewer scope before full match hydrat
   );
   assert.match(apiSource, /return NextResponse\.json\(\{\s*ok: true,\s*myVotes:/);
 });
+
+test("prediction viewer scope does not request discarded aggregate vote totals", () => {
+  const apiSource = readProjectFile("app/api/prediction/route.ts");
+  const viewerBranchStart = apiSource.indexOf('scope === "viewer"');
+  const fullPayloadStart = apiSource.indexOf("const players = await playerService.getCachedPlayersList()");
+
+  assert.notEqual(viewerBranchStart, -1);
+  assert.notEqual(fullPayloadStart, -1);
+
+  const viewerBranch = apiSource.slice(viewerBranchStart, fullPayloadStart);
+  assert.match(viewerBranch, /loadPredictionState\(\{\s*voterId,\s*\}\)/);
+  assert.doesNotMatch(
+    viewerBranch,
+    /includeVoteTotals:\s*true/,
+    "Viewer-only refresh should not ask the store to read aggregate vote totals that are not returned"
+  );
+});

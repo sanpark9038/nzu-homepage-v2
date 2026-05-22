@@ -37,7 +37,6 @@ export async function GET(req: Request) {
     const state = voterId
       ? await loadPredictionState({
           voterId,
-          includeVoteTotals: true,
         })
       : null;
     return NextResponse.json({
