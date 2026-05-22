@@ -34,6 +34,7 @@ export function PlayerCard({
   isCaptain = false,
 }: PlayerCardProps) {
   const [failedThumbnailSrc, setFailedThumbnailSrc] = useState<string | null>(null);
+  const [loadedLiveThumbnailUrl, setLoadedLiveThumbnailUrl] = useState<string | null>(null);
   const [isTierPreviewVisible, setIsTierPreviewVisible] = useState(false);
   const [tierPreviewStyle, setTierPreviewStyle] = useState<{ left: number; top: number } | null>(null);
   const tierPreviewAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -78,6 +79,7 @@ export function PlayerCard({
 
   useEffect(() => {
     hasPreloadedLiveThumbnailRef.current = false;
+    setLoadedLiveThumbnailUrl(null);
   }, [liveThumbnailUrl]);
 
   const updateTierPreviewPosition = useCallback(() => {
@@ -416,13 +418,34 @@ export function PlayerCard({
             style={{ left: `${tierPreviewStyle.left}px`, top: `${tierPreviewStyle.top}px` }}
           >
             <div className="relative aspect-[16/9] w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
+              {loadedLiveThumbnailUrl !== liveThumbnailUrl ? (
+                <div className="live-thumbnail-loading-placeholder absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(46,213,115,0.22),transparent_30%),linear-gradient(135deg,rgba(8,18,20,0.98),rgba(3,7,10,0.98))]">
+                  <div className="absolute left-4 top-4 inline-flex items-center rounded-full border border-nzu-green/28 bg-nzu-green/10 px-3 py-1 text-[12px] font-black tracking-tight text-nzu-green">
+                    LIVE
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 p-4">
+                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-black text-white/58">
+                      <span className="h-1.5 w-1.5 rounded-full bg-nzu-green animate-pulse" />
+                      {"\uBBF8\uB9AC\uBCF4\uAE30 \uBD88\uB7EC\uC624\uB294 \uC911"}
+                    </div>
+                    <div className="text-[12px] font-black text-nzu-green/85">{player.name}</div>
+                    <p className="mt-1 line-clamp-2 text-[1.16rem] font-[1000] leading-snug text-white">
+                      {liveTitle}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
               {canShowLiveThumbnail ? (
                 <Image
                   src={liveThumbnailUrl}
                   alt={`${player.name} live preview`}
                   fill
                   unoptimized
-                  className="object-cover"
+                  className={cn(
+                    "object-cover transition-opacity duration-100",
+                    loadedLiveThumbnailUrl === liveThumbnailUrl ? "opacity-100" : "opacity-0"
+                  )}
+                  onLoad={() => setLoadedLiveThumbnailUrl(liveThumbnailUrl)}
                   onError={() => setFailedThumbnailSrc(liveThumbnailUrl)}
                 />
               ) : null}

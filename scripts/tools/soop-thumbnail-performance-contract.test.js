@@ -31,3 +31,14 @@ test("tier live thumbnail preloading starts when cards enter the viewport", () =
   assert.match(playerCard, /hasPreloadedLiveThumbnailRef/);
   assert.match(playerCard, /rootMargin:\s*["']240px["']/);
 });
+
+test("tier live hover preview keeps readable content visible until thumbnail load", () => {
+  const playerCard = readProjectFile("components/players/PlayerCard.tsx");
+
+  assert.match(playerCard, /loadedLiveThumbnailUrl/);
+  assert.match(playerCard, /live-thumbnail-loading-placeholder/);
+  assert.match(playerCard, /\\uBBF8\\uB9AC\\uBCF4\\uAE30 \\uBD88\\uB7EC\\uC624\\uB294 \\uC911/);
+  assert.match(playerCard, /onLoad=\{\(\) => setLoadedLiveThumbnailUrl\(liveThumbnailUrl\)\}/);
+  assert.match(playerCard, /loadedLiveThumbnailUrl === liveThumbnailUrl \? "opacity-100" : "opacity-0"/);
+  assert.match(playerCard, /animate-pulse/);
+});

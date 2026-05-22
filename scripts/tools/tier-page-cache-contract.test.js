@@ -238,7 +238,7 @@ test("tier live hover preview shows readable fallback content before thumbnail l
 
   assert.match(source, /live-thumbnail-loading-placeholder/);
   assert.match(source, /loadedThumbnailUrl !== preview\.thumbnailUrl/);
-  assert.match(source, /미리보기 불러오는 중/);
+  assert.match(source, /\\uBBF8\\uB9AC\\uBCF4\\uAE30 \\uBD88\\uB7EC\\uC624\\uB294 \\uC911/);
   assert.match(source, /previewTitle/);
   assert.match(source, /preview\.playerName/);
   assert.match(source, /animate-pulse/);
