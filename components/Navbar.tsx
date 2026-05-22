@@ -52,7 +52,7 @@ export default function Navbar() {
       )}
     >
       <div className="flex h-16 w-full items-center justify-between gap-4 px-4 lg:gap-8 lg:px-8">
-        <Link href="/" className="flex shrink-0 items-center group">
+        <Link href="/" prefetch={false} className="flex shrink-0 items-center group">
           <span className="text-xl font-black tracking-tighter text-white transition-colors duration-300 group-hover:text-nzu-green">
             HOSAGA
           </span>

@@ -71,6 +71,7 @@ test("navbar avoids background route prefetch bursts", () => {
   const source = readProjectFile("components/Navbar.tsx");
 
   assert.match(source, /visibleNavbarLinks\.map/);
+  assert.match(source, /href="\/"\s+prefetch=\{false\}/);
   assert.match(source, /href=\{item\.href\}/);
   assert.match(source, /prefetch=\{false\}/);
 });
