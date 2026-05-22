@@ -1335,6 +1335,27 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   `fact_matches.csv` as the local source/verification artifact and monitor API
   latency as data volume grows.
 
+### 2026-05-22 A1/A3 Backlog Recheck
+
+- A1 recheck: `lib/player-serving-metadata.ts` already has mtime-keyed caches
+  for project roster and SOOP identity overrides, and
+  `test:player-serving-metadata` verifies that guard. A1 is now classified as
+  `done` in `ARCHITECTURE_BACKLOG.md`; generated serving artifacts should only
+  be reconsidered if route timing later shows pressure.
+- A3 recheck: the active `/api/stats/h2h` route requires canonical `p1_id` and
+  `p2_id`, rejects name-only requests, and uses the detailed ID stats helper.
+  `test:h2h-route-performance-contract` verifies the route cache, name-only
+  rejection, lightweight initial player lookups, artifact-first history loading,
+  and lazy DB `match_history` fallback.
+- Production smoke: a live ID-based `/api/stats/h2h` request returned `200`;
+  the same request without canonical IDs returned `400` with the expected
+  canonical-id-required error. This confirms the deployed public route is not
+  using the old name-only fallback path.
+- Classification: A3 is now `hold` in `ARCHITECTURE_BACKLOG.md`. The remaining
+  risk is policy/data-shape work, not a small runtime patch: keep the current
+  fallback until opponent identity coverage is high enough to remove it safely
+  or an indexed DB/query path is approved.
+
 ### 2026-05-20 Serving Runtime Guard Slice
 
 - Follow-up from architecture backlog items A1, A7, and A9.

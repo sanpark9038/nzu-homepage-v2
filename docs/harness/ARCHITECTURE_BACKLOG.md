@@ -29,13 +29,16 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 
 - Area: `lib/player-serving-metadata.ts`
 - Question: repeated synchronous roster/override file reads may add Vercel Function latency.
-- Current classification: `now`
+- Current classification: `done`
 - Reason: serving path is hot enough to justify a small mtime cache guard, and
   the change avoids repeated project roster JSON parsing without changing
   public player semantics.
 - 2026-05-20 partial: project roster overrides and SOOP identity overrides now
   use a project roster file mtime key and return cached maps when no
   `players.<code>.v1.json` file changed.
+- 2026-05-22 recheck: `test:player-serving-metadata` verifies the mtime cache
+  guard for project roster and SOOP identity overrides. No current production
+  evidence shows remaining player-serving metadata file IO pressure.
 - Remaining work: if route timing still shows pressure, move project roster
   metadata into a generated serving artifact rather than scanning project
   directories at runtime.
@@ -84,9 +87,14 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 
 - Area: `lib/player-service.ts`
 - Question: loading large local JSON history for H2H should move toward indexed relational queries.
-- Current classification: `next`
-- Reason: already tracked as remaining name-based/history fallback risk in the pipeline plan.
-- Next evidence needed: confirm current public H2H paths and the durable opponent identity coverage needed before DB-first H2H.
+- Current classification: `hold`
+- Reason: current public H2H serving avoids the earlier eager history reads,
+  but removing the remaining name/nickname fallback is not safe while opponent
+  entity coverage remains below 100%. Reopen when either coverage is materially
+  improved or an indexed DB/query design is explicitly approved.
+- Next evidence needed: keep monitoring durable opponent identity coverage and
+  production H2H latency; do not remove fallback until every needed history row
+  has a durable opponent identity or a reviewed query policy exists.
 - 2026-05-21 evidence: current H2H code already prefers
   `opponent_entity_id` when present and only falls back to normalized
   name/nickname matching. Latest coverage report has `86.98%`
@@ -192,6 +200,11 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
   `match_history` resolver. This closes the remaining eager runtime
   `match_history` reads in `lib/player-service.ts` public-serving helpers
   without changing roster identity policy.
+- 2026-05-22 production recheck: `test:h2h-route-performance-contract` confirms
+  the ID-based route rejects name-only lookup, caches detailed stats briefly,
+  and avoids eager `match_history` reads. Live production smoke returned `200`
+  for an ID-based `/api/stats/h2h` request and `400` for the name-only request
+  with `Both p1_id and p2_id canonical player ids are required.`
 - Remaining work: improve opponent identity coverage or introduce an indexed
   DB/query path without weakening the existing canonical ID-first route.
 
