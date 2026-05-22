@@ -41,3 +41,12 @@ test("board list avoids automatic prefetch bursts for secondary board links", ()
   assert.match(boardPage, /href=\{boardFilterHref\("past-schedule"\)\}\s+prefetch=\{false\}/);
   assert.match(boardPage, /href=\{`\/board\/\$\{post\.id\}`\}\s+prefetch=\{false\}/);
 });
+
+test("board detail avoids return-link prefetch and batches independent reads", () => {
+  const detailPage = readProjectFile("app/board/[id]/page.tsx");
+
+  assert.match(detailPage, /href="\/board"\s+prefetch=\{false\}/);
+  assert.match(detailPage, /const \[post, commentsResult, cookieStore, paramsData\] = await Promise\.all/);
+  assert.match(detailPage, /getBoardPostById\(id\)/);
+  assert.match(detailPage, /listVisibleBoardComments\(id\)/);
+});

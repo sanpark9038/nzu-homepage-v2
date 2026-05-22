@@ -42,12 +42,18 @@ export default async function BoardDetailPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
-  const post = await getBoardPostById(id);
+  const resolvedSearchParams = searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>);
+  const [post, commentsResult, cookieStore, paramsData] = await Promise.all([
+    getBoardPostById(id),
+    listVisibleBoardComments(id),
+    cookies(),
+    resolvedSearchParams,
+  ]);
+
   if (!post) {
     notFound();
   }
 
-  const cookieStore = await cookies();
   const session = parsePublicAuthSessionCookieValue(cookieStore.get(PUBLIC_AUTH_SESSION_COOKIE)?.value);
   const isAdmin = isValidAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
   const canEdit =
@@ -62,10 +68,8 @@ export default async function BoardDetailPage({
   const embedUrl = buildVideoEmbedUrl(post.video_url);
   const categoryLabel = getBoardCategoryLabel(post.category);
   const categoryTone = getBoardCategoryTone(post.category);
-  const paramsData = ((await searchParams) || {}) as Record<string, string | string[] | undefined>;
   const downloadStatus = typeof paramsData.download === "string" ? paramsData.download : "";
   const renderedContent = renderBoardContentToHtml(post.content);
-  const comments = await listVisibleBoardComments(post.id);
   const currentAuthorId = session ? buildBoardCommentAuthorId(session.provider, session.providerUserId) : null;
 
   return (
@@ -73,7 +77,7 @@ export default async function BoardDetailPage({
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-8 md:px-8">
         <section className="rounded-[1.5rem] border border-white/12 bg-[linear-gradient(180deg,rgba(13,21,23,0.98),rgba(8,13,14,0.96))] shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
           <div className="flex flex-wrap items-center gap-2 border-b border-white/12 px-5 py-4 text-sm font-bold text-white/56">
-            <Link href="/board" className="transition hover:text-white">
+            <Link href="/board" prefetch={false} className="transition hover:text-white">
               게시판
             </Link>
             <span>/</span>
@@ -109,6 +113,7 @@ export default async function BoardDetailPage({
               {canEdit ? <BoardPostDeleteButton postId={post.id} /> : null}
               <Link
                 href="/board"
+                prefetch={false}
                 className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/18 bg-white/[0.04] px-5 text-sm font-black text-white transition hover:border-white/30 hover:bg-white/[0.08]"
               >
                 게시판으로 돌아가기
@@ -183,8 +188,8 @@ export default async function BoardDetailPage({
 
         <BoardComments
           postId={post.id}
-          initialComments={comments.comments}
-          storageReady={comments.storageReady}
+          initialComments={commentsResult.comments}
+          storageReady={commentsResult.storageReady}
           session={session}
           currentAuthorId={currentAuthorId}
           isAdmin={isAdmin}
