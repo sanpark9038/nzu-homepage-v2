@@ -18,26 +18,30 @@ export default async function PlayerIndexPage({
   const query = String(params?.query || "").trim();
 
   if (selectedId) {
+    let redirectHref: string | null = null;
     try {
       const player = await playerService.getPlayerById(selectedId);
       if (player) {
-        redirect(buildPlayerHref(player));
+        redirectHref = buildPlayerHref(player);
       }
     } catch {
       // Keep rendering the shared player page view so invalid ids show the inline empty state.
     }
+    if (redirectHref) redirect(redirectHref);
   }
 
   if (query) {
+    let redirectHref: string | null = null;
     try {
       const results = await playerService.searchPlayers(query);
       const exactMatch = results.find((player) => isExactPlayerSearchMatch(player, query));
       if (exactMatch) {
-        redirect(buildPlayerHref(exactMatch));
+        redirectHref = buildPlayerHref(exactMatch);
       }
     } catch {
       // Keep rendering the shared player page view so query search still works if lookup fails.
     }
+    if (redirectHref) redirect(redirectHref);
   }
 
   return <PlayerPageView query={params?.query} selectedId={params?.id} />;

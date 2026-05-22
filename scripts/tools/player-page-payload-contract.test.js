@@ -34,6 +34,26 @@ test("canonical player slug resolution is reused by the shared player page view"
   );
 });
 
+test("player canonical redirects are not swallowed by lookup catch blocks", () => {
+  const indexSource = readProjectFile("app/player/page.tsx");
+  const routeSource = readProjectFile("app/player/[id]/page.tsx");
+  const indexTryBlocks = Array.from(indexSource.matchAll(/try\s*\{([\s\S]*?)\}\s*catch/g), (match) => match[1]);
+  const routeTryBlocks = Array.from(routeSource.matchAll(/try\s*\{([\s\S]*?)\}\s*catch/g), (match) => match[1]);
+
+  for (const block of [...indexTryBlocks, ...routeTryBlocks]) {
+    assert.doesNotMatch(block, /redirect\(/);
+  }
+  assert.match(indexSource, /if\s*\(redirectHref\)\s*redirect\(redirectHref\)/);
+  assert.match(routeSource, /if\s*\(redirectHref\)\s*redirect\(redirectHref\)/);
+});
+
+test("player search page avoids prefetching secondary player links", () => {
+  const viewSource = readProjectFile("app/player/player-page-view.tsx");
+
+  assert.match(viewSource, /href="\/tier"\s+prefetch=\{false\}/);
+  assert.match(viewSource, /href=\{buildPlayerHref\(player\)\}\s+prefetch=\{false\}/);
+});
+
 test("player id-prefix lookup uses the cached public player list", () => {
   const source = readProjectFile("lib/player-service.ts");
   const methodStart = source.indexOf("async getPlayerByIdPrefix");

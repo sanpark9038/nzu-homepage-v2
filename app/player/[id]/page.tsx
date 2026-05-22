@@ -20,33 +20,37 @@ export default async function PlayerProfileRedirectPage({
   let initialPlayerForView: Player | null = null;
 
   if (parsed.selectedId) {
+    let redirectHref: string | null = null;
     try {
       const player = await playerService.getPlayerById(parsed.selectedId);
       if (player) {
         initialPlayerForView = player;
         const canonicalHref = buildPlayerHref(player);
         if (canonicalHref !== currentPath) {
-          redirect(canonicalHref);
+          redirectHref = canonicalHref;
         }
       }
     } catch {
       // Fall through to the shared player page view for invalid ids.
     }
+    if (redirectHref) redirect(redirectHref);
   }
 
   if (parsed.selectedIdPrefix) {
+    let redirectHref: string | null = null;
     try {
       const player = await playerService.getPlayerByIdPrefix(parsed.selectedIdPrefix);
       if (player) {
         initialPlayerForView = player;
         const canonicalHref = buildPlayerHref(player);
         if (canonicalHref !== currentPath) {
-          redirect(canonicalHref);
+          redirectHref = canonicalHref;
         }
       }
     } catch {
       // Fall through to the shared player page view if prefix lookup fails.
     }
+    if (redirectHref) redirect(redirectHref);
   }
 
   return (

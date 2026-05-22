@@ -67,6 +67,7 @@ export default function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={cn(
                   "ui-label relative flex min-h-[40px] items-center gap-2 rounded-full px-5 py-2 tracking-tight transition-colors duration-200",
                   isActive

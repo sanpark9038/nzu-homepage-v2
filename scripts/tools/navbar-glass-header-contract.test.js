@@ -67,6 +67,14 @@ test("navbar buttons use shared readable sizing instead of tiny per-page typogra
   assert.doesNotMatch(source, /text-\[14px\]/);
 });
 
+test("navbar avoids background route prefetch bursts", () => {
+  const source = readProjectFile("components/Navbar.tsx");
+
+  assert.match(source, /visibleNavbarLinks\.map/);
+  assert.match(source, /href=\{item\.href\}/);
+  assert.match(source, /prefetch=\{false\}/);
+});
+
 test("home hero fills the viewport when the navbar is overlaid", () => {
   const source = readProjectFile("app/page.tsx");
 

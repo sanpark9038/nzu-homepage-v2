@@ -100,7 +100,7 @@ export async function PlayerPageView({
       <div className="mx-auto flex max-w-[96rem] flex-col items-center pt-4 md:pt-5">
         <section className="w-full max-w-6xl overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(8,17,18,0.94),rgba(6,10,11,0.92))] px-5 py-4 shadow-[0_24px_80px_rgba(0,0,0,0.34)] md:overflow-visible md:px-7 md:py-5 xl:max-w-[84rem] xl:px-8">
           <div className="mb-4">
-            <Link href="/tier" className="inline-flex items-center gap-2 text-[0.78rem] font-[1000] tracking-tight text-white/34 transition-all hover:text-nzu-green">
+            <Link href="/tier" prefetch={false} className="inline-flex items-center gap-2 text-[0.78rem] font-[1000] tracking-tight text-white/34 transition-all hover:text-nzu-green">
               <span aria-hidden>←</span>
               <span>티어표로 돌아가기</span>
             </Link>
@@ -155,6 +155,7 @@ export async function PlayerPageView({
                     <Link
                       key={player.id}
                       href={buildPlayerHref(player)}
+                      prefetch={false}
                       className="group flex items-center justify-between gap-3 rounded-[1.15rem] border border-white/8 bg-white/[0.03] px-4 py-3 transition-all hover:border-nzu-green/24 hover:bg-nzu-green/[0.04]"
                     >
                       <div className="min-w-0">
