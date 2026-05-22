@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 import { supabase as publicSupabase } from "@/lib/supabase";
 import type { Database } from "@/lib/database.types";
@@ -9,6 +10,9 @@ export type BoardPostUpdate = Database["public"]["Tables"]["board_posts"]["Updat
 export type BoardCategory = "notice" | "schedule" | null;
 
 const BOARD_POST_LIMIT = 20;
+export const BOARD_LIST_CACHE_TAG = "board-list";
+const BOARD_LIST_REVALIDATE_SECONDS = 30;
+const BOARD_POST_LIST_COLUMNS = "id,title,author_name,created_at,category,image_url,video_url,published";
 const IMAGE_URL_EXTENSIONS = new Set([".gif", ".jpeg", ".jpg", ".png", ".webp"]);
 const SOOP_VIDEO_HOSTS = ["sooplive.com", "sooplive.co.kr"];
 
@@ -336,12 +340,45 @@ export async function listBoardPosts(limit = BOARD_POST_LIMIT) {
   }
 }
 
+export type BoardPostListRow = Pick<
+  BoardPostRow,
+  "id" | "title" | "author_name" | "created_at" | "category" | "image_url" | "video_url" | "published"
+>;
+
+export async function listBoardPostSummaries(limit = BOARD_POST_LIMIT) {
+  try {
+    const { data, error } = await publicSupabase
+      .from("board_posts")
+      .select(BOARD_POST_LIST_COLUMNS)
+      .eq("published", true)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return {
+      ok: true as const,
+      posts: (data || []) as BoardPostListRow[],
+      storageReady: true,
+    };
+  } catch (error) {
+    if (isBoardStorageMissing(error) || isBoardReadUnavailable(error)) {
+      return {
+        ok: true as const,
+        posts: [] as BoardPostListRow[],
+        storageReady: false,
+      };
+    }
+    throw error;
+  }
+}
+
 export type BoardPostWithCommentCount = BoardPostRow & {
   comment_count: number;
 };
 
 export async function listBoardPostsWithCommentCounts(limit = BOARD_POST_LIMIT) {
-  const result = await listBoardPosts(limit);
+  const result = await listBoardPostSummaries(limit);
   if (!result.posts.length) {
     return {
       ...result,
@@ -360,6 +397,15 @@ export async function listBoardPostsWithCommentCounts(limit = BOARD_POST_LIMIT) 
     commentsStorageReady: true,
   };
 }
+
+export const getCachedBoardPostsWithCommentCounts = unstable_cache(
+  async (limit = BOARD_POST_LIMIT) => listBoardPostsWithCommentCounts(limit),
+  ["board-posts-with-comment-counts"],
+  {
+    revalidate: BOARD_LIST_REVALIDATE_SECONDS,
+    tags: [BOARD_LIST_CACHE_TAG],
+  }
+);
 
 export async function listScheduleInfoPosts(options: { fromDate?: string; toDate?: string; limit?: number } = {}) {
   try {

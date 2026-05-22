@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import {
+  BOARD_LIST_CACHE_TAG,
   deleteBoardPostById,
   getBoardPostForMutation,
   isBoardStorageMissing,
@@ -93,6 +94,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     }
 
+    revalidateTag(BOARD_LIST_CACHE_TAG, "max");
     revalidatePath("/board");
     revalidatePath(`/board/${id}`);
     revalidatePath(`/board/${id}/edit`);
@@ -137,6 +139,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       });
     }
 
+    revalidateTag(BOARD_LIST_CACHE_TAG, "max");
     revalidatePath("/board");
     revalidatePath(`/board/${id}`);
     if (context.post.category === "schedule") {

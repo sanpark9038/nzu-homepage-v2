@@ -211,9 +211,15 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
   Supabase Dashboard SQL Editor. A read-only anon RPC smoke with `match_ids=[]`
   returned `ok=true` and `rows=0`, confirming the RPC is active for deployed
   prediction vote-total reads.
-- Current classification: `next`
-- Remaining work: deploy the code path that prefers the RPC. Runtime fallback
-  remains in place if another environment is missing the function.
+- 2026-05-22 production recheck: read-only anon RPC smoke for
+  `prediction_visible_vote_totals(match_ids => null)` returned successfully
+  (`error=false`, `rows=0`). The deployed code path already requests aggregate
+  totals for public page/API reads and scopes current-voter reads to visible
+  matches, so production does not need the full-vote fallback for normal public
+  reads.
+- Current classification: `done`
+- Remaining work: keep the runtime fallback for non-production or future
+  environments that have not applied the RPC yet.
 
 ### A5. University Metadata Static File Cache
 
@@ -243,6 +249,10 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
   `ttglvnnzssaaypmcrmdt` via Supabase CLI from a temporary workdir, then
   verified Data API RPC access with a `200 []` response for an empty
   `post_ids` call.
+- 2026-05-22 follow-up: live `/board` TTFB was about 1.4s while direct Supabase
+  probes showed `board_posts.select("*")` was slower than the lightweight list
+  projection. The board list now reads only summary columns and uses a short
+  tag cache invalidated by board, comment, and schedule writes.
 - Remaining work: monitor board list latency as comment volume grows.
 
 ### A7. R2 Client Reuse

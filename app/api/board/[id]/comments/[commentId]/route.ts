@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
+import { BOARD_LIST_CACHE_TAG } from "@/lib/board";
 import {
   buildBoardCommentAuthorId,
   canDeleteBoardComment,
@@ -36,6 +37,7 @@ export async function DELETE(
 
     const deletedBy = isAdmin ? "admin" : currentAuthorId || "";
     const deleted = await softDeleteBoardComment(commentId, deletedBy);
+    revalidateTag(BOARD_LIST_CACHE_TAG, "max");
     revalidatePath("/board");
     revalidatePath(`/board/${id}`);
     return NextResponse.json({ ok: true, comment: deleted });

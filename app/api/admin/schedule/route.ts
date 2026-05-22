@@ -1,9 +1,10 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import {
+  BOARD_LIST_CACHE_TAG,
   createAdminSchedulePost,
   isScheduleInfoStorageMissing,
   listAdminScheduleInfoPosts,
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
     }
 
     const post = await createAdminSchedulePost(input);
+    revalidateTag(BOARD_LIST_CACHE_TAG, "max");
     revalidatePath("/board");
     revalidatePath("/schedule");
 

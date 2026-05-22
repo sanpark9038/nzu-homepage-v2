@@ -1,9 +1,10 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import {
+  BOARD_LIST_CACHE_TAG,
   deleteBoardPostById,
   getBoardPostForMutation,
   isScheduleInfoStorageMissing,
@@ -64,6 +65,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       }
     }
 
+    revalidateTag(BOARD_LIST_CACHE_TAG, "max");
     revalidatePath("/board");
     revalidatePath(`/board/${id}`);
     revalidatePath("/schedule");
@@ -106,6 +108,7 @@ export async function DELETE(_req: Request, { params }: RouteContext) {
       }
     }
 
+    revalidateTag(BOARD_LIST_CACHE_TAG, "max");
     revalidatePath("/board");
     revalidatePath(`/board/${id}`);
     revalidatePath("/schedule");

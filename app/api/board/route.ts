@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
 import {
+  BOARD_LIST_CACHE_TAG,
   createBoardPost,
   isBoardStorageMissing,
   listBoardPosts,
@@ -55,6 +57,8 @@ export async function POST(req: Request) {
     }
 
     const post = await createBoardPost(input);
+    revalidateTag(BOARD_LIST_CACHE_TAG, "max");
+    revalidatePath("/board");
     return NextResponse.json({ ok: true, post }, { status: 201 });
   } catch (error) {
     if (isBoardStorageMissing(error)) {

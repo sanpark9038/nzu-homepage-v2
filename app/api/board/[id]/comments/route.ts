@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
 import {
@@ -11,7 +11,7 @@ import {
   normalizeBoardCommentInput,
   validateBoardCommentInput,
 } from "@/lib/board-comments";
-import { getBoardPostForMutation } from "@/lib/board";
+import { BOARD_LIST_CACHE_TAG, getBoardPostForMutation } from "@/lib/board";
 import { parsePublicAuthSessionCookieValue, PUBLIC_AUTH_SESSION_COOKIE } from "@/lib/public-auth";
 
 export const runtime = "nodejs";
@@ -56,6 +56,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       content: input.content,
     });
 
+    revalidateTag(BOARD_LIST_CACHE_TAG, "max");
     revalidatePath("/board");
     revalidatePath(`/board/${id}`);
     return NextResponse.json({ ok: true, comment });

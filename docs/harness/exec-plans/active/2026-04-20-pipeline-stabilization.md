@@ -1305,6 +1305,24 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   - Verification passed: `npm.cmd run test:admin-roster-ops-review`,
     `.\node_modules\.bin\tsc.cmd --noEmit`, and `npm.cmd run build`.
 
+### 2026-05-22 Prediction / Board Runtime Follow-Up
+
+- A4 production recheck: read-only Supabase RPC smoke for
+  `prediction_visible_vote_totals(match_ids => null)` succeeded, and the
+  public prediction page/API already request aggregate totals plus scoped
+  current-voter rows. A4 is now classified as `done` in the architecture
+  backlog, with fallback retained for non-upgraded environments.
+- Board latency evidence: live `/board` showed about 1.4s TTFB, while direct
+  Supabase probes showed the lightweight board-list projection was faster than
+  `board_posts.select("*")`.
+- Fix direction: `/board` now uses cached lightweight summary rows with comment
+  counts, avoids request-cookie work for the unchanged write-link behavior, and
+  board/comment/schedule writes invalidate the board-list cache tag.
+- Verification passed: `npm.cmd run test:board:comments`,
+  `npm.cmd run test:prediction-store-contract` (outside sandbox after the known
+  local `node --test` spawn restriction), TypeScript via `tsc --noEmit`, and
+  `npm.cmd run build`.
+
 ### 2026-05-20 Serving Runtime Guard Slice
 
 - Follow-up from architecture backlog items A1, A7, and A9.

@@ -1,20 +1,15 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { ImageIcon, PlayCircle, SquarePen } from "lucide-react";
 
 import {
   getBoardCategoryLabel,
   getBoardCategoryTone,
+  getCachedBoardPostsWithCommentCounts,
   hasBoardMedia,
-  listBoardPostsWithCommentCounts,
 } from "@/lib/board";
-import {
-  parsePublicAuthSessionCookieValue,
-  PUBLIC_AUTH_SESSION_COOKIE,
-} from "@/lib/public-auth";
 
 export const runtime = "nodejs";
-export const revalidate = 0;
+export const revalidate = 30;
 
 export function formatBoardListDate(value: string | null) {
   if (!value) return "-";
@@ -37,7 +32,7 @@ export function formatBoardListDate(value: string | null) {
     : { timeZone, year: "2-digit", month: "2-digit", day: "2-digit" }).format(date);
 }
 
-function renderWriteAction(_isLoggedIn: boolean, className: string) {
+function renderWriteAction(className: string) {
   return (
     <Link href="/board/write" className={className}>
       <SquarePen size={16} />
@@ -51,9 +46,7 @@ export default async function BoardPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const cookieStore = await cookies();
-  const board = await listBoardPostsWithCommentCounts();
-  const session = parsePublicAuthSessionCookieValue(cookieStore.get(PUBLIC_AUTH_SESSION_COOKIE)?.value);
+  const board = await getCachedBoardPostsWithCommentCounts();
   const params = ((await searchParams) || {}) as Record<string, string | string[] | undefined>;
   const loginStatus = typeof params.login === "string" ? params.login : "";
   const downloadStatus = typeof params.download === "string" ? params.download : "";
@@ -71,7 +64,6 @@ export default async function BoardPage({
               </p>
             </div>
             {renderWriteAction(
-              Boolean(session),
               "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-nzu-green px-5 text-sm font-black text-black transition hover:-translate-y-0.5"
             )}
           </div>
@@ -173,7 +165,6 @@ export default async function BoardPage({
 
           <div className="flex flex-col gap-3 border-t border-white/6 px-4 py-4 md:flex-row md:items-center md:justify-end md:px-5">
             {renderWriteAction(
-              Boolean(session),
               "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-5 text-sm font-black text-white transition hover:border-nzu-green/40 hover:text-nzu-green"
             )}
           </div>

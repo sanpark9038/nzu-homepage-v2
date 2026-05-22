@@ -91,6 +91,33 @@ test("board list renders comment counts beside titles", () => {
   assert.match(page, /\[\{post\.comment_count\}\]/);
 });
 
+test("board list uses cached lightweight summary data and invalidates it on writes", () => {
+  const board = read("lib/board.ts");
+  const page = read("app/board/page.tsx");
+  const boardRoute = read("app/api/board/route.ts");
+  const postRoute = read("app/api/board/[id]/route.ts");
+  const commentRoute = read("app/api/board/[id]/comments/route.ts");
+  const commentDeleteRoute = read("app/api/board/[id]/comments/[commentId]/route.ts");
+  const adminScheduleRoute = read("app/api/admin/schedule/route.ts");
+  const adminScheduleIdRoute = read("app/api/admin/schedule/[id]/route.ts");
+
+  assert.match(board, /BOARD_LIST_CACHE_TAG/);
+  assert.match(board, /unstable_cache/);
+  assert.match(board, /getCachedBoardPostsWithCommentCounts/);
+  assert.match(board, /listBoardPostSummaries/);
+  assert.match(board, /BOARD_POST_LIST_COLUMNS = "id,title,author_name,created_at,category,image_url,video_url,published"/);
+  assert.match(board, /\.select\(BOARD_POST_LIST_COLUMNS\)/);
+  assert.match(page, /getCachedBoardPostsWithCommentCounts/);
+  assert.doesNotMatch(page, /cookies\(/);
+  assert.doesNotMatch(page, /PUBLIC_AUTH_SESSION_COOKIE/);
+
+  for (const source of [boardRoute, postRoute, commentRoute, commentDeleteRoute, adminScheduleRoute, adminScheduleIdRoute]) {
+    assert.match(source, /revalidateTag/);
+    assert.match(source, /BOARD_LIST_CACHE_TAG/);
+    assert.match(source, /revalidateTag\(BOARD_LIST_CACHE_TAG/);
+  }
+});
+
 test("package exposes the board comments contract test", () => {
   const pkg = JSON.parse(read("package.json"));
   assert.equal(pkg.scripts["test:board:comments"], "node scripts/tools/board-comments-contract.test.js");
