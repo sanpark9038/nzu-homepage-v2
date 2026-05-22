@@ -233,6 +233,17 @@ test("tier live hover preview uses one delegated fixed layer and lazy-mounts the
   assert.doesNotMatch(source, /shadow-\[/);
 });
 
+test("tier live hover preview shows readable fallback content before thumbnail load", () => {
+  const source = readProjectFile("components/players/TierLiveHoverPreview.tsx");
+
+  assert.match(source, /live-thumbnail-loading-placeholder/);
+  assert.match(source, /loadedThumbnailUrl !== preview\.thumbnailUrl/);
+  assert.match(source, /미리보기 불러오는 중/);
+  assert.match(source, /previewTitle/);
+  assert.match(source, /preview\.playerName/);
+  assert.match(source, /animate-pulse/);
+});
+
 test("tier footer exposes a short admin entry without leaking credentials", () => {
   const source = readProjectFile("app/tier/TierClientView.tsx");
   const adminEntrySource = readProjectFile("app/admin/page.tsx");

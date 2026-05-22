@@ -195,6 +195,23 @@ export function TierLiveHoverPreviewLayer() {
             }}
           >
             <div className="relative aspect-video w-full bg-[linear-gradient(180deg,rgba(8,14,18,0.55),rgba(3,6,8,0.92))]">
+              {loadedThumbnailUrl !== preview.thumbnailUrl ? (
+                <div className="live-thumbnail-loading-placeholder absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(46,213,115,0.22),transparent_30%),linear-gradient(135deg,rgba(8,18,20,0.98),rgba(3,7,10,0.98))]">
+                  <div className="absolute left-3 top-3 rounded-full border border-nzu-green/28 bg-nzu-green/10 px-3 py-1.5 text-[12px] font-black tracking-tight text-nzu-green">
+                    LIVE
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 p-3.5">
+                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-black text-white/58">
+                      <span className="h-1.5 w-1.5 rounded-full bg-nzu-green animate-pulse" />
+                      미리보기 불러오는 중
+                    </div>
+                    <div className="text-[12px] font-black text-nzu-green/85">{preview.playerName}</div>
+                    <p className="mt-1 line-clamp-2 text-[0.98rem] font-black leading-snug text-white">
+                      {previewTitle}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
               <Image
                 key={preview.thumbnailUrl}
                 src={preview.thumbnailUrl}
