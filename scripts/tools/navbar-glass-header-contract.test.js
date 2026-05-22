@@ -83,7 +83,9 @@ test("navbar exposes participant teams as a primary navigation item", () => {
   assert.match(source, /visibleNavbarLinks[\s\S]*href:\s*"\/",\s*label:\s*"\uD648"[\s\S]*href:\s*"\/teams",\s*label:\s*"\uC30D\uB108\uC2A4 \uCC38\uAC00\uD300"[\s\S]*href:\s*"\/board"/);
   assert.doesNotMatch(source, /hiddenNavbarLinks[\s\S]*href:\s*"\/teams"/);
   assert.match(navbarSource, /const showTeamsBadge = item\.href === "\/teams"/);
-  assert.match(navbarSource, /border-emerald-300\/25/);
+  assert.match(navbarSource, /Trophy/);
+  assert.match(navbarSource, /border-emerald-300\/45/);
+  assert.match(navbarSource, /EVENT/);
 });
 
 test("home hero fills the viewport when the navbar is overlaid", () => {
