@@ -96,10 +96,14 @@ export type WarehouseStatsResult = {
   };
 };
 
-type WarehouseCache = {
+type WarehouseOverviewCache = {
   mtimes: Record<string, number>;
   aggPlayer: AggPlayerRow[];
   aggTeam: AggTeamRow[];
+};
+
+type WarehouseDetailCache = {
+  mtime: number;
   aggPlayerDetail: AggPlayerDetailRow[];
 };
 
@@ -109,7 +113,8 @@ const AGG_PLAYER_PATH = path.join(ROOT, "data", "warehouse", "agg_daily_player.c
 const AGG_TEAM_PATH = path.join(ROOT, "data", "warehouse", "agg_daily_team.csv");
 const AGG_PLAYER_DETAIL_PATH = path.join(ROOT, "data", "warehouse", "agg_player_detail_breakdowns.csv");
 
-let cache: WarehouseCache | null = null;
+let overviewCache: WarehouseOverviewCache | null = null;
+let detailCache: WarehouseDetailCache | null = null;
 
 function parseCsvLine(line: string): string[] {
   const out: string[] = [];
@@ -172,28 +177,24 @@ function toWinRate(wins: number, matches: number): number {
   return Number(((wins / matches) * 100).toFixed(2));
 }
 
-function loadWarehouse(): WarehouseCache {
-  const factMtime = fs.existsSync(FACT_PATH) ? fs.statSync(FACT_PATH).mtimeMs : 0;
-  const aggPlayerMtime = fs.existsSync(AGG_PLAYER_PATH) ? fs.statSync(AGG_PLAYER_PATH).mtimeMs : 0;
-  const aggTeamMtime = fs.existsSync(AGG_TEAM_PATH) ? fs.statSync(AGG_TEAM_PATH).mtimeMs : 0;
-  const aggPlayerDetailMtime = fs.existsSync(AGG_PLAYER_DETAIL_PATH)
-    ? fs.statSync(AGG_PLAYER_DETAIL_PATH).mtimeMs
-    : 0;
+function getFileMtime(filePath: string): number {
+  return fs.existsSync(filePath) ? fs.statSync(filePath).mtimeMs : 0;
+}
+
+function loadWarehouseOverview(): WarehouseOverviewCache {
+  const aggPlayerMtime = getFileMtime(AGG_PLAYER_PATH);
+  const aggTeamMtime = getFileMtime(AGG_TEAM_PATH);
   const mtimes = {
-    [FACT_PATH]: factMtime,
     [AGG_PLAYER_PATH]: aggPlayerMtime,
     [AGG_TEAM_PATH]: aggTeamMtime,
-    [AGG_PLAYER_DETAIL_PATH]: aggPlayerDetailMtime,
   };
 
   if (
-    cache &&
-    cache.mtimes[FACT_PATH] === mtimes[FACT_PATH] &&
-    cache.mtimes[AGG_PLAYER_PATH] === mtimes[AGG_PLAYER_PATH] &&
-    cache.mtimes[AGG_TEAM_PATH] === mtimes[AGG_TEAM_PATH] &&
-    cache.mtimes[AGG_PLAYER_DETAIL_PATH] === mtimes[AGG_PLAYER_DETAIL_PATH]
+    overviewCache &&
+    overviewCache.mtimes[AGG_PLAYER_PATH] === mtimes[AGG_PLAYER_PATH] &&
+    overviewCache.mtimes[AGG_TEAM_PATH] === mtimes[AGG_TEAM_PATH]
   ) {
-    return cache;
+    return overviewCache;
   }
 
   const aggPlayer = readCsv(AGG_PLAYER_PATH).map((r) => ({
@@ -219,6 +220,16 @@ function loadWarehouse(): WarehouseCache {
     uniquePlayers: toInt(r.unique_players),
   }));
 
+  overviewCache = { mtimes, aggPlayer, aggTeam };
+  return overviewCache;
+}
+
+function loadWarehousePlayerDetails(): AggPlayerDetailRow[] {
+  const mtime = getFileMtime(AGG_PLAYER_DETAIL_PATH);
+  if (detailCache && detailCache.mtime === mtime) {
+    return detailCache.aggPlayerDetail;
+  }
+
   const aggPlayerDetail = readCsv(AGG_PLAYER_DETAIL_PATH).map((r) => ({
     matchDate: r.match_date,
     playerEntityId: r.player_entity_id,
@@ -232,8 +243,8 @@ function loadWarehouse(): WarehouseCache {
     winRate: toFloat(r.win_rate),
   }));
 
-  cache = { mtimes, aggPlayer, aggTeam, aggPlayerDetail };
-  return cache;
+  detailCache = { mtime, aggPlayerDetail };
+  return aggPlayerDetail;
 }
 
 function byRange<T extends { matchDate: string }>(rows: T[], from: string, to: string): T[] {
@@ -264,7 +275,7 @@ export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStat
   const includeDaily = filters.includeDaily !== false;
   const includePlayerDetails = filters.includePlayerDetails !== false;
 
-  const wh = loadWarehouse();
+  const wh = loadWarehouseOverview();
 
   const scopedAggPlayer = byPlayer(
     byTeam(byRange(wh.aggPlayer, from, to), team),
@@ -365,7 +376,7 @@ export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStat
     includePlayerDetails && (playerEntityId || playerName)
       ? (() => {
           const scopedDetails = byPlayer(
-            byTeam(byRange(wh.aggPlayerDetail, from, to), team),
+            byTeam(byRange(loadWarehousePlayerDetails(), from, to), team),
             playerEntityId,
             playerName
           );

@@ -68,10 +68,17 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
   `WAREHOUSE_AGGREGATES_*` envs or derives a sibling `/warehouse` public base
   from `PLAYER_HISTORY_PUBLIC_BASE_URL`; the aggregate CSVs were uploaded to the
   data bucket under `warehouse/`.
-- Current classification: `next`
-- Remaining work: configure the public aggregate base URL in deployment only
-  when the warehouse stats route becomes an operator-approved production
-  surface. Do not move this to Supabase just because it is possible.
+- 2026-05-22 production recheck: `/api/stats/warehouse` returned `200`, the
+  derived public aggregate URLs under `/warehouse/` returned all three CSVs,
+  and Vercel/GitHub have the `PLAYER_HISTORY_PUBLIC_BASE_URL` /
+  `PLAYER_HISTORY_R2_*` env path needed for the sibling warehouse public-base
+  flow.
+- 2026-05-22 follow-up: overview requests now lazy-load only
+  `agg_daily_player.csv` and `agg_daily_team.csv`; the larger
+  `agg_player_detail_breakdowns.csv` is read only for player-detail requests.
+- Current classification: `done`
+- Remaining work: keep `fact_matches.csv` as the local source/verification
+  artifact and monitor production warehouse API latency as data volume grows.
 
 ### A3. Player H2H History Memory Pressure
 

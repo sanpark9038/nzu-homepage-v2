@@ -125,6 +125,11 @@ test("warehouse overview requests avoid loading raw fact matches", () => {
     false,
     "overview-only warehouse stats should not synchronously read fact_matches.csv"
   );
+  assert.equal(
+    readPaths.includes(path.normalize(aggPlayerDetailsPath)),
+    false,
+    "overview-only warehouse stats should not synchronously read player detail aggregates"
+  );
 });
 
 test("warehouse player detail requests use aggregate detail snapshots instead of raw facts", () => {

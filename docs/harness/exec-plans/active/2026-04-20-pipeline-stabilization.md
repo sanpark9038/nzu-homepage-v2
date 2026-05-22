@@ -1323,6 +1323,18 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   local `node --test` spawn restriction), TypeScript via `tsc --noEmit`, and
   `npm.cmd run build`.
 
+### 2026-05-22 Warehouse A2 Closure
+
+- A2 production recheck: `/api/stats/warehouse?includeDaily=false&includePlayerDetails=false`
+  returned `200`, and the derived public warehouse aggregate URLs returned all
+  three CSV snapshots from the R2 data bucket.
+- Runtime follow-up: overview-only warehouse stats now load only the daily
+  player/team aggregates. The large `agg_player_detail_breakdowns.csv` is
+  lazy-loaded only when a player detail request actually needs breakdowns.
+- Classification: A2 is now `done` in `ARCHITECTURE_BACKLOG.md`. Keep
+  `fact_matches.csv` as the local source/verification artifact and monitor API
+  latency as data volume grows.
+
 ### 2026-05-20 Serving Runtime Guard Slice
 
 - Follow-up from architecture backlog items A1, A7, and A9.
