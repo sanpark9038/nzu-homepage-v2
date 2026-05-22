@@ -38,18 +38,37 @@ type TierLoadState = {
   error: string | null;
 };
 
-const tierPlayersRequestCache = new Map<string, Promise<TierPlayersPayload>>();
+type TierPlayersCacheEntry = {
+  promise: Promise<TierPlayersPayload>;
+  expiresAt: number;
+};
+
+const TIER_LIVE_REQUEST_CACHE_MS = 15_000;
+const TIER_STATIC_REQUEST_CACHE_MS = 5 * 60 * 1000;
+const tierPlayersRequestCache = new Map<string, TierPlayersCacheEntry>();
 
 function buildTierApiUrl(queryString: string) {
   const query = String(queryString || "").trim();
   return query ? `/api/tier/players?${query}` : "/api/tier/players";
 }
 
-function loadTierPlayers(apiUrl: string) {
-  const cachedRequest = tierPlayersRequestCache.get(apiUrl);
-  if (cachedRequest) return cachedRequest;
+function isLiveTierApiUrl(apiUrl: string) {
+  try {
+    const url = new URL(apiUrl, "https://star-hosaga.local");
+    return url.searchParams.get("liveOnly") !== "false";
+  } catch {
+    return !apiUrl.includes("liveOnly=false");
+  }
+}
 
-  const request = fetch(apiUrl)
+function loadTierPlayers(apiUrl: string) {
+  const now = Date.now();
+  const cachedRequest = tierPlayersRequestCache.get(apiUrl);
+  if (cachedRequest && cachedRequest.expiresAt > now) return cachedRequest.promise;
+  if (cachedRequest) tierPlayersRequestCache.delete(apiUrl);
+
+  const cacheTtlMs = isLiveTierApiUrl(apiUrl) ? TIER_LIVE_REQUEST_CACHE_MS : TIER_STATIC_REQUEST_CACHE_MS;
+  const request = fetch(apiUrl, { cache: isLiveTierApiUrl(apiUrl) ? "no-store" : "default" })
     .then((response) => {
       if (!response.ok) throw new Error(`tier_players_${response.status}`);
       return response.json() as Promise<TierPlayersPayload>;
@@ -59,7 +78,10 @@ function loadTierPlayers(apiUrl: string) {
       throw err;
     });
 
-  tierPlayersRequestCache.set(apiUrl, request);
+  tierPlayersRequestCache.set(apiUrl, {
+    promise: request,
+    expiresAt: now + cacheTtlMs,
+  });
   return request;
 }
 

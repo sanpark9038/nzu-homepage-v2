@@ -42,9 +42,15 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(clientViewSource, /\/api\/tier\/players/);
   assert.match(clientViewSource, /fetch\(apiUrl/);
   assert.match(clientViewSource, /tierPlayersRequestCache/);
+  assert.match(clientViewSource, /TIER_LIVE_REQUEST_CACHE_MS = 15_000/);
+  assert.match(clientViewSource, /TIER_STATIC_REQUEST_CACHE_MS = 5 \* 60 \* 1000/);
+  assert.match(clientViewSource, /type TierPlayersCacheEntry/);
   assert.match(clientViewSource, /function loadTierPlayers/);
   assert.match(clientViewSource, /tierPlayersRequestCache\.get\(apiUrl\)/);
-  assert.match(clientViewSource, /tierPlayersRequestCache\.set\(apiUrl,\s*request\)/);
+  assert.match(clientViewSource, /cachedRequest\.expiresAt > now/);
+  assert.match(clientViewSource, /tierPlayersRequestCache\.delete\(apiUrl\)/);
+  assert.match(clientViewSource, /tierPlayersRequestCache\.set\(apiUrl,\s*\{/);
+  assert.match(clientViewSource, /expiresAt: now \+ cacheTtlMs/);
   assert.match(clientViewSource, /activeQueryString/);
   assert.match(clientViewSource, /tier-filter-query-change/);
   assert.match(clientViewSource, /window\.location\.search/);
