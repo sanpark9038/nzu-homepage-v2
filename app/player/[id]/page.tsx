@@ -8,6 +8,15 @@ import { playerService, type Player } from "@/lib/player-service";
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
+function buildCurrentPlayerPath(id: string) {
+  const raw = String(id || "").trim();
+  try {
+    return `/player/${encodeURIComponent(decodeURIComponent(raw))}`;
+  } catch {
+    return `/player/${encodeURIComponent(raw)}`;
+  }
+}
+
 export default async function PlayerProfileRedirectPage({
   params,
 }: {
@@ -15,7 +24,7 @@ export default async function PlayerProfileRedirectPage({
 }) {
   noStore();
   const { id } = await params;
-  const currentPath = `/player/${encodeURIComponent(id)}`;
+  const currentPath = buildCurrentPlayerPath(id);
   const parsed = parsePlayerSlug(id);
   let initialPlayerForView: Player | null = null;
 

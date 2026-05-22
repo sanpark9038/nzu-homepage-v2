@@ -47,6 +47,16 @@ test("player canonical redirects are not swallowed by lookup catch blocks", () =
   assert.match(routeSource, /if\s*\(redirectHref\)\s*redirect\(redirectHref\)/);
 });
 
+test("player canonical redirect comparison normalizes encoded route params", () => {
+  const routeSource = readProjectFile("app/player/[id]/page.tsx");
+
+  assert.match(routeSource, /function\s+buildCurrentPlayerPath/);
+  assert.match(routeSource, /decodeURIComponent\(raw\)/);
+  assert.match(routeSource, /encodeURIComponent\(decodeURIComponent\(raw\)\)/);
+  assert.match(routeSource, /const\s+currentPath\s*=\s*buildCurrentPlayerPath\(id\)/);
+  assert.doesNotMatch(routeSource, /const\s+currentPath\s*=\s*`\/player\/\$\{encodeURIComponent\(id\)\}`/);
+});
+
 test("player search page avoids prefetching secondary player links", () => {
   const viewSource = readProjectFile("app/player/player-page-view.tsx");
 
