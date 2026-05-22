@@ -1388,6 +1388,12 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   copy-neutral `PublicRouteLoading` skeleton. This improves perceived
   responsiveness when public menu navigation waits on server data without
   changing page data logic, roster state, or locked labels.
+- Match page hydration: `/match` is now split into a server `page.tsx` and
+  `MatchPageClient` island. The server page loads cached player summaries and
+  passes them as `initialPlayers`; the client keeps the previous `/api/players`
+  no-store fetch only when that server load fails. This reduces the normal
+  first-load dependency on a post-hydration API fetch while preserving fallback
+  recovery.
 
 ### 2026-05-20 Serving Runtime Guard Slice
 

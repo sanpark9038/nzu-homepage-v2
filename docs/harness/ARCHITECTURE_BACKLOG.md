@@ -382,9 +382,23 @@ Source: operator-provided sub-AI UX/performance report summary on 2026-05-22.
   locked labels or route data behavior.
 - 2026-05-22 verification: `test:public-route-loading` guards the route
   boundary files and the shared loading component shape.
-- Remaining work: `/match` is a client-heavy page and should be handled as a
-  separate server-shell/client-island split rather than by adding a generic
-  loading boundary.
+- Remaining work: none for this slice.
+
+### U4. Match Page Initial Player Hydration
+
+- Area: `app/match/page.tsx`, `app/match/MatchPageClient.tsx`
+- Question: `/match` can feel slower than other public routes because the page
+  used to mount as one client component and then fetch `/api/players` before
+  autocomplete/player counts became usable.
+- Current classification: `done`
+- Reason: `/match` now uses a server page shell to load the cached player list
+  and pass `initialPlayers` into a client island. The existing no-store
+  `/api/players` fetch remains only as a fallback when server hydration fails,
+  preserving recovery behavior without making it the normal first-load path.
+- 2026-05-22 verification: `test:matchup-page-shell-contract` guards the
+  server shell, initial player hydration, and fallback-only client fetch shape.
+- Remaining work: if `/match` still feels heavy, profile bundle size or split
+  the large client island into smaller interaction panels.
 
 ## Current Not-A-Source Notes
 
