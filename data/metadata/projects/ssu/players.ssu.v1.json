@@ -26,13 +26,14 @@
         "team_ko:수술대",
         "team_en:ssu",
         "race:zerg",
-        "tier:god"
+        "tier:god",
+        "display_alias:true"
       ],
       "missing_in_master": false,
       "role_title": "",
       "role_priority": null,
       "tier_key": "god",
-      "display_name": "박상현",
+      "display_name": "짭제",
       "last_checked_at": "2026-05-14T16:06:41.824Z",
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
