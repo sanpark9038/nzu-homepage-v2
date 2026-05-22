@@ -370,6 +370,22 @@ Source: operator-provided sub-AI UX/performance report summary on 2026-05-22.
 - Remaining work: if live vote totals need real-time refresh later, add a
   dedicated totals-only endpoint rather than reintroducing full match polling.
 
+### U3. Public Route Transition Loading Boundaries
+
+- Area: `app/*/loading.tsx`, `components/PublicRouteLoading.tsx`
+- Question: data-heavy public pages can feel stuck during menu transitions when
+  the next route waits on server work before replacing the current view.
+- Current classification: `done`
+- Reason: public data routes now expose small route-level `loading.tsx`
+  boundaries for board, player, schedule, prediction, teams, and tier. The
+  loading UI is shared, skeleton-based, and copy-neutral so it does not change
+  locked labels or route data behavior.
+- 2026-05-22 verification: `test:public-route-loading` guards the route
+  boundary files and the shared loading component shape.
+- Remaining work: `/match` is a client-heavy page and should be handled as a
+  separate server-shell/client-island split rather than by adding a generic
+  loading boundary.
+
 ## Current Not-A-Source Notes
 
 - Root-level `CODEX_BRIEFING.md` is untracked and encoding-corrupted in the current workspace view.

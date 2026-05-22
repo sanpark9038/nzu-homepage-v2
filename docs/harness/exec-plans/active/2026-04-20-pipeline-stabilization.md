@@ -1383,6 +1383,11 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   and `readRemotePredictionState()` scopes that viewer read to visible matches
   for the current voter instead of falling back to an all-votes read when
   aggregate totals are disabled.
+- Route transition loading: board, player, schedule, prediction, teams, and
+  tier now have route-level `loading.tsx` boundaries backed by the shared
+  copy-neutral `PublicRouteLoading` skeleton. This improves perceived
+  responsiveness when public menu navigation waits on server data without
+  changing page data logic, roster state, or locked labels.
 
 ### 2026-05-20 Serving Runtime Guard Slice
 
