@@ -121,6 +121,14 @@ test("board list uses cached lightweight summary data and invalidates it on writ
   }
 });
 
+test("board all-list falls back to full rows when summary reads are unavailable", () => {
+  const board = read("lib/board.ts");
+
+  assert.match(board, /listBoardPostSummariesFromFullRows/);
+  assert.match(board, /!scheduleResult\.storageReady \|\| !regularResult\.storageReady/);
+  assert.match(board, /return listBoardPostSummariesFromFullRows\(limit\)/);
+});
+
 test("package exposes the board comments contract test", () => {
   const pkg = JSON.parse(read("package.json"));
   assert.equal(pkg.scripts["test:board:comments"], "node scripts/tools/board-comments-contract.test.js");

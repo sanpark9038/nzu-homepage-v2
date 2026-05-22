@@ -459,6 +459,29 @@ async function listRegularBoardPostSummaries(limit: number) {
   }
 }
 
+async function listBoardPostSummariesFromFullRows(limit: number) {
+  const result = await listBoardPosts(Math.max(limit, BOARD_SCHEDULE_SCAN_LIMIT));
+  return {
+    ok: true as const,
+    posts: result.posts
+      .filter((post) => !isPastSchedulePost(post))
+      .slice(0, limit)
+      .map((post) => ({
+        id: post.id,
+        title: post.title,
+        author_name: post.author_name,
+        created_at: post.created_at,
+        category: post.category,
+        image_url: post.image_url,
+        video_url: post.video_url,
+        published: post.published,
+        schedule_date: post.schedule_date,
+        schedule_start_time: post.schedule_start_time,
+      })),
+    storageReady: result.storageReady,
+  };
+}
+
 export async function listBoardPostSummaries(limit = BOARD_POST_LIMIT, filter: BoardListFilter = "all") {
   if (filter === "past-schedule") {
     return listBoardSchedulePostSummaries(limit, "past");
@@ -472,6 +495,10 @@ export async function listBoardPostSummaries(limit = BOARD_POST_LIMIT, filter: B
     listBoardSchedulePostSummaries(limit, "active"),
     listRegularBoardPostSummaries(limit),
   ]);
+
+  if (!scheduleResult.storageReady || !regularResult.storageReady) {
+    return listBoardPostSummariesFromFullRows(limit);
+  }
 
   return {
     ok: true as const,
