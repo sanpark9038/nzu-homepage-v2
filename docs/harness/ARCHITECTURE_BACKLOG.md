@@ -324,6 +324,49 @@ Source: operator-provided sub-AI report summary on 2026-05-20.
 - Remaining work: if real OAuth failures become frequent, add user-facing
   retry/error messaging and structured operational logging.
 
+## 2026-05-22 Public UX Performance Intake
+
+Source: operator-provided sub-AI UX/performance report summary on 2026-05-22.
+
+### U1. Navbar Session Fetch On Public Navigation
+
+- Area: `components/Navbar.tsx`, `app/layout.tsx`,
+  `app/api/auth/session/route.ts`
+- Question: public page transitions may refetch `/api/auth/session` on every
+  menu navigation.
+- Current classification: `hold`
+- Reason: the concern is not supported by the current App Router layout shape.
+  `Navbar` is rendered from the shared root layout and the session fetch lives
+  in a `useEffect(..., [])`, so normal public `Link` transitions should rerender
+  active nav state without remounting the navbar or refetching the session.
+  The session route itself only parses the signed cookie and does not hit the
+  database.
+- 2026-05-22 verification: `test:navbar-glass-header` now asserts the shared
+  root-layout placement and guards against changing the session fetch into a
+  pathname-dependent effect.
+- Remaining work: only revisit if browser resource timing shows repeated
+  `/api/auth/session` fetches during client-side public navigation.
+
+### U2. Prediction Initial Client Refetch Flicker
+
+- Area: `components/prediction/TournamentPredictionClient.tsx`,
+  `app/api/prediction/route.ts`
+- Question: the prediction page server-renders `initialMatches`, then the
+  client immediately refetches the full `/api/prediction` payload and overwrites
+  the card list.
+- Current classification: `done`
+- Reason: this was a real UX/performance risk because first paint could be
+  followed by a second full match hydration request and visible vote-card
+  updates. The client now keeps server-rendered matches as the initial card
+  source and refreshes only viewer state (`session` / `myVotes`) through
+  `/api/prediction?scope=viewer`. The full match payload is still returned after
+  a successful vote POST so optimistic vote state can be reconciled.
+- 2026-05-22 verification: `test:prediction-cache-contract` covers the viewer
+  refresh path and verifies the lightweight API branch returns before loading
+  cached players and building the full matches payload.
+- Remaining work: if live vote totals need real-time refresh later, add a
+  dedicated totals-only endpoint rather than reintroducing full match polling.
+
 ## Current Not-A-Source Notes
 
 - Root-level `CODEX_BRIEFING.md` is untracked and encoding-corrupted in the current workspace view.

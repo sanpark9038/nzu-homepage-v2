@@ -1356,6 +1356,29 @@ Outcome: `run-manual-refresh.js` now builds chunked collection args after the al
   fallback until opponent identity coverage is high enough to remove it safely
   or an indexed DB/query path is approved.
 
+### 2026-05-22 Public UX Performance Slice
+
+- Scope boundary: this slice is separate from the scheduled pipeline /
+  Discord / ops-review verification that should wait for the next real run. No
+  roster data, Supabase SQL, pipeline alert rules, or locked UI labels changed.
+- Navbar review: the reported repeated session-fetch risk is not supported by
+  the current root layout. `Navbar` is shared from `app/layout.tsx`, and its
+  `/api/auth/session` call is mounted through `useEffect(..., [])`, not tied to
+  pathname changes. The item is classified as `hold` in
+  `ARCHITECTURE_BACKLOG.md`; `test:navbar-glass-header` now guards the shared
+  layout and empty-dependency session-fetch shape.
+- Prediction review: the reported initial flicker risk was valid. The page
+  already server-renders `initialMatches`, but the client immediately refetched
+  the full `/api/prediction` payload and overwrote matches after hydration.
+- Fix direction: `/api/prediction?scope=viewer` now returns only viewer state
+  (`session` and `myVotes`) before loading cached players or building full match
+  cards. `TournamentPredictionClient` uses that viewer scope on mount and its
+  60-second refresh, so server-rendered match cards are not overwritten by the
+  initial client refresh. Vote POST still returns the full payload to reconcile
+  an actual vote action.
+- Regression coverage: `test:prediction-cache-contract` covers the viewer
+  refresh and lightweight API branch.
+
 ### 2026-05-20 Serving Runtime Guard Slice
 
 - Follow-up from architecture backlog items A1, A7, and A9.

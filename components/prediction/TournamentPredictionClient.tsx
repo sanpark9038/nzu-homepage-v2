@@ -283,20 +283,18 @@ export function TournamentPredictionClient({
   }, []);
 
   useEffect(() => {
-    const refresh = async () => {
-      const res = await fetch("/api/prediction", { cache: "no-store" });
+    const refreshViewerState = async () => {
+      const res = await fetch("/api/prediction?scope=viewer", { cache: "no-store" });
       const json = (await res.json().catch(() => ({}))) as {
-        matches?: PredictionMatch[];
         myVotes?: MyVoteState;
         session?: PredictionSession | null;
       };
-      if (Array.isArray(json.matches)) setMatches(json.matches);
       if (json.myVotes && typeof json.myVotes === "object") setMyVotes(json.myVotes);
       if ("session" in json) setSession(json.session || null);
     };
 
-    void refresh();
-    const interval = window.setInterval(refresh, 60000);
+    void refreshViewerState();
+    const interval = window.setInterval(refreshViewerState, 60000);
     return () => window.clearInterval(interval);
   }, []);
 

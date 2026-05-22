@@ -27,10 +27,27 @@ function serializePublicSession(session: Awaited<ReturnType<typeof getPublicSess
     : null;
 }
 
-export async function GET() {
-  const players = await playerService.getCachedPlayersList();
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
   const session = await getPublicSession();
   const voterId = session ? getPredictionVoterId(session) : "";
+  const scope = searchParams.get("scope");
+
+  if (scope === "viewer") {
+    const state = voterId
+      ? await loadPredictionState({
+          voterId,
+          includeVoteTotals: true,
+        })
+      : null;
+    return NextResponse.json({
+      ok: true,
+      myVotes: state ? getPredictionMyVotes(state.votes, voterId) : {},
+      session: serializePublicSession(session),
+    });
+  }
+
+  const players = await playerService.getCachedPlayersList();
   const state = await loadPredictionState({
     voterId,
     includeVoteTotals: true,

@@ -46,6 +46,17 @@ test("navbar does not server-default every route to home overlay", () => {
   assert.match(source, /resolveNavbarPathname\(pathname\)/);
 });
 
+test("navbar session check runs from the shared root layout mount only", () => {
+  const navbarSource = readProjectFile("components/Navbar.tsx");
+  const layoutSource = readProjectFile("app/layout.tsx");
+
+  assert.match(layoutSource, /<Navbar \/>/);
+  assert.match(navbarSource, /fetch\("\/api\/auth\/session",\s*\{\s*cache:\s*"no-store"\s*\}\)/);
+  assert.match(navbarSource, /useEffect\(\(\) => \{[\s\S]*?\/api\/auth\/session[\s\S]*?\},\s*\[\]\)/);
+  assert.doesNotMatch(navbarSource, /useEffect\(\(\) => \{[\s\S]*?\/api\/auth\/session[\s\S]*?\},\s*\[pathname\]\)/);
+  assert.doesNotMatch(navbarSource, /useEffect\(\(\) => \{[\s\S]*?\/api\/auth\/session[\s\S]*?\},\s*\[resolvedPathname\]\)/);
+});
+
 test("navbar buttons use shared readable sizing instead of tiny per-page typography", () => {
   const source = readProjectFile("components/Navbar.tsx");
 
