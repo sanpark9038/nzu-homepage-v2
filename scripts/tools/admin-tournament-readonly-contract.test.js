@@ -75,8 +75,23 @@ test("admin tournament enforces the shared four-player participant team limit", 
   assert.match(clientSource, /is_placeholder\?: boolean/);
   assert.match(clientSource, /disabled=\{saving \|\| readOnly \|\| p\.is_placeholder\}/);
   assert.match(routeSource, /import \{ TOURNAMENT_TEAM_SIZE \}/);
-  assert.match(routeSource, /targetTeam\.player_ids\.length \+ \(targetTeam\.placeholder_players \|\| \[\]\)\.length >= TOURNAMENT_TEAM_SIZE/);
+  assert.match(routeSource, /TOURNAMENT_TEAM_MEMBER_CHECK_COLUMNS\s*=\s*"id"/);
+  assert.match(routeSource, /async function countVisibleTournamentTeamMembers/);
+  assert.match(routeSource, /\.select\(TOURNAMENT_TEAM_MEMBER_CHECK_COLUMNS\)/);
+  assert.match(routeSource, /visibleMemberCount >= TOURNAMENT_TEAM_SIZE/);
+  assert.doesNotMatch(routeSource, /targetTeam\.player_ids\.length \+ \(targetTeam\.placeholder_players \|\| \[\]\)\.length >= TOURNAMENT_TEAM_SIZE/);
   assert.match(homeSource, /orderedPlayers\.slice\(0,\s*TOURNAMENT_TEAM_SIZE\)/);
+});
+
+test("admin tournament materializes eight participant teams", () => {
+  const homeSource = readProjectFile("lib/tournament-home.ts");
+  const constantsSource = readProjectFile("lib/tournament-constants.ts");
+
+  assert.match(constantsSource, /TOURNAMENT_TEAM_COUNT\s*=\s*8/);
+  assert.match(homeSource, /import \{ TOURNAMENT_TEAM_COUNT, TOURNAMENT_TEAM_SIZE \}/);
+  assert.match(homeSource, /while \(teams\.length < TOURNAMENT_TEAM_COUNT\)/);
+  assert.match(homeSource, /\.slice\(0,\s*TOURNAMENT_TEAM_COUNT\)/);
+  assert.doesNotMatch(homeSource, /\.slice\(0,\s*6\)/);
 });
 
 test("admin tournament API includes placeholder-only display players in team rows", () => {

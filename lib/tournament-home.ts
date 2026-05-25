@@ -3,7 +3,7 @@ import path from "node:path";
 import { revalidateTag, unstable_cache } from "next/cache";
 import type { Database } from "@/lib/database.types";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
-import { TOURNAMENT_TEAM_SIZE } from "@/lib/tournament-constants";
+import { TOURNAMENT_TEAM_COUNT, TOURNAMENT_TEAM_SIZE } from "@/lib/tournament-constants";
 
 type PlayerRow = Database["public"]["Tables"]["players"]["Row"];
 type Player = Pick<
@@ -68,6 +68,23 @@ export type TournamentHomeConfig = {
   teams?: TournamentTeamConfig[];
 };
 
+type TournamentHomeConfigStore = {
+  from(table: "tournament_home_config"): {
+    select(columns: string): {
+      eq(column: string, value: string): {
+        maybeSingle(): Promise<{
+          data?: { config?: unknown } | null;
+          error?: { message?: string } | null;
+        }>;
+      };
+    };
+    upsert(
+      row: { id: string; config: TournamentHomeConfig; updated_at?: string },
+      options: { onConflict: string }
+    ): Promise<{ error?: { message?: string } | null }>;
+  };
+};
+
 export type TournamentHomeTeam = {
   teamCode: string;
   teamName: string;
@@ -118,10 +135,36 @@ export function writeTournamentHomeConfig(config: TournamentHomeConfig) {
   );
 }
 
+function createDefaultTournamentTeamConfig(index: number): TournamentTeamConfig {
+  return {
+    team_code: `t${index + 1}`,
+    team_name: `임시 ${index + 1}팀`,
+    player_ids: [],
+    player_names: [],
+    captain_player_id: "",
+    captain_player_name: "",
+    placeholder_players: [],
+  };
+}
+
 function normalizeTournamentHomeConfig(config: TournamentHomeConfig): TournamentHomeConfig {
+  const teams: TournamentTeamConfig[] = (Array.isArray(config.teams) ? config.teams : [])
+    .slice(0, TOURNAMENT_TEAM_COUNT)
+    .map((team, index) => ({
+      ...createDefaultTournamentTeamConfig(index),
+      ...team,
+      player_ids: Array.isArray(team.player_ids) ? team.player_ids : [],
+      player_names: Array.isArray(team.player_names) ? team.player_names : [],
+      placeholder_players: Array.isArray(team.placeholder_players) ? team.placeholder_players : [],
+    }));
+
+  while (teams.length < TOURNAMENT_TEAM_COUNT) {
+    teams.push(createDefaultTournamentTeamConfig(teams.length));
+  }
+
   return {
     ...config,
-    teams: Array.isArray(config.teams) ? config.teams : [],
+    teams,
   };
 }
 
@@ -129,7 +172,7 @@ async function readRemoteTournamentHomeConfig(): Promise<TournamentHomeConfig | 
   if (!isTournamentHomeSupabaseStoreEnabled()) return null;
 
   try {
-    const supabaseAdmin = createSupabaseAdminClient() as any;
+    const supabaseAdmin = createSupabaseAdminClient() as unknown as TournamentHomeConfigStore;
     const { data, error } = await supabaseAdmin
       .from("tournament_home_config")
       .select("config")
@@ -167,7 +210,7 @@ export async function saveTournamentHomeConfig(config: TournamentHomeConfig): Pr
   });
 
   if (isTournamentHomeSupabaseStoreEnabled()) {
-    const supabaseAdmin = createSupabaseAdminClient() as any;
+    const supabaseAdmin = createSupabaseAdminClient() as unknown as TournamentHomeConfigStore;
     const { error } = await supabaseAdmin
       .from("tournament_home_config")
       .upsert(
@@ -251,7 +294,7 @@ export function buildTournamentHomeTeamsFromConfig(
     allPlayers.map((player) => [normalizeText(player.name).toLowerCase(), player])
   );
 
-  return (config.teams || []).slice(0, 6).map((team, index) => {
+  return normalizeTournamentHomeConfig(config).teams!.slice(0, TOURNAMENT_TEAM_COUNT).map((team, index) => {
     const orderedPlayers: Player[] = [];
     const seenIds = new Set<string>();
     const captainPlayerId = normalizeText(team.captain_player_id) || null;

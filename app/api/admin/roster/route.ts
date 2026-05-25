@@ -134,6 +134,7 @@ const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
 const RESUMES_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_resumes.v1.json");
+const TOURNAMENT_TEAM_MEMBER_CHECK_COLUMNS = "id";
 
 function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as T;
@@ -256,6 +257,34 @@ function mapTournamentTeamsForAdmin(
 
 function isTournamentHomeWriteAction(action: string) {
   return action === "recruit_player" || action === "remove_player_from_slot";
+}
+
+async function countVisibleTournamentTeamMembers(team: TournamentHomeTeamConfig) {
+  const playerIds = Array.from(
+    new Set((team.player_ids || []).map((id) => String(id || "").trim()).filter(Boolean))
+  );
+  const placeholderCount = (team.placeholder_players || []).length;
+
+  if (playerIds.length === 0) {
+    return placeholderCount;
+  }
+
+  const { data, error } = await supabase
+    .from("players")
+    .select(TOURNAMENT_TEAM_MEMBER_CHECK_COLUMNS)
+    .in("id", playerIds);
+
+  if (error) {
+    throw error;
+  }
+
+  const resolvedPlayerIds = new Set(
+    ((data || []) as Array<{ id?: string | null }>)
+      .map((player) => String(player.id || "").trim())
+      .filter(Boolean)
+  );
+
+  return resolvedPlayerIds.size + placeholderCount;
 }
 
 function slug(v: string) {
@@ -535,7 +564,8 @@ export async function POST(req: Request) {
     }
 
     // 2. Enforce the shared participant team size limit.
-    if (targetTeam.player_ids.length + (targetTeam.placeholder_players || []).length >= TOURNAMENT_TEAM_SIZE) {
+    const visibleMemberCount = await countVisibleTournamentTeamMembers(targetTeam);
+    if (visibleMemberCount >= TOURNAMENT_TEAM_SIZE) {
       return NextResponse.json(
         { ok: false, message: `\uCC38\uAC00\uD300\uC740 \uCD5C\uB300 ${TOURNAMENT_TEAM_SIZE}\uBA85\uAE4C\uC9C0 \uAD6C\uC131\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.` },
         { status: 409 }
