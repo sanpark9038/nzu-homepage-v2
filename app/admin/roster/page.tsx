@@ -2,12 +2,13 @@ import Link from "next/link";
 import { AdminNav } from "@/components/admin/AdminNav";
 import RosterCorrectionEditor from "@/components/admin/roster/RosterCorrectionEditor";
 import { isAdminWriteDisabled } from "@/lib/admin-runtime";
+import { isRemoteRosterAdminCorrectionStoreEnabled } from "@/lib/roster-admin-store";
 import LogoutButton from "../ops/LogoutButton";
 
 export const dynamic = "force-dynamic";
 
 export default function AdminRosterPage() {
-  const readOnly = isAdminWriteDisabled();
+  const readOnly = isAdminWriteDisabled() && !isRemoteRosterAdminCorrectionStoreEnabled();
 
   return (
     <main className="min-h-screen bg-background p-6 text-foreground md:p-10">

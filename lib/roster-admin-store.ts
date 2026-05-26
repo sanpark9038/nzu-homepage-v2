@@ -38,6 +38,9 @@ type ManualOverrideSemantics = Pick<ManualOverrideRow, "manual_lock" | "manual_m
 type RosterAdminCorrectionRow = Tables<"roster_admin_corrections">;
 type RosterAdminCorrectionInsert = TablesInsert<"roster_admin_corrections">;
 
+const ROSTER_ADMIN_CORRECTION_COLUMNS =
+  "entity_id,excluded,exclusion_reason,manual_lock,manual_mode,name,note,race,resume_requested_at,team_code,team_name,tier,updated_at,wr_id" as const;
+
 const ROOT = process.cwd();
 const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
@@ -62,6 +65,10 @@ function hasSupabaseAdminEnv() {
     String(process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim() &&
       String(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || "").trim()
   );
+}
+
+export function isRemoteRosterAdminCorrectionStoreEnabled() {
+  return hasSupabaseAdminEnv();
 }
 
 function readLocalOverrides(): ManualOverrideRow[] {
@@ -147,7 +154,7 @@ async function readRemoteCorrections(): Promise<RosterAdminCorrectionRow[]> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("roster_admin_corrections")
-    .select("*")
+    .select(ROSTER_ADMIN_CORRECTION_COLUMNS)
     .order("updated_at", { ascending: false });
 
   if (error) throw error;
@@ -266,7 +273,7 @@ export async function loadRemoteRosterAdminCorrection(entityId: string) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("roster_admin_corrections")
-    .select("*")
+    .select(ROSTER_ADMIN_CORRECTION_COLUMNS)
     .eq("entity_id", entityId)
     .maybeSingle();
   if (error) throw error;
