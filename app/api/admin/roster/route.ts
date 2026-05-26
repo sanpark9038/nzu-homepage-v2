@@ -3,6 +3,7 @@ import path from "path";
 import { NextResponse } from "next/server";
 import { getAdminWriteDisabledMessage, isAdminWriteDisabled } from "@/lib/admin-runtime";
 import {
+  isRemoteRosterAdminCorrectionStoreEnabled,
   loadMergedRosterAdminState,
   saveRemoteRosterAdminCorrection,
   shouldApplyManualAffiliationOverride,
@@ -257,6 +258,16 @@ function mapTournamentTeamsForAdmin(
 
 function isTournamentHomeWriteAction(action: string) {
   return action === "recruit_player" || action === "remove_player_from_slot";
+}
+
+function blockLocalRosterCorrectionFallbackInDeployment(remoteSaved: boolean) {
+  if (isAdminWriteDisabled() && !remoteSaved) {
+    return NextResponse.json(
+      { ok: false, message: getAdminWriteDisabledMessage("roster correction") },
+      { status: 503 }
+    );
+  }
+  return null;
 }
 
 async function countVisibleTournamentTeamMembers(team: TournamentHomeTeamConfig) {
@@ -671,10 +682,12 @@ export async function PATCH(req: Request) {
   const preTeamCode = String(parsedBody.team_code || "").trim().toLowerCase();
   const allowRosterCorrectionWrite =
     preAction === "set_exclusion" || (!preAction && Boolean(preEntityId) && Boolean(preTeamCode));
+  const allowDeployedRosterCorrectionWrite =
+    allowRosterCorrectionWrite && isRemoteRosterAdminCorrectionStoreEnabled();
   const allowTournamentHomeWrite =
     (preAction === "set_team_captain" || preAction === "update_team_name") &&
     isTournamentHomeSupabaseStoreEnabled();
-  if (isAdminWriteDisabled() && !allowRosterCorrectionWrite && !allowTournamentHomeWrite) {
+  if (isAdminWriteDisabled() && !allowDeployedRosterCorrectionWrite && !allowTournamentHomeWrite) {
     return NextResponse.json(
       { ok: false, message: getAdminWriteDisabledMessage("tournament roster") },
       { status: 403 }
@@ -712,6 +725,9 @@ export async function PATCH(req: Request) {
         resume_requested_at: null,
         updated_at: updatedAt,
       });
+
+      const fallbackBlocked = blockLocalRosterCorrectionFallbackInDeployment(remoteSaved);
+      if (fallbackBlocked) return fallbackBlocked;
 
       if (!remoteSaved) {
         const exclusions = readExclusions().filter((row) => !matchesExclusion(row, player));
@@ -757,6 +773,9 @@ export async function PATCH(req: Request) {
       resume_requested_at: null,
       updated_at: updatedAt,
     });
+
+    const fallbackBlocked = blockLocalRosterCorrectionFallbackInDeployment(remoteSaved);
+    if (fallbackBlocked) return fallbackBlocked;
 
     if (!remoteSaved) {
       const overrides = readOverrides().filter((row) => String(row.entity_id || "").trim() !== entityId);
@@ -981,7 +1000,10 @@ export async function DELETE(req: Request) {
   const allowRosterCorrectionWrite =
     parsedBody.clear_override === true || parsedBody.clear_exclusion === true;
 
-  if (isAdminWriteDisabled() && !allowRosterCorrectionWrite) {
+  const allowDeployedRosterCorrectionWrite =
+    allowRosterCorrectionWrite && isRemoteRosterAdminCorrectionStoreEnabled();
+
+  if (isAdminWriteDisabled() && !allowDeployedRosterCorrectionWrite) {
     return NextResponse.json(
       { ok: false, message: getAdminWriteDisabledMessage("tournament roster") },
       { status: 403 }
@@ -1008,6 +1030,9 @@ export async function DELETE(req: Request) {
         updated_at: new Date().toISOString(),
       });
 
+      const fallbackBlocked = blockLocalRosterCorrectionFallbackInDeployment(remoteSaved);
+      if (fallbackBlocked) return fallbackBlocked;
+
       if (!remoteSaved) {
         const overrides = readOverrides().filter((row) => String(row.entity_id || "").trim() !== entityId);
         writeOverrides(overrides);
@@ -1026,6 +1051,9 @@ export async function DELETE(req: Request) {
         name: player?.name,
         wr_id: player?.wr_id,
       });
+
+      const fallbackBlocked = blockLocalRosterCorrectionFallbackInDeployment(remoteSaved);
+      if (fallbackBlocked) return fallbackBlocked;
 
       if (!remoteSaved) {
         const exclusions = readExclusions().filter((row) =>
