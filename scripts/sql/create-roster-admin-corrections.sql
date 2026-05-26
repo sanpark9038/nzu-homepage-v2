@@ -20,3 +20,10 @@ create index if not exists roster_admin_corrections_wr_id_idx
 
 create index if not exists roster_admin_corrections_updated_at_idx
   on public.roster_admin_corrections (updated_at desc);
+
+alter table public.roster_admin_corrections enable row level security;
+
+revoke all on table public.roster_admin_corrections from anon, authenticated;
+grant select, insert, update, delete on table public.roster_admin_corrections to service_role;
+
+notify pgrst, 'reload schema';
