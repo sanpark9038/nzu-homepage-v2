@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-15T18:10:13.593Z",
+  "generated_at": "2026-05-28T08:54:49.3008552Z",
   "project": "calm",
   "team_name": "캄몬스타즈",
   "team_code": "calm",
@@ -13,7 +13,7 @@
     "츠캄",
     "츠캄몬스타즈"
   ],
-  "roster_count": 19,
+  "roster_count": 20,
   "roster": [
     {
       "team_name": "캄몬스타즈",
@@ -776,6 +776,47 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=1",
       "profile_kind": "default",
       "soop_user_id": "brainzerg7"
+    },
+    {
+      "team_name": "캄몬스타즈",
+      "team_code": "calm",
+      "entity_id": "eloboard:female:1039",
+      "wr_id": 1039,
+      "gender": "female",
+      "name": "낭니",
+      "display_name": "낭니",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1039",
+      "profile_kind": "default",
+      "tier": "9",
+      "race": "Zerg",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "gender:female",
+        "project:calm",
+        "team:calm",
+        "team_code:calm",
+        "team_ko:캄몬스타즈",
+        "team_en:calm",
+        "race:zerg",
+        "tier:9",
+        "team_alias:캄몬스타즈",
+        "team_alias:calm",
+        "team_alias:CALM",
+        "team_alias:TSUCALM",
+        "team_alias:츠캄",
+        "team_alias:츠캄몬스타즈"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "9",
+      "last_checked_at": null,
+      "last_match_at": null,
+      "check_priority": "normal",
+      "check_interval_days": 3,
+      "last_changed_at": "2026-05-28T08:54:49.3008552Z",
+      "soop_user_id": "sksmsskdsl10"
     }
   ],
   "source_file": "data/metadata/projects/calm/players.calm.v1.json",
