@@ -200,3 +200,67 @@ test("warehouse stats API gates runtime serving on aggregate readiness", () => {
   assert.match(source, /health\.servingReady/);
   assert.doesNotMatch(source, /if\s*\(\s*!health\.exists\s*\)/);
 });
+
+test("warehouse stats can prefer fresh remote aggregate snapshots over stale bundled CSVs", async () => {
+  const warehouseStats = loadFreshWarehouseStats();
+  const requested = [];
+
+  const stats = await warehouseStats.getWarehouseStatsAsync(
+    {
+      from: "2026-05-28",
+      to: "2026-05-28",
+      includeDaily: true,
+      includePlayerDetails: false,
+    },
+    {
+      env: {
+        WAREHOUSE_AGGREGATES_PUBLIC_BASE_URL: "https://data.example.com/warehouse",
+      },
+      fetchImpl: async (url) => {
+        requested.push(url);
+        const file = path.basename(new URL(url).pathname);
+        if (file === "agg_daily_player.csv") {
+          return {
+            ok: true,
+            status: 200,
+            text: async () =>
+              [
+                "match_date,player_entity_id,player_name,team,tier,race,matches,wins,losses,win_rate",
+                "2026-05-28,eloboard:male:1,Remote Player,calm,1,T,339,170,169,50.15",
+              ].join("\n"),
+          };
+        }
+        if (file === "agg_daily_team.csv") {
+          return {
+            ok: true,
+            status: 200,
+            text: async () =>
+              [
+                "match_date,team,matches,wins,losses,win_rate,unique_players",
+                "2026-05-28,calm,339,170,169,50.15,1",
+              ].join("\n"),
+          };
+        }
+        if (file === "agg_player_detail_breakdowns.csv") {
+          return {
+            ok: true,
+            status: 200,
+            text: async () =>
+              "match_date,player_entity_id,player_name,team,breakdown_type,breakdown_value,matches,wins,losses,win_rate\n",
+          };
+        }
+        throw new Error(`unexpected URL ${url}`);
+      },
+    }
+  );
+
+  assert.equal(stats.overview.matches, 339);
+  assert.deepEqual(
+    requested,
+    [
+      "https://data.example.com/warehouse/agg_daily_player.csv",
+      "https://data.example.com/warehouse/agg_daily_team.csv",
+    ],
+    "overview requests should fetch only the remote aggregate files needed for overview stats"
+  );
+});

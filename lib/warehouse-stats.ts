@@ -107,6 +107,27 @@ type WarehouseDetailCache = {
   aggPlayerDetail: AggPlayerDetailRow[];
 };
 
+type RemoteWarehouseOverviewCache = {
+  key: string;
+  expiresAt: number;
+  mtimes: Record<string, number>;
+  aggPlayer: AggPlayerRow[];
+  aggTeam: AggTeamRow[];
+};
+
+type RemoteWarehouseDetailCache = {
+  key: string;
+  expiresAt: number;
+  aggPlayerDetail: AggPlayerDetailRow[];
+};
+
+type WarehouseRuntimeOptions = {
+  env?: Record<string, string | undefined>;
+  fetchImpl?: typeof fetch;
+  nowMs?: number;
+  remoteTtlMs?: number;
+};
+
 const ROOT = process.cwd();
 const FACT_PATH = path.join(ROOT, "data", "warehouse", "fact_matches.csv");
 const AGG_PLAYER_PATH = path.join(ROOT, "data", "warehouse", "agg_daily_player.csv");
@@ -115,6 +136,14 @@ const AGG_PLAYER_DETAIL_PATH = path.join(ROOT, "data", "warehouse", "agg_player_
 
 let overviewCache: WarehouseOverviewCache | null = null;
 let detailCache: WarehouseDetailCache | null = null;
+let remoteOverviewCache: RemoteWarehouseOverviewCache | null = null;
+let remoteDetailCache: RemoteWarehouseDetailCache | null = null;
+
+const REMOTE_CACHE_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_REMOTE_PREFIX = "warehouse";
+const AGG_PLAYER_FILE = "agg_daily_player.csv";
+const AGG_TEAM_FILE = "agg_daily_team.csv";
+const AGG_PLAYER_DETAIL_FILE = "agg_player_detail_breakdowns.csv";
 
 function parseCsvLine(line: string): string[] {
   const out: string[] = [];
@@ -146,9 +175,8 @@ function parseCsvLine(line: string): string[] {
   return out;
 }
 
-function readCsv(filePath: string): CsvRow[] {
-  if (!fs.existsSync(filePath)) return [];
-  const raw = fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "");
+function parseCsvText(rawText: string): CsvRow[] {
+  const raw = rawText.replace(/^\uFEFF/, "");
   const lines = raw.split(/\r?\n/).filter((l) => l.length > 0);
   if (lines.length === 0) return [];
   const headers = parseCsvLine(lines[0]);
@@ -160,6 +188,11 @@ function readCsv(filePath: string): CsvRow[] {
     });
     return row;
   });
+}
+
+function readCsv(filePath: string): CsvRow[] {
+  if (!fs.existsSync(filePath)) return [];
+  return parseCsvText(fs.readFileSync(filePath, "utf8"));
 }
 
 function toInt(v: string): number {
@@ -181,6 +214,90 @@ function getFileMtime(filePath: string): number {
   return fs.existsSync(filePath) ? fs.statSync(filePath).mtimeMs : 0;
 }
 
+function normalizeBaseUrl(value: string | undefined): string {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function normalizePrefix(value: string | undefined): string {
+  return String(value || DEFAULT_REMOTE_PREFIX).trim().replace(/^\/+|\/+$/g, "") || DEFAULT_REMOTE_PREFIX;
+}
+
+function deriveSiblingPublicBaseUrl(value: string | undefined, sourcePrefix: string, targetPrefix: string): string {
+  const baseUrl = normalizeBaseUrl(value);
+  if (!baseUrl) return "";
+
+  const normalizedSourcePrefix = normalizePrefix(sourcePrefix);
+  const normalizedTargetPrefix = normalizePrefix(targetPrefix);
+  const suffix = `/${normalizedSourcePrefix}`;
+  const rootBaseUrl = baseUrl.endsWith(suffix) ? baseUrl.slice(0, -suffix.length) : baseUrl;
+  return rootBaseUrl ? `${rootBaseUrl}/${normalizedTargetPrefix}` : "";
+}
+
+function getWarehouseAggregatePublicBaseUrl(env: Record<string, string | undefined> = process.env): string {
+  const explicitBaseUrl = normalizeBaseUrl(env.WAREHOUSE_AGGREGATES_PUBLIC_BASE_URL);
+  if (explicitBaseUrl) return explicitBaseUrl;
+
+  const prefix = normalizePrefix(env.WAREHOUSE_AGGREGATES_R2_PREFIX);
+  const rootBaseUrl = normalizeBaseUrl(env.WAREHOUSE_AGGREGATES_R2_PUBLIC_BASE_URL);
+  if (rootBaseUrl) return `${rootBaseUrl}/${prefix}`;
+
+  return deriveSiblingPublicBaseUrl(
+    env.PLAYER_HISTORY_PUBLIC_BASE_URL || env.PLAYER_HISTORY_R2_PUBLIC_BASE_URL,
+    env.PLAYER_HISTORY_R2_PREFIX || "player-history",
+    prefix
+  );
+}
+
+async function fetchCsvRows(baseUrl: string, file: string, fetchImpl: typeof fetch): Promise<CsvRow[]> {
+  const response = await fetchImpl(`${baseUrl}/${file}`, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`warehouse_aggregate_fetch_failed:${file}:${response.status}`);
+  }
+  return parseCsvText(await response.text());
+}
+
+function mapAggPlayerRows(rows: CsvRow[]): AggPlayerRow[] {
+  return rows.map((r) => ({
+    matchDate: r.match_date,
+    playerEntityId: r.player_entity_id,
+    playerName: r.player_name,
+    team: r.team,
+    tier: r.tier,
+    race: r.race,
+    matches: toInt(r.matches),
+    wins: toInt(r.wins),
+    losses: toInt(r.losses),
+    winRate: toFloat(r.win_rate),
+  }));
+}
+
+function mapAggTeamRows(rows: CsvRow[]): AggTeamRow[] {
+  return rows.map((r) => ({
+    matchDate: r.match_date,
+    team: r.team,
+    matches: toInt(r.matches),
+    wins: toInt(r.wins),
+    losses: toInt(r.losses),
+    winRate: toFloat(r.win_rate),
+    uniquePlayers: toInt(r.unique_players),
+  }));
+}
+
+function mapAggPlayerDetailRows(rows: CsvRow[]): AggPlayerDetailRow[] {
+  return rows.map((r) => ({
+    matchDate: r.match_date,
+    playerEntityId: r.player_entity_id,
+    playerName: r.player_name,
+    team: r.team,
+    breakdownType: r.breakdown_type,
+    breakdownValue: r.breakdown_value,
+    matches: toInt(r.matches),
+    wins: toInt(r.wins),
+    losses: toInt(r.losses),
+    winRate: toFloat(r.win_rate),
+  }));
+}
+
 function loadWarehouseOverview(): WarehouseOverviewCache {
   const aggPlayerMtime = getFileMtime(AGG_PLAYER_PATH);
   const aggTeamMtime = getFileMtime(AGG_TEAM_PATH);
@@ -197,31 +314,47 @@ function loadWarehouseOverview(): WarehouseOverviewCache {
     return overviewCache;
   }
 
-  const aggPlayer = readCsv(AGG_PLAYER_PATH).map((r) => ({
-    matchDate: r.match_date,
-    playerEntityId: r.player_entity_id,
-    playerName: r.player_name,
-    team: r.team,
-    tier: r.tier,
-    race: r.race,
-    matches: toInt(r.matches),
-    wins: toInt(r.wins),
-    losses: toInt(r.losses),
-    winRate: toFloat(r.win_rate),
-  }));
-
-  const aggTeam = readCsv(AGG_TEAM_PATH).map((r) => ({
-    matchDate: r.match_date,
-    team: r.team,
-    matches: toInt(r.matches),
-    wins: toInt(r.wins),
-    losses: toInt(r.losses),
-    winRate: toFloat(r.win_rate),
-    uniquePlayers: toInt(r.unique_players),
-  }));
+  const aggPlayer = mapAggPlayerRows(readCsv(AGG_PLAYER_PATH));
+  const aggTeam = mapAggTeamRows(readCsv(AGG_TEAM_PATH));
 
   overviewCache = { mtimes, aggPlayer, aggTeam };
   return overviewCache;
+}
+
+async function loadWarehouseOverviewAsync(options: WarehouseRuntimeOptions = {}): Promise<WarehouseOverviewCache> {
+  const env = options.env || process.env;
+  const baseUrl = getWarehouseAggregatePublicBaseUrl(env);
+  const fetchImpl = options.fetchImpl || fetch;
+  const nowMs = options.nowMs ?? Date.now();
+  const ttlMs = options.remoteTtlMs ?? REMOTE_CACHE_TTL_MS;
+
+  if (baseUrl) {
+    const key = `${baseUrl}:overview`;
+    if (remoteOverviewCache && remoteOverviewCache.key === key && remoteOverviewCache.expiresAt > nowMs) {
+      return remoteOverviewCache;
+    }
+
+    try {
+      const [aggPlayerRows, aggTeamRows] = await Promise.all([
+        fetchCsvRows(baseUrl, AGG_PLAYER_FILE, fetchImpl),
+        fetchCsvRows(baseUrl, AGG_TEAM_FILE, fetchImpl),
+      ]);
+      remoteOverviewCache = {
+        key,
+        expiresAt: nowMs + ttlMs,
+        mtimes: {},
+        aggPlayer: mapAggPlayerRows(aggPlayerRows),
+        aggTeam: mapAggTeamRows(aggTeamRows),
+      };
+      return remoteOverviewCache;
+    } catch (error) {
+      console.warn(
+        `[WARN] warehouse remote aggregate fetch failed; falling back to bundled CSV (${error instanceof Error ? error.message : String(error)})`
+      );
+    }
+  }
+
+  return loadWarehouseOverview();
 }
 
 function loadWarehousePlayerDetails(): AggPlayerDetailRow[] {
@@ -230,21 +363,40 @@ function loadWarehousePlayerDetails(): AggPlayerDetailRow[] {
     return detailCache.aggPlayerDetail;
   }
 
-  const aggPlayerDetail = readCsv(AGG_PLAYER_DETAIL_PATH).map((r) => ({
-    matchDate: r.match_date,
-    playerEntityId: r.player_entity_id,
-    playerName: r.player_name,
-    team: r.team,
-    breakdownType: r.breakdown_type,
-    breakdownValue: r.breakdown_value,
-    matches: toInt(r.matches),
-    wins: toInt(r.wins),
-    losses: toInt(r.losses),
-    winRate: toFloat(r.win_rate),
-  }));
+  const aggPlayerDetail = mapAggPlayerDetailRows(readCsv(AGG_PLAYER_DETAIL_PATH));
 
   detailCache = { mtime, aggPlayerDetail };
   return aggPlayerDetail;
+}
+
+async function loadWarehousePlayerDetailsAsync(options: WarehouseRuntimeOptions = {}): Promise<AggPlayerDetailRow[]> {
+  const env = options.env || process.env;
+  const baseUrl = getWarehouseAggregatePublicBaseUrl(env);
+  const fetchImpl = options.fetchImpl || fetch;
+  const nowMs = options.nowMs ?? Date.now();
+  const ttlMs = options.remoteTtlMs ?? REMOTE_CACHE_TTL_MS;
+
+  if (baseUrl) {
+    const key = `${baseUrl}:details`;
+    if (remoteDetailCache && remoteDetailCache.key === key && remoteDetailCache.expiresAt > nowMs) {
+      return remoteDetailCache.aggPlayerDetail;
+    }
+
+    try {
+      remoteDetailCache = {
+        key,
+        expiresAt: nowMs + ttlMs,
+        aggPlayerDetail: mapAggPlayerDetailRows(await fetchCsvRows(baseUrl, AGG_PLAYER_DETAIL_FILE, fetchImpl)),
+      };
+      return remoteDetailCache.aggPlayerDetail;
+    } catch (error) {
+      console.warn(
+        `[WARN] warehouse remote detail aggregate fetch failed; falling back to bundled CSV (${error instanceof Error ? error.message : String(error)})`
+      );
+    }
+  }
+
+  return loadWarehousePlayerDetails();
 }
 
 function byRange<T extends { matchDate: string }>(rows: T[], from: string, to: string): T[] {
@@ -266,7 +418,11 @@ function byPlayer<T extends { playerEntityId: string; playerName: string }>(
   return rows;
 }
 
-export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStatsResult {
+function buildWarehouseStats(
+  filters: WarehouseStatsFilters,
+  wh: WarehouseOverviewCache,
+  getPlayerDetails: () => AggPlayerDetailRow[]
+): WarehouseStatsResult {
   const from = filters.from || "2025-01-01";
   const to = filters.to || new Date().toISOString().slice(0, 10);
   const team = filters.team || "all";
@@ -274,8 +430,6 @@ export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStat
   const playerName = filters.playerName || "";
   const includeDaily = filters.includeDaily !== false;
   const includePlayerDetails = filters.includePlayerDetails !== false;
-
-  const wh = loadWarehouseOverview();
 
   const scopedAggPlayer = byPlayer(
     byTeam(byRange(wh.aggPlayer, from, to), team),
@@ -376,7 +530,7 @@ export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStat
     includePlayerDetails && (playerEntityId || playerName)
       ? (() => {
           const scopedDetails = byPlayer(
-            byTeam(byRange(loadWarehousePlayerDetails(), from, to), team),
+            byTeam(byRange(getPlayerDetails(), from, to), team),
             playerEntityId,
             playerName
           );
@@ -428,6 +582,24 @@ export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStat
     teams,
     playerDetails,
   };
+}
+
+export function getWarehouseStats(filters: WarehouseStatsFilters): WarehouseStatsResult {
+  return buildWarehouseStats(filters, loadWarehouseOverview(), () => loadWarehousePlayerDetails());
+}
+
+export async function getWarehouseStatsAsync(
+  filters: WarehouseStatsFilters,
+  options: WarehouseRuntimeOptions = {}
+): Promise<WarehouseStatsResult> {
+  const shouldLoadDetails =
+    filters.includePlayerDetails !== false && Boolean(filters.playerEntityId || filters.playerName);
+  const [overview, playerDetails] = await Promise.all([
+    loadWarehouseOverviewAsync(options),
+    shouldLoadDetails ? loadWarehousePlayerDetailsAsync(options) : Promise.resolve([]),
+  ]);
+
+  return buildWarehouseStats(filters, overview, () => playerDetails);
 }
 
 export function warehouseDataHealth(): {

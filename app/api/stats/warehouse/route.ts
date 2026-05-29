@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getWarehouseStats, warehouseDataHealth } from "@/lib/warehouse-stats";
+import { getWarehouseStatsAsync, warehouseDataHealth } from "@/lib/warehouse-stats";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const stats = getWarehouseStats({
+    const stats = await getWarehouseStatsAsync({
       from,
       to,
       team,
