@@ -16,11 +16,11 @@ test("SOOP thumbnail proxy streams upstream images instead of buffering the whol
   assert.equal(route.includes("arrayBuffer()"), false);
 });
 
-test("tier player cards let Next optimize profile images but keep live thumbnail preload explicit", () => {
+test("tier player cards keep profile images unoptimized but keep live thumbnail preload explicit", () => {
   const playerCard = readProjectFile("components/players/PlayerCard.tsx");
   const tierProfileImageBlock = playerCard.match(/isTierVariant \? \([\s\S]*?\) : \(/)?.[0] || "";
 
-  assert.equal(tierProfileImageBlock.includes("unoptimized"), false);
+  assert.equal(tierProfileImageBlock.includes("unoptimized"), true);
   assert.match(playerCard, /preloadLiveThumbnail/);
 });
 

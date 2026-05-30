@@ -34,6 +34,7 @@ export function PlayerCard({ player }: { player: Player }) {
               fill
               className="object-cover object-top group-hover:scale-105 transition-transform duration-300"
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
+              unoptimized
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-4xl text-muted-foreground/30">

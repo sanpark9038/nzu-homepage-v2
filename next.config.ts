@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   images: {
     deviceSizes: [640, 768, 1024, 1280],
     imageSizes: [32, 48, 64, 96, 128, 160, 256, 384],
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       { protocol: 'https', hostname: 'eloboard.com' },
       { protocol: 'http', hostname: 'eloboard.com' },

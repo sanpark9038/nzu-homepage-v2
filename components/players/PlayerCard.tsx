@@ -79,7 +79,6 @@ export function PlayerCard({
 
   useEffect(() => {
     hasPreloadedLiveThumbnailRef.current = false;
-    setLoadedLiveThumbnailUrl(null);
   }, [liveThumbnailUrl]);
 
   const updateTierPreviewPosition = useCallback(() => {
@@ -225,6 +224,7 @@ export function PlayerCard({
                 width={132}
                 height={140}
                 sizes="132px"
+                unoptimized
                 className="h-full w-full object-cover object-top"
               />
               {isLive ? (
@@ -242,6 +242,7 @@ export function PlayerCard({
             alt={player.name}
             fill
             sizes={profileImageSizes}
+            unoptimized
             className="object-cover object-top transition-transform duration-700 group-hover:scale-110"
           />
         )}
