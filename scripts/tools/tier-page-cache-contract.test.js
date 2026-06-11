@@ -202,6 +202,9 @@ test("tier lightweight card keeps compact profile media and delegates live hover
   assert.doesNotMatch(quickH2HButtonSource, /window\.dispatchEvent/);
   assert.doesNotMatch(quickH2HButtonSource, /onClick=/);
   assert.match(quickH2HButtonSource, /from ["']lucide-react["']/);
+  assert.match(quickH2HButtonSource, /import\s+\{\s*Plus\s*\}\s+from ["']lucide-react["']/);
+  assert.doesNotMatch(quickH2HButtonSource, /\bCircle\b/);
+  assert.doesNotMatch(quickH2HButtonSource, /\bCheck\b/);
   assert.match(quickH2HButtonSource, /data-tier-h2h-player/);
   assert.match(quickH2HButtonSource, /data-player-id=\{player\.id\}/);
   assert.match(quickH2HButtonSource, /data-player-name=\{player\.name\}/);

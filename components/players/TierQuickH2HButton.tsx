@@ -1,4 +1,4 @@
-import { Check, Circle } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import type { MatchupPlayerSummary } from "@/lib/matchup-helpers";
 import { cn } from "@/lib/utils";
@@ -25,12 +25,7 @@ export function TierQuickH2HButton({ player, className }: TierQuickH2HButtonProp
         className
       )}
     >
-      <span className="relative flex h-5 w-5 items-center justify-center">
-        <Circle className="h-full w-full opacity-20 transition-opacity group-hover/h2h:opacity-40" />
-        <span className="absolute inset-0 flex scale-75 items-center justify-center transition-transform group-hover/h2h:scale-100">
-          <Check className="h-3.5 w-3.5 text-nzu-green opacity-0 drop-shadow-[0_0_8px_rgba(0,255,163,0.5)] transition-opacity group-hover/h2h:opacity-100" />
-        </span>
-      </span>
+      <Plus className="h-4 w-4 text-nzu-green opacity-85 transition-transform group-hover/h2h:scale-110" />
       빠른 상대전적 추가
     </button>
   );

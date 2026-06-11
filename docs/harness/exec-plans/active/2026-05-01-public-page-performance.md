@@ -1370,3 +1370,18 @@ Pipeline observability follow-up after repeated freshness failures:
   `searchParams`.
 - Kept `/board?...` and `/player?...` rewrites unchanged because those routes
   still rely on server query handling.
+
+2026-06-11 tier H2H button SVG reduction:
+
+- Continued the tier all-player rendering-cost pass after the query shell became
+  cacheable.
+- The production browser measurement before this pass showed
+  `/tier?liveOnly=false` rendering 320 cards and 646 SVGs. Each quick H2H
+  button contributed two repeated lucide SVGs (`Circle` and `Check`) even
+  though the action is delegated through `data-tier-h2h-player`.
+- Changed `TierQuickH2HButton` to render one `Plus` lucide icon while keeping
+  the visible label and all delegated `data-player-*` attributes unchanged.
+  This removes one repeated SVG per rendered tier card without changing the H2H
+  selector behavior.
+- Added a contract assertion so the tier quick H2H button keeps the single-icon
+  shape and does not reintroduce the old `Circle`/`Check` pair.
