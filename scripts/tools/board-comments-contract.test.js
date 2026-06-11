@@ -3,9 +3,30 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..", "..");
+const PUBLIC_HREF_SCAN_EXCLUDES = new Set([
+  path.join("app", "api"),
+  path.join("app", "board", "query"),
+  path.join("app", "player", "query"),
+]);
 
 function read(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
+}
+
+function isExcludedSource(relativePath, excludes) {
+  return Array.from(excludes).some((excluded) => relativePath === excluded || relativePath.startsWith(`${excluded}${path.sep}`));
+}
+
+function listSourceFiles(relativeDir, excludes = new Set()) {
+  if (isExcludedSource(relativeDir, excludes)) return [];
+  const root = path.join(ROOT, relativeDir);
+  if (!fs.existsSync(root)) return [];
+  const entries = fs.readdirSync(root, { withFileTypes: true });
+  return entries.flatMap((entry) => {
+    const relativePath = path.join(relativeDir, entry.name);
+    if (entry.isDirectory()) return listSourceFiles(relativePath, excludes);
+    return /\.(ts|tsx)$/.test(entry.name) ? [relativePath] : [];
+  });
 }
 
 function test(name, fn) {
@@ -89,6 +110,44 @@ test("board list renders comment counts beside titles", () => {
   assert.match(board, /comment_count/);
   assert.match(page, /post\.comment_count > 0/);
   assert.match(page, /\[\{post\.comment_count\}\]/);
+});
+
+test("board base menu route is cacheable while query URLs keep filters and status messages", () => {
+  const page = read("app/board/page.tsx");
+  const queryPage = read("app/board/query/page.tsx");
+  const authStartRoute = read("app/api/auth/soop/start/route.ts");
+  const authLogoutRoute = read("app/api/auth/soop/logout/route.ts");
+  const boardDownloadRoute = read("app/api/board/download/route.ts");
+  const proxy = read("proxy.ts");
+
+  assert.doesNotMatch(page, /searchParams/);
+  assert.match(page, /export\s+const\s+revalidate\s*=\s*30/);
+  assert.match(page, /getCachedBoardPostsWithCommentCounts\(20,\s*"all"\)/);
+  assert.doesNotMatch(page, /params\.login|params\.download|normalizeBoardListFilter\(params\.filter\)/);
+  assert.match(page, /filter === "all" \? "\/board" : `\/board\?filter=\$\{filter\}`/);
+
+  assert.match(queryPage, /searchParams/);
+  assert.match(queryPage, /normalizeBoardListFilter\(params\.filter\)/);
+  assert.match(queryPage, /loginStatus/);
+  assert.match(queryPage, /downloadStatus/);
+  assert.match(queryPage, /getCachedBoardPostsWithCommentCounts\(20,\s*boardFilter\)/);
+
+  assert.match(authStartRoute, /\/board\?login=soop-not-configured/);
+  assert.match(authLogoutRoute, /\/board\?login=logged-out/);
+  assert.match(boardDownloadRoute, /\?download=missing/);
+  assert.match(boardDownloadRoute, /\?download=invalid/);
+
+  assert.match(proxy, /if\s*\(pathname === "\/board"\)\s*\{[\s\S]*?rewriteUrl\.pathname\s*=\s*"\/board\/query"/);
+  assert.match(proxy, /source:\s*["']\/board["'],\s*has:\s*\[\{\s*type:\s*["']query["'],\s*key:\s*["']filter["']/);
+  assert.match(proxy, /source:\s*["']\/board["'],\s*has:\s*\[\{\s*type:\s*["']query["'],\s*key:\s*["']login["']/);
+  assert.match(proxy, /source:\s*["']\/board["'],\s*has:\s*\[\{\s*type:\s*["']query["'],\s*key:\s*["']download["']/);
+  assert.doesNotMatch(proxy, /^\s*["']\/board["']\s*,?\s*$/m);
+  assert.doesNotMatch(proxy, /\{\s*source:\s*["']\/board["']\s*,?\s*\}/);
+
+  const publicSources = [...listSourceFiles("app", PUBLIC_HREF_SCAN_EXCLUDES), ...listSourceFiles("components"), "lib/navigation-config.ts"];
+  for (const filePath of publicSources) {
+    assert.doesNotMatch(read(filePath), /["'`]\/board\/query/, `${filePath} should not expose the internal board query route`);
+  }
 });
 
 test("board list uses cached lightweight summary data and invalidates it on writes", () => {

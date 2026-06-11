@@ -1282,3 +1282,34 @@ Pipeline observability follow-up after repeated freshness failures:
     `male:37` sentinel. The next production-affecting step must be an approved
     targeted refresh/sync or a wider visible-player audit, not another blind
     full sync.
+
+2026-06-11 performance candidate split:
+
+- Created an isolated `origin/main` worktree at `C:\tmp\nzu-perf-candidate` on
+  branch `codex/perf-menu-tier-candidate` to avoid mixing the already-deployed
+  image optimization patch, original workspace docs/snapshot changes, and menu
+  speed work.
+- Kept SOOP live sync cadence at 10 minutes. The tier live delay candidate only
+  reduces app-side freshness windows:
+  - `/api/tier/players?live=1` cache: `s-maxage=10,
+    stale-while-revalidate=60`.
+  - tier client live request cache: `5_000` ms.
+- Split query-bearing public menu URLs from cacheable base menu pages:
+  - `/board` remains a cacheable 30-second public page.
+  - `/board?...` rewrites internally to dynamic `/board/query`.
+  - `/player` remains a cacheable 5-minute public page.
+  - `/player?...` rewrites internally to dynamic `/player/query`.
+- Candidate verification completed locally:
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:board:comments`
+  - `npm.cmd run test:tier-page-cache-contract`
+  - `npm.cmd run test:player-live-overlay`
+  - `git diff --check`
+  - `npx.cmd tsc --noEmit`
+  - `npm.cmd run lint`
+  - `npm.cmd run build` with production env loaded from the original workspace.
+  - `next start -p 3010` smoke checks for `/board`, `/player`,
+    `/board?filter=schedule`, `/player?query=test`, and
+    `/api/tier/players`.
+  - agent-browser snapshots for `/board` and `/player` loaded without console
+    errors.

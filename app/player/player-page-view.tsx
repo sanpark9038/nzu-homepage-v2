@@ -1,4 +1,3 @@
-import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 
 import {
@@ -62,7 +61,6 @@ export async function PlayerPageView({
   selectedIdPrefix?: string;
   initialPlayer?: Player | null;
 }) {
-  noStore();
   const normalizedQuery = String(query || "").trim();
   const normalizedId = String(selectedId || "").trim();
   const normalizedIdPrefix = String(selectedIdPrefix || "").trim();

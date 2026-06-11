@@ -43,7 +43,7 @@ type TierPlayersCacheEntry = {
   expiresAt: number;
 };
 
-const TIER_LIVE_REQUEST_CACHE_MS = 15_000;
+const TIER_LIVE_REQUEST_CACHE_MS = 5_000;
 const TIER_STATIC_REQUEST_CACHE_MS = 5 * 60 * 1000;
 const tierPlayersRequestCache = new Map<string, TierPlayersCacheEntry>();
 

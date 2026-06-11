@@ -12,9 +12,22 @@ function isAllowedPath(pathname: string) {
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Query-bearing menu URLs rewrite to dynamic query pages; bare menu URLs stay cacheable.
   if (pathname === "/tier") {
     const rewriteUrl = req.nextUrl.clone();
     rewriteUrl.pathname = "/tier/query";
+    return NextResponse.rewrite(rewriteUrl);
+  }
+
+  if (pathname === "/board") {
+    const rewriteUrl = req.nextUrl.clone();
+    rewriteUrl.pathname = "/board/query";
+    return NextResponse.rewrite(rewriteUrl);
+  }
+
+  if (pathname === "/player") {
+    const rewriteUrl = req.nextUrl.clone();
+    rewriteUrl.pathname = "/player/query";
     return NextResponse.rewrite(rewriteUrl);
   }
 
@@ -44,6 +57,11 @@ export const config = {
     { source: "/tier", has: [{ type: "query", key: "univ" }] },
     { source: "/tier", has: [{ type: "query", key: "tier" }] },
     { source: "/tier", has: [{ type: "query", key: "raceToggle" }] },
+    { source: "/board", has: [{ type: "query", key: "filter" }] },
+    { source: "/board", has: [{ type: "query", key: "login" }] },
+    { source: "/board", has: [{ type: "query", key: "download" }] },
+    { source: "/player", has: [{ type: "query", key: "query" }] },
+    { source: "/player", has: [{ type: "query", key: "id" }] },
     "/admin/:path*",
     "/api/admin/:path*",
   ],

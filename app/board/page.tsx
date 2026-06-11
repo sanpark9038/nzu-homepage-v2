@@ -7,7 +7,6 @@ import {
   getBoardCategoryTone,
   getCachedBoardPostsWithCommentCounts,
   hasBoardMedia,
-  normalizeBoardListFilter,
   type BoardListFilter,
 } from "@/lib/board";
 
@@ -77,17 +76,19 @@ function boardFilterTabClassName(active: boolean) {
     : "rounded-lg bg-white/[0.03] px-3 py-2 text-white/42 transition hover:bg-white/[0.06] hover:text-white/72";
 }
 
-export default async function BoardPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const params = ((await searchParams) || {}) as Record<string, string | string[] | undefined>;
-  const boardFilter = normalizeBoardListFilter(params.filter);
-  const board = await getCachedBoardPostsWithCommentCounts(20, boardFilter);
-  const loginStatus = typeof params.login === "string" ? params.login : "";
-  const downloadStatus = typeof params.download === "string" ? params.download : "";
+type BoardPageContentProps = {
+  board: Awaited<ReturnType<typeof getCachedBoardPostsWithCommentCounts>>;
+  boardFilter: BoardListFilter;
+  loginStatus?: string;
+  downloadStatus?: string;
+};
 
+export function BoardPageContent({
+  board,
+  boardFilter,
+  loginStatus = "",
+  downloadStatus = "",
+}: BoardPageContentProps) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-8 md:px-8">
@@ -233,4 +234,10 @@ export default async function BoardPage({
       </main>
     </div>
   );
+}
+
+export default async function BoardPage() {
+  const board = await getCachedBoardPostsWithCommentCounts(20, "all");
+
+  return <BoardPageContent board={board} boardFilter="all" />;
 }
