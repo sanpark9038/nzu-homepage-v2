@@ -38,7 +38,6 @@ export async function GET(request: NextRequest) {
   const payload = {
     liveOnly,
     players: players.map(toTierPlayerPayload),
-    playerNames: allPlayers.map((player) => player.name).filter(Boolean),
     generatedAt: new Date().toISOString(),
   };
 

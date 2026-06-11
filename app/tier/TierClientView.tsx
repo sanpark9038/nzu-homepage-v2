@@ -28,7 +28,6 @@ type TierClientViewProps = {
 type TierPlayersPayload = {
   liveOnly: boolean;
   players: Player[];
-  playerNames: string[];
   generatedAt: string;
 };
 
@@ -151,7 +150,8 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
   const payload = loadState.queryString === activeQueryString ? loadState.payload : null;
   const error = loadState.queryString === activeQueryString ? loadState.error : null;
   const isLoading = !payload && !error;
-  const playerList = payload?.players || [];
+  const playerList = useMemo(() => payload?.players || [], [payload]);
+  const playerNames = useMemo(() => playerList.map((player) => player.name).filter(Boolean), [playerList]);
   const { godPlayers, kingPlayers, jackPlayers, jokerPlayers, spadePlayers, babyPlayers } = buildNamedTierPlayers(playerList);
   const numericTiers = [0, 1, 2, 3, 4, 5, 6, 7, 8];
   const numericTierGroups = buildNumericTierGroups(playerList, numericTiers);
@@ -174,7 +174,7 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
             <SmartStickyHeader>
               <div className="-mx-4 mb-8 flex flex-col items-start justify-between gap-4 border-b border-white/10 bg-background/95 p-3 px-4 shadow-lg shadow-black/20 backdrop-blur-xl md:flex-row md:items-center lg:-mx-8 lg:p-4 lg:px-8">
                 <div className="w-full max-w-md md:w-64">
-                  <PlayerSearch playerNames={payload?.playerNames || []} queryString={activeQueryString} />
+                  <PlayerSearch playerNames={playerNames} queryString={activeQueryString} />
                 </div>
                 <div className="hide-scrollbar flex w-full shrink-0 items-center justify-end gap-4 overflow-x-auto md:w-auto">
                   <LiveToggle queryString={activeQueryString} />
