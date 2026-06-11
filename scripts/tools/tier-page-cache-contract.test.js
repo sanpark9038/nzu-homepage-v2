@@ -65,6 +65,18 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(apiRouteSource, /NextResponse\.json/);
   assert.match(apiRouteSource, /playerService\.getCachedPlayersList\(\)/);
   assert.match(apiRouteSource, /playerService\.getLivePlayers\(\)/);
+  assert.match(apiRouteSource, /id: player\.id/);
+  assert.match(apiRouteSource, /nickname: player\.nickname/);
+  assert.match(apiRouteSource, /channel_profile_image_url: player\.channel_profile_image_url/);
+  assert.match(apiRouteSource, /live_thumbnail_url: player\.live_thumbnail_url/);
+  assert.doesNotMatch(apiRouteSource, /tier_rank: player\.tier_rank/);
+  assert.doesNotMatch(apiRouteSource, /eloboard_id: player\.eloboard_id/);
+  assert.doesNotMatch(apiRouteSource, /soop_id: player\.soop_id/);
+  assert.doesNotMatch(apiRouteSource, /broadcast_url: player\.broadcast_url/);
+  assert.doesNotMatch(apiRouteSource, /elo_point: player\.elo_point/);
+  assert.doesNotMatch(apiRouteSource, /total_wins: player\.total_wins/);
+  assert.doesNotMatch(apiRouteSource, /total_losses: player\.total_losses/);
+  assert.doesNotMatch(apiRouteSource, /win_rate: player\.win_rate/);
   assert.match(apiRouteSource, /s-maxage=10,\s*stale-while-revalidate=60/);
   assert.match(apiRouteSource, /s-maxage=300,\s*stale-while-revalidate=31536000/);
   assert.doesNotMatch(viewSource, /playerService\.getAllPlayers\(\)/);

@@ -1339,3 +1339,17 @@ Pipeline observability follow-up after repeated freshness failures:
     live-only API fetch before the client observes the browser query string.
   - A payload follow-up can narrow `/api/tier/players` to the fields used by
     tier cards, H2H quick add, filters, and profile links.
+
+2026-06-11 tier API payload narrowing:
+
+- Chose the lower-risk payload follow-up before changing the query-shell
+  rewrite/caching behavior.
+- Kept the fields required by the current tier client:
+  `id`, `name`, `nickname`, `race`, `gender`, `tier`, `university`, `is_live`,
+  `broadcast_title`, `channel_profile_image_url`, `live_thumbnail_url`, and
+  `photo_url`.
+- Removed currently unused tier API response fields:
+  `tier_rank`, `eloboard_id`, `soop_id`, `broadcast_url`, `elo_point`,
+  `total_wins`, `total_losses`, and `win_rate`.
+- Kept filtering and excluded-player logic server-side before payload mapping,
+  so the smaller client payload does not weaken tier filtering semantics.
