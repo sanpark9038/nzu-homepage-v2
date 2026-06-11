@@ -53,6 +53,9 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(clientViewSource, /expiresAt: now \+ cacheTtlMs/);
   assert.match(clientViewSource, /activeQueryString/);
   assert.match(clientViewSource, /useState\(\(\) => readBrowserQueryString\(queryString\)\)/);
+  assert.doesNotMatch(clientViewSource, /playerNames:\s*string\[\]/);
+  assert.match(clientViewSource, /const playerNames = useMemo\(\(\) => playerList\.map/);
+  assert.match(clientViewSource, /<PlayerSearch playerNames=\{playerNames\}/);
   assert.match(clientViewSource, /tier-filter-query-change/);
   assert.match(clientViewSource, /window\.location\.search/);
   assert.match(clientViewSource, /const syncFromLocation = \(\) => setActiveQueryString\(readBrowserQueryString\(queryString\)\)/);
@@ -65,12 +68,14 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(clientViewSource, /const liveOnly = params\.get\("liveOnly"\) !== "false"/);
 
   assert.match(apiRouteSource, /NextResponse\.json/);
+  assert.match(apiRouteSource, /export\s+const\s+revalidate\s*=\s*60/);
   assert.match(apiRouteSource, /playerService\.getCachedPlayersList\(\)/);
   assert.match(apiRouteSource, /playerService\.getLivePlayers\(\)/);
   assert.match(apiRouteSource, /id: player\.id/);
   assert.match(apiRouteSource, /nickname: player\.nickname/);
   assert.match(apiRouteSource, /channel_profile_image_url: player\.channel_profile_image_url/);
   assert.match(apiRouteSource, /live_thumbnail_url: player\.live_thumbnail_url/);
+  assert.doesNotMatch(apiRouteSource, /playerNames:/);
   assert.doesNotMatch(apiRouteSource, /tier_rank: player\.tier_rank/);
   assert.doesNotMatch(apiRouteSource, /eloboard_id: player\.eloboard_id/);
   assert.doesNotMatch(apiRouteSource, /soop_id: player\.soop_id/);
@@ -134,6 +139,9 @@ test("tier filters update the visible URL without remounting the client tier she
   const source = readProjectFile("components/players/Filters.tsx");
 
   assert.match(source, /function navigateTierFilters/);
+  assert.match(source, /playerNames/);
+  assert.match(source, /\.some\(\(name\)/);
+  assert.match(source, /if \(lowerTerm && hasMatch\) \{/);
   assert.doesNotMatch(source, /useRouter/);
   assert.doesNotMatch(source, /useSearchParams/);
   assert.match(source, /queryString/);

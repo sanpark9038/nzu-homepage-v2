@@ -1414,3 +1414,28 @@ Post-deploy measurement after PR #11:
   - The next measurable full-tier candidate is the API response path and cache
     behavior, because browser-rendered DOM/SVG cost improved while the
     full-player API still has a visible warm duration.
+
+2026-06-11 tier API duplicate-name payload reduction:
+
+- Re-checked production `/api/tier/players?liveOnly=false` without a
+  cache-busting query. The first observed sample was `MISS` at about 3.0s, then
+  repeated samples were `HIT` at about 290-354ms with the same 96,419-byte
+  decoded body. This confirms the API response is being served from Vercel
+  cache after warm-up.
+- Measured the duplicate `playerNames` array in that production payload at
+  6,316 decoded bytes for 320 players. The same names are already present as
+  `players[].name`.
+- Removed `playerNames` from the tier API payload and changed `PlayerSearch`
+  to derive its existing name-match guard from `players[].name` in the payload
+  already loaded by the tier client. This avoids sending the same name list
+  twice while keeping the normal client-side invalid-search guard in place.
+- Kept visible labels, tier filtering, live filtering, profile links, H2H quick
+  add attributes, and cache TTLs unchanged.
+- Verification before deploy:
+  - `npm.cmd run test:tier-page-cache-contract` failed before each behavior
+    slice and passed after implementation.
+  - `npm.cmd run test:tier-page-helpers`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
