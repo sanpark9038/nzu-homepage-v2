@@ -14,20 +14,12 @@ function toTierPlayerPayload(player: Player) {
     race: player.race,
     gender: player.gender,
     tier: player.tier,
-    tier_rank: player.tier_rank,
     university: player.university,
     is_live: player.is_live,
-    soop_id: player.soop_id,
     broadcast_title: player.broadcast_title,
-    broadcast_url: player.broadcast_url,
     channel_profile_image_url: player.channel_profile_image_url,
     live_thumbnail_url: player.live_thumbnail_url,
     photo_url: player.photo_url,
-    eloboard_id: player.eloboard_id,
-    elo_point: player.elo_point,
-    total_wins: player.total_wins,
-    total_losses: player.total_losses,
-    win_rate: player.win_rate,
   };
 }
 
