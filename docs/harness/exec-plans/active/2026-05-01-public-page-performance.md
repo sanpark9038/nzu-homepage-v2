@@ -1385,3 +1385,32 @@ Pipeline observability follow-up after repeated freshness failures:
   selector behavior.
 - Added a contract assertion so the tier quick H2H button keeps the single-icon
   shape and does not reintroduce the old `Circle`/`Check` pair.
+
+Post-deploy measurement after PR #11:
+
+- Production HTTP shell samples for `/tier?liveOnly=false`:
+  - sample 1: 778ms, `X-Vercel-Cache: PRERENDER`, `X-Matched-Path: /tier`,
+    41,884 bytes.
+  - sample 2: 265ms, `HIT`, 41,884 bytes.
+  - sample 3: 41ms, `HIT`, 41,884 bytes.
+- Production HTTP API samples for
+  `/api/tier/players?liveOnly=false&_measure=posth2h*`:
+  - 3,053ms, 468ms, 459ms.
+  - 320 players, decoded response body about 96KB.
+- Production browser measurement for `/tier?liveOnly=false` after client data
+  render:
+  - 320 cards.
+  - 320 H2H buttons.
+  - 326 total SVGs, including 320 `lucide-plus` icons and 0
+    `lucide-circle` / `lucide-check` icons.
+  - 320 image elements, 23 completed decoded images near initial viewport.
+  - about 6,680 DOM nodes.
+  - one `/api/tier/players` resource: about 370ms duration, 18KB transfer,
+    96KB decoded body.
+- Interpretation:
+  - The repeated H2H icon pair reduction landed: full tier SVG count is now
+    roughly half of the earlier 646-SVG measurement.
+  - The shell path remains cacheable and correctly matched to `/tier`.
+  - The next measurable full-tier candidate is the API response path and cache
+    behavior, because browser-rendered DOM/SVG cost improved while the
+    full-player API still has a visible warm duration.
