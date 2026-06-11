@@ -419,7 +419,7 @@ Deno.serve(async (request) => {
       changed_count: patches.length,
       unresolved_count: unresolvedTargetIds.length,
       pages_scanned: pagesScanned,
-      details: { revalidation, scan_completed: scanCompleted },
+      details: { heartbeat_minutes: heartbeatMinutes, revalidation, scan_completed: scanCompleted },
     });
 
     return jsonResponse(summary);
