@@ -1,5 +1,10 @@
 import fs from "fs";
 import path from "path";
+import {
+  loadMergedRosterAdminState,
+  type ExclusionRow,
+  type ManualOverrideRow,
+} from "@/lib/roster-admin-store";
 import { readRosterReviewDecisions, rosterReviewDecisionKey } from "@/lib/roster-review-decisions";
 
 const ROOT = process.cwd();
@@ -39,6 +44,7 @@ export type RosterOpsReviewPlayer = {
   team_code: string;
   team_name: string;
   tier: string;
+  race: string;
   gender: string;
   soop_user_id?: string;
   reason?: string;
@@ -96,10 +102,19 @@ type ReviewReportDocs = {
 type RosterChangeItem = JsonObject & {
   review_kind?: string;
   entity_id?: string;
+  wr_id?: number | string;
   name?: string;
   from?: string;
   to?: string;
   decision_url?: string;
+};
+
+type MergedRosterAdminState = Awaited<ReturnType<typeof loadMergedRosterAdminState>>;
+
+type RosterOpsReviewAppliedState = {
+  overridesByEntityId: Map<string, ManualOverrideRow>;
+  approvedByEntityId: Map<string, RosterOpsReviewPlayer>;
+  exclusionKeys: Set<string>;
 };
 
 function isOperatorExcludedReviewItem(row: RosterChangeItem): boolean {
@@ -274,6 +289,87 @@ function trim(value: unknown): string {
   return String(value || "").trim();
 }
 
+function normalized(value: unknown): string {
+  return trim(value).toLowerCase();
+}
+
+function exclusionKey(row: Pick<ExclusionRow, "entity_id" | "wr_id" | "name">) {
+  const entityId = trim(row.entity_id);
+  if (entityId) return `entity:${entityId}`;
+  const wrId = trim(row.wr_id);
+  if (wrId) return `wr:${wrId}`;
+  const name = normalized(row.name);
+  return name ? `name:${name}` : "";
+}
+
+function buildAppliedReviewState(
+  approvedPlayers: RosterOpsReviewPlayer[],
+  adminState: MergedRosterAdminState
+): RosterOpsReviewAppliedState {
+  const overridesByEntityId = new Map<string, ManualOverrideRow>();
+  for (const row of adminState.overrides) {
+    const entityId = trim(row.entity_id);
+    if (entityId) overridesByEntityId.set(entityId, row);
+  }
+
+  const approvedByEntityId = new Map<string, RosterOpsReviewPlayer>();
+  for (const player of approvedPlayers) {
+    if (player.entity_id) approvedByEntityId.set(player.entity_id, player);
+  }
+
+  const exclusionKeys = new Set(
+    adminState.exclusions.map(exclusionKey).filter(Boolean)
+  );
+
+  return { overridesByEntityId, approvedByEntityId, exclusionKeys };
+}
+
+function rowExclusionKey(row: RosterChangeItem) {
+  return exclusionKey({
+    entity_id: trim(row.entity_id),
+    wr_id: Number.isFinite(Number(row.wr_id)) ? Number(row.wr_id) : undefined,
+    name: trim(row.name),
+  });
+}
+
+function matchesCurrentOrOverride(
+  row: RosterChangeItem,
+  state: RosterOpsReviewAppliedState | undefined,
+  field: "team_code" | "tier" | "race"
+) {
+  if (!state) return false;
+  const entityId = trim(row.entity_id);
+  const target = normalized(row.to);
+  if (!entityId || !target) return false;
+
+  const override = state.overridesByEntityId.get(entityId);
+  if (normalized(override?.[field]) === target) return true;
+
+  const approved = state.approvedByEntityId.get(entityId);
+  return normalized(approved?.[field]) === target;
+}
+
+function isAlreadyAppliedReviewItem(
+  row: RosterChangeItem,
+  state?: RosterOpsReviewAppliedState
+): boolean {
+  const kind = trim(row.review_kind);
+  if (kind === "affiliation_change" || kind === "new_candidate") {
+    return matchesCurrentOrOverride(row, state, "team_code");
+  }
+  if (kind === "tier_change") {
+    return matchesCurrentOrOverride(row, state, "tier");
+  }
+  if (kind === "race_change") {
+    return matchesCurrentOrOverride(row, state, "race");
+  }
+  if (kind === "excluded_candidate" && state) {
+    const key = rowExclusionKey(row);
+    return Boolean(key && state.exclusionKeys.has(key));
+  }
+  return false;
+}
+
 function normalizePlayer(player: ProjectPlayer, doc: ProjectDoc, reason?: string, source?: string): RosterOpsReviewPlayer {
   const teamCode = trim(player.team_code) || trim(doc.team_code) || trim(doc.project);
   const teamName = trim(player.team_name) || trim(doc.team_name) || teamCode;
@@ -286,6 +382,7 @@ function normalizePlayer(player: ProjectPlayer, doc: ProjectDoc, reason?: string
     team_code: teamCode,
     team_name: teamName,
     tier: trim(player.tier),
+    race: trim(player.race),
     gender: trim(player.gender),
     soop_user_id: trim(player.soop_user_id) || undefined,
     reason,
@@ -364,7 +461,11 @@ function withDecisionUrl(kind: string, row: JsonObject): RosterChangeItem {
   };
 }
 
-function buildRosterChangeItems(doc: JsonObject | null, kinds?: string[]): RosterChangeItem[] {
+function buildRosterChangeItems(
+  doc: JsonObject | null,
+  kinds?: string[],
+  appliedState?: RosterOpsReviewAppliedState
+): RosterChangeItem[] {
   if (!doc) return [];
   const directRows = pickReportRows(doc, ["items", "review_items", "changes"]).map((row) =>
     withDecisionUrl(trim(row.review_kind) || "roster_change", row)
@@ -379,8 +480,13 @@ function buildRosterChangeItems(doc: JsonObject | null, kinds?: string[]): Roste
         ...toArray(review.added).map((row) => withDecisionUrl("new_candidate", row)),
         ...toArray(review.conflicts).map((row) => withDecisionUrl("conflict", row)),
       ];
-  if (!kinds || kinds.length === 0) return rows;
-  return rows.filter((row) => kinds.includes(trim(row.review_kind)) && !isOperatorExcludedReviewItem(row));
+  const selectedRows =
+    !kinds || kinds.length === 0
+      ? rows
+      : rows.filter((row) => kinds.includes(trim(row.review_kind)));
+  return selectedRows.filter(
+    (row) => !isOperatorExcludedReviewItem(row) && !isAlreadyAppliedReviewItem(row, appliedState)
+  );
 }
 
 function buildZeroRecordPlayers(
@@ -468,7 +574,10 @@ function uniquePlayers(players: RosterOpsReviewPlayer[]): RosterOpsReviewPlayer[
   });
 }
 
-function buildRosterChangeReview(reports: ReviewReportDocs): RosterOpsReviewGroup<JsonObject> {
+function buildRosterChangeReview(
+  reports: ReviewReportDocs,
+  appliedState: RosterOpsReviewAppliedState
+): RosterOpsReviewGroup<JsonObject> {
   const doc = reports.rosterChangeReview;
   const rows = buildRosterChangeItems(doc, [
     "affiliation_change",
@@ -476,7 +585,7 @@ function buildRosterChangeReview(reports: ReviewReportDocs): RosterOpsReviewGrou
     "excluded_candidate",
     "race_change",
     "conflict",
-  ]);
+  ], appliedState);
   return {
     key: "roster_change_review",
     title: "Roster change review",
@@ -486,9 +595,12 @@ function buildRosterChangeReview(reports: ReviewReportDocs): RosterOpsReviewGrou
   };
 }
 
-function buildNewPlayerCandidates(reports: ReviewReportDocs): RosterOpsReviewGroup<JsonObject> {
+function buildNewPlayerCandidates(
+  reports: ReviewReportDocs,
+  appliedState: RosterOpsReviewAppliedState
+): RosterOpsReviewGroup<JsonObject> {
   const doc = reports.rosterChangeReview;
-  const rows = buildRosterChangeItems(doc, ["new_candidate"]);
+  const rows = buildRosterChangeItems(doc, ["new_candidate"], appliedState);
   return {
     key: "new_player_candidates",
     title: "New player candidates",
@@ -526,6 +638,7 @@ function buildExcludedPlayers(players: RosterOpsReviewPlayer[]): RosterOpsReview
       team_code: "",
       team_name: "",
       tier: "",
+      race: "",
       gender: "",
       reason: trim(row.reason) || "user_excluded",
       updated_at: trim(row.updated_at) || undefined,
@@ -544,6 +657,8 @@ function buildExcludedPlayers(players: RosterOpsReviewPlayer[]): RosterOpsReview
 
 export async function buildRosterOpsReview(): Promise<RosterOpsReview> {
   const approvedPlayers = loadApprovedPlayers();
+  const adminState = await loadMergedRosterAdminState();
+  const appliedState = buildAppliedReviewState(approvedPlayers, adminState);
   const reports = await loadReviewReportDocs();
   const missingSoopIds = approvedPlayers.filter((player) => !trim(player.soop_user_id));
 
@@ -560,9 +675,9 @@ export async function buildRosterOpsReview(): Promise<RosterOpsReview> {
       },
       zero_record_players: buildZeroRecordPlayers(approvedPlayers, reports),
       pipeline_alerts: buildPipelineAlerts(reports),
-      roster_change_review: buildRosterChangeReview(reports),
+      roster_change_review: buildRosterChangeReview(reports, appliedState),
       excluded_players: buildExcludedPlayers(approvedPlayers),
-      new_player_candidates: buildNewPlayerCandidates(reports),
+      new_player_candidates: buildNewPlayerCandidates(reports, appliedState),
     },
   };
 }
