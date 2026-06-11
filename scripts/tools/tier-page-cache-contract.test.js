@@ -42,7 +42,7 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(clientViewSource, /\/api\/tier\/players/);
   assert.match(clientViewSource, /fetch\(apiUrl/);
   assert.match(clientViewSource, /tierPlayersRequestCache/);
-  assert.match(clientViewSource, /TIER_LIVE_REQUEST_CACHE_MS = 15_000/);
+  assert.match(clientViewSource, /TIER_LIVE_REQUEST_CACHE_MS = 5_000/);
   assert.match(clientViewSource, /TIER_STATIC_REQUEST_CACHE_MS = 5 \* 60 \* 1000/);
   assert.match(clientViewSource, /type TierPlayersCacheEntry/);
   assert.match(clientViewSource, /function loadTierPlayers/);
@@ -65,6 +65,8 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(apiRouteSource, /NextResponse\.json/);
   assert.match(apiRouteSource, /playerService\.getCachedPlayersList\(\)/);
   assert.match(apiRouteSource, /playerService\.getLivePlayers\(\)/);
+  assert.match(apiRouteSource, /s-maxage=10,\s*stale-while-revalidate=60/);
+  assert.match(apiRouteSource, /s-maxage=300,\s*stale-while-revalidate=31536000/);
   assert.doesNotMatch(viewSource, /playerService\.getAllPlayers\(\)/);
   assert.doesNotMatch(viewSource, /import\s+\{\s*Suspense\s*\}\s+from\s+["']react["']/);
   assert.doesNotMatch(viewSource, /<Suspense\s+fallback=/);

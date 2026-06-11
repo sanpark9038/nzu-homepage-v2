@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(payload, {
     headers: {
       "Cache-Control": liveOnly
-        ? "s-maxage=30, stale-while-revalidate=300"
+        ? "s-maxage=10, stale-while-revalidate=60"
         : "s-maxage=300, stale-while-revalidate=31536000",
     },
   });

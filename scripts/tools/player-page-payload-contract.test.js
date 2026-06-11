@@ -4,9 +4,30 @@ const path = require("node:path");
 const test = require("node:test");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
+const PUBLIC_HREF_SCAN_EXCLUDES = new Set([
+  path.join("app", "api"),
+  path.join("app", "board", "query"),
+  path.join("app", "player", "query"),
+]);
 
 function readProjectFile(filePath) {
   return fs.readFileSync(path.join(repoRoot, filePath), "utf8");
+}
+
+function isExcludedSource(relativePath, excludes) {
+  return Array.from(excludes).some((excluded) => relativePath === excluded || relativePath.startsWith(`${excluded}${path.sep}`));
+}
+
+function listSourceFiles(relativeDir, excludes = new Set()) {
+  if (isExcludedSource(relativeDir, excludes)) return [];
+  const root = path.join(repoRoot, relativeDir);
+  if (!fs.existsSync(root)) return [];
+  const entries = fs.readdirSync(root, { withFileTypes: true });
+  return entries.flatMap((entry) => {
+    const relativePath = path.join(relativeDir, entry.name);
+    if (entry.isDirectory()) return listSourceFiles(relativePath, excludes);
+    return /\.(ts|tsx)$/.test(entry.name) ? [relativePath] : [];
+  });
 }
 
 test("player detail page does not pass unbounded match logs to the client component", () => {
@@ -18,6 +39,40 @@ test("player detail page does not pass unbounded match logs to the client compon
     /recentLogs:\s*buildRecentLogs\(exactMatchMatches,\s*player\.id\)\.slice\(0,\s*PLAYER_DETAIL_RECENT_LOG_LIMIT\)/,
     "PlayerSearchResult should receive a bounded recent log list instead of every historical match"
   );
+});
+
+test("player base menu route is cacheable while query URLs keep search behavior", () => {
+  const indexSource = readProjectFile("app/player/page.tsx");
+  const querySource = readProjectFile("app/player/query/page.tsx");
+  const searchFormSource = readProjectFile("app/player/PlayerSearchForm.tsx");
+  const proxySource = readProjectFile("proxy.ts");
+
+  assert.doesNotMatch(indexSource, /searchParams/);
+  assert.doesNotMatch(indexSource, /unstable_noStore|noStore\(/);
+  assert.doesNotMatch(indexSource, /export\s+const\s+dynamic\s*=\s*"force-dynamic"/);
+  assert.doesNotMatch(indexSource, /export\s+const\s+revalidate\s*=\s*0/);
+  assert.match(indexSource, /export\s+const\s+revalidate\s*=\s*300/);
+  assert.match(indexSource, /<PlayerPageView\s*\/>/);
+
+  assert.match(querySource, /searchParams/);
+  assert.match(querySource, /unstable_noStore|noStore\(/);
+  assert.match(querySource, /export\s+const\s+dynamic\s*=\s*"force-dynamic"/);
+  assert.match(querySource, /<PlayerPageView\s+query=\{params\?\.query\}\s+selectedId=\{params\?\.id\}\s*\/>/);
+
+  assert.match(searchFormSource, /router\.push\(`\/player\?query=\$\{encodeURIComponent\(trimmed\)\}`\)/);
+  assert.doesNotMatch(searchFormSource, /\/player\?id=/);
+
+  assert.match(proxySource, /if\s*\(pathname === "\/player"\)\s*\{[\s\S]*?rewriteUrl\.pathname\s*=\s*"\/player\/query"/);
+  assert.match(proxySource, /source:\s*["']\/player["'],\s*has:\s*\[\{\s*type:\s*["']query["'],\s*key:\s*["']query["']/);
+  assert.match(proxySource, /source:\s*["']\/player["'],\s*has:\s*\[\{\s*type:\s*["']query["'],\s*key:\s*["']id["']/);
+  assert.doesNotMatch(proxySource, /^\s*["']\/player["']\s*,?\s*$/m);
+  assert.doesNotMatch(proxySource, /\{\s*source:\s*["']\/player["']\s*,?\s*\}/);
+
+  const publicSources = [...listSourceFiles("app", PUBLIC_HREF_SCAN_EXCLUDES), ...listSourceFiles("components"), "lib/navigation-config.ts"];
+  for (const filePath of publicSources) {
+    assert.doesNotMatch(readProjectFile(filePath), /["'`]\/player\/query/, `${filePath} should not expose the internal player query route`);
+    assert.doesNotMatch(readProjectFile(filePath), /\/player\?id=/, `${filePath} should use canonical player hrefs instead of id query links`);
+  }
 });
 
 test("canonical player slug resolution is reused by the shared player page view", () => {
@@ -36,14 +91,16 @@ test("canonical player slug resolution is reused by the shared player page view"
 
 test("player canonical redirects are not swallowed by lookup catch blocks", () => {
   const indexSource = readProjectFile("app/player/page.tsx");
+  const querySource = readProjectFile("app/player/query/page.tsx");
   const routeSource = readProjectFile("app/player/[id]/page.tsx");
   const indexTryBlocks = Array.from(indexSource.matchAll(/try\s*\{([\s\S]*?)\}\s*catch/g), (match) => match[1]);
+  const queryTryBlocks = Array.from(querySource.matchAll(/try\s*\{([\s\S]*?)\}\s*catch/g), (match) => match[1]);
   const routeTryBlocks = Array.from(routeSource.matchAll(/try\s*\{([\s\S]*?)\}\s*catch/g), (match) => match[1]);
 
-  for (const block of [...indexTryBlocks, ...routeTryBlocks]) {
+  for (const block of [...indexTryBlocks, ...queryTryBlocks, ...routeTryBlocks]) {
     assert.doesNotMatch(block, /redirect\(/);
   }
-  assert.match(indexSource, /if\s*\(redirectHref\)\s*redirect\(redirectHref\)/);
+  assert.match(querySource, /if\s*\(redirectHref\)\s*redirect\(redirectHref\)/);
   assert.match(routeSource, /if\s*\(redirectHref\)\s*redirect\(redirectHref\)/);
 });
 
