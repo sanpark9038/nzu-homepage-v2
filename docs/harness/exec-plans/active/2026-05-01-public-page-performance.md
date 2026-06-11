@@ -1353,3 +1353,20 @@ Pipeline observability follow-up after repeated freshness failures:
   `total_wins`, `total_losses`, and `win_rate`.
 - Kept filtering and excluded-player logic server-side before payload mapping,
   so the smaller client payload does not weaken tier filtering semantics.
+
+2026-06-11 tier query shell cache follow-up:
+
+- Re-measured production after payload narrowing:
+  - `/tier` shell: HIT samples about 27-36ms after prerender.
+  - `/tier?liveOnly=false` shell: still dynamic/no-store, warm samples about
+    341-366ms.
+- Changed the tier query strategy so `/tier?...` no longer rewrites through the
+  dynamic `/tier/query` route. Query URLs now reuse the cacheable `/tier`
+  shell.
+- Strengthened `TierClientView` so initial client state reads
+  `window.location.search` immediately. This preserves correct first API
+  requests for `/tier?liveOnly=false`, search, race, university, tier, and
+  race-group query URLs even though the server shell no longer reads
+  `searchParams`.
+- Kept `/board?...` and `/player?...` rewrites unchanged because those routes
+  still rely on server query handling.

@@ -12,13 +12,7 @@ function isAllowedPath(pathname: string) {
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Query-bearing menu URLs rewrite to dynamic query pages; bare menu URLs stay cacheable.
-  if (pathname === "/tier") {
-    const rewriteUrl = req.nextUrl.clone();
-    rewriteUrl.pathname = "/tier/query";
-    return NextResponse.rewrite(rewriteUrl);
-  }
-
+  // Query-bearing board/player URLs rewrite to dynamic query pages; bare menu URLs stay cacheable.
   if (pathname === "/board") {
     const rewriteUrl = req.nextUrl.clone();
     rewriteUrl.pathname = "/board/query";
@@ -51,12 +45,6 @@ export function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    { source: "/tier", has: [{ type: "query", key: "liveOnly" }] },
-    { source: "/tier", has: [{ type: "query", key: "search" }] },
-    { source: "/tier", has: [{ type: "query", key: "race" }] },
-    { source: "/tier", has: [{ type: "query", key: "univ" }] },
-    { source: "/tier", has: [{ type: "query", key: "tier" }] },
-    { source: "/tier", has: [{ type: "query", key: "raceToggle" }] },
     { source: "/board", has: [{ type: "query", key: "filter" }] },
     { source: "/board", has: [{ type: "query", key: "login" }] },
     { source: "/board", has: [{ type: "query", key: "download" }] },

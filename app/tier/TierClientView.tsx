@@ -104,7 +104,7 @@ function TierGridSkeleton() {
 }
 
 export function TierClientView({ queryString, universityOptions }: TierClientViewProps) {
-  const [activeQueryString, setActiveQueryString] = useState(queryString);
+  const [activeQueryString, setActiveQueryString] = useState(() => readBrowserQueryString(queryString));
   const [loadState, setLoadState] = useState<TierLoadState>({
     queryString: "",
     payload: null,
