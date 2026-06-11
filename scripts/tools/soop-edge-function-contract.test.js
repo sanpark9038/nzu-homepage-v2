@@ -48,6 +48,8 @@ runTest("SOOP Edge Function updates only changed player live rows and logs each 
   const source = readProjectFile(EDGE_FUNCTION_PATH);
 
   assert.match(source, /function\s+buildChangedPlayerPatches/);
+  assert.match(source, /DEFAULT_SYNC_HEARTBEAT_MINUTES\s*=\s*5/);
+  assert.match(source, /SOOP_SYNC_HEARTBEAT_MINUTES/);
   assert.match(source, /last_checked_at/);
   assert.match(source, /broadcast_title/);
   assert.match(source, /live_thumbnail_url/);
@@ -105,6 +107,14 @@ runTest("SOOP Edge Function fails closed when public cache revalidation is not c
   assert.match(source, /missing_serving_revalidate_env/);
   assert.match(source, /SOOP_SYNC_ALLOW_REVALIDATION_SKIP/);
   assert.match(source, /throw\s+new\s+Error\(\s*`missing_serving_revalidate_env/);
+});
+
+runTest("SOOP live sync docs describe the 5-minute heartbeat under the 15-minute stale guard", () => {
+  const source = readProjectFile(path.join(ROOT, "docs", "harness", "SOOP_LIVE_SYNC_EDGE.md"));
+
+  assert.match(source, /SOOP_SYNC_HEARTBEAT_MINUTES` defaults to `5`/);
+  assert.match(source, /15-minute stale-live guard/);
+  assert.match(source, /unchanged live broadcasts/);
 });
 
 runTest("SOOP live sync workflow is manual fallback only", () => {

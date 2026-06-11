@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.1";
 
 const SOOP_BROAD_LIST_URL = "https://openapi.sooplive.co.kr/broad/list";
 const DEFAULT_BROAD_LIST_PAGE_LIMIT = 200;
-const DEFAULT_SYNC_HEARTBEAT_MINUTES = 10;
+const DEFAULT_SYNC_HEARTBEAT_MINUTES = 5;
 const FETCH_TIMEOUT_MS = 10000;
 const MAX_SCAN_MS = 120000;
 const LIVE_FIELDS = "id,name,soop_id,is_live,broadcast_title,live_thumbnail_url,last_checked_at";
