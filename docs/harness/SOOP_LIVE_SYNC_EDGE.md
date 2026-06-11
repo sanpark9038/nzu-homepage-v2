@@ -50,7 +50,7 @@ are preserved for that run and counted in `unresolved_count`.
 Optional:
 
 - `SOOP_BROAD_LIST_PAGE_LIMIT` defaults to `200`
-- `SOOP_SYNC_HEARTBEAT_MINUTES` defaults to `10`
+- `SOOP_SYNC_HEARTBEAT_MINUTES` defaults to `5`
 - `SOOP_SYNC_ALLOW_REVALIDATION_SKIP=true` allows DB-only smoke tests to skip
   public cache revalidation. Do not enable this for production cron.
 
@@ -89,7 +89,10 @@ Node-based Supabase sync.
 than 15 minutes, public serving code clears the live display.
 
 The Edge Function heartbeat refresh keeps unchanged live broadcasts from aging
-out under that guard while avoiding writes for unchanged offline rows.
+out under that guard while avoiding writes for unchanged offline rows. The
+default heartbeat is intentionally shorter than the 10-minute cron cadence, so
+an unchanged live row is refreshed on every normal run before it can cross the
+15-minute stale-live guard.
 
 ## Verification
 
