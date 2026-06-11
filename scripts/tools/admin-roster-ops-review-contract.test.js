@@ -31,6 +31,8 @@ test("ops review helper exposes grouped approval queue data and decision filteri
   assert.match(source, /loadMergedRosterAdminState/);
   assert.match(source, /buildAppliedReviewState/);
   assert.match(source, /isAlreadyAppliedReviewItem/);
+  assert.match(source, /kind === "new_candidate"[\s\S]*approvedByEntityId\.has\(entityId\)/);
+  assert.match(source, /kind === "new_candidate"[\s\S]*exclusionKeys\.has\(key\)/);
   assert.match(source, /affiliation_change/);
   assert.match(source, /tier_change/);
   assert.match(source, /race_change/);

@@ -354,7 +354,14 @@ function isAlreadyAppliedReviewItem(
   state?: RosterOpsReviewAppliedState
 ): boolean {
   const kind = trim(row.review_kind);
-  if (kind === "affiliation_change" || kind === "new_candidate") {
+  if (kind === "affiliation_change") {
+    return matchesCurrentOrOverride(row, state, "team_code");
+  }
+  if (kind === "new_candidate" && state) {
+    const entityId = trim(row.entity_id);
+    if (entityId && state.approvedByEntityId.has(entityId)) return true;
+    const key = rowExclusionKey(row);
+    if (key && state.exclusionKeys.has(key)) return true;
     return matchesCurrentOrOverride(row, state, "team_code");
   }
   if (kind === "tier_change") {

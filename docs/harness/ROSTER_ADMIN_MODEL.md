@@ -169,6 +169,17 @@ Initial operations review groups:
 
 The review page should show count summaries first and let the operator expand each list when needed.
 
+Applied review suppression:
+
+- A new-player candidate is considered handled once its durable `entity_id`
+  already exists in the approved roster baseline, even if the operator assigned
+  it to a different team than the detected `to` value.
+- A new-player candidate is also considered handled when the same identity is
+  already in the collection exclusion state.
+- Affiliation, tier, and race change rows still require the current approved or
+  manual-correction value to match the detected target value before they are
+  suppressed.
+
 ## Pipeline Contract
 
 The pipeline should:
