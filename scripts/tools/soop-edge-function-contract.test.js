@@ -50,6 +50,7 @@ runTest("SOOP Edge Function updates only changed player live rows and logs each 
   assert.match(source, /function\s+buildChangedPlayerPatches/);
   assert.match(source, /DEFAULT_SYNC_HEARTBEAT_MINUTES\s*=\s*5/);
   assert.match(source, /SOOP_SYNC_HEARTBEAT_MINUTES/);
+  assert.match(source, /details:\s*\{\s*heartbeat_minutes:\s*heartbeatMinutes\s*\}/);
   assert.match(source, /last_checked_at/);
   assert.match(source, /broadcast_title/);
   assert.match(source, /live_thumbnail_url/);
@@ -58,6 +59,15 @@ runTest("SOOP Edge Function updates only changed player live rows and logs each 
   assert.match(source, /\.update\(/);
   assert.match(source, /soop_live_sync_runs/);
   assert.match(source, /cleanupOldSyncRuns/);
+});
+
+runTest("SOOP Edge Function preserves heartbeat minutes in final run details", () => {
+  const source = readProjectFile(EDGE_FUNCTION_PATH);
+
+  assert.match(
+    source,
+    /details:\s*\{\s*heartbeat_minutes:\s*heartbeatMinutes,\s*revalidation,\s*scan_completed:\s*scanCompleted\s*\}/
+  );
 });
 
 runTest("SOOP Edge Function preserves players when page-limit scan is incomplete", () => {
