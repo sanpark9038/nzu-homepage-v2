@@ -52,8 +52,10 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(clientViewSource, /tierPlayersRequestCache\.set\(apiUrl,\s*\{/);
   assert.match(clientViewSource, /expiresAt: now \+ cacheTtlMs/);
   assert.match(clientViewSource, /activeQueryString/);
+  assert.match(clientViewSource, /useState\(\(\) => readBrowserQueryString\(queryString\)\)/);
   assert.match(clientViewSource, /tier-filter-query-change/);
   assert.match(clientViewSource, /window\.location\.search/);
+  assert.match(clientViewSource, /const syncFromLocation = \(\) => setActiveQueryString\(readBrowserQueryString\(queryString\)\)/);
   assert.match(clientViewSource, /addEventListener\("popstate"/);
   assert.match(clientViewSource, /buildTierApiUrl\(activeQueryString\)/);
   assert.match(clientViewSource, /queryString=\{activeQueryString\}/);
@@ -90,10 +92,11 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   );
 
   assert.match(proxySource, /NextResponse\.rewrite/);
-  assert.match(proxySource, /\/tier\/query/);
-  assert.match(proxySource, /source:\s*["']\/tier["']/);
-  assert.match(proxySource, /type:\s*["']query["'],\s*key:\s*["']liveOnly["']/);
-  assert.match(proxySource, /type:\s*["']query["'],\s*key:\s*["']univ["']/);
+  assert.doesNotMatch(proxySource, /pathname === "\/tier"/);
+  assert.doesNotMatch(proxySource, /\/tier\/query/);
+  assert.doesNotMatch(proxySource, /source:\s*["']\/tier["']/);
+  assert.doesNotMatch(proxySource, /type:\s*["']query["'],\s*key:\s*["']liveOnly["']/);
+  assert.doesNotMatch(proxySource, /type:\s*["']query["'],\s*key:\s*["']univ["']/);
 });
 
 test("tier grids use a lightweight tier card instead of hydrating the shared player card", () => {
