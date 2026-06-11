@@ -1313,3 +1313,29 @@ Pipeline observability follow-up after repeated freshness failures:
     `/api/tier/players`.
   - agent-browser snapshots for `/board` and `/player` loaded without console
     errors.
+
+2026-06-11 production tier measurement follow-up:
+
+- Production HTTP samples after PRs #5-#7:
+  - `/api/tier/players`: first observed MISS about 2.1s, HIT about 50-89ms,
+    payload about 56KB decoded for 103 live players.
+  - `/api/tier/players?liveOnly=false`: first observed MISS about 1.2s, HIT
+    about 82-94ms, payload about 156KB decoded for 320 players.
+  - `/tier`: first observed prerender about 522ms, then HIT about 31-40ms.
+  - `/tier?liveOnly=false`: query route remained dynamic/no-store and returned
+    about 324-354ms on warm samples.
+- Browser production measurements:
+  - `/tier`: 103 rendered cards, 103 image elements, 15 decoded images, 212
+    SVGs, about 2.8K DOM nodes, API resource decoded body 56KB.
+  - `/tier?liveOnly=false`: 320 rendered cards, 320 image elements, 33 decoded
+    images, 646 SVGs, about 7.6K DOM nodes, API resource decoded body 156KB.
+- Interpretation:
+  - Live default mode is acceptable after the SOOP heartbeat fix; image decode
+    is still lazy and not the first bottleneck.
+  - The next measurable tier performance target is the all-player query path:
+    it pays a dynamic no-store shell cost and a larger API payload/DOM cost.
+  - A shell-cache improvement should remove the `/tier?*` rewrite dependency or
+    otherwise avoid `searchParams`-driven dynamic SSR without causing an initial
+    live-only API fetch before the client observes the browser query string.
+  - A payload follow-up can narrow `/api/tier/players` to the fields used by
+    tier cards, H2H quick add, filters, and profile links.
