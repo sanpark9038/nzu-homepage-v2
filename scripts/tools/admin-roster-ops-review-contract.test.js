@@ -28,10 +28,18 @@ test("ops review helper exposes grouped approval queue data and decision filteri
   assert.match(source, /pipeline_alerts/);
   assert.match(source, /readRosterReviewDecisions/);
   assert.match(source, /rosterReviewDecisionKey/);
+  assert.match(source, /loadMergedRosterAdminState/);
+  assert.match(source, /buildAppliedReviewState/);
+  assert.match(source, /isAlreadyAppliedReviewItem/);
   assert.match(source, /affiliation_change/);
   assert.match(source, /tier_change/);
+  assert.match(source, /race_change/);
   assert.match(source, /excluded_candidate/);
   assert.match(source, /new_candidate/);
+  assert.match(source, /team_code/);
+  assert.match(source, /tier/);
+  assert.match(source, /race/);
+  assert.match(source, /exclusions/);
   assert.match(source, /missing_soop_ids/);
   assert.match(source, /zero_record_players/);
   assert.doesNotMatch(source, /writeFileSync|rmSync|saveRemoteRosterAdminCorrection/);
