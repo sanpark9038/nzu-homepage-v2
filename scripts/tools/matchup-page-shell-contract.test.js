@@ -18,7 +18,12 @@ test("match route uses a server page to hydrate the client with initial players"
 
   assert.doesNotMatch(pageSource, /^['"]use client['"]/m);
   assert.match(pageSource, /playerService\.getCachedPlayersList\(\)/);
-  assert.match(pageSource, /mapPlayersToMatchupSummaries\(players\)/);
+  assert.match(pageSource, /mapPlayersToMatchPageSummaries\(players\)/);
+  assert.doesNotMatch(
+    pageSource,
+    /mapPlayersToMatchupSummaries\(players\)/,
+    "The match route should use the slimmer match-page hydration payload, not the shared entry/API payload"
+  );
   assert.match(pageSource, /initialPlayersLoadFailed = true/);
   assert.match(pageSource, /<MatchPageClient initialPlayers=\{initialPlayers\} initialPlayersLoadFailed=\{initialPlayersLoadFailed\} \/>/);
 });
@@ -29,7 +34,7 @@ test("match client keeps an API fallback only when server hydration failed", () 
   const helperSource = readProjectFile("lib/matchup-helpers.ts");
 
   assert.match(clientSource, /^\uFEFF?['"]use client['"]/m);
-  assert.match(clientSource, /initialPlayers:\s*MatchupPlayerSummary\[\]/);
+  assert.match(clientSource, /initialPlayers:\s*MatchPagePlayerSummary\[\]/);
   assert.match(clientSource, /initialPlayersLoadFailed:\s*boolean/);
   assert.match(clientSource, /useState<Player\[\]>\(initialPlayers\)/);
   assert.match(clientSource, /if \(!initialPlayersLoadFailed\)/);

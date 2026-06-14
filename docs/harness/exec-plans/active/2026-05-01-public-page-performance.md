@@ -2075,3 +2075,52 @@ Post-deploy measurement after PR #11:
   - `npm.cmd run build`
   - `git diff --check`
 - Push/deploy status: not pushed and not deployed.
+
+2026-06-14 match page initial hydration payload narrowing:
+
+- Branch: `codex/match-page-performance-audit`.
+- Objective: reduce `/match` initial HTML hydration bytes without changing the
+  shared `/api/players` fallback payload or the `/entry` H2H tool payload.
+- TDD evidence:
+  - Updated `scripts/tools/matchup-page-shell-contract.test.js` so the match
+    route must call `mapPlayersToMatchPageSummaries(players)` and the client
+    must receive `MatchPagePlayerSummary[]`.
+  - Added `mapPlayersToMatchPageSummaries keeps only fields used by the match
+    page` to `scripts/tools/matchup-helpers.test.mjs`.
+  - RED:
+    - `npm.cmd run test:matchup-page-shell-contract` failed because
+      `app/match/page.tsx` still used `mapPlayersToMatchupSummaries(players)`
+      and the client still accepted `MatchupPlayerSummary[]`.
+    - `npm.cmd run test:matchup-helpers` failed because
+      `mapPlayerToMatchPageSummary` did not exist.
+  - GREEN:
+    - Added `MatchPagePlayerSummary`, `mapPlayerToMatchPageSummary`, and
+      `mapPlayersToMatchPageSummaries` in `lib/matchup-helpers.ts`.
+    - `app/match/page.tsx` now uses the match-page mapper.
+    - `app/match/MatchPageClient.tsx` now types its initial player state as
+      `MatchPagePlayerSummary[]`.
+    - `filterMatchupPlayers` now accepts either the full shared summary or the
+      slimmer match-page summary, preserving `/entry` university filtering and
+      `/match` query/exclude filtering.
+- Payload rule:
+  - `/match` initial hydration keeps only fields used by match search,
+    selected-player display, and H2H calls: `id`, `name`, `nickname`, `race`,
+    and `gender`.
+  - `tier` and `university` remain in the shared `/api/players` fallback/API
+    payload for `/entry` and other public H2H tools.
+- Local production measurement:
+  - Before this slice, after the inactive panel cleanup, `/match` smoke was
+    `200`, 78,042 bytes.
+  - After the slim hydration mapper, `/match` smoke is `200`, 65,550 bytes,
+    with `matchContainsTierKey=false` and `matchContainsUniversityKey=false`.
+  - Observed HTML reduction: 12,492 bytes.
+  - `/api/players` remains `200`, 48,106 bytes, with `tier` and `university`
+    still present.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+- Push/deploy status: not pushed and not deployed.

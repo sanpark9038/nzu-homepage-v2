@@ -11,7 +11,7 @@ import {
   filterMatchupPlayers,
   normalizeMatchupSearchText,
   reportMatchupRuntimeIssue,
-  type MatchupPlayerSummary,
+  type MatchPagePlayerSummary,
 } from "@/lib/matchup-helpers"
 import { 
   DndContext, 
@@ -33,7 +33,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 
 // --- Types ---
-type Player = MatchupPlayerSummary;
+type Player = MatchPagePlayerSummary;
 
 interface MatchRow {
   id: string;
@@ -696,7 +696,7 @@ export default function MatchPageClient({
   initialPlayers,
   initialPlayersLoadFailed,
 }: {
-  initialPlayers: MatchupPlayerSummary[];
+  initialPlayers: MatchPagePlayerSummary[];
   initialPlayersLoadFailed: boolean;
 }) {
   const [rows, setRows] = useState<MatchRow[]>([{ id: crypto.randomUUID(), p1: null, p2: null, p1Input: '', p2Input: '' }]);

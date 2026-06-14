@@ -12,6 +12,10 @@ export type MatchupPlayerSummary = {
   university?: string | null;
 };
 
+export type MatchPagePlayerSummary = Pick<MatchupPlayerSummary, "id" | "name" | "nickname" | "race" | "gender">;
+
+type MatchupFilterPlayer = MatchPagePlayerSummary & Partial<Pick<MatchupPlayerSummary, "tier" | "university">>;
+
 const UNKNOWN_TIER_KEY = "미정";
 
 export function getMatchupTierKey(tier: string | null | undefined) {
@@ -56,6 +60,24 @@ export function mapPlayersToMatchupSummaries(
   return players.map(mapPlayerToMatchupSummary);
 }
 
+export function mapPlayerToMatchPageSummary(
+  player: Pick<Player, "id" | "name" | "nickname" | "race" | "gender">
+): MatchPagePlayerSummary {
+  return {
+    id: player.id,
+    name: player.name,
+    nickname: player.nickname || null,
+    race: player.race || "R",
+    gender: player.gender || null,
+  };
+}
+
+export function mapPlayersToMatchPageSummaries(
+  players: Array<Pick<Player, "id" | "name" | "nickname" | "race" | "gender">>
+) {
+  return players.map(mapPlayerToMatchPageSummary);
+}
+
 export async function fetchMatchupPlayers() {
   const response = await fetch("/api/players");
   if (!response.ok) {
@@ -70,8 +92,8 @@ export function normalizeMatchupSearchText(value: string) {
   return String(value || "").trim().toLowerCase();
 }
 
-export function filterMatchupPlayers(
-  players: MatchupPlayerSummary[],
+export function filterMatchupPlayers<T extends MatchupFilterPlayer>(
+  players: T[],
   {
     university = "",
     query = "",

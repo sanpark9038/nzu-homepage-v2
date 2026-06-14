@@ -67,7 +67,9 @@ const {
   getMatchupTierBadgeLetter,
   getMatchupTierKey,
   getSharedMatchupGender,
+  mapPlayerToMatchPageSummary,
   mapPlayerToMatchupSummary,
+  mapPlayersToMatchPageSummaries,
   mapPlayersToMatchupSummaries,
   normalizeMatchupSearchText,
 } = loadProjectModule(path.join(repoRoot, "lib", "matchup-helpers.ts"));
@@ -118,6 +120,51 @@ test("mapPlayersToMatchupSummaries keeps one shared public contract", () => {
   assert.equal(summaries[1]?.race, "R");
   assert.equal(summaries[1]?.tier, "미정");
   assert.equal(summaries[1]?.university, null);
+});
+
+test("mapPlayersToMatchPageSummaries keeps only fields used by the match page", () => {
+  const summary = mapPlayerToMatchPageSummary({
+    id: "p1",
+    name: "alpha",
+    nickname: "a",
+    race: "",
+    gender: "female",
+    tier: "1",
+    university: "B.A",
+  });
+
+  assert.deepEqual(summary, {
+    id: "p1",
+    name: "alpha",
+    nickname: "a",
+    race: "R",
+    gender: "female",
+  });
+  assert.equal(Object.hasOwn(summary, "tier"), false);
+  assert.equal(Object.hasOwn(summary, "university"), false);
+
+  assert.deepEqual(
+    mapPlayersToMatchPageSummaries([
+      {
+        id: "p2",
+        name: "beta",
+        nickname: null,
+        race: "Zerg",
+        gender: null,
+        tier: null,
+        university: null,
+      },
+    ]),
+    [
+      {
+        id: "p2",
+        name: "beta",
+        nickname: null,
+        race: "Zerg",
+        gender: null,
+      },
+    ]
+  );
 });
 
 test("shared gender only applies when both sides match", () => {
