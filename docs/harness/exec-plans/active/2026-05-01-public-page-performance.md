@@ -2124,3 +2124,54 @@ Post-deploy measurement after PR #11:
   - `npm.cmd run lint`
   - `npm.cmd run build`
 - Push/deploy status: not pushed and not deployed.
+
+2026-06-14 post-match-cleanup local production route/API remeasure:
+
+- Branch: `codex/match-page-performance-audit`.
+- Method:
+  - Used the current production build with local `next start`.
+  - Ran with network escalation so Supabase-backed API routes were measured
+    instead of failing under sandbox `EACCES`.
+  - Sampled three rounds across public routes and public APIs.
+- Selected samples:
+  - Round 1:
+    - `/tier`: 200, 1,089ms, 41,884 bytes.
+    - `/tier?liveOnly=false`: 200, 139ms, 41,884 bytes.
+    - `/api/tier/players`: 200, 1,014ms, 40,465 bytes.
+    - `/api/tier/players?liveOnly=false`: 200, 61ms, 75,178 bytes.
+    - `/match`: 200, 102ms, 65,550 bytes.
+    - `/api/players`: 200, 50ms, 48,106 bytes.
+    - `/player`: 200, 34ms, 23,049 bytes.
+    - `/entry`: 200, 69ms, 79,847 bytes.
+    - `/schedule`: 200, 40ms, 28,360 bytes.
+    - `/prediction`: 200, 36ms, 23,597 bytes.
+    - `/api/prediction`: 200, 274ms, 52 bytes.
+    - `/teams`: 200, 62ms, 50,307 bytes.
+    - `/rankings`: 200, 56ms, 59,195 bytes.
+    - `/board`: 200, 54ms, 38,552 bytes.
+  - Warm rounds:
+    - `/tier`: 40-47ms, 41,856 bytes.
+    - `/api/tier/players`: 32-37ms, 43,054 bytes.
+    - `/api/tier/players?liveOnly=false`: 48-55ms, 75,178 bytes.
+    - `/match`: 50-52ms, 65,550 bytes.
+    - `/api/players`: 82-107ms, 48,106 bytes.
+    - `/entry`: 57-58ms, 79,847 bytes.
+    - `/rankings`: 44-49ms, 59,167 bytes.
+- Interpretation:
+  - The `/match` HTML payload reduction is visible in production-mode local
+    output: it is now 65.5KB instead of the prior 78KB range.
+  - The next largest public HTML route is `/entry` at about 79.8KB.
+  - The next largest public API payload remains full
+    `/api/tier/players?liveOnly=false` at about 75.2KB.
+  - Tier live/default API still has a cold first-fill cost around 1s locally,
+    while warm reads are about 32-37ms.
+- Next recommended non-deploy candidates:
+  1. Inspect `/entry` initial H2H player hydration and bundle shape. Unlike
+     `/match`, `/entry` appears to need university and tier for its two-sided
+     filters and grouping, so any reduction must preserve that workflow.
+  2. Inspect remaining full tier API field contribution after the media
+     trimming commit to see whether the 75.2KB payload still has removable
+     fields or whether it is now mostly required identity/card data.
+  3. Keep push/preview/production rollout as an operator-approved decision;
+     this branch is still local only.
+- Push/deploy status: not pushed and not deployed.
