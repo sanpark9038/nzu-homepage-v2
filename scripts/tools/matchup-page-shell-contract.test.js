@@ -84,14 +84,20 @@ test("entry route packs H2H players before hydrating the client", () => {
   const pageSource = readProjectFile("app/entry/page.tsx");
   const clientSource = readProjectFile("components/stats/H2HLookup.tsx");
 
-  assert.match(pageSource, /packMatchupPlayerSummaries/);
-  assert.match(pageSource, /const packedPlayers = packMatchupPlayerSummaries\(matchupPlayers\)/);
-  assert.match(pageSource, /<H2HLookup packedPlayers=\{packedPlayers\} universityOptions=\{universityOptions\} \/>/);
+  assert.match(pageSource, /packMatchupPlayersPayload/);
+  assert.match(pageSource, /const packedPlayersPayload = packMatchupPlayersPayload\(matchupPlayers\)/);
+  assert.match(pageSource, /<H2HLookup packedPlayersPayload=\{packedPlayersPayload\} universityOptions=\{universityOptions\} \/>/);
   assert.doesNotMatch(
     pageSource,
     /<H2HLookup players=\{matchupPlayers\}/,
     "Entry should avoid sending repeated object keys for every initial H2H player"
   );
+  assert.doesNotMatch(
+    pageSource,
+    /<H2HLookup packedPlayers=\{packedPlayers\}/,
+    "Entry should avoid sending repeated tier and university strings for every initial H2H player"
+  );
   assert.match(clientSource, /packedPlayers\?:\s*PackedMatchupPlayerSummary\[\]/);
-  assert.match(clientSource, /unpackMatchupPlayerSummaries\(packedPlayers\)/);
+  assert.match(clientSource, /packedPlayersPayload\?:\s*PackedMatchupPlayersPayload/);
+  assert.match(clientSource, /unpackMatchupPlayersPayload\(packedPlayersPayload\)/);
 });

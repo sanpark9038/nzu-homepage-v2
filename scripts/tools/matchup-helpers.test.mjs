@@ -74,10 +74,12 @@ const {
   normalizeMatchupSearchText,
   packMatchPagePlayerSummaries,
   packMatchPagePlayerSummary,
+  packMatchupPlayersPayload,
   packMatchupPlayerSummaries,
   packMatchupPlayerSummary,
   unpackMatchPagePlayerSummaries,
   unpackMatchPagePlayerSummary,
+  unpackMatchupPlayersPayload,
   unpackMatchupPlayerSummaries,
   unpackMatchupPlayerSummary,
 } = loadProjectModule(path.join(repoRoot, "lib", "matchup-helpers.ts"));
@@ -208,6 +210,63 @@ test("packed matchup player summaries preserve entry fields with smaller JSON", 
   assert.ok(
     JSON.stringify(packed).length < JSON.stringify(players).length,
     "Packed entry hydration should avoid repeated object keys"
+  );
+});
+
+test("packed matchup players payload dictionaries repeated tier and university values", () => {
+  const players = [
+    {
+      id: "p1",
+      name: "alpha",
+      nickname: "a",
+      race: "P",
+      gender: "female",
+      tier: "1",
+      university: "B.A",
+    },
+    {
+      id: "p2",
+      name: "beta",
+      nickname: null,
+      race: "T",
+      gender: null,
+      tier: "미정",
+      university: null,
+    },
+    {
+      id: "p3",
+      name: "gamma",
+      nickname: null,
+      race: "Z",
+      gender: "male",
+      tier: "1",
+      university: "B.A",
+    },
+    ...Array.from({ length: 40 }, (_, index) => ({
+      id: `px${index}`,
+      name: `player-${index}`,
+      nickname: null,
+      race: index % 3 === 0 ? "P" : index % 3 === 1 ? "T" : "Z",
+      gender: null,
+      tier: "1",
+      university: "B.A",
+    })),
+  ];
+
+  const packedRows = packMatchupPlayerSummaries(players);
+  const payload = packMatchupPlayersPayload(players);
+
+  assert.deepEqual(payload.tiers, ["1", "미정"]);
+  assert.deepEqual(payload.universities, ["B.A"]);
+  assert.deepEqual(payload.players.slice(0, 3), [
+    ["p1", "alpha", "a", "P", "female", 0, 0],
+    ["p2", "beta", null, "T", null, 1, -1],
+    ["p3", "gamma", null, "Z", "male", 0, 0],
+  ]);
+  assert.deepEqual(unpackMatchupPlayersPayload(payload), players);
+  assert.ok(
+    JSON.stringify(payload).length < JSON.stringify(packedRows).length,
+    "Packed entry payload should avoid repeated tier and university values"
   );
 });
 

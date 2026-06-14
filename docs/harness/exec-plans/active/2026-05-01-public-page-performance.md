@@ -2454,3 +2454,59 @@ Post-deploy measurement after PR #11:
   - `npm.cmd run build` exited 0. The build log still included known sandbox
     `EACCES` fetch warnings for Supabase/hero-media revalidation attempts.
 - Push/deploy status: not pushed and not deployed.
+
+2026-06-14 entry page matchup payload dictionary packing:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - After `/match` tuple packing, the next largest public HTML candidates were
+    `/entry` at 56,493 bytes and `/rankings` at 56,370 bytes.
+  - `/entry` already packed H2H players as tuples, but still repeated `tier`
+    and `university` string values in each row.
+- TDD evidence:
+  - RED:
+    - `npm.cmd run test:matchup-page-shell-contract` failed because
+      `app/entry/page.tsx` still passed `packedPlayers`.
+    - `npm.cmd run test:matchup-helpers` failed because
+      `packMatchupPlayersPayload` did not exist.
+    - The first helper size assertion also showed that dictionary packing only
+      wins for realistically repeated payloads, not tiny three-row examples.
+  - GREEN:
+    - Added `PackedMatchupPlayersPayload` with shared `tiers` and
+      `universities` dictionaries in `lib/matchup-helpers.ts`.
+    - `app/entry/page.tsx` now passes `packedPlayersPayload` to `H2HLookup`.
+    - `components/stats/H2HLookup.tsx` unpacks the dictionary payload back into
+      the existing `MatchupPlayerSummary` shape. The older `packedPlayers`
+      prop remains supported for compatibility.
+- Payload rule:
+  - Player tuples now keep `id`, `name`, `nickname`, `race`, `gender`, plus
+    `tierIndex` and `universityIndex`.
+  - Missing university is encoded as `-1`.
+  - Entry UI behavior, filters, and H2H request identity stay object-shaped
+    after unpacking.
+- Local production measurement:
+  - Baseline from the previous local production smoke: `/entry` 56,493 bytes.
+  - After dictionary packing: `/entry` 200, 53,410 bytes.
+  - Observed HTML reduction: 3,083 bytes.
+  - Smoke comparison in the same run:
+    - `/match`: 200, 49,876 bytes.
+    - `/rankings`: 200, 56,370 bytes.
+  - `/entry` retained `Cache-Control: s-maxage=300,
+    stale-while-revalidate=31535700`.
+  - The rendered HTML contained `packedPlayersPayload` and did not contain the
+    old `"packedPlayers":` prop key.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+  - Local production `next start` smoke on port 3031 for `/entry`, `/match`,
+    and `/rankings`.
+- Build note:
+  - `npm.cmd run build` exited 0. The build log still included known sandbox
+    `EACCES` fetch warnings for Supabase/hero-media revalidation attempts.
+- Push/deploy status: not pushed and not deployed.

@@ -22,6 +22,22 @@ export type PackedMatchupPlayerSummary = [
   university: string | null,
 ];
 
+export type PackedMatchupPayloadPlayer = [
+  id: string,
+  name: string,
+  nickname: string | null,
+  race: string,
+  gender: string | null,
+  tierIndex: number,
+  universityIndex: number,
+];
+
+export type PackedMatchupPlayersPayload = {
+  tiers: string[];
+  universities: string[];
+  players: PackedMatchupPayloadPlayer[];
+};
+
 export type MatchPagePlayerSummary = Pick<MatchupPlayerSummary, "id" | "name" | "nickname" | "race" | "gender">;
 
 export type PackedMatchPagePlayerSummary = [
@@ -108,6 +124,57 @@ export function unpackMatchupPlayerSummary(packed: PackedMatchupPlayerSummary): 
 
 export function unpackMatchupPlayerSummaries(players: PackedMatchupPlayerSummary[]) {
   return players.map(unpackMatchupPlayerSummary);
+}
+
+function getDictionaryIndex(value: string, values: string[], indexes: Map<string, number>) {
+  const existingIndex = indexes.get(value);
+  if (existingIndex !== undefined) return existingIndex;
+
+  const nextIndex = values.length;
+  values.push(value);
+  indexes.set(value, nextIndex);
+  return nextIndex;
+}
+
+export function packMatchupPlayersPayload(players: MatchupPlayerSummary[]): PackedMatchupPlayersPayload {
+  const tiers: string[] = [];
+  const tierIndexes = new Map<string, number>();
+  const universities: string[] = [];
+  const universityIndexes = new Map<string, number>();
+
+  return {
+    tiers,
+    universities,
+    players: players.map((player) => {
+      const tierIndex = getDictionaryIndex(getMatchupTierKey(player.tier), tiers, tierIndexes);
+      const university = player.university || null;
+      const universityIndex = university
+        ? getDictionaryIndex(university, universities, universityIndexes)
+        : -1;
+
+      return [
+        player.id,
+        player.name,
+        player.nickname || null,
+        player.race || "R",
+        player.gender || null,
+        tierIndex,
+        universityIndex,
+      ];
+    }),
+  };
+}
+
+export function unpackMatchupPlayersPayload(payload: PackedMatchupPlayersPayload) {
+  return payload.players.map((packed): MatchupPlayerSummary => ({
+    id: packed[0],
+    name: packed[1],
+    nickname: packed[2],
+    race: packed[3] || "R",
+    gender: packed[4],
+    tier: payload.tiers[packed[5]] || UNKNOWN_TIER_KEY,
+    university: packed[6] >= 0 ? payload.universities[packed[6]] ?? null : null,
+  }));
 }
 
 export function mapPlayerToMatchPageSummary(

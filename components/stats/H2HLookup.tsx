@@ -11,8 +11,10 @@ import {
   fetchH2HStats,
   filterMatchupPlayers,
   reportMatchupRuntimeIssue,
+  unpackMatchupPlayersPayload,
   unpackMatchupPlayerSummaries,
   type MatchupPlayerSummary,
+  type PackedMatchupPlayersPayload,
   type PackedMatchupPlayerSummary,
 } from '@/lib/matchup-helpers'
 import { getTierSortWeight } from '@/lib/tier-order'
@@ -39,6 +41,7 @@ type Match = {
 type H2HLookupProps = {
   players?: MatchupPlayerSummary[]
   packedPlayers?: PackedMatchupPlayerSummary[]
+  packedPlayersPayload?: PackedMatchupPlayersPayload
   recentMatches?: unknown[]
   universityOptions?: UniversityOption[]
 }
@@ -90,12 +93,14 @@ function buildGroupedMatches(matchList: Match[]) {
 export default function H2HLookup({
   players,
   packedPlayers = EMPTY_PACKED_PLAYERS,
+  packedPlayersPayload,
   universityOptions = [],
 }: H2HLookupProps) {
-  const initialPlayers = useMemo(
-    () => players ?? unpackMatchupPlayerSummaries(packedPlayers),
-    [packedPlayers, players]
-  )
+  const initialPlayers = useMemo(() => {
+    if (players) return players
+    if (packedPlayersPayload) return unpackMatchupPlayersPayload(packedPlayersPayload)
+    return unpackMatchupPlayerSummaries(packedPlayers)
+  }, [packedPlayers, packedPlayersPayload, players])
   const [p1, setP1] = useState<Player | null>(null)
   const [p2, setP2] = useState<Player | null>(null)
   const [results, setResults] = useState<H2HStats | null>(null)
