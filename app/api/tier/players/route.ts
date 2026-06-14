@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { playerService } from "@/lib/player-service";
-import { buildTierPlayerPayload } from "@/lib/tier-player-payload";
+import { buildPackedTierPlayersPayload } from "@/lib/tier-player-payload";
 import { filterTierPlayers } from "@/lib/tier-page-helpers";
 
 export const revalidate = 60;
@@ -18,11 +18,10 @@ export async function GET(request: NextRequest) {
     search: params.get("search"),
   });
 
-  const payload = {
+  const payload = buildPackedTierPlayersPayload(players, {
     liveOnly,
-    players: players.map(buildTierPlayerPayload),
     generatedAt: new Date().toISOString(),
-  };
+  });
 
   return NextResponse.json(payload, {
     headers: {

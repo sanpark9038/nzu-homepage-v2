@@ -70,7 +70,11 @@ registerTypeScriptRequire();
 
 const { buildCompactTeamTierPlayers, buildNamedTierPlayers, NAMED_TIER_LABELS } = require(path.join(ROOT, "lib", "tier-page-helpers.ts"));
 const { filterTierPlayers } = require(path.join(ROOT, "lib", "tier-page-helpers.ts"));
-const { buildTierPlayerPayload } = require(path.join(ROOT, "lib", "tier-player-payload.ts"));
+const {
+  buildPackedTierPlayersPayload,
+  buildTierPlayerPayload,
+  unpackTierPlayersPayload,
+} = require(path.join(ROOT, "lib", "tier-player-payload.ts"));
 const { getTierLabel, normalizeTier } = require(path.join(ROOT, "lib", "utils.ts"));
 
 runTest("numeric tier 9 players are rendered in the baby tier group", () => {
@@ -192,4 +196,69 @@ runTest("tier API payload omits unused media fields while preserving card fallba
   assert.equal(Object.hasOwn(offlinePayload, "broadcast_title"), false);
   assert.equal(Object.hasOwn(offlinePayload, "channel_profile_image_url"), false);
   assert.equal(Object.hasOwn(offlinePayload, "live_thumbnail_url"), false);
+});
+
+runTest("tier API packed payload preserves fields with smaller JSON", () => {
+  const players = [
+    {
+      id: "live-player",
+      name: "Live Player",
+      nickname: "Live",
+      race: "P",
+      gender: "male",
+      tier: "1",
+      university: "WFU",
+      is_live: true,
+      broadcast_title: "Live now",
+      channel_profile_image_url: "https://images.example/channel.jpg",
+      live_thumbnail_url: "https://images.example/live.jpg",
+      photo_url: "https://images.example/profile.jpg",
+    },
+    {
+      id: "offline-player",
+      name: "Offline Player",
+      nickname: null,
+      race: "T",
+      gender: "female",
+      tier: "2",
+      university: "YB",
+      is_live: false,
+      broadcast_title: null,
+      channel_profile_image_url: null,
+      live_thumbnail_url: null,
+      photo_url: "https://images.example/offline.jpg",
+    },
+  ];
+
+  const objectPayload = {
+    liveOnly: false,
+    players: players.map(buildTierPlayerPayload),
+    generatedAt: "2026-06-14T00:00:00.000Z",
+  };
+  const packedPayload = buildPackedTierPlayersPayload(players, {
+    liveOnly: false,
+    generatedAt: objectPayload.generatedAt,
+  });
+
+  assert.deepEqual(packedPayload.fields, [
+    "id",
+    "name",
+    "nickname",
+    "race",
+    "gender",
+    "tier",
+    "university",
+    "is_live",
+    "broadcast_title",
+    "channel_profile_image_url",
+    "live_thumbnail_url",
+    "photo_url",
+  ]);
+  assert.equal(Array.isArray(packedPayload.players[0]), true);
+  assert.equal(Object.hasOwn(packedPayload.players[0], "id"), false);
+  assert.deepEqual(unpackTierPlayersPayload(packedPayload), objectPayload);
+  assert.ok(
+    JSON.stringify(packedPayload).length < JSON.stringify(objectPayload).length,
+    "Packed tier API payload should avoid repeated object keys"
+  );
 });

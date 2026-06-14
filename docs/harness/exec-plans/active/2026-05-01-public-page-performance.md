@@ -1985,6 +1985,73 @@ Post-deploy measurement after PR #11:
   2. Inspect `/rankings` HTML payload, now among the larger public HTML routes
      after `/entry` and `/match` reductions.
 
+2026-06-14 tier API packed payload:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - After `/entry` was reduced, the next non-deploy API candidate was the full
+    tier endpoint `/api/tier/players?liveOnly=false`.
+  - Field-contribution sampling showed the remaining large bytes were mostly
+    required card/filter/H2H fields plus live metadata; removing fields would
+    weaken the tier page, while repeated object keys were still avoidable.
+- TDD evidence:
+  - Added `tier API packed payload preserves fields with smaller JSON` to
+    `scripts/tools/tier-page-helpers.test.cjs`.
+  - Updated `scripts/tools/tier-page-cache-contract.test.js` so the API route
+    must use `buildPackedTierPlayersPayload()` and `TierClientView` must call
+    `unpackTierPlayersPayload()`.
+  - RED:
+    - `npm.cmd run test:tier-page-helpers` failed because
+      `buildPackedTierPlayersPayload` did not exist.
+    - `npm.cmd run test:tier-page-cache-contract` failed because the tier
+      client did not call `unpackTierPlayersPayload`.
+  - GREEN:
+    - `lib/tier-player-payload.ts` now emits a self-described
+      `fields + players(tuple[])` payload and unpacks it back to the existing
+      tier player object shape.
+    - `app/api/tier/players/route.ts` returns the packed payload.
+    - `app/tier/TierClientView.tsx` unpacks immediately after `response.json()`,
+      keeping the rest of the card/filter code on object-shaped players.
+    - Tier page helpers and tier card props were narrowed to the tier payload
+      shape instead of requiring the full `Player` row.
+- Payload rule:
+  - Core fields remain in every tuple:
+    `id`, `name`, `nickname`, `race`, `gender`, `tier`, `university`,
+    `is_live`.
+  - Optional media/live fields are included in `fields` only when at least one
+    row uses them: `broadcast_title`, `channel_profile_image_url`,
+    `live_thumbnail_url`, `photo_url`.
+  - The client unpacks before rendering, so UI labels and card behavior stay
+    unchanged.
+- Local production measurement:
+  - Pre-change same-server sampling estimated packed full tier payload at about
+    42KB versus about 67KB object JSON.
+  - After implementation and production build:
+    - `/api/tier/players`: 200, 23,166 bytes, 127 players,
+      `playersAreArrays=true`.
+    - `/api/tier/players?liveOnly=false`: 200, 42,147 bytes, 320 players,
+      `playersAreArrays=true`, `firstPlayerHasIdKey=false`.
+    - `/tier`: 200, 41,884 bytes.
+  - Browser verification on `http://localhost:3023/tier?liveOnly=false`:
+    error output empty, no framework overlay, content present, 320 tier H2H
+    buttons rendered, and the browser resource entry for
+    `/api/tier/players?liveOnly=false` had `encodedBodySize=42147`.
+- Verification:
+  - `npm.cmd run test:tier-page-helpers`
+  - `npm.cmd run test:tier-page-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+  - `agent-browser.cmd open http://localhost:3023/tier?liveOnly=false`
+  - `agent-browser.cmd wait --load networkidle`
+  - `agent-browser.cmd errors`
+  - `agent-browser.cmd snapshot -i`
+- Push/deploy status: not pushed and not deployed.
+- Next recommended non-deploy candidate:
+  - Re-run the public route/API table after this API packing commit, then
+    inspect `/rankings` if it remains one of the larger public HTML routes.
+
 2026-06-14 tier API media payload narrowing:
 
 - Branch: `codex/tier-live-api-cache`.

@@ -1,12 +1,12 @@
 import { cn, normalizeRace } from "@/lib/utils";
-import type { Player } from "@/types";
+import type { TierPlayerPayload } from "@/lib/tier-player-payload";
 
 import { TierPlayerCard } from "./TierPlayerCard";
 import { TIER_PLAYER_GRID_CLASS } from "./tier-grid-layout";
 
 type TierGroupProps = {
   rankName: string;
-  players: Player[];
+  players: TierPlayerPayload[];
   startIndex: number;
   showRaceGroups?: boolean;
   emptyMessage?: string;

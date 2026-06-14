@@ -15,6 +15,46 @@ export type TierPlayerPayload = {
   photo_url?: Player["photo_url"];
 };
 
+export const TIER_PLAYER_PAYLOAD_CORE_FIELDS = [
+  "id",
+  "name",
+  "nickname",
+  "race",
+  "gender",
+  "tier",
+  "university",
+  "is_live",
+] as const satisfies ReadonlyArray<keyof TierPlayerPayload>;
+
+export const TIER_PLAYER_PAYLOAD_OPTIONAL_FIELDS = [
+  "broadcast_title",
+  "channel_profile_image_url",
+  "live_thumbnail_url",
+  "photo_url",
+] as const satisfies ReadonlyArray<keyof TierPlayerPayload>;
+
+export type TierPlayerPayloadField =
+  | (typeof TIER_PLAYER_PAYLOAD_CORE_FIELDS)[number]
+  | (typeof TIER_PLAYER_PAYLOAD_OPTIONAL_FIELDS)[number];
+
+export type PackedTierPlayerValue = string | boolean | null;
+export type PackedTierPlayerPayload = PackedTierPlayerValue[];
+
+export type PackedTierPlayersPayload = {
+  liveOnly: boolean;
+  fields: TierPlayerPayloadField[];
+  players: PackedTierPlayerPayload[];
+  generatedAt: string;
+};
+
+export type TierPlayersPayload = {
+  liveOnly: boolean;
+  players: TierPlayerPayload[];
+  generatedAt: string;
+};
+
+const TIER_PLAYER_PAYLOAD_OPTIONAL_FIELD_SET = new Set<TierPlayerPayloadField>(TIER_PLAYER_PAYLOAD_OPTIONAL_FIELDS);
+
 export function buildTierPlayerPayload(player: Player): TierPlayerPayload {
   const payload: TierPlayerPayload = {
     id: player.id,
@@ -40,4 +80,40 @@ export function buildTierPlayerPayload(player: Player): TierPlayerPayload {
   }
 
   return payload;
+}
+
+export function buildPackedTierPlayersPayload(
+  players: Player[],
+  options: { liveOnly: boolean; generatedAt: string }
+): PackedTierPlayersPayload {
+  const payloadPlayers = players.map(buildTierPlayerPayload);
+  const optionalFields = TIER_PLAYER_PAYLOAD_OPTIONAL_FIELDS.filter((field) =>
+    payloadPlayers.some((player) => Object.hasOwn(player, field))
+  );
+  const fields: TierPlayerPayloadField[] = [...TIER_PLAYER_PAYLOAD_CORE_FIELDS, ...optionalFields];
+
+  return {
+    liveOnly: options.liveOnly,
+    fields,
+    players: payloadPlayers.map((player) => fields.map((field) => player[field] ?? null)),
+    generatedAt: options.generatedAt,
+  };
+}
+
+export function unpackTierPlayersPayload(payload: PackedTierPlayersPayload): TierPlayersPayload {
+  return {
+    liveOnly: payload.liveOnly,
+    players: payload.players.map((packedPlayer) => {
+      const player: Partial<Record<TierPlayerPayloadField, PackedTierPlayerValue>> = {};
+
+      payload.fields.forEach((field, index) => {
+        const value = packedPlayer[index] ?? null;
+        if (TIER_PLAYER_PAYLOAD_OPTIONAL_FIELD_SET.has(field) && value === null) return;
+        player[field] = value;
+      });
+
+      return player as TierPlayerPayload;
+    }),
+    generatedAt: payload.generatedAt,
+  };
 }

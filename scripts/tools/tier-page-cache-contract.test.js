@@ -46,6 +46,7 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(clientViewSource, /TIER_STATIC_REQUEST_CACHE_MS = 5 \* 60 \* 1000/);
   assert.match(clientViewSource, /type TierPlayersCacheEntry/);
   assert.match(clientViewSource, /function loadTierPlayers/);
+  assert.match(clientViewSource, /unpackTierPlayersPayload/);
   assert.match(clientViewSource, /tierPlayersRequestCache\.get\(apiUrl\)/);
   assert.match(clientViewSource, /cachedRequest\.expiresAt > now/);
   assert.match(clientViewSource, /tierPlayersRequestCache\.delete\(apiUrl\)/);
@@ -71,8 +72,9 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(apiRouteSource, /export\s+const\s+revalidate\s*=\s*60/);
   assert.match(apiRouteSource, /playerService\.getCachedPlayersList\(\)/);
   assert.match(apiRouteSource, /playerService\.getLivePlayers\(\)/);
-  assert.match(apiRouteSource, /buildTierPlayerPayload/);
-  assert.match(apiRouteSource, /players:\s*players\.map\(buildTierPlayerPayload\)/);
+  assert.match(apiRouteSource, /buildPackedTierPlayersPayload/);
+  assert.match(apiRouteSource, /buildPackedTierPlayersPayload\(players,\s*\{/);
+  assert.doesNotMatch(apiRouteSource, /players:\s*players\.map\(buildTierPlayerPayload\)/);
   assert.doesNotMatch(apiRouteSource, /broadcast_title:\s*player\.broadcast_title/);
   assert.doesNotMatch(apiRouteSource, /channel_profile_image_url:\s*player\.channel_profile_image_url/);
   assert.doesNotMatch(apiRouteSource, /live_thumbnail_url:\s*player\.live_thumbnail_url/);
