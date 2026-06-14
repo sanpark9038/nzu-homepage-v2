@@ -1954,3 +1954,42 @@ Post-deploy measurement after PR #11:
   - `/api/tier/players?liveOnly=false`: 99,118 bytes -> 73,257 bytes,
     25,861 bytes saved, 320 players.
 - Push/deploy status: not pushed and not deployed.
+
+2026-06-14 tier API performance branch local deploy-candidate gate:
+
+- Branch: `codex/tier-live-api-cache`.
+- Worktree status before gate: clean.
+- Base:
+  - `main..HEAD`: `63d35a3 Cache live tier player query`,
+    `995ef7c Trim tier API media payload`.
+  - `origin/main..HEAD`: also includes `ba23519 Record tier next bottleneck
+    audit`, because local `main` has that documentation commit ahead of
+    `origin/main`.
+- Local package contents:
+  - `getLivePlayers()` now uses a short 60-second live-player data cache to
+    reduce cold/default `/api/tier/players` generation pressure.
+  - tier API payload mapping now omits unused null/duplicate media fields while
+    preserving tier card profile fallback, live hover metadata, filters, and
+    quick H2H identity fields.
+- Expected effect before preview/production:
+  - Better live/default API cold regeneration behavior after the first live
+    query fills the 60-second data cache.
+  - Smaller tier API JSON, especially full `liveOnly=false` responses. The
+    latest production JSON transformed locally with the branch rule showed
+    about 25.9KB saved on the full tier payload.
+- Fresh local gate verification:
+  - `npm.cmd run test:tier-page-cache-contract`
+  - `npm.cmd run test:tier-page-helpers`
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:player-live-overlay`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Push/deploy status: not pushed, no PR opened, and no preview/production
+  deploy run.
+- Next operator decision:
+  - If approved, push `codex/tier-live-api-cache`, inspect preview, and measure
+    preview `/tier`, `/tier?liveOnly=false`, `/api/tier/players`, and
+    `/api/tier/players?liveOnly=false` cold/warm behavior before considering
+    production rollout.
