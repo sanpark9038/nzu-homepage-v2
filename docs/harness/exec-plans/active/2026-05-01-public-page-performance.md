@@ -1439,3 +1439,299 @@ Post-deploy measurement after PR #11:
   - `npm.cmd run lint`
   - `git diff --check`
   - `npm.cmd run build`
+
+2026-06-14 player detail-summary API shared cache header:
+
+- Started a separate local branch from `origin/main` to avoid mixing player
+  page work into the tier performance branch.
+- The expanded player detail report already uses
+  `getCachedPlayerDetailSummaryById()` with a 300 second
+  `public-player-history` data cache, but `/api/player-detail-summary` did not
+  expose a matching HTTP shared-cache policy.
+- Added a success-only `Cache-Control` header:
+  `s-maxage=300, stale-while-revalidate=31536000`.
+- Expected effect: repeated detail-summary expansions can be served at the HTTP
+  cache layer for the same player summary while keeping error responses
+  uncached and preserving the existing lazy-load behavior.
+- Local production verification:
+  - `GET /api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`
+    returned 200.
+  - response `Cache-Control` was
+    `s-maxage=300, stale-while-revalidate=31536000`.
+  - decoded body was 4,784 bytes in the local sample.
+- Verification:
+  - RED: `npm.cmd run test:player-page-payload-contract` failed before the
+    route exposed the cache header.
+  - GREEN: `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:player-history-artifact-cache-contract`
+  - `npm.cmd run test:h2h-route-performance-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+
+2026-06-14 public matchup players API shared cache header:
+
+- Continued the player/match fallback HTTP-cache pass on
+  `codex/player-page-performance-audit`.
+- `/api/players` already reads from `getCachedPlayersList()` and has
+  `revalidate = 300`, but the successful JSON response did not expose a
+  matching shared-cache policy.
+- Added the same success-only `Cache-Control` header used by the player detail
+  and H2H API cache pass:
+  `s-maxage=300, stale-while-revalidate=31536000`.
+- Expected effect: match-page fallback player-list loads can reuse the HTTP
+  cache layer when server hydration misses, without changing the server-hydrated
+  first paint or any visible labels.
+- Local production verification:
+  - `GET /api/players` returned 200.
+  - response `Cache-Control` was
+    `s-maxage=300, stale-while-revalidate=31536000`.
+  - decoded body was 44,782 bytes in the local sample.
+- Verification:
+  - RED: `npm.cmd run test:matchup-page-shell-contract` failed before the
+    route exposed the cache header.
+  - GREEN: `npm.cmd run test:matchup-page-shell-contract`
+
+2026-06-14 H2H stats API shared cache header:
+
+- Continued the player/H2H HTTP-cache pass on the separate
+  `codex/player-page-performance-audit` branch.
+- `/api/stats/h2h` already cached ID-based detailed H2H work for 300 seconds
+  with the `public-player-history` tag, but successful HTTP responses did not
+  expose a matching shared-cache policy.
+- Added the same success-only `Cache-Control` header:
+  `s-maxage=300, stale-while-revalidate=31536000`.
+- Expected effect: repeated canonical-ID H2H lookups can be served at the HTTP
+  cache layer while preserving the existing name/ID validation and leaving
+  error responses uncached.
+- Local production verification:
+  - `GET /api/stats/h2h?p1=김윤중&p2=이영한&p1_id=66a8e705-a145-47fb-ac17-015e03a4567b&p2_id=89b827df-7015-481c-a05e-814221b79cd8`
+    returned 200.
+  - response `Cache-Control` was
+    `s-maxage=300, stale-while-revalidate=31536000`.
+  - decoded body was 395 bytes in the local sample.
+- Verification:
+  - RED: `npm.cmd run test:h2h-route-performance-contract` failed before the
+    route exposed the cache header.
+  - GREEN: `npm.cmd run test:h2h-route-performance-contract`
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:player-history-artifact-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+
+2026-06-14 matchup client shared-cache follow-up:
+
+- After adding shared HTTP cache headers to `/api/player-detail-summary`,
+  `/api/players`, and `/api/stats/h2h`, checked the client helper that calls
+  the public matchup endpoints.
+- `fetchMatchupPlayers()` and the canonical-ID H2H helper still passed
+  `{ cache: "no-store" }`, which made those browser fetches less aligned with
+  the route-level `s-maxage=300, stale-while-revalidate=31536000` policy.
+- Removed the explicit `no-store` option from the public matchup player-list
+  fallback and canonical-ID H2H fetch. The fallback still only runs when server
+  hydration fails, and H2H still requires both canonical player IDs.
+- Expected effect: repeated public matchup fallback/H2H requests can benefit
+  from the server/CDN cache policy already added in this branch, without
+  changing labels, roster identity rules, or error handling.
+- Verification:
+  - RED: `npm.cmd run test:matchup-page-shell-contract` failed before the
+    player-list fallback stopped forcing `no-store`.
+  - RED: `npm.cmd run test:matchup-h2h-fetch-contract` failed before H2H
+    stopped forcing `no-store`.
+  - GREEN: `npm.cmd run test:matchup-page-shell-contract`
+  - GREEN: `npm.cmd run test:matchup-h2h-fetch-contract`
+
+2026-06-14 player/match performance branch local deploy-candidate check:
+
+- Current local branch:
+  `codex/player-page-performance-audit`.
+- Local commits in the player/match public performance package:
+  - `37343b0 Cache player detail summary API`
+  - `e21f2a4 Cache H2H stats API responses`
+  - `026c7fc Cache public players API responses`
+  - `44d41e0 Allow matchup fetches to use shared cache`
+- Push/deploy status: pushed to
+  `origin/codex/player-page-performance-audit` at
+  `4d2b3285ec540867ad42cc8a540560fc70368306`; no manual preview or production
+  deploy was run.
+- Local verification:
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:player-history-artifact-cache-contract`
+  - `npm.cmd run test:h2h-route-performance-contract`
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Local production smoke with `next start -p 3010`:
+  - `/player`: 200, 23,049 bytes.
+  - `/match`: 200, 78,042 bytes.
+  - `/api/players`: 200,
+    `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`, 44,782
+    bytes.
+  - `/api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`:
+    200, `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`,
+    4,130 bytes.
+  - ID-based `/api/stats/h2h` for 김윤중 vs 이영한: 200,
+    `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`, 153
+    bytes.
+
+2026-06-14 player/match branch preview smoke after push:
+
+- Checked the pushed branch `codex/player-page-performance-audit`; the local
+  worktree was clean and tracking `origin/codex/player-page-performance-audit`.
+- Remote branch head was `7c019b410ba826a742bcafab4d4cf42e1054ad51`.
+- GitHub status:
+  - No pull request exists yet for
+    `codex/player-page-performance-audit`.
+  - No GitHub Actions runs were listed for this branch.
+- Vercel status:
+  - Latest selected ready preview:
+    `https://nzu-homepage-v2-1ywxb4asl-sanparks-projects.vercel.app`
+  - Deployment id: `dpl_A48ZnX7hfkwoRi9LnkLptW7gamKn`
+  - Branch alias:
+    `https://nzu-homepage-v2-git-codex-player-page-330451-sanparks-projects.vercel.app`
+  - Preview Protection blocks unauthenticated direct smoke checks, so preview
+    verification used authenticated `vercel curl`.
+  - No manual preview deploy, production deploy, or promote command was run.
+- Preview smoke results:
+  - `/player`: 200, `Content-Length: 23049`,
+    `X-Vercel-Cache: PRERENDER`.
+  - `/match`: 200, `Content-Length: 78042`,
+    `X-Vercel-Cache: PRERENDER`.
+  - `/api/players`: 200,
+    `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`,
+    `Content-Length: 44782`, `X-Vercel-Cache: HIT` after warm-up.
+  - `/api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`:
+    200, but preview response headers showed
+    `Cache-Control: public, max-age=0, must-revalidate` and
+    `X-Vercel-Cache: MISS`.
+  - Canonical-ID `/api/stats/h2h` for the local smoke pair: 200, body returned
+    the expected H2H JSON, but preview response headers showed
+    `Cache-Control: public, max-age=0, must-revalidate`; repeat GET showed
+    `X-Vercel-Cache: HIT`.
+- Decision note: do not promote/deploy this player/match cache package to
+  production yet without a follow-up decision. The static pages and
+  `/api/players` preview behavior match expectations, but the dynamic
+  detail-summary and H2H API responses do not preserve the intended
+  route-level shared-cache header in preview. Next recommended goal is to
+  investigate whether this is Vercel Preview Protection/runtime behavior,
+  Next route handling, or a route implementation issue before production
+  rollout.
+
+2026-06-14 player/match preview cache-header follow-up:
+
+- Follow-up objective: determine whether the dynamic
+  `/api/player-detail-summary` and `/api/stats/h2h` preview headers indicate a
+  cache miss/regression or expected Vercel response-header behavior.
+- Local route/source evidence:
+  - `/api/players` declares `runtime = "nodejs"` and `revalidate = 300` and is
+    present in `.next/prerender-manifest.json` with initial
+    `cache-control: s-maxage=300, stale-while-revalidate=31536000`.
+  - `/api/player-detail-summary` and `/api/stats/h2h` are not present in
+    `.next/prerender-manifest.json`; they are Vercel Function responses keyed
+    by query parameters.
+  - Both dynamic routes still set the intended success-only
+    `Cache-Control: s-maxage=300, stale-while-revalidate=31536000` in source.
+- Platform evidence:
+  - Vercel's Cache-Control documentation says Vercel uses `Cache-Control` for
+    cache behavior when no targeted CDN header is set, and if only
+    `Cache-Control` is used Vercel strips `s-maxage` before sending the final
+    response to the client.
+  - The same documentation's function-response example shows a function
+    response with `Cache-Control: s-maxage=60` producing cache behavior for 60
+    seconds while the client-facing header becomes `public, max-age: 0`.
+  - Next.js route-handler documentation notes that the default caching for
+    `GET` handlers changed from static to dynamic in v15, and route handlers
+    can use the same segment config options as pages/layouts.
+- Authenticated preview recheck with `vercel curl`:
+  - `/api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`:
+    200, `Cache-Control: public, max-age=0, must-revalidate`, `Age: 650`,
+    `X-Vercel-Cache: STALE`.
+  - Canonical-ID `/api/stats/h2h` for the local smoke pair: 200,
+    `Cache-Control: public, max-age=0, must-revalidate`, `Age: 560`,
+    `X-Vercel-Cache: STALE`.
+- Decision: no code fix is required for this branch before production based on
+  the preview header difference alone. The dynamic API responses are being
+  cached by Vercel; the visible `Cache-Control` header differs because Vercel
+  consumes `s-maxage` for CDN behavior on function responses. Production
+  rollout can be considered after the usual PR/preview review, without treating
+  the dynamic API header display as a blocker.
+
+2026-06-14 player/match performance PR creation:
+
+- Created PR #15:
+  `https://github.com/sanpark9038/nzu-homepage-v2/pull/15`
+- Branch/base:
+  `codex/player-page-performance-audit` -> `main`.
+- PR state after creation:
+  - Open, not draft.
+  - Mergeable according to GitHub.
+  - Vercel status check passed.
+  - Vercel Preview Comments check passed.
+- Fresh local PR-gate verification before PR creation:
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:player-history-artifact-cache-contract`
+  - `npm.cmd run test:h2h-route-performance-contract`
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Latest inspected PR preview:
+  - URL:
+    `https://nzu-homepage-v2-evm2jfnsq-sanparks-projects.vercel.app`
+  - Deployment id: `dpl_GK6yK14gU1hMQqaVx5LK8bP6k9QB`
+  - Status: Ready, target `preview`.
+  - Branch alias:
+    `https://nzu-homepage-v2-git-codex-player-page-330451-sanparks-projects.vercel.app`
+- Authenticated PR preview smoke with `vercel curl`:
+  - `/player`: 200, `Content-Length: 23049`,
+    `X-Vercel-Cache: PRERENDER`, `X-Nextjs-Stale-Time: 300`.
+  - `/match`: 200, `Content-Length: 78042`,
+    `X-Vercel-Cache: PRERENDER`, `X-Nextjs-Stale-Time: 300`.
+  - `/api/players`: 200,
+    `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`,
+    `Content-Length: 44782`, `X-Vercel-Cache: PRERENDER`.
+  - `/api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`:
+    first request 200 with `X-Vercel-Cache: MISS`; repeat request 200 with
+    `Age: 24`, `X-Vercel-Cache: HIT`.
+  - Canonical-ID `/api/stats/h2h` for the local smoke pair: first request 200
+    with `X-Vercel-Cache: MISS`; repeat request 200 with `Age: 19`,
+    `X-Vercel-Cache: HIT`.
+- Deploy note: no production deploy, production promote, or manual production
+  measurement was run in this PR-creation step.
+
+2026-06-14 PR #15 final integration gate:
+
+- Rechecked PR #15 after the PR documentation push:
+  - PR URL: `https://github.com/sanpark9038/nzu-homepage-v2/pull/15`
+  - Head: `9744faa39162f857d49d052a45b954d89cf151f6`
+  - Base: `main`
+  - State: open, not draft.
+  - Mergeability: mergeable according to GitHub.
+  - Checks: Vercel passed; Vercel Preview Comments passed.
+- Rechecked Vercel project/deployment linkage:
+  - GitHub default branch is `main`.
+  - Latest production deployment inspected:
+    `https://nzu-homepage-v2-lhhkt2gxv-sanparks-projects.vercel.app`
+  - Production deployment id: `dpl_4ec2FQTd3zZH6GRVHHrpjK5RKMDF`
+  - Production aliases include `https://star-hosaga.com`,
+    `https://www.star-hosaga.com`, `https://nzu-homepage-v2.vercel.app`, and
+    `https://nzu-homepage-v2-git-main-sanparks-projects.vercel.app`.
+- Decision: merging PR #15 into `main` is likely equivalent to starting the
+  production rollout path. Do not merge PR #15, promote a preview deployment,
+  or run a production deploy command unless the operator explicitly approves
+  production rollout for this PR.
+- Current state after this gate:
+  - PR #15 is ready for operator review.
+  - Local worktree was clean before this documentation update.
+  - No merge, production deploy, production promote, or production measurement
+    was run in this step.

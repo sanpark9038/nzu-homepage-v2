@@ -176,8 +176,20 @@ test("collapsed player cards lazy-load detail summaries through a focused API ro
   );
   assert.match(
     routeSource,
-    /NextResponse\.json\(summary\)/,
+    /NextResponse\.json\(summary/,
     "The route should return only the summary payload needed by the expanded card"
+  );
+});
+
+test("player detail summary API exposes a short shared cache header", () => {
+  const routeSource = readProjectFile("app/api/player-detail-summary/route.ts");
+
+  assert.match(routeSource, /Cache-Control/);
+  assert.match(routeSource, /s-maxage=300,\s*stale-while-revalidate=31536000/);
+  assert.match(
+    routeSource,
+    /NextResponse\.json\(summary,\s*\{[\s\S]*headers:/,
+    "Successful summary responses should be shared-cacheable at the HTTP layer"
   );
 });
 

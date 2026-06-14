@@ -44,3 +44,13 @@ test("client H2H fetch requires stable canonical ids and does not run name-candi
     "Missing canonical ids should fail closed instead of falling back to name-only search"
   );
 });
+
+test("client H2H fetch allows the route shared cache policy to work", () => {
+  const source = readProjectFile("lib/matchup-helpers.ts");
+
+  assert.doesNotMatch(
+    source,
+    /fetch\(`\/api\/stats\/h2h\?\$\{params\.toString\(\)\}`,\s*\{\s*cache:\s*["']no-store["']\s*\}\)/,
+    "Canonical ID H2H fetches should not force no-store after the API exposes a short shared cache header"
+  );
+});

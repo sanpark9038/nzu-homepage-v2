@@ -12,7 +12,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const summary = await getCachedPlayerDetailSummaryById(playerId);
-    return NextResponse.json(summary);
+    return NextResponse.json(summary, {
+      headers: {
+        "Cache-Control": "s-maxage=300, stale-while-revalidate=31536000",
+      },
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal Server Error";
     return NextResponse.json({ error: message }, { status: 500 });

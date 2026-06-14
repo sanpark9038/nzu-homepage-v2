@@ -34,7 +34,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const byIdStats = await getCachedDetailedH2HStats(p1Id, p2Id)
-    return NextResponse.json(byIdStats)
+    return NextResponse.json(byIdStats, {
+      headers: {
+        'Cache-Control': 's-maxage=300, stale-while-revalidate=31536000',
+      },
+    })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal Server Error'
     return NextResponse.json(

@@ -43,8 +43,20 @@ test("ID-based H2H route returns detailed stats before name fallback work", () =
   );
   assert.match(
     routeSource,
-    /const\s+byIdStats\s*=\s*await\s+getCachedDetailedH2HStats\(p1Id,\s*p2Id\)[\s\S]*?return\s+NextResponse\.json\(byIdStats\)/,
+    /const\s+byIdStats\s*=\s*await\s+getCachedDetailedH2HStats\(p1Id,\s*p2Id\)[\s\S]*?return\s+NextResponse\.json\(byIdStats/,
     "ID-based requests should return the detailed ID result directly, including zero-sample stats"
+  );
+});
+
+test("ID-based H2H success responses expose the shared player-history cache policy", () => {
+  const routeSource = sliceGetRoute(readProjectFile("app/api/stats/h2h/route.ts"));
+
+  assert.match(routeSource, /Cache-Control/);
+  assert.match(routeSource, /s-maxage=300,\s*stale-while-revalidate=31536000/);
+  assert.match(
+    routeSource,
+    /NextResponse\.json\(byIdStats,\s*\{[\s\S]*headers:/,
+    "Successful H2H responses should be shared-cacheable at the HTTP layer"
   );
 });
 
