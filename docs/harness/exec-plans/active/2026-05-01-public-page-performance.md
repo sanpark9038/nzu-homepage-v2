@@ -1553,8 +1553,10 @@ Post-deploy measurement after PR #11:
   - `e21f2a4 Cache H2H stats API responses`
   - `026c7fc Cache public players API responses`
   - `44d41e0 Allow matchup fetches to use shared cache`
-- Push/deploy status: not pushed and not deployed. Operator approval is still
-  required before any push, preview deploy, or production deploy.
+- Push/deploy status: pushed to
+  `origin/codex/player-page-performance-audit` at
+  `4d2b3285ec540867ad42cc8a540560fc70368306`; no manual preview or production
+  deploy was run.
 - Local verification:
   - `npm.cmd run test:player-page-payload-contract`
   - `npm.cmd run test:player-history-artifact-cache-contract`
