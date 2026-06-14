@@ -2052,6 +2052,51 @@ Post-deploy measurement after PR #11:
   - Re-run the public route/API table after this API packing commit, then
     inspect `/rankings` if it remains one of the larger public HTML routes.
 
+2026-06-14 post-entry-and-tier-packing local production remeasure:
+
+- Branch: `codex/match-page-performance-audit`.
+- Method:
+  - Used the current production build with local `next start` on port 3024.
+  - Sampled two rounds across the public routes/APIs after the `/entry`
+    hydration packing and tier API tuple packing commits.
+- Selected samples:
+  - Round 1:
+    - `/tier`: 200, 188ms, 41,884 bytes.
+    - `/tier?liveOnly=false`: 200, 22ms, 41,884 bytes.
+    - `/api/tier/players`: 200, 346ms, 23,518 bytes.
+    - `/api/tier/players?liveOnly=false`: 200, 12ms, 42,147 bytes.
+    - `/match`: 200, 14ms, 65,550 bytes.
+    - `/api/players`: 200, 7ms, 44,782 bytes.
+    - `/entry`: 200, 12ms, 56,493 bytes.
+    - `/rankings`: 200, 29ms, 59,195 bytes.
+    - `/teams`: 200, 52ms, 50,307 bytes.
+    - `/player`: 200, 29ms, 23,049 bytes.
+    - `/schedule`: 200, 8ms, 28,360 bytes.
+    - `/prediction`: 200, 16ms, 23,597 bytes.
+    - `/api/prediction`: 200, 327ms, 52 bytes.
+    - `/board`: 200, 18ms, 38,552 bytes.
+  - Round 2 warm:
+    - `/tier`: 4ms, 41,856 bytes.
+    - `/api/tier/players`: 3ms, 23,518 bytes.
+    - `/api/tier/players?liveOnly=false`: 4ms, 42,147 bytes.
+    - `/match`: 3ms, 65,550 bytes.
+    - `/api/players`: 2ms, 44,782 bytes.
+    - `/entry`: 4ms, 56,493 bytes.
+    - `/rankings`: 3ms, 59,167 bytes.
+    - `/teams`: 3ms, 50,279 bytes.
+- Interpretation:
+  - Full tier API is no longer the largest measured public API payload after
+    tuple packing; it is now about 42.1KB locally.
+  - The remaining largest public HTML responses are `/match` at 65.5KB,
+    `/rankings` at 59.2KB, and `/entry` at 56.5KB.
+  - `/api/players` is now about 44.8KB and remains useful as a shared fallback
+    payload, but it is smaller than the leading HTML candidates.
+- Push/deploy status: not pushed and not deployed.
+- Next recommended non-deploy candidate:
+  - Inspect `/rankings` hydration/server payload shape, because `/match` has
+    already had two recent slices and `/rankings` is now the next untreated
+    large public HTML route.
+
 2026-06-14 tier API media payload narrowing:
 
 - Branch: `codex/tier-live-api-cache`.
