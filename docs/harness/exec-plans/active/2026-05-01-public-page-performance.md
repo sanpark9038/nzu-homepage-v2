@@ -1623,3 +1623,42 @@ Post-deploy measurement after PR #11:
   investigate whether this is Vercel Preview Protection/runtime behavior,
   Next route handling, or a route implementation issue before production
   rollout.
+
+2026-06-14 player/match preview cache-header follow-up:
+
+- Follow-up objective: determine whether the dynamic
+  `/api/player-detail-summary` and `/api/stats/h2h` preview headers indicate a
+  cache miss/regression or expected Vercel response-header behavior.
+- Local route/source evidence:
+  - `/api/players` declares `runtime = "nodejs"` and `revalidate = 300` and is
+    present in `.next/prerender-manifest.json` with initial
+    `cache-control: s-maxage=300, stale-while-revalidate=31536000`.
+  - `/api/player-detail-summary` and `/api/stats/h2h` are not present in
+    `.next/prerender-manifest.json`; they are Vercel Function responses keyed
+    by query parameters.
+  - Both dynamic routes still set the intended success-only
+    `Cache-Control: s-maxage=300, stale-while-revalidate=31536000` in source.
+- Platform evidence:
+  - Vercel's Cache-Control documentation says Vercel uses `Cache-Control` for
+    cache behavior when no targeted CDN header is set, and if only
+    `Cache-Control` is used Vercel strips `s-maxage` before sending the final
+    response to the client.
+  - The same documentation's function-response example shows a function
+    response with `Cache-Control: s-maxage=60` producing cache behavior for 60
+    seconds while the client-facing header becomes `public, max-age: 0`.
+  - Next.js route-handler documentation notes that the default caching for
+    `GET` handlers changed from static to dynamic in v15, and route handlers
+    can use the same segment config options as pages/layouts.
+- Authenticated preview recheck with `vercel curl`:
+  - `/api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`:
+    200, `Cache-Control: public, max-age=0, must-revalidate`, `Age: 650`,
+    `X-Vercel-Cache: STALE`.
+  - Canonical-ID `/api/stats/h2h` for the local smoke pair: 200,
+    `Cache-Control: public, max-age=0, must-revalidate`, `Age: 560`,
+    `X-Vercel-Cache: STALE`.
+- Decision: no code fix is required for this branch before production based on
+  the preview header difference alone. The dynamic API responses are being
+  cached by Vercel; the visible `Cache-Control` header differs because Vercel
+  consumes `s-maxage` for CDN behavior on function responses. Production
+  rollout can be considered after the usual PR/preview review, without treating
+  the dynamic API header display as a blocker.
