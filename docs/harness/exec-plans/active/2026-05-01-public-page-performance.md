@@ -1469,3 +1469,32 @@ Post-deploy measurement after PR #11:
   - `npm.cmd run lint`
   - `git diff --check`
   - `npm.cmd run build`
+
+2026-06-14 H2H stats API shared cache header:
+
+- Continued the player/H2H HTTP-cache pass on the separate
+  `codex/player-page-performance-audit` branch.
+- `/api/stats/h2h` already cached ID-based detailed H2H work for 300 seconds
+  with the `public-player-history` tag, but successful HTTP responses did not
+  expose a matching shared-cache policy.
+- Added the same success-only `Cache-Control` header:
+  `s-maxage=300, stale-while-revalidate=31536000`.
+- Expected effect: repeated canonical-ID H2H lookups can be served at the HTTP
+  cache layer while preserving the existing name/ID validation and leaving
+  error responses uncached.
+- Local production verification:
+  - `GET /api/stats/h2h?p1=김윤중&p2=이영한&p1_id=66a8e705-a145-47fb-ac17-015e03a4567b&p2_id=89b827df-7015-481c-a05e-814221b79cd8`
+    returned 200.
+  - response `Cache-Control` was
+    `s-maxage=300, stale-while-revalidate=31536000`.
+  - decoded body was 395 bytes in the local sample.
+- Verification:
+  - RED: `npm.cmd run test:h2h-route-performance-contract` failed before the
+    route exposed the cache header.
+  - GREEN: `npm.cmd run test:h2h-route-performance-contract`
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:player-history-artifact-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
