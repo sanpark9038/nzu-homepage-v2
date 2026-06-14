@@ -1874,3 +1874,52 @@ Post-deploy measurement after PR #11:
      large fields are used by tier cards, quick H2H, profile images, and live
      hover previews, so any payload split needs focused contract coverage
      before removing fields from the main response.
+
+2026-06-14 tier live API cold-cache implementation scope:
+
+- Branch: `codex/tier-live-api-cache`.
+- Current local base includes doc commit `ba23519`; this branch has not been
+  pushed.
+- Objective: reduce cold live/default `/api/tier/players` generation cost
+  without changing visible tier labels, route semantics, or push/deploy state.
+- TDD target:
+  - Add a contract that `playerService.getLivePlayers()` uses a short
+    live-player data cache instead of issuing an uncached direct Supabase
+    `players` list query on each route regeneration.
+  - Keep `/api/tier/players` calling the `getLivePlayers()` service boundary
+    so the API route remains small and the cache policy stays in the route.
+- Expected verification:
+  - `npm.cmd run test:tier-page-cache-contract`
+  - `npm.cmd run test:tier-page-helpers`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+
+2026-06-14 tier live API cold-cache implementation result:
+
+- Added `fetchCachedLivePlayersForList` in `lib/player-service.ts`:
+  - cache key: `public-live-players-list-v1`
+  - revalidate: 60 seconds
+  - tag: `public-live-players-list`
+- `playerService.getLivePlayers()` now calls the short cached helper instead
+  of issuing its own direct Supabase `players` query every time the live/default
+  tier API regenerates.
+- Kept `/api/tier/players` response semantics and cache headers unchanged:
+  live/default API remains `s-maxage=10, stale-while-revalidate=60`; full tier
+  API remains `s-maxage=300, stale-while-revalidate=31536000`.
+- TDD evidence:
+  - RED: `npm.cmd run test:tier-page-cache-contract` failed because
+    `fetchCachedLivePlayersForList` did not exist and `getLivePlayers()` still
+    owned the direct Supabase query.
+  - GREEN: same contract passed after the live query moved behind the 60-second
+    data cache.
+- Verification:
+  - `npm.cmd run test:tier-page-cache-contract`
+  - `npm.cmd run test:tier-page-helpers`
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build` with network escalation after the first sandboxed build
+    produced Supabase `EACCES` fetch warnings despite exit code 0.
+- Push/deploy status: not pushed and not deployed.

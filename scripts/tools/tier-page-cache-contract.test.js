@@ -114,6 +114,28 @@ test("tier grids use a lightweight tier card instead of hydrating the shared pla
   assert.doesNotMatch(compactGridSource, /<PlayerCard\b/);
 });
 
+test("tier live player service uses a short cached live-player query", () => {
+  const source = readProjectFile("lib/player-service.ts");
+  const methodStart = source.indexOf("async getLivePlayers");
+  const methodEnd = source.indexOf("async getPlayerMatches", methodStart);
+
+  assert.notEqual(methodStart, -1);
+  assert.notEqual(methodEnd, -1);
+
+  assert.match(source, /const fetchCachedLivePlayersForList = unstable_cache/);
+  assert.match(source, /\["public-live-players-list-v1"\]/);
+  assert.match(source, /revalidate:\s*60/);
+  assert.match(source, /tags:\s*\["public-live-players-list"\]/);
+
+  const methodSource = source.slice(methodStart, methodEnd);
+  assert.match(methodSource, /return\s+fetchCachedLivePlayersForList\(\)/);
+  assert.doesNotMatch(
+    methodSource,
+    /\.from\("players"\)[\s\S]*?\.select\(PLAYER_LIST_SELECT\[0\]\)/,
+    "Tier live API should go through the short live-player data cache"
+  );
+});
+
 test("tier groups defer offscreen layout and paint work without removing cards from the DOM", () => {
   const tierGroupSource = readProjectFile("components/players/TierGroup.tsx");
   const globalsSource = readProjectFile("app/globals.css");

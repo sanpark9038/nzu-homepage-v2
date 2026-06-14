@@ -119,6 +119,27 @@ const fetchCachedPlayersForList = unstable_cache(fetchPlayersForList, ["public-p
   tags: ["public-players-list"],
 });
 
+async function fetchLivePlayersForList() {
+  const { data, error } = await supabase
+    .from("players")
+    .select(PLAYER_LIST_SELECT[0])
+    .eq("is_live", true)
+    .order("elo_point", { ascending: false });
+
+  if (error) throw error;
+  const players = applyPlayerServiceView((data || []) as Player[]);
+  return players.filter((player) => player.is_live === true);
+}
+
+const fetchCachedLivePlayersForList = unstable_cache(
+  fetchLivePlayersForList,
+  ["public-live-players-list-v1"],
+  {
+    revalidate: 60,
+    tags: ["public-live-players-list"],
+  }
+);
+
 function hasPlayerSearchAliasMatch(player: Partial<Player>, normalizedQuery: string) {
   return getPlayerSearchAliases(player).some((alias) => normalizeSearchText(alias).includes(normalizedQuery));
 }
@@ -492,15 +513,7 @@ export const playerService = {
 
   /** ?꾩옱 諛⑹넚 以묒씤 ?좎닔?ㅻ쭔 媛?몄삤湲?*/
   async getLivePlayers() {
-    const { data, error } = await supabase
-      .from("players")
-      .select(PLAYER_LIST_SELECT[0])
-      .eq("is_live", true)
-      .order("elo_point", { ascending: false });
-    
-    if (error) throw error;
-    const players = applyPlayerServiceView((data || []) as Player[]);
-    return players.filter((player) => player.is_live === true);
+    return fetchCachedLivePlayersForList();
   },
 
   /** ?뱀젙 ?좎닔??留ㅼ튂 湲곕줉 媛?몄삤湲?*/
