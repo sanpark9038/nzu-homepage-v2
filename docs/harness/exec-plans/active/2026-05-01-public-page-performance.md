@@ -1924,6 +1924,67 @@ Post-deploy measurement after PR #11:
     produced Supabase `EACCES` fetch warnings despite exit code 0.
 - Push/deploy status: not pushed and not deployed.
 
+2026-06-14 entry page packed hydration payload narrowing:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - After the `/match` hydration narrowing, the local production remeasure
+    showed `/entry` as the largest public HTML route in the sampled set at
+    79,847 bytes.
+  - `/entry` still needs `id`, `name`, `nickname`, `race`, `gender`, `tier`,
+    and `university` for the two-sided H2H selector, tier grouping, badges,
+    and university filters, so this slice avoids dropping fields.
+- TDD evidence:
+  - Added an entry route source contract to
+    `scripts/tools/matchup-page-shell-contract.test.js` requiring the server
+    page to call `packMatchupPlayerSummaries(matchupPlayers)` and hydrate
+    `H2HLookup` with `packedPlayers`.
+  - Added packed helper coverage to `scripts/tools/matchup-helpers.test.mjs`
+    requiring tuple-shaped payloads, exact round-trip unpacking, and smaller
+    JSON than repeated object-key summaries.
+  - RED:
+    - `npm.cmd run test:matchup-page-shell-contract` failed because
+      `app/entry/page.tsx` still hydrated `players={matchupPlayers}`.
+    - `npm.cmd run test:matchup-helpers` failed because
+      `packMatchupPlayerSummary` did not exist.
+  - GREEN:
+    - Added `PackedMatchupPlayerSummary`, pack/unpack helpers, and list
+      helpers in `lib/matchup-helpers.ts`.
+    - `app/entry/page.tsx` now packs the server-side matchup summaries before
+      hydration.
+    - `components/stats/H2HLookup.tsx` accepts `packedPlayers`, unpacks them
+      once with `useMemo`, and keeps the existing `players` prop as a
+      compatibility fallback.
+- Payload rule:
+  - Preserve all entry/H2H fields, but send them as a stable tuple:
+    `[id, name, nickname, race, gender, tier, university]`.
+  - The client immediately unpacks the tuple payload back into
+    `MatchupPlayerSummary[]`, so selector behavior and user-visible labels stay
+    unchanged.
+- Local production measurement:
+  - Baseline from the prior post-match remeasure: `/entry` 200, 79,847 bytes.
+  - After packed hydration: `/entry` 200, 56,493 bytes,
+    `entryContainsPackedPlayers=true`, `entryContainsPlayersKey=false`.
+  - Observed HTML reduction: 23,354 bytes.
+  - `/match` smoke remained 200, 65,550 bytes.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - Local production smoke with network escalation:
+    `/entry` 200, 56,493 bytes; `/match` 200, 65,550 bytes.
+  - `git diff --check`
+- Push/deploy status: not pushed and not deployed.
+- Next recommended non-deploy candidates:
+  1. Inspect the full tier API payload
+     `/api/tier/players?liveOnly=false`, which remains around 75KB locally.
+  2. Inspect `/rankings` HTML payload, now among the larger public HTML routes
+     after `/entry` and `/match` reductions.
+
 2026-06-14 tier API media payload narrowing:
 
 - Branch: `codex/tier-live-api-cache`.

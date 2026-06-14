@@ -1,5 +1,5 @@
 import H2HLookup from "@/components/stats/H2HLookup";
-import { mapPlayersToMatchupSummaries } from "@/lib/matchup-helpers";
+import { mapPlayersToMatchupSummaries, packMatchupPlayerSummaries } from "@/lib/matchup-helpers";
 import { playerService } from "@/lib/player-service";
 import { getUniversityOptions } from "@/lib/university-metadata";
 
@@ -13,6 +13,7 @@ export const metadata = {
 export default async function EntryPage() {
   const players = await playerService.getCachedPlayersList();
   const matchupPlayers = mapPlayersToMatchupSummaries(players);
+  const packedPlayers = packMatchupPlayerSummaries(matchupPlayers);
   const universityOptions = getUniversityOptions();
 
   return (
@@ -32,7 +33,7 @@ export default async function EntryPage() {
           </div>
         </section>
 
-        <H2HLookup players={matchupPlayers} universityOptions={universityOptions} />
+        <H2HLookup packedPlayers={packedPlayers} universityOptions={universityOptions} />
       </main>
     </div>
   );

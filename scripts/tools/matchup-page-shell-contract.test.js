@@ -73,3 +73,19 @@ test("public matchup players API exposes CDN cache headers for fallback loads", 
   assert.match(routeSource, /Cache-Control/);
   assert.match(routeSource, /s-maxage=300,\s*stale-while-revalidate=31536000/);
 });
+
+test("entry route packs H2H players before hydrating the client", () => {
+  const pageSource = readProjectFile("app/entry/page.tsx");
+  const clientSource = readProjectFile("components/stats/H2HLookup.tsx");
+
+  assert.match(pageSource, /packMatchupPlayerSummaries/);
+  assert.match(pageSource, /const packedPlayers = packMatchupPlayerSummaries\(matchupPlayers\)/);
+  assert.match(pageSource, /<H2HLookup packedPlayers=\{packedPlayers\} universityOptions=\{universityOptions\} \/>/);
+  assert.doesNotMatch(
+    pageSource,
+    /<H2HLookup players=\{matchupPlayers\}/,
+    "Entry should avoid sending repeated object keys for every initial H2H player"
+  );
+  assert.match(clientSource, /packedPlayers\?:\s*PackedMatchupPlayerSummary\[\]/);
+  assert.match(clientSource, /unpackMatchupPlayerSummaries\(packedPlayers\)/);
+});

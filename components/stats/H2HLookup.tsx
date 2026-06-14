@@ -6,7 +6,15 @@ import { Activity, Plus, RotateCcw, Swords, Trophy, X, Zap } from 'lucide-react'
 
 import { RaceLetterBadge } from '@/components/ui/race-letter-badge'
 import { TierBadge, getTierTone } from '@/components/ui/nzu-badges'
-import { buildH2HCacheKey, fetchH2HStats, filterMatchupPlayers, reportMatchupRuntimeIssue, type MatchupPlayerSummary } from '@/lib/matchup-helpers'
+import {
+  buildH2HCacheKey,
+  fetchH2HStats,
+  filterMatchupPlayers,
+  reportMatchupRuntimeIssue,
+  unpackMatchupPlayerSummaries,
+  type MatchupPlayerSummary,
+  type PackedMatchupPlayerSummary,
+} from '@/lib/matchup-helpers'
 import { getTierSortWeight } from '@/lib/tier-order'
 import { getUniversityLabel, UNIVERSITY_MAP } from '@/lib/university-config'
 import { cn, normalizeTier } from '@/lib/utils'
@@ -30,11 +38,13 @@ type Match = {
 
 type H2HLookupProps = {
   players?: MatchupPlayerSummary[]
+  packedPlayers?: PackedMatchupPlayerSummary[]
   recentMatches?: unknown[]
   universityOptions?: UniversityOption[]
 }
 
 const EXCLUDED_TIERS = ['미정', '조커', '스페이드']
+const EMPTY_PACKED_PLAYERS: PackedMatchupPlayerSummary[] = []
 
 function getMatchupStats(stats: H2HStats | null | undefined) {
   if (!stats) return null
@@ -78,9 +88,14 @@ function buildGroupedMatches(matchList: Match[]) {
 }
 
 export default function H2HLookup({
-  players: initialPlayers = [],
+  players,
+  packedPlayers = EMPTY_PACKED_PLAYERS,
   universityOptions = [],
 }: H2HLookupProps) {
+  const initialPlayers = useMemo(
+    () => players ?? unpackMatchupPlayerSummaries(packedPlayers),
+    [packedPlayers, players]
+  )
   const [p1, setP1] = useState<Player | null>(null)
   const [p2, setP2] = useState<Player | null>(null)
   const [results, setResults] = useState<H2HStats | null>(null)
