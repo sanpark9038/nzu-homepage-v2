@@ -1662,3 +1662,49 @@ Post-deploy measurement after PR #11:
   consumes `s-maxage` for CDN behavior on function responses. Production
   rollout can be considered after the usual PR/preview review, without treating
   the dynamic API header display as a blocker.
+
+2026-06-14 player/match performance PR creation:
+
+- Created PR #15:
+  `https://github.com/sanpark9038/nzu-homepage-v2/pull/15`
+- Branch/base:
+  `codex/player-page-performance-audit` -> `main`.
+- PR state after creation:
+  - Open, not draft.
+  - Mergeable according to GitHub.
+  - Vercel status check passed.
+  - Vercel Preview Comments check passed.
+- Fresh local PR-gate verification before PR creation:
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:player-history-artifact-cache-contract`
+  - `npm.cmd run test:h2h-route-performance-contract`
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Latest inspected PR preview:
+  - URL:
+    `https://nzu-homepage-v2-evm2jfnsq-sanparks-projects.vercel.app`
+  - Deployment id: `dpl_GK6yK14gU1hMQqaVx5LK8bP6k9QB`
+  - Status: Ready, target `preview`.
+  - Branch alias:
+    `https://nzu-homepage-v2-git-codex-player-page-330451-sanparks-projects.vercel.app`
+- Authenticated PR preview smoke with `vercel curl`:
+  - `/player`: 200, `Content-Length: 23049`,
+    `X-Vercel-Cache: PRERENDER`, `X-Nextjs-Stale-Time: 300`.
+  - `/match`: 200, `Content-Length: 78042`,
+    `X-Vercel-Cache: PRERENDER`, `X-Nextjs-Stale-Time: 300`.
+  - `/api/players`: 200,
+    `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`,
+    `Content-Length: 44782`, `X-Vercel-Cache: PRERENDER`.
+  - `/api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`:
+    first request 200 with `X-Vercel-Cache: MISS`; repeat request 200 with
+    `Age: 24`, `X-Vercel-Cache: HIT`.
+  - Canonical-ID `/api/stats/h2h` for the local smoke pair: first request 200
+    with `X-Vercel-Cache: MISS`; repeat request 200 with `Age: 19`,
+    `X-Vercel-Cache: HIT`.
+- Deploy note: no production deploy, production promote, or manual production
+  measurement was run in this PR-creation step.
