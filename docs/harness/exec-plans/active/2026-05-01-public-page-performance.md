@@ -1543,3 +1543,38 @@ Post-deploy measurement after PR #11:
     stopped forcing `no-store`.
   - GREEN: `npm.cmd run test:matchup-page-shell-contract`
   - GREEN: `npm.cmd run test:matchup-h2h-fetch-contract`
+
+2026-06-14 player/match performance branch local deploy-candidate check:
+
+- Current local branch:
+  `codex/player-page-performance-audit`.
+- Local commits in the player/match public performance package:
+  - `37343b0 Cache player detail summary API`
+  - `e21f2a4 Cache H2H stats API responses`
+  - `026c7fc Cache public players API responses`
+  - `44d41e0 Allow matchup fetches to use shared cache`
+- Push/deploy status: not pushed and not deployed. Operator approval is still
+  required before any push, preview deploy, or production deploy.
+- Local verification:
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:player-history-artifact-cache-contract`
+  - `npm.cmd run test:h2h-route-performance-contract`
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Local production smoke with `next start -p 3010`:
+  - `/player`: 200, 23,049 bytes.
+  - `/match`: 200, 78,042 bytes.
+  - `/api/players`: 200,
+    `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`, 44,782
+    bytes.
+  - `/api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`:
+    200, `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`,
+    4,130 bytes.
+  - ID-based `/api/stats/h2h` for 김윤중 vs 이영한: 200,
+    `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`, 153
+    bytes.
