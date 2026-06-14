@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Plus, X, GripVertical, ArrowLeftRight, MonitorUp, RadioTower, LayoutPanelLeft, Link2 } from "lucide-react"
+import { Plus, X, GripVertical, ArrowLeftRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge"
 import type { H2HStats } from "@/types"
@@ -42,8 +42,6 @@ interface MatchRow {
   p1Input: string;
   p2Input: string;
 }
-
-const SHOW_ENTRY_BOARD_PANEL = false;
 
 function normalizeRaceCode(race: string) {
   const raw = String(race || '').trim().toUpperCase();
@@ -211,270 +209,6 @@ function buildMomentumInsight(
     isRecentSampleThin,
     isMapSampleThin,
   };
-}
-
-function getRaceCount(players: Player[]) {
-  return players.reduce<Record<string, number>>((acc, player) => {
-    const race = normalizeRaceCode(player.race);
-    acc[race] = (acc[race] || 0) + 1;
-    return acc;
-  }, {});
-}
-
-function formatRaceSummary(players: Player[]) {
-  const counts = getRaceCount(players);
-  const order = ['T', 'Z', 'P'];
-  const parts = order
-    .filter((race) => counts[race])
-    .map((race) => `${race} ${counts[race]}`);
-  return parts.length ? parts.join(' · ') : '미배치';
-}
-
-function EntryBoardSidePanel({ rows }: { rows: MatchRow[] }) {
-  const confirmedRows = rows.filter((row) => row.p1 && row.p2) as Array<MatchRow & { p1: Player; p2: Player }>;
-  const teamAPlayers = confirmedRows.map((row) => row.p1);
-  const teamBPlayers = confirmedRows.map((row) => row.p2);
-  const [panelStats, setPanelStats] = useState<Record<string, H2HStats | null>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadPanelStats() {
-      const nextEntries = await Promise.all(
-        confirmedRows.map(async (row) => {
-          try {
-            const payload = await fetchH2HStats(row.p1, row.p2);
-            return [row.id, payload] as const;
-          } catch {
-            return [row.id, null] as const;
-          }
-        })
-      );
-
-      if (cancelled) return;
-      setPanelStats(Object.fromEntries(nextEntries));
-    }
-
-    if (confirmedRows.length === 0) return () => {
-      cancelled = true;
-    };
-
-    loadPanelStats();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [confirmedRows]);
-
-  const aggregate = confirmedRows.reduce(
-    (acc, row) => {
-      const stats = getH2HMatchupStats(panelStats[row.id] || null);
-      if (!stats) return acc;
-      acc.left += stats.overall[0];
-      acc.right += stats.overall[1];
-      return acc;
-    },
-    { left: 0, right: 0 }
-  );
-  const balanceText =
-    confirmedRows.length === 0
-      ? '선수 선택 후 밸런스 계산'
-      : aggregate.left === 0 && aggregate.right === 0
-        ? '실제 상대전적 표본 확인 중'
-      : aggregate.left === aggregate.right
-        ? '현재 기준 완전 균형'
-        : aggregate.left > aggregate.right
-          ? `A팀 우세 ${aggregate.left - aggregate.right}포인트`
-          : `B팀 우세 ${aggregate.right - aggregate.left}포인트`;
-
-  return (
-    <aside className="flex flex-col gap-3 xl:sticky xl:top-6 xl:self-start">
-      <section className="overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(8,17,18,0.94),rgba(6,10,11,0.92))] shadow-[0_24px_80px_rgba(0,0,0,0.34)]">
-        <div className="border-b border-white/7 px-5 py-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-[0.8rem] font-[1000] uppercase tracking-[0.22em] text-nzu-green/78">
-                <LayoutPanelLeft size={14} />
-                Broadcast Side Panel
-              </div>
-              <h2 className="mt-2 text-[1.45rem] font-[1000] tracking-tight text-white">
-                엔트리보드 송출 패널
-              </h2>
-              <p className="mt-1 text-[0.94rem] text-white/44">
-                실제 생성 로직 전 단계. 현재 편성 상태를 방송용 구조로 먼저 고정합니다.
-              </p>
-            </div>
-            <div className="rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-3 py-1 text-[0.72rem] font-[1000] tracking-[0.16em] text-amber-100">
-              UI SHELL
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-3 px-4 py-4">
-          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-            <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-3">
-              <div className="flex items-center gap-2 text-[0.78rem] font-[1000] uppercase tracking-[0.18em] text-white/32">
-                <MonitorUp size={14} />
-                현재 편성
-              </div>
-              <div className="mt-3 text-[1.9rem] font-[1000] italic tracking-tight text-white">
-                {confirmedRows.length}
-                <span className="ml-2 text-[0.95rem] not-italic text-white/35">확정 매치</span>
-              </div>
-              <div className="mt-2 text-[0.9rem] text-white/46">
-                전체 슬롯 {rows.length}개 중 {rows.length - confirmedRows.length}개 미완성
-              </div>
-            </div>
-
-            <div className="rounded-[1.35rem] border border-nzu-green/14 bg-nzu-green/[0.05] px-4 py-3">
-              <div className="flex items-center gap-2 text-[0.78rem] font-[1000] uppercase tracking-[0.18em] text-nzu-green/62">
-                <RadioTower size={14} />
-                밸런스
-              </div>
-              <div className="mt-3 text-[1.1rem] font-[1000] tracking-tight text-white">{balanceText}</div>
-              <div className="mt-2 text-[0.9rem] text-white/46">
-                전체 상대전적 합산 기준 임시 지표
-              </div>
-            </div>
-
-            <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-3">
-              <div className="flex items-center gap-2 text-[0.78rem] font-[1000] uppercase tracking-[0.18em] text-white/32">
-                <Link2 size={14} />
-                예정 URL
-              </div>
-              <div className="mt-3 break-all text-[0.92rem] font-[1000] text-white/78">
-                /overlay/entry-board?session=match-live
-              </div>
-              <div className="mt-2 text-[0.9rem] text-white/46">
-                생성 버튼 연결 전 placeholder 경로
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-            <div className="rounded-[1.4rem] border border-nzu-green/14 bg-[linear-gradient(180deg,rgba(0,255,163,0.08),rgba(0,255,163,0.02))] px-4 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-[0.78rem] font-[1000] uppercase tracking-[0.18em] text-nzu-green/62">A팀 보드 요약</div>
-                  <div className="mt-2 text-[1.15rem] font-[1000] tracking-tight text-white">좌측 선수 라인업</div>
-                </div>
-                <div className="rounded-full border border-nzu-green/18 bg-nzu-green/[0.07] px-3 py-1 text-[0.76rem] font-[1000] text-nzu-green">
-                  {teamAPlayers.length}명
-                </div>
-              </div>
-              <div className="mt-4 space-y-2">
-                <div className="text-[0.9rem] text-white/48">종족 분포</div>
-                <div className="text-[1rem] font-[1000] text-white">{formatRaceSummary(teamAPlayers)}</div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {teamAPlayers.length > 0 ? (
-                  teamAPlayers.slice(0, 6).map((player) => (
-                    <div key={`left-${player.id}`} className="flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5">
-                      <RaceLetterBadge race={player.race} size="sm" />
-                      <span className="text-[0.92rem] font-[1000] text-white/82">{player.name}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-[1rem] border border-dashed border-white/10 px-3 py-2 text-[0.9rem] text-white/32">
-                    아직 A팀 엔트리가 확정되지 않았습니다.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-[1.4rem] border border-red-500/14 bg-[linear-gradient(180deg,rgba(239,68,68,0.08),rgba(239,68,68,0.02))] px-4 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-[0.78rem] font-[1000] uppercase tracking-[0.18em] text-red-400/62">B팀 보드 요약</div>
-                  <div className="mt-2 text-[1.15rem] font-[1000] tracking-tight text-white text-right">우측 선수 라인업</div>
-                </div>
-                <div className="rounded-full border border-red-500/18 bg-red-500/[0.08] px-3 py-1 text-[0.76rem] font-[1000] text-red-200">
-                  {teamBPlayers.length}명
-                </div>
-              </div>
-              <div className="mt-4 space-y-2 text-right">
-                <div className="text-[0.9rem] text-white/48">종족 분포</div>
-                <div className="text-[1rem] font-[1000] text-white">{formatRaceSummary(teamBPlayers)}</div>
-              </div>
-              <div className="mt-4 flex flex-wrap justify-end gap-2">
-                {teamBPlayers.length > 0 ? (
-                  teamBPlayers.slice(0, 6).map((player) => (
-                    <div key={`right-${player.id}`} className="flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5">
-                      <span className="text-[0.92rem] font-[1000] text-white/82">{player.name}</span>
-                      <RaceLetterBadge race={player.race} size="sm" />
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-[1rem] border border-dashed border-white/10 px-3 py-2 text-[0.9rem] text-white/32">
-                    아직 B팀 엔트리가 확정되지 않았습니다.
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-[1.45rem] border border-white/8 bg-[#081213]/82 px-4 py-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <div className="text-[0.78rem] font-[1000] uppercase tracking-[0.18em] text-white/30">보드 프리뷰</div>
-                <div className="mt-2 text-[1.1rem] font-[1000] tracking-tight text-white">방송 송출용 사이드 리스트</div>
-              </div>
-              <div className="text-[0.82rem] font-[1000] text-white/34">OBS 브라우저 소스 영역 placeholder</div>
-            </div>
-
-            <div className="mt-4 grid gap-2">
-              {rows.map((row, index) => (
-                <div
-                  key={`preview-${row.id}`}
-                  className="grid grid-cols-[56px_minmax(0,1fr)_56px] items-center gap-3 rounded-[1.15rem] border border-white/7 bg-white/[0.03] px-3 py-3"
-                >
-                  <div className="text-[0.86rem] font-[1000] tracking-tight text-white/38">
-                    {index + 1}SET
-                  </div>
-                  <div className="min-w-0 text-center">
-                    <div className="flex items-center justify-center gap-2 text-[0.96rem] font-[1000] tracking-tight text-white">
-                      <span className="truncate">{row.p1?.name || 'A팀 선수'}</span>
-                      <span className="text-white/22">vs</span>
-                      <span className="truncate">{row.p2?.name || 'B팀 선수'}</span>
-                    </div>
-                    <div className="mt-1 text-[0.82rem] text-white/34">
-                      {row.p1 && row.p2 ? '엔트리보드 표기 가능' : '입력 대기 중'}
-                    </div>
-                  </div>
-                  <div className="text-right text-[0.75rem] font-[1000] tracking-[0.18em] text-white/30">
-                    {row.p1 && row.p2 ? 'READY' : 'HOLD'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-            <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-4">
-              <div className="text-[0.78rem] font-[1000] uppercase tracking-[0.18em] text-white/30">송출 메모 슬롯</div>
-              <div className="mt-3 grid gap-2">
-                <div className="rounded-[1rem] border border-dashed border-white/10 px-3 py-2 text-[0.92rem] text-white/38">스폰서 라인 / 행사명</div>
-                <div className="rounded-[1rem] border border-dashed border-white/10 px-3 py-2 text-[0.92rem] text-white/38">캐스터 / 해설 태그</div>
-                <div className="rounded-[1rem] border border-dashed border-white/10 px-3 py-2 text-[0.92rem] text-white/38">라운드명 / 진행 멘트</div>
-              </div>
-            </div>
-
-            <div className="rounded-[1.35rem] border border-white/8 bg-white/[0.03] px-4 py-4">
-              <div className="text-[0.78rem] font-[1000] uppercase tracking-[0.18em] text-white/30">다음 액션</div>
-              <div className="mt-3 grid gap-2">
-                <button className="h-[46px] rounded-[1rem] border border-white/8 bg-white/[0.03] text-[0.94rem] font-[1000] text-white/36 transition-all hover:border-white/14 hover:text-white/52">
-                  엔트리보드 URL 복사
-                </button>
-                <button className="h-[46px] rounded-[1rem] border border-white/8 bg-white/[0.03] text-[0.94rem] font-[1000] text-white/36 transition-all hover:border-white/14 hover:text-white/52">
-                  송출 프리셋 저장
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </aside>
-  );
 }
 
 // --- Sortable Item Component ---
@@ -1032,11 +766,6 @@ export default function MatchPageClient({
             </p>
           </div>
 
-          {SHOW_ENTRY_BOARD_PANEL ? (
-            <button className="h-[46px] self-center rounded-[1rem] border border-amber-300/22 bg-amber-300/[0.08] px-4 text-[0.94rem] font-[1000] tracking-tight text-amber-100 transition-all hover:border-amber-200/38 hover:bg-amber-300/[0.14] hover:text-white md:self-auto">
-              방송용 엔트리보드 URL
-            </button>
-          ) : null}
         </header>
 
         <div className="mb-3 flex flex-wrap items-center gap-x-6 gap-y-1 px-2">
@@ -1055,7 +784,7 @@ export default function MatchPageClient({
             </span>
           </div>
         </div>
-        <div className={cn("grid gap-4", SHOW_ENTRY_BOARD_PANEL ? "xl:grid-cols-[minmax(0,1fr)_400px]" : "")}>
+        <div className="grid gap-4">
           <section className="min-w-0">
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
               <div className="flex flex-col gap-2.5">
@@ -1072,8 +801,6 @@ export default function MatchPageClient({
               </div>
             </DndContext>
           </section>
-
-          {SHOW_ENTRY_BOARD_PANEL ? <EntryBoardSidePanel rows={rows} /> : null}
         </div>
       </main>
     </div>

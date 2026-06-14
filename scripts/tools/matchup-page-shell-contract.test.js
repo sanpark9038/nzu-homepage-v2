@@ -41,6 +41,26 @@ test("match client keeps an API fallback only when server hydration failed", () 
   );
 });
 
+test("match client does not ship disabled entry-board panel code", () => {
+  const clientSource = readProjectFile("app/match/MatchPageClient.tsx");
+
+  assert.doesNotMatch(
+    clientSource,
+    /SHOW_ENTRY_BOARD_PANEL/,
+    "Hard-disabled feature flags should not leave inactive JSX in the public match client bundle"
+  );
+  assert.doesNotMatch(
+    clientSource,
+    /EntryBoardSidePanel/,
+    "The inactive entry-board side panel should stay out of the shipped match client module"
+  );
+  assert.doesNotMatch(
+    clientSource,
+    /\b(?:MonitorUp|RadioTower|LayoutPanelLeft|Link2)\b/,
+    "Icons used only by the inactive entry-board panel should not be imported by the match client"
+  );
+});
+
 test("public matchup players API exposes CDN cache headers for fallback loads", () => {
   const routeSource = readProjectFile("app/api/players/route.ts");
 

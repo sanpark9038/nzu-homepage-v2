@@ -2035,3 +2035,43 @@ Post-deploy measurement after PR #11:
     next non-deploy performance investigation should inspect `/match` client
     island/module payload rather than adding more tier changes blindly.
 - Push/deploy status: still not pushed and not deployed.
+
+2026-06-14 match page inactive client panel cleanup:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - The latest local production route/API remeasure showed `/match` as the
+    largest public HTML response in the sample at about 78KB.
+  - Source inspection found a hard-disabled `SHOW_ENTRY_BOARD_PANEL = false`
+    path inside `app/match/MatchPageClient.tsx`. Although never rendered, the
+    inactive `EntryBoardSidePanel` JSX, its H2H aggregation effect, and
+    panel-only lucide icons were still present in the match client module and
+    previous `.next` source maps.
+- TDD evidence:
+  - Added `match client does not ship disabled entry-board panel code` to
+    `scripts/tools/matchup-page-shell-contract.test.js`.
+  - RED: `npm.cmd run test:matchup-page-shell-contract` failed on the new
+    source contract because `SHOW_ENTRY_BOARD_PANEL`, `EntryBoardSidePanel`,
+    and panel-only icon references were still present.
+  - GREEN: removed the inactive panel, its panel-only helpers, the panel-only
+    icon imports, and the dead conditional render sites from
+    `app/match/MatchPageClient.tsx`.
+- Result:
+  - `app/match/MatchPageClient.tsx` changed by about 275 deleted lines with no
+    visible `/match` label or active workflow change.
+  - Post-build `.next` search found no `Broadcast Side Panel`,
+    `EntryBoardSidePanel`, `MonitorUp`, `RadioTower`, `LayoutPanelLeft`,
+    `match-live`, or `overlay/entry-board` strings.
+  - Local production `/match` smoke returned `200`, 78,042 bytes, and
+    `containsEntryBoardPanel=false`. HTML size is effectively unchanged, so
+    this slice should be treated as client-module cleanup rather than initial
+    HTML payload reduction.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check`
+- Push/deploy status: not pushed and not deployed.
