@@ -1993,3 +1993,45 @@ Post-deploy measurement after PR #11:
     preview `/tier`, `/tier?liveOnly=false`, `/api/tier/players`, and
     `/api/tier/players?liveOnly=false` cold/warm behavior before considering
     production rollout.
+
+2026-06-14 tier branch local production route/API remeasure:
+
+- Branch: `codex/tier-live-api-cache`.
+- Method:
+  - Used the existing production build with local `next start`.
+  - First local server attempt under the default sandbox returned 500 for
+    `/api/tier/players`; server logs showed Supabase `TypeError: fetch failed`
+    with `EACCES`, so that was an environment/network permission artifact, not
+    a code result.
+  - Re-ran the same local production measurement with network escalation.
+- Network-approved local production samples:
+  - Round 1:
+    - `/tier`: 200, 99ms, 41,856 bytes.
+    - `/tier?liveOnly=false`: 200, 165ms, 41,856 bytes.
+    - `/api/tier/players`: 200, 1,129ms, 40,465 bytes,
+      `s-maxage=10, stale-while-revalidate=60`.
+    - `/api/tier/players?liveOnly=false`: 200, 263ms, 53,274 bytes,
+      `s-maxage=300, stale-while-revalidate=31536000`.
+    - `/player`: 200, 31ms, 23,021 bytes.
+    - `/match`: 200, 59ms, 78,014 bytes.
+    - `/api/players`: 200, 44ms, 48,106 bytes.
+    - `/schedule`: 200, 36ms, 25,056 bytes.
+    - `/prediction`: 200, 30ms, 23,569 bytes.
+    - `/api/prediction`: 200, 326ms, 52 bytes.
+  - Warm rounds:
+    - `/api/tier/players`: 27-28ms, 40,465 bytes.
+    - `/api/tier/players?liveOnly=false`: 41-42ms, 73,744 bytes.
+    - `/tier` and `/tier?liveOnly=false`: 29-34ms, 41,856 bytes.
+    - `/match`: 46-55ms, 78,014 bytes.
+    - `/api/players`: 30-31ms, 48,106 bytes.
+- Interpretation:
+  - The live-player short data cache is working locally: the first live API
+    request still pays the Supabase/cold fill cost, while immediate warm
+    repeats drop to about 27-28ms.
+  - The media payload narrowing reduces the full tier API below the latest
+    production sample of about 99KB; warm local samples settled at about 73.7KB.
+  - `/match` is now the largest measured public HTML response in this local
+    set at about 78KB. If the tier branch is held for preview approval, the
+    next non-deploy performance investigation should inspect `/match` client
+    island/module payload rather than adding more tier changes blindly.
+- Push/deploy status: still not pushed and not deployed.
