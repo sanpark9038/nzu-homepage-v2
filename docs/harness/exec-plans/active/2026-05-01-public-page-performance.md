@@ -1735,3 +1735,63 @@ Post-deploy measurement after PR #11:
   - Local worktree was clean before this documentation update.
   - No merge, production deploy, production promote, or production measurement
     was run in this step.
+
+2026-06-14 PR #15 production rollout and measurement:
+
+- Operator approved the production rollout objective:
+  "PR #15 production rollout을 승인 기준에 따라 진행하고, production 반영 후
+  핵심 public route/API 성능과 캐시 동작을 실측해 active plan에 기록한다."
+- Fresh pre-merge verification:
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:player-history-artifact-cache-contract`
+  - `npm.cmd run test:h2h-route-performance-contract`
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Merged PR #15 into `main` with GitHub merge commit
+  `d5851a3653951e28e3508a32c4304d4c971d19df`.
+- Production deployment:
+  - URL:
+    `https://nzu-homepage-v2-k1t1o4fxm-sanparks-projects.vercel.app`
+  - Deployment id: `dpl_ErKuYreJUKbXpoFcBAsLgVmVJEMN`
+  - Target/status: production, Ready.
+  - Aliases attached after completion:
+    `https://star-hosaga.com`, `https://www.star-hosaga.com`,
+    `https://nzu-homepage-v2.vercel.app`,
+    `https://nzu-homepage-v2-sanparks-projects.vercel.app`, and
+    `https://nzu-homepage-v2-git-main-sanparks-projects.vercel.app`.
+- Production measurement notes:
+  - Apex `https://star-hosaga.com` redirected with 308 before canonical route
+    measurement, so route/API samples below used
+    `https://www.star-hosaga.com`.
+  - Round 1 was cold/new-deployment observation; round 2 was immediate repeat.
+- Production route/API measurements:
+  - `/player`: round 1 200, 728ms, 23,049 bytes,
+    `X-Vercel-Cache: PRERENDER`; round 2 200, 14ms, 23,049 bytes,
+    `X-Vercel-Cache: HIT`.
+  - `/match`: round 1 200, 700ms, 78,042 bytes,
+    `X-Vercel-Cache: PRERENDER`; round 2 200, 15ms, 78,042 bytes,
+    `X-Vercel-Cache: HIT`.
+  - `/api/players`: round 1 200, 814ms, 44,782 bytes,
+    `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`,
+    `X-Vercel-Cache: PRERENDER`; round 2 200, 11ms, 44,782 bytes,
+    same cache header, `X-Vercel-Cache: HIT`.
+  - `/api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`:
+    round 1 200, 1,984ms, 4,130 bytes,
+    `Cache-Control: public, must-revalidate, max-age=0`,
+    `X-Vercel-Cache: MISS`; round 2 200, 8ms, 4,130 bytes,
+    same client-facing cache header, `X-Vercel-Cache: HIT`.
+  - Canonical-ID `/api/stats/h2h` for the local smoke pair:
+    round 1 200, 1,394ms, 347 bytes,
+    `Cache-Control: public, must-revalidate, max-age=0`,
+    `X-Vercel-Cache: MISS`; round 2 200, 8ms, 347 bytes,
+    same client-facing cache header, `X-Vercel-Cache: HIT`.
+- Post-deploy error scan:
+  - `vercel.cmd logs
+    https://nzu-homepage-v2-k1t1o4fxm-sanparks-projects.vercel.app
+    --no-follow --since 1h --level error --limit 20`
+  - Result: no logs found for the production deployment.
