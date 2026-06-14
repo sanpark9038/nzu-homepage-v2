@@ -70,6 +70,7 @@ registerTypeScriptRequire();
 
 const { buildCompactTeamTierPlayers, buildNamedTierPlayers, NAMED_TIER_LABELS } = require(path.join(ROOT, "lib", "tier-page-helpers.ts"));
 const { filterTierPlayers } = require(path.join(ROOT, "lib", "tier-page-helpers.ts"));
+const { buildTierPlayerPayload } = require(path.join(ROOT, "lib", "tier-player-payload.ts"));
 const { getTierLabel, normalizeTier } = require(path.join(ROOT, "lib", "utils.ts"));
 
 runTest("numeric tier 9 players are rendered in the baby tier group", () => {
@@ -149,4 +150,46 @@ runTest("compact team tier players include tier suffix aliases and ungrouped pla
 runTest("tier labels normalize Korean tier suffixes before badge display", () => {
   assert.equal(normalizeTier("\uc7ad\ud2f0\uc5b4"), "\uc7ad");
   assert.equal(getTierLabel("\uc7ad\ud2f0\uc5b4"), "\uc7ad");
+});
+
+runTest("tier API payload omits unused media fields while preserving card fallbacks", () => {
+  const livePayload = buildTierPlayerPayload({
+    id: "live-player",
+    name: "Live Player",
+    nickname: "Live",
+    race: "P",
+    gender: "male",
+    tier: "1",
+    university: "WFU",
+    is_live: true,
+    broadcast_title: "Live now",
+    channel_profile_image_url: "https://images.example/channel.jpg",
+    live_thumbnail_url: "https://images.example/live.jpg",
+    photo_url: "https://images.example/profile.jpg",
+  });
+
+  assert.equal(livePayload.broadcast_title, "Live now");
+  assert.equal(livePayload.channel_profile_image_url, "https://images.example/channel.jpg");
+  assert.equal(livePayload.live_thumbnail_url, "https://images.example/live.jpg");
+  assert.equal(Object.hasOwn(livePayload, "photo_url"), false);
+
+  const offlinePayload = buildTierPlayerPayload({
+    id: "offline-player",
+    name: "Offline Player",
+    nickname: null,
+    race: "T",
+    gender: "female",
+    tier: "2",
+    university: "YB",
+    is_live: false,
+    broadcast_title: null,
+    channel_profile_image_url: null,
+    live_thumbnail_url: null,
+    photo_url: "https://images.example/offline.jpg",
+  });
+
+  assert.equal(offlinePayload.photo_url, "https://images.example/offline.jpg");
+  assert.equal(Object.hasOwn(offlinePayload, "broadcast_title"), false);
+  assert.equal(Object.hasOwn(offlinePayload, "channel_profile_image_url"), false);
+  assert.equal(Object.hasOwn(offlinePayload, "live_thumbnail_url"), false);
 });

@@ -1,27 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { playerService } from "@/lib/player-service";
+import { buildTierPlayerPayload } from "@/lib/tier-player-payload";
 import { filterTierPlayers } from "@/lib/tier-page-helpers";
-import type { Player } from "@/types";
 
 export const revalidate = 60;
-
-function toTierPlayerPayload(player: Player) {
-  return {
-    id: player.id,
-    name: player.name,
-    nickname: player.nickname,
-    race: player.race,
-    gender: player.gender,
-    tier: player.tier,
-    university: player.university,
-    is_live: player.is_live,
-    broadcast_title: player.broadcast_title,
-    channel_profile_image_url: player.channel_profile_image_url,
-    live_thumbnail_url: player.live_thumbnail_url,
-    photo_url: player.photo_url,
-  };
-}
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -37,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   const payload = {
     liveOnly,
-    players: players.map(toTierPlayerPayload),
+    players: players.map(buildTierPlayerPayload),
     generatedAt: new Date().toISOString(),
   };
 

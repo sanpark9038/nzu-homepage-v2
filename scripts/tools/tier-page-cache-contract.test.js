@@ -71,10 +71,12 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(apiRouteSource, /export\s+const\s+revalidate\s*=\s*60/);
   assert.match(apiRouteSource, /playerService\.getCachedPlayersList\(\)/);
   assert.match(apiRouteSource, /playerService\.getLivePlayers\(\)/);
-  assert.match(apiRouteSource, /id: player\.id/);
-  assert.match(apiRouteSource, /nickname: player\.nickname/);
-  assert.match(apiRouteSource, /channel_profile_image_url: player\.channel_profile_image_url/);
-  assert.match(apiRouteSource, /live_thumbnail_url: player\.live_thumbnail_url/);
+  assert.match(apiRouteSource, /buildTierPlayerPayload/);
+  assert.match(apiRouteSource, /players:\s*players\.map\(buildTierPlayerPayload\)/);
+  assert.doesNotMatch(apiRouteSource, /broadcast_title:\s*player\.broadcast_title/);
+  assert.doesNotMatch(apiRouteSource, /channel_profile_image_url:\s*player\.channel_profile_image_url/);
+  assert.doesNotMatch(apiRouteSource, /live_thumbnail_url:\s*player\.live_thumbnail_url/);
+  assert.doesNotMatch(apiRouteSource, /photo_url:\s*player\.photo_url/);
   assert.doesNotMatch(apiRouteSource, /playerNames:/);
   assert.doesNotMatch(apiRouteSource, /tier_rank: player\.tier_rank/);
   assert.doesNotMatch(apiRouteSource, /eloboard_id: player\.eloboard_id/);

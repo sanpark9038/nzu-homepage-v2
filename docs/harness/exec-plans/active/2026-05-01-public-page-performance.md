@@ -1923,3 +1923,34 @@ Post-deploy measurement after PR #11:
   - `npm.cmd run build` with network escalation after the first sandboxed build
     produced Supabase `EACCES` fetch warnings despite exit code 0.
 - Push/deploy status: not pushed and not deployed.
+
+2026-06-14 tier API media payload narrowing:
+
+- Branch: `codex/tier-live-api-cache`.
+- Objective: continue the same tier API performance branch by reducing
+  repeated media fields in `/api/tier/players`, especially the full
+  `liveOnly=false` payload.
+- TDD evidence:
+  - RED: `npm.cmd run test:tier-page-helpers` failed with
+    `Cannot find module ... lib\tier-player-payload.ts` after adding the
+    desired `buildTierPlayerPayload` behavior test.
+  - GREEN: the same test passed after adding `lib/tier-player-payload.ts` and
+    wiring `app/api/tier/players/route.ts` to `players.map(buildTierPlayerPayload)`.
+  - Existing source contract initially failed because it still expected the old
+    inline route mapper; it now guards the helper boundary and prevents
+    reintroducing direct media field mapping in the API route.
+- Payload rule:
+  - Always keep tier card / H2H / filter identity fields:
+    `id`, `name`, `nickname`, `race`, `gender`, `tier`, `university`,
+    `is_live`.
+  - Include `channel_profile_image_url` only when present.
+  - Include `photo_url` only when no channel profile image is present and the
+    photo URL is needed as the card fallback.
+  - Include `broadcast_title` and `live_thumbnail_url` only for live players
+    and only when those values are present.
+- Production JSON sample transformed locally with the new payload rule:
+  - `/api/tier/players`: 43,601 bytes -> 38,295 bytes, 5,306 bytes saved,
+    112 players.
+  - `/api/tier/players?liveOnly=false`: 99,118 bytes -> 73,257 bytes,
+    25,861 bytes saved, 320 players.
+- Push/deploy status: not pushed and not deployed.
