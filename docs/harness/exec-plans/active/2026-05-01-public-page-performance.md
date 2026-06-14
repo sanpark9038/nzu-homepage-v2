@@ -1580,3 +1580,46 @@ Post-deploy measurement after PR #11:
   - ID-based `/api/stats/h2h` for 김윤중 vs 이영한: 200,
     `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`, 153
     bytes.
+
+2026-06-14 player/match branch preview smoke after push:
+
+- Checked the pushed branch `codex/player-page-performance-audit`; the local
+  worktree was clean and tracking `origin/codex/player-page-performance-audit`.
+- Remote branch head was `7c019b410ba826a742bcafab4d4cf42e1054ad51`.
+- GitHub status:
+  - No pull request exists yet for
+    `codex/player-page-performance-audit`.
+  - No GitHub Actions runs were listed for this branch.
+- Vercel status:
+  - Latest selected ready preview:
+    `https://nzu-homepage-v2-1ywxb4asl-sanparks-projects.vercel.app`
+  - Deployment id: `dpl_A48ZnX7hfkwoRi9LnkLptW7gamKn`
+  - Branch alias:
+    `https://nzu-homepage-v2-git-codex-player-page-330451-sanparks-projects.vercel.app`
+  - Preview Protection blocks unauthenticated direct smoke checks, so preview
+    verification used authenticated `vercel curl`.
+  - No manual preview deploy, production deploy, or promote command was run.
+- Preview smoke results:
+  - `/player`: 200, `Content-Length: 23049`,
+    `X-Vercel-Cache: PRERENDER`.
+  - `/match`: 200, `Content-Length: 78042`,
+    `X-Vercel-Cache: PRERENDER`.
+  - `/api/players`: 200,
+    `Cache-Control: s-maxage=300, stale-while-revalidate=31536000`,
+    `Content-Length: 44782`, `X-Vercel-Cache: HIT` after warm-up.
+  - `/api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`:
+    200, but preview response headers showed
+    `Cache-Control: public, max-age=0, must-revalidate` and
+    `X-Vercel-Cache: MISS`.
+  - Canonical-ID `/api/stats/h2h` for the local smoke pair: 200, body returned
+    the expected H2H JSON, but preview response headers showed
+    `Cache-Control: public, max-age=0, must-revalidate`; repeat GET showed
+    `X-Vercel-Cache: HIT`.
+- Decision note: do not promote/deploy this player/match cache package to
+  production yet without a follow-up decision. The static pages and
+  `/api/players` preview behavior match expectations, but the dynamic
+  detail-summary and H2H API responses do not preserve the intended
+  route-level shared-cache header in preview. Next recommended goal is to
+  investigate whether this is Vercel Preview Protection/runtime behavior,
+  Next route handling, or a route implementation issue before production
+  rollout.
