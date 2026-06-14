@@ -57,7 +57,7 @@ export function mapPlayersToMatchupSummaries(
 }
 
 export async function fetchMatchupPlayers() {
-  const response = await fetch("/api/players", { cache: "no-store" });
+  const response = await fetch("/api/players");
   if (!response.ok) {
     throw new Error(`Failed to load players: ${response.status}`);
   }
@@ -173,7 +173,7 @@ async function fetchSingleH2H(
   params.set("p2_id", player2.id);
   if (gender) params.set("gender", gender);
 
-  const response = await fetch(`/api/stats/h2h?${params.toString()}`, { cache: "no-store" });
+  const response = await fetch(`/api/stats/h2h?${params.toString()}`);
   if (!response.ok) return null;
   const payload = await response.json().catch(() => null);
   return payload as H2HStats | null;

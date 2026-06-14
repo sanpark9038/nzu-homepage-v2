@@ -23,9 +23,10 @@ test("match route uses a server page to hydrate the client with initial players"
   assert.match(pageSource, /<MatchPageClient initialPlayers=\{initialPlayers\} initialPlayersLoadFailed=\{initialPlayersLoadFailed\} \/>/);
 });
 
-test("match client keeps a no-store API fallback only when server hydration failed", () => {
+test("match client keeps an API fallback only when server hydration failed", () => {
   assert.ok(existsProjectFile("app/match/MatchPageClient.tsx"));
   const clientSource = readProjectFile("app/match/MatchPageClient.tsx");
+  const helperSource = readProjectFile("lib/matchup-helpers.ts");
 
   assert.match(clientSource, /^\uFEFF?['"]use client['"]/m);
   assert.match(clientSource, /initialPlayers:\s*MatchupPlayerSummary\[\]/);
@@ -33,6 +34,11 @@ test("match client keeps a no-store API fallback only when server hydration fail
   assert.match(clientSource, /useState<Player\[\]>\(initialPlayers\)/);
   assert.match(clientSource, /if \(!initialPlayersLoadFailed\)/);
   assert.match(clientSource, /fetchMatchupPlayers\(\)/);
+  assert.doesNotMatch(
+    helperSource,
+    /fetch\("\/api\/players",\s*\{\s*cache:\s*["']no-store["']\s*\}\)/,
+    "Public matchup player fallback should allow the API route shared cache policy to work"
+  );
 });
 
 test("public matchup players API exposes CDN cache headers for fallback loads", () => {

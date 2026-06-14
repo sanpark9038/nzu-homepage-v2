@@ -1521,3 +1521,25 @@ Post-deploy measurement after PR #11:
   - `npm.cmd run lint`
   - `git diff --check`
   - `npm.cmd run build`
+
+2026-06-14 matchup client shared-cache follow-up:
+
+- After adding shared HTTP cache headers to `/api/player-detail-summary`,
+  `/api/players`, and `/api/stats/h2h`, checked the client helper that calls
+  the public matchup endpoints.
+- `fetchMatchupPlayers()` and the canonical-ID H2H helper still passed
+  `{ cache: "no-store" }`, which made those browser fetches less aligned with
+  the route-level `s-maxage=300, stale-while-revalidate=31536000` policy.
+- Removed the explicit `no-store` option from the public matchup player-list
+  fallback and canonical-ID H2H fetch. The fallback still only runs when server
+  hydration fails, and H2H still requires both canonical player IDs.
+- Expected effect: repeated public matchup fallback/H2H requests can benefit
+  from the server/CDN cache policy already added in this branch, without
+  changing labels, roster identity rules, or error handling.
+- Verification:
+  - RED: `npm.cmd run test:matchup-page-shell-contract` failed before the
+    player-list fallback stopped forcing `no-store`.
+  - RED: `npm.cmd run test:matchup-h2h-fetch-contract` failed before H2H
+    stopped forcing `no-store`.
+  - GREEN: `npm.cmd run test:matchup-page-shell-contract`
+  - GREEN: `npm.cmd run test:matchup-h2h-fetch-contract`
