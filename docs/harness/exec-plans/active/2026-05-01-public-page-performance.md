@@ -2097,6 +2097,54 @@ Post-deploy measurement after PR #11:
     already had two recent slices and `/rankings` is now the next untreated
     large public HTML route.
 
+2026-06-14 rankings table class payload cleanup:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - After the post-tier-packing remeasure, `/rankings` was the next untreated
+    larger public HTML route at about 59.2KB.
+  - Source inspection showed it is a server-rendered table page, not a client
+    hydration issue. The safe local candidate was removing repeated long
+    Tailwind table class strings from the rendered HTML.
+- TDD evidence:
+  - Added `scripts/tools/rankings-page-performance-contract.test.js` and
+    `npm.cmd run test:rankings-page-performance-contract`.
+  - RED: the new contract failed because `app/rankings/page.tsx` did not use
+    `rankings-table-shell` / `rankings-table-cell`, and repeated
+    `px-8 py-5` table cell strings were still present.
+  - GREEN: moved the repeated rankings table shell/header/cell/text/score
+    styling into `app/globals.css` utility classes and updated
+    `app/rankings/page.tsx` to use short rankings-specific class names.
+- Payload rule:
+  - Preserve all rankings rows, labels, table structure, and badge components.
+  - Only shorten repeated styling attributes in HTML; do not trim visible data
+    or change rankings semantics.
+- Local production measurement:
+  - Baseline from post-tier-packing remeasure: `/rankings` 200, 59,195 bytes
+    in round 1 and 59,167 bytes warm.
+  - After class extraction: `/rankings` 200, 56,370 bytes.
+  - Observed HTML reduction: about 2.8KB.
+  - Smoke comparison in the same run: `/match` 65,550 bytes and `/entry`
+    56,493 bytes.
+- Browser verification:
+  - `agent-browser.cmd open http://localhost:3025/rankings`
+  - `agent-browser.cmd wait --load networkidle`
+  - `agent-browser.cmd errors` returned empty output.
+  - DOM check: no framework overlay, content present, 2 tables, 16 rankings
+    rows rendered.
+- Verification:
+  - `npm.cmd run test:rankings-page-performance-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Push/deploy status: not pushed and not deployed.
+- Next recommended non-deploy candidate:
+  - Re-run the public route/API table after this commit. If `/match` remains
+    the largest public HTML route, inspect whether its remaining 65.5KB is
+    mostly required interactive form markup or still has repeatable styling
+    strings worth extracting.
+
 2026-06-14 tier API media payload narrowing:
 
 - Branch: `codex/tier-live-api-cache`.

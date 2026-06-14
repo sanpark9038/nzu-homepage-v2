@@ -121,32 +121,32 @@ export default async function RankingsPage() {
             <div className="h-px flex-1 bg-gradient-to-r from-nzu-green/30 to-transparent" />
           </div>
           
-          <div className="overflow-x-auto rounded-[2.5rem] border border-white/10 bg-white/5 backdrop-blur-xl">
-            <table className="w-full text-left border-collapse">
+          <div className="rankings-table-shell">
+            <table className="rankings-table">
               <thead>
-                <tr className="bg-white/5 border-b border-white/10">
-                  <th className="px-8 py-5 text-lg font-black tracking-tight text-emerald-300">순위</th>
-                  <th className="px-8 py-5 text-lg font-black tracking-tight text-emerald-300">대회팀명</th>
-                  <th className="px-8 py-5 text-lg font-black tracking-tight text-emerald-300 text-center">승</th>
-                  <th className="px-8 py-5 text-lg font-black tracking-tight text-emerald-300 text-center">패</th>
+                <tr className="rankings-head-row">
+                  <th className="rankings-head-cell rankings-team-head">순위</th>
+                  <th className="rankings-head-cell rankings-team-head">대회팀명</th>
+                  <th className="rankings-head-cell rankings-team-head rankings-center">승</th>
+                  <th className="rankings-head-cell rankings-team-head rankings-center">패</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="rankings-body">
                 {rankedTeams.map((t) => (
-                  <tr key={t.teamCode} className="group hover:bg-white/5 transition-colors">
-                    <td className="px-8 py-5">
-                      <span className={`text-lg font-black italic ${t.rank <= 3 ? 'text-nzu-green' : 'text-muted-foreground/40'}`}>
+                  <tr key={t.teamCode} className="rankings-row">
+                    <td className="rankings-table-cell">
+                      <span className={`rankings-rank ${t.rank <= 3 ? 'rankings-rank-top' : 'rankings-rank-muted'}`}>
                         {t.rank}
                       </span>
                     </td>
-                    <td className="px-8 py-5">
-                      <span className="text-base font-bold tracking-tight text-white">{t.teamName}</span>
+                    <td className="rankings-table-cell">
+                      <span className="rankings-team-name">{t.teamName}</span>
                     </td>
-                    <td className="px-8 py-5 text-center">
-                      <span className="text-xl font-black text-white">{t.wins}</span>
+                    <td className="rankings-table-cell rankings-center">
+                      <span className="rankings-score-win">{t.wins}</span>
                     </td>
-                    <td className="px-8 py-5 text-center">
-                      <span className="text-xl font-black text-muted-foreground/40">{t.losses}</span>
+                    <td className="rankings-table-cell rankings-center">
+                      <span className="rankings-score-loss">{t.losses}</span>
                     </td>
                   </tr>
                 ))}
@@ -161,52 +161,52 @@ export default async function RankingsPage() {
             <div className="h-px flex-1 bg-gradient-to-r from-nzu-green/30 to-transparent" />
           </div>
           
-          <div className="overflow-x-auto rounded-[2.5rem] border border-white/10 bg-white/5 backdrop-blur-xl">
-              <table className="w-full text-left border-collapse">
+          <div className="rankings-table-shell">
+              <table className="rankings-table">
                 <thead>
-                  <tr className="bg-white/5 border-b border-white/10">
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300">순위</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300">선수명</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300">대회팀명</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300">소속대학</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300 text-center">종족</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300 text-center">티어</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300 text-center">승</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300 text-center">패</th>
+                  <tr className="rankings-head-row">
+                    <th className="rankings-head-cell rankings-player-head">순위</th>
+                    <th className="rankings-head-cell rankings-player-head">선수명</th>
+                    <th className="rankings-head-cell rankings-player-head">대회팀명</th>
+                    <th className="rankings-head-cell rankings-player-head">소속대학</th>
+                    <th className="rankings-head-cell rankings-player-head rankings-center">종족</th>
+                    <th className="rankings-head-cell rankings-player-head rankings-center">티어</th>
+                    <th className="rankings-head-cell rankings-player-head rankings-center">승</th>
+                    <th className="rankings-head-cell rankings-player-head rankings-center">패</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="rankings-body">
                   {rankedPlayers.map((p) => (
-                    <tr key={p.id} className="group hover:bg-white/5 transition-colors">
-                      <td className="px-8 py-5">
-                        <span className={`text-lg font-black italic ${p.rank <= 3 ? 'text-nzu-green' : 'text-muted-foreground/40'}`}>
+                    <tr key={p.id} className="rankings-row">
+                      <td className="rankings-table-cell">
+                        <span className={`rankings-rank ${p.rank <= 3 ? 'rankings-rank-top' : 'rankings-rank-muted'}`}>
                           {p.rank}
                         </span>
                       </td>
-                      <td className="px-8 py-5">
-                        <span className="text-base font-bold tracking-tight text-foreground">{p.name}</span>
+                      <td className="rankings-table-cell">
+                        <span className="rankings-player-name">{p.name}</span>
                       </td>
-                      <td className="px-8 py-5">
-                        <span className="text-sm font-bold tracking-tight text-muted-foreground">{p.teamName}</span>
+                      <td className="rankings-table-cell">
+                        <span className="rankings-muted-text">{p.teamName}</span>
                       </td>
-                      <td className="px-8 py-5">
-                        <span className="text-sm font-bold tracking-tight text-muted-foreground/60">{p.university}</span>
+                      <td className="rankings-table-cell">
+                        <span className="rankings-university-text">{p.university}</span>
                       </td>
-                      <td className="px-8 py-5 text-center">
-                        <div className="flex justify-center">
+                      <td className="rankings-table-cell rankings-center">
+                        <div className="rankings-center-flex">
                           <RaceTag race={p.race as Race} size="sm" />
                         </div>
                       </td>
-                      <td className="px-8 py-5 text-center">
-                        <div className="flex justify-center">
+                      <td className="rankings-table-cell rankings-center">
+                        <div className="rankings-center-flex">
                           <TierBadge tier={p.tier || "미정"} size="xs" />
                         </div>
                       </td>
-                      <td className="px-8 py-5 text-center">
-                        <span className="text-xl font-black text-white">{p.wins}</span>
+                      <td className="rankings-table-cell rankings-center">
+                        <span className="rankings-score-win">{p.wins}</span>
                       </td>
-                      <td className="px-8 py-5 text-center">
-                        <span className="text-xl font-black text-muted-foreground/40">{p.losses}</span>
+                      <td className="rankings-table-cell rankings-center">
+                        <span className="rankings-score-loss">{p.losses}</span>
                       </td>
                     </tr>
                   ))}

@@ -258,6 +258,128 @@
     contain-intrinsic-size: auto 44rem;
   }
 
+  .rankings-table-shell {
+    overflow-x: auto;
+    border-radius: 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+  }
+
+  .rankings-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .rankings-head-row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .rankings-body > tr + tr {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .rankings-row {
+    transition: background-color 0.15s ease;
+  }
+
+  .rankings-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .rankings-head-cell,
+  .rankings-table-cell {
+    padding: 1.25rem 2rem;
+  }
+
+  .rankings-head-cell {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 950;
+    letter-spacing: -0.01em;
+  }
+
+  .rankings-team-head {
+    color: rgb(110, 231, 183);
+  }
+
+  .rankings-player-head {
+    color: rgb(125, 211, 252);
+  }
+
+  .rankings-center {
+    text-align: center;
+  }
+
+  .rankings-rank {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 950;
+    font-style: italic;
+  }
+
+  .rankings-rank-top {
+    color: var(--nzu-green);
+  }
+
+  .rankings-rank-muted {
+    color: rgba(118, 145, 133, 0.4);
+  }
+
+  .rankings-team-name,
+  .rankings-player-name {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .rankings-team-name {
+    color: #ffffff;
+  }
+
+  .rankings-player-name {
+    color: var(--foreground);
+  }
+
+  .rankings-muted-text,
+  .rankings-university-text {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .rankings-muted-text {
+    color: var(--muted-foreground);
+  }
+
+  .rankings-university-text {
+    color: rgba(118, 145, 133, 0.6);
+  }
+
+  .rankings-center-flex {
+    display: flex;
+    justify-content: center;
+  }
+
+  .rankings-score-win,
+  .rankings-score-loss {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 950;
+  }
+
+  .rankings-score-win {
+    color: #ffffff;
+  }
+
+  .rankings-score-loss {
+    color: rgba(118, 145, 133, 0.4);
+  }
+
   /* LIVE 배지 애니메이션 */
   .live-dot {
     animation: live-pulse 1.5s ease-in-out infinite;
