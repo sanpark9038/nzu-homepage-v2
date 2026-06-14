@@ -1708,3 +1708,30 @@ Post-deploy measurement after PR #11:
     `X-Vercel-Cache: HIT`.
 - Deploy note: no production deploy, production promote, or manual production
   measurement was run in this PR-creation step.
+
+2026-06-14 PR #15 final integration gate:
+
+- Rechecked PR #15 after the PR documentation push:
+  - PR URL: `https://github.com/sanpark9038/nzu-homepage-v2/pull/15`
+  - Head: `9744faa39162f857d49d052a45b954d89cf151f6`
+  - Base: `main`
+  - State: open, not draft.
+  - Mergeability: mergeable according to GitHub.
+  - Checks: Vercel passed; Vercel Preview Comments passed.
+- Rechecked Vercel project/deployment linkage:
+  - GitHub default branch is `main`.
+  - Latest production deployment inspected:
+    `https://nzu-homepage-v2-lhhkt2gxv-sanparks-projects.vercel.app`
+  - Production deployment id: `dpl_4ec2FQTd3zZH6GRVHHrpjK5RKMDF`
+  - Production aliases include `https://star-hosaga.com`,
+    `https://www.star-hosaga.com`, `https://nzu-homepage-v2.vercel.app`, and
+    `https://nzu-homepage-v2-git-main-sanparks-projects.vercel.app`.
+- Decision: merging PR #15 into `main` is likely equivalent to starting the
+  production rollout path. Do not merge PR #15, promote a preview deployment,
+  or run a production deploy command unless the operator explicitly approves
+  production rollout for this PR.
+- Current state after this gate:
+  - PR #15 is ready for operator review.
+  - Local worktree was clean before this documentation update.
+  - No merge, production deploy, production promote, or production measurement
+    was run in this step.
