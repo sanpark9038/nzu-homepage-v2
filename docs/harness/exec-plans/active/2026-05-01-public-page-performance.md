@@ -1795,3 +1795,82 @@ Post-deploy measurement after PR #11:
     https://nzu-homepage-v2-k1t1o4fxm-sanparks-projects.vercel.app
     --no-follow --since 1h --level error --limit 20`
   - Result: no logs found for the production deployment.
+
+2026-06-14 post-rollout tier next-bottleneck audit:
+
+- Current branch/state before this audit: `main`, clean, tracking
+  `origin/main` after production rollout record commit `2a359f7`.
+- Goal: identify the next public-page performance target after PR #15 reached
+  production, with focus on `/tier?liveOnly=false` and tier API cache behavior.
+- Canonical production measurement host:
+  `https://www.star-hosaga.com`. The apex host redirects with 308 before route
+  measurement, so the canonical `www` host is the stable sample target.
+- Production route/API samples:
+  - Round 1:
+    - `/tier`: 200, 872ms, 41,884 bytes,
+      `Cache-Control: public, must-revalidate, max-age=0`,
+      `X-Vercel-Cache: PRERENDER`, `X-Matched-Path: /tier`.
+    - `/tier?liveOnly=false`: 200, 18ms, 41,884 bytes,
+      `Cache-Control: public, must-revalidate, max-age=0`,
+      `X-Vercel-Cache: HIT`, `X-Matched-Path: /tier`.
+    - `/api/tier/players`: 200, 2,731ms, 38,508 bytes,
+      `X-Vercel-Cache: MISS`.
+    - `/api/tier/players?liveOnly=false`: 200, 879ms, 91,277 bytes,
+      `X-Vercel-Cache: MISS`.
+  - Round 2:
+    - `/tier`: 200, 205ms, 41,856 bytes, `X-Vercel-Cache: HIT`.
+    - `/tier?liveOnly=false`: 200, 10ms, 41,856 bytes,
+      `X-Vercel-Cache: HIT`.
+    - `/api/tier/players`: 200, 8ms, 38,508 bytes,
+      `X-Vercel-Cache: HIT`.
+    - `/api/tier/players?liveOnly=false`: 200, 9ms, 91,277 bytes,
+      `X-Vercel-Cache: HIT`.
+  - Round 3:
+    - `/tier`: 200, 24ms, 41,856 bytes, `X-Vercel-Cache: HIT`.
+    - `/tier?liveOnly=false`: 200, 12ms, 41,856 bytes,
+      `X-Vercel-Cache: HIT`.
+    - `/api/tier/players`: 200, 18ms, 38,508 bytes,
+      `X-Vercel-Cache: HIT`.
+    - `/api/tier/players?liveOnly=false`: 200, 11ms, 91,277 bytes,
+      `X-Vercel-Cache: HIT`.
+- Interpretation:
+  - `/tier?liveOnly=false` is no longer a dynamic/no-store shell bottleneck.
+    It now matches `/tier` and gets warm `HIT` behavior.
+  - Tier API warm behavior is good once Vercel has a cached response.
+  - The remaining measurable tier issue is cold API generation, especially
+    live default `/api/tier/players` at 2.7s on the first observed MISS.
+  - The client-facing `Cache-Control: public, must-revalidate, max-age=0` on
+    function responses is consistent with the earlier Vercel dynamic API
+    header investigation; `X-Vercel-Cache` is the cache-behavior signal.
+- Payload field contribution sample from production JSON:
+  - Live default API: about 44KB decoded JSON for 113 players. Largest repeated
+    fields were `broadcast_title`, `live_thumbnail_url`, `id`,
+    `channel_profile_image_url`, `name`, `university`, `gender`, `photo_url`,
+    `nickname`, `is_live`, `tier`, and `race`.
+  - Full API: about 99KB decoded JSON for 320 players. Largest repeated fields
+    were `broadcast_title`, `id`, `live_thumbnail_url`,
+    `channel_profile_image_url`, `name`, `university`, `gender`, `photo_url`,
+    `nickname`, `is_live`, `tier`, and `race`.
+- Source evidence:
+  - `proxy.ts` no longer rewrites tier query URLs to the dynamic
+    `/tier/query` route, so query-bearing tier URLs can reuse the cacheable
+    `/tier` shell.
+  - `app/api/tier/players/route.ts` uses
+    `playerService.getLivePlayers()` for live/default API reads and
+    `playerService.getCachedPlayersList()` for `liveOnly=false` reads.
+  - `playerService.getLivePlayers()` still performs a direct Supabase
+    `players` query filtered by `is_live=true`, while
+    `getCachedPlayersList()` uses the `public-players-list-v1` unstable cache
+    and then applies the live overlay.
+- Next recommended goal:
+  1. Investigate and reduce cold latency for live/default
+     `/api/tier/players`, starting with `playerService.getLivePlayers()` and
+     its cache shape. Candidate directions: derive live players from the
+     cached public list when freshness semantics allow it, or add a short
+     tagged cache around the live-player query.
+  2. Keep `/tier` and `/tier?liveOnly=false` shell routing unchanged unless new
+     production evidence shows a regression.
+  3. Treat tier API payload splitting as a secondary candidate. The current
+     large fields are used by tier cards, quick H2H, profile images, and live
+     hover previews, so any payload split needs focused contract coverage
+     before removing fields from the main response.
