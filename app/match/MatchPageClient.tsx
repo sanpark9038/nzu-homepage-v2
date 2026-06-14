@@ -11,7 +11,9 @@ import {
   filterMatchupPlayers,
   normalizeMatchupSearchText,
   reportMatchupRuntimeIssue,
+  unpackMatchPagePlayerSummaries,
   type MatchPagePlayerSummary,
+  type PackedMatchPagePlayerSummary,
 } from "@/lib/matchup-helpers"
 import { 
   DndContext, 
@@ -693,12 +695,16 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
 
 // --- Page ---
 export default function MatchPageClient({
-  initialPlayers,
+  packedInitialPlayers,
   initialPlayersLoadFailed,
 }: {
-  initialPlayers: MatchPagePlayerSummary[];
+  packedInitialPlayers: PackedMatchPagePlayerSummary[];
   initialPlayersLoadFailed: boolean;
 }) {
+  const initialPlayers = useMemo(
+    () => unpackMatchPagePlayerSummaries(packedInitialPlayers),
+    [packedInitialPlayers]
+  );
   const [rows, setRows] = useState<MatchRow[]>([{ id: crypto.randomUUID(), p1: null, p2: null, p1Input: '', p2Input: '' }]);
   const [allPlayers, setAllPlayers] = useState<Player[]>(initialPlayers);
   const [isPlayersLoading, setIsPlayersLoading] = useState(initialPlayersLoadFailed);

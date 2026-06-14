@@ -2396,3 +2396,61 @@ Post-deploy measurement after PR #11:
   3. Keep push/preview/production rollout as an operator-approved decision;
      this branch is still local only.
 - Push/deploy status: not pushed and not deployed.
+
+2026-06-14 match page packed initial hydration payload:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - After the slim match-page mapper, `/match` still shipped the largest
+    measured public HTML response among the current local candidates at
+    65,550 bytes.
+  - The initial player payload already kept only `id`, `name`, `nickname`,
+    `race`, and `gender`, but those object keys were still repeated for every
+    player in the RSC hydration data.
+- TDD evidence:
+  - RED:
+    - `npm.cmd run test:matchup-page-shell-contract` failed because
+      `app/match/page.tsx` still passed `initialPlayers` object arrays and the
+      client did not call `unpackMatchPagePlayerSummaries`.
+    - `npm.cmd run test:matchup-helpers` failed because
+      `packMatchPagePlayerSummary` did not exist.
+  - GREEN:
+    - Added `PackedMatchPagePlayerSummary` tuple helpers in
+      `lib/matchup-helpers.ts`.
+    - `app/match/page.tsx` now maps server player rows to match summaries,
+      packs them as `[id,name,nickname,race,gender]`, and hydrates the client
+      with `packedInitialPlayers`.
+    - `app/match/MatchPageClient.tsx` unpacks the tuple payload once before
+      initializing the existing player state. The API fallback path remains
+      unchanged for server-load failures.
+- Payload rule:
+  - `/match` initial hydration keeps the same five fields as the prior slim
+    summary, but sends each player as a tuple instead of an object.
+  - The shared `/api/players` fallback and `/entry` player payload are not
+    changed by this slice.
+- Local production measurement:
+  - Baseline from the previous `/match` remeasure: `/match` 65,550 bytes.
+  - After packed initial hydration: `/match` 200, 49,876 bytes.
+  - Observed HTML reduction: 15,674 bytes.
+  - Smoke comparison in the same run:
+    - `/entry`: 200, 56,493 bytes.
+    - `/rankings`: 200, 56,370 bytes.
+  - `/match` retained `Cache-Control: s-maxage=300,
+    stale-while-revalidate=31535700`.
+  - The rendered HTML contained `packedInitialPlayers` and did not contain the
+    old `"initialPlayers":` prop key.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+  - Local production `next start` smoke on port 3030 for `/match`, `/entry`,
+    and `/rankings`.
+- Build note:
+  - `npm.cmd run build` exited 0. The build log still included known sandbox
+    `EACCES` fetch warnings for Supabase/hero-media revalidation attempts.
+- Push/deploy status: not pushed and not deployed.

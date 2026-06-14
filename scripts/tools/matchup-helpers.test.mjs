@@ -72,8 +72,12 @@ const {
   mapPlayersToMatchPageSummaries,
   mapPlayersToMatchupSummaries,
   normalizeMatchupSearchText,
+  packMatchPagePlayerSummaries,
+  packMatchPagePlayerSummary,
   packMatchupPlayerSummaries,
   packMatchupPlayerSummary,
+  unpackMatchPagePlayerSummaries,
+  unpackMatchPagePlayerSummary,
   unpackMatchupPlayerSummaries,
   unpackMatchupPlayerSummary,
 } = loadProjectModule(path.join(repoRoot, "lib", "matchup-helpers.ts"));
@@ -204,6 +208,38 @@ test("packed matchup player summaries preserve entry fields with smaller JSON", 
   assert.ok(
     JSON.stringify(packed).length < JSON.stringify(players).length,
     "Packed entry hydration should avoid repeated object keys"
+  );
+});
+
+test("packed match page player summaries preserve match fields with smaller JSON", () => {
+  const players = [
+    {
+      id: "p1",
+      name: "alpha",
+      nickname: "a",
+      race: "P",
+      gender: "female",
+    },
+    {
+      id: "p2",
+      name: "beta",
+      nickname: null,
+      race: "T",
+      gender: null,
+    },
+  ];
+
+  const packedOne = packMatchPagePlayerSummary(players[0]);
+  assert.deepEqual(packedOne, ["p1", "alpha", "a", "P", "female"]);
+  assert.equal(Array.isArray(packedOne), true);
+  assert.equal(Object.hasOwn(packedOne, "name"), false);
+  assert.deepEqual(unpackMatchPagePlayerSummary(packedOne), players[0]);
+
+  const packed = packMatchPagePlayerSummaries(players);
+  assert.deepEqual(unpackMatchPagePlayerSummaries(packed), players);
+  assert.ok(
+    JSON.stringify(packed).length < JSON.stringify(players).length,
+    "Packed match hydration should avoid repeated object keys"
   );
 });
 

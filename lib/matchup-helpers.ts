@@ -24,6 +24,14 @@ export type PackedMatchupPlayerSummary = [
 
 export type MatchPagePlayerSummary = Pick<MatchupPlayerSummary, "id" | "name" | "nickname" | "race" | "gender">;
 
+export type PackedMatchPagePlayerSummary = [
+  id: string,
+  name: string,
+  nickname: string | null,
+  race: string,
+  gender: string | null,
+];
+
 type MatchupFilterPlayer = MatchPagePlayerSummary & Partial<Pick<MatchupPlayerSummary, "tier" | "university">>;
 
 const UNKNOWN_TIER_KEY = "미정";
@@ -118,6 +126,34 @@ export function mapPlayersToMatchPageSummaries(
   players: Array<Pick<Player, "id" | "name" | "nickname" | "race" | "gender">>
 ) {
   return players.map(mapPlayerToMatchPageSummary);
+}
+
+export function packMatchPagePlayerSummary(player: MatchPagePlayerSummary): PackedMatchPagePlayerSummary {
+  return [
+    player.id,
+    player.name,
+    player.nickname || null,
+    player.race || "R",
+    player.gender || null,
+  ];
+}
+
+export function packMatchPagePlayerSummaries(players: MatchPagePlayerSummary[]) {
+  return players.map(packMatchPagePlayerSummary);
+}
+
+export function unpackMatchPagePlayerSummary(packed: PackedMatchPagePlayerSummary): MatchPagePlayerSummary {
+  return {
+    id: packed[0],
+    name: packed[1],
+    nickname: packed[2],
+    race: packed[3] || "R",
+    gender: packed[4],
+  };
+}
+
+export function unpackMatchPagePlayerSummaries(players: PackedMatchPagePlayerSummary[]) {
+  return players.map(unpackMatchPagePlayerSummary);
 }
 
 export async function fetchMatchupPlayers() {

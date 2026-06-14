@@ -19,13 +19,19 @@ test("match route uses a server page to hydrate the client with initial players"
   assert.doesNotMatch(pageSource, /^['"]use client['"]/m);
   assert.match(pageSource, /playerService\.getCachedPlayersList\(\)/);
   assert.match(pageSource, /mapPlayersToMatchPageSummaries\(players\)/);
+  assert.match(pageSource, /packMatchPagePlayerSummaries\(matchPagePlayers\)/);
   assert.doesNotMatch(
     pageSource,
     /mapPlayersToMatchupSummaries\(players\)/,
     "The match route should use the slimmer match-page hydration payload, not the shared entry/API payload"
   );
   assert.match(pageSource, /initialPlayersLoadFailed = true/);
-  assert.match(pageSource, /<MatchPageClient initialPlayers=\{initialPlayers\} initialPlayersLoadFailed=\{initialPlayersLoadFailed\} \/>/);
+  assert.match(pageSource, /<MatchPageClient packedInitialPlayers=\{packedInitialPlayers\} initialPlayersLoadFailed=\{initialPlayersLoadFailed\} \/>/);
+  assert.doesNotMatch(
+    pageSource,
+    /<MatchPageClient initialPlayers=\{initialPlayers\}/,
+    "Match should avoid hydrating repeated object keys for every initial player"
+  );
 });
 
 test("match client keeps an API fallback only when server hydration failed", () => {
@@ -34,9 +40,9 @@ test("match client keeps an API fallback only when server hydration failed", () 
   const helperSource = readProjectFile("lib/matchup-helpers.ts");
 
   assert.match(clientSource, /^\uFEFF?['"]use client['"]/m);
-  assert.match(clientSource, /initialPlayers:\s*MatchPagePlayerSummary\[\]/);
+  assert.match(clientSource, /packedInitialPlayers:\s*PackedMatchPagePlayerSummary\[\]/);
   assert.match(clientSource, /initialPlayersLoadFailed:\s*boolean/);
-  assert.match(clientSource, /useState<Player\[\]>\(initialPlayers\)/);
+  assert.match(clientSource, /unpackMatchPagePlayerSummaries\(packedInitialPlayers\)/);
   assert.match(clientSource, /if \(!initialPlayersLoadFailed\)/);
   assert.match(clientSource, /fetchMatchupPlayers\(\)/);
   assert.doesNotMatch(
