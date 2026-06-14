@@ -1439,3 +1439,33 @@ Post-deploy measurement after PR #11:
   - `npm.cmd run lint`
   - `git diff --check`
   - `npm.cmd run build`
+
+2026-06-14 player detail-summary API shared cache header:
+
+- Started a separate local branch from `origin/main` to avoid mixing player
+  page work into the tier performance branch.
+- The expanded player detail report already uses
+  `getCachedPlayerDetailSummaryById()` with a 300 second
+  `public-player-history` data cache, but `/api/player-detail-summary` did not
+  expose a matching HTTP shared-cache policy.
+- Added a success-only `Cache-Control` header:
+  `s-maxage=300, stale-while-revalidate=31536000`.
+- Expected effect: repeated detail-summary expansions can be served at the HTTP
+  cache layer for the same player summary while keeping error responses
+  uncached and preserving the existing lazy-load behavior.
+- Local production verification:
+  - `GET /api/player-detail-summary?id=5aee11bf-9641-4056-8290-8c4cae1efa49`
+    returned 200.
+  - response `Cache-Control` was
+    `s-maxage=300, stale-while-revalidate=31536000`.
+  - decoded body was 4,784 bytes in the local sample.
+- Verification:
+  - RED: `npm.cmd run test:player-page-payload-contract` failed before the
+    route exposed the cache header.
+  - GREEN: `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:player-history-artifact-cache-contract`
+  - `npm.cmd run test:h2h-route-performance-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
