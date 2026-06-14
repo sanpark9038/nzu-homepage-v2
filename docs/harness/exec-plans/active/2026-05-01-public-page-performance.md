@@ -1470,6 +1470,29 @@ Post-deploy measurement after PR #11:
   - `git diff --check`
   - `npm.cmd run build`
 
+2026-06-14 public matchup players API shared cache header:
+
+- Continued the player/match fallback HTTP-cache pass on
+  `codex/player-page-performance-audit`.
+- `/api/players` already reads from `getCachedPlayersList()` and has
+  `revalidate = 300`, but the successful JSON response did not expose a
+  matching shared-cache policy.
+- Added the same success-only `Cache-Control` header used by the player detail
+  and H2H API cache pass:
+  `s-maxage=300, stale-while-revalidate=31536000`.
+- Expected effect: match-page fallback player-list loads can reuse the HTTP
+  cache layer when server hydration misses, without changing the server-hydrated
+  first paint or any visible labels.
+- Local production verification:
+  - `GET /api/players` returned 200.
+  - response `Cache-Control` was
+    `s-maxage=300, stale-while-revalidate=31536000`.
+  - decoded body was 44,782 bytes in the local sample.
+- Verification:
+  - RED: `npm.cmd run test:matchup-page-shell-contract` failed before the
+    route exposed the cache header.
+  - GREEN: `npm.cmd run test:matchup-page-shell-contract`
+
 2026-06-14 H2H stats API shared cache header:
 
 - Continued the player/H2H HTTP-cache pass on the separate

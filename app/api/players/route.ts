@@ -9,8 +9,15 @@ export const revalidate = 300;
 export async function GET() {
   const players = await playerService.getCachedPlayersList();
 
-  return NextResponse.json({
-    ok: true,
-    players: mapPlayersToMatchupSummaries(players),
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      players: mapPlayersToMatchupSummaries(players),
+    },
+    {
+      headers: {
+        "Cache-Control": "s-maxage=300, stale-while-revalidate=31536000",
+      },
+    }
+  );
 }

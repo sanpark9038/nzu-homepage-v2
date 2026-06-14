@@ -34,3 +34,11 @@ test("match client keeps a no-store API fallback only when server hydration fail
   assert.match(clientSource, /if \(!initialPlayersLoadFailed\)/);
   assert.match(clientSource, /fetchMatchupPlayers\(\)/);
 });
+
+test("public matchup players API exposes CDN cache headers for fallback loads", () => {
+  const routeSource = readProjectFile("app/api/players/route.ts");
+
+  assert.match(routeSource, /export\s+const\s+revalidate\s*=\s*300/);
+  assert.match(routeSource, /Cache-Control/);
+  assert.match(routeSource, /s-maxage=300,\s*stale-while-revalidate=31536000/);
+});
