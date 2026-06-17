@@ -2455,6 +2455,253 @@ Post-deploy measurement after PR #11:
     `EACCES` fetch warnings for Supabase/hero-media revalidation attempts.
 - Push/deploy status: not pushed and not deployed.
 
+2026-06-17 rankings table class alias packing:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - Re-ran the local production public route/API table before changing code.
+  - Warm samples confirmed `/rankings` was still the largest public HTML
+    response at about 56,342 bytes, followed by `/entry` at about 53,382
+    bytes, `/match` at about 49,848 bytes, and `/teams` at about 49,246 bytes.
+  - Rendered HTML class-frequency inspection showed repeated route-local
+    `rankings-*` table class tokens were the largest removable rankings-only
+    markup contributor.
+- TDD evidence:
+  - RED: `npm.cmd run test:rankings-page-performance-contract` failed because
+    `app/rankings/page.tsx` still emitted long `rankings-*` class tokens and
+    did not use the required short `rk-*` aliases.
+  - GREEN: renamed only the rankings-local table CSS selectors and JSX class
+    names to short `rk-*` aliases in `app/rankings/page.tsx` and
+    `app/globals.css`.
+- Payload rule:
+  - Keep rankings rows, headings, labels, table semantics, badge components,
+    and data behavior unchanged.
+  - Only shorten repeated rankings-local class tokens in rendered HTML.
+- Local production measurement:
+  - Baseline from the fresh pre-change warm sample: `/rankings` 56,342 bytes.
+  - After short class aliases: `/rankings` 200, 48,738 bytes.
+  - Observed HTML reduction: about 7,604 bytes.
+  - Smoke comparison in the same run:
+    - `/entry`: 200, 53,410 bytes.
+    - `/match`: 200, 49,876 bytes.
+    - `/teams`: 200, 49,274 bytes.
+    - `/api/players`: 200, 48,106 bytes.
+- Browser verification:
+  - `agent-browser.cmd open http://localhost:3033/rankings`
+  - `agent-browser.cmd wait --load networkidle`
+  - `agent-browser.cmd errors` returned no console errors.
+  - `agent-browser.cmd snapshot -i` showed both rankings tables, headings, and
+    rows rendered.
+- Verification:
+  - `npm.cmd run test:rankings-page-performance-contract`
+  - `npm.cmd run build`
+- Build note:
+  - `npm.cmd run build` exited 0. The build log still included the known
+    sandbox `EACCES` fetch warning for hero-media prerender.
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-17 entry page repeated control class alias:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - Re-ran local production samples after the rankings class alias pass.
+  - `/entry` remained the largest sampled public HTML route at 53,410 bytes,
+    followed by `/match` at 49,876 bytes, `/teams` at 49,274 bytes, and
+    `/rankings` at 48,738 bytes.
+- Component/payload breakdown from rendered `/entry` HTML:
+  - Total HTML: about 53,374 bytes in the direct inspection sample.
+  - Inline script/RSC payload: about 38,885 bytes.
+  - Non-script HTML: about 14,489 bytes.
+  - Class attribute values: about 6,929 bytes.
+  - Packed H2H player payload inside the RSC script: about 26,680 bytes.
+  - The remaining largest payload contributor is therefore the packed player
+    hydration data, not removable static markup.
+- Safe markup/class target:
+  - The two university `<select>` controls repeated the same long Tailwind
+    select class string.
+  - Their caret wrappers also repeated the same long positioning/color class
+    string.
+- TDD evidence:
+  - RED: `npm.cmd run test:matchup-page-shell-contract` failed after adding
+    the expectation that `H2HLookup` uses short `e-select` and `e-caret`
+    aliases for those repeated controls.
+  - GREEN: moved only those repeated select/caret declarations into
+    `app/globals.css` and changed `components/stats/H2HLookup.tsx` to use the
+    short classes.
+- Payload rule:
+  - Preserve entry behavior, university filtering, H2H payload shape, locked
+    labels, and all player data.
+  - Only shorten repeated static class strings in the initial `/entry` HTML.
+- Local production measurement:
+  - Baseline: `/entry` 200, 53,410 bytes.
+  - After select/caret class aliases: `/entry` 200, 52,870 bytes.
+  - Observed HTML reduction: 540 bytes.
+  - Comparison in the same run:
+    - `/rankings`: 200, 48,738 bytes.
+    - `/match`: 200, 49,876 bytes.
+    - `/teams`: 200, 49,274 bytes.
+    - `/api/players`: 200, 48,106 bytes.
+- Browser verification:
+  - `agent-browser.cmd open http://localhost:3035/entry`
+  - `agent-browser.cmd wait --load networkidle`
+  - `agent-browser.cmd errors` returned no console errors.
+  - `agent-browser.cmd snapshot -i` showed the two university select controls,
+    locked labels, and auto-match controls rendered.
+  - DOM style check returned `e-select|16px|rgba(0, 168, 107, 0.2)` for the
+    first select.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:rankings-page-performance-contract`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Build note:
+  - `npm.cmd run build` exited 0. The build log still included the known
+    sandbox `EACCES` fetch warning for hero-media prerender.
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-17 entry packed player payload field narrowing:
+
+- Branch: `codex/match-page-performance-audit`.
+- Objective:
+  - Audit the remaining `/entry` packed H2H player hydration payload and remove
+    fields that the entry UI no longer needs on first load.
+- Field-usage decision:
+  - Keep `id`: required for canonical `/api/stats/h2h` requests and match
+    identity.
+  - Keep `name`: displayed in player chips/match rows and still sent as the
+    required route name label.
+  - Keep `race`: displayed through `RaceLetterBadge`.
+  - Keep `tier`: required for entry tier grouping and tier badges.
+  - Keep `university`: required for left/right school filtering.
+  - Omit `nickname`: `/entry` does not expose text search and canonical IDs now
+    drive H2H; the route no longer runs name-candidate fallback loops.
+  - Omit `gender`: the H2H route requires canonical IDs and ignores the gender
+    query parameter; cache separation by gender is not needed when both
+    canonical IDs are present.
+- TDD evidence:
+  - RED: `npm.cmd run test:matchup-helpers` failed because
+    `packMatchupPlayersPayload()` still emitted 7-slot tuples containing
+    `nickname` and `gender`.
+  - GREEN: changed only the dictionary-packed entry payload tuple to
+    `[id, name, race, tierIndex, universityIndex]`. Legacy
+    `packMatchupPlayerSummary()` remains unchanged for compatibility.
+  - `unpackMatchupPlayersPayload()` now restores the shared
+    `MatchupPlayerSummary` shape with `nickname: null` and `gender: null`.
+- Payload rule:
+  - Preserve `/entry` filtering, tier grouping, player display, match board
+    identity, and canonical H2H requests.
+  - Do not change `/api/players`, `/match`, or the legacy packed-player prop.
+- Local production measurement:
+  - Baseline after the select/caret class alias pass: `/entry` 52,870 bytes.
+  - After field narrowing: `/entry` 200, 47,870 bytes.
+  - Observed HTML reduction: 5,000 bytes.
+  - Comparison in the same run:
+    - `/rankings`: 200, 48,738 bytes.
+    - `/match`: 200, 49,876 bytes.
+    - `/teams`: 200, 49,096 bytes.
+    - `/api/players`: 200, 48,106 bytes.
+  - Rendered payload snippet showed rows shaped like
+    `["id","name","race",tierIndex,universityIndex]`; `female` was absent from
+    the `/entry` HTML sample.
+- Browser verification:
+  - `agent-browser.cmd open http://localhost:3036/entry`
+  - `agent-browser.cmd wait --load networkidle`
+  - `agent-browser.cmd errors` returned no console errors.
+  - `agent-browser.cmd snapshot -i` showed the two university select controls,
+    locked labels, and auto-match section rendered.
+  - DOM probe returned `2 selects|true entry|true auto`.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Build note:
+  - `npm.cmd run build` exited 0. The build log still included known sandbox
+    `EACCES` fetch/revalidation warnings for Supabase-backed public player
+    cache and hero-media prerender attempts.
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-17 performance branch local deploy-candidate gate:
+
+- Branch: `codex/match-page-performance-audit`.
+- Scope:
+  - Final local production remeasure and verification after the current local
+    performance slices:
+    - rankings table class aliases,
+    - entry select/caret class aliases,
+    - entry packed H2H player payload field narrowing.
+  - No push, preview deploy, production deploy, or PR was run.
+- Fresh verification gate:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npm.cmd run test:rankings-page-performance-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Build note:
+  - `npm.cmd run build` exited 0.
+  - The build log still included known local sandbox `EACCES`
+    fetch/revalidation warnings for Supabase-backed public player cache and
+    hero-media prerender attempts.
+- Local production route/API measurement:
+  - Method: current build served with local `next start` on port 3037 and
+    network access allowed for Supabase-backed routes/APIs.
+  - Round 1:
+    - `/`: 200, 81ms, 22,298 bytes.
+    - `/tier`: 200, 23ms, 41,884 bytes.
+    - `/tier?liveOnly=false`: 200, 18ms, 41,884 bytes.
+    - `/api/tier/players`: 200, 1,339ms, 6,895 bytes.
+    - `/api/tier/players?liveOnly=false`: 200, 367ms, 31,274 bytes.
+    - `/match`: 200, 26ms, 49,876 bytes.
+    - `/api/players`: 200, 21ms, 48,106 bytes.
+    - `/player`: 200, 16ms, 23,049 bytes.
+    - `/entry`: 200, 24ms, 47,870 bytes.
+    - `/schedule`: 200, 17ms, 25,084 bytes.
+    - `/prediction`: 200, 14ms, 23,597 bytes.
+    - `/api/prediction`: 200, 391ms, 52 bytes.
+    - `/teams`: 200, 27ms, 49,096 bytes.
+    - `/rankings`: 200, 23ms, 48,738 bytes.
+    - `/board`: 200, 20ms, 36,105 bytes.
+  - Warm rounds:
+    - `/`: 11-32ms, 22,298 bytes.
+    - `/tier` and `/tier?liveOnly=false`: 17-19ms, 41,884 bytes.
+    - `/api/tier/players`: 8ms, 7,913 bytes.
+    - `/api/tier/players?liveOnly=false`: 15-16ms, 38,478 bytes.
+    - `/match`: 19ms, 49,876 bytes.
+    - `/api/players`: 17ms, 48,106 bytes.
+    - `/player`: 11ms, 23,049 bytes.
+    - `/entry`: 19ms, 47,870 bytes.
+    - `/schedule`: 14ms, 25,084 bytes.
+    - `/prediction`: 11-12ms, 23,597 bytes.
+    - `/api/prediction`: 101-156ms, 52 bytes.
+    - `/teams`: 23-24ms, 49,096 bytes.
+    - `/rankings`: 19-20ms, 48,738 bytes.
+    - `/board`: 16-17ms, 38,524 bytes.
+- Browser smoke:
+  - `/entry`: no console errors; DOM probe returned
+    `2 selects|true entry|true auto`.
+  - `/rankings`: no console errors; DOM probe returned
+    `true team|true player|2 tables`.
+  - `/match`: no console errors; interactive snapshot showed the expected
+    `A팀 선수`, `B팀 선수`, `기세 분석`, and `매치 추가` controls.
+- Interpretation:
+  - Public HTML payloads are now clustered around the high-40KB range for the
+    formerly large routes: `/entry` 47.9KB, `/rankings` 48.7KB, `/teams`
+    49.1KB, and `/match` 49.9KB.
+  - No obvious large remaining public HTML outlier was found in this local
+    production table.
+  - The branch is locally a preview/deploy candidate, subject to operator
+    approval to push and inspect preview before any production rollout.
+- Push/deploy status: not pushed and not deployed.
+
 2026-06-14 entry page matchup payload dictionary packing:
 
 - Branch: `codex/match-page-performance-audit`.
