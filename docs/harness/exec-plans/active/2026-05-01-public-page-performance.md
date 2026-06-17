@@ -324,6 +324,74 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 - Preserve full-history detail correctness when the user opens `상세 리포트`.
 - Add a focused contract test that exact search does not require full `getPlayerMatches()` work before first render unless the page is an explicitly expanded detail route.
 
+## 2026-06-17 Player Search Latency Follow-up
+
+### Trigger
+
+- User reported that searching on `/player` feels too slow.
+- Production measurement showed:
+  - `/player`: cache HIT, about 38-62ms.
+  - `/api/players`: warm cache HIT, about 40ms.
+  - `/player?query=...`: dynamic `X-Matched-Path: /player/query`, no-store,
+    cache MISS, about 0.8-2.0s.
+  - Browser search navigated exact matches into `/player/[id]`, which is also
+    no-store and preloads expanded detail summary work.
+
+### Current Objective
+
+- Keep `/player?query=...` on the fast collapsed search-result path for exact
+  matches instead of immediately entering the expanded canonical detail route.
+- Preserve canonical `/player/[id]` detail pages for explicit player-detail
+  navigation.
+- Preserve locked labels and existing deferred detail-summary API behavior.
+- Add a contract test before changing route behavior.
+
+### Verification Targets
+
+- `npm.cmd run test:player-page-payload-contract`
+- `npx.cmd tsc --noEmit --incremental false`
+- `npm.cmd run build`
+- Local production smoke/measurement for `/player`, `/player?query=...`, and a
+  canonical `/player/[id]` URL.
+
+### Implemented
+
+- Removed exact-match redirect from `/player?query=...` to the canonical
+  `/player/[id]` detail route.
+- Kept `id` query and canonical `/player/[id]` normalization behavior for
+  explicit detail navigation.
+- Changed exact query rendering to reuse the cached-list search result instead
+  of issuing `getPlayerById()` before first paint.
+- Kept expanded detail correctness through the existing
+  `/api/player-detail-summary?id=...` lazy-load path.
+
+### Local Production Measurement
+
+- `/player`: 21,899 bytes, warm about 2-4ms locally.
+- `/player?query=Kim sample`: 34,461 bytes warm, about 65-69ms locally,
+  no redirect, final URL stayed on `/player?query=...`.
+- Canonical `/player/[id]` detail URL: 54,216 bytes, warm about 266-324ms
+  locally, still expanded by default as expected.
+- Browser smoke:
+  - Search result URL stayed on `/player?query=...`.
+  - Exact result card, profile link, and `상세 리포트` button rendered.
+  - Clicking `상세 리포트` made one `/api/player-detail-summary?id=...`
+    request and rendered without console errors.
+
+### Verification
+
+- RED: `npm.cmd run test:player-page-payload-contract` failed on the old exact
+  query redirect behavior.
+- RED: the same test failed on the old query-branch `getPlayerById()` detail
+  row read.
+- GREEN: `npm.cmd run test:player-page-payload-contract`
+- `npx.cmd tsc --noEmit --incremental false`
+- `npm.cmd run lint`
+- `git diff --check`
+- `npm.cmd run build`
+- Build note: build exited 0; local sandbox still emitted known Supabase and
+  hero-media `EACCES` fetch warnings during prerender/revalidation attempts.
+
 ## 2026-05-04 Stale Player-History Artifact Fix
 
 ### User-Reported Symptom
