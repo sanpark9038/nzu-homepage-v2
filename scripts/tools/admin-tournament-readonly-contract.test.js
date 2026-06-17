@@ -132,15 +132,11 @@ test("public tournament team config is cached and invalidated on writes", () => 
   assert.match(homeSource, /revalidateTag\(TOURNAMENT_HOME_CACHE_TAG,\s*"max"\)/);
 });
 
-test("public teams route keeps team selection out of the server page", () => {
-  const teamsPage = readProjectFile("app/teams/page.tsx");
-  const viewSource = readProjectFile("components/home/TournamentTeamsView.tsx");
-  const clientSource = readProjectFile("components/home/TournamentTeamsClient.tsx");
+test("public teams route is retired while admin tournament data remains available", () => {
+  const routeSource = readProjectFile("app/api/admin/roster/route.ts");
+  const homeSource = readProjectFile("lib/tournament-home.ts");
 
-  assert.doesNotMatch(teamsPage, /searchParams/);
-  assert.match(teamsPage, /<TournamentTeamsView\s*\/>/);
-  assert.match(viewSource, /TournamentTeamsClient/);
-  assert.doesNotMatch(viewSource, /selectedTeamCode|basePath|\?team=/);
-  assert.match(clientSource, /^"use client";/);
-  assert.match(clientSource, /window\.history\.pushState/);
+  assert.equal(fs.existsSync(path.join(ROOT, "app/teams/page.tsx")), false);
+  assert.match(routeSource, /mapTournamentTeamsForAdmin/);
+  assert.match(homeSource, /buildTournamentHomeTeamsFromStore/);
 });

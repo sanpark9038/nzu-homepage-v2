@@ -16,24 +16,8 @@ import { buildSoopThumbnailProxyUrl, resolveSoopChannelImageUrl, resolveSoopChan
 
 export type { Player };
 
-export type PlayerCardPlayer = Pick<
-  Player,
-  "id" | "name" | "race" | "tier" | "university"
-> & {
-  photo_url?: Player["photo_url"];
-  broadcast_title?: Player["broadcast_title"];
-  broadcast_url?: Player["broadcast_url"];
-  channel_profile_image_url?: Player["channel_profile_image_url"];
-  soop_id?: Player["soop_id"];
-  is_live?: Player["is_live"];
-  live_thumbnail_url?: Player["live_thumbnail_url"];
-  live_viewers?: Player["live_viewers"];
-  live_started_at?: Player["live_started_at"];
-  profile_url?: Player["profile_url"];
-};
-
 interface PlayerCardProps {
-  player: PlayerCardPlayer
+  player: Player
   layout?: 'default' | 'compact'
   className?: string
   showQuickH2H?: boolean

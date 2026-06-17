@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Grid, LogOut, Trophy, User } from "lucide-react";
+import { Grid, LogOut, User } from "lucide-react";
 
 import { visibleNavbarLinks } from "@/lib/navigation-config";
 import type { PublicAuthSession } from "@/lib/public-auth";
@@ -62,7 +62,6 @@ export default function Navbar() {
           {visibleNavbarLinks.map((item) => {
             const isActive = resolvedPathname === item.href;
             const showTierLiveBadge = item.href === "/tier";
-            const showTeamsBadge = item.href === "/teams";
 
             return (
               <Link
@@ -71,35 +70,12 @@ export default function Navbar() {
                 prefetch={false}
                 className={cn(
                   "ui-label relative flex min-h-[40px] items-center gap-2 whitespace-nowrap rounded-full px-5 py-2 tracking-tight transition-colors duration-200",
-                  showTeamsBadge && isActive
-                    ? "border border-emerald-200/70 bg-emerald-300/20 text-white shadow-[0_0_0_1px_rgba(110,231,183,0.28),0_0_26px_rgba(16,185,129,0.18)]"
-                    : showTeamsBadge
-                      ? "border border-emerald-300/45 bg-emerald-300/12 text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-emerald-200/70 hover:bg-emerald-300/18 hover:text-white"
-                      : isActive
+                  isActive
                     ? "bg-nzu-green/16 text-nzu-green shadow-[0_0_0_1px_rgba(0,168,107,0.12)]"
                     : "text-foreground/56 hover:bg-white/7 hover:text-foreground"
                 )}
               >
-                {showTeamsBadge ? (
-                  <Trophy
-                    size={16}
-                    className={cn("shrink-0", isActive ? "text-emerald-100" : "text-emerald-200")}
-                    aria-hidden="true"
-                  />
-                ) : null}
                 {item.label}
-                {showTeamsBadge ? (
-                  <span
-                    className={cn(
-                      "hidden rounded-full border px-2 py-0.5 text-[0.625rem] font-black uppercase tracking-[0.16em] xl:inline-flex",
-                      isActive
-                        ? "border-emerald-100/50 bg-black/20 text-emerald-50"
-                        : "border-emerald-200/35 bg-emerald-950/45 text-emerald-100"
-                    )}
-                  >
-                    EVENT
-                  </span>
-                ) : null}
                 {showTierLiveBadge ? (
                   <span
                     className={cn(

@@ -7,6 +7,22 @@ Status: in-progress
 
 Align the public site so home stays a lightweight landing page, teams live on `/teams`, and entry/H2H flows use the real matchup data path.
 
+## 2026-06-17 Public Teams Page Removal
+
+- User decision: the current public `https://www.star-hosaga.com/teams` page is no longer needed.
+- Intent:
+  - Remove the `/teams` navigation entry so ordinary users cannot reach it from the menu.
+  - Stop rendering the current participant-team page for direct `/teams` visits.
+  - Preserve admin tournament/team configuration and rankings/prediction data helpers, because they remain internal data inputs.
+  - Keep room to rebuild `/teams` later with a different composition.
+- Implementation rule:
+  - Treat this as public route surface removal, not a copy rename.
+  - Do not change locked labels on other routes.
+  - Supersede the `/teams` payload optimization from PR #17 because optimizing a page that is being removed is no longer useful.
+- Follow-up found during verification:
+  - The production `/tier` API payload no longer carried `soop_id`, `channel_profile_image_url`, or `photo_url`, so lightweight tier cards had no profile-image fallback material.
+  - Preserve `soop_id` only when a tier player has no explicit profile image URL, keeping the packed payload compact while restoring generated SOOP profile images.
+
 ## 작업 전 확인 완료
 
 ### 충돌 위험 파일

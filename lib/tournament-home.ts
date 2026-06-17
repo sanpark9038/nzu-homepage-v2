@@ -92,34 +92,6 @@ export type TournamentHomeTeam = {
   players: Array<Player & { isCaptain?: boolean }>;
 };
 
-type TournamentHomeTeamPlayer = TournamentHomeTeam["players"][number] & {
-  live_started_at?: string | null;
-  live_viewers?: string | null;
-  profile_url?: string | null;
-};
-
-export type TournamentTeamsClientPlayer = Pick<
-  TournamentHomeTeamPlayer,
-  "id" | "name" | "race" | "tier" | "university"
-> & {
-  photo_url?: PlayerRow["photo_url"] | null;
-  channel_profile_image_url?: PlayerRow["channel_profile_image_url"] | null;
-  soop_id?: PlayerRow["soop_id"] | null;
-  profile_url?: string | null;
-  is_live?: true;
-  broadcast_title?: PlayerRow["broadcast_title"] | null;
-  live_thumbnail_url?: PlayerRow["live_thumbnail_url"] | null;
-  live_viewers?: string | null;
-  live_started_at?: string | null;
-  isCaptain?: true;
-};
-
-export type TournamentTeamsClientTeam = {
-  teamCode: string;
-  teamName: string;
-  players: TournamentTeamsClientPlayer[];
-};
-
 const TOURNAMENT_HOME_CONFIG_PATH = path.join(
   process.cwd(),
   "data",
@@ -393,46 +365,6 @@ export function buildTournamentHomeTeamsFromConfig(
       players: visiblePlayers,
     };
   });
-}
-
-function buildTournamentTeamsClientPlayer(player: TournamentHomeTeamPlayer): TournamentTeamsClientPlayer {
-  const payload: TournamentTeamsClientPlayer = {
-    id: player.id,
-    name: player.name,
-    race: player.race,
-    tier: player.tier,
-    university: player.university,
-  };
-
-  if (player.channel_profile_image_url) {
-    payload.channel_profile_image_url = player.channel_profile_image_url;
-  } else if (player.photo_url) {
-    payload.photo_url = player.photo_url;
-  }
-
-  if (player.soop_id) payload.soop_id = player.soop_id;
-  if (player.profile_url) payload.profile_url = player.profile_url;
-  if (player.isCaptain) payload.isCaptain = true;
-
-  if (player.is_live) {
-    payload.is_live = true;
-    if (player.broadcast_title) payload.broadcast_title = player.broadcast_title;
-    if (player.live_thumbnail_url) payload.live_thumbnail_url = player.live_thumbnail_url;
-    if (player.live_viewers) payload.live_viewers = player.live_viewers;
-    if (player.live_started_at) payload.live_started_at = player.live_started_at;
-  }
-
-  return payload;
-}
-
-export function buildTournamentTeamsClientPayload(
-  teams: TournamentHomeTeam[]
-): TournamentTeamsClientTeam[] {
-  return teams.map((team) => ({
-    teamCode: team.teamCode,
-    teamName: team.teamName,
-    players: team.players.map(buildTournamentTeamsClientPlayer),
-  }));
 }
 
 export function buildTournamentHomeTeams(allPlayers: Player[]): TournamentHomeTeam[] {
