@@ -137,6 +137,7 @@ export async function PlayerPageView({
                     defaultExpanded={shouldExpandDetailByDefault}
                     detailSummaryLoaded={detailSummaryLoaded}
                     detailSummaryEndpoint={`/api/player-detail-summary?id=${encodeURIComponent(exactMatch.id)}`}
+                    loadDetailSummaryOnMount={!shouldExpandDetailByDefault}
                   />
                 </div>
               ) : null}

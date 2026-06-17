@@ -191,16 +191,28 @@ test("exact player search defers full match-summary work until detail is expande
   );
 });
 
-test("collapsed player cards lazy-load detail summaries through a focused API route", () => {
+test("collapsed player cards can auto-load detail summaries through a focused API route", () => {
   const resultSource = readProjectFile("app/player/PlayerSearchResult.tsx");
+  const viewSource = readProjectFile("app/player/player-page-view.tsx");
   const routeSource = readProjectFile("app/api/player-detail-summary/route.ts");
 
   assert.match(resultSource, /detailSummaryEndpoint\?:\s*string/);
+  assert.match(resultSource, /loadDetailSummaryOnMount\?:\s*boolean/);
   assert.match(resultSource, /useEffect\(/);
   assert.match(
     resultSource,
     /fetch\(detailSummaryEndpoint/,
-    "The client card should request detail summaries only after expansion"
+    "The client card should request detail summaries through the focused summary endpoint"
+  );
+  assert.match(
+    resultSource,
+    /isExpanded\s*\|\|\s*loadDetailSummaryOnMount/,
+    "Exact query result cards should be able to fill recent metrics without forcing the expanded detail route"
+  );
+  assert.match(
+    viewSource,
+    /loadDetailSummaryOnMount=\{!shouldExpandDetailByDefault\}/,
+    "Collapsed exact query cards should auto-load the summary after the fast first paint"
   );
   assert.match(
     routeSource,

@@ -392,6 +392,36 @@ gh run list --repo sanpark9038/nzu-homepage-v2 --limit 8
 - Build note: build exited 0; local sandbox still emitted known Supabase and
   hero-media `EACCES` fetch warnings during prerender/revalidation attempts.
 
+### 2026-06-17 Follow-up: Collapsed Search Result Metrics
+
+- User reported that the fast collapsed search result no longer showed proper
+  recent metrics until `상세 리포트` was opened.
+- Root cause:
+  - The fast query path intentionally reused cached-list player rows and no
+    longer fetched the detail row before first paint.
+  - `PlayerSearchResult` only requested `/api/player-detail-summary` after the
+    card was expanded, so the collapsed card showed empty recent metrics.
+- Implemented local fix:
+  - Added `loadDetailSummaryOnMount` to `PlayerSearchResult`.
+  - Exact query result cards now keep the fast first paint and then
+    automatically fetch `/api/player-detail-summary?id=...` while still
+    collapsed.
+  - Explicit `/player/[id]` detail routes remain expanded by default.
+- Local production browser verification:
+  - `http://localhost:3041/player?query=장윤철` rendered the fast result card.
+  - Without clicking `상세 리포트`, the card requested
+    `/api/player-detail-summary?id=fd982a43-46f6-4bac-a1b5-dcb995a31afa`.
+  - The collapsed card then showed recent win rate `57%`, recent record
+    `121승 / 90패`, and recent form `패 패 승 패 승`.
+- Verification:
+  - RED: `npm.cmd run test:player-page-payload-contract` failed before the
+    auto-load prop existed.
+  - GREEN: `npm.cmd run test:player-page-payload-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+
 ## 2026-05-04 Stale Player-History Artifact Fix
 
 ### User-Reported Symptom
