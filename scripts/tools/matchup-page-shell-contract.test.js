@@ -101,3 +101,31 @@ test("entry route packs H2H players before hydrating the client", () => {
   assert.match(clientSource, /packedPlayersPayload\?:\s*PackedMatchupPlayersPayload/);
   assert.match(clientSource, /unpackMatchupPlayersPayload\(packedPlayersPayload\)/);
 });
+
+test("entry H2H controls use short classes for repeated select markup", () => {
+  const clientSource = readProjectFile("components/stats/H2HLookup.tsx");
+  const cssSource = readProjectFile("app/globals.css");
+
+  assert.match(clientSource, /className="e-select"/);
+  assert.match(clientSource, /className="e-caret"/);
+  assert.match(cssSource, /\.e-select/);
+  assert.match(cssSource, /\.e-caret/);
+
+  const repeatedSelectClassCount = (
+    clientSource.match(/w-full appearance-none rounded-2xl border-2 border-nzu-green\/20 bg-black px-6 py-4/g) || []
+  ).length;
+  assert.equal(
+    repeatedSelectClassCount,
+    0,
+    "Entry should keep repeated university select styling behind a short class alias"
+  );
+
+  const repeatedCaretClassCount = (
+    clientSource.match(/pointer-events-none absolute right-5 top-1\/2 -translate-y-1\/2 text-nzu-green\/40/g) || []
+  ).length;
+  assert.equal(
+    repeatedCaretClassCount,
+    0,
+    "Entry should keep repeated university select caret styling behind a short class alias"
+  );
+});

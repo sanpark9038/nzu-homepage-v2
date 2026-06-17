@@ -258,7 +258,38 @@
     contain-intrinsic-size: auto 44rem;
   }
 
-  .rankings-table-shell {
+  .e-select {
+    width: 100%;
+    appearance: none;
+    border-radius: 1rem;
+    border: 2px solid rgba(0, 168, 107, 0.2);
+    background: #000000;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 950;
+    color: #ffffff;
+    outline: none;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  .e-select:focus {
+    border-color: var(--nzu-green);
+    box-shadow: 0 0 0 4px rgba(0, 168, 107, 0.1);
+  }
+
+  .e-caret {
+    pointer-events: none;
+    position: absolute;
+    right: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(0, 168, 107, 0.4);
+  }
+
+  .rk-shell {
     overflow-x: auto;
     border-radius: 2.5rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -266,117 +297,117 @@
     backdrop-filter: blur(16px);
   }
 
-  .rankings-table {
+  .rk-table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
   }
 
-  .rankings-head-row {
+  .rk-hr {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.05);
   }
 
-  .rankings-body > tr + tr {
+  .rk-body > tr + tr {
     border-top: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  .rankings-row {
+  .rk-row {
     transition: background-color 0.15s ease;
   }
 
-  .rankings-row:hover {
+  .rk-row:hover {
     background: rgba(255, 255, 255, 0.05);
   }
 
-  .rankings-head-cell,
-  .rankings-table-cell {
+  .rk-th,
+  .rk-td {
     padding: 1.25rem 2rem;
   }
 
-  .rankings-head-cell {
+  .rk-th {
     font-size: 1.125rem;
     line-height: 1.75rem;
     font-weight: 950;
     letter-spacing: -0.01em;
   }
 
-  .rankings-team-head {
+  .rk-team {
     color: rgb(110, 231, 183);
   }
 
-  .rankings-player-head {
+  .rk-player {
     color: rgb(125, 211, 252);
   }
 
-  .rankings-center {
+  .rk-c {
     text-align: center;
   }
 
-  .rankings-rank {
+  .rk-r {
     font-size: 1.125rem;
     line-height: 1.75rem;
     font-weight: 950;
     font-style: italic;
   }
 
-  .rankings-rank-top {
+  .rk-r-top {
     color: var(--nzu-green);
   }
 
-  .rankings-rank-muted {
+  .rk-r-muted {
     color: rgba(118, 145, 133, 0.4);
   }
 
-  .rankings-team-name,
-  .rankings-player-name {
+  .rk-tn,
+  .rk-pn {
     font-size: 1rem;
     line-height: 1.5rem;
     font-weight: 800;
     letter-spacing: -0.01em;
   }
 
-  .rankings-team-name {
+  .rk-tn {
     color: #ffffff;
   }
 
-  .rankings-player-name {
+  .rk-pn {
     color: var(--foreground);
   }
 
-  .rankings-muted-text,
-  .rankings-university-text {
+  .rk-muted,
+  .rk-uni {
     font-size: 0.875rem;
     line-height: 1.25rem;
     font-weight: 800;
     letter-spacing: -0.01em;
   }
 
-  .rankings-muted-text {
+  .rk-muted {
     color: var(--muted-foreground);
   }
 
-  .rankings-university-text {
+  .rk-uni {
     color: rgba(118, 145, 133, 0.6);
   }
 
-  .rankings-center-flex {
+  .rk-cf {
     display: flex;
     justify-content: center;
   }
 
-  .rankings-score-win,
-  .rankings-score-loss {
+  .rk-win,
+  .rk-loss {
     font-size: 1.25rem;
     line-height: 1.75rem;
     font-weight: 950;
   }
 
-  .rankings-score-win {
+  .rk-win {
     color: #ffffff;
   }
 
-  .rankings-score-loss {
+  .rk-loss {
     color: rgba(118, 145, 133, 0.4);
   }
 

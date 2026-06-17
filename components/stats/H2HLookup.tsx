@@ -389,7 +389,7 @@ export default function H2HLookup({
                       resetEntryBoard()
                       setU1(event.target.value)
                     }}
-                    className="w-full appearance-none rounded-2xl border-2 border-nzu-green/20 bg-black px-6 py-4 text-base font-black text-white outline-none transition-all focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10"
+                    className="e-select"
                   >
                     <option value="">왼쪽 학교 선택</option>
                     {sortedUniversities.map((code) => (
@@ -398,7 +398,7 @@ export default function H2HLookup({
                       </option>
                     ))}
                   </select>
-                  <div className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-nzu-green/40">v</div>
+                  <div className="e-caret">v</div>
                 </div>
               </div>
 
@@ -437,7 +437,7 @@ export default function H2HLookup({
                       resetEntryBoard()
                       setU2(event.target.value)
                     }}
-                    className="w-full appearance-none rounded-2xl border-2 border-nzu-green/20 bg-black px-6 py-4 text-base font-black text-white outline-none transition-all focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10"
+                    className="e-select"
                   >
                     <option value="">오른쪽 학교 선택</option>
                     {sortedUniversities.map((code) => (
@@ -446,7 +446,7 @@ export default function H2HLookup({
                       </option>
                     ))}
                   </select>
-                  <div className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-nzu-green/40">v</div>
+                  <div className="e-caret">v</div>
                 </div>
               </div>
             </div>
