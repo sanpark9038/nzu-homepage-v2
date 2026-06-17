@@ -170,11 +170,13 @@ runTest("tier API payload omits unused media fields while preserving card fallba
     channel_profile_image_url: "https://images.example/channel.jpg",
     live_thumbnail_url: "https://images.example/live.jpg",
     photo_url: "https://images.example/profile.jpg",
+    soop_id: "live_soop",
   });
 
   assert.equal(livePayload.broadcast_title, "Live now");
   assert.equal(livePayload.channel_profile_image_url, "https://images.example/channel.jpg");
   assert.equal(livePayload.live_thumbnail_url, "https://images.example/live.jpg");
+  assert.equal(Object.hasOwn(livePayload, "soop_id"), false);
   assert.equal(Object.hasOwn(livePayload, "photo_url"), false);
 
   const offlinePayload = buildTierPlayerPayload({
@@ -190,12 +192,34 @@ runTest("tier API payload omits unused media fields while preserving card fallba
     channel_profile_image_url: null,
     live_thumbnail_url: null,
     photo_url: "https://images.example/offline.jpg",
+    soop_id: "offline_soop",
   });
 
   assert.equal(offlinePayload.photo_url, "https://images.example/offline.jpg");
+  assert.equal(Object.hasOwn(offlinePayload, "soop_id"), false);
   assert.equal(Object.hasOwn(offlinePayload, "broadcast_title"), false);
   assert.equal(Object.hasOwn(offlinePayload, "channel_profile_image_url"), false);
   assert.equal(Object.hasOwn(offlinePayload, "live_thumbnail_url"), false);
+
+  const soopFallbackPayload = buildTierPlayerPayload({
+    id: "soop-fallback-player",
+    name: "Soop Fallback Player",
+    nickname: null,
+    race: "Z",
+    gender: "female",
+    tier: "3",
+    university: "DM",
+    is_live: false,
+    broadcast_title: null,
+    channel_profile_image_url: null,
+    live_thumbnail_url: null,
+    photo_url: null,
+    soop_id: "fallback_soop",
+  });
+
+  assert.equal(soopFallbackPayload.soop_id, "fallback_soop");
+  assert.equal(Object.hasOwn(soopFallbackPayload, "photo_url"), false);
+  assert.equal(Object.hasOwn(soopFallbackPayload, "channel_profile_image_url"), false);
 });
 
 runTest("tier API packed payload preserves fields with smaller JSON", () => {
@@ -213,6 +237,7 @@ runTest("tier API packed payload preserves fields with smaller JSON", () => {
       channel_profile_image_url: "https://images.example/channel.jpg",
       live_thumbnail_url: "https://images.example/live.jpg",
       photo_url: "https://images.example/profile.jpg",
+      soop_id: "live_soop",
     },
     {
       id: "offline-player",
@@ -227,6 +252,22 @@ runTest("tier API packed payload preserves fields with smaller JSON", () => {
       channel_profile_image_url: null,
       live_thumbnail_url: null,
       photo_url: "https://images.example/offline.jpg",
+      soop_id: "offline_soop",
+    },
+    {
+      id: "soop-fallback-player",
+      name: "Soop Fallback Player",
+      nickname: null,
+      race: "Z",
+      gender: "female",
+      tier: "3",
+      university: "DM",
+      is_live: false,
+      broadcast_title: null,
+      channel_profile_image_url: null,
+      live_thumbnail_url: null,
+      photo_url: null,
+      soop_id: "fallback_soop",
     },
   ];
 
@@ -253,6 +294,7 @@ runTest("tier API packed payload preserves fields with smaller JSON", () => {
     "channel_profile_image_url",
     "live_thumbnail_url",
     "photo_url",
+    "soop_id",
   ]);
   assert.equal(Array.isArray(packedPayload.players[0]), true);
   assert.equal(Object.hasOwn(packedPayload.players[0], "id"), false);

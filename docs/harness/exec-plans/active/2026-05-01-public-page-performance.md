@@ -2757,3 +2757,82 @@ Post-deploy measurement after PR #11:
   - `npm.cmd run build` exited 0. The build log still included known sandbox
     `EACCES` fetch warnings for Supabase/hero-media revalidation attempts.
 - Push/deploy status: not pushed and not deployed.
+
+2026-06-17 production rankings/teams payload follow-up:
+
+- Branch: `codex/prod-rankings-teams-payload`.
+- Trigger:
+  - PR #16 was merged to `main` and the Vercel production deployment became
+    ready.
+  - Production smoke confirmed key public routes returned `200`, but
+    production `/rankings` and `/teams` were materially larger than the preview
+    deployment measured from the same PR.
+- Initial production-vs-preview evidence:
+  - Preview:
+    - `/entry`: 47,845 bytes.
+    - `/match`: 49,707 bytes.
+    - `/rankings`: 48,710 bytes.
+    - `/teams`: 48,561 bytes.
+  - Production:
+    - `/entry`: 47,870 bytes.
+    - `/match`: 49,876 bytes.
+    - `/rankings`: 109,944 bytes.
+    - `/teams`: 66,767 bytes.
+  - Production `/rankings` HTML contains the new `rk-*` class aliases and no
+    old `rankings-table-shell` token, so the issue is not an obvious stale code
+    deployment.
+- Current objective:
+  - Explain why production `/rankings` and `/teams` are larger than preview.
+  - Separate data-volume differences from removable HTML/RSC/markup overhead.
+  - Apply only a safe optimization that preserves public labels, route
+    behavior, table/list semantics, and serving data correctness.
+- Investigation rules:
+  - Measure production and preview with the same method before drawing
+    conclusions.
+  - If code changes are warranted, add a focused failing contract test before
+    changing production code.
+  - Do not push, preview deploy, merge, or production deploy without explicit
+    operator approval.
+- Root-cause measurement:
+  - Saved same-method preview and production HTML samples under `C:\tmp`.
+  - `/rankings` production size is data-volume driven, not stale deployment:
+    production contains the new `rk-*` aliases and no old
+    `rankings-table-shell` token, but has 40 ranking rows / 38 RSC push scripts
+    compared with preview's 16 ranking rows / 14 RSC push scripts.
+  - `/teams` production size is mainly RSC payload growth. Visible non-script
+    HTML stayed essentially flat between preview and production, but production
+    passed full tournament player rows through the client boundary.
+- Implemented local follow-up:
+  - Added `buildTournamentTeamsClientPayload()` in `lib/tournament-home.ts` to
+    send only fields used by `TournamentTeamsClient` and the home `PlayerCard`.
+  - Changed `TournamentTeamsView` to pass the slim teams payload to the client
+    island.
+  - Narrowed `components/players/PlayerCard.tsx` props so full player rows are
+    no longer required for card rendering.
+  - Added `test:tournament-teams-payload-contract` to guard the slim teams
+    boundary.
+- Local production remeasure after the teams payload change:
+  - `/teams`: 44,210 bytes on first sample and 45,511 bytes warm, down from the
+    previous local deploy-candidate `/teams` baseline of 49,096 bytes.
+  - `/rankings`: 48,738 / 48,710 bytes locally, unchanged as expected because
+    the current local dataset is not the larger production dataset.
+  - Comparison samples:
+    - `/entry`: 47,862 bytes.
+    - `/match`: 49,876 bytes.
+- Verification:
+  - RED: `npm.cmd run test:tournament-teams-payload-contract` failed because
+    `buildTournamentTeamsClientPayload` did not exist.
+  - GREEN: `npm.cmd run test:tournament-teams-payload-contract`
+  - `npm.cmd run test:admin-tournament-readonly`
+  - `npm.cmd run test:rankings-page-performance-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+  - Local production browser smoke for `/teams`: page rendered, no console
+    errors, no Next.js error overlay, team buttons and player cards present.
+- Build note:
+  - `npm.cmd run build` exited 0. The build log still included known local
+    sandbox `EACCES` fetch/revalidation warnings for Supabase-backed public
+    player cache and hero-media prerender attempts.
+- Push/deploy status: not pushed and not deployed.

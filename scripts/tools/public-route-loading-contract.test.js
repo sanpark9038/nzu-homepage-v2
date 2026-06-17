@@ -14,7 +14,7 @@ function existsProjectFile(relativePath) {
 }
 
 test("public data routes expose route-level loading boundaries", () => {
-  const routes = ["board", "player", "schedule", "prediction", "teams", "tier"];
+  const routes = ["board", "player", "schedule", "prediction", "tier"];
 
   for (const route of routes) {
     const loadingPath = `app/${route}/loading.tsx`;
@@ -24,6 +24,8 @@ test("public data routes expose route-level loading boundaries", () => {
     assert.match(source, /PublicRouteLoading/);
     assert.doesNotMatch(source, /"use client"|\'use client\'/);
   }
+
+  assert.equal(existsProjectFile("app/teams/loading.tsx"), false);
 });
 
 test("public route loading UI stays shared, skeletal, and copy-neutral", () => {

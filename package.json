@@ -136,6 +136,7 @@
     "test:prediction-store-contract": "node --test scripts/tools/prediction-store-contract.test.mjs",
     "test:prediction-ux-contract": "node scripts/tools/prediction-ux-contract.test.js",
     "test:public-route-loading": "node scripts/tools/public-route-loading-contract.test.js",
+    "test:public-teams-removal-contract": "node scripts/tools/public-teams-removal-contract.test.js",
     "test:hosaga-ui-system": "node scripts/tools/hosaga-ui-system-contract.test.js",
     "test:navbar-glass-header": "node scripts/tools/navbar-glass-header-contract.test.js",
     "test:home-hero-cta": "node scripts/tools/home-hero-cta-contract.test.js",

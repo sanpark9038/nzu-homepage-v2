@@ -13,6 +13,7 @@ export type TierPlayerPayload = {
   channel_profile_image_url?: Player["channel_profile_image_url"];
   live_thumbnail_url?: Player["live_thumbnail_url"];
   photo_url?: Player["photo_url"];
+  soop_id?: Player["soop_id"];
 };
 
 export const TIER_PLAYER_PAYLOAD_CORE_FIELDS = [
@@ -31,6 +32,7 @@ export const TIER_PLAYER_PAYLOAD_OPTIONAL_FIELDS = [
   "channel_profile_image_url",
   "live_thumbnail_url",
   "photo_url",
+  "soop_id",
 ] as const satisfies ReadonlyArray<keyof TierPlayerPayload>;
 
 export type TierPlayerPayloadField =
@@ -72,6 +74,8 @@ export function buildTierPlayerPayload(player: Player): TierPlayerPayload {
     payload.channel_profile_image_url = channelProfileImageUrl;
   } else if (player.photo_url) {
     payload.photo_url = player.photo_url;
+  } else if (player.soop_id) {
+    payload.soop_id = player.soop_id;
   }
 
   if (player.is_live) {

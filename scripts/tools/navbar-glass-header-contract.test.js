@@ -76,16 +76,16 @@ test("navbar avoids background route prefetch bursts", () => {
   assert.match(source, /prefetch=\{false\}/);
 });
 
-test("navbar exposes participant teams as a primary navigation item", () => {
+test("navbar does not expose the retired public teams page", () => {
   const source = readProjectFile("lib/navigation-config.ts");
   const navbarSource = readProjectFile("components/Navbar.tsx");
 
-  assert.match(source, /visibleNavbarLinks[\s\S]*href:\s*"\/",\s*label:\s*"\uD648"[\s\S]*href:\s*"\/teams",\s*label:\s*"\uC30D\uB108\uC2A4 \uCC38\uAC00\uD300"[\s\S]*href:\s*"\/board"/);
+  assert.doesNotMatch(source, /href:\s*"\/teams"/);
   assert.doesNotMatch(source, /hiddenNavbarLinks[\s\S]*href:\s*"\/teams"/);
-  assert.match(navbarSource, /const showTeamsBadge = item\.href === "\/teams"/);
-  assert.match(navbarSource, /Trophy/);
-  assert.match(navbarSource, /border-emerald-300\/45/);
-  assert.match(navbarSource, /EVENT/);
+  assert.doesNotMatch(navbarSource, /showTeamsBadge/);
+  assert.doesNotMatch(navbarSource, /Trophy/);
+  assert.doesNotMatch(navbarSource, /border-emerald-300\/45/);
+  assert.doesNotMatch(navbarSource, /EVENT/);
 });
 
 test("home hero fills the viewport when the navbar is overlaid", () => {
