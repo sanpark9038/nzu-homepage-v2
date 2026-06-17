@@ -1,6 +1,10 @@
 import { TournamentTeamsClient } from "@/components/home/TournamentTeamsClient";
 import { playerService } from "@/lib/player-service";
-import { buildTournamentHomeTeamsFromConfig, loadTournamentHomeConfig } from "@/lib/tournament-home";
+import {
+  buildTournamentHomeTeamsFromConfig,
+  buildTournamentTeamsClientPayload,
+  loadTournamentHomeConfig,
+} from "@/lib/tournament-home";
 
 export async function TournamentTeamsView() {
   const [allPlayers, config] = await Promise.all([
@@ -8,6 +12,7 @@ export async function TournamentTeamsView() {
     loadTournamentHomeConfig(),
   ]);
   const teams = buildTournamentHomeTeamsFromConfig(allPlayers, config);
+  const clientTeams = buildTournamentTeamsClientPayload(teams);
 
-  return <TournamentTeamsClient teams={teams} />;
+  return <TournamentTeamsClient teams={clientTeams} />;
 }

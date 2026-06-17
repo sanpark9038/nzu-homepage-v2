@@ -140,6 +140,7 @@
     "test:navbar-glass-header": "node scripts/tools/navbar-glass-header-contract.test.js",
     "test:home-hero-cta": "node scripts/tools/home-hero-cta-contract.test.js",
     "test:rankings-page-performance-contract": "node scripts/tools/rankings-page-performance-contract.test.js",
+    "test:tournament-teams-payload-contract": "node scripts/tools/tournament-teams-payload-contract.test.js",
     "test:tier-grid-layout": "node scripts/tools/tier-grid-layout-contract.test.js",
     "test:tier-card-ui": "node scripts/tools/tier-card-ui-contract.test.js",
     "test:schedule-page-data-source-contract": "node scripts/tools/schedule-page-data-source-contract.test.js",

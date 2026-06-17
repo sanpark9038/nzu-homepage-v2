@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PlayerCard } from "@/components/players/PlayerCard";
-import type { TournamentHomeTeam } from "@/lib/tournament-home";
+import type { TournamentTeamsClientTeam } from "@/lib/tournament-home";
 
-function selectedTeamFromLocation(teams: TournamentHomeTeam[]) {
+function selectedTeamFromLocation(teams: TournamentTeamsClientTeam[]) {
   if (typeof window === "undefined") return "";
   const teamCode = new URLSearchParams(window.location.search).get("team") || "";
   return teams.some((team) => team.teamCode === teamCode) ? teamCode : "";
 }
 
-export function TournamentTeamsClient({ teams }: { teams: TournamentHomeTeam[] }) {
+export function TournamentTeamsClient({ teams }: { teams: TournamentTeamsClientTeam[] }) {
   const [selectedTeamCode, setSelectedTeamCode] = useState("");
   const firstTeamCode = teams[0]?.teamCode || "";
 
