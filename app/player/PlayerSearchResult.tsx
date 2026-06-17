@@ -32,6 +32,7 @@ type Props = {
   defaultExpanded?: boolean;
   detailSummaryLoaded?: boolean;
   detailSummaryEndpoint?: string;
+  loadDetailSummaryOnMount?: boolean;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -49,7 +50,7 @@ function formatLiveElapsed(value: string | null | undefined) {
 }
 
 export default function PlayerSearchResult({ defaultExpanded = false, ...props }: Props) {
-  return <PlayerSearchResultInner key={`${props.player.id}:${props.player.live_thumbnail_url || ""}:${props.recentLogs.length}:${props.detailSummaryLoaded ? "loaded" : "lazy"}:${defaultExpanded ? "1" : "0"}`} defaultExpanded={defaultExpanded} {...props} />;
+  return <PlayerSearchResultInner key={`${props.player.id}:${props.player.live_thumbnail_url || ""}:${props.recentLogs.length}:${props.detailSummaryLoaded ? "loaded" : "lazy"}:${props.loadDetailSummaryOnMount ? "auto" : "manual"}:${defaultExpanded ? "1" : "0"}`} defaultExpanded={defaultExpanded} {...props} />;
 }
 
 function PlayerSearchResultInner({
@@ -64,6 +65,7 @@ function PlayerSearchResultInner({
   defaultExpanded = false,
   detailSummaryLoaded = false,
   detailSummaryEndpoint,
+  loadDetailSummaryOnMount = false,
 }: Props) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [visibleRecentCount, setVisibleRecentCount] = useState(5);
@@ -81,7 +83,7 @@ function PlayerSearchResultInner({
   const requestedDetailSummaryRef = useRef(detailSummaryLoaded);
 
   useEffect(() => {
-    if (!isExpanded || isDetailSummaryLoaded || requestedDetailSummaryRef.current || !detailSummaryEndpoint) {
+    if (!(isExpanded || loadDetailSummaryOnMount) || isDetailSummaryLoaded || requestedDetailSummaryRef.current || !detailSummaryEndpoint) {
       return;
     }
 
@@ -111,7 +113,7 @@ function PlayerSearchResultInner({
       cancelled = true;
       controller.abort();
     };
-  }, [detailSummaryEndpoint, isDetailSummaryLoaded, isExpanded]);
+  }, [detailSummaryEndpoint, isDetailSummaryLoaded, isExpanded, loadDetailSummaryOnMount]);
 
   const normTier = normalizeTier(player.tier);
   const isElite = ["갓", "킹"].includes(normTier);
