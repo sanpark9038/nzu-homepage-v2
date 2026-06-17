@@ -1,4 +1,8 @@
-import { mapPlayersToMatchupSummaries, type MatchupPlayerSummary } from "@/lib/matchup-helpers";
+import {
+  mapPlayersToMatchPageSummaries,
+  packMatchPagePlayerSummaries,
+  type PackedMatchPagePlayerSummary,
+} from "@/lib/matchup-helpers";
 import { playerService } from "@/lib/player-service";
 
 import MatchPageClient from "./MatchPageClient";
@@ -6,16 +10,17 @@ import MatchPageClient from "./MatchPageClient";
 export const revalidate = 300;
 
 export default async function MatchPage() {
-  let initialPlayers: MatchupPlayerSummary[] = [];
+  let packedInitialPlayers: PackedMatchPagePlayerSummary[] = [];
   let initialPlayersLoadFailed = false;
 
   try {
     const players = await playerService.getCachedPlayersList();
-    initialPlayers = mapPlayersToMatchupSummaries(players);
+    const matchPagePlayers = mapPlayersToMatchPageSummaries(players);
+    packedInitialPlayers = packMatchPagePlayerSummaries(matchPagePlayers);
   } catch {
     initialPlayersLoadFailed = true;
-    initialPlayers = [];
+    packedInitialPlayers = [];
   }
 
-  return <MatchPageClient initialPlayers={initialPlayers} initialPlayersLoadFailed={initialPlayersLoadFailed} />;
+  return <MatchPageClient packedInitialPlayers={packedInitialPlayers} initialPlayersLoadFailed={initialPlayersLoadFailed} />;
 }

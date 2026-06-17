@@ -12,6 +12,42 @@ export type MatchupPlayerSummary = {
   university?: string | null;
 };
 
+export type PackedMatchupPlayerSummary = [
+  id: string,
+  name: string,
+  nickname: string | null,
+  race: string,
+  gender: string | null,
+  tier: string,
+  university: string | null,
+];
+
+export type PackedMatchupPayloadPlayer = [
+  id: string,
+  name: string,
+  race: string,
+  tierIndex: number,
+  universityIndex: number,
+];
+
+export type PackedMatchupPlayersPayload = {
+  tiers: string[];
+  universities: string[];
+  players: PackedMatchupPayloadPlayer[];
+};
+
+export type MatchPagePlayerSummary = Pick<MatchupPlayerSummary, "id" | "name" | "nickname" | "race" | "gender">;
+
+export type PackedMatchPagePlayerSummary = [
+  id: string,
+  name: string,
+  nickname: string | null,
+  race: string,
+  gender: string | null,
+];
+
+type MatchupFilterPlayer = MatchPagePlayerSummary & Partial<Pick<MatchupPlayerSummary, "tier" | "university">>;
+
 const UNKNOWN_TIER_KEY = "미정";
 
 export function getMatchupTierKey(tier: string | null | undefined) {
@@ -56,6 +92,133 @@ export function mapPlayersToMatchupSummaries(
   return players.map(mapPlayerToMatchupSummary);
 }
 
+export function packMatchupPlayerSummary(player: MatchupPlayerSummary): PackedMatchupPlayerSummary {
+  return [
+    player.id,
+    player.name,
+    player.nickname || null,
+    player.race || "R",
+    player.gender || null,
+    getMatchupTierKey(player.tier),
+    player.university || null,
+  ];
+}
+
+export function packMatchupPlayerSummaries(players: MatchupPlayerSummary[]) {
+  return players.map(packMatchupPlayerSummary);
+}
+
+export function unpackMatchupPlayerSummary(packed: PackedMatchupPlayerSummary): MatchupPlayerSummary {
+  return {
+    id: packed[0],
+    name: packed[1],
+    nickname: packed[2],
+    race: packed[3] || "R",
+    gender: packed[4],
+    tier: getMatchupTierKey(packed[5]),
+    university: packed[6],
+  };
+}
+
+export function unpackMatchupPlayerSummaries(players: PackedMatchupPlayerSummary[]) {
+  return players.map(unpackMatchupPlayerSummary);
+}
+
+function getDictionaryIndex(value: string, values: string[], indexes: Map<string, number>) {
+  const existingIndex = indexes.get(value);
+  if (existingIndex !== undefined) return existingIndex;
+
+  const nextIndex = values.length;
+  values.push(value);
+  indexes.set(value, nextIndex);
+  return nextIndex;
+}
+
+export function packMatchupPlayersPayload(players: MatchupPlayerSummary[]): PackedMatchupPlayersPayload {
+  const tiers: string[] = [];
+  const tierIndexes = new Map<string, number>();
+  const universities: string[] = [];
+  const universityIndexes = new Map<string, number>();
+
+  return {
+    tiers,
+    universities,
+    players: players.map((player) => {
+      const tierIndex = getDictionaryIndex(getMatchupTierKey(player.tier), tiers, tierIndexes);
+      const university = player.university || null;
+      const universityIndex = university
+        ? getDictionaryIndex(university, universities, universityIndexes)
+        : -1;
+
+      return [
+        player.id,
+        player.name,
+        player.race || "R",
+        tierIndex,
+        universityIndex,
+      ];
+    }),
+  };
+}
+
+export function unpackMatchupPlayersPayload(payload: PackedMatchupPlayersPayload) {
+  return payload.players.map((packed): MatchupPlayerSummary => ({
+    id: packed[0],
+    name: packed[1],
+    nickname: null,
+    race: packed[2] || "R",
+    gender: null,
+    tier: payload.tiers[packed[3]] || UNKNOWN_TIER_KEY,
+    university: packed[4] >= 0 ? payload.universities[packed[4]] ?? null : null,
+  }));
+}
+
+export function mapPlayerToMatchPageSummary(
+  player: Pick<Player, "id" | "name" | "nickname" | "race" | "gender">
+): MatchPagePlayerSummary {
+  return {
+    id: player.id,
+    name: player.name,
+    nickname: player.nickname || null,
+    race: player.race || "R",
+    gender: player.gender || null,
+  };
+}
+
+export function mapPlayersToMatchPageSummaries(
+  players: Array<Pick<Player, "id" | "name" | "nickname" | "race" | "gender">>
+) {
+  return players.map(mapPlayerToMatchPageSummary);
+}
+
+export function packMatchPagePlayerSummary(player: MatchPagePlayerSummary): PackedMatchPagePlayerSummary {
+  return [
+    player.id,
+    player.name,
+    player.nickname || null,
+    player.race || "R",
+    player.gender || null,
+  ];
+}
+
+export function packMatchPagePlayerSummaries(players: MatchPagePlayerSummary[]) {
+  return players.map(packMatchPagePlayerSummary);
+}
+
+export function unpackMatchPagePlayerSummary(packed: PackedMatchPagePlayerSummary): MatchPagePlayerSummary {
+  return {
+    id: packed[0],
+    name: packed[1],
+    nickname: packed[2],
+    race: packed[3] || "R",
+    gender: packed[4],
+  };
+}
+
+export function unpackMatchPagePlayerSummaries(players: PackedMatchPagePlayerSummary[]) {
+  return players.map(unpackMatchPagePlayerSummary);
+}
+
 export async function fetchMatchupPlayers() {
   const response = await fetch("/api/players");
   if (!response.ok) {
@@ -70,8 +233,8 @@ export function normalizeMatchupSearchText(value: string) {
   return String(value || "").trim().toLowerCase();
 }
 
-export function filterMatchupPlayers(
-  players: MatchupPlayerSummary[],
+export function filterMatchupPlayers<T extends MatchupFilterPlayer>(
+  players: T[],
   {
     university = "",
     query = "",

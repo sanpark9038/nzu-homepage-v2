@@ -1795,3 +1795,965 @@ Post-deploy measurement after PR #11:
     https://nzu-homepage-v2-k1t1o4fxm-sanparks-projects.vercel.app
     --no-follow --since 1h --level error --limit 20`
   - Result: no logs found for the production deployment.
+
+2026-06-14 post-rollout tier next-bottleneck audit:
+
+- Current branch/state before this audit: `main`, clean, tracking
+  `origin/main` after production rollout record commit `2a359f7`.
+- Goal: identify the next public-page performance target after PR #15 reached
+  production, with focus on `/tier?liveOnly=false` and tier API cache behavior.
+- Canonical production measurement host:
+  `https://www.star-hosaga.com`. The apex host redirects with 308 before route
+  measurement, so the canonical `www` host is the stable sample target.
+- Production route/API samples:
+  - Round 1:
+    - `/tier`: 200, 872ms, 41,884 bytes,
+      `Cache-Control: public, must-revalidate, max-age=0`,
+      `X-Vercel-Cache: PRERENDER`, `X-Matched-Path: /tier`.
+    - `/tier?liveOnly=false`: 200, 18ms, 41,884 bytes,
+      `Cache-Control: public, must-revalidate, max-age=0`,
+      `X-Vercel-Cache: HIT`, `X-Matched-Path: /tier`.
+    - `/api/tier/players`: 200, 2,731ms, 38,508 bytes,
+      `X-Vercel-Cache: MISS`.
+    - `/api/tier/players?liveOnly=false`: 200, 879ms, 91,277 bytes,
+      `X-Vercel-Cache: MISS`.
+  - Round 2:
+    - `/tier`: 200, 205ms, 41,856 bytes, `X-Vercel-Cache: HIT`.
+    - `/tier?liveOnly=false`: 200, 10ms, 41,856 bytes,
+      `X-Vercel-Cache: HIT`.
+    - `/api/tier/players`: 200, 8ms, 38,508 bytes,
+      `X-Vercel-Cache: HIT`.
+    - `/api/tier/players?liveOnly=false`: 200, 9ms, 91,277 bytes,
+      `X-Vercel-Cache: HIT`.
+  - Round 3:
+    - `/tier`: 200, 24ms, 41,856 bytes, `X-Vercel-Cache: HIT`.
+    - `/tier?liveOnly=false`: 200, 12ms, 41,856 bytes,
+      `X-Vercel-Cache: HIT`.
+    - `/api/tier/players`: 200, 18ms, 38,508 bytes,
+      `X-Vercel-Cache: HIT`.
+    - `/api/tier/players?liveOnly=false`: 200, 11ms, 91,277 bytes,
+      `X-Vercel-Cache: HIT`.
+- Interpretation:
+  - `/tier?liveOnly=false` is no longer a dynamic/no-store shell bottleneck.
+    It now matches `/tier` and gets warm `HIT` behavior.
+  - Tier API warm behavior is good once Vercel has a cached response.
+  - The remaining measurable tier issue is cold API generation, especially
+    live default `/api/tier/players` at 2.7s on the first observed MISS.
+  - The client-facing `Cache-Control: public, must-revalidate, max-age=0` on
+    function responses is consistent with the earlier Vercel dynamic API
+    header investigation; `X-Vercel-Cache` is the cache-behavior signal.
+- Payload field contribution sample from production JSON:
+  - Live default API: about 44KB decoded JSON for 113 players. Largest repeated
+    fields were `broadcast_title`, `live_thumbnail_url`, `id`,
+    `channel_profile_image_url`, `name`, `university`, `gender`, `photo_url`,
+    `nickname`, `is_live`, `tier`, and `race`.
+  - Full API: about 99KB decoded JSON for 320 players. Largest repeated fields
+    were `broadcast_title`, `id`, `live_thumbnail_url`,
+    `channel_profile_image_url`, `name`, `university`, `gender`, `photo_url`,
+    `nickname`, `is_live`, `tier`, and `race`.
+- Source evidence:
+  - `proxy.ts` no longer rewrites tier query URLs to the dynamic
+    `/tier/query` route, so query-bearing tier URLs can reuse the cacheable
+    `/tier` shell.
+  - `app/api/tier/players/route.ts` uses
+    `playerService.getLivePlayers()` for live/default API reads and
+    `playerService.getCachedPlayersList()` for `liveOnly=false` reads.
+  - `playerService.getLivePlayers()` still performs a direct Supabase
+    `players` query filtered by `is_live=true`, while
+    `getCachedPlayersList()` uses the `public-players-list-v1` unstable cache
+    and then applies the live overlay.
+- Next recommended goal:
+  1. Investigate and reduce cold latency for live/default
+     `/api/tier/players`, starting with `playerService.getLivePlayers()` and
+     its cache shape. Candidate directions: derive live players from the
+     cached public list when freshness semantics allow it, or add a short
+     tagged cache around the live-player query.
+  2. Keep `/tier` and `/tier?liveOnly=false` shell routing unchanged unless new
+     production evidence shows a regression.
+  3. Treat tier API payload splitting as a secondary candidate. The current
+     large fields are used by tier cards, quick H2H, profile images, and live
+     hover previews, so any payload split needs focused contract coverage
+     before removing fields from the main response.
+
+2026-06-14 tier live API cold-cache implementation scope:
+
+- Branch: `codex/tier-live-api-cache`.
+- Current local base includes doc commit `ba23519`; this branch has not been
+  pushed.
+- Objective: reduce cold live/default `/api/tier/players` generation cost
+  without changing visible tier labels, route semantics, or push/deploy state.
+- TDD target:
+  - Add a contract that `playerService.getLivePlayers()` uses a short
+    live-player data cache instead of issuing an uncached direct Supabase
+    `players` list query on each route regeneration.
+  - Keep `/api/tier/players` calling the `getLivePlayers()` service boundary
+    so the API route remains small and the cache policy stays in the route.
+- Expected verification:
+  - `npm.cmd run test:tier-page-cache-contract`
+  - `npm.cmd run test:tier-page-helpers`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+
+2026-06-14 tier live API cold-cache implementation result:
+
+- Added `fetchCachedLivePlayersForList` in `lib/player-service.ts`:
+  - cache key: `public-live-players-list-v1`
+  - revalidate: 60 seconds
+  - tag: `public-live-players-list`
+- `playerService.getLivePlayers()` now calls the short cached helper instead
+  of issuing its own direct Supabase `players` query every time the live/default
+  tier API regenerates.
+- Kept `/api/tier/players` response semantics and cache headers unchanged:
+  live/default API remains `s-maxage=10, stale-while-revalidate=60`; full tier
+  API remains `s-maxage=300, stale-while-revalidate=31536000`.
+- TDD evidence:
+  - RED: `npm.cmd run test:tier-page-cache-contract` failed because
+    `fetchCachedLivePlayersForList` did not exist and `getLivePlayers()` still
+    owned the direct Supabase query.
+  - GREEN: same contract passed after the live query moved behind the 60-second
+    data cache.
+- Verification:
+  - `npm.cmd run test:tier-page-cache-contract`
+  - `npm.cmd run test:tier-page-helpers`
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build` with network escalation after the first sandboxed build
+    produced Supabase `EACCES` fetch warnings despite exit code 0.
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-14 entry page packed hydration payload narrowing:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - After the `/match` hydration narrowing, the local production remeasure
+    showed `/entry` as the largest public HTML route in the sampled set at
+    79,847 bytes.
+  - `/entry` still needs `id`, `name`, `nickname`, `race`, `gender`, `tier`,
+    and `university` for the two-sided H2H selector, tier grouping, badges,
+    and university filters, so this slice avoids dropping fields.
+- TDD evidence:
+  - Added an entry route source contract to
+    `scripts/tools/matchup-page-shell-contract.test.js` requiring the server
+    page to call `packMatchupPlayerSummaries(matchupPlayers)` and hydrate
+    `H2HLookup` with `packedPlayers`.
+  - Added packed helper coverage to `scripts/tools/matchup-helpers.test.mjs`
+    requiring tuple-shaped payloads, exact round-trip unpacking, and smaller
+    JSON than repeated object-key summaries.
+  - RED:
+    - `npm.cmd run test:matchup-page-shell-contract` failed because
+      `app/entry/page.tsx` still hydrated `players={matchupPlayers}`.
+    - `npm.cmd run test:matchup-helpers` failed because
+      `packMatchupPlayerSummary` did not exist.
+  - GREEN:
+    - Added `PackedMatchupPlayerSummary`, pack/unpack helpers, and list
+      helpers in `lib/matchup-helpers.ts`.
+    - `app/entry/page.tsx` now packs the server-side matchup summaries before
+      hydration.
+    - `components/stats/H2HLookup.tsx` accepts `packedPlayers`, unpacks them
+      once with `useMemo`, and keeps the existing `players` prop as a
+      compatibility fallback.
+- Payload rule:
+  - Preserve all entry/H2H fields, but send them as a stable tuple:
+    `[id, name, nickname, race, gender, tier, university]`.
+  - The client immediately unpacks the tuple payload back into
+    `MatchupPlayerSummary[]`, so selector behavior and user-visible labels stay
+    unchanged.
+- Local production measurement:
+  - Baseline from the prior post-match remeasure: `/entry` 200, 79,847 bytes.
+  - After packed hydration: `/entry` 200, 56,493 bytes,
+    `entryContainsPackedPlayers=true`, `entryContainsPlayersKey=false`.
+  - Observed HTML reduction: 23,354 bytes.
+  - `/match` smoke remained 200, 65,550 bytes.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - Local production smoke with network escalation:
+    `/entry` 200, 56,493 bytes; `/match` 200, 65,550 bytes.
+  - `git diff --check`
+- Push/deploy status: not pushed and not deployed.
+- Next recommended non-deploy candidates:
+  1. Inspect the full tier API payload
+     `/api/tier/players?liveOnly=false`, which remains around 75KB locally.
+  2. Inspect `/rankings` HTML payload, now among the larger public HTML routes
+     after `/entry` and `/match` reductions.
+
+2026-06-14 tier API packed payload:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - After `/entry` was reduced, the next non-deploy API candidate was the full
+    tier endpoint `/api/tier/players?liveOnly=false`.
+  - Field-contribution sampling showed the remaining large bytes were mostly
+    required card/filter/H2H fields plus live metadata; removing fields would
+    weaken the tier page, while repeated object keys were still avoidable.
+- TDD evidence:
+  - Added `tier API packed payload preserves fields with smaller JSON` to
+    `scripts/tools/tier-page-helpers.test.cjs`.
+  - Updated `scripts/tools/tier-page-cache-contract.test.js` so the API route
+    must use `buildPackedTierPlayersPayload()` and `TierClientView` must call
+    `unpackTierPlayersPayload()`.
+  - RED:
+    - `npm.cmd run test:tier-page-helpers` failed because
+      `buildPackedTierPlayersPayload` did not exist.
+    - `npm.cmd run test:tier-page-cache-contract` failed because the tier
+      client did not call `unpackTierPlayersPayload`.
+  - GREEN:
+    - `lib/tier-player-payload.ts` now emits a self-described
+      `fields + players(tuple[])` payload and unpacks it back to the existing
+      tier player object shape.
+    - `app/api/tier/players/route.ts` returns the packed payload.
+    - `app/tier/TierClientView.tsx` unpacks immediately after `response.json()`,
+      keeping the rest of the card/filter code on object-shaped players.
+    - Tier page helpers and tier card props were narrowed to the tier payload
+      shape instead of requiring the full `Player` row.
+- Payload rule:
+  - Core fields remain in every tuple:
+    `id`, `name`, `nickname`, `race`, `gender`, `tier`, `university`,
+    `is_live`.
+  - Optional media/live fields are included in `fields` only when at least one
+    row uses them: `broadcast_title`, `channel_profile_image_url`,
+    `live_thumbnail_url`, `photo_url`.
+  - The client unpacks before rendering, so UI labels and card behavior stay
+    unchanged.
+- Local production measurement:
+  - Pre-change same-server sampling estimated packed full tier payload at about
+    42KB versus about 67KB object JSON.
+  - After implementation and production build:
+    - `/api/tier/players`: 200, 23,166 bytes, 127 players,
+      `playersAreArrays=true`.
+    - `/api/tier/players?liveOnly=false`: 200, 42,147 bytes, 320 players,
+      `playersAreArrays=true`, `firstPlayerHasIdKey=false`.
+    - `/tier`: 200, 41,884 bytes.
+  - Browser verification on `http://localhost:3023/tier?liveOnly=false`:
+    error output empty, no framework overlay, content present, 320 tier H2H
+    buttons rendered, and the browser resource entry for
+    `/api/tier/players?liveOnly=false` had `encodedBodySize=42147`.
+- Verification:
+  - `npm.cmd run test:tier-page-helpers`
+  - `npm.cmd run test:tier-page-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+  - `agent-browser.cmd open http://localhost:3023/tier?liveOnly=false`
+  - `agent-browser.cmd wait --load networkidle`
+  - `agent-browser.cmd errors`
+  - `agent-browser.cmd snapshot -i`
+- Push/deploy status: not pushed and not deployed.
+- Next recommended non-deploy candidate:
+  - Re-run the public route/API table after this API packing commit, then
+    inspect `/rankings` if it remains one of the larger public HTML routes.
+
+2026-06-14 post-entry-and-tier-packing local production remeasure:
+
+- Branch: `codex/match-page-performance-audit`.
+- Method:
+  - Used the current production build with local `next start` on port 3024.
+  - Sampled two rounds across the public routes/APIs after the `/entry`
+    hydration packing and tier API tuple packing commits.
+- Selected samples:
+  - Round 1:
+    - `/tier`: 200, 188ms, 41,884 bytes.
+    - `/tier?liveOnly=false`: 200, 22ms, 41,884 bytes.
+    - `/api/tier/players`: 200, 346ms, 23,518 bytes.
+    - `/api/tier/players?liveOnly=false`: 200, 12ms, 42,147 bytes.
+    - `/match`: 200, 14ms, 65,550 bytes.
+    - `/api/players`: 200, 7ms, 44,782 bytes.
+    - `/entry`: 200, 12ms, 56,493 bytes.
+    - `/rankings`: 200, 29ms, 59,195 bytes.
+    - `/teams`: 200, 52ms, 50,307 bytes.
+    - `/player`: 200, 29ms, 23,049 bytes.
+    - `/schedule`: 200, 8ms, 28,360 bytes.
+    - `/prediction`: 200, 16ms, 23,597 bytes.
+    - `/api/prediction`: 200, 327ms, 52 bytes.
+    - `/board`: 200, 18ms, 38,552 bytes.
+  - Round 2 warm:
+    - `/tier`: 4ms, 41,856 bytes.
+    - `/api/tier/players`: 3ms, 23,518 bytes.
+    - `/api/tier/players?liveOnly=false`: 4ms, 42,147 bytes.
+    - `/match`: 3ms, 65,550 bytes.
+    - `/api/players`: 2ms, 44,782 bytes.
+    - `/entry`: 4ms, 56,493 bytes.
+    - `/rankings`: 3ms, 59,167 bytes.
+    - `/teams`: 3ms, 50,279 bytes.
+- Interpretation:
+  - Full tier API is no longer the largest measured public API payload after
+    tuple packing; it is now about 42.1KB locally.
+  - The remaining largest public HTML responses are `/match` at 65.5KB,
+    `/rankings` at 59.2KB, and `/entry` at 56.5KB.
+  - `/api/players` is now about 44.8KB and remains useful as a shared fallback
+    payload, but it is smaller than the leading HTML candidates.
+- Push/deploy status: not pushed and not deployed.
+- Next recommended non-deploy candidate:
+  - Inspect `/rankings` hydration/server payload shape, because `/match` has
+    already had two recent slices and `/rankings` is now the next untreated
+    large public HTML route.
+
+2026-06-14 rankings table class payload cleanup:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - After the post-tier-packing remeasure, `/rankings` was the next untreated
+    larger public HTML route at about 59.2KB.
+  - Source inspection showed it is a server-rendered table page, not a client
+    hydration issue. The safe local candidate was removing repeated long
+    Tailwind table class strings from the rendered HTML.
+- TDD evidence:
+  - Added `scripts/tools/rankings-page-performance-contract.test.js` and
+    `npm.cmd run test:rankings-page-performance-contract`.
+  - RED: the new contract failed because `app/rankings/page.tsx` did not use
+    `rankings-table-shell` / `rankings-table-cell`, and repeated
+    `px-8 py-5` table cell strings were still present.
+  - GREEN: moved the repeated rankings table shell/header/cell/text/score
+    styling into `app/globals.css` utility classes and updated
+    `app/rankings/page.tsx` to use short rankings-specific class names.
+- Payload rule:
+  - Preserve all rankings rows, labels, table structure, and badge components.
+  - Only shorten repeated styling attributes in HTML; do not trim visible data
+    or change rankings semantics.
+- Local production measurement:
+  - Baseline from post-tier-packing remeasure: `/rankings` 200, 59,195 bytes
+    in round 1 and 59,167 bytes warm.
+  - After class extraction: `/rankings` 200, 56,370 bytes.
+  - Observed HTML reduction: about 2.8KB.
+  - Smoke comparison in the same run: `/match` 65,550 bytes and `/entry`
+    56,493 bytes.
+- Browser verification:
+  - `agent-browser.cmd open http://localhost:3025/rankings`
+  - `agent-browser.cmd wait --load networkidle`
+  - `agent-browser.cmd errors` returned empty output.
+  - DOM check: no framework overlay, content present, 2 tables, 16 rankings
+    rows rendered.
+- Verification:
+  - `npm.cmd run test:rankings-page-performance-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Push/deploy status: not pushed and not deployed.
+- Next recommended non-deploy candidate:
+  - Re-run the public route/API table after this commit. If `/match` remains
+    the largest public HTML route, inspect whether its remaining 65.5KB is
+    mostly required interactive form markup or still has repeatable styling
+    strings worth extracting.
+
+2026-06-14 tier API media payload narrowing:
+
+- Branch: `codex/tier-live-api-cache`.
+- Objective: continue the same tier API performance branch by reducing
+  repeated media fields in `/api/tier/players`, especially the full
+  `liveOnly=false` payload.
+- TDD evidence:
+  - RED: `npm.cmd run test:tier-page-helpers` failed with
+    `Cannot find module ... lib\tier-player-payload.ts` after adding the
+    desired `buildTierPlayerPayload` behavior test.
+  - GREEN: the same test passed after adding `lib/tier-player-payload.ts` and
+    wiring `app/api/tier/players/route.ts` to `players.map(buildTierPlayerPayload)`.
+  - Existing source contract initially failed because it still expected the old
+    inline route mapper; it now guards the helper boundary and prevents
+    reintroducing direct media field mapping in the API route.
+- Payload rule:
+  - Always keep tier card / H2H / filter identity fields:
+    `id`, `name`, `nickname`, `race`, `gender`, `tier`, `university`,
+    `is_live`.
+  - Include `channel_profile_image_url` only when present.
+  - Include `photo_url` only when no channel profile image is present and the
+    photo URL is needed as the card fallback.
+  - Include `broadcast_title` and `live_thumbnail_url` only for live players
+    and only when those values are present.
+- Production JSON sample transformed locally with the new payload rule:
+  - `/api/tier/players`: 43,601 bytes -> 38,295 bytes, 5,306 bytes saved,
+    112 players.
+  - `/api/tier/players?liveOnly=false`: 99,118 bytes -> 73,257 bytes,
+    25,861 bytes saved, 320 players.
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-14 tier API performance branch local deploy-candidate gate:
+
+- Branch: `codex/tier-live-api-cache`.
+- Worktree status before gate: clean.
+- Base:
+  - `main..HEAD`: `63d35a3 Cache live tier player query`,
+    `995ef7c Trim tier API media payload`.
+  - `origin/main..HEAD`: also includes `ba23519 Record tier next bottleneck
+    audit`, because local `main` has that documentation commit ahead of
+    `origin/main`.
+- Local package contents:
+  - `getLivePlayers()` now uses a short 60-second live-player data cache to
+    reduce cold/default `/api/tier/players` generation pressure.
+  - tier API payload mapping now omits unused null/duplicate media fields while
+    preserving tier card profile fallback, live hover metadata, filters, and
+    quick H2H identity fields.
+- Expected effect before preview/production:
+  - Better live/default API cold regeneration behavior after the first live
+    query fills the 60-second data cache.
+  - Smaller tier API JSON, especially full `liveOnly=false` responses. The
+    latest production JSON transformed locally with the branch rule showed
+    about 25.9KB saved on the full tier payload.
+- Fresh local gate verification:
+  - `npm.cmd run test:tier-page-cache-contract`
+  - `npm.cmd run test:tier-page-helpers`
+  - `npm.cmd run test:player-page-payload-contract`
+  - `npm.cmd run test:player-live-overlay`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Push/deploy status: not pushed, no PR opened, and no preview/production
+  deploy run.
+- Next operator decision:
+  - If approved, push `codex/tier-live-api-cache`, inspect preview, and measure
+    preview `/tier`, `/tier?liveOnly=false`, `/api/tier/players`, and
+    `/api/tier/players?liveOnly=false` cold/warm behavior before considering
+    production rollout.
+
+2026-06-14 tier branch local production route/API remeasure:
+
+- Branch: `codex/tier-live-api-cache`.
+- Method:
+  - Used the existing production build with local `next start`.
+  - First local server attempt under the default sandbox returned 500 for
+    `/api/tier/players`; server logs showed Supabase `TypeError: fetch failed`
+    with `EACCES`, so that was an environment/network permission artifact, not
+    a code result.
+  - Re-ran the same local production measurement with network escalation.
+- Network-approved local production samples:
+  - Round 1:
+    - `/tier`: 200, 99ms, 41,856 bytes.
+    - `/tier?liveOnly=false`: 200, 165ms, 41,856 bytes.
+    - `/api/tier/players`: 200, 1,129ms, 40,465 bytes,
+      `s-maxage=10, stale-while-revalidate=60`.
+    - `/api/tier/players?liveOnly=false`: 200, 263ms, 53,274 bytes,
+      `s-maxage=300, stale-while-revalidate=31536000`.
+    - `/player`: 200, 31ms, 23,021 bytes.
+    - `/match`: 200, 59ms, 78,014 bytes.
+    - `/api/players`: 200, 44ms, 48,106 bytes.
+    - `/schedule`: 200, 36ms, 25,056 bytes.
+    - `/prediction`: 200, 30ms, 23,569 bytes.
+    - `/api/prediction`: 200, 326ms, 52 bytes.
+  - Warm rounds:
+    - `/api/tier/players`: 27-28ms, 40,465 bytes.
+    - `/api/tier/players?liveOnly=false`: 41-42ms, 73,744 bytes.
+    - `/tier` and `/tier?liveOnly=false`: 29-34ms, 41,856 bytes.
+    - `/match`: 46-55ms, 78,014 bytes.
+    - `/api/players`: 30-31ms, 48,106 bytes.
+- Interpretation:
+  - The live-player short data cache is working locally: the first live API
+    request still pays the Supabase/cold fill cost, while immediate warm
+    repeats drop to about 27-28ms.
+  - The media payload narrowing reduces the full tier API below the latest
+    production sample of about 99KB; warm local samples settled at about 73.7KB.
+  - `/match` is now the largest measured public HTML response in this local
+    set at about 78KB. If the tier branch is held for preview approval, the
+    next non-deploy performance investigation should inspect `/match` client
+    island/module payload rather than adding more tier changes blindly.
+- Push/deploy status: still not pushed and not deployed.
+
+2026-06-14 match page inactive client panel cleanup:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - The latest local production route/API remeasure showed `/match` as the
+    largest public HTML response in the sample at about 78KB.
+  - Source inspection found a hard-disabled `SHOW_ENTRY_BOARD_PANEL = false`
+    path inside `app/match/MatchPageClient.tsx`. Although never rendered, the
+    inactive `EntryBoardSidePanel` JSX, its H2H aggregation effect, and
+    panel-only lucide icons were still present in the match client module and
+    previous `.next` source maps.
+- TDD evidence:
+  - Added `match client does not ship disabled entry-board panel code` to
+    `scripts/tools/matchup-page-shell-contract.test.js`.
+  - RED: `npm.cmd run test:matchup-page-shell-contract` failed on the new
+    source contract because `SHOW_ENTRY_BOARD_PANEL`, `EntryBoardSidePanel`,
+    and panel-only icon references were still present.
+  - GREEN: removed the inactive panel, its panel-only helpers, the panel-only
+    icon imports, and the dead conditional render sites from
+    `app/match/MatchPageClient.tsx`.
+- Result:
+  - `app/match/MatchPageClient.tsx` changed by about 275 deleted lines with no
+    visible `/match` label or active workflow change.
+  - Post-build `.next` search found no `Broadcast Side Panel`,
+    `EntryBoardSidePanel`, `MonitorUp`, `RadioTower`, `LayoutPanelLeft`,
+    `match-live`, or `overlay/entry-board` strings.
+  - Local production `/match` smoke returned `200`, 78,042 bytes, and
+    `containsEntryBoardPanel=false`. HTML size is effectively unchanged, so
+    this slice should be treated as client-module cleanup rather than initial
+    HTML payload reduction.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+  - `git diff --check`
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-14 match page initial hydration payload narrowing:
+
+- Branch: `codex/match-page-performance-audit`.
+- Objective: reduce `/match` initial HTML hydration bytes without changing the
+  shared `/api/players` fallback payload or the `/entry` H2H tool payload.
+- TDD evidence:
+  - Updated `scripts/tools/matchup-page-shell-contract.test.js` so the match
+    route must call `mapPlayersToMatchPageSummaries(players)` and the client
+    must receive `MatchPagePlayerSummary[]`.
+  - Added `mapPlayersToMatchPageSummaries keeps only fields used by the match
+    page` to `scripts/tools/matchup-helpers.test.mjs`.
+  - RED:
+    - `npm.cmd run test:matchup-page-shell-contract` failed because
+      `app/match/page.tsx` still used `mapPlayersToMatchupSummaries(players)`
+      and the client still accepted `MatchupPlayerSummary[]`.
+    - `npm.cmd run test:matchup-helpers` failed because
+      `mapPlayerToMatchPageSummary` did not exist.
+  - GREEN:
+    - Added `MatchPagePlayerSummary`, `mapPlayerToMatchPageSummary`, and
+      `mapPlayersToMatchPageSummaries` in `lib/matchup-helpers.ts`.
+    - `app/match/page.tsx` now uses the match-page mapper.
+    - `app/match/MatchPageClient.tsx` now types its initial player state as
+      `MatchPagePlayerSummary[]`.
+    - `filterMatchupPlayers` now accepts either the full shared summary or the
+      slimmer match-page summary, preserving `/entry` university filtering and
+      `/match` query/exclude filtering.
+- Payload rule:
+  - `/match` initial hydration keeps only fields used by match search,
+    selected-player display, and H2H calls: `id`, `name`, `nickname`, `race`,
+    and `gender`.
+  - `tier` and `university` remain in the shared `/api/players` fallback/API
+    payload for `/entry` and other public H2H tools.
+- Local production measurement:
+  - Before this slice, after the inactive panel cleanup, `/match` smoke was
+    `200`, 78,042 bytes.
+  - After the slim hydration mapper, `/match` smoke is `200`, 65,550 bytes,
+    with `matchContainsTierKey=false` and `matchContainsUniversityKey=false`.
+  - Observed HTML reduction: 12,492 bytes.
+  - `/api/players` remains `200`, 48,106 bytes, with `tier` and `university`
+    still present.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `npm.cmd run build`
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-14 post-match-cleanup local production route/API remeasure:
+
+- Branch: `codex/match-page-performance-audit`.
+- Method:
+  - Used the current production build with local `next start`.
+  - Ran with network escalation so Supabase-backed API routes were measured
+    instead of failing under sandbox `EACCES`.
+  - Sampled three rounds across public routes and public APIs.
+- Selected samples:
+  - Round 1:
+    - `/tier`: 200, 1,089ms, 41,884 bytes.
+    - `/tier?liveOnly=false`: 200, 139ms, 41,884 bytes.
+    - `/api/tier/players`: 200, 1,014ms, 40,465 bytes.
+    - `/api/tier/players?liveOnly=false`: 200, 61ms, 75,178 bytes.
+    - `/match`: 200, 102ms, 65,550 bytes.
+    - `/api/players`: 200, 50ms, 48,106 bytes.
+    - `/player`: 200, 34ms, 23,049 bytes.
+    - `/entry`: 200, 69ms, 79,847 bytes.
+    - `/schedule`: 200, 40ms, 28,360 bytes.
+    - `/prediction`: 200, 36ms, 23,597 bytes.
+    - `/api/prediction`: 200, 274ms, 52 bytes.
+    - `/teams`: 200, 62ms, 50,307 bytes.
+    - `/rankings`: 200, 56ms, 59,195 bytes.
+    - `/board`: 200, 54ms, 38,552 bytes.
+  - Warm rounds:
+    - `/tier`: 40-47ms, 41,856 bytes.
+    - `/api/tier/players`: 32-37ms, 43,054 bytes.
+    - `/api/tier/players?liveOnly=false`: 48-55ms, 75,178 bytes.
+    - `/match`: 50-52ms, 65,550 bytes.
+    - `/api/players`: 82-107ms, 48,106 bytes.
+    - `/entry`: 57-58ms, 79,847 bytes.
+    - `/rankings`: 44-49ms, 59,167 bytes.
+- Interpretation:
+  - The `/match` HTML payload reduction is visible in production-mode local
+    output: it is now 65.5KB instead of the prior 78KB range.
+  - The next largest public HTML route is `/entry` at about 79.8KB.
+  - The next largest public API payload remains full
+    `/api/tier/players?liveOnly=false` at about 75.2KB.
+  - Tier live/default API still has a cold first-fill cost around 1s locally,
+    while warm reads are about 32-37ms.
+- Next recommended non-deploy candidates:
+  1. Inspect `/entry` initial H2H player hydration and bundle shape. Unlike
+     `/match`, `/entry` appears to need university and tier for its two-sided
+     filters and grouping, so any reduction must preserve that workflow.
+  2. Inspect remaining full tier API field contribution after the media
+     trimming commit to see whether the 75.2KB payload still has removable
+     fields or whether it is now mostly required identity/card data.
+  3. Keep push/preview/production rollout as an operator-approved decision;
+     this branch is still local only.
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-14 match page packed initial hydration payload:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - After the slim match-page mapper, `/match` still shipped the largest
+    measured public HTML response among the current local candidates at
+    65,550 bytes.
+  - The initial player payload already kept only `id`, `name`, `nickname`,
+    `race`, and `gender`, but those object keys were still repeated for every
+    player in the RSC hydration data.
+- TDD evidence:
+  - RED:
+    - `npm.cmd run test:matchup-page-shell-contract` failed because
+      `app/match/page.tsx` still passed `initialPlayers` object arrays and the
+      client did not call `unpackMatchPagePlayerSummaries`.
+    - `npm.cmd run test:matchup-helpers` failed because
+      `packMatchPagePlayerSummary` did not exist.
+  - GREEN:
+    - Added `PackedMatchPagePlayerSummary` tuple helpers in
+      `lib/matchup-helpers.ts`.
+    - `app/match/page.tsx` now maps server player rows to match summaries,
+      packs them as `[id,name,nickname,race,gender]`, and hydrates the client
+      with `packedInitialPlayers`.
+    - `app/match/MatchPageClient.tsx` unpacks the tuple payload once before
+      initializing the existing player state. The API fallback path remains
+      unchanged for server-load failures.
+- Payload rule:
+  - `/match` initial hydration keeps the same five fields as the prior slim
+    summary, but sends each player as a tuple instead of an object.
+  - The shared `/api/players` fallback and `/entry` player payload are not
+    changed by this slice.
+- Local production measurement:
+  - Baseline from the previous `/match` remeasure: `/match` 65,550 bytes.
+  - After packed initial hydration: `/match` 200, 49,876 bytes.
+  - Observed HTML reduction: 15,674 bytes.
+  - Smoke comparison in the same run:
+    - `/entry`: 200, 56,493 bytes.
+    - `/rankings`: 200, 56,370 bytes.
+  - `/match` retained `Cache-Control: s-maxage=300,
+    stale-while-revalidate=31535700`.
+  - The rendered HTML contained `packedInitialPlayers` and did not contain the
+    old `"initialPlayers":` prop key.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+  - Local production `next start` smoke on port 3030 for `/match`, `/entry`,
+    and `/rankings`.
+- Build note:
+  - `npm.cmd run build` exited 0. The build log still included known sandbox
+    `EACCES` fetch warnings for Supabase/hero-media revalidation attempts.
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-17 rankings table class alias packing:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - Re-ran the local production public route/API table before changing code.
+  - Warm samples confirmed `/rankings` was still the largest public HTML
+    response at about 56,342 bytes, followed by `/entry` at about 53,382
+    bytes, `/match` at about 49,848 bytes, and `/teams` at about 49,246 bytes.
+  - Rendered HTML class-frequency inspection showed repeated route-local
+    `rankings-*` table class tokens were the largest removable rankings-only
+    markup contributor.
+- TDD evidence:
+  - RED: `npm.cmd run test:rankings-page-performance-contract` failed because
+    `app/rankings/page.tsx` still emitted long `rankings-*` class tokens and
+    did not use the required short `rk-*` aliases.
+  - GREEN: renamed only the rankings-local table CSS selectors and JSX class
+    names to short `rk-*` aliases in `app/rankings/page.tsx` and
+    `app/globals.css`.
+- Payload rule:
+  - Keep rankings rows, headings, labels, table semantics, badge components,
+    and data behavior unchanged.
+  - Only shorten repeated rankings-local class tokens in rendered HTML.
+- Local production measurement:
+  - Baseline from the fresh pre-change warm sample: `/rankings` 56,342 bytes.
+  - After short class aliases: `/rankings` 200, 48,738 bytes.
+  - Observed HTML reduction: about 7,604 bytes.
+  - Smoke comparison in the same run:
+    - `/entry`: 200, 53,410 bytes.
+    - `/match`: 200, 49,876 bytes.
+    - `/teams`: 200, 49,274 bytes.
+    - `/api/players`: 200, 48,106 bytes.
+- Browser verification:
+  - `agent-browser.cmd open http://localhost:3033/rankings`
+  - `agent-browser.cmd wait --load networkidle`
+  - `agent-browser.cmd errors` returned no console errors.
+  - `agent-browser.cmd snapshot -i` showed both rankings tables, headings, and
+    rows rendered.
+- Verification:
+  - `npm.cmd run test:rankings-page-performance-contract`
+  - `npm.cmd run build`
+- Build note:
+  - `npm.cmd run build` exited 0. The build log still included the known
+    sandbox `EACCES` fetch warning for hero-media prerender.
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-17 entry page repeated control class alias:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - Re-ran local production samples after the rankings class alias pass.
+  - `/entry` remained the largest sampled public HTML route at 53,410 bytes,
+    followed by `/match` at 49,876 bytes, `/teams` at 49,274 bytes, and
+    `/rankings` at 48,738 bytes.
+- Component/payload breakdown from rendered `/entry` HTML:
+  - Total HTML: about 53,374 bytes in the direct inspection sample.
+  - Inline script/RSC payload: about 38,885 bytes.
+  - Non-script HTML: about 14,489 bytes.
+  - Class attribute values: about 6,929 bytes.
+  - Packed H2H player payload inside the RSC script: about 26,680 bytes.
+  - The remaining largest payload contributor is therefore the packed player
+    hydration data, not removable static markup.
+- Safe markup/class target:
+  - The two university `<select>` controls repeated the same long Tailwind
+    select class string.
+  - Their caret wrappers also repeated the same long positioning/color class
+    string.
+- TDD evidence:
+  - RED: `npm.cmd run test:matchup-page-shell-contract` failed after adding
+    the expectation that `H2HLookup` uses short `e-select` and `e-caret`
+    aliases for those repeated controls.
+  - GREEN: moved only those repeated select/caret declarations into
+    `app/globals.css` and changed `components/stats/H2HLookup.tsx` to use the
+    short classes.
+- Payload rule:
+  - Preserve entry behavior, university filtering, H2H payload shape, locked
+    labels, and all player data.
+  - Only shorten repeated static class strings in the initial `/entry` HTML.
+- Local production measurement:
+  - Baseline: `/entry` 200, 53,410 bytes.
+  - After select/caret class aliases: `/entry` 200, 52,870 bytes.
+  - Observed HTML reduction: 540 bytes.
+  - Comparison in the same run:
+    - `/rankings`: 200, 48,738 bytes.
+    - `/match`: 200, 49,876 bytes.
+    - `/teams`: 200, 49,274 bytes.
+    - `/api/players`: 200, 48,106 bytes.
+- Browser verification:
+  - `agent-browser.cmd open http://localhost:3035/entry`
+  - `agent-browser.cmd wait --load networkidle`
+  - `agent-browser.cmd errors` returned no console errors.
+  - `agent-browser.cmd snapshot -i` showed the two university select controls,
+    locked labels, and auto-match controls rendered.
+  - DOM style check returned `e-select|16px|rgba(0, 168, 107, 0.2)` for the
+    first select.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:rankings-page-performance-contract`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Build note:
+  - `npm.cmd run build` exited 0. The build log still included the known
+    sandbox `EACCES` fetch warning for hero-media prerender.
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-17 entry packed player payload field narrowing:
+
+- Branch: `codex/match-page-performance-audit`.
+- Objective:
+  - Audit the remaining `/entry` packed H2H player hydration payload and remove
+    fields that the entry UI no longer needs on first load.
+- Field-usage decision:
+  - Keep `id`: required for canonical `/api/stats/h2h` requests and match
+    identity.
+  - Keep `name`: displayed in player chips/match rows and still sent as the
+    required route name label.
+  - Keep `race`: displayed through `RaceLetterBadge`.
+  - Keep `tier`: required for entry tier grouping and tier badges.
+  - Keep `university`: required for left/right school filtering.
+  - Omit `nickname`: `/entry` does not expose text search and canonical IDs now
+    drive H2H; the route no longer runs name-candidate fallback loops.
+  - Omit `gender`: the H2H route requires canonical IDs and ignores the gender
+    query parameter; cache separation by gender is not needed when both
+    canonical IDs are present.
+- TDD evidence:
+  - RED: `npm.cmd run test:matchup-helpers` failed because
+    `packMatchupPlayersPayload()` still emitted 7-slot tuples containing
+    `nickname` and `gender`.
+  - GREEN: changed only the dictionary-packed entry payload tuple to
+    `[id, name, race, tierIndex, universityIndex]`. Legacy
+    `packMatchupPlayerSummary()` remains unchanged for compatibility.
+  - `unpackMatchupPlayersPayload()` now restores the shared
+    `MatchupPlayerSummary` shape with `nickname: null` and `gender: null`.
+- Payload rule:
+  - Preserve `/entry` filtering, tier grouping, player display, match board
+    identity, and canonical H2H requests.
+  - Do not change `/api/players`, `/match`, or the legacy packed-player prop.
+- Local production measurement:
+  - Baseline after the select/caret class alias pass: `/entry` 52,870 bytes.
+  - After field narrowing: `/entry` 200, 47,870 bytes.
+  - Observed HTML reduction: 5,000 bytes.
+  - Comparison in the same run:
+    - `/rankings`: 200, 48,738 bytes.
+    - `/match`: 200, 49,876 bytes.
+    - `/teams`: 200, 49,096 bytes.
+    - `/api/players`: 200, 48,106 bytes.
+  - Rendered payload snippet showed rows shaped like
+    `["id","name","race",tierIndex,universityIndex]`; `female` was absent from
+    the `/entry` HTML sample.
+- Browser verification:
+  - `agent-browser.cmd open http://localhost:3036/entry`
+  - `agent-browser.cmd wait --load networkidle`
+  - `agent-browser.cmd errors` returned no console errors.
+  - `agent-browser.cmd snapshot -i` showed the two university select controls,
+    locked labels, and auto-match section rendered.
+  - DOM probe returned `2 selects|true entry|true auto`.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Build note:
+  - `npm.cmd run build` exited 0. The build log still included known sandbox
+    `EACCES` fetch/revalidation warnings for Supabase-backed public player
+    cache and hero-media prerender attempts.
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-17 performance branch local deploy-candidate gate:
+
+- Branch: `codex/match-page-performance-audit`.
+- Scope:
+  - Final local production remeasure and verification after the current local
+    performance slices:
+    - rankings table class aliases,
+    - entry select/caret class aliases,
+    - entry packed H2H player payload field narrowing.
+  - No push, preview deploy, production deploy, or PR was run.
+- Fresh verification gate:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npm.cmd run test:rankings-page-performance-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+- Build note:
+  - `npm.cmd run build` exited 0.
+  - The build log still included known local sandbox `EACCES`
+    fetch/revalidation warnings for Supabase-backed public player cache and
+    hero-media prerender attempts.
+- Local production route/API measurement:
+  - Method: current build served with local `next start` on port 3037 and
+    network access allowed for Supabase-backed routes/APIs.
+  - Round 1:
+    - `/`: 200, 81ms, 22,298 bytes.
+    - `/tier`: 200, 23ms, 41,884 bytes.
+    - `/tier?liveOnly=false`: 200, 18ms, 41,884 bytes.
+    - `/api/tier/players`: 200, 1,339ms, 6,895 bytes.
+    - `/api/tier/players?liveOnly=false`: 200, 367ms, 31,274 bytes.
+    - `/match`: 200, 26ms, 49,876 bytes.
+    - `/api/players`: 200, 21ms, 48,106 bytes.
+    - `/player`: 200, 16ms, 23,049 bytes.
+    - `/entry`: 200, 24ms, 47,870 bytes.
+    - `/schedule`: 200, 17ms, 25,084 bytes.
+    - `/prediction`: 200, 14ms, 23,597 bytes.
+    - `/api/prediction`: 200, 391ms, 52 bytes.
+    - `/teams`: 200, 27ms, 49,096 bytes.
+    - `/rankings`: 200, 23ms, 48,738 bytes.
+    - `/board`: 200, 20ms, 36,105 bytes.
+  - Warm rounds:
+    - `/`: 11-32ms, 22,298 bytes.
+    - `/tier` and `/tier?liveOnly=false`: 17-19ms, 41,884 bytes.
+    - `/api/tier/players`: 8ms, 7,913 bytes.
+    - `/api/tier/players?liveOnly=false`: 15-16ms, 38,478 bytes.
+    - `/match`: 19ms, 49,876 bytes.
+    - `/api/players`: 17ms, 48,106 bytes.
+    - `/player`: 11ms, 23,049 bytes.
+    - `/entry`: 19ms, 47,870 bytes.
+    - `/schedule`: 14ms, 25,084 bytes.
+    - `/prediction`: 11-12ms, 23,597 bytes.
+    - `/api/prediction`: 101-156ms, 52 bytes.
+    - `/teams`: 23-24ms, 49,096 bytes.
+    - `/rankings`: 19-20ms, 48,738 bytes.
+    - `/board`: 16-17ms, 38,524 bytes.
+- Browser smoke:
+  - `/entry`: no console errors; DOM probe returned
+    `2 selects|true entry|true auto`.
+  - `/rankings`: no console errors; DOM probe returned
+    `true team|true player|2 tables`.
+  - `/match`: no console errors; interactive snapshot showed the expected
+    `A팀 선수`, `B팀 선수`, `기세 분석`, and `매치 추가` controls.
+- Interpretation:
+  - Public HTML payloads are now clustered around the high-40KB range for the
+    formerly large routes: `/entry` 47.9KB, `/rankings` 48.7KB, `/teams`
+    49.1KB, and `/match` 49.9KB.
+  - No obvious large remaining public HTML outlier was found in this local
+    production table.
+  - The branch is locally a preview/deploy candidate, subject to operator
+    approval to push and inspect preview before any production rollout.
+- Push/deploy status: not pushed and not deployed.
+
+2026-06-14 entry page matchup payload dictionary packing:
+
+- Branch: `codex/match-page-performance-audit`.
+- Context:
+  - After `/match` tuple packing, the next largest public HTML candidates were
+    `/entry` at 56,493 bytes and `/rankings` at 56,370 bytes.
+  - `/entry` already packed H2H players as tuples, but still repeated `tier`
+    and `university` string values in each row.
+- TDD evidence:
+  - RED:
+    - `npm.cmd run test:matchup-page-shell-contract` failed because
+      `app/entry/page.tsx` still passed `packedPlayers`.
+    - `npm.cmd run test:matchup-helpers` failed because
+      `packMatchupPlayersPayload` did not exist.
+    - The first helper size assertion also showed that dictionary packing only
+      wins for realistically repeated payloads, not tiny three-row examples.
+  - GREEN:
+    - Added `PackedMatchupPlayersPayload` with shared `tiers` and
+      `universities` dictionaries in `lib/matchup-helpers.ts`.
+    - `app/entry/page.tsx` now passes `packedPlayersPayload` to `H2HLookup`.
+    - `components/stats/H2HLookup.tsx` unpacks the dictionary payload back into
+      the existing `MatchupPlayerSummary` shape. The older `packedPlayers`
+      prop remains supported for compatibility.
+- Payload rule:
+  - Player tuples now keep `id`, `name`, `nickname`, `race`, `gender`, plus
+    `tierIndex` and `universityIndex`.
+  - Missing university is encoded as `-1`.
+  - Entry UI behavior, filters, and H2H request identity stay object-shaped
+    after unpacking.
+- Local production measurement:
+  - Baseline from the previous local production smoke: `/entry` 56,493 bytes.
+  - After dictionary packing: `/entry` 200, 53,410 bytes.
+  - Observed HTML reduction: 3,083 bytes.
+  - Smoke comparison in the same run:
+    - `/match`: 200, 49,876 bytes.
+    - `/rankings`: 200, 56,370 bytes.
+  - `/entry` retained `Cache-Control: s-maxage=300,
+    stale-while-revalidate=31535700`.
+  - The rendered HTML contained `packedPlayersPayload` and did not contain the
+    old `"packedPlayers":` prop key.
+- Verification:
+  - `npm.cmd run test:matchup-page-shell-contract`
+  - `npm.cmd run test:matchup-helpers`
+  - `npm.cmd run test:matchup-h2h-fetch-contract`
+  - `npm.cmd run test:matchup-zero-h2h-cache-contract`
+  - `npx.cmd tsc --noEmit --incremental false`
+  - `npm.cmd run lint`
+  - `git diff --check`
+  - `npm.cmd run build`
+  - Local production `next start` smoke on port 3031 for `/entry`, `/match`,
+    and `/rankings`.
+- Build note:
+  - `npm.cmd run build` exited 0. The build log still included known sandbox
+    `EACCES` fetch warnings for Supabase/hero-media revalidation attempts.
+- Push/deploy status: not pushed and not deployed.

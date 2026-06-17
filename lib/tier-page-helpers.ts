@@ -1,4 +1,5 @@
 import type { Player } from "@/types";
+import type { TierPlayerPayload } from "@/lib/tier-player-payload";
 import { normalizeRace, normalizeTier } from "@/lib/utils";
 
 const RACE_ORDER: Record<string, number> = {
@@ -19,10 +20,12 @@ export const NAMED_TIER_LABELS = {
   baby: "베이비",
 } as const;
 
-export type NumericTierGroup = {
+export type TierPagePlayer = TierPlayerPayload & Partial<Pick<Player, "eloboard_id">>;
+
+export type NumericTierGroup<T extends TierPagePlayer = TierPagePlayer> = {
   tier: number;
   name: string;
-  players: Player[];
+  players: T[];
 };
 
 export type TierNavigationItem = {
@@ -30,7 +33,7 @@ export type TierNavigationItem = {
   name: string;
 };
 
-export function sortTierPlayers(players: Player[]) {
+export function sortTierPlayers<T extends TierPagePlayer>(players: T[]) {
   return [...players].sort((left, right) => {
     const leftRace = normalizeRace(left.race);
     const rightRace = normalizeRace(right.race);
@@ -51,8 +54,8 @@ function normalizeTierPageKey(tier: string | null | undefined) {
   return normalized;
 }
 
-export function filterTierPlayers(
-  players: Player[],
+export function filterTierPlayers<T extends TierPagePlayer>(
+  players: T[],
   {
     liveOnly = false,
     race = "",
@@ -96,7 +99,7 @@ export function filterTierPlayers(
   return playerList;
 }
 
-export function buildNamedTierPlayers(players: Player[]) {
+export function buildNamedTierPlayers<T extends TierPagePlayer>(players: T[]) {
   return {
     godPlayers: sortTierPlayers(players.filter((player) => normalizeTierPageKey(player.tier) === NAMED_TIER_LABELS.god)),
     kingPlayers: sortTierPlayers(players.filter((player) => normalizeTierPageKey(player.tier) === NAMED_TIER_LABELS.king)),
@@ -107,7 +110,7 @@ export function buildNamedTierPlayers(players: Player[]) {
   };
 }
 
-export function buildNumericTierGroups(players: Player[], numericTiers: number[]): NumericTierGroup[] {
+export function buildNumericTierGroups<T extends TierPagePlayer>(players: T[], numericTiers: number[]): NumericTierGroup<T>[] {
   return numericTiers
     .map((tier) => ({
       tier,
@@ -117,7 +120,7 @@ export function buildNumericTierGroups(players: Player[], numericTiers: number[]
     .filter((group) => group.players.length > 0);
 }
 
-export function buildCompactTeamTierPlayers(players: Player[], numericTiers: number[]) {
+export function buildCompactTeamTierPlayers<T extends TierPagePlayer>(players: T[], numericTiers: number[]) {
   const { godPlayers, kingPlayers, jackPlayers, jokerPlayers, spadePlayers, babyPlayers } = buildNamedTierPlayers(players);
   const numericTierGroups = buildNumericTierGroups(players, numericTiers);
   const groupedIds = new Set(

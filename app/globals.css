@@ -258,6 +258,159 @@
     contain-intrinsic-size: auto 44rem;
   }
 
+  .e-select {
+    width: 100%;
+    appearance: none;
+    border-radius: 1rem;
+    border: 2px solid rgba(0, 168, 107, 0.2);
+    background: #000000;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 950;
+    color: #ffffff;
+    outline: none;
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  .e-select:focus {
+    border-color: var(--nzu-green);
+    box-shadow: 0 0 0 4px rgba(0, 168, 107, 0.1);
+  }
+
+  .e-caret {
+    pointer-events: none;
+    position: absolute;
+    right: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(0, 168, 107, 0.4);
+  }
+
+  .rk-shell {
+    overflow-x: auto;
+    border-radius: 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+  }
+
+  .rk-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .rk-hr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .rk-body > tr + tr {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .rk-row {
+    transition: background-color 0.15s ease;
+  }
+
+  .rk-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .rk-th,
+  .rk-td {
+    padding: 1.25rem 2rem;
+  }
+
+  .rk-th {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 950;
+    letter-spacing: -0.01em;
+  }
+
+  .rk-team {
+    color: rgb(110, 231, 183);
+  }
+
+  .rk-player {
+    color: rgb(125, 211, 252);
+  }
+
+  .rk-c {
+    text-align: center;
+  }
+
+  .rk-r {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    font-weight: 950;
+    font-style: italic;
+  }
+
+  .rk-r-top {
+    color: var(--nzu-green);
+  }
+
+  .rk-r-muted {
+    color: rgba(118, 145, 133, 0.4);
+  }
+
+  .rk-tn,
+  .rk-pn {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .rk-tn {
+    color: #ffffff;
+  }
+
+  .rk-pn {
+    color: var(--foreground);
+  }
+
+  .rk-muted,
+  .rk-uni {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .rk-muted {
+    color: var(--muted-foreground);
+  }
+
+  .rk-uni {
+    color: rgba(118, 145, 133, 0.6);
+  }
+
+  .rk-cf {
+    display: flex;
+    justify-content: center;
+  }
+
+  .rk-win,
+  .rk-loss {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 950;
+  }
+
+  .rk-win {
+    color: #ffffff;
+  }
+
+  .rk-loss {
+    color: rgba(118, 145, 133, 0.4);
+  }
+
   /* LIVE 배지 애니메이션 */
   .live-dot {
     animation: live-pulse 1.5s ease-in-out infinite;

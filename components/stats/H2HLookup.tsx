@@ -6,7 +6,17 @@ import { Activity, Plus, RotateCcw, Swords, Trophy, X, Zap } from 'lucide-react'
 
 import { RaceLetterBadge } from '@/components/ui/race-letter-badge'
 import { TierBadge, getTierTone } from '@/components/ui/nzu-badges'
-import { buildH2HCacheKey, fetchH2HStats, filterMatchupPlayers, reportMatchupRuntimeIssue, type MatchupPlayerSummary } from '@/lib/matchup-helpers'
+import {
+  buildH2HCacheKey,
+  fetchH2HStats,
+  filterMatchupPlayers,
+  reportMatchupRuntimeIssue,
+  unpackMatchupPlayersPayload,
+  unpackMatchupPlayerSummaries,
+  type MatchupPlayerSummary,
+  type PackedMatchupPlayersPayload,
+  type PackedMatchupPlayerSummary,
+} from '@/lib/matchup-helpers'
 import { getTierSortWeight } from '@/lib/tier-order'
 import { getUniversityLabel, UNIVERSITY_MAP } from '@/lib/university-config'
 import { cn, normalizeTier } from '@/lib/utils'
@@ -30,11 +40,14 @@ type Match = {
 
 type H2HLookupProps = {
   players?: MatchupPlayerSummary[]
+  packedPlayers?: PackedMatchupPlayerSummary[]
+  packedPlayersPayload?: PackedMatchupPlayersPayload
   recentMatches?: unknown[]
   universityOptions?: UniversityOption[]
 }
 
 const EXCLUDED_TIERS = ['미정', '조커', '스페이드']
+const EMPTY_PACKED_PLAYERS: PackedMatchupPlayerSummary[] = []
 
 function getMatchupStats(stats: H2HStats | null | undefined) {
   if (!stats) return null
@@ -78,9 +91,16 @@ function buildGroupedMatches(matchList: Match[]) {
 }
 
 export default function H2HLookup({
-  players: initialPlayers = [],
+  players,
+  packedPlayers = EMPTY_PACKED_PLAYERS,
+  packedPlayersPayload,
   universityOptions = [],
 }: H2HLookupProps) {
+  const initialPlayers = useMemo(() => {
+    if (players) return players
+    if (packedPlayersPayload) return unpackMatchupPlayersPayload(packedPlayersPayload)
+    return unpackMatchupPlayerSummaries(packedPlayers)
+  }, [packedPlayers, packedPlayersPayload, players])
   const [p1, setP1] = useState<Player | null>(null)
   const [p2, setP2] = useState<Player | null>(null)
   const [results, setResults] = useState<H2HStats | null>(null)
@@ -369,7 +389,7 @@ export default function H2HLookup({
                       resetEntryBoard()
                       setU1(event.target.value)
                     }}
-                    className="w-full appearance-none rounded-2xl border-2 border-nzu-green/20 bg-black px-6 py-4 text-base font-black text-white outline-none transition-all focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10"
+                    className="e-select"
                   >
                     <option value="">왼쪽 학교 선택</option>
                     {sortedUniversities.map((code) => (
@@ -378,7 +398,7 @@ export default function H2HLookup({
                       </option>
                     ))}
                   </select>
-                  <div className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-nzu-green/40">v</div>
+                  <div className="e-caret">v</div>
                 </div>
               </div>
 
@@ -417,7 +437,7 @@ export default function H2HLookup({
                       resetEntryBoard()
                       setU2(event.target.value)
                     }}
-                    className="w-full appearance-none rounded-2xl border-2 border-nzu-green/20 bg-black px-6 py-4 text-base font-black text-white outline-none transition-all focus:border-nzu-green focus:ring-4 focus:ring-nzu-green/10"
+                    className="e-select"
                   >
                     <option value="">오른쪽 학교 선택</option>
                     {sortedUniversities.map((code) => (
@@ -426,7 +446,7 @@ export default function H2HLookup({
                       </option>
                     ))}
                   </select>
-                  <div className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-nzu-green/40">v</div>
+                  <div className="e-caret">v</div>
                 </div>
               </div>
             </div>

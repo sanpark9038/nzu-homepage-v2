@@ -18,9 +18,20 @@ test("match route uses a server page to hydrate the client with initial players"
 
   assert.doesNotMatch(pageSource, /^['"]use client['"]/m);
   assert.match(pageSource, /playerService\.getCachedPlayersList\(\)/);
-  assert.match(pageSource, /mapPlayersToMatchupSummaries\(players\)/);
+  assert.match(pageSource, /mapPlayersToMatchPageSummaries\(players\)/);
+  assert.match(pageSource, /packMatchPagePlayerSummaries\(matchPagePlayers\)/);
+  assert.doesNotMatch(
+    pageSource,
+    /mapPlayersToMatchupSummaries\(players\)/,
+    "The match route should use the slimmer match-page hydration payload, not the shared entry/API payload"
+  );
   assert.match(pageSource, /initialPlayersLoadFailed = true/);
-  assert.match(pageSource, /<MatchPageClient initialPlayers=\{initialPlayers\} initialPlayersLoadFailed=\{initialPlayersLoadFailed\} \/>/);
+  assert.match(pageSource, /<MatchPageClient packedInitialPlayers=\{packedInitialPlayers\} initialPlayersLoadFailed=\{initialPlayersLoadFailed\} \/>/);
+  assert.doesNotMatch(
+    pageSource,
+    /<MatchPageClient initialPlayers=\{initialPlayers\}/,
+    "Match should avoid hydrating repeated object keys for every initial player"
+  );
 });
 
 test("match client keeps an API fallback only when server hydration failed", () => {
@@ -29,9 +40,9 @@ test("match client keeps an API fallback only when server hydration failed", () 
   const helperSource = readProjectFile("lib/matchup-helpers.ts");
 
   assert.match(clientSource, /^\uFEFF?['"]use client['"]/m);
-  assert.match(clientSource, /initialPlayers:\s*MatchupPlayerSummary\[\]/);
+  assert.match(clientSource, /packedInitialPlayers:\s*PackedMatchPagePlayerSummary\[\]/);
   assert.match(clientSource, /initialPlayersLoadFailed:\s*boolean/);
-  assert.match(clientSource, /useState<Player\[\]>\(initialPlayers\)/);
+  assert.match(clientSource, /unpackMatchPagePlayerSummaries\(packedInitialPlayers\)/);
   assert.match(clientSource, /if \(!initialPlayersLoadFailed\)/);
   assert.match(clientSource, /fetchMatchupPlayers\(\)/);
   assert.doesNotMatch(
@@ -41,10 +52,80 @@ test("match client keeps an API fallback only when server hydration failed", () 
   );
 });
 
+test("match client does not ship disabled entry-board panel code", () => {
+  const clientSource = readProjectFile("app/match/MatchPageClient.tsx");
+
+  assert.doesNotMatch(
+    clientSource,
+    /SHOW_ENTRY_BOARD_PANEL/,
+    "Hard-disabled feature flags should not leave inactive JSX in the public match client bundle"
+  );
+  assert.doesNotMatch(
+    clientSource,
+    /EntryBoardSidePanel/,
+    "The inactive entry-board side panel should stay out of the shipped match client module"
+  );
+  assert.doesNotMatch(
+    clientSource,
+    /\b(?:MonitorUp|RadioTower|LayoutPanelLeft|Link2)\b/,
+    "Icons used only by the inactive entry-board panel should not be imported by the match client"
+  );
+});
+
 test("public matchup players API exposes CDN cache headers for fallback loads", () => {
   const routeSource = readProjectFile("app/api/players/route.ts");
 
   assert.match(routeSource, /export\s+const\s+revalidate\s*=\s*300/);
   assert.match(routeSource, /Cache-Control/);
   assert.match(routeSource, /s-maxage=300,\s*stale-while-revalidate=31536000/);
+});
+
+test("entry route packs H2H players before hydrating the client", () => {
+  const pageSource = readProjectFile("app/entry/page.tsx");
+  const clientSource = readProjectFile("components/stats/H2HLookup.tsx");
+
+  assert.match(pageSource, /packMatchupPlayersPayload/);
+  assert.match(pageSource, /const packedPlayersPayload = packMatchupPlayersPayload\(matchupPlayers\)/);
+  assert.match(pageSource, /<H2HLookup packedPlayersPayload=\{packedPlayersPayload\} universityOptions=\{universityOptions\} \/>/);
+  assert.doesNotMatch(
+    pageSource,
+    /<H2HLookup players=\{matchupPlayers\}/,
+    "Entry should avoid sending repeated object keys for every initial H2H player"
+  );
+  assert.doesNotMatch(
+    pageSource,
+    /<H2HLookup packedPlayers=\{packedPlayers\}/,
+    "Entry should avoid sending repeated tier and university strings for every initial H2H player"
+  );
+  assert.match(clientSource, /packedPlayers\?:\s*PackedMatchupPlayerSummary\[\]/);
+  assert.match(clientSource, /packedPlayersPayload\?:\s*PackedMatchupPlayersPayload/);
+  assert.match(clientSource, /unpackMatchupPlayersPayload\(packedPlayersPayload\)/);
+});
+
+test("entry H2H controls use short classes for repeated select markup", () => {
+  const clientSource = readProjectFile("components/stats/H2HLookup.tsx");
+  const cssSource = readProjectFile("app/globals.css");
+
+  assert.match(clientSource, /className="e-select"/);
+  assert.match(clientSource, /className="e-caret"/);
+  assert.match(cssSource, /\.e-select/);
+  assert.match(cssSource, /\.e-caret/);
+
+  const repeatedSelectClassCount = (
+    clientSource.match(/w-full appearance-none rounded-2xl border-2 border-nzu-green\/20 bg-black px-6 py-4/g) || []
+  ).length;
+  assert.equal(
+    repeatedSelectClassCount,
+    0,
+    "Entry should keep repeated university select styling behind a short class alias"
+  );
+
+  const repeatedCaretClassCount = (
+    clientSource.match(/pointer-events-none absolute right-5 top-1\/2 -translate-y-1\/2 text-nzu-green\/40/g) || []
+  ).length;
+  assert.equal(
+    repeatedCaretClassCount,
+    0,
+    "Entry should keep repeated university select caret styling behind a short class alias"
+  );
 });

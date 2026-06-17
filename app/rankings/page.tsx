@@ -121,32 +121,32 @@ export default async function RankingsPage() {
             <div className="h-px flex-1 bg-gradient-to-r from-nzu-green/30 to-transparent" />
           </div>
           
-          <div className="overflow-x-auto rounded-[2.5rem] border border-white/10 bg-white/5 backdrop-blur-xl">
-            <table className="w-full text-left border-collapse">
+          <div className="rk-shell">
+            <table className="rk-table">
               <thead>
-                <tr className="bg-white/5 border-b border-white/10">
-                  <th className="px-8 py-5 text-lg font-black tracking-tight text-emerald-300">순위</th>
-                  <th className="px-8 py-5 text-lg font-black tracking-tight text-emerald-300">대회팀명</th>
-                  <th className="px-8 py-5 text-lg font-black tracking-tight text-emerald-300 text-center">승</th>
-                  <th className="px-8 py-5 text-lg font-black tracking-tight text-emerald-300 text-center">패</th>
+                <tr className="rk-hr">
+                  <th className="rk-th rk-team">순위</th>
+                  <th className="rk-th rk-team">대회팀명</th>
+                  <th className="rk-th rk-team rk-c">승</th>
+                  <th className="rk-th rk-team rk-c">패</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="rk-body">
                 {rankedTeams.map((t) => (
-                  <tr key={t.teamCode} className="group hover:bg-white/5 transition-colors">
-                    <td className="px-8 py-5">
-                      <span className={`text-lg font-black italic ${t.rank <= 3 ? 'text-nzu-green' : 'text-muted-foreground/40'}`}>
+                  <tr key={t.teamCode} className="rk-row">
+                    <td className="rk-td">
+                      <span className={`rk-r ${t.rank <= 3 ? "rk-r-top" : "rk-r-muted"}`}>
                         {t.rank}
                       </span>
                     </td>
-                    <td className="px-8 py-5">
-                      <span className="text-base font-bold tracking-tight text-white">{t.teamName}</span>
+                    <td className="rk-td">
+                      <span className="rk-tn">{t.teamName}</span>
                     </td>
-                    <td className="px-8 py-5 text-center">
-                      <span className="text-xl font-black text-white">{t.wins}</span>
+                    <td className="rk-td rk-c">
+                      <span className="rk-win">{t.wins}</span>
                     </td>
-                    <td className="px-8 py-5 text-center">
-                      <span className="text-xl font-black text-muted-foreground/40">{t.losses}</span>
+                    <td className="rk-td rk-c">
+                      <span className="rk-loss">{t.losses}</span>
                     </td>
                   </tr>
                 ))}
@@ -161,52 +161,52 @@ export default async function RankingsPage() {
             <div className="h-px flex-1 bg-gradient-to-r from-nzu-green/30 to-transparent" />
           </div>
           
-          <div className="overflow-x-auto rounded-[2.5rem] border border-white/10 bg-white/5 backdrop-blur-xl">
-              <table className="w-full text-left border-collapse">
+          <div className="rk-shell">
+              <table className="rk-table">
                 <thead>
-                  <tr className="bg-white/5 border-b border-white/10">
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300">순위</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300">선수명</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300">대회팀명</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300">소속대학</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300 text-center">종족</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300 text-center">티어</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300 text-center">승</th>
-                    <th className="px-8 py-5 text-lg font-black tracking-tight text-sky-300 text-center">패</th>
+                  <tr className="rk-hr">
+                    <th className="rk-th rk-player">순위</th>
+                    <th className="rk-th rk-player">선수명</th>
+                    <th className="rk-th rk-player">대회팀명</th>
+                    <th className="rk-th rk-player">소속대학</th>
+                    <th className="rk-th rk-player rk-c">종족</th>
+                    <th className="rk-th rk-player rk-c">티어</th>
+                    <th className="rk-th rk-player rk-c">승</th>
+                    <th className="rk-th rk-player rk-c">패</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="rk-body">
                   {rankedPlayers.map((p) => (
-                    <tr key={p.id} className="group hover:bg-white/5 transition-colors">
-                      <td className="px-8 py-5">
-                        <span className={`text-lg font-black italic ${p.rank <= 3 ? 'text-nzu-green' : 'text-muted-foreground/40'}`}>
+                    <tr key={p.id} className="rk-row">
+                      <td className="rk-td">
+                        <span className={`rk-r ${p.rank <= 3 ? "rk-r-top" : "rk-r-muted"}`}>
                           {p.rank}
                         </span>
                       </td>
-                      <td className="px-8 py-5">
-                        <span className="text-base font-bold tracking-tight text-foreground">{p.name}</span>
+                      <td className="rk-td">
+                        <span className="rk-pn">{p.name}</span>
                       </td>
-                      <td className="px-8 py-5">
-                        <span className="text-sm font-bold tracking-tight text-muted-foreground">{p.teamName}</span>
+                      <td className="rk-td">
+                        <span className="rk-muted">{p.teamName}</span>
                       </td>
-                      <td className="px-8 py-5">
-                        <span className="text-sm font-bold tracking-tight text-muted-foreground/60">{p.university}</span>
+                      <td className="rk-td">
+                        <span className="rk-uni">{p.university}</span>
                       </td>
-                      <td className="px-8 py-5 text-center">
-                        <div className="flex justify-center">
+                      <td className="rk-td rk-c">
+                        <div className="rk-cf">
                           <RaceTag race={p.race as Race} size="sm" />
                         </div>
                       </td>
-                      <td className="px-8 py-5 text-center">
-                        <div className="flex justify-center">
+                      <td className="rk-td rk-c">
+                        <div className="rk-cf">
                           <TierBadge tier={p.tier || "미정"} size="xs" />
                         </div>
                       </td>
-                      <td className="px-8 py-5 text-center">
-                        <span className="text-xl font-black text-white">{p.wins}</span>
+                      <td className="rk-td rk-c">
+                        <span className="rk-win">{p.wins}</span>
                       </td>
-                      <td className="px-8 py-5 text-center">
-                        <span className="text-xl font-black text-muted-foreground/40">{p.losses}</span>
+                      <td className="rk-td rk-c">
+                        <span className="rk-loss">{p.losses}</span>
                       </td>
                     </tr>
                   ))}

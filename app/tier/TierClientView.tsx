@@ -18,17 +18,15 @@ import {
   buildNumericTierGroups,
   buildTierNavigation,
 } from "@/lib/tier-page-helpers";
-import type { Player } from "@/types";
+import {
+  unpackTierPlayersPayload,
+  type PackedTierPlayersPayload,
+  type TierPlayersPayload,
+} from "@/lib/tier-player-payload";
 
 type TierClientViewProps = {
   queryString: string;
   universityOptions: UniversityMetadataEntry[];
-};
-
-type TierPlayersPayload = {
-  liveOnly: boolean;
-  players: Player[];
-  generatedAt: string;
 };
 
 type TierLoadState = {
@@ -70,7 +68,7 @@ function loadTierPlayers(apiUrl: string) {
   const request = fetch(apiUrl, { cache: isLiveTierApiUrl(apiUrl) ? "no-store" : "default" })
     .then((response) => {
       if (!response.ok) throw new Error(`tier_players_${response.status}`);
-      return response.json() as Promise<TierPlayersPayload>;
+      return response.json().then((payload: PackedTierPlayersPayload) => unpackTierPlayersPayload(payload));
     })
     .catch((err) => {
       tierPlayersRequestCache.delete(apiUrl);

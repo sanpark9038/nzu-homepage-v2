@@ -67,9 +67,21 @@ const {
   getMatchupTierBadgeLetter,
   getMatchupTierKey,
   getSharedMatchupGender,
+  mapPlayerToMatchPageSummary,
   mapPlayerToMatchupSummary,
+  mapPlayersToMatchPageSummaries,
   mapPlayersToMatchupSummaries,
   normalizeMatchupSearchText,
+  packMatchPagePlayerSummaries,
+  packMatchPagePlayerSummary,
+  packMatchupPlayersPayload,
+  packMatchupPlayerSummaries,
+  packMatchupPlayerSummary,
+  unpackMatchPagePlayerSummaries,
+  unpackMatchPagePlayerSummary,
+  unpackMatchupPlayersPayload,
+  unpackMatchupPlayerSummaries,
+  unpackMatchupPlayerSummary,
 } = loadProjectModule(path.join(repoRoot, "lib", "matchup-helpers.ts"));
 
 test("mapPlayerToMatchupSummary preserves nullable fields and defaults race/tier", () => {
@@ -118,6 +130,190 @@ test("mapPlayersToMatchupSummaries keeps one shared public contract", () => {
   assert.equal(summaries[1]?.race, "R");
   assert.equal(summaries[1]?.tier, "미정");
   assert.equal(summaries[1]?.university, null);
+});
+
+test("mapPlayersToMatchPageSummaries keeps only fields used by the match page", () => {
+  const summary = mapPlayerToMatchPageSummary({
+    id: "p1",
+    name: "alpha",
+    nickname: "a",
+    race: "",
+    gender: "female",
+    tier: "1",
+    university: "B.A",
+  });
+
+  assert.deepEqual(summary, {
+    id: "p1",
+    name: "alpha",
+    nickname: "a",
+    race: "R",
+    gender: "female",
+  });
+  assert.equal(Object.hasOwn(summary, "tier"), false);
+  assert.equal(Object.hasOwn(summary, "university"), false);
+
+  assert.deepEqual(
+    mapPlayersToMatchPageSummaries([
+      {
+        id: "p2",
+        name: "beta",
+        nickname: null,
+        race: "Zerg",
+        gender: null,
+        tier: null,
+        university: null,
+      },
+    ]),
+    [
+      {
+        id: "p2",
+        name: "beta",
+        nickname: null,
+        race: "Zerg",
+        gender: null,
+      },
+    ]
+  );
+});
+
+test("packed matchup player summaries preserve entry fields with smaller JSON", () => {
+  const players = [
+    {
+      id: "p1",
+      name: "alpha",
+      nickname: "a",
+      race: "P",
+      gender: "female",
+      tier: "1",
+      university: "B.A",
+    },
+    {
+      id: "p2",
+      name: "beta",
+      nickname: null,
+      race: "T",
+      gender: null,
+      tier: "미정",
+      university: null,
+    },
+  ];
+
+  const packedOne = packMatchupPlayerSummary(players[0]);
+  assert.deepEqual(packedOne, ["p1", "alpha", "a", "P", "female", "1", "B.A"]);
+  assert.equal(Array.isArray(packedOne), true);
+  assert.equal(Object.hasOwn(packedOne, "name"), false);
+  assert.deepEqual(unpackMatchupPlayerSummary(packedOne), players[0]);
+
+  const packed = packMatchupPlayerSummaries(players);
+  assert.deepEqual(unpackMatchupPlayerSummaries(packed), players);
+  assert.ok(
+    JSON.stringify(packed).length < JSON.stringify(players).length,
+    "Packed entry hydration should avoid repeated object keys"
+  );
+});
+
+test("packed matchup players payload dictionaries repeated tier and university values", () => {
+  const players = [
+    {
+      id: "p1",
+      name: "alpha",
+      nickname: "a",
+      race: "P",
+      gender: "female",
+      tier: "1",
+      university: "B.A",
+    },
+    {
+      id: "p2",
+      name: "beta",
+      nickname: null,
+      race: "T",
+      gender: null,
+      tier: "미정",
+      university: null,
+    },
+    {
+      id: "p3",
+      name: "gamma",
+      nickname: null,
+      race: "Z",
+      gender: "male",
+      tier: "1",
+      university: "B.A",
+    },
+    ...Array.from({ length: 40 }, (_, index) => ({
+      id: `px${index}`,
+      name: `player-${index}`,
+      nickname: null,
+      race: index % 3 === 0 ? "P" : index % 3 === 1 ? "T" : "Z",
+      gender: null,
+      tier: "1",
+      university: "B.A",
+    })),
+  ];
+
+  const packedRows = packMatchupPlayerSummaries(players);
+  const payload = packMatchupPlayersPayload(players);
+
+  assert.deepEqual(payload.tiers, ["1", "미정"]);
+  assert.deepEqual(payload.universities, ["B.A"]);
+  assert.deepEqual(payload.players.slice(0, 3), [
+    ["p1", "alpha", "P", 0, 0],
+    ["p2", "beta", "T", 1, -1],
+    ["p3", "gamma", "Z", 0, 0],
+  ]);
+  assert.deepEqual(unpackMatchupPlayersPayload(payload).slice(0, 3), [
+    { id: "p1", name: "alpha", nickname: null, race: "P", gender: null, tier: "1", university: "B.A" },
+    { id: "p2", name: "beta", nickname: null, race: "T", gender: null, tier: "미정", university: null },
+    { id: "p3", name: "gamma", nickname: null, race: "Z", gender: null, tier: "1", university: "B.A" },
+  ]);
+  assert.equal(
+    JSON.stringify(payload).includes("female"),
+    false,
+    "Entry dictionary payload should omit gender because canonical ids drive H2H"
+  );
+  assert.equal(
+    JSON.stringify(payload).includes('"a"'),
+    false,
+    "Entry dictionary payload should omit nickname because the entry flow uses display name plus canonical ids"
+  );
+  assert.ok(
+    JSON.stringify(payload).length < JSON.stringify(packedRows).length,
+    "Packed entry payload should avoid repeated tier and university values"
+  );
+});
+
+test("packed match page player summaries preserve match fields with smaller JSON", () => {
+  const players = [
+    {
+      id: "p1",
+      name: "alpha",
+      nickname: "a",
+      race: "P",
+      gender: "female",
+    },
+    {
+      id: "p2",
+      name: "beta",
+      nickname: null,
+      race: "T",
+      gender: null,
+    },
+  ];
+
+  const packedOne = packMatchPagePlayerSummary(players[0]);
+  assert.deepEqual(packedOne, ["p1", "alpha", "a", "P", "female"]);
+  assert.equal(Array.isArray(packedOne), true);
+  assert.equal(Object.hasOwn(packedOne, "name"), false);
+  assert.deepEqual(unpackMatchPagePlayerSummary(packedOne), players[0]);
+
+  const packed = packMatchPagePlayerSummaries(players);
+  assert.deepEqual(unpackMatchPagePlayerSummaries(packed), players);
+  assert.ok(
+    JSON.stringify(packed).length < JSON.stringify(players).length,
+    "Packed match hydration should avoid repeated object keys"
+  );
 });
 
 test("shared gender only applies when both sides match", () => {

@@ -46,6 +46,7 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(clientViewSource, /TIER_STATIC_REQUEST_CACHE_MS = 5 \* 60 \* 1000/);
   assert.match(clientViewSource, /type TierPlayersCacheEntry/);
   assert.match(clientViewSource, /function loadTierPlayers/);
+  assert.match(clientViewSource, /unpackTierPlayersPayload/);
   assert.match(clientViewSource, /tierPlayersRequestCache\.get\(apiUrl\)/);
   assert.match(clientViewSource, /cachedRequest\.expiresAt > now/);
   assert.match(clientViewSource, /tierPlayersRequestCache\.delete\(apiUrl\)/);
@@ -71,10 +72,13 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(apiRouteSource, /export\s+const\s+revalidate\s*=\s*60/);
   assert.match(apiRouteSource, /playerService\.getCachedPlayersList\(\)/);
   assert.match(apiRouteSource, /playerService\.getLivePlayers\(\)/);
-  assert.match(apiRouteSource, /id: player\.id/);
-  assert.match(apiRouteSource, /nickname: player\.nickname/);
-  assert.match(apiRouteSource, /channel_profile_image_url: player\.channel_profile_image_url/);
-  assert.match(apiRouteSource, /live_thumbnail_url: player\.live_thumbnail_url/);
+  assert.match(apiRouteSource, /buildPackedTierPlayersPayload/);
+  assert.match(apiRouteSource, /buildPackedTierPlayersPayload\(players,\s*\{/);
+  assert.doesNotMatch(apiRouteSource, /players:\s*players\.map\(buildTierPlayerPayload\)/);
+  assert.doesNotMatch(apiRouteSource, /broadcast_title:\s*player\.broadcast_title/);
+  assert.doesNotMatch(apiRouteSource, /channel_profile_image_url:\s*player\.channel_profile_image_url/);
+  assert.doesNotMatch(apiRouteSource, /live_thumbnail_url:\s*player\.live_thumbnail_url/);
+  assert.doesNotMatch(apiRouteSource, /photo_url:\s*player\.photo_url/);
   assert.doesNotMatch(apiRouteSource, /playerNames:/);
   assert.doesNotMatch(apiRouteSource, /tier_rank: player\.tier_rank/);
   assert.doesNotMatch(apiRouteSource, /eloboard_id: player\.eloboard_id/);
@@ -112,6 +116,28 @@ test("tier grids use a lightweight tier card instead of hydrating the shared pla
   assert.match(compactGridSource, /TierPlayerCard/);
   assert.doesNotMatch(tierGroupSource, /<PlayerCard\b/);
   assert.doesNotMatch(compactGridSource, /<PlayerCard\b/);
+});
+
+test("tier live player service uses a short cached live-player query", () => {
+  const source = readProjectFile("lib/player-service.ts");
+  const methodStart = source.indexOf("async getLivePlayers");
+  const methodEnd = source.indexOf("async getPlayerMatches", methodStart);
+
+  assert.notEqual(methodStart, -1);
+  assert.notEqual(methodEnd, -1);
+
+  assert.match(source, /const fetchCachedLivePlayersForList = unstable_cache/);
+  assert.match(source, /\["public-live-players-list-v1"\]/);
+  assert.match(source, /revalidate:\s*60/);
+  assert.match(source, /tags:\s*\["public-live-players-list"\]/);
+
+  const methodSource = source.slice(methodStart, methodEnd);
+  assert.match(methodSource, /return\s+fetchCachedLivePlayersForList\(\)/);
+  assert.doesNotMatch(
+    methodSource,
+    /\.from\("players"\)[\s\S]*?\.select\(PLAYER_LIST_SELECT\[0\]\)/,
+    "Tier live API should go through the short live-player data cache"
+  );
 });
 
 test("tier groups defer offscreen layout and paint work without removing cards from the DOM", () => {

@@ -1,11 +1,11 @@
 import { getUniversityLabel } from "@/lib/university-config";
-import type { Player } from "@/types";
+import type { TierPlayerPayload } from "@/lib/tier-player-payload";
 
 import { TierPlayerCard } from "./TierPlayerCard";
 import { TIER_PLAYER_GRID_CLASS } from "./tier-grid-layout";
 
 type TeamTierCompactGridProps = {
-  players: Player[];
+  players: TierPlayerPayload[];
   selectedUniversity: string;
 };
 

@@ -6,14 +6,14 @@ import { TierBadge } from "@/components/ui/nzu-badges";
 import { mapPlayerToMatchupSummary } from "@/lib/matchup-helpers";
 import { buildPlayerHref } from "@/lib/player-route";
 import { buildSoopThumbnailProxyUrl, resolveSoopChannelImageUrl } from "@/lib/soop";
+import type { TierPlayerPayload } from "@/lib/tier-player-payload";
 import { getUniversityLabel } from "@/lib/university-config";
 import { cn, normalizeRace } from "@/lib/utils";
-import type { Player } from "@/types";
 
 import { TierQuickH2HButton } from "./TierQuickH2HButton";
 
 type TierPlayerCardProps = {
-  player: Player;
+  player: TierPlayerPayload;
   className?: string;
 };
 
