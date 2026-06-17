@@ -259,11 +259,25 @@ test("packed matchup players payload dictionaries repeated tier and university v
   assert.deepEqual(payload.tiers, ["1", "미정"]);
   assert.deepEqual(payload.universities, ["B.A"]);
   assert.deepEqual(payload.players.slice(0, 3), [
-    ["p1", "alpha", "a", "P", "female", 0, 0],
-    ["p2", "beta", null, "T", null, 1, -1],
-    ["p3", "gamma", null, "Z", "male", 0, 0],
+    ["p1", "alpha", "P", 0, 0],
+    ["p2", "beta", "T", 1, -1],
+    ["p3", "gamma", "Z", 0, 0],
   ]);
-  assert.deepEqual(unpackMatchupPlayersPayload(payload), players);
+  assert.deepEqual(unpackMatchupPlayersPayload(payload).slice(0, 3), [
+    { id: "p1", name: "alpha", nickname: null, race: "P", gender: null, tier: "1", university: "B.A" },
+    { id: "p2", name: "beta", nickname: null, race: "T", gender: null, tier: "미정", university: null },
+    { id: "p3", name: "gamma", nickname: null, race: "Z", gender: null, tier: "1", university: "B.A" },
+  ]);
+  assert.equal(
+    JSON.stringify(payload).includes("female"),
+    false,
+    "Entry dictionary payload should omit gender because canonical ids drive H2H"
+  );
+  assert.equal(
+    JSON.stringify(payload).includes('"a"'),
+    false,
+    "Entry dictionary payload should omit nickname because the entry flow uses display name plus canonical ids"
+  );
   assert.ok(
     JSON.stringify(payload).length < JSON.stringify(packedRows).length,
     "Packed entry payload should avoid repeated tier and university values"

@@ -25,9 +25,7 @@ export type PackedMatchupPlayerSummary = [
 export type PackedMatchupPayloadPlayer = [
   id: string,
   name: string,
-  nickname: string | null,
   race: string,
-  gender: string | null,
   tierIndex: number,
   universityIndex: number,
 ];
@@ -155,9 +153,7 @@ export function packMatchupPlayersPayload(players: MatchupPlayerSummary[]): Pack
       return [
         player.id,
         player.name,
-        player.nickname || null,
         player.race || "R",
-        player.gender || null,
         tierIndex,
         universityIndex,
       ];
@@ -169,11 +165,11 @@ export function unpackMatchupPlayersPayload(payload: PackedMatchupPlayersPayload
   return payload.players.map((packed): MatchupPlayerSummary => ({
     id: packed[0],
     name: packed[1],
-    nickname: packed[2],
-    race: packed[3] || "R",
-    gender: packed[4],
-    tier: payload.tiers[packed[5]] || UNKNOWN_TIER_KEY,
-    university: packed[6] >= 0 ? payload.universities[packed[6]] ?? null : null,
+    nickname: null,
+    race: packed[2] || "R",
+    gender: null,
+    tier: payload.tiers[packed[3]] || UNKNOWN_TIER_KEY,
+    university: packed[4] >= 0 ? payload.universities[packed[4]] ?? null : null,
   }));
 }
 
