@@ -78,7 +78,7 @@ export async function PlayerPageView({
   } else if (hasQuery) {
     const results = await playerService.searchPlayers(normalizedQuery);
     const exact = results.find((player) => isExactPlayerSearchMatch(player, normalizedQuery)) || null;
-    exactMatch = exact ? await playerService.getPlayerById(exact.id).catch(() => exact) : null;
+    exactMatch = exact;
     candidates = exact ? results.filter((player) => player.id !== exact.id) : results;
   }
 

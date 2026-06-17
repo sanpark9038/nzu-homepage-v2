@@ -100,8 +100,41 @@ test("player canonical redirects are not swallowed by lookup catch blocks", () =
   for (const block of [...indexTryBlocks, ...queryTryBlocks, ...routeTryBlocks]) {
     assert.doesNotMatch(block, /redirect\(/);
   }
-  assert.match(querySource, /if\s*\(redirectHref\)\s*redirect\(redirectHref\)/);
   assert.match(routeSource, /if\s*\(redirectHref\)\s*redirect\(redirectHref\)/);
+});
+
+test("exact player search stays on the fast collapsed query result path", () => {
+  const querySource = readProjectFile("app/player/query/page.tsx");
+  const viewSource = readProjectFile("app/player/player-page-view.tsx");
+
+  assert.doesNotMatch(
+    querySource,
+    /if\s*\(\s*query\s*\)\s*{[\s\S]*?redirect\(/,
+    "Exact query search should not immediately redirect into the expanded dynamic player detail route"
+  );
+  assert.match(
+    querySource,
+    /return\s+<PlayerPageView\s+query=\{params\?\.query\}\s+selectedId=\{params\?\.id\}\s*\/>/,
+    "Query URLs should render the shared search view so exact matches can stay collapsed"
+  );
+  assert.match(
+    viewSource,
+    /const\s+shouldExpandDetailByDefault\s*=\s*hasSelectedId/,
+    "Only explicit selected-player routes should expand detail summaries by default"
+  );
+
+  const queryBranchStart = viewSource.indexOf("} else if (hasQuery) {");
+  const queryBranchEnd = viewSource.indexOf("  }\n\n  if (exactMatch)", queryBranchStart);
+  assert.notEqual(queryBranchStart, -1);
+  assert.notEqual(queryBranchEnd, -1);
+
+  const queryBranchSource = viewSource.slice(queryBranchStart, queryBranchEnd);
+  assert.match(queryBranchSource, /const\s+results\s*=\s*await\s+playerService\.searchPlayers\(normalizedQuery\)/);
+  assert.doesNotMatch(
+    queryBranchSource,
+    /playerService\.getPlayerById\(/,
+    "Exact query search should use the cached-list search result and defer detail-row reads until expansion"
+  );
 });
 
 test("player canonical redirect comparison normalizes encoded route params", () => {
