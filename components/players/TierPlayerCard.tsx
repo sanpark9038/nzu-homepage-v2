@@ -5,7 +5,7 @@ import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
 import { TierBadge } from "@/components/ui/nzu-badges";
 import { mapPlayerToMatchupSummary } from "@/lib/matchup-helpers";
 import { buildPlayerHref } from "@/lib/player-route";
-import { buildSoopThumbnailProxyUrl, resolveSoopChannelImageUrl } from "@/lib/soop";
+import { normalizeSoopImageUrl, resolveSoopChannelImageUrl } from "@/lib/soop";
 import type { TierPlayerPayload } from "@/lib/tier-player-payload";
 import { getUniversityLabel } from "@/lib/university-config";
 import { cn, normalizeRace } from "@/lib/utils";
@@ -31,7 +31,7 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
   const matchupSummary = mapPlayerToMatchupSummary(player);
   const profileUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "/placeholder-player.svg";
   const liveThumbnailUrl = isLive
-    ? buildSoopThumbnailProxyUrl(player.live_thumbnail_url) || player.live_thumbnail_url || ""
+    ? normalizeSoopImageUrl(player.live_thumbnail_url) || ""
     : "";
 
   return (

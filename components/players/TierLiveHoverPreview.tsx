@@ -62,6 +62,11 @@ function getPreviewAnchor(target: EventTarget | null) {
   return target.closest("[data-live-thumbnail-hover-anchor]") as HTMLElement | null;
 }
 
+function withCacheBuster(url: string) {
+  const t = Math.floor(Date.now() / 60000);
+  return `${url}?t=${t}`;
+}
+
 export function TierLiveHoverPreviewLayer() {
   const activeAnchorRef = useRef<HTMLElement | null>(null);
   const activeThumbnailUrlRef = useRef<string | null>(null);
@@ -73,8 +78,43 @@ export function TierLiveHoverPreviewLayer() {
     useState<PreviewPosition | null>(null);
 
   useEffect(() => {
+    const prefetched = new Set<string>();
+    const observed = new Set<Element>();
+    const scrollRoot = document.getElementById("main-scroll-container");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const el = entry.target as HTMLElement;
+          const url = el.dataset.liveThumbnailUrl;
+          if (!url || prefetched.has(url)) return;
+          prefetched.add(url);
+          new window.Image().src = withCacheBuster(url);
+        });
+      },
+      { root: scrollRoot ?? null, rootMargin: "200px" }
+    );
+    const scanAnchors = () => {
+      document.querySelectorAll<HTMLElement>("[data-live-thumbnail-hover-anchor]").forEach((el) => {
+        if (!observed.has(el)) {
+          observed.add(el);
+          observer.observe(el);
+        }
+      });
+    };
+    scanAnchors();
+    const mutation = new MutationObserver(scanAnchors);
+    mutation.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      mutation.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
     const showPreview = (anchor: HTMLElement) => {
-      const thumbnailUrl = anchor.dataset.liveThumbnailUrl;
+      const rawUrl = anchor.dataset.liveThumbnailUrl;
+      const thumbnailUrl = rawUrl ? withCacheBuster(rawUrl) : undefined;
       const playerName = anchor.dataset.livePlayerName;
       const broadcastTitle = anchor.dataset.liveBroadcastTitle || null;
 
