@@ -16,7 +16,7 @@ import type {
   SpawnPartnerSummary,
 } from "@/lib/player-matchup-summary";
 import { normalizeRaceValue } from "@/lib/player-matchup-summary";
-import { buildSoopThumbnailProxyUrl, resolveSoopChannelImageUrl, resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
+import { normalizeSoopImageUrl, resolveSoopChannelImageUrl, resolveSoopChannelUrl, resolveSoopWatchUrl } from "@/lib/soop";
 import { getUniversityLabel } from "@/lib/university-config";
 import { cn, normalizeTier } from "@/lib/utils";
 
@@ -135,7 +135,7 @@ function PlayerSearchResultInner({
   const hasRaceBestMaps = raceBestMaps.some((item) => item.bestMap);
   const channelUrl = resolveSoopChannelUrl(player);
   const liveWatchUrl = player.is_live ? resolveSoopWatchUrl(player) : null;
-  const liveThumbnailUrl = buildSoopThumbnailProxyUrl(player.live_thumbnail_url) || player.live_thumbnail_url || "";
+  const liveThumbnailUrl = normalizeSoopImageUrl(player.live_thumbnail_url) || "";
   const canShowLiveThumbnail = Boolean(liveThumbnailUrl) && failedThumbnailSrc !== liveThumbnailUrl;
   const profileImageUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "/placeholder-player.svg";
   const profileImageSizes = "112px";

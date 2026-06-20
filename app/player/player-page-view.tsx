@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   buildPlayerDetailSummary,
   getEmptyPlayerDetailSummary,
+  getPrecomputedFullPlayerDetailSummary,
   getPrecomputedPlayerDetailSummary,
 } from "@/lib/player-detail-summary";
 import { buildPlayerHref } from "@/lib/player-route";
@@ -83,10 +84,16 @@ export async function PlayerPageView({
   }
 
   if (exactMatch) {
-    detailSummary = getPrecomputedPlayerDetailSummary(exactMatch);
+    const fullPrecomputed = getPrecomputedFullPlayerDetailSummary(exactMatch);
+    if (fullPrecomputed) {
+      detailSummary = fullPrecomputed;
+      detailSummaryLoaded = true;
+    } else {
+      detailSummary = getPrecomputedPlayerDetailSummary(exactMatch);
+    }
   }
 
-  if (exactMatch && shouldExpandDetailByDefault) {
+  if (exactMatch && shouldExpandDetailByDefault && !detailSummaryLoaded) {
     detailSummary = await buildPlayerDetailSummary(exactMatch);
     detailSummaryLoaded = true;
   }
