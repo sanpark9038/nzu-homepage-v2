@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import ManualTeamManager from "@/components/admin/roster/ManualTeamManager";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
-import { isAdminWriteDisabled } from "@/lib/admin-runtime";
 import { getUniversityOptionsFromDB } from "@/lib/university-metadata";
 import LogoutButton from "../ops/LogoutButton";
 import UniversityAdmin from "./UniversityAdmin";
@@ -18,7 +17,6 @@ export default async function AdminUniversitiesPage() {
   }
 
   const universities = await getUniversityOptionsFromDB(true);
-  const teamsReadOnly = isAdminWriteDisabled();
 
   return (
     <main className="min-h-screen bg-background p-6 text-foreground md:p-10">
@@ -47,7 +45,7 @@ export default async function AdminUniversitiesPage() {
               eloboard에 아직 수집되지 않은 팀을 미리 만들어두는 기능입니다. 생성 후 로스터 교정에서 선수를 배치합니다.
             </p>
           </div>
-          <ManualTeamManager readOnly={teamsReadOnly} />
+          <ManualTeamManager />
         </section>
       </div>
     </main>

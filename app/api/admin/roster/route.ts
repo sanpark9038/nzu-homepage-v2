@@ -523,12 +523,29 @@ export async function GET(req: Request) {
   }
   const players = Array.from(playerMap.values());
 
-  const teams = projects.map((p) => ({
-    code: p.doc.team_code,
-    name: p.doc.team_name,
-    players: Array.isArray(p.doc.roster) ? p.doc.roster.length : 0,
-    manual_managed: Boolean(p.doc.manual_managed),
-  }));
+  const fsTeamCodes = new Set(projects.map((p) => p.doc.team_code));
+  const { createSupabaseAdminClient } = await import("@/lib/supabase-admin");
+  const { data: dbManualTeams } = await createSupabaseAdminClient()
+    .from("manual_teams")
+    .select("code, name, name_en");
+  const dbOnlyTeams = (dbManualTeams ?? []).filter(
+    (t: { code: string; name: string; name_en: string | null }) => !fsTeamCodes.has(t.code)
+  );
+
+  const teams = [
+    ...projects.map((p) => ({
+      code: p.doc.team_code,
+      name: p.doc.team_name,
+      players: Array.isArray(p.doc.roster) ? p.doc.roster.length : 0,
+      manual_managed: Boolean(p.doc.manual_managed),
+    })),
+    ...dbOnlyTeams.map((t: { code: string; name: string; name_en: string | null }) => ({
+      code: t.code,
+      name: t.name,
+      players: 0,
+      manual_managed: true,
+    })),
+  ];
 
   return NextResponse.json({ ok: true, players, teams, tournament_teams: tournamentTeams });
 }
@@ -546,8 +563,9 @@ export async function POST(req: Request) {
   const action = String(body.action || "").trim();
   const allowTournamentHomeWrite =
     isTournamentHomeWriteAction(action) && isTournamentHomeSupabaseStoreEnabled();
+  const allowManualTeamWrite = action === "create_team" || action === "delete_team";
 
-  if (isAdminWriteDisabled() && !allowTournamentHomeWrite) {
+  if (isAdminWriteDisabled() && !allowTournamentHomeWrite && !allowManualTeamWrite) {
     return NextResponse.json(
       { ok: false, message: getAdminWriteDisabledMessage("tournament roster") },
       { status: 403 }
@@ -620,6 +638,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, message: "team_code is required" }, { status: 400 });
     }
 
+    if (isAdminWriteDisabled()) {
+      const { createSupabaseAdminClient } = await import("@/lib/supabase-admin");
+      const db = createSupabaseAdminClient();
+      const { data: dbTeam } = await db
+        .from("manual_teams")
+        .select("code, name")
+        .eq("code", teamCode)
+        .single();
+      if (!dbTeam) {
+        return NextResponse.json({ ok: false, message: "team not found" }, { status: 404 });
+      }
+      await db.from("manual_teams").delete().eq("code", teamCode);
+      return NextResponse.json({ ok: true, deleted: { team_code: teamCode, team_name: (dbTeam as { code: string; name: string }).name } });
+    }
+
     const projects = loadProjects();
     const target = projects.find((p) => p.doc.team_code === teamCode);
     if (!target) {
@@ -650,6 +683,21 @@ export async function POST(req: Request) {
 
   if (!teamCode || !teamName) {
     return NextResponse.json({ ok: false, message: "team_code and team_name are required" }, { status: 400 });
+  }
+
+  if (isAdminWriteDisabled()) {
+    const { createSupabaseAdminClient } = await import("@/lib/supabase-admin");
+    const db = createSupabaseAdminClient();
+    const { data: existing } = await db
+      .from("manual_teams")
+      .select("code, name")
+      .or(`code.eq.${teamCode},name.eq.${teamName}`);
+    if (existing && existing.length > 0) {
+      return NextResponse.json({ ok: false, message: "existing team code or name already exists" }, { status: 409 });
+    }
+    const { error } = await db.from("manual_teams").insert({ code: teamCode, name: teamName, name_en: teamNameEn || teamCode.toUpperCase() });
+    if (error) throw error;
+    return NextResponse.json({ ok: true, created: { team_code: teamCode, team_name: teamName } });
   }
 
   const projects = loadProjects();

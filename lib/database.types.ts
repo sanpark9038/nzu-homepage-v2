@@ -568,6 +568,27 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_teams: {
+        Row: {
+          code: string
+          name: string
+          name_en: string | null
+          created_at: string
+        }
+        Insert: {
+          code: string
+          name: string
+          name_en?: string | null
+          created_at?: string
+        }
+        Update: {
+          code?: string
+          name?: string
+          name_en?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
