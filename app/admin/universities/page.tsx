@@ -1,10 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { AdminReadonlyNotice } from "@/components/admin/AdminReadonlyNotice";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
-import { isAdminWriteDisabled } from "@/lib/admin-runtime";
-import { getUniversityOptions } from "@/lib/university-metadata";
+import { getUniversityOptionsFromDB } from "@/lib/university-metadata";
 import LogoutButton from "../ops/LogoutButton";
 import UniversityAdmin from "./UniversityAdmin";
 
@@ -17,8 +15,7 @@ export default async function AdminUniversitiesPage() {
     redirect("/admin/login?next=/admin/universities");
   }
 
-  const universities = getUniversityOptions(true);
-  const readOnly = isAdminWriteDisabled();
+  const universities = await getUniversityOptionsFromDB(true);
 
   return (
     <main className="min-h-screen bg-background p-6 text-foreground md:p-10">
@@ -35,8 +32,7 @@ export default async function AdminUniversitiesPage() {
           </p>
         </div>
 
-        {readOnly ? <AdminReadonlyNotice /> : null}
-        <UniversityAdmin initialUniversities={universities} readOnly={readOnly} />
+        <UniversityAdmin initialUniversities={universities} />
       </div>
     </main>
   );

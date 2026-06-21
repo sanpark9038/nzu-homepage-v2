@@ -1,7 +1,7 @@
 import H2HLookup from "@/components/stats/H2HLookup";
 import { mapPlayersToMatchupSummaries, packMatchupPlayersPayload } from "@/lib/matchup-helpers";
 import { playerService } from "@/lib/player-service";
-import { getUniversityOptions } from "@/lib/university-metadata";
+import { getUniversityOptionsFromDB } from "@/lib/university-metadata";
 
 export const revalidate = 300;
 
@@ -14,7 +14,7 @@ export default async function EntryPage() {
   const players = await playerService.getCachedPlayersList();
   const matchupPlayers = mapPlayersToMatchupSummaries(players);
   const packedPlayersPayload = packMatchupPlayersPayload(matchupPlayers);
-  const universityOptions = getUniversityOptions();
+  const universityOptions = await getUniversityOptionsFromDB();
 
   return (
     <div className="min-h-screen bg-background text-foreground">

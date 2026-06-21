@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { createClient } from "@supabase/supabase-js";
 import { UNIVERSITY_ALIAS_MAP, UNIVERSITY_MAP, type UniversityKey } from "@/lib/university-config";
 
 export type UniversityMetadataEntry = {
@@ -14,6 +15,14 @@ type UniversityMetadataDoc = {
   schema_version: string;
   updated_at: string;
   universities: UniversityMetadataEntry[];
+};
+
+type UniversityMetadataRow = {
+  code: string;
+  name: string;
+  stars: number | null;
+  aliases: string[] | null;
+  hidden: boolean | null;
 };
 
 const ROOT = process.cwd();
@@ -62,6 +71,20 @@ function normalizeEntry(entry: UniversityMetadataEntry): UniversityMetadataEntry
   };
 }
 
+function sortUniversityEntries(universities: UniversityMetadataEntry[]) {
+  return [...universities].sort((left, right) => {
+    const isFaLeft = left.code === "FA" || left.name === "무소속";
+    const isFaRight = right.code === "FA" || right.name === "무소속";
+    if (isFaLeft !== isFaRight) return isFaLeft ? 1 : -1;
+
+    const isKorean = (value: string) => /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(value);
+    if (isKorean(left.name) && !isKorean(right.name)) return -1;
+    if (!isKorean(left.name) && isKorean(right.name)) return 1;
+
+    return left.name.localeCompare(right.name, "ko");
+  });
+}
+
 export function readUniversityMetadata(): UniversityMetadataDoc {
   const fallback: UniversityMetadataDoc = {
     schema_version: "1.0.0",
@@ -83,7 +106,7 @@ export function readUniversityMetadata(): UniversityMetadataDoc {
   }
 
   try {
-    const raw = fs.readFileSync(UNIVERSITIES_PATH, "utf8").replace(/^\uFEFF/, "");
+    const raw = fs.readFileSync(UNIVERSITIES_PATH, "utf8").replace(/^﻿/, "");
     const parsed = JSON.parse(raw) as Partial<UniversityMetadataDoc>;
     const universities = Array.isArray(parsed.universities)
       ? parsed.universities.map(normalizeEntry).filter((entry) => entry.code)
@@ -119,21 +142,102 @@ export function writeUniversityMetadata(entries: UniversityMetadataEntry[]) {
   return doc;
 }
 
+// ── Supabase-backed async functions ──────────────────────────────────────────
+
+function createUniversityReadClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+
+function createUniversityWriteClient() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_KEY;
+  if (!key) throw new Error("missing_supabase_service_key");
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key);
+}
+
+async function fetchUniversitiesFromDB(): Promise<UniversityMetadataDoc | null> {
+  try {
+    const db = createUniversityReadClient();
+    const { data, error } = await db
+      .from("university_metadata")
+      .select("code, name, stars, aliases, hidden")
+      .order("code");
+    if (error || !Array.isArray(data)) return null;
+    return {
+      schema_version: "1.0.0",
+      updated_at: new Date().toISOString(),
+      universities: (data as UniversityMetadataRow[]).map((row) =>
+        normalizeEntry({
+          code: row.code,
+          name: row.name,
+          stars: row.stars ?? undefined,
+          aliases: row.aliases ?? [row.code],
+          hidden: row.hidden ?? false,
+        })
+      ),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function writeUniversityMetadataToDB(
+  entries: UniversityMetadataEntry[]
+): Promise<UniversityMetadataDoc> {
+  const db = createUniversityWriteClient();
+  const normalized = entries.map(normalizeEntry).filter((e) => e.code);
+
+  const { data: existing } = await db.from("university_metadata").select("code");
+  const existingCodes = new Set<string>(
+    ((existing ?? []) as { code: string }[]).map((r) => r.code)
+  );
+  const newCodes = new Set(normalized.map((e) => e.code));
+
+  const toDelete = [...existingCodes].filter((code) => !newCodes.has(code));
+  if (toDelete.length > 0) {
+    await db.from("university_metadata").delete().in("code", toDelete);
+  }
+
+  if (normalized.length > 0) {
+    const { error } = await db.from("university_metadata").upsert(
+      normalized.map((entry) => ({
+        code: entry.code,
+        name: entry.name,
+        stars: entry.stars ?? null,
+        aliases: entry.aliases ?? [entry.code],
+        hidden: entry.hidden ?? false,
+        updated_at: new Date().toISOString(),
+      }))
+    );
+    if (error) throw error;
+  }
+
+  return {
+    schema_version: "1.0.0",
+    updated_at: new Date().toISOString(),
+    universities: normalized,
+  };
+}
+
+export async function readUniversityMetadataFromDB(): Promise<UniversityMetadataDoc> {
+  const dbDoc = await fetchUniversitiesFromDB();
+  return dbDoc ?? readUniversityMetadata();
+}
+
+export async function getUniversityOptionsFromDB(includeHidden = false) {
+  const { universities } = await readUniversityMetadataFromDB();
+  const visible = includeHidden ? universities : universities.filter((entry) => !entry.hidden);
+  return sortUniversityEntries(visible);
+}
+
+// ── Sync file-based functions (local dev / scripts) ──────────────────────────
+
 export function getUniversityOptions(includeHidden = false) {
   const { universities } = readUniversityMetadata();
   const visible = includeHidden ? universities : universities.filter((entry) => !entry.hidden);
-
-  return [...visible].sort((left, right) => {
-    const isFaLeft = left.code === "FA" || left.name === "무소속";
-    const isFaRight = right.code === "FA" || right.name === "무소속";
-    if (isFaLeft !== isFaRight) return isFaLeft ? 1 : -1;
-
-    const isKorean = (value: string) => /[\u3131-\u314e\u314f-\u3163\uac00-\ud7a3]/.test(value);
-    if (isKorean(left.name) && !isKorean(right.name)) return -1;
-    if (!isKorean(left.name) && isKorean(right.name)) return 1;
-
-    return left.name.localeCompare(right.name, "ko");
-  });
+  return sortUniversityEntries(visible);
 }
 
 export function getUniversityNameMap(includeHidden = false) {

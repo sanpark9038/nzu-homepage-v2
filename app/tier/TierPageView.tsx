@@ -1,4 +1,4 @@
-import { getUniversityOptions } from "@/lib/university-metadata";
+import { getUniversityOptionsFromDB } from "@/lib/university-metadata";
 
 import { TierClientView } from "./TierClientView";
 
@@ -21,5 +21,5 @@ export async function TierPageView({ params = {} }: { params?: TierPageParams } 
     }, [])
   ).toString();
 
-  return <TierClientView queryString={queryString} universityOptions={getUniversityOptions()} />;
+  return <TierClientView queryString={queryString} universityOptions={await getUniversityOptionsFromDB()} />;
 }
