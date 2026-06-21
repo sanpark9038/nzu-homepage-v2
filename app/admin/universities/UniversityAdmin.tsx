@@ -40,6 +40,8 @@ export default function UniversityAdmin({
   const [universities, setUniversities] = useState<UniversityEntry[]>(initialUniversities);
   const [drafts, setDrafts] = useState<Record<string, UniversityEntry>>({});
   const [newEntry, setNewEntry] = useState<UniversityEntry>(EMPTY_FORM);
+  const [newAliasesText, setNewAliasesText] = useState("");
+  const [draftAliasesTexts, setDraftAliasesTexts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -60,6 +62,7 @@ export default function UniversityAdmin({
       if (!res.ok) throw new Error(json.message || "대학 목록을 불러오지 못했습니다.");
       setUniversities(json.universities || []);
       setDrafts({});
+      setDraftAliasesTexts({});
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "대학 목록을 불러오지 못했습니다.");
     } finally {
@@ -70,13 +73,7 @@ export default function UniversityAdmin({
   const updateDraft = (code: string, patch: Partial<UniversityEntry>) => {
     setDrafts((prev) => {
       const base = prev[code] || universities.find((entry) => entry.code === code) || EMPTY_FORM;
-      return {
-        ...prev,
-        [code]: {
-          ...base,
-          ...patch,
-        },
-      };
+      return { ...prev, [code]: { ...base, ...patch } };
     });
   };
 
@@ -85,14 +82,11 @@ export default function UniversityAdmin({
       setMessage(getAdminWriteDisabledMessage("대학 메타데이터 수정"));
       return;
     }
-    const payload = {
-      ...newEntry,
-      code: newEntry.code.trim().toUpperCase(),
-      name: newEntry.name.trim(),
-      aliases: Array.from(new Set([newEntry.code.trim().toUpperCase(), ...(newEntry.aliases || [])].filter(Boolean))),
-    };
+    const code = newEntry.code.trim().toUpperCase();
+    const name = newEntry.name.trim();
+    const aliases = Array.from(new Set([code, ...normalizeAliases(newAliasesText)].filter(Boolean)));
 
-    if (!payload.code || !payload.name) {
+    if (!code || !name) {
       setMessage("code와 name을 먼저 입력해주세요.");
       return;
     }
@@ -102,13 +96,14 @@ export default function UniversityAdmin({
       const res = await fetch("/api/admin/universities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ university: payload }),
+        body: JSON.stringify({ university: { ...newEntry, code, name, aliases } }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "대학 추가에 실패했습니다.");
       setUniversities(json.universities || []);
       setNewEntry(EMPTY_FORM);
-      setMessage(`${payload.code} 추가 완료`);
+      setNewAliasesText("");
+      setMessage(`${code} 추가 완료`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "대학 추가에 실패했습니다.");
     } finally {
@@ -124,12 +119,13 @@ export default function UniversityAdmin({
     const draft = drafts[code] || universities.find((entry) => entry.code === code);
     if (!draft) return;
 
-    const payload = {
-      ...draft,
-      code: draft.code.trim().toUpperCase(),
-      name: draft.name.trim(),
-      aliases: Array.from(new Set([draft.code.trim().toUpperCase(), ...(draft.aliases || [])].filter(Boolean))),
-    };
+    const rawAliasesText = draftAliasesTexts[code];
+    const aliases =
+      rawAliasesText !== undefined
+        ? Array.from(new Set([draft.code.trim().toUpperCase(), ...normalizeAliases(rawAliasesText)].filter(Boolean)))
+        : Array.from(new Set([draft.code.trim().toUpperCase(), ...(draft.aliases || [])].filter(Boolean)));
+
+    const payload = { ...draft, code: draft.code.trim().toUpperCase(), name: draft.name.trim(), aliases };
 
     setLoading(true);
     try {
@@ -142,6 +138,11 @@ export default function UniversityAdmin({
       if (!res.ok) throw new Error(json.message || "대학 수정에 실패했습니다.");
       setUniversities(json.universities || []);
       setDrafts((prev) => {
+        const next = { ...prev };
+        delete next[code];
+        return next;
+      });
+      setDraftAliasesTexts((prev) => {
         const next = { ...prev };
         delete next[code];
         return next;
@@ -169,11 +170,8 @@ export default function UniversityAdmin({
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "대학 삭제에 실패했습니다.");
       setUniversities(json.universities || []);
-      setDrafts((prev) => {
-        const next = { ...prev };
-        delete next[code];
-        return next;
-      });
+      setDrafts((prev) => { const next = { ...prev }; delete next[code]; return next; });
+      setDraftAliasesTexts((prev) => { const next = { ...prev }; delete next[code]; return next; });
       setMessage(`${code} 삭제 완료`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "대학 삭제에 실패했습니다.");
@@ -195,14 +193,14 @@ export default function UniversityAdmin({
             value={newEntry.code}
             disabled={readOnly}
             onChange={(event) => setNewEntry((prev) => ({ ...prev, code: event.target.value.toUpperCase() }))}
-            placeholder="DM"
+            placeholder="코드 예: DM"
             className="rounded-xl border border-white/10 bg-background px-4 py-3 text-sm font-bold text-white outline-none focus:border-nzu-green/40"
           />
           <input
             value={newEntry.name}
             disabled={readOnly}
             onChange={(event) => setNewEntry((prev) => ({ ...prev, name: event.target.value }))}
-            placeholder="DM"
+            placeholder="표시명 예: 디엠"
             className="rounded-xl border border-white/10 bg-background px-4 py-3 text-sm font-bold text-white outline-none focus:border-nzu-green/40"
           />
           <input
@@ -214,16 +212,16 @@ export default function UniversityAdmin({
                 stars: event.target.value ? Number(event.target.value) : undefined,
               }))
             }
-            placeholder="0"
+            placeholder="별점"
             type="number"
             min={0}
             className="rounded-xl border border-white/10 bg-background px-4 py-3 text-sm font-bold text-white outline-none focus:border-nzu-green/40"
           />
           <input
-            value={(newEntry.aliases || []).join(", ")}
+            value={newAliasesText}
             disabled={readOnly}
-            onChange={(event) => setNewEntry((prev) => ({ ...prev, aliases: normalizeAliases(event.target.value) }))}
-            placeholder="DM, 디엠"
+            onChange={(event) => setNewAliasesText(event.target.value)}
+            placeholder="별칭 예: DM, 디엠"
             className="rounded-xl border border-white/10 bg-background px-4 py-3 text-sm font-bold text-white outline-none focus:border-nzu-green/40"
           />
           <button
@@ -254,6 +252,8 @@ export default function UniversityAdmin({
         <div className="mt-5 space-y-3">
           {sortedUniversities.map((entry) => {
             const draft = drafts[entry.code] || entry;
+            const aliasesText =
+              draftAliasesTexts[entry.code] ?? (entry.aliases || []).join(", ");
             return (
               <div
                 key={entry.code}
@@ -273,15 +273,19 @@ export default function UniversityAdmin({
                 <input
                   value={draft.stars ?? ""}
                   disabled={readOnly}
-                  onChange={(event) => updateDraft(entry.code, { stars: event.target.value ? Number(event.target.value) : undefined })}
+                  onChange={(event) =>
+                    updateDraft(entry.code, { stars: event.target.value ? Number(event.target.value) : undefined })
+                  }
                   type="number"
                   min={0}
                   className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-bold text-white outline-none focus:border-nzu-green/40"
                 />
                 <input
-                  value={(draft.aliases || []).join(", ")}
+                  value={aliasesText}
                   disabled={readOnly}
-                  onChange={(event) => updateDraft(entry.code, { aliases: normalizeAliases(event.target.value) })}
+                  onChange={(event) =>
+                    setDraftAliasesTexts((prev) => ({ ...prev, [entry.code]: event.target.value }))
+                  }
                   className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-bold text-white outline-none focus:border-nzu-green/40"
                 />
                 <label className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs font-black text-white/70">
