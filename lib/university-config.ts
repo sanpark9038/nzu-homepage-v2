@@ -14,6 +14,7 @@ export const UNIVERSITY_MAP: Record<string, UniversityInfo> = {
   WFU: { name: "와플대" },
   HM: { name: "HM" },
   DM: { name: "DM" },
+  SSG: { name: "신세계" },
   FA: { name: "무소속" },
 };
 
@@ -51,6 +52,8 @@ export const UNIVERSITY_ALIAS_MAP: Record<string, UniversityKey> = {
   와플대: "WFU",
   HM: "HM",
   DM: "DM",
+  SSG: "SSG",
+  신세계: "SSG",
   FA: "FA",
   무소속: "FA",
   연합팀: "FA",

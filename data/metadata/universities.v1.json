@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-05-15T14:05:32.810Z",
+  "updated_at": "2026-06-21T00:00:00.000Z",
   "universities": [
     {
       "code": "KU",
@@ -126,6 +126,15 @@
       "name": "DM",
       "aliases": [
         "DM"
+      ],
+      "hidden": false
+    },
+    {
+      "code": "SSG",
+      "name": "신세계",
+      "aliases": [
+        "SSG",
+        "신세계"
       ],
       "hidden": false
     },
