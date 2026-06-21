@@ -33,8 +33,8 @@ export default function AdminRosterPage() {
 
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
           <span>이 페이지는 일반 선수 교정 전용입니다.</span>
-          <Link href="/admin/roster/teams" className="font-semibold text-nzu-green underline underline-offset-4">
-            수동 팀 생성/삭제는 별도 페이지에서 관리
+          <Link href="/admin/universities" className="font-semibold text-nzu-green underline underline-offset-4">
+            수동 팀 생성/삭제는 대학·팀 관리 페이지에서
           </Link>
         </div>
 
