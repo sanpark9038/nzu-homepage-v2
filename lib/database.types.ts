@@ -574,18 +574,21 @@ export type Database = {
           name: string
           name_en: string | null
           created_at: string
+          deleted: boolean
         }
         Insert: {
           code: string
           name: string
           name_en?: string | null
           created_at?: string
+          deleted?: boolean
         }
         Update: {
           code?: string
           name?: string
           name_en?: string | null
           created_at?: string
+          deleted?: boolean
         }
         Relationships: []
       }

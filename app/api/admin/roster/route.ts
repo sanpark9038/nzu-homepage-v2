@@ -523,23 +523,27 @@ export async function GET(req: Request) {
   }
   const players = Array.from(playerMap.values());
 
-  const fsTeamCodes = new Set(projects.map((p) => p.doc.team_code));
   const { createSupabaseAdminClient } = await import("@/lib/supabase-admin");
   const { data: dbManualTeams } = await createSupabaseAdminClient()
     .from("manual_teams")
-    .select("code, name, name_en");
-  const dbOnlyTeams = (dbManualTeams ?? []).filter(
-    (t: { code: string; name: string; name_en: string | null }) => !fsTeamCodes.has(t.code)
+    .select("code, name, name_en, deleted");
+
+  const softDeletedCodes = new Set(
+    (dbManualTeams ?? []).filter((t) => t.deleted).map((t) => t.code)
   );
+  const fsTeamCodes = new Set(projects.map((p) => p.doc.team_code));
+  const dbOnlyTeams = (dbManualTeams ?? []).filter((t) => !t.deleted && !fsTeamCodes.has(t.code));
 
   const teams = [
-    ...projects.map((p) => ({
-      code: p.doc.team_code,
-      name: p.doc.team_name,
-      players: Array.isArray(p.doc.roster) ? p.doc.roster.length : 0,
-      manual_managed: Boolean(p.doc.manual_managed),
-    })),
-    ...dbOnlyTeams.map((t: { code: string; name: string; name_en: string | null }) => ({
+    ...projects
+      .filter((p) => !softDeletedCodes.has(p.doc.team_code))
+      .map((p) => ({
+        code: p.doc.team_code,
+        name: p.doc.team_name,
+        players: Array.isArray(p.doc.roster) ? p.doc.roster.length : 0,
+        manual_managed: Boolean(p.doc.manual_managed),
+      })),
+    ...dbOnlyTeams.map((t) => ({
       code: t.code,
       name: t.name,
       players: 0,
@@ -641,16 +645,34 @@ export async function POST(req: Request) {
     if (isAdminWriteDisabled()) {
       const { createSupabaseAdminClient } = await import("@/lib/supabase-admin");
       const db = createSupabaseAdminClient();
+
+      // Check Supabase first (web-created teams)
       const { data: dbTeam } = await db
         .from("manual_teams")
-        .select("code, name")
+        .select("code, name, deleted")
         .eq("code", teamCode)
         .single();
-      if (!dbTeam) {
+
+      if (dbTeam && !dbTeam.deleted) {
+        // Web-created team: hard delete from Supabase
+        await db.from("manual_teams").delete().eq("code", teamCode);
+        return NextResponse.json({ ok: true, deleted: { team_code: teamCode, team_name: dbTeam.name } });
+      }
+
+      // Filesystem-based team: soft delete via Supabase marker
+      const fsProjects = loadProjects();
+      const fsTarget = fsProjects.find((p) => p.doc.team_code === teamCode);
+      if (!fsTarget) {
         return NextResponse.json({ ok: false, message: "team not found" }, { status: 404 });
       }
-      await db.from("manual_teams").delete().eq("code", teamCode);
-      return NextResponse.json({ ok: true, deleted: { team_code: teamCode, team_name: (dbTeam as { code: string; name: string }).name } });
+      if (!fsTarget.doc.manual_managed) {
+        return NextResponse.json({ ok: false, message: "only manual-managed teams can be deleted" }, { status: 400 });
+      }
+      if (Array.isArray(fsTarget.doc.roster) && fsTarget.doc.roster.length > 0) {
+        return NextResponse.json({ ok: false, message: "move players out before deleting this team" }, { status: 409 });
+      }
+      await db.from("manual_teams").upsert({ code: teamCode, name: fsTarget.doc.team_name, deleted: true });
+      return NextResponse.json({ ok: true, deleted: { team_code: teamCode, team_name: fsTarget.doc.team_name } });
     }
 
     const projects = loadProjects();
