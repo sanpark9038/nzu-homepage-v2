@@ -343,7 +343,11 @@ function matchesCurrentOrOverride(
   if (!entityId || !target) return false;
 
   const override = state.overridesByEntityId.get(entityId);
-  if (normalized(override?.[field]) === target) return true;
+  if (override) {
+    if (normalized(override[field]) === target) return true;
+    // Pipeline may report team display name instead of code (e.g. "신세계" vs "ssg")
+    if (field === "team_code" && normalized(override.team_name) === target) return true;
+  }
 
   const approved = state.approvedByEntityId.get(entityId);
   return normalized(approved?.[field]) === target;

@@ -7,6 +7,7 @@
     "뽀뇨": "김뽀뇨",
     "몽군": "윤찬희",
     "짭제": "박상현",
+    "짭호": "박정일",
     "샤이니": "김재현",
     "사테": "김태영",
     "려원": "려원님",
@@ -126,6 +127,15 @@
     { "name": "단솔", "soop_user_id": "1004yomi", "source": "ref22" },
     { "name": "하윤", "soop_user_id": "tndkekdy", "source": "ref22" },
     { "name": "루다", "soop_user_id": "as1823", "source": "manual_user_2026-04-28" },
-    { "name": "장영근", "soop_user_id": "wkddudrms15", "source": "manual_user_2026-04-28" }
+    { "name": "장영근", "soop_user_id": "wkddudrms15", "source": "manual_user_2026-04-28" },
+    { "name": "박정일", "soop_user_id": "wjddlf4695", "source": "manual_user_2026-06-22" },
+    { "name": "앵지", "soop_user_id": "gks2wl", "source": "manual_user_2026-06-22" },
+    { "name": "깅예솔", "soop_user_id": "yunhee1222", "source": "manual_user_2026-06-22" },
+    { "name": "김바다", "soop_user_id": "littlekim12", "source": "manual_user_2026-06-22" },
+    { "name": "떠아", "soop_user_id": "kidsaoq", "source": "manual_user_2026-06-22" },
+    { "name": "저그맨박성준", "soop_user_id": "jun10280", "source": "manual_user_2026-06-22" },
+    { "name": "온도이", "soop_user_id": "ode0411", "source": "manual_user_2026-06-22" },
+    { "name": "김상곤", "soop_user_id": "byspire", "source": "manual_user_2026-06-22" },
+    { "name": "김설", "soop_user_id": "rnfma14", "source": "manual_user_2026-06-22" }
   ]
 }
