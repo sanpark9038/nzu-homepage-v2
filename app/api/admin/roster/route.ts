@@ -823,7 +823,9 @@ export async function PATCH(req: Request) {
       });
     }
 
-    const fsTarget = projects.find((project) => project.doc.team_code === nextTeamCode);
+    const fsTarget =
+      projects.find((p) => p.doc.team_code === nextTeamCode) ||
+      projects.find((p) => (p.doc.team_name || "").toLowerCase() === nextTeamCode);
     let targetTeamCode: string;
     let targetTeamName: string;
     if (fsTarget) {
@@ -835,9 +837,9 @@ export async function PATCH(req: Request) {
       const { data: dbTeam } = await db
         .from("manual_teams")
         .select("code, name")
-        .eq("code", nextTeamCode)
+        .or(`code.eq.${nextTeamCode},name.ilike.${nextTeamCode}`)
         .neq("deleted", true)
-        .single();
+        .maybeSingle();
       if (!dbTeam) {
         return NextResponse.json({ ok: false, message: "target team not found" }, { status: 404 });
       }
