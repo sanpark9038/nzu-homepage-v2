@@ -823,17 +823,34 @@ export async function PATCH(req: Request) {
       });
     }
 
-    const target = projects.find((project) => project.doc.team_code === nextTeamCode);
-    if (!target) {
-      return NextResponse.json({ ok: false, message: "target team not found" }, { status: 404 });
+    const fsTarget = projects.find((project) => project.doc.team_code === nextTeamCode);
+    let targetTeamCode: string;
+    let targetTeamName: string;
+    if (fsTarget) {
+      targetTeamCode = fsTarget.doc.team_code;
+      targetTeamName = fsTarget.doc.team_name;
+    } else {
+      const { createSupabaseAdminClient } = await import("@/lib/supabase-admin");
+      const db = createSupabaseAdminClient();
+      const { data: dbTeam } = await db
+        .from("manual_teams")
+        .select("code, name")
+        .eq("code", nextTeamCode)
+        .neq("deleted", true)
+        .single();
+      if (!dbTeam) {
+        return NextResponse.json({ ok: false, message: "target team not found" }, { status: 404 });
+      }
+      targetTeamCode = dbTeam.code;
+      targetTeamName = dbTeam.name;
     }
 
     const remoteSaved = await saveRemoteRosterAdminCorrection(entityId, {
       entity_id: entityId,
       name: player.name,
       wr_id: player.wr_id,
-      team_code: target.doc.team_code,
-      team_name: target.doc.team_name,
+      team_code: targetTeamCode,
+      team_name: targetTeamName,
       tier: overrideTier,
       race: overrideRace,
       manual_lock: true,
@@ -852,8 +869,8 @@ export async function PATCH(req: Request) {
       overrides.push({
         entity_id: entityId,
         name: player.name,
-        team_code: target.doc.team_code,
-        team_name: target.doc.team_name,
+        team_code: targetTeamCode,
+        team_name: targetTeamName,
         tier: overrideTier || undefined,
         race: overrideRace || undefined,
         manual_lock: true,
@@ -881,8 +898,8 @@ export async function PATCH(req: Request) {
         entity_id: player.entity_id,
         name: player.name,
         wr_id: player.wr_id,
-        team_code: target.doc.team_code,
-        team_name: target.doc.team_name,
+        team_code: targetTeamCode,
+        team_name: targetTeamName,
         tier: overrideTier || player.tier,
         manual_mode: manualMode,
         excluded,
