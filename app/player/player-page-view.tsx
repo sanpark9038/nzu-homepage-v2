@@ -66,7 +66,6 @@ async function PlayerResultsSection({
 }) {
   const hasQuery = query.length > 0;
   const hasSelectedId = selectedId.length > 0 || selectedIdPrefix.length > 0;
-  const shouldExpandDetailByDefault = hasSelectedId;
 
   let exactMatch: Awaited<ReturnType<typeof playerService.searchPlayers>>[number] | null = null;
   let candidates: Awaited<ReturnType<typeof playerService.searchPlayers>> = [];
@@ -92,7 +91,8 @@ async function PlayerResultsSection({
     }
   }
 
-  if (exactMatch && shouldExpandDetailByDefault && !detailSummaryLoaded) {
+  // 패널 확장 여부와 무관하게 직접 URL 접근 시 fresh 데이터 로드 (기본 카드 recentSummary용)
+  if (exactMatch && hasSelectedId && !detailSummaryLoaded) {
     detailSummary = await buildPlayerDetailSummary(exactMatch);
     detailSummaryLoaded = true;
   }
@@ -117,10 +117,10 @@ async function PlayerResultsSection({
             spawnPartner={detailSummary.spawnPartner}
             recentLogs={detailSummary.recentLogs}
             recentSummary={detailSummary.recentSummary}
-            defaultExpanded={shouldExpandDetailByDefault}
+            defaultExpanded={false}
             detailSummaryLoaded={detailSummaryLoaded}
             detailSummaryEndpoint={`/api/player-detail-summary?id=${encodeURIComponent(exactMatch.id)}`}
-            loadDetailSummaryOnMount={!shouldExpandDetailByDefault}
+            loadDetailSummaryOnMount={!detailSummaryLoaded}
           />
         </div>
       ) : null}

@@ -67,8 +67,12 @@ function PlayerSearchResultInner({
   detailSummaryEndpoint,
   loadDetailSummaryOnMount = false,
 }: Props) {
+  type MatchFilter = "recent90" | "all";
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  const [visibleRecentCount, setVisibleRecentCount] = useState(5);
+  const [matchFilter, setMatchFilter] = useState<MatchFilter>("recent90");
+  const [filterPage, setFilterPage] = useState(1);
+  const [filteredData, setFilteredData] = useState<MatchHistoryApiResponse | null>(null);
+  const [isFilterLoading, setIsFilterLoading] = useState(false);
   const [failedThumbnailSrc, setFailedThumbnailSrc] = useState<string | null>(null);
   const [detailSummary, setDetailSummary] = useState<PlayerDetailSummary>({
     raceSummaries: initialRaceSummaries,
@@ -115,24 +119,59 @@ function PlayerSearchResultInner({
     };
   }, [detailSummaryEndpoint, isDetailSummaryLoaded, isExpanded, loadDetailSummaryOnMount]);
 
+  useEffect(() => {
+    if (!isExpanded) {
+      setFilteredData(null);
+      setIsFilterLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsFilterLoading(true);
+
+    const params = new URLSearchParams({ page: String(filterPage) });
+    if (matchFilter === "recent90") {
+      params.set("filter", "recent90");
+    } else if (matchFilter !== "all") {
+      params.set("year", matchFilter);
+    }
+
+    fetch(`/api/player/${encodeURIComponent(player.id)}/matches?${params}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("failed");
+        return res.json() as Promise<MatchHistoryApiResponse>;
+      })
+      .then((json) => {
+        if (cancelled) return;
+        setFilteredData(json);
+        setIsFilterLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setIsFilterLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [player.id, isExpanded, matchFilter, filterPage]);
+
   const normTier = normalizeTier(player.tier);
   const isElite = ["갓", "킹"].includes(normTier);
   const themeColor = isElite ? "rgba(255, 215, 0, 0.28)" : "rgba(0, 255, 163, 0.22)";
   const {
     raceSummaries,
-    strongestMap,
-    weakestMap,
-    raceBestMaps,
     spawnPartner,
     recentLogs,
     recentSummary,
   } = detailSummary;
   const recentForm = recentSummary.form;
-  const visibleRecentLogs = recentLogs.slice(0, visibleRecentCount);
-  const canExpandRecentLogs = recentLogs.length > visibleRecentCount;
-  const canCollapseRecentLogs = recentLogs.length > 5 && visibleRecentCount > 5;
   const hasRaceData = raceSummaries.some((item) => item.hasRecord);
-  const hasRaceBestMaps = raceBestMaps.some((item) => item.bestMap);
+  const displayRaceSummaries = filteredData?.stats?.raceSummaries ?? raceSummaries;
+  const hasDisplayRaceData = displayRaceSummaries.some((item) => item.hasRecord);
+  const recentForm10 = recentLogs.slice(0, 10).map((log) => log.result);
+  const form10Wins = recentForm10.filter((r) => r === "승").length;
+  const form10Losses = recentForm10.length - form10Wins;
+  const form10WinRate = recentForm10.length > 0 ? Math.round((form10Wins / recentForm10.length) * 100) : null;
   const channelUrl = resolveSoopChannelUrl(player);
   const liveWatchUrl = player.is_live ? resolveSoopWatchUrl(player) : null;
   const liveThumbnailUrl = normalizeSoopImageUrl(player.live_thumbnail_url) || "";
@@ -142,15 +181,12 @@ function PlayerSearchResultInner({
   const universityLabel = getUniversityLabel(player.university);
 
   function handleToggleExpanded() {
-    setIsExpanded((prev) => {
-      if (prev) setVisibleRecentCount(5);
-      return !prev;
-    });
+    setIsExpanded((prev) => !prev);
   }
 
   return (
     <div className="overflow-hidden rounded-2xl border border-white/8 bg-white/[0.03] px-5 py-5 md:overflow-visible md:px-7 md:py-6 xl:px-8 xl:py-7">
-      <div className="grid gap-6 md:grid-cols-[124px_minmax(0,1fr)_240px] md:grid-rows-[124px_auto]">
+      <div className="grid gap-6 md:grid-cols-[124px_1fr]">
 
         {/* ── 프로필 사진 컬럼 ── */}
         <div className="md:row-span-2">
@@ -232,75 +268,86 @@ function PlayerSearchResultInner({
           </div>
         </div>
 
-        {/* ── 기본 정보 패널 (학교/티어/종족) ── */}
-        <div className="min-w-0 md:col-start-2 md:row-start-1 md:h-full">
-          <div className="grid h-full gap-3 md:grid-cols-3">
+        {/* ── 정보 패널 행 (학교/티어/종족/최다 상대 + 상세 버튼) ── */}
+        <div className="flex items-stretch gap-6">
+          <div className="grid flex-1 items-stretch gap-3 sm:grid-cols-2 md:grid-cols-4">
             <StatPanel label="학교">{universityLabel}</StatPanel>
             <StatPanel label="티어">
-              <TierBadge tier={player.tier || "미정"} size="lg" />
+              <TierBadge tier={player.tier || "미정"} size="md" />
             </StatPanel>
             <StatPanel label="종족">
-              <RaceTag race={normalizeRaceValue(player.race)} size="lg" />
+              <RaceTag race={normalizeRaceValue(player.race)} size="md" />
+            </StatPanel>
+            <StatPanel label="최다 상대">
+              {spawnPartner ? (
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <RaceTag race={spawnPartner.race} size="xs" />
+                    <span className="truncate text-base font-bold text-white">{spawnPartner.name}</span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] font-medium text-white/45 tabular-nums">
+                    {spawnPartner.matches}전 · {spawnPartner.wins}승 {spawnPartner.losses}패
+                  </p>
+                </div>
+              ) : (
+                <span className="text-white/35">없음</span>
+              )}
             </StatPanel>
           </div>
-        </div>
-
-        {/* ── 상세 리포트 버튼 ── */}
-        <div className="md:col-start-3 md:row-start-1 md:h-full">
           <button
             type="button"
             onClick={handleToggleExpanded}
-            className="inline-flex h-full min-h-[52px] w-full items-center justify-center rounded-xl border border-nzu-green/20 bg-nzu-green/[0.07] px-4 py-3 text-nzu-green transition-all hover:border-nzu-green/38 hover:bg-nzu-green/[0.12]"
+            className="inline-flex w-[150px] shrink-0 items-center justify-center rounded-xl border border-nzu-green/20 bg-nzu-green/[0.07] px-4 text-nzu-green transition-all hover:border-nzu-green/38 hover:bg-nzu-green/[0.12] xl:w-[160px]"
           >
-            <span className="text-base font-semibold tracking-tight">
+            <span className="text-lg font-semibold tracking-tight">
               {isExpanded ? "상세 닫기" : "상세 리포트"}
             </span>
           </button>
         </div>
 
-        {/* ── 지표 카드 (승률/전적) ── */}
-        <div className="min-w-0 md:col-start-2 md:row-start-2">
-          <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-1">
-            <span className="ui-label text-nzu-green">통산 기준: 2025.01.01 ~ 현재</span>
-            <span className="ui-label text-red-400">최근 기준: 최근 3개월 경기</span>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <MetricCard tone="green" label="통산 승률" value={player.win_rate != null ? `${player.win_rate}%` : "-"} />
-            <MetricCard tone="green" label="통산 전적" value={`${player.total_wins ?? 0}승 / ${player.total_losses ?? 0}패`} />
-            <MetricCard tone="red" label="최근 승률" value={recentSummary.winRate} />
-            <MetricCard tone="red" label="최근 전적" value={`${recentSummary.wins}승 / ${recentSummary.losses}패`} />
-          </div>
-        </div>
-
-        {/* ── 최근 5경기 흐름 ── */}
-        <div className="flex h-full flex-col md:col-start-3 md:row-start-2">
-          <p className="ui-label mb-3">최근 5경기 흐름</p>
-          <div className="flex flex-1 flex-col rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3.5 xl:px-4 xl:py-4">
-            <div className="flex items-center justify-between text-xs font-medium text-white/38">
-              <span>과거</span>
-              <span>→</span>
-              <span>최근</span>
+        {/* ── Row 2: 지표 카드 + 최근 5경기 ── */}
+        <div className="flex min-w-0 items-stretch gap-6">
+          <div className="min-w-0 flex-1">
+            <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-1">
+              <span className="ui-label text-nzu-green">통산 기준: 2025.01.01 ~ 현재</span>
+              <span className="ui-label text-red-400">최근 기준: 최근 3개월 경기</span>
             </div>
-            {recentForm.length ? (
-              <div className="mt-2.5 grid grid-cols-5 items-end gap-1.5">
-                {recentForm.map((result, index) => (
-                  <span
-                    key={`${result}-${index}`}
-                    className={cn(
-                      "inline-flex w-full items-center justify-center rounded-lg border text-sm font-semibold",
-                      index < 2 ? "h-8" : index === 2 ? "h-9" : index === 3 ? "h-10" : "h-12",
-                      result === "승" ? "border-nzu-green/25 bg-nzu-green/[0.1] text-nzu-green" : "border-red-400/25 bg-red-400/[0.1] text-red-300"
-                    )}
-                  >
-                    {result}
-                  </span>
-                ))}
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <MetricCard tone="green" label="통산 승률" value={player.win_rate != null ? `${player.win_rate}%` : "-"} />
+              <MetricCard tone="green" label="통산 전적" value={`${player.total_wins ?? 0}승 / ${player.total_losses ?? 0}패`} />
+              <MetricCard tone="red" label="최근 승률" value={recentSummary.winRate} />
+              <MetricCard tone="red" label="최근 전적" value={`${recentSummary.wins}승 / ${recentSummary.losses}패`} />
+            </div>
+          </div>
+          <div className="flex w-[220px] shrink-0 flex-col xl:w-[240px]">
+            <p className="ui-label mb-3">최근 5경기 흐름</p>
+            <div className="flex flex-1 flex-col rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3.5 xl:px-4 xl:py-4">
+              <div className="flex items-center justify-between text-xs font-medium text-white/38">
+                <span>과거</span>
+                <span>→</span>
+                <span>최근</span>
               </div>
-            ) : (
-              <div className="mt-2 flex flex-1 items-center justify-center rounded-lg border border-dashed border-white/8 bg-black/10 px-3 py-4 text-sm font-medium text-white/35">
-                최근 경기 기록이 없습니다
-              </div>
-            )}
+              {recentForm.length ? (
+                <div className="mt-2.5 grid grid-cols-5 items-end gap-1.5">
+                  {recentForm.map((result, index) => (
+                    <span
+                      key={`${result}-${index}`}
+                      className={cn(
+                        "inline-flex w-full items-center justify-center rounded-lg border text-sm font-semibold",
+                        index < 2 ? "h-8" : index === 2 ? "h-9" : index === 3 ? "h-10" : "h-12",
+                        result === "승" ? "border-nzu-green/25 bg-nzu-green/[0.1] text-nzu-green" : "border-red-400/25 bg-red-400/[0.1] text-red-300"
+                      )}
+                    >
+                      {result}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-2 flex flex-1 items-center justify-center rounded-lg border border-dashed border-white/8 bg-black/10 px-3 py-4 text-sm font-medium text-white/35">
+                  최근 경기 기록이 없습니다
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -311,155 +358,144 @@ function PlayerSearchResultInner({
           <div className="pointer-events-none absolute -right-16 -top-16 h-[180px] w-[180px] rounded-full blur-[90px] opacity-20" style={{ backgroundColor: themeColor }} />
           <div className="relative space-y-6">
 
-            <Section title="스폰 깐부">
-              <div className="rounded-xl border border-nzu-green/14 bg-[linear-gradient(180deg,rgba(0,255,163,0.08),rgba(255,255,255,0.02))] px-4 py-4">
-                {spawnPartner ? (
-                  <div className="space-y-3">
-                    <div className="rounded-xl border border-white/8 bg-black/15 px-4 py-4 text-center">
-                      <div className="flex items-center justify-center gap-3">
-                        <span className="truncate text-2xl font-bold tracking-tight text-white md:text-3xl">{spawnPartner.name}</span>
-                        <RaceTag race={spawnPartner.race} size="sm" />
-                      </div>
-                    </div>
-                    <div className="grid gap-2.5 sm:grid-cols-2">
-                      <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-3.5 text-center">
-                        <p className="text-[11px] font-medium uppercase tracking-widest text-white/38">승률</p>
-                        <p className="mt-1.5 text-2xl font-extrabold tracking-tight text-white">
-                          {Math.round((spawnPartner.wins / spawnPartner.matches) * 100)}%
-                        </p>
-                      </div>
-                      <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-3.5 text-center">
-                        <p className="text-[11px] font-medium uppercase tracking-widest text-white/38">전적</p>
-                        <p className="mt-1.5 text-base font-semibold tracking-tight text-white">
-                          {spawnPartner.matches}전 {spawnPartner.wins}승 {spawnPartner.losses}패
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <CompactRow value="기록 없음" />
-                )}
-              </div>
-            </Section>
-
-            <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-              <Section title="종족별 승률">
-                <div className="grid gap-2.5 md:grid-cols-3">
-                  {(hasRaceData
-                    ? raceSummaries
-                    : [
-                        { race: "T" as const, matches: 0, wins: 0, losses: 0, winRate: "기록 없음", hasRecord: false },
-                        { race: "Z" as const, matches: 0, wins: 0, losses: 0, winRate: "기록 없음", hasRecord: false },
-                        { race: "P" as const, matches: 0, wins: 0, losses: 0, winRate: "기록 없음", hasRecord: false },
-                      ]).map((item) => (
-                    <DataTile
-                      key={item.race}
-                      title={<RaceTag race={item.race} size="xs" />}
-                      headline={item.hasRecord ? item.winRate : "기록 없음"}
-                      lines={item.hasRecord ? [`${item.matches}전 · ${item.wins}승 ${item.losses}패`] : ["기록 없음"]}
-                      tone={item.race}
-                    />
-                  ))}
-                </div>
-              </Section>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                <Section title="강한 맵" titleClassName="text-nzu-green">
-                  <DataTile
-                    headline={strongestMap ? strongestMap.mapName : "표본 부족"}
-                    lines={strongestMap ? [strongestMap.winRate, `${strongestMap.matches}전 · ${strongestMap.wins}승 ${strongestMap.losses}패`] : ["표본 부족"]}
-                    tone="strong"
-                    headlineClassName="md:text-xl xl:text-[1.24rem]"
-                  />
-                </Section>
-                <Section title="약한 맵" titleClassName="text-red-300">
-                  <DataTile
-                    headline={weakestMap ? weakestMap.mapName : "표본 부족"}
-                    lines={weakestMap ? [weakestMap.winRate, `${weakestMap.matches}전 · ${weakestMap.wins}승 ${weakestMap.losses}패`] : ["표본 부족"]}
-                    tone="weak"
-                    headlineClassName="md:text-xl xl:text-[1.24rem]"
-                  />
-                </Section>
+            {/* ── 기간 필터 ── */}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-white/30">분석 기간</span>
+              <div className="flex items-center gap-1">
+                {(["recent90", "all"] as const).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => { setMatchFilter(f); setFilterPage(1); }}
+                    className={cn(
+                      "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+                      matchFilter === f
+                        ? "border border-nzu-green/35 bg-nzu-green/[0.12] text-nzu-green"
+                        : "border border-white/8 bg-white/[0.02] text-white/40 hover:text-white/65 hover:border-white/14"
+                    )}
+                  >
+                    {f === "recent90" ? "최근 90일" : "전체 기간"}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <Section
-              title={
-                <>
-                  <span>종족별 대표</span>
-                  <span className="text-nzu-green"> 강점 맵</span>
-                </>
-              }
-            >
-              <div className="grid gap-2.5 md:grid-cols-3">
-                {(hasRaceBestMaps
-                  ? raceBestMaps
+            {/* ── 기간별 승/패/승률 ── */}
+            <Section title="승패 요약">
+              <PeriodStatCards
+                isLoading={isFilterLoading}
+                wins={filteredData?.stats.wins ?? recentSummary.wins}
+                losses={filteredData?.stats.losses ?? recentSummary.losses}
+                winRate={filteredData?.stats.winRate ?? recentSummary.winRate}
+              />
+            </Section>
+
+            {/* ── 종족별 승률 (필터 연동) ── */}
+            <Section title="종족별 승률">
+              <div className={cn("space-y-2 transition-opacity", isFilterLoading ? "opacity-40" : "opacity-100")}>
+                {(hasDisplayRaceData
+                  ? displayRaceSummaries
                   : [
-                      { race: "T" as const, bestMap: null },
-                      { race: "Z" as const, bestMap: null },
-                      { race: "P" as const, bestMap: null },
+                      { race: "T" as const, matches: 0, wins: 0, losses: 0, winRate: "0.0%", hasRecord: false },
+                      { race: "Z" as const, matches: 0, wins: 0, losses: 0, winRate: "0.0%", hasRecord: false },
+                      { race: "P" as const, matches: 0, wins: 0, losses: 0, winRate: "0.0%", hasRecord: false },
                     ]).map((item) => (
-                  <DataTile
-                    key={item.race}
-                    title={<RaceTag race={item.race} size="xs" />}
-                    headline={item.bestMap ? item.bestMap.mapName : "표본 부족"}
-                    lines={item.bestMap ? [`${item.bestMap.matches}전`, `${item.bestMap.wins}승 ${item.bestMap.losses}패 · ${item.bestMap.winRate}`] : ["표본 부족"]}
-                    tone={item.race}
-                  />
+                  <RaceStatRow key={item.race} race={item.race} hasRecord={item.hasRecord} wins={item.wins} losses={item.losses} matches={item.matches} winRate={item.winRate} />
                 ))}
               </div>
             </Section>
 
-            <Section title="최근 경기 기록">
-              <div className="grid gap-1.5">
-                {recentLogs.length ? (
-                  visibleRecentLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,110px)_auto] items-center gap-3 rounded-xl border border-white/7 bg-white/[0.02] px-3 py-2.5 md:px-4"
-                    >
-                      <span
-                        className={cn(
-                          "inline-flex h-7 w-12 shrink-0 items-center justify-center rounded-lg text-sm font-semibold",
-                          log.result === "승" ? "border border-nzu-green/25 bg-nzu-green/[0.12] text-nzu-green" : "border border-red-400/25 bg-red-400/[0.1] text-red-300"
-                        )}
-                      >
-                        {log.result}
+            {recentForm10.length > 0 ? (
+              <Section title="최근 10경기 흐름">
+                <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="mr-1 text-[11px] font-medium text-white/30">과거</span>
+                    {recentForm10.map((result, index) => {
+                      const opacity = 0.35 + (index / Math.max(recentForm10.length - 1, 1)) * 0.65;
+                      return (
+                        <span
+                          key={index}
+                          style={{ opacity }}
+                          className={cn(
+                            "inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm font-semibold",
+                            result === "승"
+                              ? "border border-nzu-green/25 bg-nzu-green/[0.12] text-nzu-green"
+                              : "border border-red-400/25 bg-red-400/[0.1] text-red-300"
+                          )}
+                        >
+                          {result}
+                        </span>
+                      );
+                    })}
+                    <span className="ml-1 text-[11px] font-medium text-white/30">최신</span>
+                    <div className="ml-auto flex items-center gap-3 pl-2">
+                      <span className="text-sm font-semibold text-white/70">
+                        {form10Wins}승 {form10Losses}패
                       </span>
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-white">{log.opponentName}</span>
-                        <RaceTag race={log.opponentRace} size="xs" />
-                      </span>
-                      <span className="truncate text-sm font-medium text-white/45">{log.mapName}</span>
-                      <span className="whitespace-nowrap text-xs font-medium text-white/32 tabular-nums">{log.dateText}</span>
+                      {form10WinRate !== null ? (
+                        <span className={cn(
+                          "rounded-full border px-2.5 py-0.5 text-xs font-bold tabular-nums",
+                          form10WinRate >= 50
+                            ? "border-nzu-green/25 bg-nzu-green/[0.1] text-nzu-green"
+                            : "border-red-400/25 bg-red-400/[0.1] text-red-300"
+                        )}>
+                          {form10WinRate}%
+                        </span>
+                      ) : null}
                     </div>
-                  ))
-                ) : (
-                  <CompactRow value="기록 없음" />
-                )}
-                {recentLogs.length > 5 ? (
-                  <div className="mt-1.5 flex justify-center gap-2">
-                    {canExpandRecentLogs ? (
-                      <button
-                        type="button"
-                        onClick={() => setVisibleRecentCount((count) => Math.min(count + 5, recentLogs.length))}
-                        className="rounded-xl border border-nzu-green/18 bg-nzu-green/[0.06] px-5 py-2.5 text-sm font-semibold text-nzu-green transition-all hover:border-nzu-green/36 hover:bg-nzu-green/[0.12] hover:text-white"
-                      >
-                        최근 기록 더보기
-                      </button>
-                    ) : null}
-                    {canCollapseRecentLogs ? (
-                      <button
-                        type="button"
-                        onClick={() => setVisibleRecentCount(5)}
-                        className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-semibold text-white/60 transition-all hover:border-white/18 hover:bg-white/[0.06] hover:text-white"
-                      >
-                        접기
-                      </button>
-                    ) : null}
                   </div>
-                ) : null}
-              </div>
+                </div>
+              </Section>
+            ) : null}
+
+            <Section title="경기 기록">
+              {matchFilter === "recent90" && !filteredData ? (
+                <div className="grid gap-1.5">
+                  {recentLogs.length ? (
+                    recentLogs.map((log) => <MatchLogRow key={log.id} log={log} />)
+                  ) : (
+                    <CompactRow value="기록 없음" />
+                  )}
+                </div>
+              ) : isFilterLoading ? (
+                <div className="flex items-center gap-2.5 rounded-xl border border-white/7 bg-white/[0.02] px-4 py-4">
+                  <div className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-white/10 border-t-nzu-green" />
+                  <span className="text-sm font-medium text-white/38">경기 기록을 불러오는 중...</span>
+                </div>
+              ) : filteredData?.matches.length ? (
+                <div className="space-y-1.5">
+                  <div className="grid gap-1.5">
+                    {filteredData.matches.map((log) => (
+                      <MatchLogRow key={log.id} log={log} />
+                    ))}
+                  </div>
+                  {filteredData.totalPages > 1 ? (
+                    <div className="flex items-center justify-center gap-3 pt-2">
+                      <button
+                        type="button"
+                        disabled={filteredData.page <= 1}
+                        onClick={() => setFilterPage((p) => Math.max(1, p - 1))}
+                        className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white/55 transition-all hover:border-white/18 hover:bg-white/[0.07] hover:text-white disabled:pointer-events-none disabled:opacity-30"
+                      >
+                        ← 이전
+                      </button>
+                      <span className="text-sm font-medium text-white/45 tabular-nums">
+                        {filteredData.page} / {filteredData.totalPages}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={filteredData.page >= filteredData.totalPages}
+                        onClick={() => setFilterPage((p) => Math.min(filteredData.totalPages, p + 1))}
+                        className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white/55 transition-all hover:border-white/18 hover:bg-white/[0.07] hover:text-white disabled:pointer-events-none disabled:opacity-30"
+                      >
+                        다음 →
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <CompactRow value="해당 기간의 기록이 없습니다" />
+              )}
             </Section>
           </div>
         </section>
@@ -479,7 +515,10 @@ function Section({
 }) {
   return (
     <div className="space-y-3">
-      <p className={cn("text-[11px] font-semibold uppercase tracking-widest text-white/38", titleClassName)}>{title}</p>
+      <div className="flex items-center gap-2.5">
+        <div className="h-[1.1rem] w-[3px] rounded-full bg-nzu-green/50" />
+        <p className={cn("text-[13px] font-bold tracking-wide text-white/65", titleClassName)}>{title}</p>
+      </div>
       {children}
     </div>
   );
@@ -548,9 +587,9 @@ function DataTile({
 
 function StatPanel({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex h-full flex-col justify-center rounded-xl border border-white/8 bg-white/[0.045] px-4 py-4 md:px-5 md:py-5">
-      <p className="text-[11px] font-medium uppercase tracking-widest text-white/38">{label}</p>
-      <div className="mt-2 text-[1.35rem] font-bold tracking-tight text-white md:text-[1.5rem] xl:text-[1.6rem]">{children}</div>
+    <div className="flex flex-col justify-center rounded-xl border border-white/8 bg-white/[0.045] px-4 py-4 md:px-5 md:py-[18px]">
+      <p className="text-xs font-medium uppercase tracking-widest text-white/38">{label}</p>
+      <div className="mt-2 text-[1.35rem] font-bold tracking-tight text-white md:text-[1.5rem]">{children}</div>
     </div>
   );
 }
@@ -582,3 +621,139 @@ function MetricCard({ tone, label, value }: { tone: "green" | "red"; label: stri
     </div>
   );
 }
+
+function RaceStatRow({
+  race,
+  hasRecord,
+  winRate,
+  wins,
+  losses,
+  matches,
+}: {
+  race: Race;
+  hasRecord: boolean;
+  winRate: string;
+  wins: number;
+  losses: number;
+  matches: number;
+}) {
+  const winRateNum = hasRecord ? parseFloat(winRate) || 0 : 0;
+  const toneStyle =
+    race === "T"
+      ? { border: "border-terran/20 bg-terran/[0.04]", bar: "bg-terran", text: "text-terran" }
+      : race === "Z"
+        ? { border: "border-zerg/20 bg-zerg/[0.04]", bar: "bg-zerg", text: "text-zerg" }
+        : { border: "border-protoss/20 bg-protoss/[0.04]", bar: "bg-protoss", text: "text-protoss" };
+
+  return (
+    <div className={cn("rounded-xl border px-4 py-3.5", toneStyle.border)}>
+      <div className="flex items-center gap-3">
+        <RaceTag race={race} size="xs" />
+        <span className={cn("min-w-[3.5rem] text-xl font-extrabold tabular-nums tracking-tight", hasRecord ? toneStyle.text : "text-white/28")}>
+          {hasRecord ? winRate : "—"}
+        </span>
+        <div className="ml-auto text-sm font-medium text-white/42 tabular-nums">
+          {hasRecord ? `${matches}전 · ${wins}승 ${losses}패` : "기록 없음"}
+        </div>
+      </div>
+      <div className="mt-2.5 h-1.5 w-full rounded-full bg-white/[0.06]">
+        <div
+          className={cn("h-1.5 rounded-full transition-all duration-500", hasRecord ? toneStyle.bar : "bg-white/10")}
+          style={{ width: `${Math.min(winRateNum, 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+type MatchHistoryApiItem = {
+  id: string;
+  result: "승" | "패";
+  opponentName: string;
+  opponentRace: Race;
+  mapName: string;
+  dateText: string;
+};
+
+type MatchHistoryApiResponse = {
+  matches: MatchHistoryApiItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+  stats: {
+    wins: number;
+    losses: number;
+    winRate: string;
+    raceSummaries: Array<{
+      race: Race;
+      wins: number;
+      losses: number;
+      matches: number;
+      winRate: string;
+      hasRecord: boolean;
+    }>;
+  };
+};
+
+function MatchLogRow({ log }: { log: MatchHistoryApiItem }) {
+  return (
+    <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,110px)_auto] items-center gap-3 rounded-xl border border-white/7 bg-white/[0.02] px-3 py-2.5 md:px-4">
+      <span
+        className={cn(
+          "inline-flex h-7 w-12 shrink-0 items-center justify-center rounded-lg text-sm font-semibold",
+          log.result === "승" ? "border border-nzu-green/25 bg-nzu-green/[0.12] text-nzu-green" : "border border-red-400/25 bg-red-400/[0.1] text-red-300"
+        )}
+      >
+        {log.result}
+      </span>
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="truncate text-sm font-semibold text-white">{log.opponentName}</span>
+        <RaceTag race={log.opponentRace} size="xs" />
+      </span>
+      <span className="truncate text-sm font-medium text-white/45">{log.mapName}</span>
+      <span className="whitespace-nowrap text-xs font-medium text-white/32 tabular-nums">{log.dateText}</span>
+    </div>
+  );
+}
+
+function PeriodStatCards({
+  isLoading,
+  wins,
+  losses,
+  winRate,
+}: {
+  isLoading: boolean;
+  wins: number | null;
+  losses: number | null;
+  winRate: string | null;
+}) {
+  const winRateNum = winRate ? parseFloat(winRate) : null;
+  const isEmpty = wins === null && losses === null;
+
+  return (
+    <div className={cn("flex flex-wrap gap-2 transition-opacity", isLoading ? "opacity-40" : "opacity-100")}>
+      <div className="inline-flex items-baseline gap-2.5 rounded-xl border border-nzu-green/15 bg-nzu-green/[0.06] px-4 py-2.5">
+        <p className="text-sm font-bold text-nzu-green/70">승</p>
+        <p className="text-3xl font-extrabold tabular-nums tracking-tight text-white">
+          {isEmpty ? "—" : (wins ?? 0)}
+        </p>
+      </div>
+      <div className="inline-flex items-baseline gap-2.5 rounded-xl border border-red-400/15 bg-red-400/[0.05] px-4 py-2.5">
+        <p className="text-sm font-bold text-red-400/70">패</p>
+        <p className="text-3xl font-extrabold tabular-nums tracking-tight text-white">
+          {isEmpty ? "—" : (losses ?? 0)}
+        </p>
+      </div>
+      <div className="inline-flex items-baseline gap-2.5 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2.5">
+        <p className="text-sm font-bold text-white/50">승률</p>
+        <p className={cn(
+          "text-3xl font-extrabold tabular-nums tracking-tight",
+          winRateNum === null ? "text-white/40" : winRateNum >= 50 ? "text-nzu-green" : "text-red-300"
+        )}>
+          {isEmpty ? "—" : (winRate ?? "—")}
+        </p>
+      </div>
+    </div>
+  );
+}
+

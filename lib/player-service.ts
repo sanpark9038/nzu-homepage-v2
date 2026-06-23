@@ -517,6 +517,20 @@ export const playerService = {
   },
 
   /** ?뱀젙 ?좎닔??留ㅼ튂 湲곕줉 媛?몄삤湲?*/
+  async getPlayerMatchHistoryItems(playerId: string) {
+    const { data, error } = await supabase
+      .from("players")
+      .select(PLAYER_MATCH_HISTORY_METADATA_SELECT)
+      .eq("id", playerId)
+      .single();
+
+    if (error) throw error;
+    const playerWithArtifactHistory = await mergeDetailedH2HPlayerHistory(
+      data as PlayerMatchHistoryMetadataRecord
+    );
+    return normalizeStoredMatchHistory(playerWithArtifactHistory.match_history);
+  },
+
   async getPlayerMatches(playerId: string, limit = 10) {
     const { data, error } = await supabase
       .from('matches')
