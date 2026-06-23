@@ -528,6 +528,7 @@ export type Database = {
           note: string | null
           race: string | null
           resume_requested_at: string | null
+          soop_user_id: string | null
           team_code: string | null
           team_name: string | null
           tier: string | null
@@ -544,6 +545,7 @@ export type Database = {
           note?: string | null
           race?: string | null
           resume_requested_at?: string | null
+          soop_user_id?: string | null
           team_code?: string | null
           team_name?: string | null
           tier?: string | null
@@ -560,6 +562,7 @@ export type Database = {
           note?: string | null
           race?: string | null
           resume_requested_at?: string | null
+          soop_user_id?: string | null
           team_code?: string | null
           team_name?: string | null
           tier?: string | null

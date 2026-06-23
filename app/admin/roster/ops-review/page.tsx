@@ -189,37 +189,33 @@ function ApprovalRows({
               </tr>
             </thead>
             <tbody>
-              {items.map((item, index) => {
-                const href = text(item.decision_url) !== "-" ? text(item.decision_url) : "/admin/roster";
-                return (
-                  <tr key={itemKey(item, index)} className="border-t border-border/60">
-                    <td className="p-2">
-                      <p className="font-bold text-foreground">{text(item.name)}</p>
-                      <p className="text-xs text-muted-foreground">{text(item.entity_id)}</p>
-                    </td>
-                    <td className="p-2 text-muted-foreground">{text(item.from)}</td>
-                    <td className="p-2 font-semibold text-foreground">{text(item.to)}</td>
-                    <td className="p-2">
-                      <span className="rounded-full bg-muted px-2 py-1 text-xs font-bold text-muted-foreground">
-                        기준데이터 미반영
-                      </span>
-                      <p className="mt-1 text-xs text-muted-foreground">전적 수집은 계속 진행</p>
-                      <p className="mt-1 text-xs text-muted-foreground">다음 데이터파이프라인 때 반영됩니다</p>
-                    </td>
-                    <td className="p-2">
-                      <RosterReviewDecisionButtons
-                        actionHref={href}
-                        actionLabel={actionLabel}
-                        entityId={text(item.entity_id)}
-                        name={text(item.name)}
-                        reviewKind={text(item.review_kind)}
-                        observedFrom={text(item.from)}
-                        observedTo={text(item.to)}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
+              {items.map((item, index) => (
+                <tr key={itemKey(item, index)} className="border-t border-border/60">
+                  <td className="p-2">
+                    <p className="font-bold text-foreground">{text(item.name)}</p>
+                    <p className="text-xs text-muted-foreground">{text(item.entity_id)}</p>
+                  </td>
+                  <td className="p-2 text-muted-foreground">{text(item.from)}</td>
+                  <td className="p-2 font-semibold text-foreground">{text(item.to)}</td>
+                  <td className="p-2">
+                    <span className="rounded-full bg-muted px-2 py-1 text-xs font-bold text-muted-foreground">
+                      기준데이터 미반영
+                    </span>
+                    <p className="mt-1 text-xs text-muted-foreground">전적 수집은 계속 진행</p>
+                    <p className="mt-1 text-xs text-muted-foreground">다음 데이터파이프라인 때 반영됩니다</p>
+                  </td>
+                  <td className="p-2">
+                    <RosterReviewDecisionButtons
+                      actionLabel={actionLabel}
+                      entityId={text(item.entity_id)}
+                      name={text(item.name)}
+                      reviewKind={text(item.review_kind)}
+                      observedFrom={text(item.from)}
+                      observedTo={text(item.to)}
+                    />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

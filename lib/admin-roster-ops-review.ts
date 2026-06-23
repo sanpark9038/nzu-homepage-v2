@@ -671,7 +671,12 @@ export async function buildRosterOpsReview(): Promise<RosterOpsReview> {
   const adminState = await loadMergedRosterAdminState();
   const appliedState = buildAppliedReviewState(approvedPlayers, adminState);
   const reports = await loadReviewReportDocs();
-  const missingSoopIds = approvedPlayers.filter((player) => !trim(player.soop_user_id));
+  const missingSoopIds = approvedPlayers.filter((player) => {
+    if (trim(player.soop_user_id)) return false;
+    const override = appliedState.overridesByEntityId.get(player.entity_id);
+    if (trim(override?.soop_user_id)) return false;
+    return true;
+  });
 
   return {
     generated_at: new Date().toISOString(),

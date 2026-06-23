@@ -15,6 +15,7 @@ export type ManualOverrideRow = {
   manual_lock?: boolean;
   manual_mode?: ManualMode;
   note?: string;
+  soop_user_id?: string;
   updated_at?: string;
 };
 
@@ -39,7 +40,7 @@ type RosterAdminCorrectionRow = Tables<"roster_admin_corrections">;
 type RosterAdminCorrectionInsert = TablesInsert<"roster_admin_corrections">;
 
 const ROSTER_ADMIN_CORRECTION_COLUMNS =
-  "entity_id,excluded,exclusion_reason,manual_lock,manual_mode,name,note,race,resume_requested_at,team_code,team_name,tier,updated_at,wr_id" as const;
+  "entity_id,excluded,exclusion_reason,manual_lock,manual_mode,name,note,race,resume_requested_at,soop_user_id,team_code,team_name,tier,updated_at,wr_id" as const;
 
 const ROOT = process.cwd();
 const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
@@ -124,6 +125,7 @@ function remoteRowToOverride(row: RosterAdminCorrectionRow): ManualOverrideRow |
     manual_mode:
       row.manual_mode === "fixed" || row.manual_mode === "temporary" ? row.manual_mode : undefined,
     note: String(row.note || "").trim() || undefined,
+    soop_user_id: String(row.soop_user_id || "").trim() || undefined,
     updated_at: row.updated_at || undefined,
   };
 }
@@ -307,6 +309,7 @@ export async function saveRemoteRosterAdminCorrection(
         : current?.manual_lock === true,
     manual_mode: mergeNullableStringField(payload.manual_mode, current?.manual_mode),
     note: mergeNullableStringField(payload.note, current?.note),
+    soop_user_id: mergeNullableStringField(payload.soop_user_id, current?.soop_user_id),
     excluded:
       typeof payload.excluded === "boolean"
         ? payload.excluded
