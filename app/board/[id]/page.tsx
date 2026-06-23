@@ -89,9 +89,9 @@ export default async function BoardDetailPage({
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   {categoryLabel ? (
-                    <span className={`text-sm font-black ${categoryTone}`}>{categoryLabel}</span>
+                    <span className={`text-sm font-semibold ${categoryTone}`}>{categoryLabel}</span>
                   ) : null}
-                  <h1 className="text-2xl font-black tracking-tight text-white md:text-3xl">{post.title}</h1>
+                  <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">{post.title}</h1>
                   {post.image_url ? <ImageIcon size={16} className="text-white/40" /> : null}
                   {post.video_url ? <PlayCircle size={16} className="text-white/40" /> : null}
                 </div>
@@ -104,7 +104,7 @@ export default async function BoardDetailPage({
               {canEdit ? (
                 <Link
                   href={`/board/${post.id}/edit`}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/18 bg-white/[0.04] px-5 text-sm font-black text-white transition hover:border-white/30 hover:bg-white/[0.08]"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/18 bg-white/[0.04] px-5 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.08]"
                 >
                   <Pencil size={16} />
                   수정
@@ -114,7 +114,7 @@ export default async function BoardDetailPage({
               <Link
                 href="/board"
                 prefetch={false}
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/18 bg-white/[0.04] px-5 text-sm font-black text-white transition hover:border-white/30 hover:bg-white/[0.08]"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/18 bg-white/[0.04] px-5 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.08]"
               >
                 게시판으로 돌아가기
               </Link>
@@ -167,7 +167,7 @@ export default async function BoardDetailPage({
                 href={post.external_link_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-nzu-green/30 bg-nzu-green/10 px-5 text-sm font-black text-nzu-green transition hover:bg-nzu-green hover:text-black"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-nzu-green/30 bg-nzu-green/10 px-5 text-sm font-semibold text-nzu-green transition hover:bg-nzu-green hover:text-black"
               >
                 링크 열기
               </a>
@@ -178,7 +178,7 @@ export default async function BoardDetailPage({
             <div className="mt-6">
               <a
                 href={`/api/board/download?id=${encodeURIComponent(post.id)}&next=${encodeURIComponent(`/board/${post.id}`)}`}
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/12 bg-white/[0.03] px-5 text-sm font-black text-white transition hover:border-nzu-green/40 hover:text-nzu-green"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/12 bg-white/[0.03] px-5 text-sm font-semibold text-white transition hover:border-nzu-green/40 hover:text-nzu-green"
               >
                 다운로드
               </a>

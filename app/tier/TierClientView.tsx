@@ -192,7 +192,7 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
             ) : error ? (
               <div className="rounded-3xl border border-dashed border-foreground/10 bg-foreground/[0.02] py-32 text-center">
                 <h2 className="mb-2 text-xl font-bold text-foreground">{error}</h2>
-                <Link href="/tier" className="rounded-xl bg-nzu-green px-10 py-4 text-xs font-black uppercase tracking-widest text-black shadow-lg shadow-nzu-green/20 transition-colors">
+                <Link href="/tier" className="rounded-xl bg-nzu-green px-10 py-4 text-xs font-bold uppercase tracking-widest text-black shadow-lg shadow-nzu-green/20 transition-colors">
                   초기화하기
                 </Link>
               </div>
@@ -201,7 +201,7 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
                 <div className="mb-6 text-4xl opacity-30">🕵️‍♂️</div>
                 <h2 className="mb-2 text-xl font-bold text-foreground">조건에 맞는 선수가 없습니다</h2>
                 <p className="mb-8 text-sm text-foreground/40">검색어나 필터를 조금 더 넓게 조정해 보세요.</p>
-                <Link href="/tier" className="rounded-xl bg-nzu-green px-10 py-4 text-xs font-black uppercase tracking-widest text-black shadow-lg shadow-nzu-green/20 transition-colors">
+                <Link href="/tier" className="rounded-xl bg-nzu-green px-10 py-4 text-xs font-bold uppercase tracking-widest text-black shadow-lg shadow-nzu-green/20 transition-colors">
                   초기화하기
                 </Link>
               </div>
@@ -288,7 +288,7 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
                         <a
                           key={tierItem.id}
                           href={`#tier-${tierItem.id}`}
-                          className="rounded-lg px-3 py-2 text-center text-[14px] font-black tracking-tight text-foreground/75 transition-colors hover:bg-nzu-green hover:text-black"
+                          className="rounded-lg px-3 py-2 text-center text-[14px] font-semibold tracking-tight text-foreground/70 transition-colors hover:bg-nzu-green hover:text-black"
                         >
                           {tierItem.name}
                         </a>
@@ -313,7 +313,7 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
           </Link>
 
           <div className="flex flex-col items-center gap-1 text-center md:items-start md:text-left">
-            <span className="mb-2 text-[13px] font-black uppercase tracking-widest text-nzu-green transition-colors">
+            <span className="mb-2 text-[13px] font-semibold uppercase tracking-widest text-nzu-green transition-colors">
               {"\uC804\uC801 \uCD9C\uCC98: ELOBOARD.COM"}
             </span>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30">2026 HOSAGA BY SANPARK.</p>

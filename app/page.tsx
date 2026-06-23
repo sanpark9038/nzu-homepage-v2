@@ -1,5 +1,5 @@
-/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import Image from "next/image";
 
 import { getActiveHeroMedia, sanitizeHeroMediaType } from "@/lib/hero-media";
 
@@ -13,7 +13,7 @@ export const metadata = {
 export default async function HomePage() {
   const activeHeroMedia = await getActiveHeroMedia();
   const heroMediaType = activeHeroMedia ? sanitizeHeroMediaType(activeHeroMedia.type) : "image";
-  const heroMediaUrl = activeHeroMedia?.url || "/home-hero-reference.png";
+  const heroMediaUrl = activeHeroMedia?.url || "/home-hero-reference.webp";
   const heroVideoMimeType = heroMediaUrl.toLowerCase().includes(".webm") ? "video/webm" : "video/mp4";
 
   return (
@@ -33,10 +33,13 @@ export default async function HomePage() {
               <source src={heroMediaUrl} type={heroVideoMimeType} />
             </video>
           ) : (
-            <img
+            <Image
               src={heroMediaUrl}
               alt="홈 메인 히어로"
-              className="absolute inset-0 h-full w-full scale-[1.02] object-cover object-center"
+              fill
+              priority
+              sizes="100vw"
+              className="scale-[1.02] object-cover object-center"
             />
           )}
 

@@ -19,15 +19,15 @@ export default async function EntryPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main className="mx-auto w-full max-w-[1800px] px-4 py-8 lg:px-8">
-        <section className="mb-6 rounded-[1.4rem] border border-white/8 bg-[linear-gradient(180deg,rgba(9,18,19,0.92),rgba(6,10,11,0.88))] px-5 py-5">
+        <section className="hosaga-card mb-6 px-5 py-5">
           <div className="flex flex-col gap-2">
-            <div className="text-[11px] font-black uppercase tracking-[0.22em] text-nzu-green">
+            <div className="ui-label uppercase text-nzu-green">
               Entry Tool
             </div>
-            <h1 className="text-3xl font-black tracking-tighter text-white md:text-4xl">
+            <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
               엔트리
             </h1>
-            <p className="text-sm font-bold text-white/52">
+            <p className="mt-1 text-sm font-medium text-white/55">
               대학별 선수 구성을 비교하고 H2H를 보면서 대진을 빠르게 정리할 수 있습니다.
             </p>
           </div>

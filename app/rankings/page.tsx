@@ -110,14 +110,14 @@ export default async function RankingsPage() {
     <div className="min-h-screen bg-background">
       <main className="mx-auto w-full max-w-5xl px-4 py-12">
         <header className="mb-10 text-center">
-          <h1 className="text-3xl font-black tracking-tight text-white md:text-4xl">
+          <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
             팀 및 선수 순위
           </h1>
         </header>
 
         <section className="mb-12">
           <div className="mb-5 flex items-center gap-4">
-            <h2 className="text-2xl font-black tracking-tight text-nzu-green md:text-3xl">팀 랭킹</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-nzu-green md:text-3xl">팀 랭킹</h2>
             <div className="h-px flex-1 bg-gradient-to-r from-nzu-green/30 to-transparent" />
           </div>
           
@@ -157,7 +157,7 @@ export default async function RankingsPage() {
 
         <section>
           <div className="mb-5 flex items-center gap-4">
-            <h2 className="text-2xl font-black tracking-tight text-sky-300 md:text-3xl">선수 랭킹</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-sky-300 md:text-3xl">선수 랭킹</h2>
             <div className="h-px flex-1 bg-gradient-to-r from-nzu-green/30 to-transparent" />
           </div>
           
@@ -216,7 +216,7 @@ export default async function RankingsPage() {
         </section>
 
         <footer className="mt-20 pt-8 border-t border-border/10 text-center">
-          <p className="text-[10px] text-muted-foreground/40 uppercase font-black tracking-[0.2em]">
+          <p className="text-[10px] text-muted-foreground/35 uppercase font-medium tracking-widest">
             경기 결과가 마감된 후 순위 정보가 자동으로 갱신됩니다.
           </p>
         </footer>

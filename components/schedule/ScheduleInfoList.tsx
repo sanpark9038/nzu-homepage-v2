@@ -235,13 +235,13 @@ function getCalendarDateToneClass(day: CalendarDay) {
 }
 
 function getCalendarTodayDateClass(weekday: number) {
-  if (weekday === 0) return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-rose-400 px-2 text-sm font-black text-black";
-  if (weekday === 6) return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-sky-400 px-2 text-sm font-black text-black";
-  return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-nzu-green px-2 text-sm font-black text-black";
+  if (weekday === 0) return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-rose-400 px-2 text-sm font-semibold text-black";
+  if (weekday === 6) return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-sky-400 px-2 text-sm font-semibold text-black";
+  return "inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-nzu-green px-2 text-sm font-semibold text-black";
 }
 
 function getCalendarDayButtonClass(day: CalendarDay, hasPosts: boolean) {
-  const toneClass = day.isToday ? getCalendarTodayDateClass(day.weekday) : `rounded-full text-sm font-black ${getCalendarDateToneClass(day)}`;
+  const toneClass = day.isToday ? getCalendarTodayDateClass(day.weekday) : `rounded-full text-sm font-semibold ${getCalendarDateToneClass(day)}`;
   const interactionClass = hasPosts
     ? "schedule-calendar-day-button cursor-pointer transition hover:ring-2 hover:ring-nzu-green/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nzu-green/70"
     : "schedule-calendar-day-button cursor-default disabled:opacity-100";
@@ -298,8 +298,8 @@ export function ScheduleInfoList({ posts, todayKey, minCalendarKey, maxCalendarK
                 onClick={() => setViewMode(mode.value)}
                 className={
                   viewMode === mode.value
-                    ? "schedule-control-button min-h-11 rounded-full bg-nzu-green px-5 text-base font-black text-black shadow-sm shadow-nzu-green/10"
-                    : "schedule-control-button min-h-11 rounded-full px-5 text-base font-black text-white/72 transition hover:bg-white/[0.06] hover:text-white"
+                    ? "schedule-control-button min-h-11 rounded-full bg-nzu-green px-5 text-base font-bold text-black shadow-sm shadow-nzu-green/10"
+                    : "schedule-control-button min-h-11 rounded-full px-5 text-base font-semibold text-white/65 transition hover:bg-white/[0.06] hover:text-white"
                 }
               >
                 {mode.label}
@@ -317,8 +317,8 @@ export function ScheduleInfoList({ posts, todayKey, minCalendarKey, maxCalendarK
                   onClick={() => setDayFilter(filter.value)}
                   className={
                     dayFilter === filter.value
-                      ? "schedule-filter-button min-h-10 rounded-full bg-nzu-green px-4 text-sm font-black text-black md:text-base"
-                      : "schedule-filter-button min-h-10 rounded-full bg-white/[0.04] px-4 text-sm font-black text-white/74 transition hover:bg-white/[0.07] hover:text-white md:text-base"
+                      ? "schedule-filter-button min-h-10 rounded-full bg-nzu-green px-4 text-sm font-bold text-black md:text-base"
+                      : "schedule-filter-button min-h-10 rounded-full bg-white/[0.04] px-4 text-sm font-semibold text-white/65 transition hover:bg-white/[0.07] hover:text-white md:text-base"
                   }
                 >
                   {filter.label}
@@ -329,7 +329,7 @@ export function ScheduleInfoList({ posts, todayKey, minCalendarKey, maxCalendarK
         </div>
 
         {viewMode === "day" ? (
-          <div className="text-sm font-black text-white/44 md:text-right md:text-base">{getRangeLabel(dayFilter)}</div>
+          <div className="text-sm font-semibold text-white/44 md:text-right md:text-base">{getRangeLabel(dayFilter)}</div>
         ) : null}
       </div>
 
@@ -376,7 +376,7 @@ function ScheduleDayList({
 
         return (
           <section key={date} className="space-y-4">
-            <div className="schedule-date-pill sticky top-20 z-10 inline-flex rounded-full border border-white/10 bg-card/90 px-5 py-2.5 text-base font-black text-white shadow-sm backdrop-blur md:text-lg">
+            <div className="schedule-date-pill sticky top-20 z-10 inline-flex rounded-full border border-white/10 bg-card/90 px-5 py-2.5 text-base font-semibold text-white shadow-sm backdrop-blur md:text-lg">
               {formatScheduleDate(date)}
             </div>
             <div className="space-y-4">
@@ -385,7 +385,7 @@ function ScheduleDayList({
               ))}
               {untimedPosts.length ? (
                 <div className="pt-2">
-                  <div className="mb-3 px-1 text-sm font-black text-white/58">시간 미정</div>
+                  <div className="mb-3 px-1 text-sm font-semibold text-white/58">시간 미정</div>
                   <div className="space-y-4">
                     {untimedPosts.map((post) => (
                       <ScheduleInfoCard key={post.id} post={post} />
@@ -474,7 +474,7 @@ function ScheduleCalendarView({
             <ChevronLeft className="h-5 w-5" aria-hidden="true" />
             <span className="sr-only">이전</span>
           </button>
-          <h2 className="schedule-calendar-title min-w-[8rem] text-xl font-black text-white md:min-w-[10rem] md:text-2xl">
+          <h2 className="schedule-calendar-title min-w-[8rem] text-xl font-bold text-white md:min-w-[10rem] md:text-2xl">
             {calendarTitle}
           </h2>
           <button
@@ -490,19 +490,19 @@ function ScheduleCalendarView({
           <button
             type="button"
             onClick={onToday}
-            className="schedule-control-button inline-flex min-h-12 items-center rounded-2xl border border-white/12 bg-white/[0.03] px-5 text-base font-black text-white transition hover:border-nzu-green/45"
+            className="schedule-control-button inline-flex min-h-12 items-center rounded-2xl border border-white/12 bg-white/[0.03] px-5 text-base font-semibold text-white transition hover:border-nzu-green/45"
           >
             오늘
           </button>
         </div>
-        <div className="text-sm font-black text-white/48">{visibleCount}건</div>
+        <div className="text-sm font-semibold text-white/48">{visibleCount}건</div>
       </div>
 
       <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
         <div className="schedule-calendar-grid min-w-[760px] overflow-hidden rounded-[1.25rem] border border-white/12 bg-[#07111f]">
           <div className="grid grid-cols-7 border-b border-white/12 bg-white/[0.05]">
             {WEEKDAY_LABELS.map((label, weekday) => (
-              <div key={label} className={`px-3 py-4 text-center text-sm font-black ${getCalendarWeekdayClass(weekday)}`}>
+              <div key={label} className={`px-3 py-4 text-center text-sm font-semibold ${getCalendarWeekdayClass(weekday)}`}>
                 {label}
               </div>
             ))}
@@ -535,7 +535,7 @@ function ScheduleCalendarView({
                       </button>
                     </span>
                         {dayPosts.length ? (
-                          <span className="schedule-calendar-count-pill rounded-full border border-sky-300/14 bg-sky-300/8 px-2 py-0.5 text-[10px] font-black text-sky-100/68">
+                          <span className="schedule-calendar-count-pill rounded-full border border-sky-300/14 bg-sky-300/8 px-2 py-0.5 text-[10px] font-semibold text-sky-100/68">
                             {dayPosts.length}일정
                           </span>
                         ) : null}
@@ -590,16 +590,16 @@ function ScheduleCalendarDayDialog({
       >
         <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
           <div>
-            <h2 id="schedule-day-dialog-title" className="text-xl font-black text-white md:text-2xl">
+            <h2 id="schedule-day-dialog-title" className="text-xl font-bold text-white md:text-2xl">
               {formatSelectedScheduleDate(dateKey)}
             </h2>
-            <p className="mt-2 text-sm font-bold text-white/50">{posts.length}개의 일정</p>
+            <p className="mt-2 text-sm font-medium text-white/50">{posts.length}개의 일정</p>
           </div>
           <button
             type="button"
             aria-label="닫기"
             onClick={onClose}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-sky-300/35 bg-white/[0.03] text-sky-200 transition hover:border-sky-300 hover:text-white"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.03] text-white/60 transition hover:border-white/25 hover:text-white"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -626,13 +626,13 @@ function ScheduleCalendarEvent({ post, onSelect }: { post: BoardPostRow; onSelec
       onClick={onSelect}
       className="schedule-calendar-event-button group flex flex-col items-start min-h-[4.6rem] w-full gap-1 rounded-xl border border-white/9 bg-black/28 px-2.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:border-nzu-green/45 hover:bg-black/44 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-nzu-green/70"
     >
-      <span className="schedule-calendar-event-time-badge inline-flex h-5 items-center justify-center rounded-md border border-nzu-green/22 bg-nzu-green/12 px-2 text-[10px] font-black leading-none text-nzu-green">
+      <span className="schedule-calendar-event-time-badge inline-flex h-5 items-center justify-center rounded-md border border-nzu-green/22 bg-nzu-green/12 px-2 text-[10px] font-semibold leading-none text-nzu-green">
         {post.schedule_start_time ? post.schedule_start_time.slice(0, 5) : "미정"}
       </span>
-      <span className="schedule-calendar-event-title line-clamp-1 w-full min-w-0 truncate text-[12px] font-black leading-5 text-white">
+      <span className="schedule-calendar-event-title line-clamp-1 w-full min-w-0 truncate text-[12px] font-semibold leading-5 text-white">
         {post.title}
       </span>
-      <span className="schedule-calendar-event-subtitle line-clamp-1 w-full min-w-0 truncate text-[11px] font-bold leading-4 text-white/56">
+      <span className="schedule-calendar-event-subtitle line-clamp-1 w-full min-w-0 truncate text-[11px] font-medium leading-4 text-white/52">
         {post.schedule_display_name || timeLabel}
       </span>
     </button>
@@ -645,17 +645,17 @@ function ScheduleInfoCard({ post }: { post: BoardPostRow }) {
       <summary className="flex cursor-pointer flex-col gap-3 px-5 py-4 marker:content-none md:flex-row md:items-center md:gap-4 md:px-6 md:py-5">
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className="schedule-card-meta-badge max-w-full truncate rounded-full border border-nzu-green/24 bg-nzu-green/10 px-3 py-1 text-xs font-black text-nzu-green">
+            <span className="schedule-card-meta-badge max-w-full truncate rounded-full border border-nzu-green/24 bg-nzu-green/10 px-3 py-1 text-xs font-semibold text-nzu-green">
               {post.schedule_display_name}
             </span>
-            <span className="schedule-card-meta-badge rounded-full border border-sky-300/18 bg-sky-400/10 px-3 py-1 text-xs font-black text-sky-100">
+            <span className="schedule-card-meta-badge rounded-full border border-sky-300/18 bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-100">
               정보/일정
             </span>
-            <span className="schedule-card-meta-badge rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-black text-white/64">
+            <span className="schedule-card-meta-badge rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-white/64">
               {formatTimeLabel(post.schedule_start_time)}
             </span>
           </div>
-          <div className="schedule-card-title truncate text-lg font-black leading-7 md:text-xl text-white">{post.title}</div>
+          <div className="schedule-card-title truncate text-lg font-bold leading-7 md:text-xl text-white">{post.title}</div>
         </div>
         <span className="self-end text-2xl text-white/42 transition group-open:rotate-180 md:self-auto">⌄</span>
       </summary>
@@ -683,7 +683,7 @@ function ScheduleInfoBody({ post, compact = false }: { post: BoardPostRow; compa
         {post.external_link_url ? (
           <a
             href={post.external_link_url}
-            className="inline-flex min-h-11 items-center rounded-2xl bg-nzu-green px-5 text-sm font-black text-black"
+            className="inline-flex min-h-11 items-center rounded-2xl bg-nzu-green px-5 text-sm font-bold text-black"
             target="_blank"
             rel="noreferrer"
           >
@@ -692,7 +692,7 @@ function ScheduleInfoBody({ post, compact = false }: { post: BoardPostRow; compa
         ) : null}
         <Link
           href={`/board/${post.id}`}
-          className="inline-flex min-h-11 items-center rounded-2xl border border-white/12 bg-white/[0.04] px-5 text-sm font-black text-white"
+          className="inline-flex min-h-11 items-center rounded-2xl border border-white/12 bg-white/[0.04] px-5 text-sm font-medium text-white/80 hover:text-white transition-colors"
         >
           게시글 자세히 보기
         </Link>

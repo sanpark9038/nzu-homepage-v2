@@ -40,7 +40,7 @@ export function BoardPostDeleteButton({ postId }: { postId: string }) {
         type="button"
         onClick={deletePost}
         disabled={isDeleting}
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-300/24 bg-rose-500/10 px-5 text-sm font-black text-rose-100 transition hover:border-rose-300/45 hover:bg-rose-500/16 disabled:opacity-60"
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-300/24 bg-rose-500/10 px-5 text-sm font-semibold text-rose-100 transition hover:border-rose-300/45 hover:bg-rose-500/16 disabled:opacity-60"
       >
         <Trash2 size={16} />
         {isDeleting ? "삭제 중..." : "삭제"}

@@ -221,7 +221,7 @@ export function BoardPostEditForm({ post }: BoardPostEditFormProps) {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploadingImage}
-              className="inline-flex min-h-9 items-center justify-center rounded-lg border border-white/12 bg-white/[0.04] px-3 text-xs font-black text-white/82 transition hover:border-white/22 hover:bg-white/[0.07] disabled:opacity-50"
+              className="inline-flex min-h-9 items-center justify-center rounded-lg border border-white/12 bg-white/[0.04] px-3 text-xs font-semibold text-white/72 transition hover:border-white/22 hover:bg-white/[0.07] disabled:opacity-50"
             >
               {isUploadingImage ? "업로드 중..." : "이미지 선택"}
             </button>
@@ -288,7 +288,7 @@ export function BoardPostEditForm({ post }: BoardPostEditFormProps) {
               setImageUrl("");
               setImageUploadState(initialState);
             }}
-            className="w-full border-t border-white/8 px-3 py-2 text-xs font-black text-white/62 transition hover:text-white"
+            className="w-full border-t border-white/8 px-3 py-2 text-xs font-medium text-white/55 transition hover:text-white"
           >
             이미지 제거
           </button>
@@ -305,13 +305,13 @@ export function BoardPostEditForm({ post }: BoardPostEditFormProps) {
         <button
           type="submit"
           disabled={isSubmitting || isUploadingImage}
-          className="inline-flex min-h-12 items-center justify-center rounded-xl bg-nzu-green px-6 text-sm font-black tracking-tight text-black transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
+          className="inline-flex min-h-12 items-center justify-center rounded-xl bg-nzu-green px-6 text-sm font-bold tracking-tight text-black transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
         >
           {isSubmitting ? "수정 중..." : "수정"}
         </button>
         <Link
           href={`/board/${post.id}`}
-          className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/12 bg-white/[0.03] px-6 text-sm font-black tracking-tight text-white/82 transition hover:border-white/22 hover:bg-white/[0.06]"
+          className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/12 bg-white/[0.03] px-6 text-sm font-semibold tracking-tight text-white/72 transition hover:border-white/22 hover:bg-white/[0.06]"
         >
           취소
         </Link>

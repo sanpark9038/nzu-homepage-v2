@@ -92,17 +92,17 @@ export function BoardPageContent({
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-8 md:px-8">
-        <section className="rounded-[1.4rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,18,0.98),rgba(7,10,11,0.94))] p-5 shadow-[0_18px_54px_rgba(0,0,0,0.18)]">
+        <section className="hosaga-card p-5">
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.24em] text-nzu-green">Board</div>
-              <h1 className="mt-3 text-4xl font-black tracking-[-0.05em] text-white">전체글</h1>
+              <div className="ui-label uppercase text-nzu-green">Board</div>
+              <h1 className="mt-3 text-4xl font-bold tracking-tight text-white">전체글</h1>
               <p className="mt-2 max-w-3xl text-sm font-medium leading-7 text-white/58">
                 새 글과 소식을 한눈에 확인하세요. 글쓰기는 SOOP 로그인 후 사용할 수 있습니다.
               </p>
             </div>
             {renderWriteAction(
-              "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-nzu-green px-5 text-sm font-black text-black transition hover:-translate-y-0.5"
+              "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-nzu-green px-5 text-sm font-bold text-black transition hover:-translate-y-0.5"
             )}
           </div>
         </section>
@@ -139,7 +139,7 @@ export function BoardPageContent({
 
         <section className="rounded-[1.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(11,17,19,0.98),rgba(7,9,10,0.96))] shadow-[0_22px_70px_rgba(0,0,0,0.16)]">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/6 px-4 py-3 md:px-5">
-            <div className="flex items-center gap-2 text-sm font-black [&>span]:hidden">
+            <div className="flex items-center gap-2 text-sm font-semibold [&>span]:hidden">
               <Link href={boardFilterHref("all")} prefetch={false} className={boardFilterTabClassName(boardFilter === "all")}>
                 전체글
               </Link>
@@ -161,7 +161,7 @@ export function BoardPageContent({
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-white/6 bg-white/[0.02] text-left text-xs font-black tracking-[0.14em] text-white/46">
+                <tr className="border-b border-white/6 bg-white/[0.02] text-left text-xs font-medium tracking-[0.12em] text-white/40">
                   <th className="w-[110px] px-4 py-3 md:px-5">말머리</th>
                   <th className="min-w-[420px] px-4 py-3">제목</th>
                   <th className="w-[160px] px-4 py-3">글쓴이</th>
@@ -180,7 +180,7 @@ export function BoardPageContent({
                     return (
                       <tr key={post.id} className={boardRowClassName(post)}>
                         <td
-                          className={`border-l-2 px-4 py-3 text-sm font-black md:px-5 ${
+                          className={`border-l-2 px-4 py-3 text-sm font-semibold md:px-5 ${
                             post.category === "schedule" ? "border-sky-300/45" : "border-transparent"
                           } ${categoryTone}`}
                         >
@@ -193,13 +193,13 @@ export function BoardPageContent({
                             className="inline-flex max-w-full items-center gap-2 font-bold tracking-tight text-white transition hover:text-nzu-green"
                           >
                             {scheduleBadge ? (
-                              <span className="inline-flex h-6 w-[6.9rem] shrink-0 items-center justify-center rounded-md border border-sky-300/28 bg-sky-300/12 px-2.5 text-xs font-black leading-none text-sky-100 shadow-[0_0_18px_rgba(125,211,252,0.08)]">
+                              <span className="inline-flex h-6 w-[6.9rem] shrink-0 items-center justify-center rounded-md border border-sky-300/28 bg-sky-300/12 px-2.5 text-xs font-semibold leading-none text-sky-100">
                                 {scheduleBadge}
                               </span>
                             ) : null}
                             <span className="truncate">{post.title}</span>
                             {post.comment_count > 0 ? (
-                              <span className="shrink-0 text-xs font-black text-nzu-green">[{post.comment_count}]</span>
+                              <span className="shrink-0 text-xs font-semibold text-nzu-green">[{post.comment_count}]</span>
                             ) : null}
                             {hasImage ? <ImageIcon size={14} className="shrink-0 text-white/45" /> : null}
                             {hasVideo ? <PlayCircle size={14} className="shrink-0 text-white/45" /> : null}
@@ -214,7 +214,7 @@ export function BoardPageContent({
                 ) : (
                   <tr>
                     <td colSpan={5} className="px-4 py-16 text-center md:px-5">
-                      <div className="text-2xl font-black tracking-tight text-white">첫 글을 남겨 주세요</div>
+                      <div className="text-2xl font-bold tracking-tight text-white">첫 글을 남겨 주세요</div>
                       <p className="mt-3 text-sm font-medium text-white/55">
                         짧은 소식이나 의견부터 편하게 시작해도 좋습니다.
                       </p>
@@ -227,7 +227,7 @@ export function BoardPageContent({
 
           <div className="flex flex-col gap-3 border-t border-white/6 px-4 py-4 md:flex-row md:items-center md:justify-end md:px-5">
             {renderWriteAction(
-              "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-5 text-sm font-black text-white transition hover:border-nzu-green/40 hover:text-nzu-green"
+              "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-5 text-sm font-semibold text-white/80 transition hover:border-nzu-green/40 hover:text-nzu-green"
             )}
           </div>
         </section>

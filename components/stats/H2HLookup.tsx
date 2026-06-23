@@ -1,7 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import { Activity, Plus, RotateCcw, Swords, Trophy, X, Zap } from 'lucide-react'
 
 import { RaceLetterBadge } from '@/components/ui/race-letter-badge'
@@ -88,6 +91,41 @@ function buildGroupedMatches(matchList: Match[]) {
   })
 
   return groups
+}
+
+function SortableMatchGroup({
+  groupKey,
+  isGrouped,
+  tone,
+  children,
+}: {
+  groupKey: string
+  isGrouped: boolean
+  tone: { hex: string }
+  children: (isDragging: boolean) => React.ReactNode
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: groupKey })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        borderLeft: `8px solid ${isGrouped ? '#2ed573' : tone.hex}`,
+      }}
+      {...attributes}
+      {...listeners}
+      className={cn(
+        'overflow-hidden rounded-2xl border transition-[background-color,border-color,box-shadow,ring-color,border-radius]',
+        isGrouped
+          ? 'border-nzu-green/30 bg-nzu-green/[0.03] shadow-[0_0_30px_rgba(46,213,115,0.05)]'
+          : 'border-white/5 bg-white/[0.02] shadow-xl',
+        isDragging && 'z-50 rounded-2xl bg-[#1A221F] ring-2 ring-nzu-green/50',
+      )}
+    >
+      {children(isDragging)}
+    </div>
+  )
 }
 
 export default function H2HLookup({
@@ -361,15 +399,17 @@ export default function H2HLookup({
     setMatches((prev) => prev.filter((match) => match.id !== id))
   }, [])
 
-  const handleDragEnd = useCallback((result: DropResult) => {
-    if (!result.destination || result.destination.index === result.source.index) return
-    const destination = result.destination
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
 
     setMatches((prev) => {
-      const groups = buildGroupedMatches(prev).map((group) => group.entries.map((entry) => entry.match))
-      const [reorderedGroup] = groups.splice(result.source.index, 1)
-      groups.splice(destination.index, 0, reorderedGroup)
-      return groups.flat()
+      const groups = buildGroupedMatches(prev)
+      const ids = groups.map(g => `${g.p1Id}:${g.entries[0].match.id}`)
+      const oldIndex = ids.indexOf(String(active.id))
+      const newIndex = ids.indexOf(String(over.id))
+      if (oldIndex === -1 || newIndex === -1) return prev
+      return arrayMove(groups, oldIndex, newIndex).flatMap(g => g.entries.map(e => e.match))
     })
   }, [])
 
@@ -545,10 +585,12 @@ export default function H2HLookup({
           </div>
 
           <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="entry-list">
-                {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
+            <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis]}>
+              <SortableContext
+                items={groupedMatches.map(g => `${g.p1Id}:${g.entries[0].match.id}`)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-4">
                     {groupedMatches.map((group, groupIndex) => {
                       const isGrouped = group.entries.length > 1
                       const tierKey = normalizeTier(group.entries[0].match.p1.tier)
@@ -556,25 +598,9 @@ export default function H2HLookup({
                       const groupKey = `${group.p1Id}:${group.entries[0].match.id}`
 
                       return (
-                        <Draggable key={groupKey} draggableId={groupKey} index={groupIndex}>
-                          {(dragProvided, snapshot) => (
-                            <div
-                              ref={dragProvided.innerRef}
-                              {...dragProvided.draggableProps}
-                              {...dragProvided.dragHandleProps}
-                              className={cn(
-                                'overflow-hidden rounded-2xl border transition-[background-color,border-color,box-shadow,ring-color,border-radius]',
-                                isGrouped
-                                  ? 'border-nzu-green/30 bg-nzu-green/[0.03] shadow-[0_0_30px_rgba(46,213,115,0.05)]'
-                                  : 'border-white/5 bg-white/[0.02] shadow-xl',
-                                snapshot.isDragging && 'z-50 rounded-2xl bg-[#1A221F] ring-2 ring-nzu-green/50',
-                                snapshot.isDropAnimating && 'ring-1 ring-nzu-green/30'
-                              )}
-                              style={{
-                                ...dragProvided.draggableProps.style,
-                                borderLeft: `8px solid ${isGrouped ? '#2ed573' : tone.hex}`,
-                              }}
-                            >
+                        <SortableMatchGroup key={groupKey} groupKey={groupKey} isGrouped={isGrouped} tone={tone}>
+                          {(isDragging) => (
+                            <>
                               {group.entries.map(({ match }, index) => {
                                 const matchupStats = getMatchupStats(match.h2h)
                                 const displayMatchupStats =
@@ -586,7 +612,7 @@ export default function H2HLookup({
                                     className={cn(
                                       'group relative grid grid-cols-[44px_minmax(0,1fr)_82px_minmax(0,1fr)_24px] items-center gap-x-1.5 px-3 py-2.5 transition-[background-color,box-shadow,ring-color,border-radius]',
                                       index !== 0 && 'border-t border-white/[0.02]',
-                                      !snapshot.isDragging && 'hover:bg-white/[0.05]'
+                                      !isDragging && 'hover:bg-white/[0.05]'
                                     )}
                                   >
                                     <div className="flex justify-center">
@@ -609,35 +635,35 @@ export default function H2HLookup({
                                       {displayMatchupStats ? (
                                         <div className="flex min-w-[82px] flex-col items-center animate-in fade-in zoom-in-90 duration-300">
                                           <div className="flex min-w-[82px] items-center justify-center gap-1">
-                                            <span className="min-w-[18px] text-right text-[1.28rem] font-[1000] italic leading-none tabular-nums text-nzu-green md:text-[1.45rem]">
+                                            <span className="min-w-[18px] text-right text-[1.28rem] font-bold italic leading-none tabular-nums text-nzu-green md:text-[1.45rem]">
                                               {displayMatchupStats.overall[0]}
                                             </span>
-                                            <span className="min-w-[34px] px-1 text-center text-[11px] font-[1000] italic text-nzu-green/68">
+                                            <span className="min-w-[34px] px-1 text-center text-[11px] font-semibold italic text-nzu-green/68">
                                               전체
                                             </span>
-                                            <span className="min-w-[18px] text-left text-[1.28rem] font-[1000] italic leading-none tabular-nums text-nzu-green md:text-[1.45rem]">
+                                            <span className="min-w-[18px] text-left text-[1.28rem] font-bold italic leading-none tabular-nums text-nzu-green md:text-[1.45rem]">
                                               {displayMatchupStats.overall[1]}
                                             </span>
                                           </div>
                                           <div className="my-0.5 h-px w-[74px] bg-gradient-to-r from-transparent via-white/7 to-transparent" />
                                           <div className="flex min-w-[82px] items-center justify-center gap-1 opacity-75">
-                                            <span className="min-w-[16px] text-right text-[1rem] font-[1000] italic leading-none tabular-nums text-red-500/85 md:text-[1.08rem]">
+                                            <span className="min-w-[16px] text-right text-[1rem] font-bold italic leading-none tabular-nums text-red-500/85 md:text-[1.08rem]">
                                               {displayMatchupStats.recent[0]}
                                             </span>
-                                            <span className="min-w-[34px] text-center text-[11px] font-[1000] italic text-red-500/45">
+                                            <span className="min-w-[34px] text-center text-[11px] font-semibold italic text-red-500/45">
                                               최근
                                             </span>
-                                            <span className="min-w-[16px] text-left text-[1rem] font-[1000] italic leading-none tabular-nums text-red-500/85 md:text-[1.08rem]">
+                                            <span className="min-w-[16px] text-left text-[1rem] font-bold italic leading-none tabular-nums text-red-500/85 md:text-[1.08rem]">
                                               {displayMatchupStats.recent[1]}
                                             </span>
                                           </div>
                                         </div>
                                       ) : match.h2hStatus === 'error' ? (
                                         <div className="flex min-w-[82px] flex-col items-center gap-1">
-                                          <span className="text-[10px] font-[1000] uppercase tracking-[0.18em] text-red-400/80">
+                                          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-400/80">
                                             조회 실패
                                           </span>
-                                          <span className="text-[11px] font-[1000] italic text-white/18">
+                                          <span className="text-[11px] font-semibold italic text-white/18">
                                             재시도 필요
                                           </span>
                                         </div>
@@ -668,16 +694,14 @@ export default function H2HLookup({
                                   </div>
                                 )
                               })}
-                            </div>
+                            </>
                           )}
-                        </Draggable>
+                        </SortableMatchGroup>
                       )
                     })}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
         </div>
       </div>

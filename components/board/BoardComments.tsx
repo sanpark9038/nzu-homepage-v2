@@ -50,7 +50,7 @@ export function BoardComments({
   if (!storageReady) {
     return (
       <section className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(13,21,23,0.98),rgba(8,13,14,0.96))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
-        <h2 className="border-b border-white/12 pb-4 text-base font-black text-white">댓글</h2>
+        <h2 className="border-b border-white/12 pb-4 text-base font-semibold text-white">댓글</h2>
         <p className="mt-4 text-sm font-medium text-white/66">댓글 기능을 준비 중입니다.</p>
       </section>
     );
@@ -105,7 +105,7 @@ export function BoardComments({
   return (
     <section className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(13,21,23,0.98),rgba(8,13,14,0.96))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
       <div className="flex items-center justify-between gap-3 border-b border-white/12 pb-4">
-        <h2 className="text-base font-black text-white">댓글</h2>
+        <h2 className="text-base font-semibold text-white">댓글</h2>
         <span className="text-sm font-bold text-white/58">{commentCountLabel}</span>
       </div>
 
@@ -155,7 +155,7 @@ export function BoardComments({
               <button
                 type="submit"
                 disabled={isPending || !content.trim() || remaining < 0}
-                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-nzu-green px-5 text-sm font-black text-black transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-nzu-green px-5 text-sm font-bold text-black transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 등록
               </button>

@@ -18,21 +18,19 @@ export function TierGroup({ rankName, players, showRaceGroups, emptyMessage }: T
   return (
     <div className="tier-content-visibility mb-14">
       <div className="mb-8 flex items-center justify-between border-b border-foreground/5 px-2 pb-4">
-        <div className="flex items-center gap-4">
-          <div className="h-6 w-1.5 rounded-full bg-nzu-green shadow-[0_0_15px_rgba(46,213,115,0.4)]" />
-          <h2 className="text-2xl font-black italic tracking-tighter text-foreground transition-colors md:text-3xl">{rankName}</h2>
+        <div className="flex items-center gap-3">
+          <div className="h-5 w-1 rounded-full bg-nzu-green" />
+          <h2 className="text-xl font-bold tracking-tight text-foreground transition-colors md:text-2xl">{rankName}</h2>
         </div>
 
-        <div className="flex items-center gap-4 text-right text-[10px] font-bold uppercase tracking-widest text-foreground/20 transition-colors">
-          <span>선수 수 {players.length}</span>
-          <div className="h-1 w-1 rounded-full bg-foreground/20" />
-          <span>선수 상세는 카드를 선택해 확인</span>
+        <div className="flex items-center gap-3 text-right text-xs font-medium uppercase tracking-wider text-foreground/30 transition-colors">
+          <span>선수 {players.length}명</span>
         </div>
       </div>
 
       {players.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-white/5 bg-white/[0.01] px-8 py-10 text-center">
-          <p className="text-xs font-bold tracking-widest text-foreground/20">{emptyMessage}</p>
+          <p className="text-xs font-medium tracking-wide text-foreground/28">{emptyMessage}</p>
         </div>
       ) : !showRaceGroups ? (
         <div className={TIER_PLAYER_GRID_CLASS}>
@@ -59,8 +57,8 @@ export function TierGroup({ rankName, players, showRaceGroups, emptyMessage }: T
                     race.id === "P" && "border-yellow-500/20 bg-yellow-500/10 text-yellow-400"
                   )}
                 >
-                  <span className="text-xs font-black uppercase tracking-[0.2em]">{race.label}</span>
-                  <span className="ml-4 text-[10px] font-bold opacity-40">{racePlayers.length}명</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em]">{race.label}</span>
+                  <span className="ml-4 text-[10px] font-medium opacity-38">{racePlayers.length}명</span>
                 </div>
 
                 {racePlayers.length > 0 ? (
@@ -71,7 +69,7 @@ export function TierGroup({ rankName, players, showRaceGroups, emptyMessage }: T
                   </div>
                 ) : (
                   <div className="flex items-center justify-center rounded-3xl border border-dashed border-white/5 bg-white/[0.01] py-10">
-                    <span className="text-[10px] font-bold italic tracking-[0.3em] text-white/10">{race.label} 선수 없음</span>
+                    <span className="text-[10px] font-medium tracking-wider text-white/18">{race.label} 선수 없음</span>
                   </div>
                 )}
               </div>

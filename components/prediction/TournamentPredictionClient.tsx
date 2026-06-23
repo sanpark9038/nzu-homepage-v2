@@ -169,7 +169,7 @@ function PlayerLine({ player }: { player: MatchPlayer | null }) {
   if (!player) return <span className="text-white/35">선수 미정</span>;
   return (
     <span className="flex min-w-0 items-center justify-center gap-2">
-      <span className="truncate font-black text-white">{player.name}</span>
+      <span className="truncate font-semibold text-white">{player.name}</span>
       <RaceLetterBadge race={player.race || "T"} size="sm" />
       <TierBadge tier={player.tier || "미정"} size="xs" />
     </span>
@@ -181,7 +181,7 @@ function IndividualMatchupLine({ match }: { match: PredictionMatch }) {
   const rightPlayer = match.teamB.players[0] || null;
 
   return (
-    <div className="mt-1 flex flex-wrap items-center justify-center gap-2 text-sm font-bold text-white/72">
+    <div className="mt-1 flex flex-wrap items-center justify-center gap-2 text-sm font-medium text-white/65">
       <PlayerLine player={leftPlayer} />
       <span className="ui-label text-white/36">VS</span>
       <PlayerLine player={rightPlayer} />
@@ -229,8 +229,8 @@ function PickButton({
       <span className="ui-label mt-1 text-white/72">
         {percent}% · {votes.toLocaleString("ko-KR")}표
       </span>
-      {selected ? <span className="mt-1 text-xs font-black text-cyan-100">내 선택</span> : null}
-      {winner ? <span className="mt-1 text-xs font-black text-nzu-green">공개 결과</span> : null}
+      {selected ? <span className="mt-1 text-xs font-semibold text-cyan-100">내 선택</span> : null}
+      {winner ? <span className="mt-1 text-xs font-semibold text-nzu-green">공개 결과</span> : null}
     </button>
   );
 }
@@ -410,7 +410,7 @@ export function TournamentPredictionClient({
 
   if (matches.length === 0) {
     return (
-      <section className="rounded-xl border border-white/10 bg-white/[0.04] px-5 py-8 text-center text-sm font-bold text-white/50">
+      <section className="hosaga-card px-5 py-8 text-center text-sm font-medium text-white/45">
         등록된 승부예측이 없습니다.
       </section>
     );
@@ -420,17 +420,17 @@ export function TournamentPredictionClient({
     <>
       <section className="space-y-3" aria-hidden={pendingVote ? "true" : undefined}>
         {!session ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-white/62">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white/58">
             <span>{message || "로그인 후 승부예측에 참여할 수 있습니다. 투표 현황과 결과는 누구나 확인할 수 있습니다."}</span>
             <a
               href="/api/auth/soop/start?next=/prediction"
-              className="rounded-lg bg-nzu-green px-4 py-2 text-xs font-black text-black transition hover:brightness-110"
+              className="rounded-lg bg-nzu-green px-4 py-2 text-xs font-bold text-black transition hover:brightness-110"
             >
               LOGIN
             </a>
           </div>
         ) : message ? (
-          <div className="rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200">
+          <div className="rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-200">
             {message}
           </div>
         ) : null}
@@ -475,7 +475,7 @@ export function TournamentPredictionClient({
                   <MatchTypeBadge type={match.matchType} />
                   <h2 className="ui-card-title mt-2 leading-snug md:text-xl">{match.title}</h2>
                   {match.matchType === "team" ? (
-                    <p className="mt-0.5 text-xs font-bold text-white/45">최종 승리팀만 예측합니다.</p>
+                    <p className="mt-0.5 text-xs font-medium text-white/45">최종 승리팀만 예측합니다.</p>
                   ) : (
                     <IndividualMatchupLine match={match} />
                   )}
@@ -508,7 +508,7 @@ export function TournamentPredictionClient({
               {isResultPublished(match) ? (
                 <div
                   className={cn(
-                    "mx-4 mb-4 rounded-xl border px-4 py-3 text-center text-sm font-black",
+                    "mx-4 mb-4 rounded-xl border px-4 py-3 text-center text-sm font-semibold",
                     hasMyPick
                       ? isCorrect
                         ? "border-nzu-green/30 bg-nzu-green/10 text-nzu-green"
@@ -525,7 +525,7 @@ export function TournamentPredictionClient({
                 <div className="border-t border-white/8 px-4 pb-4 pt-3">
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-center">
                     <div className="flex flex-wrap items-center justify-center gap-2 max-md:w-full">
-                      <h3 className="text-sm font-black text-white">엔트리 매치업 안내</h3>
+                      <h3 className="text-sm font-semibold text-white">엔트리 매치업 안내</h3>
                       <span className="ui-label rounded-full border border-white/12 bg-white/[0.045] px-2.5 py-1 text-white/58">
                         {match.entryOrderStatus === "confirmed" ? "경기 순서 확정" : "경기 순서 미정"}
                       </span>
@@ -535,7 +535,7 @@ export function TournamentPredictionClient({
                       aria-expanded={isEntryExpanded}
                       aria-controls={entryMatchupPanelId}
                       onClick={() => toggleEntryMatchups(match.id)}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-3 py-2 text-xs font-black text-white/68 transition hover:border-nzu-green/30 hover:text-white max-md:mx-auto"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-3 py-2 text-xs font-semibold text-white/65 transition hover:border-nzu-green/30 hover:text-white max-md:mx-auto"
                     >
                       <span>{isEntryExpanded ? "접기" : "상세보기"}</span>
                       <ChevronDown
@@ -552,11 +552,11 @@ export function TournamentPredictionClient({
                           key={row.id || index}
                           className="grid grid-cols-[84px_minmax(0,1fr)_38px_minmax(0,1fr)] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 max-md:grid-cols-1"
                         >
-                          <strong className="rounded-lg bg-white/[0.06] px-3 py-2 text-center text-sm font-black text-white">
+                          <strong className="rounded-lg bg-white/[0.06] px-3 py-2 text-center text-sm font-semibold text-white">
                             {row.label || `매치${index + 1}`}
                           </strong>
                           <PlayerLine player={row.playerA} />
-                          <span className="text-center text-xs font-black text-white/38">VS</span>
+                          <span className="text-center text-xs font-semibold text-white/35">VS</span>
                           <PlayerLine player={row.playerB} />
                         </div>
                       ))}
@@ -575,25 +575,25 @@ export function TournamentPredictionClient({
             role="dialog"
             aria-modal="true"
             aria-labelledby="prediction-confirm-title"
-            className="w-full max-w-sm rounded-xl border border-white/12 bg-[#101819] p-5 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+            className="hosaga-card w-full max-w-sm p-5 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
           >
-            <h2 id="prediction-confirm-title" className="text-lg font-black text-white">
+            <h2 id="prediction-confirm-title" className="text-lg font-bold text-white">
               {pendingVote.team.teamName} 승리로 예측할까요?
             </h2>
-            <p className="mt-3 text-sm font-bold leading-6 text-white/62">
+            <p className="mt-3 text-sm font-medium leading-6 text-white/58">
               예측 변경은 마감 전 한 번만 가능합니다.
             </p>
             <div className="mt-5 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                className="rounded-lg border border-white/12 bg-white/[0.05] px-4 py-2 text-sm font-black text-white/72 transition hover:bg-white/[0.08]"
+                className="rounded-lg border border-white/12 bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white/65 transition hover:bg-white/[0.08]"
                 onClick={() => setPendingVote(null)}
               >
                 취소
               </button>
               <button
                 type="button"
-                className="rounded-lg bg-nzu-green px-4 py-2 text-sm font-black text-black transition hover:brightness-110 disabled:cursor-wait disabled:opacity-65"
+                className="rounded-lg bg-nzu-green px-4 py-2 text-sm font-bold text-black transition hover:brightness-110 disabled:cursor-wait disabled:opacity-65"
                 disabled={busyKey !== null}
                 ref={confirmVoteButtonRef}
                 onClick={() => {

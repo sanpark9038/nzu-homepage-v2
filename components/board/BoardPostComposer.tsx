@@ -239,7 +239,7 @@ export function BoardPostComposer() {
             <button
               type="button"
               onClick={() => setShowGuide(true)}
-              className="text-xs font-black tracking-[0.12em] text-white/42 transition hover:text-nzu-green"
+              className="text-xs font-semibold tracking-[0.1em] text-white/38 transition hover:text-nzu-green"
             >
               안내 보기
             </button>
@@ -255,7 +255,7 @@ export function BoardPostComposer() {
               onPointerDown={focusContentFromGuide}
             >
               <div className="max-w-3xl">
-                <div className="font-black text-rose-200">편하게 적어 주세요.</div>
+                <div className="font-semibold text-rose-200">편하게 적어 주세요.</div>
                 <ul className="mt-3 space-y-1.5">
                   {WRITING_GUIDE_LINES.map((line) => (
                     <li key={line}>- {line}</li>
@@ -301,7 +301,7 @@ export function BoardPostComposer() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploadingImage}
-              className="inline-flex min-h-9 items-center justify-center rounded-lg border border-white/12 bg-white/[0.04] px-3 text-xs font-black text-white/82 transition hover:border-white/22 hover:bg-white/[0.07] disabled:opacity-50"
+              className="inline-flex min-h-9 items-center justify-center rounded-lg border border-white/12 bg-white/[0.04] px-3 text-xs font-semibold text-white/72 transition hover:border-white/22 hover:bg-white/[0.07] disabled:opacity-50"
             >
               {isUploadingImage ? "업로드 중..." : "이미지 선택"}
             </button>
@@ -368,7 +368,7 @@ export function BoardPostComposer() {
               setImageUrl("");
               setImageUploadState(initialImageUploadState);
             }}
-            className="w-full border-t border-white/8 px-3 py-2 text-xs font-black text-white/62 transition hover:text-white"
+            className="w-full border-t border-white/8 px-3 py-2 text-xs font-medium text-white/55 transition hover:text-white"
           >
             이미지 제거
           </button>
@@ -395,13 +395,13 @@ export function BoardPostComposer() {
         <button
           type="submit"
           disabled={isSubmitting || isUploadingImage}
-          className="inline-flex min-h-12 items-center justify-center rounded-xl bg-nzu-green px-6 text-sm font-black tracking-tight text-black transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
+          className="inline-flex min-h-12 items-center justify-center rounded-xl bg-nzu-green px-6 text-sm font-bold tracking-tight text-black transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
         >
           {isSubmitting ? "등록 중..." : "등록"}
         </button>
         <Link
           href="/board"
-          className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/12 bg-white/[0.03] px-6 text-sm font-black tracking-tight text-white/82 transition hover:border-white/22 hover:bg-white/[0.06]"
+          className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/12 bg-white/[0.03] px-6 text-sm font-semibold tracking-tight text-white/72 transition hover:border-white/22 hover:bg-white/[0.06]"
         >
           게시판으로 돌아가기
         </Link>

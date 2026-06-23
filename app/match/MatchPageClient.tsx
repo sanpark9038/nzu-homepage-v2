@@ -360,7 +360,7 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
           <GripVertical size={17} />
         </div>
         <div className="min-w-[56px] text-center">
-          <div className="text-[1rem] font-[1000] italic tracking-tight text-white/88">
+          <div className="text-[1rem] font-bold italic tracking-tight text-white/88">
             {matchNumber}경기
           </div>
         </div>
@@ -389,7 +389,7 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
               onFocus={() => { if (row.p1Input) handleSearch(row.p1Input, 1); }}
               onBlur={() => setTimeout(() => setShow1(false), 200)}
               placeholder="A팀 선수" 
-              className="flex-1 h-full bg-transparent pl-4.5 pr-[3.35rem] text-[1.45rem] font-[1000] text-left text-white placeholder:text-white/14 focus:outline-none uppercase tracking-tighter w-full min-w-0"
+              className="flex-1 h-full bg-transparent pl-4.5 pr-[3.35rem] text-[1.45rem] font-bold text-left text-white placeholder:text-white/14 focus:outline-none uppercase tracking-tighter w-full min-w-0"
             />
             
             {/* 우측 아이콘 고정 영역 */}
@@ -413,18 +413,18 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
                      setShow1(false);
                      setTimeout(() => p2InputRef.current?.focus(), 0);
                    }}
-                   className="w-full flex items-center justify-between rounded-[0.9rem] px-4 py-2.5 text-[1rem] font-[1000] text-white/72 transition-all hover:bg-nzu-green/[0.09] hover:text-white"
+                   className="w-full flex items-center justify-between rounded-[0.9rem] px-4 py-2.5 text-[1rem] font-bold text-white/72 transition-all hover:bg-nzu-green/[0.09] hover:text-white"
                  >
                    <span className="truncate pr-3">{p.name}</span>
                    <RaceLetterBadge race={p.race} size="sm" />
                  </button>
                ))}
                {isPlayersLoading ? (
-                 <div className="px-4 py-3 text-[0.92rem] font-[1000] text-white/32">
+                 <div className="px-4 py-3 text-[0.92rem] font-medium text-white/32">
                    선수 목록 불러오는 중...
                  </div>
                ) : s1.length === 0 && row.p1Input.trim() ? (
-                 <div className="px-4 py-3 text-[0.92rem] font-[1000] text-white/32">
+                 <div className="px-4 py-3 text-[0.92rem] font-medium text-white/32">
                    일치하는 선수가 없습니다.
                  </div>
                ) : null}
@@ -443,18 +443,18 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
                (leftInsight?.isRecentSampleThin || rightInsight?.isRecentSampleThin) && "opacity-90"
              )}>
                 <div className="flex min-w-[104px] items-center justify-center gap-2">
-                   <span className="min-w-[26px] text-right text-[1.65rem] font-[1000] italic text-nzu-green leading-none tabular-nums">{matchupStats.overall[0]}</span>
-                   <span className="min-w-[34px] px-1 text-center text-[11px] font-[1000] italic text-nzu-green/68">전체</span>
-                   <span className="min-w-[26px] text-left text-[1.65rem] font-[1000] italic text-nzu-green leading-none tabular-nums">{matchupStats.overall[1]}</span>
+                   <span className="min-w-[26px] text-right text-[1.65rem] font-extrabold italic text-nzu-green leading-none tabular-nums">{matchupStats.overall[0]}</span>
+                   <span className="min-w-[34px] px-1 text-center text-[11px] font-semibold italic text-nzu-green/68">전체</span>
+                   <span className="min-w-[26px] text-left text-[1.65rem] font-extrabold italic text-nzu-green leading-none tabular-nums">{matchupStats.overall[1]}</span>
                 </div>
                 <div className="my-1 h-px w-[92px] bg-gradient-to-r from-transparent via-white/7 to-transparent" />
                 <div className="flex min-w-[104px] items-center justify-center gap-2 opacity-75">
-                   <span className="min-w-[22px] text-right text-[1.28rem] font-[1000] italic text-red-500/85 leading-none tabular-nums">{matchupStats.recent[0]}</span>
-                   <span className="min-w-[34px] text-center text-[11px] font-[1000] italic text-red-500/45">최근</span>
-                   <span className="min-w-[22px] text-left text-[1.28rem] font-[1000] italic text-red-500/85 leading-none tabular-nums">{matchupStats.recent[1]}</span>
+                   <span className="min-w-[22px] text-right text-[1.28rem] font-bold italic text-red-500/85 leading-none tabular-nums">{matchupStats.recent[0]}</span>
+                   <span className="min-w-[34px] text-center text-[11px] font-semibold italic text-red-500/45">최근</span>
+                   <span className="min-w-[22px] text-left text-[1.28rem] font-bold italic text-red-500/85 leading-none tabular-nums">{matchupStats.recent[1]}</span>
                 </div>
                 {leftInsight?.isRecentSampleThin || rightInsight?.isRecentSampleThin ? (
-                  <div className="mt-1 rounded-full border border-amber-300/14 bg-amber-300/[0.06] px-2 py-0.5 text-[0.62rem] font-[1000] uppercase tracking-[0.18em] text-amber-100/70">
+                  <div className="mt-1 rounded-full border border-amber-300/14 bg-amber-300/[0.06] px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-100/70">
                     최근 표본 얇음
                   </div>
                 ) : null}
@@ -468,8 +468,8 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
              <div className="flex flex-col items-center gap-1.5 pt-1">
                <div className="h-[1px] w-[92px] bg-gradient-to-r from-transparent via-white/6 to-transparent group-hover:via-nzu-green/20 transition-colors" />
                <div className="flex min-w-[104px] items-center justify-center gap-3 opacity-60">
-                 <span className="text-[12px] font-[1000] italic text-white/16">{isConfirmed ? '표본' : '전체'}</span>
-                 <span className="text-[11px] font-[1000] italic text-white/12">{isConfirmed ? '없음' : '최근'}</span>
+                 <span className="text-[12px] font-semibold italic text-white/16">{isConfirmed ? '표본' : '전체'}</span>
+                 <span className="text-[11px] font-semibold italic text-white/12">{isConfirmed ? '없음' : '최근'}</span>
                </div>
              </div>
            )}
@@ -505,7 +505,7 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
               onFocus={() => { if (row.p2Input) handleSearch(row.p2Input, 2); }}
               onBlur={() => setTimeout(() => setShow2(false), 200)}
               placeholder="B팀 선수" 
-              className="flex-1 h-full bg-transparent pl-[3.35rem] pr-4.5 text-[1.45rem] font-[1000] text-right text-white placeholder:text-white/14 focus:outline-none uppercase tracking-tighter w-full min-w-0"
+              className="flex-1 h-full bg-transparent pl-[3.35rem] pr-4.5 text-[1.45rem] font-bold text-right text-white placeholder:text-white/14 focus:outline-none uppercase tracking-tighter w-full min-w-0"
             />
           </div>
           {/* Autocomplete 2 */}
@@ -515,18 +515,18 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
                  <button
                    key={p.id}
                    onClick={() => { updateRow(row.id, 'p2', p); updateRow(row.id, 'p2Input', p.name); setShow2(false); }}
-                   className="w-full flex items-center justify-between rounded-[0.9rem] px-4 py-2.5 text-[1rem] font-[1000] text-white/72 transition-all hover:bg-red-500/[0.09] hover:text-white"
+                   className="w-full flex items-center justify-between rounded-[0.9rem] px-4 py-2.5 text-[1rem] font-bold text-white/72 transition-all hover:bg-red-500/[0.09] hover:text-white"
                  >
                    <RaceLetterBadge race={p.race} size="sm" />
                    <span className="truncate pl-3 text-right">{p.name}</span>
                  </button>
                ))}
                {isPlayersLoading ? (
-                 <div className="px-4 py-3 text-right text-[0.92rem] font-[1000] text-white/32">
+                 <div className="px-4 py-3 text-right text-[0.92rem] font-medium text-white/32">
                    선수 목록 불러오는 중...
                  </div>
                ) : s2.length === 0 && row.p2Input.trim() ? (
-                 <div className="px-4 py-3 text-right text-[0.92rem] font-[1000] text-white/32">
+                 <div className="px-4 py-3 text-right text-[0.92rem] font-medium text-white/32">
                    일치하는 선수가 없습니다.
                  </div>
                ) : null}
@@ -543,7 +543,7 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
             if (isConfirmed) setShowMomentum((prev) => !prev);
           }}
           className={cn(
-            "h-[56px] flex-1 px-4 rounded-[1.15rem] font-[1000] uppercase tracking-tight transition-all flex items-center justify-center border md:min-w-[110px] md:flex-none",
+            "h-[56px] flex-1 px-4 rounded-[1.15rem] font-bold uppercase tracking-tight transition-all flex items-center justify-center border md:min-w-[110px] md:flex-none",
             isConfirmed 
               ? "bg-white/[0.04] border-white/10 text-white/78 hover:border-nzu-green/30 hover:bg-nzu-green/[0.06] hover:text-nzu-green text-[1.02rem]" 
               : "bg-white/[0.03] border-white/5 text-white/10 cursor-not-allowed text-[0.98rem]"
@@ -558,10 +558,10 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
       {isMomentumVisible && (
         <div className="rounded-[1.4rem] border border-white/8 bg-[#071011]/92 px-3 py-3 md:px-4">
           <div className="mb-3 flex items-center justify-between">
-            <div className="text-[0.82rem] font-[1000] tracking-tight text-white/32">현재 선택 기준 즉시 요약</div>
+            <div className="text-[0.82rem] font-medium tracking-tight text-white/32">현재 선택 기준 즉시 요약</div>
             <button
               onClick={() => setShowMomentum(false)}
-              className="rounded-full border border-white/6 px-2.5 py-1 text-[0.76rem] font-[1000] text-white/28 transition-all hover:border-white/12 hover:text-white/58"
+              className="rounded-full border border-white/6 px-2.5 py-1 text-[0.76rem] font-semibold text-white/28 transition-all hover:border-white/12 hover:text-white/58"
             >
               닫기
             </button>
@@ -570,32 +570,32 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
           <div className="rounded-[1.2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-3 py-3 md:px-4">
             <div className="grid items-center gap-2 border-b border-white/7 pb-3 md:grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)]">
               <div className="text-center md:text-right">
-                <div className="text-[1.08rem] font-[1000] tracking-tight text-white">{row.p1?.name}</div>
-                <div className="mt-1 text-[0.82rem] font-[1000] tracking-[0.18em] text-nzu-green/62 uppercase">Left Side</div>
+                <div className="text-[1.08rem] font-bold tracking-tight text-white">{row.p1?.name}</div>
+                <div className="mt-1 text-[0.82rem] font-semibold tracking-[0.18em] text-nzu-green/62 uppercase">Left Side</div>
               </div>
-              <div className="text-center text-[0.76rem] font-[1000] uppercase tracking-[0.22em] text-white/26">Mirror Compare</div>
+              <div className="text-center text-[0.76rem] font-semibold uppercase tracking-[0.22em] text-white/26">Mirror Compare</div>
               <div className="text-center md:text-left">
-                <div className="text-[1.08rem] font-[1000] tracking-tight text-white">{row.p2?.name}</div>
-                <div className="mt-1 text-[0.82rem] font-[1000] tracking-[0.18em] text-red-300/58 uppercase">Right Side</div>
+                <div className="text-[1.08rem] font-bold tracking-tight text-white">{row.p2?.name}</div>
+                <div className="mt-1 text-[0.82rem] font-semibold tracking-[0.18em] text-red-300/58 uppercase">Right Side</div>
               </div>
             </div>
 
             <div className="mt-3 grid gap-2 rounded-[1rem] border border-white/7 bg-white/[0.025] px-3 py-3 md:grid-cols-3 md:px-4">
               <div className="text-center md:text-left">
-                <div className="text-[0.7rem] font-[1000] uppercase tracking-[0.18em] text-white/28">전체 표본</div>
-                <div className="mt-1 text-[0.94rem] font-[1000] tracking-tight text-white">
+                <div className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-white/28">전체 표본</div>
+                <div className="mt-1 text-[0.94rem] font-bold tracking-tight text-white">
                   {leftInsight.overallSampleCount}경기
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-[0.7rem] font-[1000] uppercase tracking-[0.18em] text-white/28">최근 90일 승률</div>
-                <div className="mt-1 text-[0.94rem] font-[1000] tracking-tight text-white">
+                <div className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-white/28">최근 90일 승률</div>
+                <div className="mt-1 text-[0.94rem] font-bold tracking-tight text-white">
                   {leftInsight.recentWinRateLabel}
                 </div>
               </div>
               <div className="text-center md:text-right">
-                <div className="text-[0.7rem] font-[1000] uppercase tracking-[0.18em] text-white/28">최근 맞대결</div>
-                <div className="mt-1 text-[0.94rem] font-[1000] tracking-tight text-white">
+                <div className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-white/28">최근 맞대결</div>
+                <div className="mt-1 text-[0.94rem] font-bold tracking-tight text-white">
                   {leftInsight.latestMatchLabel}
                 </div>
               </div>
@@ -606,31 +606,31 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
                 <div className="rounded-[1rem] border border-nzu-green/14 bg-nzu-green/[0.05] px-4 py-3 text-center md:text-right">
                   <div className="flex items-center justify-center gap-2 md:justify-end">
                     {leftInsight.isRecentSampleThin ? (
-                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-[1000] uppercase tracking-[0.18em] text-amber-100/85">
+                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-amber-100/85">
                         표본 부족
                       </span>
                     ) : null}
-                    <div className={cn("text-[1.02rem] font-[1000] tracking-tight", getFormToneClasses(leftInsight.formLabel, 'left'))}>{leftInsight.recentTone}</div>
+                    <div className={cn("text-[1.02rem] font-bold tracking-tight", getFormToneClasses(leftInsight.formLabel, 'left'))}>{leftInsight.recentTone}</div>
                   </div>
-                  <div className="mt-1 text-[1.18rem] font-[1000] italic tracking-tight text-white">{leftInsight.recentRecord}</div>
+                  <div className="mt-1 text-[1.18rem] font-bold italic tracking-tight text-white">{leftInsight.recentRecord}</div>
                   <div className="mt-1 text-[0.84rem] text-white/46">{leftInsight.recentSummary}</div>
-                  <div className="mt-1 text-[0.76rem] font-[1000] uppercase tracking-[0.16em] text-white/26">최근 90일 표본 {leftInsight.recentSampleCount}경기</div>
+                  <div className="mt-1 text-[0.76rem] font-semibold uppercase tracking-[0.16em] text-white/26">최근 90일 표본 {leftInsight.recentSampleCount}경기</div>
                 </div>
                 <div className="rounded-[1rem] border border-white/8 bg-white/[0.04] px-3 py-3 text-center">
-                  <div className="text-[0.78rem] font-[1000] uppercase tracking-[0.22em] text-white/32">기세</div>
+                  <div className="text-[0.78rem] font-semibold uppercase tracking-[0.22em] text-white/32">기세</div>
                 </div>
                 <div className="rounded-[1rem] border border-red-500/14 bg-red-500/[0.05] px-4 py-3 text-center md:text-left">
                   <div className="flex items-center justify-center gap-2 md:justify-start">
-                    <div className={cn("text-[1.02rem] font-[1000] tracking-tight", getFormToneClasses(rightInsight.formLabel, 'right'))}>{rightInsight.recentTone}</div>
+                    <div className={cn("text-[1.02rem] font-bold tracking-tight", getFormToneClasses(rightInsight.formLabel, 'right'))}>{rightInsight.recentTone}</div>
                     {rightInsight.isRecentSampleThin ? (
-                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-[1000] uppercase tracking-[0.18em] text-amber-100/85">
+                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-amber-100/85">
                         표본 부족
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-1 text-[1.18rem] font-[1000] italic tracking-tight text-white">{rightInsight.recentRecord}</div>
+                  <div className="mt-1 text-[1.18rem] font-bold italic tracking-tight text-white">{rightInsight.recentRecord}</div>
                   <div className="mt-1 text-[0.84rem] text-white/46">{rightInsight.recentSummary}</div>
-                  <div className="mt-1 text-[0.76rem] font-[1000] uppercase tracking-[0.16em] text-white/26">최근 90일 표본 {rightInsight.recentSampleCount}경기</div>
+                  <div className="mt-1 text-[0.76rem] font-semibold uppercase tracking-[0.16em] text-white/26">최근 90일 표본 {rightInsight.recentSampleCount}경기</div>
                 </div>
               </div>
 
@@ -638,48 +638,48 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
                 <div className="rounded-[1rem] border border-nzu-green/14 bg-white/[0.03] px-4 py-3 text-center md:text-right">
                   <div className="flex items-center justify-center gap-2 md:justify-end">
                     {leftInsight.isMapSampleThin ? (
-                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-[1000] uppercase tracking-[0.18em] text-amber-100/85">
+                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-amber-100/85">
                         표본 부족
                       </span>
                     ) : null}
-                    <div className="text-[1.12rem] font-[1000] tracking-tight text-white">{leftInsight.strongMap}</div>
+                    <div className="text-[1.12rem] font-bold tracking-tight text-white">{leftInsight.strongMap}</div>
                   </div>
-                  <div className="mt-1 text-[0.96rem] font-[1000] text-nzu-green">{leftInsight.mapRecord}</div>
+                  <div className="mt-1 text-[0.96rem] font-bold text-nzu-green">{leftInsight.mapRecord}</div>
                   <div className="mt-1 text-[0.84rem] text-white/46">{leftInsight.raceTarget}</div>
-                  <div className="mt-1 text-[0.76rem] font-[1000] uppercase tracking-[0.16em] text-white/26">맵 표본 {leftInsight.mapSampleCount}경기</div>
+                  <div className="mt-1 text-[0.76rem] font-semibold uppercase tracking-[0.16em] text-white/26">맵 표본 {leftInsight.mapSampleCount}경기</div>
                 </div>
                 <div className="rounded-[1rem] border border-white/8 bg-white/[0.04] px-3 py-3 text-center">
-                  <div className="text-[0.78rem] font-[1000] uppercase tracking-[0.22em] text-white/32">강한 맵</div>
+                  <div className="text-[0.78rem] font-semibold uppercase tracking-[0.22em] text-white/32">강한 맵</div>
                 </div>
                 <div className="rounded-[1rem] border border-red-500/14 bg-white/[0.03] px-4 py-3 text-center md:text-left">
                   <div className="flex items-center justify-center gap-2 md:justify-start">
-                    <div className="text-[1.12rem] font-[1000] tracking-tight text-white">{rightInsight.strongMap}</div>
+                    <div className="text-[1.12rem] font-bold tracking-tight text-white">{rightInsight.strongMap}</div>
                     {rightInsight.isMapSampleThin ? (
-                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-[1000] uppercase tracking-[0.18em] text-amber-100/85">
+                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-amber-100/85">
                         표본 부족
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-1 text-[0.96rem] font-[1000] text-red-300">{rightInsight.mapRecord}</div>
+                  <div className="mt-1 text-[0.96rem] font-bold text-red-300">{rightInsight.mapRecord}</div>
                   <div className="mt-1 text-[0.84rem] text-white/46">{rightInsight.raceTarget}</div>
-                  <div className="mt-1 text-[0.76rem] font-[1000] uppercase tracking-[0.16em] text-white/26">맵 표본 {rightInsight.mapSampleCount}경기</div>
+                  <div className="mt-1 text-[0.76rem] font-semibold uppercase tracking-[0.16em] text-white/26">맵 표본 {rightInsight.mapSampleCount}경기</div>
                 </div>
               </div>
 
               <div className="grid items-center gap-2 md:grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)]">
                 <div className="rounded-[1rem] border border-nzu-green/14 bg-black/20 px-4 py-3 text-center md:text-right">
-                  <div className="text-[0.82rem] font-[1000] uppercase tracking-[0.18em] text-white/34">요약</div>
-                  <div className="mt-1 text-[1rem] font-[1000] tracking-tight text-white">
+                  <div className="text-[0.82rem] font-semibold uppercase tracking-[0.18em] text-white/34">요약</div>
+                  <div className="mt-1 text-[1rem] font-bold tracking-tight text-white">
                     {leftInsight.strongMap} 중심 운영
                   </div>
                   <div className={cn("mt-1 text-[0.9rem]", getFormToneClasses(leftInsight.formLabel, 'left'))}>{leftInsight.formLabel}</div>
                 </div>
                 <div className="rounded-[1rem] border border-white/8 bg-white/[0.04] px-3 py-3 text-center">
-                  <div className="text-[0.78rem] font-[1000] uppercase tracking-[0.22em] text-white/32">최근 폼</div>
+                  <div className="text-[0.78rem] font-semibold uppercase tracking-[0.22em] text-white/32">최근 폼</div>
                 </div>
                 <div className="rounded-[1rem] border border-red-500/14 bg-black/20 px-4 py-3 text-center md:text-left">
-                  <div className="text-[0.82rem] font-[1000] uppercase tracking-[0.18em] text-white/34">요약</div>
-                  <div className="mt-1 text-[1rem] font-[1000] tracking-tight text-white">
+                  <div className="text-[0.82rem] font-semibold uppercase tracking-[0.18em] text-white/34">요약</div>
+                  <div className="mt-1 text-[1rem] font-bold tracking-tight text-white">
                     {rightInsight.strongMap} 중심 운영
                   </div>
                   <div className={cn("mt-1 text-[0.9rem]", getFormToneClasses(rightInsight.formLabel, 'right'))}>{rightInsight.formLabel}</div>
@@ -764,7 +764,7 @@ export default function MatchPageClient({
       <main className="mx-auto max-w-[1520px] px-6 py-6 animate-in fade-in duration-700">
         <header className="mb-4 ml-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-1 md:justify-start">
-            <h1 className="text-[2.25rem] font-[1000] tracking-tighter italic text-white">
+            <h1 className="text-[2.25rem] font-bold tracking-tighter italic text-white">
               매치 <span className="text-nzu-green drop-shadow-[0_0_15px_#00ffa344]">편성</span>
             </h1>
             <p className="text-[14px] font-semibold text-white/45">
@@ -777,15 +777,15 @@ export default function MatchPageClient({
         <div className="mb-3 flex flex-wrap items-center gap-x-6 gap-y-1 px-2">
           <div className="flex items-center gap-2.5">
             <span className="w-2.5 h-2.5 rounded-full bg-nzu-green shadow-[0_0_12px_rgba(0,255,163,0.6)]" />
-            <span className="text-[13px] font-black text-nzu-green tracking-wide">전체: 2025.01.01 ~ 현재</span>
+            <span className="text-[13px] font-semibold text-nzu-green tracking-wide">전체: 2025.01.01 ~ 현재</span>
           </div>
           <div className="flex items-center gap-2.5">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.5)]" />
-            <span className="text-[13px] font-black text-red-500 tracking-wide">최근: 최근 3개월 전적</span>
+            <span className="text-[13px] font-semibold text-red-500 tracking-wide">최근: 최근 3개월 전적</span>
           </div>
           <div className="flex items-center gap-2.5">
             <span className={cn("w-2.5 h-2.5 rounded-full", isPlayersLoading ? "bg-white/28" : "bg-nzu-green shadow-[0_0_12px_rgba(0,255,163,0.45)]")} />
-            <span className="text-[13px] font-black text-white/45 tracking-wide">
+            <span className="text-[13px] font-semibold text-white/45 tracking-wide">
               {isPlayersLoading ? "선수 목록 불러오는 중" : `${allPlayers.length.toLocaleString()}명 로드 완료`}
             </span>
           </div>
@@ -802,7 +802,7 @@ export default function MatchPageClient({
                 
                 <button onClick={addRow} className="w-full py-3.5 mt-0.5 rounded-[1.45rem] border border-nzu-green/18 bg-nzu-green/[0.05] hover:border-nzu-green/40 hover:bg-nzu-green/[0.1] text-nzu-green transition-all flex items-center justify-center gap-3 group">
                    <div className="p-2.5 rounded-[1rem] bg-nzu-green/14 group-hover:bg-nzu-green group-hover:text-black transition-all shadow-xl"><Plus size={18} strokeWidth={4} /></div>
-                   <span className="text-[1rem] font-[1000] uppercase tracking-[0.3em]">매치 추가</span>
+                   <span className="text-[1rem] font-bold uppercase tracking-[0.3em]">매치 추가</span>
                 </button>
               </div>
             </DndContext>

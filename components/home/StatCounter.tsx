@@ -44,7 +44,7 @@ export function StatCounter({ label, value, suffix = '', color = 'white' }: Stat
     <div className="group relative bg-[#0A100D] border border-white/5 p-6 rounded-[2rem] hover:border-white/10 transition-all duration-500 overflow-hidden text-center lg:text-left">
       <div className="absolute top-0 left-0 w-1 h-0 bg-nzu-green group-hover:h-full transition-all duration-700" />
       <div className="relative z-10">
-        <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-2">{label}</div>
+        <div className="text-[10px] font-medium text-white/22 uppercase tracking-[0.35em] mb-2">{label}</div>
         <div className={cn("text-4xl lg:text-5xl font-black italic tracking-tighter tabular-nums", colorClasses[color])}>
           {count.toLocaleString()}{suffix}
         </div>

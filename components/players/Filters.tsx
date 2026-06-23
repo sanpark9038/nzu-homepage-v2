@@ -193,7 +193,7 @@ export function UnivFilter({ options, queryString = "" }: { options?: University
       <button
         onClick={() => handleUniv("ALL")}
         className={cn(
-          "whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-black transition-colors",
+          "whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-semibold transition-colors",
           currentUniv === "ALL" ? "bg-white text-black" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
         )}
       >
@@ -209,7 +209,7 @@ export function UnivFilter({ options, queryString = "" }: { options?: University
             key={option.code}
             onClick={() => handleUniv(option.code)}
             className={cn(
-              "group relative whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-black transition-colors",
+              "group relative whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-semibold transition-colors",
               isActive
                 ? "border-white/20 bg-gradient-to-br from-nzu-green/80 to-nzu-green text-black"
                 : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
@@ -262,7 +262,7 @@ export function RaceToggle({ queryString = "" }: TierFilterControlProps = {}) {
 
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-3 backdrop-blur-sm">
-      <span className="mb-0.5 text-sm font-black uppercase tracking-widest text-white/60">종족 구분</span>
+      <span className="mb-0.5 text-sm font-semibold uppercase tracking-widest text-white/55">종족 구분</span>
       <button
         onClick={handleToggle}
         className={cn("relative inline-flex h-7 w-14 items-center rounded-full shadow-inner transition-all duration-300 focus:outline-none", isToggled ? "bg-nzu-green" : "bg-white/10")}
@@ -299,7 +299,7 @@ export function LiveToggle({ queryString = "" }: TierFilterControlProps = {}) {
     <div className="flex items-center gap-4 rounded-2xl border border-red-500/20 bg-red-500/[0.05] px-6 py-3 backdrop-blur-sm">
       <div className="flex items-center gap-2">
         <div className={cn("h-2 w-2 rounded-full", isToggled ? "animate-pulse bg-red-500" : "bg-white/20")} />
-        <span className={cn("mb-0.5 text-sm font-black uppercase tracking-widest transition-colors", isToggled ? "text-red-500" : "text-white/60")}>방송중</span>
+        <span className={cn("mb-0.5 text-sm font-semibold uppercase tracking-widest transition-colors", isToggled ? "text-red-500" : "text-white/55")}>방송중</span>
       </div>
       <button
         onClick={handleToggle}
@@ -313,24 +313,27 @@ export function LiveToggle({ queryString = "" }: TierFilterControlProps = {}) {
 
 export function SmartStickyHeader({ children }: { children: React.ReactNode }) {
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollYRef = useRef(0);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+    // layout.tsx의 main-scroll-container가 실제 스크롤 컨테이너
+    const scrollEl = document.getElementById("main-scroll-container") ?? window as unknown as HTMLElement;
 
-      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+    const handleScroll = () => {
+      const currentScrollY = "scrollTop" in scrollEl ? scrollEl.scrollTop : window.scrollY;
+
+      if (currentScrollY > lastScrollYRef.current && currentScrollY > 100) {
         setIsVisible(false);
-      } else if (currentScrollY < lastScrollY || currentScrollY < 50) {
+      } else if (currentScrollY < lastScrollYRef.current || currentScrollY < 50) {
         setIsVisible(true);
       }
 
-      setLastScrollY(currentScrollY);
+      lastScrollYRef.current = currentScrollY;
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+    scrollEl.addEventListener("scroll", handleScroll, { passive: true });
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <div className={cn("sticky z-40 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]", isVisible ? "top-0 translate-y-0 opacity-100" : "pointer-events-none top-0 -translate-y-[120%] opacity-0")}>
