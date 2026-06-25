@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { ChevronLeft, ChevronRight, ImageIcon, Pencil, PlayCircle } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ImageIcon, Pencil, PlayCircle } from "lucide-react";
 
 import { BoardComments } from "@/components/board/BoardComments";
 import { BoardPostDeleteButton } from "@/components/board/BoardPostDeleteButton";
@@ -88,8 +88,8 @@ export default async function BoardDetailPage({
           </div>
 
           <div className="flex flex-col gap-4 px-5 py-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div className="min-w-0">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   {categoryLabel ? (
                     <span className={`text-sm font-semibold ${categoryTone}`}>{categoryLabel}</span>
@@ -101,26 +101,28 @@ export default async function BoardDetailPage({
                 <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 pt-3 text-sm font-semibold text-white/66">
                   <span>{post.author_name}</span>
                   <span>{formatDetailDate(post.created_at)}</span>
-                  <span>조회수 -</span>
                 </div>
               </div>
-              {canEdit ? (
+              <div className="flex shrink-0 items-center gap-2">
+                {canEdit ? (
+                  <Link
+                    href={`/board/${post.id}/edit`}
+                    className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-white/18 bg-white/[0.04] px-4 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.08]"
+                  >
+                    <Pencil size={14} />
+                    수정
+                  </Link>
+                ) : null}
+                {canEdit ? <BoardPostDeleteButton postId={post.id} /> : null}
                 <Link
-                  href={`/board/${post.id}/edit`}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/18 bg-white/[0.04] px-5 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.08]"
+                  href="/board"
+                  prefetch={false}
+                  className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-white/18 bg-white/[0.04] px-4 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.08]"
                 >
-                  <Pencil size={16} />
-                  수정
+                  <ArrowLeft size={14} />
+                  목록
                 </Link>
-              ) : null}
-              {canEdit ? <BoardPostDeleteButton postId={post.id} /> : null}
-              <Link
-                href="/board"
-                prefetch={false}
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/18 bg-white/[0.04] px-5 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.08]"
-              >
-                게시판으로 돌아가기
-              </Link>
+              </div>
             </div>
           </div>
         </section>

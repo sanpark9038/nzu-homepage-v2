@@ -51,11 +51,11 @@ export function formatBoardScheduleBadge(post: BoardPostWithCommentCount) {
 }
 
 function boardRowClassName(post: BoardPostWithCommentCount) {
-  const base = "border-b border-white/6 text-white/78 transition";
+  const base = "border-b border-white/6 text-white/78 transition border-l-2";
   if (post.category === "schedule") {
-    return `${base} bg-sky-300/[0.035] hover:bg-sky-300/[0.07]`;
+    return `${base} bg-sky-300/[0.035] hover:bg-sky-300/[0.07] border-l-sky-300/45`;
   }
-  return `${base} hover:bg-white/[0.025]`;
+  return `${base} hover:bg-white/[0.025] border-l-transparent`;
 }
 
 function renderWriteAction(className: string) {
@@ -175,11 +175,11 @@ export function BoardPageContent({
             <table className="min-w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-white/6 bg-white/[0.02] text-left text-xs font-medium tracking-[0.12em] text-white/40">
-                  <th className="w-[110px] px-4 py-3 md:px-5">말머리</th>
-                  <th className="min-w-[420px] px-4 py-3">제목</th>
-                  <th className="w-[160px] px-4 py-3">글쓴이</th>
-                  <th className="w-[140px] px-4 py-3">날짜</th>
-                  <th className="w-[90px] px-4 py-3 text-right">조회</th>
+                  <th className="hidden w-[110px] px-4 py-3 md:table-cell md:px-5">말머리</th>
+                  <th className="px-4 py-3">제목</th>
+                  <th className="hidden w-[160px] px-4 py-3 md:table-cell">글쓴이</th>
+                  <th className="w-[100px] px-4 py-3 md:w-[140px]">날짜</th>
+                  <th className="hidden w-[90px] px-4 py-3 text-right md:table-cell">조회</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,11 +192,7 @@ export function BoardPageContent({
 
                     return (
                       <tr key={post.id} className={boardRowClassName(post)}>
-                        <td
-                          className={`border-l-2 px-4 py-3 text-sm font-semibold md:px-5 ${
-                            post.category === "schedule" ? "border-sky-300/45" : "border-transparent"
-                          } ${categoryTone}`}
-                        >
+                        <td className={`hidden px-4 py-3 text-sm font-semibold md:table-cell md:px-5 ${categoryTone}`}>
                           {categoryLabel || <span aria-hidden="true">&nbsp;</span>}
                         </td>
                         <td className="px-4 py-3">
@@ -218,9 +214,9 @@ export function BoardPageContent({
                             {hasVideo ? <PlayCircle size={14} className="shrink-0 text-white/45" /> : null}
                           </Link>
                         </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-white/68">{post.author_name}</td>
+                        <td className="hidden px-4 py-3 text-sm font-semibold text-white/68 md:table-cell">{post.author_name}</td>
                         <td className="px-4 py-3 text-sm text-white/54">{formatBoardListDate(post.created_at)}</td>
-                        <td className="px-4 py-3 text-right text-sm text-white/46">-</td>
+                        <td className="hidden px-4 py-3 text-right text-sm text-white/46 md:table-cell">-</td>
                       </tr>
                     );
                   })
@@ -239,39 +235,49 @@ export function BoardPageContent({
           </div>
 
           <div className="flex flex-col gap-3 border-t border-white/6 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
-            <div className="flex items-center gap-2">
-              {hasPrev ? (
-                <Link
-                  href={buildPageHref(boardFilter, page - 1)}
-                  prefetch={false}
-                  className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl border border-white/12 bg-white/[0.04] px-4 text-sm font-semibold text-white/70 transition hover:border-white/24 hover:text-white"
-                >
-                  <ChevronLeft size={15} />
-                  이전
-                </Link>
-              ) : (
-                <span className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl border border-white/6 px-4 text-sm font-semibold text-white/24 cursor-not-allowed select-none">
-                  <ChevronLeft size={15} />
-                  이전
-                </span>
-              )}
-              <span className="px-2 text-sm font-bold text-white/46">{page}페이지</span>
-              {hasNext ? (
-                <Link
-                  href={buildPageHref(boardFilter, page + 1)}
-                  prefetch={false}
-                  className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl border border-white/12 bg-white/[0.04] px-4 text-sm font-semibold text-white/70 transition hover:border-white/24 hover:text-white"
-                >
-                  다음
-                  <ChevronRight size={15} />
-                </Link>
-              ) : (
-                <span className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl border border-white/6 px-4 text-sm font-semibold text-white/24 cursor-not-allowed select-none">
-                  다음
-                  <ChevronRight size={15} />
-                </span>
-              )}
-            </div>
+            {(() => {
+              const start = Math.max(1, page - 2);
+              const end = hasNext ? page + 2 : page;
+              const pageNums: number[] = [];
+              for (let i = start; i <= end; i++) pageNums.push(i);
+              const btnBase = "inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold transition";
+              const btnActive = `${btnBase} bg-nzu-green/15 text-nzu-green`;
+              const btnIdle = `${btnBase} border border-white/10 bg-white/[0.03] text-white/60 hover:border-white/22 hover:text-white`;
+              const btnDisabled = `${btnBase} border border-white/6 text-white/20 cursor-not-allowed select-none`;
+              const btnChevron = `${btnBase} border border-white/10 bg-white/[0.03] text-white/50 hover:border-white/22 hover:text-white`;
+              return (
+                <div className="flex items-center gap-1">
+                  {hasPrev ? (
+                    <Link href={buildPageHref(boardFilter, page - 1)} prefetch={false} className={btnChevron}>
+                      <ChevronLeft size={15} />
+                    </Link>
+                  ) : (
+                    <span className={btnDisabled}><ChevronLeft size={15} /></span>
+                  )}
+                  {start > 1 && (
+                    <>
+                      <Link href={buildPageHref(boardFilter, 1)} prefetch={false} className={btnIdle}>1</Link>
+                      {start > 2 && <span className="px-1 text-sm text-white/30">…</span>}
+                    </>
+                  )}
+                  {pageNums.map((p) =>
+                    p === page ? (
+                      <span key={p} className={btnActive}>{p}</span>
+                    ) : (
+                      <Link key={p} href={buildPageHref(boardFilter, p)} prefetch={false} className={btnIdle}>{p}</Link>
+                    )
+                  )}
+                  {hasNext && <span className="px-1 text-sm text-white/30">…</span>}
+                  {hasNext ? (
+                    <Link href={buildPageHref(boardFilter, page + 1)} prefetch={false} className={btnChevron}>
+                      <ChevronRight size={15} />
+                    </Link>
+                  ) : (
+                    <span className={btnDisabled}><ChevronRight size={15} /></span>
+                  )}
+                </div>
+              );
+            })()}
             {renderWriteAction(
               "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-5 text-sm font-semibold text-white/80 transition hover:border-nzu-green/40 hover:text-nzu-green"
             )}
