@@ -103,18 +103,25 @@ export async function GET(
       };
     });
 
-    return NextResponse.json({
-      matches,
-      total,
-      page: clampedPage,
-      totalPages,
-      stats: {
-        wins: statsWins,
-        losses: statsLosses,
-        winRate: statsWinRate,
-        raceSummaries,
+    return NextResponse.json(
+      {
+        matches,
+        total,
+        page: clampedPage,
+        totalPages,
+        stats: {
+          wins: statsWins,
+          losses: statsLosses,
+          winRate: statsWinRate,
+          raceSummaries,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching player match history:", error);
     return NextResponse.json({ error: "Failed to load match history" }, { status: 500 });

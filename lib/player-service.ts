@@ -30,6 +30,9 @@ const PLAYER_MATCH_HISTORY_METADATA_SELECT =
 const MATCH_SERVING_SELECT =
   "*, player1:players!player1_id(channel_profile_image_url, id, name, race, photo_url), player2:players!player2_id(channel_profile_image_url, id, name, race, photo_url), winner:players!winner_id(id, name)" as const;
 
+const matchHistoryItemsCache = new Map<string, { items: StoredMatchHistoryItem[]; expiresAt: number }>();
+const MATCH_HISTORY_ITEMS_TTL_MS = 5 * 60 * 1000;
+
 type StoredMatchHistoryItem = {
   match_date?: string | null;
   matchDate?: string | null;
@@ -518,6 +521,10 @@ export const playerService = {
 
   /** ?뱀젙 ?좎닔??留ㅼ튂 湲곕줉 媛?몄삤湲?*/
   async getPlayerMatchHistoryItems(playerId: string) {
+    const now = Date.now();
+    const cached = matchHistoryItemsCache.get(playerId);
+    if (cached && now < cached.expiresAt) return cached.items;
+
     const { data, error } = await supabase
       .from("players")
       .select(PLAYER_MATCH_HISTORY_METADATA_SELECT)
@@ -528,7 +535,9 @@ export const playerService = {
     const playerWithArtifactHistory = await mergeDetailedH2HPlayerHistory(
       data as PlayerMatchHistoryMetadataRecord
     );
-    return normalizeStoredMatchHistory(playerWithArtifactHistory.match_history);
+    const items = normalizeStoredMatchHistory(playerWithArtifactHistory.match_history);
+    matchHistoryItemsCache.set(playerId, { items, expiresAt: now + MATCH_HISTORY_ITEMS_TTL_MS });
+    return items;
   },
 
   async getPlayerMatches(playerId: string, limit = 10) {

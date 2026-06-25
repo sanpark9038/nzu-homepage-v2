@@ -43,7 +43,10 @@ export function BoardComments({
   const [comments, setComments] = useState(initialComments);
   const [content, setContent] = useState("");
   const [message, setMessage] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
   const remaining = 300 - content.length;
   const commentCountLabel = useMemo(() => `댓글 ${comments.length}`, [comments.length]);
 
@@ -65,41 +68,51 @@ export function BoardComments({
       return;
     }
 
-    const response = await fetch(`/api/board/${encodeURIComponent(postId)}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: nextContent }),
-    });
-    const payload = (await response.json().catch(() => ({}))) as {
-      ok?: boolean;
-      message?: string;
-      comment?: BoardCommentRow;
-    };
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/board/${encodeURIComponent(postId)}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: nextContent }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        message?: string;
+        comment?: BoardCommentRow;
+      };
 
-    if (!response.ok || !payload.ok || !payload.comment) {
-      setMessage(payload.message || "댓글을 등록하지 못했습니다. 잠시 후 다시 시도해 주세요.");
-      return;
+      if (!response.ok || !payload.ok || !payload.comment) {
+        setMessage(payload.message || "댓글을 등록하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+
+      setComments((current) => [...current, payload.comment as BoardCommentRow]);
+      setContent("");
+      startTransition(() => router.refresh());
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setComments((current) => [...current, payload.comment as BoardCommentRow]);
-    setContent("");
-    startTransition(() => router.refresh());
   }
 
   async function deleteComment(commentId: string) {
-    if (!window.confirm("댓글을 삭제할까요?")) return;
+    setConfirmDeleteId(null);
+    setDeletingId(commentId);
     setMessage("");
-    const response = await fetch(
-      `/api/board/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
-      { method: "DELETE" }
-    );
-    const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; message?: string };
-    if (!response.ok || !payload.ok) {
-      setMessage(payload.message || "댓글을 삭제하지 못했습니다.");
-      return;
+    try {
+      const response = await fetch(
+        `/api/board/${encodeURIComponent(postId)}/comments/${encodeURIComponent(commentId)}`,
+        { method: "DELETE" }
+      );
+      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; message?: string };
+      if (!response.ok || !payload.ok) {
+        setMessage(payload.message || "댓글을 삭제하지 못했습니다.");
+        return;
+      }
+      setComments((current) => current.filter((comment) => comment.id !== commentId));
+      startTransition(() => router.refresh());
+    } finally {
+      setDeletingId(null);
     }
-    setComments((current) => current.filter((comment) => comment.id !== commentId));
-    startTransition(() => router.refresh());
   }
 
   return (
@@ -119,14 +132,35 @@ export function BoardComments({
                   <span>{formatCommentDate(comment.created_at)}</span>
                 </div>
                 {canDeleteComment(comment, currentAuthorId, isAdmin) ? (
-                  <button
-                    type="button"
-                    onClick={() => deleteComment(comment.id)}
-                    disabled={isPending}
-                    className="rounded-lg border border-white/16 bg-white/[0.03] px-3 py-1 text-xs font-bold text-white/66 transition hover:border-white/28 hover:text-white"
-                  >
-                    삭제
-                  </button>
+                  confirmDeleteId === comment.id ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white/60">삭제할까요?</span>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="rounded-lg border border-white/16 bg-white/[0.03] px-3 py-1 text-xs font-bold text-white/66 transition hover:border-white/28 hover:text-white"
+                      >
+                        취소
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteComment(comment.id)}
+                        disabled={deletingId === comment.id}
+                        className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-1 text-xs font-bold text-rose-300 transition hover:bg-rose-400/20 disabled:opacity-50"
+                      >
+                        {deletingId === comment.id ? "삭제 중..." : "삭제"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteId(comment.id)}
+                      disabled={deletingId === comment.id}
+                      className="rounded-lg border border-white/16 bg-white/[0.03] px-3 py-1 text-xs font-bold text-white/66 transition hover:border-white/28 hover:text-white disabled:opacity-50"
+                    >
+                      삭제
+                    </button>
+                  )
                 ) : null}
               </div>
               <p className="mt-3 whitespace-pre-wrap text-[15px] font-medium leading-7 text-white/84">{comment.content}</p>
@@ -147,17 +181,18 @@ export function BoardComments({
               onChange={(event) => setContent(event.target.value.slice(0, 300))}
               maxLength={300}
               rows={3}
-              className="w-full resize-none rounded-xl border border-white/16 bg-black/28 px-4 py-3 text-[15px] font-medium leading-7 text-white outline-none transition placeholder:text-white/36 focus:border-nzu-green/60 focus:bg-black/36"
+              disabled={isSubmitting}
+              className="w-full resize-none rounded-xl border border-white/16 bg-black/28 px-4 py-3 text-[15px] font-medium leading-7 text-white outline-none transition placeholder:text-white/36 focus:border-nzu-green/60 focus:bg-black/36 disabled:opacity-60"
               placeholder="댓글을 입력하세요."
             />
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs font-bold text-white/52">{content.length}/300</span>
               <button
                 type="submit"
-                disabled={isPending || !content.trim() || remaining < 0}
+                disabled={isSubmitting || !content.trim() || remaining < 0}
                 className="inline-flex min-h-10 items-center justify-center rounded-xl bg-nzu-green px-5 text-sm font-bold text-black transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                등록
+                {isSubmitting ? "등록 중..." : "등록"}
               </button>
             </div>
           </form>

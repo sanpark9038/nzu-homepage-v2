@@ -30,6 +30,11 @@ export function normalizeBoardListFilter(value: unknown): BoardListFilter {
   return "all";
 }
 
+export function normalizeBoardPage(value: unknown): number {
+  const n = parseInt(String(Array.isArray(value) ? value[0] : value || ""), 10);
+  return Number.isFinite(n) && n > 1 ? n : 1;
+}
+
 function normalizeOptionalUrl(value: unknown) {
   const text = normalizeText(value);
   if (!text) return null;
@@ -430,7 +435,7 @@ async function listBoardSchedulePostSummaries(limit: number, mode: "active" | "p
   }
 }
 
-async function listRegularBoardPostSummaries(limit: number) {
+async function listRegularBoardPostSummaries(limit: number, offset = 0) {
   try {
     const { data, error } = await publicSupabase
       .from("board_posts")
@@ -438,7 +443,7 @@ async function listRegularBoardPostSummaries(limit: number) {
       .eq("published", true)
       .or("category.is.null,category.neq.schedule")
       .order("created_at", { ascending: false })
-      .limit(limit);
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
@@ -482,28 +487,62 @@ async function listBoardPostSummariesFromFullRows(limit: number) {
   };
 }
 
-export async function listBoardPostSummaries(limit = BOARD_POST_LIMIT, filter: BoardListFilter = "all") {
+export async function listBoardPostSummaries(
+  limit = BOARD_POST_LIMIT,
+  filter: BoardListFilter = "all",
+  page = 1
+) {
+  const safePage = Math.max(1, page);
+
   if (filter === "past-schedule") {
-    return listBoardSchedulePostSummaries(limit, "past");
+    const result = await listBoardSchedulePostSummaries(limit + 1, "past");
+    const hasMore = result.posts.length > limit;
+    return { ...result, posts: result.posts.slice(0, limit), hasMore };
   }
 
   if (filter === "schedule") {
-    return listBoardSchedulePostSummaries(limit, "active");
+    const result = await listBoardSchedulePostSummaries(limit + 1, "active");
+    const hasMore = result.posts.length > limit;
+    return { ...result, posts: result.posts.slice(0, limit), hasMore };
   }
 
-  const [scheduleResult, regularResult] = await Promise.all([
-    listBoardSchedulePostSummaries(limit, "active"),
-    listRegularBoardPostSummaries(limit),
-  ]);
+  // "all" filter: page 1 pins active schedules at top, page 2+ shows only regular posts
+  if (safePage === 1) {
+    const [scheduleResult, regularResult] = await Promise.all([
+      listBoardSchedulePostSummaries(limit, "active"),
+      listRegularBoardPostSummaries(limit + 1),
+    ]);
 
-  if (!scheduleResult.storageReady || !regularResult.storageReady) {
-    return listBoardPostSummariesFromFullRows(limit);
+    if (!scheduleResult.storageReady || !regularResult.storageReady) {
+      const fallback = await listBoardPostSummariesFromFullRows(limit);
+      return { ...fallback, hasMore: false };
+    }
+
+    const merged = [...scheduleResult.posts, ...regularResult.posts].slice(0, limit);
+    const hasMore = regularResult.posts.length > limit;
+    return {
+      ok: true as const,
+      posts: merged,
+      storageReady: true,
+      hasMore,
+    };
   }
 
+  // page 2+: regular posts only, offset by (page - 1) * limit
+  const offset = (safePage - 1) * limit;
+  const regularResult = await listRegularBoardPostSummaries(limit + 1, offset);
+
+  if (!regularResult.storageReady) {
+    const fallback = await listBoardPostSummariesFromFullRows(limit);
+    return { ...fallback, hasMore: false };
+  }
+
+  const hasMore = regularResult.posts.length > limit;
   return {
     ok: true as const,
-    posts: [...scheduleResult.posts, ...regularResult.posts].slice(0, limit),
-    storageReady: scheduleResult.storageReady && regularResult.storageReady,
+    posts: regularResult.posts.slice(0, limit),
+    storageReady: true,
+    hasMore,
   };
 }
 
@@ -511,8 +550,12 @@ export type BoardPostWithCommentCount = BoardPostListRow & {
   comment_count: number;
 };
 
-export async function listBoardPostsWithCommentCounts(limit = BOARD_POST_LIMIT, filter: BoardListFilter = "all") {
-  const result = await listBoardPostSummaries(limit, filter);
+export async function listBoardPostsWithCommentCounts(
+  limit = BOARD_POST_LIMIT,
+  filter: BoardListFilter = "all",
+  page = 1
+) {
+  const result = await listBoardPostSummaries(limit, filter, page);
   if (!result.posts.length) {
     return {
       ...result,
@@ -533,7 +576,8 @@ export async function listBoardPostsWithCommentCounts(limit = BOARD_POST_LIMIT, 
 }
 
 export const getCachedBoardPostsWithCommentCounts = unstable_cache(
-  async (limit = BOARD_POST_LIMIT, filter: BoardListFilter = "all") => listBoardPostsWithCommentCounts(limit, filter),
+  async (limit = BOARD_POST_LIMIT, filter: BoardListFilter = "all", page = 1) =>
+    listBoardPostsWithCommentCounts(limit, filter, page),
   ["board-posts-with-comment-counts"],
   {
     revalidate: BOARD_LIST_REVALIDATE_SECONDS,

@@ -9,6 +9,7 @@ import {
   hasBoardMedia,
   type BoardListFilter,
 } from "@/lib/board";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export const runtime = "nodejs";
 export const revalidate = 30;
@@ -79,16 +80,28 @@ function boardFilterTabClassName(active: boolean) {
 type BoardPageContentProps = {
   board: Awaited<ReturnType<typeof getCachedBoardPostsWithCommentCounts>>;
   boardFilter: BoardListFilter;
+  page?: number;
   loginStatus?: string;
   downloadStatus?: string;
 };
 
+function buildPageHref(filter: BoardListFilter, page: number) {
+  const params = new URLSearchParams();
+  if (filter !== "all") params.set("filter", filter);
+  if (page > 1) params.set("page", String(page));
+  const qs = params.toString();
+  return qs ? `/board?${qs}` : "/board";
+}
+
 export function BoardPageContent({
   board,
   boardFilter,
+  page = 1,
   loginStatus = "",
   downloadStatus = "",
 }: BoardPageContentProps) {
+  const hasPrev = page > 1;
+  const hasNext = board.hasMore ?? false;
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-8 md:px-8">
@@ -225,7 +238,40 @@ export function BoardPageContent({
             </table>
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-white/6 px-4 py-4 md:flex-row md:items-center md:justify-end md:px-5">
+          <div className="flex flex-col gap-3 border-t border-white/6 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-5">
+            <div className="flex items-center gap-2">
+              {hasPrev ? (
+                <Link
+                  href={buildPageHref(boardFilter, page - 1)}
+                  prefetch={false}
+                  className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl border border-white/12 bg-white/[0.04] px-4 text-sm font-semibold text-white/70 transition hover:border-white/24 hover:text-white"
+                >
+                  <ChevronLeft size={15} />
+                  이전
+                </Link>
+              ) : (
+                <span className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl border border-white/6 px-4 text-sm font-semibold text-white/24 cursor-not-allowed select-none">
+                  <ChevronLeft size={15} />
+                  이전
+                </span>
+              )}
+              <span className="px-2 text-sm font-bold text-white/46">{page}페이지</span>
+              {hasNext ? (
+                <Link
+                  href={buildPageHref(boardFilter, page + 1)}
+                  prefetch={false}
+                  className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl border border-white/12 bg-white/[0.04] px-4 text-sm font-semibold text-white/70 transition hover:border-white/24 hover:text-white"
+                >
+                  다음
+                  <ChevronRight size={15} />
+                </Link>
+              ) : (
+                <span className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl border border-white/6 px-4 text-sm font-semibold text-white/24 cursor-not-allowed select-none">
+                  다음
+                  <ChevronRight size={15} />
+                </span>
+              )}
+            </div>
             {renderWriteAction(
               "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-5 text-sm font-semibold text-white/80 transition hover:border-nzu-green/40 hover:text-nzu-green"
             )}

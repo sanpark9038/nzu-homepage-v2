@@ -1,6 +1,7 @@
 import {
   getCachedBoardPostsWithCommentCounts,
   normalizeBoardListFilter,
+  normalizeBoardPage,
 } from "@/lib/board";
 
 import { BoardPageContent } from "../page";
@@ -16,7 +17,8 @@ export default async function BoardQueryPage({
 }) {
   const params = ((await searchParams) || {}) as Record<string, string | string[] | undefined>;
   const boardFilter = normalizeBoardListFilter(params.filter);
-  const board = await getCachedBoardPostsWithCommentCounts(20, boardFilter);
+  const page = normalizeBoardPage(params.page);
+  const board = await getCachedBoardPostsWithCommentCounts(20, boardFilter, page);
   const loginStatus = typeof params.login === "string" ? params.login : "";
   const downloadStatus = typeof params.download === "string" ? params.download : "";
 
@@ -24,6 +26,7 @@ export default async function BoardQueryPage({
     <BoardPageContent
       board={board}
       boardFilter={boardFilter}
+      page={page}
       loginStatus={loginStatus}
       downloadStatus={downloadStatus}
     />
