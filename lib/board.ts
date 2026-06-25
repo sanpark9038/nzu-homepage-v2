@@ -655,6 +655,47 @@ export async function getBoardPostById(id: string) {
   return (data || null) as BoardPostRow | null;
 }
 
+export type BoardAdjacentPost = Pick<BoardPostRow, "id" | "title">;
+
+export async function getAdjacentBoardPosts(
+  currentCreatedAt: string,
+  currentId: string
+): Promise<{ prev: BoardAdjacentPost | null; next: BoardAdjacentPost | null }> {
+  const SELECT = "id,title";
+
+  const [prevResult, nextResult] = await Promise.allSettled([
+    publicSupabase
+      .from("board_posts")
+      .select(SELECT)
+      .eq("published", true)
+      .or(`created_at.lt.${currentCreatedAt},and(created_at.eq.${currentCreatedAt},id.lt.${currentId})`)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    publicSupabase
+      .from("board_posts")
+      .select(SELECT)
+      .eq("published", true)
+      .or(`created_at.gt.${currentCreatedAt},and(created_at.eq.${currentCreatedAt},id.gt.${currentId})`)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const prev =
+    prevResult.status === "fulfilled" && !prevResult.value.error
+      ? (prevResult.value.data as BoardAdjacentPost | null)
+      : null;
+  const next =
+    nextResult.status === "fulfilled" && !nextResult.value.error
+      ? (nextResult.value.data as BoardAdjacentPost | null)
+      : null;
+
+  return { prev, next };
+}
+
 export async function getBoardPostForMutation(id: string) {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase

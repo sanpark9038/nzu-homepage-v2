@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { ImageIcon, Pencil, PlayCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImageIcon, Pencil, PlayCircle } from "lucide-react";
 
 import { BoardComments } from "@/components/board/BoardComments";
 import { BoardPostDeleteButton } from "@/components/board/BoardPostDeleteButton";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import {
   buildVideoEmbedUrl,
+  getAdjacentBoardPosts,
   getBoardCategoryLabel,
   getBoardCategoryTone,
   getBoardPostById,
@@ -49,6 +50,8 @@ export default async function BoardDetailPage({
     cookies(),
     resolvedSearchParams,
   ]);
+
+  const adjacent = post ? await getAdjacentBoardPosts(post.created_at ?? "", post.id) : { prev: null, next: null };
 
   if (!post) {
     notFound();
@@ -194,6 +197,41 @@ export default async function BoardDetailPage({
           currentAuthorId={currentAuthorId}
           isAdmin={isAdmin}
         />
+
+        {(adjacent.prev || adjacent.next) && (
+          <nav className="rounded-[1.5rem] border border-white/10 bg-[linear-gradient(180deg,rgba(13,21,23,0.98),rgba(8,13,14,0.96))] divide-y divide-white/8 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
+            {adjacent.next && (
+              <Link
+                href={`/board/${adjacent.next.id}`}
+                prefetch={false}
+                className="flex items-center gap-3 px-5 py-4 transition hover:bg-white/[0.03] rounded-t-[1.5rem]"
+              >
+                <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-white/38">
+                  <ChevronLeft size={13} />
+                  이전글
+                </span>
+                <span className="truncate text-sm font-semibold text-white/80 hover:text-white">
+                  {adjacent.next.title}
+                </span>
+              </Link>
+            )}
+            {adjacent.prev && (
+              <Link
+                href={`/board/${adjacent.prev.id}`}
+                prefetch={false}
+                className="flex items-center gap-3 px-5 py-4 transition hover:bg-white/[0.03] rounded-b-[1.5rem]"
+              >
+                <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-white/38">
+                  다음글
+                  <ChevronRight size={13} />
+                </span>
+                <span className="truncate text-sm font-semibold text-white/80 hover:text-white">
+                  {adjacent.prev.title}
+                </span>
+              </Link>
+            )}
+          </nav>
+        )}
       </main>
     </div>
   );
