@@ -33,6 +33,9 @@ const MATCH_SERVING_SELECT =
 const matchHistoryItemsCache = new Map<string, { items: StoredMatchHistoryItem[]; expiresAt: number }>();
 const MATCH_HISTORY_ITEMS_TTL_MS = 5 * 60 * 1000;
 
+const mergedPlayerHistoryCache = new Map<string, { promise: Promise<StoredMatchHistoryItem[]>; expiresAt: number }>();
+const MERGED_PLAYER_HISTORY_TTL_MS = 5 * 60 * 1000;
+
 type StoredMatchHistoryItem = {
   match_date?: string | null;
   matchDate?: string | null;
@@ -278,25 +281,38 @@ async function fetchPlayerMatchHistoryById(playerId: string) {
   return normalizeStoredMatchHistory((data as { match_history?: unknown } | null)?.match_history);
 }
 
-async function mergeDetailedH2HPlayerHistory<T extends MinimalH2HPlayerRow>(
-  player: T
-): Promise<T & { match_history: StoredMatchHistoryItem[] }> {
+async function fetchMergedPlayerHistory(player: MinimalH2HPlayerRow): Promise<StoredMatchHistoryItem[]> {
   const artifactHistory = normalizeStoredMatchHistory(await loadPlayerHistoryArtifact(player));
   const artifactLatest = getLatestStoredMatchHistoryDate(artifactHistory);
   const servingLatest = normalizeMatchHistoryDateKey(player.last_match_at);
 
   if (artifactHistory.length > 0 && (!servingLatest || (artifactLatest && artifactLatest >= servingLatest))) {
-    return {
-      ...player,
-      match_history: artifactHistory,
-    };
+    return artifactHistory;
   }
 
   const fallbackHistory = await fetchPlayerMatchHistoryById(player.id);
-  return {
-    ...player,
-    match_history: selectFresherStoredMatchHistory(artifactHistory, fallbackHistory),
-  };
+  return selectFresherStoredMatchHistory(artifactHistory, fallbackHistory);
+}
+
+async function mergeDetailedH2HPlayerHistory<T extends MinimalH2HPlayerRow>(
+  player: T
+): Promise<T & { match_history: StoredMatchHistoryItem[] }> {
+  const playerId = String(player.id || "").trim();
+  const now = Date.now();
+
+  const cached = playerId ? mergedPlayerHistoryCache.get(playerId) : undefined;
+  if (cached && now < cached.expiresAt) {
+    return { ...player, match_history: await cached.promise };
+  }
+
+  const promise = fetchMergedPlayerHistory(player);
+
+  if (playerId) {
+    mergedPlayerHistoryCache.set(playerId, { promise, expiresAt: now + MERGED_PLAYER_HISTORY_TTL_MS });
+    promise.catch(() => mergedPlayerHistoryCache.delete(playerId));
+  }
+
+  return { ...player, match_history: await promise };
 }
 
 function normalizeHistoryRace(value: string | null | undefined) {
