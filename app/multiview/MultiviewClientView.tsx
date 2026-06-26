@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Maximize2, MessageSquare, Search, Send, Star, Swords, Users, X } from "lucide-react";
+import {
+  ArrowLeftRight, Check, ChevronDown, ChevronUp,
+  Link2, Maximize2, MessageSquare, Search, Send, Star, Swords, Users, X,
+} from "lucide-react";
 
 import { unpackTierPlayersPayload, type TierPlayerPayload } from "@/lib/tier-player-payload";
 import { useDuelviewRoom, type ChatMessage } from "./useDuelviewRoom";
@@ -15,6 +18,8 @@ const RACE_LABEL: Record<string, string> = {
 
 const SOOP_EMBED_BASE = "https://play.sooplive.com";
 const FAVORITES_KEY = "duelview_favorites_v1";
+const RECENT_KEY = "duelview_recent_v1";
+const MAX_RECENT = 5;
 const QUALITY_PARAMS = "quality=1080p&resolution=1080p&preferredQuality=1080p&vq=hd1080&hd=1";
 
 function buildEmbedUrl(soopId: string) {
@@ -40,12 +45,8 @@ function saveFavorites(favorites: Set<string>) {
   } catch {}
 }
 
-type Panel = {
-  soopId: string;
-  name: string;
-  race: string | null;
-  playerId: string;
-} | null;
+type Panel = { soopId: string; name: string; race: string | null; playerId: string } | null;
+type RecentCombo = { p1: NonNullable<Panel>; p2: NonNullable<Panel>; savedAt: number };
 
 type H2HStats = {
   p1: { total: number; wins: number; losses: number; winRate: string };
@@ -62,12 +63,34 @@ function toPanel(p: TierPlayerPayload): Panel {
   };
 }
 
+function loadRecent(): RecentCombo[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveToRecent(p1: NonNullable<Panel>, p2: NonNullable<Panel>) {
+  try {
+    const existing = loadRecent();
+    const deduped = existing.filter(
+      (c) => !(
+        (c.p1.soopId === p1.soopId && c.p2.soopId === p2.soopId) ||
+        (c.p1.soopId === p2.soopId && c.p2.soopId === p1.soopId)
+      )
+    );
+    localStorage.setItem(
+      RECENT_KEY,
+      JSON.stringify([{ p1, p2, savedAt: Date.now() }, ...deduped].slice(0, MAX_RECENT))
+    );
+  } catch {}
+}
+
 // ── 즐겨찾기 칩 ──────────────────────────────────────────────────
 function FavoriteChip({
-  player,
-  isActive,
-  onSelect,
-  onRemove,
+  player, isActive, onSelect, onRemove,
 }: {
   player: TierPlayerPayload;
   isActive: boolean;
@@ -83,14 +106,9 @@ function FavoriteChip({
           : "border-amber-400/30 bg-amber-400/8 text-white/80 hover:border-amber-400/50 hover:text-white"
       }`}
     >
-      {player.is_live && (
-        <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-500 animate-pulse" />
-      )}
+      {player.is_live && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-500 animate-pulse" />}
       <span>{player.nickname || player.name}</span>
-      <button
-        onClick={onRemove}
-        className="ml-0.5 text-white/30 hover:text-white/70 transition-colors"
-      >
+      <button onClick={onRemove} className="ml-0.5 text-white/30 hover:text-white/70 transition-colors">
         <X size={11} />
       </button>
     </div>
@@ -99,11 +117,7 @@ function FavoriteChip({
 
 // ── 검색 드롭다운 아이템 ─────────────────────────────────────────
 function SearchResultItem({
-  player,
-  isFavorite,
-  isActive,
-  onSelect,
-  onToggleFavorite,
+  player, isFavorite, isActive, onSelect, onToggleFavorite,
 }: {
   player: TierPlayerPayload;
   isFavorite: boolean;
@@ -120,22 +134,14 @@ function SearchResultItem({
       } ${!player.soop_id ? "opacity-40 cursor-not-allowed pointer-events-none" : ""}`}
     >
       <div className="flex items-center gap-2 min-w-0">
-        {player.is_live && (
-          <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-500 animate-pulse" />
-        )}
-        <span className="text-sm font-medium text-white truncate">
-          {player.nickname || player.name}
-        </span>
+        {player.is_live && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-500 animate-pulse" />}
+        <span className="text-sm font-medium text-white truncate">{player.nickname || player.name}</span>
         {raceLabel && <span className="text-xs text-white/40 flex-shrink-0">{raceLabel}</span>}
-        {player.university && (
-          <span className="text-xs text-white/30 flex-shrink-0">{player.university}</span>
-        )}
+        {player.university && <span className="text-xs text-white/30 flex-shrink-0">{player.university}</span>}
       </div>
       <button
         onClick={onToggleFavorite}
-        className={`flex-shrink-0 p-1 rounded transition-colors ${
-          isFavorite ? "text-amber-400" : "text-white/20 hover:text-amber-400"
-        }`}
+        className={`flex-shrink-0 p-1 rounded transition-colors ${isFavorite ? "text-amber-400" : "text-white/20 hover:text-amber-400"}`}
       >
         <Star size={12} fill={isFavorite ? "currentColor" : "none"} />
       </button>
@@ -171,13 +177,11 @@ function H2HWidget({ panel1, panel2 }: { panel1: Panel; panel2: Panel }) {
 
   return (
     <div className="flex items-center gap-4 rounded-lg border border-white/8 bg-white/2 px-5 py-3">
-      {/* 왼쪽 선수 */}
       <div className="flex flex-col items-end min-w-0 flex-1">
         <span className="text-base font-bold text-white truncate">{panel1.name}</span>
         <span className="text-xs text-white/40">{RACE_LABEL[panel1.race ?? ""] ?? ""}</span>
       </div>
 
-      {/* 중앙 전적 */}
       <div className="flex flex-col items-center gap-1 flex-shrink-0 min-w-[120px]">
         {loading ? (
           <span className="text-xs text-white/30">조회 중...</span>
@@ -205,7 +209,6 @@ function H2HWidget({ panel1, panel2 }: { panel1: Panel; panel2: Panel }) {
         )}
       </div>
 
-      {/* 오른쪽 선수 */}
       <div className="flex flex-col items-start min-w-0 flex-1">
         <span className="text-base font-bold text-white truncate">{panel2.name}</span>
         <span className="text-xs text-white/40">{RACE_LABEL[panel2.race ?? ""] ?? ""}</span>
@@ -216,10 +219,7 @@ function H2HWidget({ panel1, panel2 }: { panel1: Panel; panel2: Panel }) {
 
 // ── 워치파티 채팅 ────────────────────────────────────────────────
 function WatchpartyChat({
-  viewerCount,
-  messages,
-  sendMessage,
-  guestId,
+  viewerCount, messages, sendMessage, guestId,
 }: {
   viewerCount: number;
   messages: ChatMessage[];
@@ -242,7 +242,6 @@ function WatchpartyChat({
 
   return (
     <div className="rounded-lg border border-white/8 bg-white/2 overflow-hidden">
-      {/* 채팅 기록 — 위로 펼쳐짐 */}
       {historyOpen && (
         <div className="border-b border-white/8">
           <div className="h-40 overflow-y-auto px-3 py-2 space-y-1.5">
@@ -263,7 +262,6 @@ function WatchpartyChat({
         </div>
       )}
 
-      {/* 항상 보이는 입력 바 */}
       <div className="flex items-center gap-2 px-3 py-2">
         <div className="flex items-center gap-1 flex-shrink-0">
           <Users size={12} className="text-white/40" />
@@ -303,10 +301,7 @@ function WatchpartyChat({
 
 // ── 스트림 패널 ──────────────────────────────────────────────────
 function StreamPanel({
-  panel,
-  slot,
-  onClose,
-  onOpenNew,
+  panel, slot, onClose, onOpenNew,
 }: {
   panel: Panel;
   slot: 1 | 2;
@@ -332,16 +327,10 @@ function StreamPanel({
           {raceLabel && <span className="ml-1.5 font-normal text-white/50">· {raceLabel}</span>}
         </span>
         <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenNew}
-            className="rounded px-2 py-0.5 text-xs text-white/50 hover:bg-white/10 hover:text-white transition-colors"
-          >
+          <button onClick={onOpenNew} className="rounded px-2 py-0.5 text-xs text-white/50 hover:bg-white/10 hover:text-white transition-colors">
             새창
           </button>
-          <button
-            onClick={onClose}
-            className="rounded p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-colors"
-          >
+          <button onClick={onClose} className="rounded p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-colors">
             <X size={14} />
           </button>
         </div>
@@ -365,8 +354,11 @@ export function MultiviewClientView() {
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [recent, setRecent] = useState<RecentCombo[]>([]);
   const [panel1, setPanel1] = useState<Panel>(null);
   const [panel2, setPanel2] = useState<Panel>(null);
+  const [copied, setCopied] = useState(false);
+  const [pendingSoopIds, setPendingSoopIds] = useState<{ p1: string | null; p2: string | null } | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -375,7 +367,32 @@ export function MultiviewClientView() {
     panel2?.playerId ?? null
   );
 
-  useEffect(() => { setFavorites(loadFavorites()); }, []);
+  useEffect(() => {
+    setFavorites(loadFavorites());
+    setRecent(loadRecent());
+  }, []);
+
+  // URL 파라미터 읽기 (마운트 시 1회)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const p1 = params.get("p1");
+    const p2 = params.get("p2");
+    if (p1 || p2) setPendingSoopIds({ p1, p2 });
+  }, []);
+
+  // 플레이어 데이터 로드 완료 후 URL 파라미터 적용
+  useEffect(() => {
+    if (!pendingSoopIds || players.length === 0) return;
+    if (pendingSoopIds.p1) {
+      const p = players.find((pl) => pl.soop_id === pendingSoopIds.p1);
+      if (p) setPanel1(toPanel(p));
+    }
+    if (pendingSoopIds.p2) {
+      const p = players.find((pl) => pl.soop_id === pendingSoopIds.p2);
+      if (p) setPanel2(toPanel(p));
+    }
+    setPendingSoopIds(null);
+  }, [pendingSoopIds, players]);
 
   useEffect(() => {
     const url = liveOnly ? "/api/tier/players?liveOnly=true" : "/api/tier/players?liveOnly=false";
@@ -394,6 +411,23 @@ export function MultiviewClientView() {
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
+
+  // 양쪽 패널 로드 시 URL 업데이트 + 최근 조합 저장
+  useEffect(() => {
+    if (panel1 && panel2) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("p1", panel1.soopId);
+      url.searchParams.set("p2", panel2.soopId);
+      window.history.replaceState({}, "", url.toString());
+      saveToRecent(panel1, panel2);
+      setRecent(loadRecent());
+    } else {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("p1");
+      url.searchParams.delete("p2");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, [panel1?.soopId, panel2?.soopId]);
 
   const teams = useMemo(() => {
     const set = new Set<string>();
@@ -418,6 +452,20 @@ export function MultiviewClientView() {
     if (!panel1) { setPanel1(entry); return; }
     if (!panel2) { setPanel2(entry); return; }
     setPanel1(entry);
+  }, [panel1, panel2]);
+
+  const handleSwap = useCallback(() => {
+    setPanel1(panel2);
+    setPanel2(panel1);
+  }, [panel1, panel2]);
+
+  const handleShare = useCallback(() => {
+    if (!panel1 || !panel2) return;
+    const url = `${window.location.origin}/multiview?p1=${panel1.soopId}&p2=${panel2.soopId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   }, [panel1, panel2]);
 
   const openFullscreen = useCallback(() => {
@@ -468,7 +516,7 @@ export function MultiviewClientView() {
       {/* ── 컨트롤 카드 ── */}
       <div className="flex flex-col gap-2.5 rounded-lg border border-white/8 bg-white/2 p-3">
 
-        {/* 행 1: 라이브/전체 토글 + 검색 + 전체화면 */}
+        {/* 행 1: 토글 + 검색 + 공유 + 전체화면 */}
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border border-white/10 overflow-hidden text-sm flex-shrink-0">
             <button
@@ -518,15 +566,30 @@ export function MultiviewClientView() {
             )}
           </div>
 
-          {hasAnyPanel && (
-            <button
-              onClick={openFullscreen}
-              className="ml-auto flex-shrink-0 flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-white/60 hover:bg-white/5 hover:text-white transition-colors"
-            >
-              <Maximize2 size={13} />
-              전체화면
-            </button>
-          )}
+          <div className="ml-auto flex items-center gap-1.5 flex-shrink-0">
+            {panel1 && panel2 && (
+              <button
+                onClick={handleShare}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-all ${
+                  copied
+                    ? "border-nzu-green/50 bg-nzu-green/10 text-nzu-green"
+                    : "border-white/10 text-white/60 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                {copied ? <Check size={13} /> : <Link2 size={13} />}
+                {copied ? "복사됨!" : "공유"}
+              </button>
+            )}
+            {hasAnyPanel && (
+              <button
+                onClick={openFullscreen}
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-white/60 hover:bg-white/5 hover:text-white transition-colors"
+              >
+                <Maximize2 size={13} />
+                전체화면
+              </button>
+            )}
+          </div>
         </div>
 
         {/* 행 2: 소속 팀 필터 */}
@@ -583,16 +646,41 @@ export function MultiviewClientView() {
             검색 결과에서 ⭐ 를 눌러 즐겨찾기에 추가하면 여기에 표시됩니다.
           </p>
         )}
+
+        {/* 행 4: 최근 본 조합 */}
+        {recent.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-white/25 flex-shrink-0">최근</span>
+            {recent.map((combo, i) => (
+              <button
+                key={i}
+                onClick={() => { setPanel1(combo.p1); setPanel2(combo.p2); }}
+                className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/40 hover:border-white/25 hover:text-white/70 transition-all"
+              >
+                {combo.p1.name} vs {combo.p2.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* ── 스트림 패널 (메인 — 나머지 공간 전부 차지) ── */}
-      <div className="flex flex-1 flex-col gap-3 min-h-0 md:flex-row">
+      {/* ── 스트림 패널 (메인) ── */}
+      <div className="relative flex flex-1 flex-col gap-3 min-h-0 md:flex-row">
         <StreamPanel
           panel={panel1}
           slot={1}
           onClose={() => setPanel1(null)}
           onOpenNew={() => panel1 && window.open(buildPlayUrl(panel1.soopId), "_blank", "noopener,noreferrer")}
         />
+        {panel1 && panel2 && (
+          <button
+            onClick={handleSwap}
+            title="패널 좌우 교체"
+            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/60 p-1.5 backdrop-blur-sm hover:border-white/30 hover:bg-white/10 transition-all"
+          >
+            <ArrowLeftRight size={13} className="text-white/60" />
+          </button>
+        )}
         <StreamPanel
           panel={panel2}
           slot={2}
@@ -601,10 +689,10 @@ export function MultiviewClientView() {
         />
       </div>
 
-      {/* ── H2H 역대 전적 (스트림 아래) ── */}
+      {/* ── H2H 역대 전적 ── */}
       <H2HWidget panel1={panel1} panel2={panel2} />
 
-      {/* ── 워치파티 채팅 (최하단) ── */}
+      {/* ── 워치파티 채팅 ── */}
       {panel1 && panel2 && (
         <WatchpartyChat
           viewerCount={viewerCount}
