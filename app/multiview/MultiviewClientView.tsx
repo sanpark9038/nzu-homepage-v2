@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeftRight, Check, ChevronDown, ChevronUp,
   Link2, Maximize2, MessageSquare, Search, Send, Star, Swords, Users, X,
@@ -87,7 +87,8 @@ function sortTeamKeys(keys: string[]): string[] {
 // 정적 팀 목록 — UNIVERSITY_MAP에서 한 번만 계산, API 불필요
 const ALL_TEAM_KEYS: string[] = sortTeamKeys(Object.keys(UNIVERSITY_MAP));
 
-const PLAYERS_CACHE_TTL = 30_000; // 30초
+const PLAYERS_CACHE_TTL = 5 * 60 * 1000; // 5분 (티어표와 동일)
+const PLAYERS_REFRESH_MS = 5 * 60 * 1000;
 
 async function fetchCachedPlayers(liveOnly: boolean): Promise<TierPlayerPayload[]> {
   const cacheKey = `duelview_players_${liveOnly}`;
@@ -431,6 +432,13 @@ export function MultiviewClientView() {
 
   useEffect(() => {
     fetchCachedPlayers(liveOnly).then(setPlayers).catch(() => {});
+
+    const id = setInterval(() => {
+      try { sessionStorage.removeItem(`duelview_players_${liveOnly}`); } catch {}
+      fetchCachedPlayers(liveOnly).then(setPlayers).catch(() => {});
+    }, PLAYERS_REFRESH_MS);
+
+    return () => clearInterval(id);
   }, [liveOnly]);
 
   useEffect(() => {
@@ -521,6 +529,7 @@ export function MultiviewClientView() {
 
   const activeIds = new Set([panel1?.soopId, panel2?.soopId].filter(Boolean) as string[]);
   const searchLower = search.toLowerCase().trim();
+  const liveCount = players.filter((p) => p.is_live).length;
 
   const filteredByTeam = teamFilter
     ? players.filter((p) => normalizeUniversityKey(p.university) === teamFilter)
@@ -528,6 +537,7 @@ export function MultiviewClientView() {
 
   const searchResults = (searchLower || teamFilter)
     ? filteredByTeam
+        .filter((p) => p.soop_id)
         .filter((p) => !searchLower || (p.nickname || p.name || "").toLowerCase().includes(searchLower))
         .slice(0, 12)
     : [];
@@ -546,10 +556,15 @@ export function MultiviewClientView() {
           <div className="flex rounded-lg border border-white/10 overflow-hidden text-sm flex-shrink-0">
             <button
               onClick={() => setLiveOnly(true)}
-              className={`px-3 py-1.5 transition-colors ${liveOnly ? "bg-red-500/20 text-red-400" : "text-white/50 hover:text-white hover:bg-white/5"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${liveOnly ? "bg-red-500/20 text-red-400" : "text-white/50 hover:text-white hover:bg-white/5"}`}
             >
-              <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-red-500" />
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
               라이브 중
+              {liveCount > 0 && (
+                <span className={`rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums ${liveOnly ? "bg-red-500/30 text-red-300" : "bg-white/10 text-white/50"}`}>
+                  {liveCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setLiveOnly(false)}
