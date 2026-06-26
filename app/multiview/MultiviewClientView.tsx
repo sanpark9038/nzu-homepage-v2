@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 
 import { unpackTierPlayersPayload, type TierPlayerPayload } from "@/lib/tier-player-payload";
-import { getUniversityLabel, normalizeUniversityKey } from "@/lib/university-config";
+import { UNIVERSITY_MAP, getUniversityLabel, normalizeUniversityKey } from "@/lib/university-config";
 import { useDuelviewRoom, type ChatMessage } from "./useDuelviewRoom";
 
 const RACE_LABEL: Record<string, string> = {
@@ -82,6 +82,29 @@ function sortTeamKeys(keys: string[]): string[] {
   korean.sort((a, b) => a.label.localeCompare(b.label, "ko-KR"));
   english.sort((a, b) => a.label.localeCompare(b.label, "en"));
   return [...korean, ...english, ...fa].map((t) => t.key);
+}
+
+// 정적 팀 목록 — UNIVERSITY_MAP에서 한 번만 계산, API 불필요
+const ALL_TEAM_KEYS: string[] = sortTeamKeys(Object.keys(UNIVERSITY_MAP));
+
+const PLAYERS_CACHE_TTL = 30_000; // 30초
+
+async function fetchCachedPlayers(liveOnly: boolean): Promise<TierPlayerPayload[]> {
+  const cacheKey = `duelview_players_${liveOnly}`;
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      const { players, ts } = JSON.parse(cached);
+      if (Date.now() - ts < PLAYERS_CACHE_TTL) return players;
+    }
+  } catch {}
+  const url = `/api/tier/players?liveOnly=${liveOnly}`;
+  const raw = await fetch(url).then((r) => r.json());
+  const players = unpackTierPlayersPayload(raw).players;
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify({ players, ts: Date.now() }));
+  } catch {}
+  return players;
 }
 
 function saveToRecent(p1: NonNullable<Panel>, p2: NonNullable<Panel>) {
@@ -407,11 +430,7 @@ export function MultiviewClientView() {
   }, [pendingSoopIds, players]);
 
   useEffect(() => {
-    const url = liveOnly ? "/api/tier/players?liveOnly=true" : "/api/tier/players?liveOnly=false";
-    fetch(url)
-      .then((r) => r.json())
-      .then((data) => setPlayers(unpackTierPlayersPayload(data).players))
-      .catch(() => {});
+    fetchCachedPlayers(liveOnly).then(setPlayers).catch(() => {});
   }, [liveOnly]);
 
   useEffect(() => {
@@ -440,15 +459,6 @@ export function MultiviewClientView() {
       window.history.replaceState({}, "", url.toString());
     }
   }, [panel1?.soopId, panel2?.soopId]);
-
-  const teams = useMemo(() => {
-    const set = new Set<string>();
-    players.forEach((p) => {
-      const key = normalizeUniversityKey(p.university);
-      if (key) set.add(key);
-    });
-    return sortTeamKeys([...set]);
-  }, [players]);
 
   const toggleFavorite = useCallback((soopId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -607,9 +617,8 @@ export function MultiviewClientView() {
           </div>
         </div>
 
-        {/* 행 2: 소속 팀 필터 */}
-        {teams.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+        {/* 행 2: 소속 팀 필터 (정적 — API 대기 없음) */}
+        <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => { setTeamFilter(null); searchInputRef.current?.focus(); }}
               className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${
@@ -620,7 +629,7 @@ export function MultiviewClientView() {
             >
               전체팀
             </button>
-            {teams.map((team) => (
+            {ALL_TEAM_KEYS.map((team) => (
               <button
                 key={team}
                 onClick={() => {
@@ -637,7 +646,6 @@ export function MultiviewClientView() {
               </button>
             ))}
           </div>
-        )}
 
         {/* 행 3: 즐겨찾기 칩 */}
         {favoritePlayers.length > 0 ? (
