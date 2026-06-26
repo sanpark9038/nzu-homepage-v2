@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 
 import { unpackTierPlayersPayload, type TierPlayerPayload } from "@/lib/tier-player-payload";
+import { getUniversityLabel, normalizeUniversityKey } from "@/lib/university-config";
 import { useDuelviewRoom, type ChatMessage } from "./useDuelviewRoom";
 
 const RACE_LABEL: Record<string, string> = {
@@ -70,6 +71,17 @@ function loadRecent(): RecentCombo[] {
   } catch {
     return [];
   }
+}
+
+function sortTeamKeys(keys: string[]): string[] {
+  const withLabel = keys.map((k) => ({ key: k, label: getUniversityLabel(k) }));
+  const isKorean = (s: string) => /^[가-힣]/.test(s);
+  const fa = withLabel.filter((t) => t.key === "FA");
+  const korean = withLabel.filter((t) => t.key !== "FA" && isKorean(t.label));
+  const english = withLabel.filter((t) => t.key !== "FA" && !isKorean(t.label));
+  korean.sort((a, b) => a.label.localeCompare(b.label, "ko-KR"));
+  english.sort((a, b) => a.label.localeCompare(b.label, "en"));
+  return [...korean, ...english, ...fa].map((t) => t.key);
 }
 
 function saveToRecent(p1: NonNullable<Panel>, p2: NonNullable<Panel>) {
@@ -137,7 +149,7 @@ function SearchResultItem({
         {player.is_live && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-500 animate-pulse" />}
         <span className="text-sm font-medium text-white truncate">{player.nickname || player.name}</span>
         {raceLabel && <span className="text-xs text-white/40 flex-shrink-0">{raceLabel}</span>}
-        {player.university && <span className="text-xs text-white/30 flex-shrink-0">{player.university}</span>}
+        {player.university && <span className="text-xs text-white/30 flex-shrink-0">{getUniversityLabel(player.university)}</span>}
       </div>
       <button
         onClick={onToggleFavorite}
@@ -431,8 +443,11 @@ export function MultiviewClientView() {
 
   const teams = useMemo(() => {
     const set = new Set<string>();
-    players.forEach((p) => { if (p.university) set.add(p.university); });
-    return [...set];
+    players.forEach((p) => {
+      const key = normalizeUniversityKey(p.university);
+      if (key) set.add(key);
+    });
+    return sortTeamKeys([...set]);
   }, [players]);
 
   const toggleFavorite = useCallback((soopId: string, e: React.MouseEvent) => {
@@ -498,7 +513,7 @@ export function MultiviewClientView() {
   const searchLower = search.toLowerCase().trim();
 
   const filteredByTeam = teamFilter
-    ? players.filter((p) => p.university === teamFilter)
+    ? players.filter((p) => normalizeUniversityKey(p.university) === teamFilter)
     : players;
 
   const searchResults = (searchLower || teamFilter)
@@ -539,7 +554,7 @@ export function MultiviewClientView() {
             <input
               ref={searchInputRef}
               type="text"
-              placeholder={teamFilter ? `${teamFilter} 선수 검색...` : "선수 검색해서 추가..."}
+              placeholder={teamFilter ? `${getUniversityLabel(teamFilter)} 선수 검색...` : "선수 검색해서 추가..."}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
               onFocus={() => setSearchOpen(true)}
@@ -561,7 +576,7 @@ export function MultiviewClientView() {
             )}
             {searchOpen && (searchLower || teamFilter) && searchResults.length === 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-white/10 bg-[#0f1117] px-3 py-3 text-sm text-white/30 shadow-xl">
-                {teamFilter && !searchLower ? `${teamFilter} 소속 선수가 없습니다.` : "검색 결과가 없습니다."}
+                {teamFilter && !searchLower ? `${getUniversityLabel(teamFilter)} 소속 선수가 없습니다.` : "검색 결과가 없습니다."}
               </div>
             )}
           </div>
@@ -618,7 +633,7 @@ export function MultiviewClientView() {
                     : "border-white/10 text-white/40 hover:border-white/20 hover:text-white/70"
                 }`}
               >
-                {team}
+                {getUniversityLabel(team)}
               </button>
             ))}
           </div>
