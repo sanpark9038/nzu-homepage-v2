@@ -21,6 +21,7 @@ export const visibleNavbarLinks: NavbarLinkItem[] = [
   { type: "link", href: "/player", label: "선수" },
   { type: "link", href: "/match", label: "상대전적" },
   { type: "link", href: "/entry", label: "엔트리" },
+  { type: "link", href: "/multiview", label: "대결뷰" },
 ];
 
 export const hiddenNavbarLinks: NavbarLinkItem[] = [

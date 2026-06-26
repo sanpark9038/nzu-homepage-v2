@@ -27,6 +27,7 @@ const NAV_ACCENT: Record<string, {
   "/player":     { activeBg: "bg-nzu-green/10",   accentText: "text-nzu-green",  glowRgba: "rgba(0,168,107,0.20)",   hoverBg: "hover:bg-nzu-green/5",    hoverText: "hover:text-nzu-green" },
   "/match":      { activeBg: "bg-violet-400/10",  accentText: "text-violet-300", glowRgba: "rgba(167,139,250,0.20)", hoverBg: "hover:bg-violet-400/5",   hoverText: "hover:text-violet-300" },
   "/entry":      { activeBg: "bg-indigo-400/10",  accentText: "text-indigo-300", glowRgba: "rgba(129,140,248,0.20)", hoverBg: "hover:bg-indigo-400/5",   hoverText: "hover:text-indigo-300" },
+  "/multiview":  { activeBg: "bg-rose-400/10",   accentText: "text-rose-300",   glowRgba: "rgba(251,113,133,0.20)", hoverBg: "hover:bg-rose-400/5",     hoverText: "hover:text-rose-300" },
 };
 
 const DEFAULT_ACCENT = NAV_ACCENT["/"];
