@@ -4,6 +4,19 @@ const nextConfig: NextConfig = {
   experimental: {
     proxyClientMaxBodySize: 64 * 1024 * 1024,
   },
+  async headers() {
+    return [
+      {
+        source: "/multiview",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            value: "local-network-access=*",
+          },
+        ],
+      },
+    ];
+  },
   images: {
     deviceSizes: [640, 768, 1024, 1280],
     imageSizes: [32, 48, 64, 96, 128, 160, 256, 384],

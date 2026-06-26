@@ -363,7 +363,7 @@ function StreamPanel({
         key={panel.soopId}
         src={buildEmbedUrl(panel.soopId)}
         className="flex-1 w-full border-0"
-        allow="autoplay; fullscreen"
+        allow="autoplay; fullscreen; local-network-access"
         title={`${panel.name} 방송`}
       />
     </div>
