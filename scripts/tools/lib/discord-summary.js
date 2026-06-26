@@ -323,6 +323,7 @@ function loadRosterSyncJoiners(reportsDir, options = {}) {
   const added = Array.isArray(syncReport && syncReport.added) ? syncReport.added : [];
   const previousPlayers = Array.isArray(options.previousPlayers) ? options.previousPlayers : [];
   const lookup = options.lookup instanceof Map ? options.lookup : legacyEntityIdLookup();
+  const supabasePlayerMap = options.supabasePlayerMap instanceof Map ? options.supabasePlayerMap : null;
   return added
     .map((row) => ({
       entity_id: String(row && row.entity_id ? row.entity_id : "").trim(),
@@ -330,7 +331,11 @@ function loadRosterSyncJoiners(reportsDir, options = {}) {
       team_name: normalizeTeamName(row && row.to ? row.to : "무소속"),
     }))
     .filter((row) => row.player_name)
-    .filter((row) => !isRosterSyncRowAlreadyPresent(row, previousPlayers, lookup, row.team_name));
+    .filter((row) => !isRosterSyncRowAlreadyPresent(row, previousPlayers, lookup, row.team_name))
+    .filter((row) => {
+      if (!supabasePlayerMap || !row.entity_id) return true;
+      return !supabasePlayerMap.has(row.entity_id);
+    });
 }
 
 function loadRosterSyncAffiliationChanges(reportsDir, options = {}) {
@@ -338,6 +343,7 @@ function loadRosterSyncAffiliationChanges(reportsDir, options = {}) {
   const moved = Array.isArray(syncReport && syncReport.moved) ? syncReport.moved : [];
   const previousPlayers = Array.isArray(options.previousPlayers) ? options.previousPlayers : [];
   const lookup = options.lookup instanceof Map ? options.lookup : legacyEntityIdLookup();
+  const supabasePlayerMap = options.supabasePlayerMap instanceof Map ? options.supabasePlayerMap : null;
   return moved
     .map((row) => ({
       entity_id: String(row && row.entity_id ? row.entity_id : "").trim(),
@@ -347,7 +353,13 @@ function loadRosterSyncAffiliationChanges(reportsDir, options = {}) {
       change_confidence: String(row && row.change_confidence ? row.change_confidence : "inferred").trim() || "inferred",
     }))
     .filter((row) => row.player_name)
-    .filter((row) => !isRosterSyncRowAlreadyPresent(row, previousPlayers, lookup, row.new_team));
+    .filter((row) => !isRosterSyncRowAlreadyPresent(row, previousPlayers, lookup, row.new_team))
+    .filter((row) => {
+      if (!supabasePlayerMap || !row.entity_id) return true;
+      const supabasePlayer = supabasePlayerMap.get(row.entity_id);
+      if (!supabasePlayer) return true;
+      return normalizeTeamName(supabasePlayer.university).toLowerCase() !== normalizeTeamName(row.new_team).toLowerCase();
+    });
 }
 
 function summarizeAffiliationChanges(affiliationChanges) {
@@ -385,6 +397,7 @@ function buildDiscordSummaryCheck({
   alertsDoc,
   currentPlayers,
   previousRosterStatePlayers,
+  supabasePlayerMap,
 }) {
   const beforePlayers = loadBaselinePlayers(baselinePath);
   const snapshotPlayers = loadCurrentRosterStateSnapshot(reportsDir);
@@ -398,8 +411,8 @@ function buildDiscordSummaryCheck({
   const lookup = mergedEntityIdLookup({ reportsDir });
   const comparisonBeforePlayers = previousPlayers.length ? previousPlayers : beforePlayers;
   const rosterChanges = compareRosterJoinersRemovals(comparisonBeforePlayers, afterPlayers, lookup);
-  const rosterSyncJoiners = loadRosterSyncJoiners(reportsDir, { previousPlayers, lookup });
-  const affiliationChanges = loadRosterSyncAffiliationChanges(reportsDir, { previousPlayers, lookup });
+  const rosterSyncJoiners = loadRosterSyncJoiners(reportsDir, { previousPlayers, lookup, supabasePlayerMap });
+  const affiliationChanges = loadRosterSyncAffiliationChanges(reportsDir, { previousPlayers, lookup, supabasePlayerMap });
   const joinersSource = rosterSyncJoiners.length
     ? "team_roster_sync_report"
     : previousPlayers.length

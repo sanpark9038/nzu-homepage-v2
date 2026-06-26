@@ -262,13 +262,37 @@ function buildReview(syncReport, options = {}) {
       .map(decisionMatchKey)
   );
   const externalOpponentNames = readExternalOpponentNames(options.opponentDecisionsPath);
+  const supabasePlayerMap = options.supabasePlayerMap instanceof Map ? options.supabasePlayerMap : null;
+
+  function isAlreadyAppliedInSupabase(item) {
+    if (!supabasePlayerMap || !clean(item.entity_id)) return false;
+    const supabasePlayer = supabasePlayerMap.get(clean(item.entity_id));
+    if (!supabasePlayer) return false;
+    if (item.review_kind === "affiliation_change") {
+      const supabaseTeam = clean(supabasePlayer.university).toLowerCase();
+      const detectedTeam = clean(item.to).toLowerCase();
+      return Boolean(supabaseTeam && detectedTeam && supabaseTeam === detectedTeam);
+    }
+    if (item.review_kind === "new_candidate") return true;
+    if (item.review_kind === "tier_change") {
+      const supabaseTier = clean(supabasePlayer.tier).toLowerCase();
+      const detectedTier = clean(item.to).toLowerCase();
+      return Boolean(supabaseTier && detectedTier && supabaseTier === detectedTier);
+    }
+    return false;
+  }
+
   const items = allItems.filter(
-    (item) => !isExcludedByOperator(item, excludedDecisionKeys) && !isExternalOpponentNewCandidate(item, externalOpponentNames)
+    (item) =>
+      !isExcludedByOperator(item, excludedDecisionKeys) &&
+      !isExternalOpponentNewCandidate(item, externalOpponentNames) &&
+      !isAlreadyAppliedInSupabase(item)
   );
   const excludedByOperator = allItems.filter((item) => isExcludedByOperator(item, excludedDecisionKeys)).length;
   const excludedExternalOpponents = allItems.filter((item) =>
     isExternalOpponentNewCandidate(item, externalOpponentNames)
   ).length;
+  const excludedAlreadyApplied = allItems.filter((item) => isAlreadyAppliedInSupabase(item)).length;
 
   return {
     generated_at: new Date().toISOString(),
@@ -285,6 +309,7 @@ function buildReview(syncReport, options = {}) {
       guarded_teams: guardedTeams.length,
       excluded_by_operator: excludedByOperator,
       excluded_external_opponents: excludedExternalOpponents,
+      excluded_already_applied: excludedAlreadyApplied,
     },
     items,
     operator_flow: {
@@ -402,17 +427,25 @@ function writeReview(review, options = {}) {
   return { jsonPath, mdPath };
 }
 
-function main() {
+async function main() {
   const sourcePath = process.argv.includes("--source")
     ? process.argv[process.argv.indexOf("--source") + 1]
     : SOURCE_REPORT;
   if (!sourcePath || !fs.existsSync(sourcePath)) {
     throw new Error(`Missing roster sync report: ${sourcePath || "<none>"}`);
   }
+
+  let supabasePlayerMap = null;
+  try {
+    const { fetchSupabasePlayerMap } = require("./lib/supabase-roster-state");
+    supabasePlayerMap = await fetchSupabasePlayerMap();
+  } catch {}
+
   const review = buildReview(readJson(sourcePath), {
     reportsDir: REPORTS_DIR,
     baselinePath: BASELINE_PATH,
     projectsDir: PROJECTS_DIR,
+    supabasePlayerMap,
   });
   const result = writeReview(review);
   console.log(JSON.stringify({
@@ -424,7 +457,10 @@ function main() {
 }
 
 if (require.main === module) {
-  main();
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
 }
 
 module.exports = {

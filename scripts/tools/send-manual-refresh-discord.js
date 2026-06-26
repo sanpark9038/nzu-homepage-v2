@@ -1328,7 +1328,7 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
+function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl, supabasePlayerMap }) {
   const previousRosterStatePlayers = loadCurrentRosterStateSnapshot(REPORTS_DIR);
   const beforePlayers = previousRosterStatePlayers.length
     ? previousRosterStatePlayers
@@ -1345,6 +1345,7 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
     alertsDoc,
     currentPlayers: afterPlayers,
     previousRosterStatePlayers,
+    supabasePlayerMap,
   });
   writeCurrentRosterStateSnapshot(REPORTS_DIR, afterPlayers);
 
@@ -1426,7 +1427,7 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function buildMessage({ outcome, source, runUrl }) {
+function buildMessage({ outcome, source, runUrl, supabasePlayerMap }) {
   const snapshotPath = resolveLatestReportFile(REPORTS_DIR, "daily_pipeline_snapshot_");
   const alertsPath = resolveLatestReportFile(REPORTS_DIR, "daily_pipeline_alerts_");
   const snapshot = readJsonIfExists(snapshotPath);
@@ -1440,7 +1441,7 @@ function buildMessage({ outcome, source, runUrl }) {
       opsPipelineReport
     );
   }
-  return buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl, source });
+  return buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl, source, supabasePlayerMap });
 }
 
 async function postDiscordWebhook(content) {
@@ -1470,7 +1471,16 @@ async function main() {
   const source = String(argValue("--source", "manual-refresh")).trim();
   const runUrl = String(argValue("--run-url", "")).trim();
   const noSend = hasFlag("--no-send");
-  const message = buildMessage({ outcome, source, runUrl });
+
+  let supabasePlayerMap = null;
+  if (outcome === "success") {
+    try {
+      const { fetchSupabasePlayerMap } = require("./lib/supabase-roster-state");
+      supabasePlayerMap = await fetchSupabasePlayerMap();
+    } catch {}
+  }
+
+  const message = buildMessage({ outcome, source, runUrl, supabasePlayerMap });
   if (!noSend) {
     await postDiscordWebhook(message);
   }
