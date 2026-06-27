@@ -394,6 +394,7 @@ export function MultiviewClientView() {
   const [panel1, setPanel1] = useState<Panel>(null);
   const [panel2, setPanel2] = useState<Panel>(null);
   const [copied, setCopied] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(true);
   const [pendingSoopIds, setPendingSoopIds] = useState<{ p1: string | null; p2: string | null } | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -583,6 +584,7 @@ export function MultiviewClientView() {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
               onFocus={() => setSearchOpen(true)}
+              onKeyDown={(e) => { if (e.key === "Escape") { setSearchOpen(false); setSearch(""); (e.target as HTMLInputElement).blur(); } }}
               className="w-full rounded-lg border border-white/10 bg-white/5 pl-8 pr-3 py-1.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/20"
             />
             {searchOpen && searchResults.length > 0 && (
@@ -601,7 +603,11 @@ export function MultiviewClientView() {
             )}
             {searchOpen && (searchLower || teamFilter) && searchResults.length === 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg border border-white/10 bg-[#0f1117] px-3 py-3 text-sm text-white/30 shadow-xl">
-                {teamFilter && !searchLower ? `${getUniversityLabel(teamFilter)} 소속 선수가 없습니다.` : "검색 결과가 없습니다."}
+                {teamFilter && !searchLower
+                  ? liveOnly
+                    ? `${getUniversityLabel(teamFilter)} 중 현재 라이브 선수가 없습니다.`
+                    : `${getUniversityLabel(teamFilter)} 소속 선수가 없습니다.`
+                  : "검색 결과가 없습니다."}
               </div>
             )}
           </div>
@@ -629,76 +635,87 @@ export function MultiviewClientView() {
                 전체화면
               </button>
             )}
+            <button
+              onClick={() => setControlsOpen((v) => !v)}
+              title={controlsOpen ? "필터 접기" : "필터 펼치기"}
+              className="rounded-lg border border-white/10 p-1.5 text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors"
+            >
+              {controlsOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
           </div>
         </div>
 
-        {/* 행 2: 소속 팀 필터 (정적 — API 대기 없음) */}
-        <div className="flex flex-wrap gap-1.5">
-            <button
-              onClick={() => { setTeamFilter(null); searchInputRef.current?.focus(); }}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${
-                !teamFilter
-                  ? "border-white/25 bg-white/10 text-white"
-                  : "border-white/10 text-white/40 hover:border-white/20 hover:text-white/70"
-              }`}
-            >
-              전체팀
-            </button>
-            {ALL_TEAM_KEYS.map((team) => (
+        {controlsOpen && (
+          <>
+            {/* 행 2: 소속 팀 필터 (정적 — API 대기 없음) */}
+            <div className="flex flex-wrap gap-1.5">
               <button
-                key={team}
-                onClick={() => {
-                  setTeamFilter((prev) => (prev === team ? null : team));
-                  searchInputRef.current?.focus();
-                }}
+                onClick={() => { setTeamFilter(null); searchInputRef.current?.focus(); }}
                 className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${
-                  teamFilter === team
-                    ? "border-rose-400/50 bg-rose-400/12 text-rose-300"
+                  !teamFilter
+                    ? "border-white/25 bg-white/10 text-white"
                     : "border-white/10 text-white/40 hover:border-white/20 hover:text-white/70"
                 }`}
               >
-                {getUniversityLabel(team)}
+                전체팀
               </button>
-            ))}
-          </div>
+              {ALL_TEAM_KEYS.map((team) => (
+                <button
+                  key={team}
+                  onClick={() => {
+                    setTeamFilter((prev) => (prev === team ? null : team));
+                    searchInputRef.current?.focus();
+                  }}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${
+                    teamFilter === team
+                      ? "border-rose-400/50 bg-rose-400/12 text-rose-300"
+                      : "border-white/10 text-white/40 hover:border-white/20 hover:text-white/70"
+                  }`}
+                >
+                  {getUniversityLabel(team)}
+                </button>
+              ))}
+            </div>
 
-        {/* 행 3: 즐겨찾기 칩 */}
-        {favoritePlayers.length > 0 ? (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="flex items-center gap-1 text-xs text-amber-400/60 flex-shrink-0">
-              <Star size={11} fill="currentColor" />
-              즐겨찾기
-            </span>
-            {favoritePlayers.map((p) => (
-              <FavoriteChip
-                key={p.id}
-                player={p}
-                isActive={activeIds.has(p.soop_id || "")}
-                onSelect={() => loadToPanel(p)}
-                onRemove={(e) => p.soop_id && toggleFavorite(p.soop_id, e)}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-white/20">
-            검색 결과에서 ⭐ 를 눌러 즐겨찾기에 추가하면 여기에 표시됩니다.
-          </p>
-        )}
+            {/* 행 3: 즐겨찾기 칩 */}
+            {favoritePlayers.length > 0 ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="flex items-center gap-1 text-xs text-amber-400/60 flex-shrink-0">
+                  <Star size={11} fill="currentColor" />
+                  즐겨찾기
+                </span>
+                {favoritePlayers.map((p) => (
+                  <FavoriteChip
+                    key={p.id}
+                    player={p}
+                    isActive={activeIds.has(p.soop_id || "")}
+                    onSelect={() => loadToPanel(p)}
+                    onRemove={(e) => p.soop_id && toggleFavorite(p.soop_id, e)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-white/20">
+                검색 결과에서 ⭐ 를 눌러 즐겨찾기에 추가하면 여기에 표시됩니다.
+              </p>
+            )}
 
-        {/* 행 4: 최근 본 조합 */}
-        {recent.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-white/25 flex-shrink-0">최근</span>
-            {recent.map((combo, i) => (
-              <button
-                key={i}
-                onClick={() => { setPanel1(combo.p1); setPanel2(combo.p2); }}
-                className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/40 hover:border-white/25 hover:text-white/70 transition-all"
-              >
-                {combo.p1.name} vs {combo.p2.name}
-              </button>
-            ))}
-          </div>
+            {/* 행 4: 최근 본 조합 */}
+            {recent.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-white/25 flex-shrink-0">최근</span>
+                {recent.map((combo, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setPanel1(combo.p1); setPanel2(combo.p2); }}
+                    className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/40 hover:border-white/25 hover:text-white/70 transition-all"
+                  >
+                    {combo.p1.name} vs {combo.p2.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
