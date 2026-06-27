@@ -6,6 +6,20 @@ const ROOT = path.resolve(__dirname, "..", "..", "..");
 const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const CURRENT_ROSTER_STATE_FILE = "current_roster_state.json";
 
+const TEAM_CODE_TO_NAME = {
+  c9: "씨나인", ku: "케이대", calm: "캄몬스타즈",
+  ssu: "수술대", mbu: "엠비대", "b.a": "흑카데미",
+  "n.c.s": "뉴캣슬", wfu: "와플대", ssg: "신세계",
+  fa: "무소속", jsa: "jsa", yb: "yb", bgm: "bgm",
+  hm: "hm", dm: "dm",
+};
+
+function normalizeTeamValue(value) {
+  const lower = String(value || "").trim().toLowerCase();
+  const fromCode = TEAM_CODE_TO_NAME[lower];
+  return fromCode !== undefined ? fromCode : lower;
+}
+
 function readJsonIfExists(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return null;
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
@@ -358,7 +372,7 @@ function loadRosterSyncAffiliationChanges(reportsDir, options = {}) {
       if (!supabasePlayerMap || !row.entity_id) return true;
       const supabasePlayer = supabasePlayerMap.get(row.entity_id);
       if (!supabasePlayer) return true;
-      return normalizeTeamName(supabasePlayer.university).toLowerCase() !== normalizeTeamName(row.new_team).toLowerCase();
+      return normalizeTeamValue(supabasePlayer.university) !== normalizeTeamValue(row.new_team);
     });
 }
 
