@@ -38,8 +38,11 @@ function normalizeNavbarPathname(value: string | null | undefined) {
   return pathname;
 }
 
+const OVERLAY_VIEWER_ROUTES = ["/overlay/scoreboard", "/overlay/entry", "/overlay/view"];
+
 export default function Navbar() {
   const pathname = usePathname();
+  if (OVERLAY_VIEWER_ROUTES.some((r) => pathname?.startsWith(r))) return null;
   const resolvedPathname = normalizeNavbarPathname(pathname);
   const [session, setSession] = useState<NavbarSession | null>(null);
   const isHome = resolvedPathname === "/";

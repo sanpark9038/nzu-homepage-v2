@@ -595,6 +595,24 @@ export type Database = {
         }
         Relationships: []
       }
+      overlay_state: {
+        Row: {
+          overlay_key: string
+          data: Record<string, unknown>
+          updated_at: string
+        }
+        Insert: {
+          overlay_key: string
+          data: Record<string, unknown>
+          updated_at?: string
+        }
+        Update: {
+          overlay_key?: string
+          data?: Record<string, unknown>
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

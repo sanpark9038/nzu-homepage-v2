@@ -153,6 +153,19 @@
     scrollbar-gutter: stable;
   }
 
+  .input-base {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 13px;
+    color: var(--foreground);
+    outline: none;
+  }
+  .input-base:focus {
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
   /* 스크롤바 스타일링 */
   ::-webkit-scrollbar {
     width: 6px;
