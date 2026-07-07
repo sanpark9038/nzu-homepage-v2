@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -33,11 +34,6 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <head>
         <meta name="naver-site-verification" content="YOUR_NAVER_CODE" />
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
-        />
       </head>
       <body className="min-h-screen antialiased bg-background text-foreground transition-colors duration-300">
         <ThemeProvider>
