@@ -134,7 +134,7 @@ function SetColumn({ set, setIdx, total, isActive: _isActive, leftTeam, rightTea
   const scoreLeft  = set.entries.filter(e => e.result === "left").length;
   const scoreRight = set.entries.filter(e => e.result === "right").length;
   const setLabel   = mini
-    ? (set.isAce ? "슈에" : `${setIdx + 1}세트`)
+    ? (set.isAce ? "슈에" : `${setIdx + 1}SET`)
     : (set.isAce ? "에이스" : `${setIdx + 1}SET`);
   const isLast     = setIdx === total - 1;
 
@@ -275,7 +275,7 @@ export default function ScoreboardOverlayPage() {
   const currentMap   = currentEntry?.map ?? "";
   const nonAceIdx    = sets.filter(s => !s.isAce).findIndex(s => s.id === activeSetId);
   const setLabel     = isMini
-    ? (activeSet?.isAce ? "슈에" : `${(nonAceIdx >= 0 ? nonAceIdx : 0) + 1}세트`)
+    ? (activeSet?.isAce ? "슈에" : `${(nonAceIdx >= 0 ? nonAceIdx : 0) + 1} SET`)
     : (activeSet?.isAce ? "에이스" : activeSetIdx >= 0 ? `${activeSetIdx + 1} SET` : `${1} SET`);
   // 선수명 행 그라디언트 — 각 선수의 종족 색(테란=파랑/프로토스=골드/저그=보라)이 자기 쪽에서 옅게 번지도록
   const leftRaceColor  = RACE_COLORS[left.race]  ?? "#AFA591";

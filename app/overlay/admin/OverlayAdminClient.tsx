@@ -12,7 +12,6 @@ import {
   defaultBroadcastTitle,
   defaultModeFor,
   setWinnerOf,
-  setScoreOf,
   miniAceNeeded,
   type OverlayEntryRow,
   type OverlayMatchFormat,
@@ -502,7 +501,8 @@ export default function OverlayAdminClient({
   const editingSet = state.sets.find(s => s.id === adminTab) ?? null;
   const activeSetLabel = (() => {
     const idx = state.sets.findIndex(s => s.id === state.activeSetId);
-    return activeSet?.isAce ? "에이스" : idx >= 0 ? `${idx + 1}SET` : "-";
+    if (activeSet?.isAce) return state.matchFormat === "mini" ? "슈에" : "에이스";
+    return idx >= 0 ? `${idx + 1}SET` : "-";
   })();
   const defaultSlotsOf = (set: OverlaySet) => {
     if (set.isAce) return 1;                                              // 에이스·슈에 = 단판
@@ -515,9 +515,8 @@ export default function OverlayAdminClient({
   // 대전 및 CK는 단판(세트 1개) → 세트 탭 숨김. 대전 및 CK·미니대전은 구조 고정 → +SET/세트삭제 숨김.
   const hideSetTabs   = state.matchFormat === "university";
   const fixedStructure = state.matchFormat === "university" || state.matchFormat === "mini";
-  // 미니대전: 세트 스코어(세트 획득 수) + 슈에 필요 여부(1:1이면 필요, 2:0이면 불필요)
+  // 미니대전: 슈에 필요 여부(1:1이면 필요, 2:0이면 불필요) + 세트 승자 표시
   const isMini = state.matchFormat === "mini";
-  const miniScore = setScoreOf(state.sets);
   const aceNeeded = miniAceNeeded(state.sets);
 
   if (!loaded) return (
@@ -689,19 +688,23 @@ export default function OverlayAdminClient({
               <span className="ml-auto text-xs font-semibold text-white/35 shrink-0">활성 세트 · {activeSetLabel}</span>
             </div>
 
-            {/* 가운데 점수판 */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-4 border-b border-white/8 bg-black/20">
-              <span className="text-sm font-bold truncate text-right" style={{ color: "#d08a84" }}>
-                {state.left.teamName || "좌팀"}
-              </span>
-              <div className="flex items-center gap-3">
+            {/* 팀명 입력 + 점수 (한 줄로 병합 — 좌팀칸 0:0 우팀칸) */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 border-b border-white/8 bg-black/20">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-1.5 h-7 rounded-full shrink-0" style={{ background: "#c4554d" }} />
+                <input className="input-base flex-1 min-w-0 text-sm font-semibold" value={state.left.teamName}
+                  onChange={e => updLeft({ teamName: e.target.value })} placeholder="예: A" style={{ textAlign: "left" }} />
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
                 <span className="text-4xl font-black tabular-nums leading-none" style={{ color: "#d97b73" }}>{scoreLeft}</span>
                 <span className="text-2xl font-bold text-white/25 leading-none">:</span>
                 <span className="text-4xl font-black tabular-nums leading-none" style={{ color: "#7396cc" }}>{scoreRight}</span>
               </div>
-              <span className="text-sm font-bold truncate text-left" style={{ color: "#8aa6d0" }}>
-                {state.right.teamName || "우팀"}
-              </span>
+              <div className="flex items-center gap-2 flex-row-reverse min-w-0">
+                <span className="w-1.5 h-7 rounded-full shrink-0" style={{ background: "#5577b0" }} />
+                <input className="input-base flex-1 min-w-0 text-sm font-semibold" value={state.right.teamName}
+                  onChange={e => updRight({ teamName: e.target.value })} placeholder="예: B" style={{ textAlign: "right" }} />
+              </div>
             </div>
 
             {/* 좌/우 선수 대칭 입력 */}
@@ -721,13 +724,6 @@ export default function OverlayAdminClient({
                 return (
                   <div key={side}
                     className={`p-3.5 space-y-3 ${isLeft ? "border-r border-white/8" : ""} ${focused ? "bg-white/[0.02]" : ""}`}>
-                    {/* 사이드 accent + 팀명 (한 줄로 압축) */}
-                    <div className={`flex items-center gap-2 ${isLeft ? "" : "flex-row-reverse"}`}>
-                      <span className="w-1.5 h-7 rounded-full shrink-0" style={{ background: isLeft ? "#c4554d" : "#5577b0" }} />
-                      <input className="input-base flex-1 min-w-0 text-sm font-semibold" value={player.teamName}
-                        onChange={e => update({ teamName: e.target.value })} placeholder={isLeft ? "예: A" : "예: B"}
-                        style={{ textAlign: align }} />
-                    </div>
                     {/* 선수명 */}
                     <div>
                       <label className={lblCls} style={{ color: "rgba(255,255,255,0.4)" }}>
@@ -820,16 +816,6 @@ export default function OverlayAdminClient({
               <Layers size={12} className="text-purple-400/60 shrink-0" />
               <span className="text-sm font-bold text-white/65 shrink-0">대진표 관리</span>
 
-              {/* 미니대전 세트 스코어 (세트 획득 수) */}
-              {isMini && (
-                <div className="flex items-center gap-1.5 shrink-0 rounded-lg bg-white/[0.05] border border-white/10 px-2.5 py-1">
-                  <span className="text-[10px] font-bold text-white/35">세트</span>
-                  <span className="text-sm font-black tabular-nums" style={{ color: "#d08a84" }}>{miniScore.left}</span>
-                  <span className="text-[11px] text-white/25">:</span>
-                  <span className="text-sm font-black tabular-nums" style={{ color: "#8aa6d0" }}>{miniScore.right}</span>
-                </div>
-              )}
-
               {/* 진행 방식 — 대전 및 CK에서만 7판4선/9판5선 선택 (크게) */}
               {state.matchFormat === "university" && (
                 <div className="flex items-center gap-2">
@@ -845,44 +831,42 @@ export default function OverlayAdminClient({
                 </div>
               )}
 
-              {/* 리셋 + 사용법 — 오른쪽 끝으로 */}
-              <div className="ml-auto flex items-center gap-2 shrink-0">
-                {editingSet && (
-                  <div className="relative">
-                    <button onClick={() => setClearConfirm(true)}
-                      title="선수·맵·결과를 모두 지우고 빈 대진표로 되돌립니다"
-                      className="flex items-center gap-1.5 h-8 px-4 rounded-lg text-sm font-black bg-amber-500/90 text-black shadow-lg shadow-amber-500/20 hover:bg-amber-400 active:scale-[0.97] transition-all">
-                      <RotateCcw size={15} strokeWidth={2.8} /> 리셋
-                    </button>
+              {/* 리셋 — 매일 누르는 CTA, 헤더 가운데 */}
+              {editingSet && (
+                <div className="relative mx-auto">
+                  <button onClick={() => setClearConfirm(true)}
+                    title="선수·맵·결과를 모두 지우고 빈 대진표로 되돌립니다"
+                    className="flex items-center gap-1.5 h-9 px-5 rounded-xl text-sm font-black bg-amber-500/90 text-black shadow-lg shadow-amber-500/20 hover:bg-amber-400 active:scale-[0.97] transition-all">
+                    <RotateCcw size={16} strokeWidth={2.8} /> 리셋
+                  </button>
 
-                    {clearConfirm && (
-                      <>
-                        <div className="fixed inset-0 z-30" onClick={() => setClearConfirm(false)} />
-                        <div className="absolute right-0 top-full mt-2 z-40 w-[300px] rounded-xl border border-amber-500/30 bg-[#1a1508] shadow-2xl px-4 py-3 text-left">
-                          <div className="flex items-start gap-2.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
-                            <div>
-                              <p className="text-sm font-bold text-amber-100">이 세트를 리셋할까요?</p>
-                              <p className="text-xs text-amber-200/60 mt-1 leading-relaxed">선수·맵·결과가 모두 지워지고, 빈 대진표({defaultSlotsOf(editingSet)}칸)로 되돌아갑니다.</p>
-                              <div className="flex items-center gap-2 mt-2.5">
-                                <button onClick={() => { clearSetEntries(editingSet.id, defaultSlotsOf(editingSet)); setClearConfirm(false); }}
-                                  className="h-8 px-3.5 rounded-lg bg-amber-500 text-xs font-bold text-black hover:bg-amber-400 transition-all">리셋할게요</button>
-                                <button onClick={() => setClearConfirm(false)}
-                                  className="h-8 px-3.5 rounded-lg text-xs font-bold text-white/40 hover:text-white/70 transition-all">취소</button>
-                              </div>
+                  {clearConfirm && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setClearConfirm(false)} />
+                      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-40 w-[300px] rounded-xl border border-amber-500/30 bg-[#1a1508] shadow-2xl px-4 py-3 text-left">
+                        <div className="flex items-start gap-2.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold text-amber-100">이 세트를 리셋할까요?</p>
+                            <p className="text-xs text-amber-200/60 mt-1 leading-relaxed">선수·맵·결과가 모두 지워지고, 빈 대진표({defaultSlotsOf(editingSet)}칸)로 되돌아갑니다.</p>
+                            <div className="flex items-center gap-2 mt-2.5">
+                              <button onClick={() => { clearSetEntries(editingSet.id, defaultSlotsOf(editingSet)); setClearConfirm(false); }}
+                                className="h-8 px-3.5 rounded-lg bg-amber-500 text-xs font-bold text-black hover:bg-amber-400 transition-all">리셋할게요</button>
+                              <button onClick={() => setClearConfirm(false)}
+                                className="h-8 px-3.5 rounded-lg text-xs font-bold text-white/40 hover:text-white/70 transition-all">취소</button>
                             </div>
                           </div>
                         </div>
-                      </>
-                    )}
-                  </div>
-                )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
 
-                <button onClick={() => setHelpOpen(true)}
-                  className="flex items-center gap-1.5 h-7 px-3 rounded-lg bg-blue-500/10 border border-blue-400/25 text-blue-200 hover:bg-blue-500/20 transition-all">
-                  <HelpCircle size={13} /><span className="text-[11px] font-bold">사용법</span>
-                </button>
-              </div>
+              <button onClick={() => setHelpOpen(true)}
+                className={`${editingSet ? "" : "ml-auto "}flex items-center gap-1.5 h-7 px-3 rounded-lg bg-blue-500/10 border border-blue-400/25 text-blue-200 hover:bg-blue-500/20 transition-all`}>
+                <HelpCircle size={13} /><span className="text-[11px] font-bold">사용법</span>
+              </button>
             </div>
 
             {/* 세트 탭 — 대전 및 CK(단판)는 세트가 하나라 통째로 숨김 */}
@@ -905,7 +889,7 @@ export default function OverlayAdminClient({
                   }`}>
                   {set.isAce
                     ? (state.matchFormat === "mini" ? "슈에" : "에이스")
-                    : `${idx + 1}${state.matchFormat === "mini" ? "세트" : "SET"}`}
+                    : `${idx + 1}SET`}
                   {/* 승리 세트 표시 (미니대전) */}
                   {winner && <span className="ml-1 text-[10px] font-black" style={{ color: winner === "left" ? "#d08a84" : "#8aa6d0" }}>✓</span>}
                   {aceUnneeded && <span className="ml-1 text-[9px] font-semibold text-white/50">불필요</span>}
@@ -968,26 +952,26 @@ export default function OverlayAdminClient({
             {/* 5판3선(미니대전) 안내 배너 — 첫 선택 시, "다시 보지 않기"로 닫힘 */}
             {miniIntroOpen && !miniIntroDismissed && (
               <div className="mx-3 mt-3 flex items-start gap-2.5 rounded-xl bg-purple-500/[0.1] border border-purple-400/30 px-3.5 py-2.5">
-                <Layers size={16} className="text-purple-300 mt-0.5 shrink-0" />
-                <p className="flex-1 text-xs text-purple-100/85 leading-relaxed">
+                <Layers size={18} className="text-purple-300 mt-0.5 shrink-0" />
+                <p className="flex-1 text-sm text-purple-100/85 leading-relaxed">
                   <b className="text-purple-200">미니대전</b> — 1세트 · 2세트 <span className="text-white/50">(각 5판3선)</span> + <b className="text-white">슈에</b>
                 </p>
-                <button onClick={dismissMiniIntro} className="shrink-0 text-[10px] font-semibold text-white/35 hover:text-white/70 flex items-center gap-0.5">
-                  다시 보지 않기 <X size={11} />
+                <button onClick={dismissMiniIntro} className="shrink-0 text-xs font-semibold text-white/40 hover:text-white/75 flex items-center gap-0.5">
+                  다시 보지 않기 <X size={12} />
                 </button>
               </div>
             )}
 
-            {/* 첫 사용 안내 배너 (닫기 가능) */}
+            {/* 스마트 붙여넣기 안내 (닫기 가능) */}
             {!helpDismissed && editingSet && (
-              <div className="mx-3 mt-3 flex items-start gap-2.5 rounded-xl bg-blue-500/[0.08] border border-blue-500/25 px-3.5 py-2.5">
-                <ClipboardPaste size={16} className="text-blue-300 mt-0.5 shrink-0" />
-                <p className="flex-1 text-xs text-blue-100/80 leading-relaxed">
+              <div className="mx-3 mt-3 flex items-center gap-2.5 rounded-xl bg-blue-500/[0.08] border border-blue-500/25 px-3.5 py-2.5">
+                <ClipboardPaste size={18} className="text-blue-300 shrink-0" />
+                <p className="flex-1 text-sm text-blue-100/80 leading-relaxed">
                   <b className="text-blue-200">스마트 붙여넣기</b> — 한 칸에 <b className="text-white">여러 개</b> 붙여넣으면 아래로 자동 채움
                   <button onClick={() => setHelpOpen(true)} className="ml-1 underline text-blue-300 hover:text-blue-200">사용법</button>
                 </p>
-                <button onClick={dismissHelp} className="shrink-0 text-[10px] font-semibold text-white/35 hover:text-white/70 flex items-center gap-0.5">
-                  다시 안 보기 <X size={11} />
+                <button onClick={dismissHelp} className="shrink-0 text-xs font-semibold text-white/40 hover:text-white/75 flex items-center gap-0.5">
+                  다시 보지 않기 <X size={12} />
                 </button>
               </div>
             )}
