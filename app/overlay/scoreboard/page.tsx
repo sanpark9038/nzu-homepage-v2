@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { defaultOverlayState, setScoreOf, miniAceNeeded, setWinnerOf, type OverlayEntryRow, type OverlaySet, type OverlayState } from "@/lib/overlay-types";
+import { defaultOverlayState, setScoreOf, miniAceNeeded, type OverlayEntryRow, type OverlayRace, type OverlaySet, type OverlayState } from "@/lib/overlay-types";
+import { RACE_COLORS, raceOfName, type RaceLookupPlayer } from "@/lib/overlay-race";
 
 const POLL_INTERVAL = 500;
 
@@ -41,8 +42,6 @@ function buildNotchTopPath(h: number) {
   return `M ${xL} ${yi} L ${xR} ${yi}`;
 }
 
-const RACE_COLORS: Record<string, string> = { T: "#4A9EFF", P: "#FFD700", Z: "#A855F7" };
-
 const TH = {
   bg:         "rgba(17, 17, 19, 0.98)",
   bgInner:    "rgba(10, 10, 12, 0.97)",
@@ -76,7 +75,6 @@ const ET = {
   current:   "rgba(255, 255, 255, 0.07)",
   text:      "rgba(232, 233, 236, 0.90)",
   muted:     "rgba(180, 180, 186, 0.50)",
-  lost:      "rgba(130, 130, 135, 0.35)",
 };
 
 const SET_COL_W = 210;
@@ -85,7 +83,7 @@ function mapAbbr(name: string) {
   return name.slice(0, 2);
 }
 
-function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLabel, mini }: {
+function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLabel, mini, raceOf }: {
   sets: OverlaySet[];
   activeSetId: string | null;
   leftTeam: string;
@@ -93,6 +91,7 @@ function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLab
   layout: { x: number; y: number; scale: number; visible: boolean };
   showSetLabel: boolean;
   mini: boolean;
+  raceOf: (name: string) => OverlayRace | undefined;
 }) {
   if (!layout.visible || sets.length === 0) return null;
 
@@ -121,15 +120,17 @@ function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLab
           rightTeam={rightTeam}
           showSetLabel={showSetLabel}
           mini={mini}
+          raceOf={raceOf}
         />
       ))}
     </div>
   );
 }
 
-function SetColumn({ set, setIdx, total, isActive: _isActive, leftTeam, rightTeam, showSetLabel, mini }: {
+function SetColumn({ set, setIdx, total, isActive: _isActive, leftTeam, rightTeam, showSetLabel, mini, raceOf }: {
   set: OverlaySet; setIdx: number; total: number;
   isActive: boolean; leftTeam: string; rightTeam: string; showSetLabel: boolean; mini: boolean;
+  raceOf: (name: string) => OverlayRace | undefined;
 }) {
   const scoreLeft  = set.entries.filter(e => e.result === "left").length;
   const scoreRight = set.entries.filter(e => e.result === "right").length;
@@ -180,7 +181,7 @@ function SetColumn({ set, setIdx, total, isActive: _isActive, leftTeam, rightTea
 
       {/* 경기 목록 */}
       {set.entries.map((entry, idx) => (
-        <EntryRow key={entry.id} entry={entry} idx={idx} isCurrent={set.currentMatch === idx} />
+        <EntryRow key={entry.id} entry={entry} idx={idx} isCurrent={set.currentMatch === idx} raceOf={raceOf} />
       ))}
 
       {set.entries.length === 0 && (
@@ -192,10 +193,21 @@ function SetColumn({ set, setIdx, total, isActive: _isActive, leftTeam, rightTea
   );
 }
 
-function EntryRow({ entry, idx, isCurrent }: { entry: OverlayEntryRow; idx: number; isCurrent: boolean }) {
+function EntryRow({ entry, idx, isCurrent, raceOf }: {
+  entry: OverlayEntryRow; idx: number; isCurrent: boolean;
+  raceOf: (name: string) => OverlayRace | undefined;
+}) {
   const leftLost  = entry.result === "right";
   const rightLost = entry.result === "left";
   const abbr      = entry.map ? mapAbbr(entry.map) : "";
+  // 수동 지정 종족이 있으면 우선, 없으면 선수 DB 자동 인식
+  const leftRace  = entry.leftRace  ?? raceOf(entry.leftPlayer);
+  const rightRace = entry.rightRace ?? raceOf(entry.rightPlayer);
+  // 진 쪽은 취소선 대신 흐리게 (심플하게)
+  const nameStyle = (race: OverlayRace | undefined, lost: boolean) => ({
+    color: race ? RACE_COLORS[race] : ET.text,
+    opacity: lost ? 0.32 : 1,
+  });
 
   return (
     <div style={{
@@ -211,16 +223,14 @@ function EntryRow({ entry, idx, isCurrent }: { entry: OverlayEntryRow; idx: numb
         {idx + 1}
       </span>
       <span style={{
-        flex: 1, textAlign: "right", fontSize: "11px", fontWeight: 600,
-        color: leftLost ? ET.lost : ET.text,
-        textDecoration: leftLost ? "line-through" : "none",
+        flex: 1, textAlign: "right", fontSize: "11px", fontWeight: 700,
+        ...nameStyle(leftRace, leftLost),
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       }}>{entry.leftPlayer}</span>
       <span style={{ width: "20px", textAlign: "center", fontSize: "9px", color: ET.muted, flexShrink: 0 }}>{abbr}</span>
       <span style={{
-        flex: 1, textAlign: "left", fontSize: "11px", fontWeight: 600,
-        color: rightLost ? ET.lost : ET.text,
-        textDecoration: rightLost ? "line-through" : "none",
+        flex: 1, textAlign: "left", fontSize: "11px", fontWeight: 700,
+        ...nameStyle(rightRace, rightLost),
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       }}>{entry.rightPlayer}</span>
     </div>
@@ -234,6 +244,16 @@ export default function ScoreboardOverlayPage() {
   const overlayKey   = searchParams.get("key") ?? "";
   const [state, setState] = useState<OverlayState>(defaultOverlayState());
   const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // 선수 DB — 대진표의 이름을 종족 색으로 칠하기 위해 한 번만 불러옴
+  const [playerDb, setPlayerDb] = useState<RaceLookupPlayer[]>([]);
+  useEffect(() => {
+    fetch("/api/players")
+      .then(r => r.json())
+      .then(p => { if (p.ok) setPlayerDb(p.players.map((x: RaceLookupPlayer) => ({ name: x.name, nickname: x.nickname ?? null, race: x.race }))); })
+      .catch(() => {});
+  }, []);
+  const raceOf = useCallback((name: string) => raceOfName(playerDb, name), [playerDb]);
 
   useEffect(() => {
     document.documentElement.style.background = "transparent";
@@ -263,6 +283,8 @@ export default function ScoreboardOverlayPage() {
   // 미니대전: 세트 스코어(세트 획득 수) + 슈에 필요 여부
   const setScore   = setScoreOf(sets);
   const aceNeeded  = miniAceNeeded(sets);
+  // 세트 승리 조건 (3세트 중 2선승) — 핀 칸 수로 그대로 씀
+  const setsToWin  = Math.max(1, Math.ceil(sets.length / 2));
   // 슈에가 불필요(한쪽 2:0)하면 방송 대진표에서 슈에 세트를 숨김
   const visibleSets = isMini && aceNeeded === false ? sets.filter(s => !s.isAce) : sets;
 
@@ -277,9 +299,10 @@ export default function ScoreboardOverlayPage() {
   const setLabel     = isMini
     ? (activeSet?.isAce ? "슈에" : `${(nonAceIdx >= 0 ? nonAceIdx : 0) + 1} SET`)
     : (activeSet?.isAce ? "에이스" : activeSetIdx >= 0 ? `${activeSetIdx + 1} SET` : `${1} SET`);
-  // 선수명 행 그라디언트 — 각 선수의 종족 색(테란=파랑/프로토스=골드/저그=보라)이 자기 쪽에서 옅게 번지도록
-  const leftRaceColor  = RACE_COLORS[left.race]  ?? "#AFA591";
-  const rightRaceColor = RACE_COLORS[right.race] ?? "#AFA591";
+  // 선수명 행 그라디언트 — 각 선수의 "인게임 스타팅 색상"이 자기 쪽에서 옅게 번지도록
+  // (종족은 하단 배지의 T/P/Z 글자가 담당 → 색은 게임 화면과 매칭되는 스타팅 색으로)
+  const leftNameColor  = left.startingColor  || "#ffffff";
+  const rightNameColor = right.startingColor || "#ffffff";
 
   const boardH   = TITLE_H + (isTeam ? TEAM_H : 0) + PLAYER_H + NOTCH_H;
   const svgPath  = buildSvgPath(boardH);
@@ -320,6 +343,7 @@ export default function ScoreboardOverlayPage() {
           layout={entryLayout}
           showSetLabel={showSetLabel}
           mini={isMini}
+          raceOf={raceOf}
         />
 
         {/* ── 스코어보드 ── */}
@@ -345,12 +369,12 @@ export default function ScoreboardOverlayPage() {
                   display: "flex", alignItems: "center", justifyContent: "center",
                   height: `${TITLE_H}px`, padding: "0 28px",
                 }}>
+                  {/* 세트 스코어 — 숫자 대신 핀(칸). 칸 수 = 승리에 필요한 세트 수(2선승).
+                      도형이라 타이틀 글자·아래 줄 박스 점수와 절대 안 헷갈림 */}
                   {isMini && (
-                    <span style={{
-                      position: "absolute", left: "26px", top: "50%", transform: "translateY(-50%)",
-                      fontSize: "44px", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.02em",
-                      color: left.startingColor || TH.titleText,
-                    }}>{setScore.left}</span>
+                    <span style={{ position: "absolute", left: "26px", top: "50%", transform: "translateY(-50%)" }}>
+                      <SetPips won={setScore.left} total={setsToWin} />
+                    </span>
                   )}
                   {!isTeam && currentMap && (
                     <><span style={{ fontSize: "30px", fontWeight: 800, letterSpacing: "0.04em", color: TH.textMuted }}>{currentMap}</span>{SEP}</>
@@ -367,11 +391,9 @@ export default function ScoreboardOverlayPage() {
                     </>
                   )}
                   {isMini && (
-                    <span style={{
-                      position: "absolute", right: "26px", top: "50%", transform: "translateY(-50%)",
-                      fontSize: "44px", fontWeight: 900, lineHeight: 1, letterSpacing: "-0.02em",
-                      color: right.startingColor || TH.titleText,
-                    }}>{setScore.right}</span>
+                    <span style={{ position: "absolute", right: "26px", top: "50%", transform: "translateY(-50%)" }}>
+                      <SetPips won={setScore.right} total={setsToWin} mirrored />
+                    </span>
                   )}
                 </div>
 
@@ -396,7 +418,7 @@ export default function ScoreboardOverlayPage() {
                   alignItems: "center", height: `${PLAYER_H}px`,
                   padding: "0 32px", gap: "16px",
                   // 좌/우 종족 색 — 135°로 기울여 부드럽지만 대각선 방향이 살아있도록(빛줄기처럼). 가운데 점수 전에 옅어짐
-                  background: `linear-gradient(135deg, ${leftRaceColor}59 0%, ${leftRaceColor}33 18%, transparent 34%), linear-gradient(225deg, ${rightRaceColor}59 0%, ${rightRaceColor}33 18%, transparent 34%), ${TH.bgRowHero}`,
+                  background: `linear-gradient(135deg, ${leftNameColor}59 0%, ${leftNameColor}33 18%, transparent 34%), linear-gradient(225deg, ${rightNameColor}59 0%, ${rightNameColor}33 18%, transparent 34%), ${TH.bgRowHero}`,
                   borderBottom: `1px solid ${TH.divider}`,
                   boxShadow: `inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 ${TH.divGlow}`,
                 }}>
@@ -474,13 +496,32 @@ function ScoreBox({ score }: { score: number }) {
   );
 }
 
+// 세트 스코어 핀 — total칸 중 won칸이 채워짐 (예: ●○ = 1승, ●● = 2승·매치 승리)
+// 바깥쪽부터 안쪽으로 채워지도록 우측은 mirrored
+function SetPips({ won, total, mirrored }: { won: number; total: number; mirrored?: boolean }) {
+  const pips = Array.from({ length: total }, (_, i) => i < won);
+  const ordered = mirrored ? [...pips].reverse() : pips;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "11px" }}>
+      {ordered.map((filled, i) => (
+        <span key={i} style={{
+          width: "26px", height: "26px", borderRadius: "50%",
+          background: filled ? TH.titleText : "transparent",
+          border: filled ? "none" : `3px solid rgba(255,255,255,0.35)`,
+          boxShadow: filled ? "0 0 12px rgba(255,255,255,0.35)" : "none",
+        }} />
+      ))}
+    </span>
+  );
+}
+
 function RaceStartBadge({ race, point: pointRaw, color }: { race: string; point: string; color: string }) {
   const r = ["T", "P", "Z"].includes(race) ? race : "";
-  const raceColor  = RACE_COLORS[r] ?? "rgba(175,165,145,0.8)";
-  const badgeColor = color || raceColor;
+  // 배지 전체를 한 색으로 — 그 선수의 인게임 스타팅 색상(없으면 흰색).
+  // 종족색을 따로 쓰면 배지 안에 색이 두 개라 시청자가 헷갈림.
+  const badgeColor = color || "#ffffff";
   const point = pointRaw.replace(/시$/, ""); // 과거 저장값("12시") 호환 — 방송 화면엔 숫자만 표시
   if (!r && !point) return null;
-  // 칩 자체는 중립 배경 유지 — 팀 색 그라디언트는 바깥 날개(사다리꼴) 쪽에 표현됨
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: "5px",
@@ -489,7 +530,7 @@ function RaceStartBadge({ race, point: pointRaw, color }: { race: string; point:
       border: `1.5px solid ${badgeColor}90`,
       padding: "0 15px", boxShadow: `0 0 12px ${badgeColor}22`,
     }}>
-      {r     && <span style={{ fontSize: "34px", fontWeight: 900, color: raceColor,  lineHeight: 1 }}>{r}</span>}
+      {r     && <span style={{ fontSize: "34px", fontWeight: 900, color: badgeColor, lineHeight: 1 }}>{r}</span>}
       {point && <span style={{ fontSize: "31px", fontWeight: 900, color: badgeColor, lineHeight: 1 }}>{point}</span>}
     </span>
   );

@@ -8,6 +8,7 @@ import {
 import {
   defaultOverlayState,
   defaultOverlaySet,
+  defaultOverlaySide,
   buildDefaultSets,
   defaultBroadcastTitle,
   defaultModeFor,
@@ -23,11 +24,11 @@ import {
   type OverlayState,
 } from "@/lib/overlay-types";
 import { getUniversityLabel } from "@/lib/university-config";
+import { parseBulk, type ParsedRow } from "@/lib/overlay-bulk-parse";
+import { RACES, RACE_COLORS, RACE_BG, raceOfName } from "@/lib/overlay-race";
 
 // ─── 상수 ───
-const RACES: OverlayRace[] = ["T", "P", "Z"];
-const RACE_COLORS: Record<string, string> = { T: "#4A9EFF", P: "#FFD700", Z: "#A855F7" };
-const RACE_BG:     Record<string, string> = { T: "#4A9EFF22", P: "#FFD70022", Z: "#A855F722" };
+// 종족 색상·매칭 규칙은 lib/overlay-race.ts 한 곳에서 관리 (방송 화면과 항상 동일)
 
 // 스타팅 위치용 "정사각형 시계" 좌표 — 실제 시계처럼 12가 위쪽 정가운데, 3이 오른쪽 정가운데, 6이 아래쪽 정가운데,
 // 9가 왼쪽 정가운데. 11·1·5·7은 네 꼭짓점에 정확히 배치해 사각형 윤곽이 뚜렷하게 보이도록 함. x/y는 컨테이너 대비 %
@@ -38,6 +39,46 @@ const STARTING_POS = [
 ];
 
 function genId() { return Math.random().toString(36).slice(2, 9); }
+
+// ─── 일괄 입력 예시 (고정, 4대4) ───
+// 브라우저의 font-mono는 한글을 ASCII 2배 폭으로 그리지 않으므로 공백 열맞춤이 불가능.
+// → 좌우 2열 대신 위아래 그룹으로 나눠 구분한다.
+const VS_SAMPLE_TEXT = [
+  "[이름만 — 종족·맵 생략 가능]",
+  "영희 vs 숙자",
+  "영자 vs 숙희",
+  "",
+  "[종족·맵 포함]",
+  "3 영희 P vs 숙자 T 실",
+  "5 영자 Z vs 숙희 T 녹",
+  "6 미영 T vs 순희 P 폴",
+  "8 정숙 Z vs 말순 T 라",
+].join("\n");
+
+// 키캡 표기 (Tab / Enter 등)
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="inline-flex items-center h-[18px] px-1.5 rounded border border-white/20 bg-white/[0.08] text-[10px] font-bold text-white/70 leading-none align-middle">
+      {children}
+    </kbd>
+  );
+}
+
+// 대진표 입력 안내 — Tab/Enter 다음 칸, ✓ 체크 시 다음 경기 자동, 핸들 드래그로 순서 변경
+function EntryHint() {
+  return (
+    <span className="flex items-center gap-1.5 text-[13px] font-semibold text-white/45 flex-wrap">
+      <Kbd>Tab</Kbd><Kbd>Enter</Kbd>
+      <span>다음 칸</span>
+      <span className="text-white/15">·</span>
+      <span className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full border border-emerald-400/50 text-emerald-300 text-[10px] font-black">✓</span>
+      <span>승패 체크 시 <b className="text-white/65">다음 경기 자동</b></span>
+      <span className="text-white/15">·</span>
+      <GripVertical size={14} className="text-white/40" />
+      <span>드래그로 순서 변경</span>
+    </span>
+  );
+}
 
 // 자동으로 채워지는 값임을 알려주는 배지(자물쇠) — 사용자가 직접 안 채워도 됨을 표시
 function AutoBadge({ title }: { title?: string }) {
@@ -92,17 +133,7 @@ export default function OverlayAdminClient({
         ({ name: x.name, nickname: x.nickname ?? null, race: x.race, university: x.university ?? null })));
     }).catch(() => {});
   }, []);
-  const raceOf = useCallback((name: string): OverlayRace | undefined => {
-    const n = name.trim();
-    if (!n) return undefined;
-    const hit = playerDb.find(p => {
-      if (p.name === n || p.nickname === n) return true;
-      // 성을 뗀 이름으로도 매칭: 한국 이름은 대개 성 1글자라 끝 2글자가 실사용 호칭 (조일장 → 일장)
-      const given = p.name.length >= 3 ? p.name.slice(-2) : p.name;
-      return given === n;
-    });
-    return hit && (["T", "P", "Z"] as string[]).includes(hit.race) ? (hit.race as OverlayRace) : undefined;
-  }, [playerDb]);
+  const raceOf = useCallback((name: string) => raceOfName(playerDb, name), [playerDb]);
   // 등록된 대학 목록 (대학대전 "내 팀 인식" 드롭다운용)
   const universities = Array.from(new Set(playerDb.map(p => p.university).filter((u): u is string => !!u))).sort();
   const [toast, setToast]       = useState<string | null>(null);
@@ -115,27 +146,6 @@ export default function OverlayAdminClient({
     setToast(msg);
     toastTimer.current = setTimeout(() => setToast(null), 2200);
   }, []);
-
-  // 타이틀 프리셋
-  type TitlePreset = { id: string; title: string };
-  const DEFAULT_PRESETS: TitlePreset[] = [
-    { id: "preset-proleague", title: "프로리그 7/4" },
-    { id: "preset-winners",   title: "위너스리그 9/5" },
-  ];
-  const PRESET_KEY = `overlay_title_presets_${overlayKey}`;
-  const [titlePresets, setTitlePresets] = useState<TitlePreset[]>(() => {
-    if (typeof window === "undefined") return DEFAULT_PRESETS;
-    try {
-      const stored = JSON.parse(localStorage.getItem(PRESET_KEY) ?? "null");
-      // 기존 프리셋(set 필드 포함)도 title만 사용하도록 정규화
-      if (Array.isArray(stored) && stored.length > 0)
-        return stored.map((p: { id?: string; title: string }) => ({ id: p.id ?? genId(), title: p.title }));
-      return DEFAULT_PRESETS;
-    } catch { return DEFAULT_PRESETS; }
-  });
-  const savePresets  = (next: TitlePreset[]) => { setTitlePresets(next); localStorage.setItem(PRESET_KEY, JSON.stringify(next)); };
-  const addPreset    = () => { if (!state.title.trim()) return; savePresets([...titlePresets, { id: genId(), title: state.title.trim() }]); };
-  const removePreset = (id: string) => savePresets(titlePresets.filter(p => p.id !== id));
 
   // 내 팀 인식 (일괄 입력에서 우리팀 줄 판단 기준) — 프로리그=선수 이름, 대학대전=대학 이름. 방식별로 따로 기억.
   const MY_NAME_KEY_PROLEAGUE  = `overlay_myname_proleague_${overlayKey}`;
@@ -154,20 +164,8 @@ export default function OverlayAdminClient({
     if (isUniversityFormat) { setMyNameUniversity(v); localStorage.setItem(MY_NAME_KEY_UNIVERSITY, v); }
     else { setMyNameProleague(v); localStorage.setItem(MY_NAME_KEY_PROLEAGUE, v); }
   };
-  // 타이틀 프리셋 노출: 방송 타이틀을 직접 관리하는 방식(대전 및 CK·자유방식)에서만
-  const showPresets = state.matchFormat === "university" || state.matchFormat === "free";
-
-  // 프로리그 기본 팀명: 우리팀 = "{인식이름}팀", 상대팀 = "상대팀" (비어 있을 때만 자동 채움)
-  useEffect(() => {
-    if (!loaded || !myName) return;
-    setState(s => {
-      const left  = !s.left.teamName.trim()  ? { ...s.left,  teamName: `${myName}팀` } : s.left;
-      const right = !s.right.teamName.trim() ? { ...s.right, teamName: "상대팀" }      : s.right;
-      if (left === s.left && right === s.right) return s;
-      return { ...s, left, right };
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [myName, loaded]);
+  // (팀명 자동 채움은 제거 — 리셋 후 빈칸이 기본값이어야 하고,
+  //  대전 및 CK·미니대전에선 myName이 대학 코드라 "C9팀" 처럼 잘못 채워졌음)
 
   const scoreboardUrl = typeof window !== "undefined"
     ? `${window.location.origin}/overlay/scoreboard?key=${encodeURIComponent(overlayKey)}`
@@ -258,6 +256,20 @@ export default function OverlayAdminClient({
   const updLayout = (key: "scoreboardLayout" | "entryLayout", patch: Partial<OverlayPanelLayout>) =>
     setState(s => ({ ...s, [key]: { ...s[key], ...patch } }));
 
+  // ── 맵풀 ── (대진표 맵 칸의 드롭다운 후보로 쓰임)
+  // 한 번에 여러 개(공백·쉼표·줄바꿈 구분) 붙여넣기 지원, 중복은 무시
+  const addMaps = (raw: string) => {
+    const items = raw.split(/[,\t\r\n]+|\s{2,}/).flatMap(s => s.trim().split(/\s+/)).map(s => s.trim()).filter(Boolean);
+    if (items.length === 0) return;
+    setState(s => {
+      const seen = new Set(s.maps.map(m => m.toLowerCase()));
+      const next = [...s.maps];
+      for (const m of items) if (!seen.has(m.toLowerCase())) { seen.add(m.toLowerCase()); next.push(m); }
+      return next.length === s.maps.length ? s : { ...s, maps: next };
+    });
+  };
+  const removeMap = (name: string) => setState(s => ({ ...s, maps: s.maps.filter(m => m !== name) }));
+
   // ── 세트 ──
   const addSet = (isAce = false) => {
     const nonAceCount = state.sets.filter(s => !s.isAce).length;
@@ -314,27 +326,6 @@ export default function OverlayAdminClient({
   const patchSet = (id: string, patch: Partial<OverlaySet>) =>
     setState(s => ({ ...s, sets: s.sets.map(set => set.id === id ? { ...set, ...patch } : set) }));
 
-  // ── 풀 관리 ──
-  const addToPool = (setId: string, side: "left" | "right", name: string) => {
-    const field = side === "left" ? "leftPool" : "rightPool";
-    setState(s => ({
-      ...s,
-      sets: s.sets.map(set => set.id === setId
-        ? { ...set, [field]: set[field].includes(name) ? set[field] : [...set[field], name] }
-        : set),
-    }));
-  };
-
-  const removeFromPool = (setId: string, side: "left" | "right", name: string) => {
-    const field = side === "left" ? "leftPool" : "rightPool";
-    setState(s => ({
-      ...s,
-      sets: s.sets.map(set => set.id === setId
-        ? { ...set, [field]: (set[field] as string[]).filter(n => n !== name) }
-        : set),
-    }));
-  };
-
   // ── 엔트리 ──
   const addEntry = (setId: string, entry: { leftPlayer: string; rightPlayer: string; map: string }) => {
     const newEntry: OverlayEntryRow = { ...entry, id: genId(), result: null };
@@ -345,11 +336,18 @@ export default function OverlayAdminClient({
   };
 
   // 일괄 입력: 경기 목록 교체
-  const replaceEntries = (setId: string, rows: { leftPlayer: string; rightPlayer: string; map: string }[]) => {
+  // 일괄 입력 결과로 교체. 입력에 종족이 명시돼 있으면 수동 지정으로 함께 반영 (없으면 DB 자동 인식에 맡김)
+  const replaceEntries = (setId: string, rows: ParsedRow[]) => {
     setState(s => ({
       ...s,
       sets: s.sets.map(set => set.id === setId
-        ? { ...set, currentMatch: null, entries: rows.map(r => ({ id: genId(), leftPlayer: r.leftPlayer, rightPlayer: r.rightPlayer, map: r.map, result: null as OverlayResult })) }
+        ? { ...set, currentMatch: null, entries: rows.map(r => ({
+            id: genId(),
+            leftPlayer: r.leftPlayer, rightPlayer: r.rightPlayer, map: r.map,
+            result: null as OverlayResult,
+            ...(r.leftRace  ? { leftRace:  r.leftRace }  : {}),
+            ...(r.rightRace ? { rightRace: r.rightRace } : {}),
+          })) }
         : set),
     }));
   };
@@ -407,6 +405,7 @@ export default function OverlayAdminClient({
       msg = newResult ? `${newResult === "left" ? "좌팀" : "우팀"} 승 — ${sL}:${sR}` : `취소 — ${sL}:${sR}`;
 
       // 승자 지정 시 → 다음 경기로 자동 진행 + 스코어보드 송출 (빈 선수면 직전 이름 유지)
+      // 새 경기이므로 스타팅 위치는 선택 해제, 색상은 좌/우 기본값으로 되돌림
       let nextCurrent = newResult !== null ? rowIdx : set.currentMatch;
       let nextLeft = s.left, nextRight = s.right;
       if (newResult !== null && rowIdx + 1 < newEntries.length) {
@@ -414,8 +413,10 @@ export default function OverlayAdminClient({
         const lRace = nx.leftRace  ?? raceOf(nx.leftPlayer);
         const rRace = nx.rightRace ?? raceOf(nx.rightPlayer);
         nextCurrent = rowIdx + 1;
-        nextLeft  = { ...s.left,  playerName: nx.leftPlayer  || s.left.playerName,  ...(lRace ? { race: lRace } : {}) };
-        nextRight = { ...s.right, playerName: nx.rightPlayer || s.right.playerName, ...(rRace ? { race: rRace } : {}) };
+        nextLeft  = { ...s.left,  playerName: nx.leftPlayer  || s.left.playerName,  ...(lRace ? { race: lRace } : {}),
+                      startingPoint: "", startingColor: defaultOverlaySide("left").startingColor };
+        nextRight = { ...s.right, playerName: nx.rightPlayer || s.right.playerName, ...(rRace ? { race: rRace } : {}),
+                      startingPoint: "", startingColor: defaultOverlaySide("right").startingColor };
       }
       return {
         ...s,
@@ -460,6 +461,17 @@ export default function OverlayAdminClient({
     }));
   };
 
+  // 세트에서 "지금 시작할 경기" = 양쪽 선수가 다 있는 첫 미결 경기.
+  // 없으면(선수 미입력) 첫 미결 경기, 그마저 없으면(전부 종료) 마지막 경기를 유지해 방송이 비지 않게 함.
+  const firstPendingIdx = (set: OverlaySet): number | null => {
+    if (set.entries.length === 0) return null;
+    const ready = set.entries.findIndex(e => e.result === null && e.leftPlayer && e.rightPlayer);
+    if (ready >= 0) return ready;
+    const pending = set.entries.findIndex(e => e.result === null);
+    if (pending >= 0) return pending;
+    return set.entries.length - 1;
+  };
+
   const loadMatch = (setId: string, idx: number) => {
     setState(s => {
       const set = s.sets.find(set => set.id === setId);
@@ -467,28 +479,44 @@ export default function OverlayAdminClient({
       const row   = set.entries[idx];
       const lRace = row.leftRace  ?? raceOf(row.leftPlayer);
       const rRace = row.rightRace ?? raceOf(row.rightPlayer);
+      // 다른 경기를 불러올 때만 스타팅 위치·색상 초기화 (같은 경기 재송출은 설정 유지)
+      const isNewMatch = set.currentMatch !== idx || s.activeSetId !== setId;
+      const resetL = isNewMatch ? { startingPoint: "", startingColor: defaultOverlaySide("left").startingColor }  : {};
+      const resetR = isNewMatch ? { startingPoint: "", startingColor: defaultOverlaySide("right").startingColor } : {};
       return {
         ...s,
         activeSetId: setId,
         title: set.title || s.title,
         sets: s.sets.map(set => set.id === setId ? { ...set, currentMatch: idx } : set),
-        left:  { ...s.left,  playerName: row.leftPlayer  || s.left.playerName,  ...(lRace ? { race: lRace } : {}) },
-        right: { ...s.right, playerName: row.rightPlayer || s.right.playerName, ...(rRace ? { race: rRace } : {}) },
+        left:  { ...s.left,  playerName: row.leftPlayer  || s.left.playerName,  ...(lRace ? { race: lRace } : {}), ...resetL },
+        right: { ...s.right, playerName: row.rightPlayer || s.right.playerName, ...(rRace ? { race: rRace } : {}), ...resetR },
       };
     });
     showToast(`${idx + 1}경기 로드`);
   };
 
+  // 세트 송출: 이미 진행 중인 경기가 있으면 그대로 두고, 아니면 "첫 미결 경기"를 자동 로드
+  const broadcastSet = (set: OverlaySet) => {
+    const alreadyRunning = set.id === state.activeSetId && set.currentMatch !== null;
+    const idx = alreadyRunning ? null : firstPendingIdx(set);
+    if (idx !== null) { loadMatch(set.id, idx); return; }
+    setState(s => ({ ...s, activeSetId: set.id, title: set.title || s.title }));
+  };
 
-  // 대진표(선수·맵·결과) 전체 삭제 → 세트 기본 슬롯 수로 리셋 (리셋 버튼)
+
+  // 리셋 버튼 — 새 경기 시작용.
+  // 대진표(선수·맵·결과)를 빈 칸으로 되돌리고, 스코어보드(팀명·선수명·종족·스타팅)도 기본값으로.
+  // 맵목록(state.maps)은 매 경기 재사용하므로 유지한다.
   const clearSetEntries = (setId: string, slots: number) => {
     setState(s => ({
       ...s,
+      left:  defaultOverlaySide("left"),
+      right: defaultOverlaySide("right"),
       sets: s.sets.map(set => set.id === setId
         ? { ...set, currentMatch: null, entries: Array.from({ length: slots }, () => ({ id: genId(), leftPlayer: "", rightPlayer: "", map: "", result: null })) }
         : set),
     }));
-    showToast("대진표 목록 지움");
+    showToast("대진표·스코어보드 초기화 (맵목록은 유지)");
   };
 
 
@@ -545,7 +573,7 @@ export default function OverlayAdminClient({
             </div>
           </div>
         </div>
-        <div className={`px-5 py-3.5 bg-white/[0.03] flex items-center gap-3 ${showPresets ? "border-b border-white/6" : "rounded-b-2xl"}`}>
+        <div className="px-5 py-3.5 bg-white/[0.03] flex items-center gap-3 rounded-b-2xl">
           <div className="relative flex-1 min-w-0 max-w-[44%]">
             <input
               className="w-full bg-white/5 border border-white/12 rounded-xl pl-4 pr-9 py-2.5 text-xl font-black outline-none placeholder:text-white/15 leading-tight focus:border-emerald-500/50 focus:bg-emerald-500/5 transition-colors"
@@ -595,38 +623,6 @@ export default function OverlayAdminClient({
             </span>
           </div>
         </div>
-        {/* 프리셋 — 방송 타이틀을 직접 관리하는 방식(대전 및 CK·자유방식)에서만 노출 */}
-        {showPresets && (
-        <div className="px-5 py-3 bg-white/[0.01] rounded-b-2xl">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[10px] font-bold text-white/35">프리셋</span>
-            {state.title && (
-              <button onClick={addPreset}
-                className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-white/30 hover:text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/20 transition-all">
-                + 현재 저장
-              </button>
-            )}
-          </div>
-          {titlePresets.length === 0
-            ? <p className="text-[10px] text-white/20 italic">저장된 프리셋이 없어요</p>
-            : (
-              <div className="flex flex-wrap gap-1.5">
-                {titlePresets.map(p => (
-                  <div key={p.id} className="relative group">
-                    <button onClick={() => upd({ title: p.title })}
-                      className="rounded-md px-2.5 py-1 text-[11px] font-semibold bg-white/5 border border-white/10 text-white/40 hover:bg-blue-500/15 hover:border-blue-400/30 hover:text-blue-300 transition-all pr-5">
-                      {p.title}
-                    </button>
-                    <button onClick={() => removePreset(p.id)}
-                      className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-zinc-700 border border-white/10 text-white/40 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <X size={8} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-        </div>
-        )}
       </div>
 
 
@@ -790,6 +786,53 @@ export default function OverlayAdminClient({
             </div>
           </div>
 
+          {/* ── 맵풀 ── 대진표 맵 칸의 드롭다운 후보 */}
+          <div className="rounded-2xl border border-white/10 border-l-[3px] border-l-sky-500/60 bg-white/[0.04] overflow-hidden">
+            <div className="px-4 py-3 border-b border-white/10 bg-white/[0.05] flex items-center gap-2">
+              <span className="text-base font-bold text-white/85">맵목록</span>
+              <span className="text-xs font-semibold text-white/35">{state.maps.length}개</span>
+              {state.maps.length > 0 && (
+                <button onClick={() => upd({ maps: [] })}
+                  className="ml-auto text-[11px] font-semibold text-white/30 hover:text-red-400 transition-colors">
+                  전체 지우기
+                </button>
+              )}
+            </div>
+            <div className="p-3.5 space-y-2.5">
+              <input
+                className="input-base w-full text-sm"
+                placeholder="맵 이름 입력 후 Enter (여러 개 붙여넣기 가능)"
+                onKeyDown={e => {
+                  if (e.key !== "Enter") return;
+                  e.preventDefault();
+                  addMaps(e.currentTarget.value);
+                  e.currentTarget.value = "";
+                }}
+                onPaste={e => {
+                  const text = e.clipboardData.getData("text");
+                  if (!/[\s,]/.test(text.trim())) return; // 단일 토큰이면 평범하게 붙여넣기
+                  e.preventDefault();
+                  addMaps(text);
+                }}
+              />
+              {state.maps.length === 0 ? (
+                <p className="text-[11px] text-white/25 italic">맵을 추가하면 대진표의 맵 칸에서 골라 쓸 수 있어요</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {state.maps.map(m => (
+                    <span key={m} className="group flex items-center gap-1 rounded-lg bg-sky-500/10 border border-sky-400/25 pl-2.5 pr-1.5 py-1">
+                      <span className="text-xs font-bold text-sky-100/85">{m}</span>
+                      <button onClick={() => removeMap(m)} title="삭제"
+                        className="w-4 h-4 flex items-center justify-center rounded text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* 엔트리 표시 토글 */}
           <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 flex items-center justify-between">
             <span className="text-xs font-semibold text-white/55">오버레이 대진표 표시</span>
@@ -847,8 +890,11 @@ export default function OverlayAdminClient({
                         <div className="flex items-start gap-2.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 shrink-0" />
                           <div>
-                            <p className="text-sm font-bold text-amber-100">이 세트를 리셋할까요?</p>
-                            <p className="text-xs text-amber-200/60 mt-1 leading-relaxed">선수·맵·결과가 모두 지워지고, 빈 대진표({defaultSlotsOf(editingSet)}칸)로 되돌아갑니다.</p>
+                            <p className="text-sm font-bold text-amber-100">새 경기로 리셋할까요?</p>
+                            <p className="text-xs text-amber-200/60 mt-1 leading-relaxed">
+                              대진표({defaultSlotsOf(editingSet)}칸)와 스코어보드(팀명·선수명·종족·스타팅)가 모두 비워집니다.
+                              <b className="text-amber-100"> 맵목록은 그대로 유지</b>돼요.
+                            </p>
                             <div className="flex items-center gap-2 mt-2.5">
                               <button onClick={() => { clearSetEntries(editingSet.id, defaultSlotsOf(editingSet)); setClearConfirm(false); }}
                                 className="h-8 px-3.5 rounded-lg bg-amber-500 text-xs font-bold text-black hover:bg-amber-400 transition-all">리셋할게요</button>
@@ -941,9 +987,10 @@ export default function OverlayAdminClient({
 
               {/* 송출 — 방송 제어 액션, 구조 변경 버튼들과 분리해 오른쪽 끝에 배치 */}
               {editingSet && (
-                <button onClick={() => setState(s => ({ ...s, activeSetId: editingSet.id, title: editingSet.title || s.title }))}
-                  className={`ml-auto h-7 px-3 rounded-lg text-xs font-bold border transition-all ${editingSet.id === state.activeSetId ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-300" : "bg-white/5 border-white/10 text-white/40 hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-400/30"}`}>
-                  {editingSet.id === state.activeSetId ? "● 송출 중" : "해당 세트 송출"}
+                <button onClick={() => broadcastSet(editingSet)}
+                  title="이 세트를 송출하고 첫 경기를 자동으로 띄웁니다"
+                  className="ml-auto h-8 px-4 rounded-lg text-xs font-black bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-500 active:scale-[0.97] transition-all">
+                  세트 송출
                 </button>
               )}
             </div>
@@ -985,6 +1032,7 @@ export default function OverlayAdminClient({
                 rightTeam={state.right.teamName}
                 leftPool={Array.from(new Set(state.sets.flatMap(s => s.entries.map(e => e.leftPlayer)).filter(Boolean)))}
                 rightPool={Array.from(new Set(state.sets.flatMap(s => s.entries.map(e => e.rightPlayer)).filter(Boolean)))}
+                mapPool={state.maps}
                 myName={myName}
                 raceOf={raceOf}
                 matchFormat={state.matchFormat}
@@ -1014,7 +1062,7 @@ export default function OverlayAdminClient({
 
       {/* ── OBS 모달 ── */}
       {obsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setObsModalOpen(false)} />
           <div className="relative z-10 w-full max-w-md mx-4 rounded-2xl border border-white/15 bg-[#111114] shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/[0.04] border-l-[3px] border-l-white/25">
@@ -1057,7 +1105,7 @@ export default function OverlayAdminClient({
       {/* ── 토스트 ── */}
       {/* 경기 방식/진행 방식 전환 확인 — 기존 대진 내용이 있을 때만 (중앙 다이얼로그) */}
       {formatConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/60" onClick={() => setFormatConfirm(null)} />
           <div className="relative z-10 w-[360px] mx-4 rounded-2xl border border-amber-500/30 bg-[#1a1610] shadow-2xl px-5 py-4">
             <div className="flex items-start gap-3">
@@ -1080,7 +1128,7 @@ export default function OverlayAdminClient({
       {toast && (
         <>
           <style>{`@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}`}</style>
-          <div className="fixed bottom-8 left-1/2 z-50 pointer-events-none"
+          <div className="fixed bottom-8 left-1/2 z-[200] pointer-events-none"
             style={{ animation: "toastIn 0.2s ease-out", transform: "translateX(-50%)" }}>
             <div className="rounded-xl bg-[#17171b] border border-white/15 shadow-2xl shadow-black/70 px-5 py-2.5 flex items-center gap-2.5">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
@@ -1094,128 +1142,15 @@ export default function OverlayAdminClient({
   );
 }
 
-// ─── 일괄 입력 파서 (채팅 접두어 제거 + 잡담 줄 폐기, 맵풀 불필요) ───
-type ParsedRow = { leftPlayer: string; rightPlayer: string; map: string };
-function parseBulk(text: string, myName: string, playerNames: string[], universityOf?: (token: string) => string | null): {
-  rows: ParsedRow[]; detectedP1: boolean; detectedMaps: boolean; mapsOnly: boolean;
-} | null {
-  // 채팅 접두어 제거: 콜론 앞부분([2]. llllll id:) 통째로 버림, 남은 선두 [..]. 도 제거
-  const stripPrefix = (l: string) => {
-    const c = l.indexOf(":");
-    let body = c >= 0 ? l.slice(c + 1) : l;
-    body = body.replace(/^\s*\[[^\]]*\]\.?\s*/, "");
-    return body.trim();
-  };
-  // 채팅 줄(콜론 포함)이 하나라도 있으면 그 줄들만 후보로 — 안내문/잡줄 제거
-  const rawLines = text.split(/\r?\n/);
-  const cells = rawLines.map(l => ({ hadColon: l.includes(":"), body: stripPrefix(l) })).filter(x => x.body);
-  const anyColon = cells.some(x => x.hadColon);
-  const lines = (anyColon ? cells.filter(x => x.hadColon) : cells).map(x => x.body);
-  if (lines.length < 1) return null;
-
-  const tokenize = (l: string) => l.split(/[,\t]+|\s+/).map(t => t.trim()).filter(Boolean);
-  const toks = lines.map(tokenize);
-
-  const norm = (s: string) => s.toLowerCase().replace(/\s/g, "");
-  const namesN = new Set(playerNames.map(norm));
-  const myN    = norm(myName);
-
-  // 문장형 토큰: 5자 이상이거나, 3자 이상이면서 조사로 끝나는 토큰 (이름·맵은 보통 2~4자, 조사 없음)
-  const PARTICLES = ["을", "를", "은", "는", "이", "가", "와", "과", "로", "으로", "에", "의", "도", "만",
-    "에서", "에게", "한테", "까지", "부터", "라고", "처럼", "보다", "네요", "어요", "아요", "습니다", "니다", "세요", "해요", "하고", "하는", "였다", "했다"];
-  const isSentenceTok = (t: string) => t.length >= 5 || (t.length >= 3 && PARTICLES.some(p => t.endsWith(p)));
-  // 스팸 토큰: 같은 문자 4회 이상 반복 또는 숫자 5자 이상 (예: 11111111111)
-  const isSpamTok = (t: string) => /^(.)\1{3,}$/.test(t) || /^\d{5,}$/.test(t);
-  const dupCount  = (arr: string[]) => arr.length - new Set(arr.map(norm)).size;
-
-  const stats = toks.map(ts => {
-    const tn = ts.map(norm);
-    const nameHits  = tn.filter(t => namesN.has(t)).length;
-    const myHit     = !!myN && tn.some(t => t.includes(myN) || myN.includes(t));
-    // 대학대전: 토큰(선수)의 소속 대학이 myName(선택한 대학)과 일치하는 개수 — 한 명이 아니라 여러 명으로 판단해 더 안정적
-    const univHits  = universityOf
-      ? ts.filter(t => { const u = universityOf(t); return !!u && norm(u) === myN; }).length
-      : 0;
-    const sentence  = ts.filter(isSentenceTok).length;
-    const spamOnly  = ts.length > 0 && ts.every(isSpamTok);
-    const dup       = dupCount(ts);
-    return { nameHits, myHit, univHits, count: ts.length, sentence, spamOnly, dup };
-  });
-
-  // 스팸 줄 + 문장형(시스템 메시지) 줄 제외
-  const allIdx = toks.map((_, i) => i);
-  const kept   = allIdx.filter(i => !stats[i].spamOnly && !(stats[i].sentence >= 2 && stats[i].nameHits === 0));
-  const usable = kept.length >= 1 ? kept : allIdx.filter(i => !stats[i].spamOnly);
-  if (usable.length === 0) return null;
-
-  // 한 줄만 있으면 = 맵 줄로 인식 (위너스 2세트: 맵만 붙여넣기) → 선수는 비우고 맵만 등록
-  if (usable.length === 1) {
-    const mapsOnly = toks[usable[0]];
-    return {
-      rows: mapsOnly.map(m => ({ leftPlayer: "", rightPlayer: "", map: m })),
-      detectedP1: false, detectedMaps: true, mapsOnly: true,
-    };
-  }
-
-  // 맵 줄 먼저 식별 (후보 3줄 이상일 때): 가장 긴 줄 / 중복 토큰 있는 줄 / 이름일치 적은 줄,
-  // 길이가 모두 비슷하면 '마지막 줄'(보통 맵을 마지막에 붙여넣음)을 맵으로
-  let mapIdx = -1;
-  if (usable.length >= 3) {
-    const sorted = [...usable].sort((a, b) => {
-      if (toks[b].length !== toks[a].length) return toks[b].length - toks[a].length;
-      if (stats[b].dup !== stats[a].dup) return stats[b].dup - stats[a].dup;
-      return stats[a].nameHits - stats[b].nameHits;
-    });
-    const top = sorted[0], second = sorted[1];
-    if (toks[top].length > toks[second].length || stats[top].dup > 0 || stats[top].nameHits < stats[second].nameHits) {
-      mapIdx = top;
-    } else {
-      mapIdx = usable[usable.length - 1]; // 애매하면 마지막 줄 = 맵
-    }
-  }
-
-  // 선수 줄: 맵 줄 제외, nameHits·myHit(또는 univHits) 우선 → 상위 2개
-  const playerCands = usable.filter(i => i !== mapIdx);
-  playerCands.sort((a, b) => {
-    if (stats[b].nameHits !== stats[a].nameHits) return stats[b].nameHits - stats[a].nameHits;
-    if (universityOf) {
-      if (stats[b].univHits !== stats[a].univHits) return stats[b].univHits - stats[a].univHits;
-    } else if ((stats[b].myHit ? 1 : 0) !== (stats[a].myHit ? 1 : 0)) {
-      return (stats[b].myHit ? 1 : 0) - (stats[a].myHit ? 1 : 0);
-    }
-    if (stats[a].sentence !== stats[b].sentence) return stats[a].sentence - stats[b].sentence;
-    return stats[b].count - stats[a].count;
-  });
-  const players = playerCands.slice(0, 2);
-  if (players.length < 2) return null;
-
-  // P1: 대학대전=대학 매칭 최다 줄, 프로리그=내 이름이 든 줄 (없으면 입력 순서상 먼저 나온 줄)
-  let p1i = universityOf
-    ? players.find(i => stats[i].univHits > 0)
-    : players.find(i => stats[i].myHit);
-  const detectedP1 = p1i !== undefined;
-  if (p1i === undefined) p1i = Math.min(players[0], players[1]);
-  const p2i = players.find(i => i !== p1i)!;
-
-  const left  = toks[p1i];
-  const right = toks[p2i];
-  const mapsL = mapIdx >= 0 ? toks[mapIdx] : [];
-  // 슬롯 수 = 선수/맵 중 더 많은 쪽 (예: 5vs5 + 맵 7개 → 7슬롯, 6·7경기는 맵만)
-  const n = Math.max(left.length, right.length, mapsL.length);
-  const rows: ParsedRow[] = [];
-  for (let i = 0; i < n; i++) {
-    rows.push({ leftPlayer: left[i] ?? "", rightPlayer: right[i] ?? "", map: mapsL[i] ?? "" });
-  }
-  return { rows, detectedP1, detectedMaps: mapIdx >= 0, mapsOnly: false };
-}
 
 // ─── SetEditor (단순 대진표 + 일괄 입력) ───
-function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, raceOf, matchFormat, defaultSlots, onPatch, onAddEntry, onRemoveEntry, onPatchEntry, onSetResult, onLoad, onReorder, onFillDown, onReplaceEntries }: {
+function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myName, raceOf, matchFormat, defaultSlots, onPatch, onAddEntry, onRemoveEntry, onPatchEntry, onSetResult, onLoad, onReorder, onFillDown, onReplaceEntries }: {
   set: OverlaySet;
   leftTeam: string;
   rightTeam: string;
   leftPool: string[];
   rightPool: string[];
+  mapPool: string[];
   myName: string;
   raceOf: (name: string) => OverlayRace | undefined;
   matchFormat: OverlayMatchFormat;
@@ -1236,6 +1171,8 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
   const [raceEditor, setRaceEditor] = useState<{ id: string; side: "left" | "right" } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null); // 드롭될 위치 표시용
+  const endDrag = () => { setDragIdx(null); setOverIdx(null); };
   const [confirmFixed, setConfirmFixed] = useState(false);
   // 판수는 고정 설정이 아니라 실제 경기(행) 수로 결정됨
   const winTarget = Math.floor(set.entries.length / 2) + 1;
@@ -1281,21 +1218,32 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
   const scoreLeft  = set.entries.filter(e => e.result === "left").length;
   const scoreRight = set.entries.filter(e => e.result === "right").length;
 
+  // 대전 및 CK·미니대전은 팀(대학) 단위 → 일괄입력에서 대학 매칭 사용
+  const useUnivMatch = matchFormat === "university" || matchFormat === "mini";
+  // "N 좌선수 vs 우선수" 형식은 프로리그를 제외한 방식에서 인식 (좌/우가 줄마다 명시돼 있어 안전)
+  const allowVsFormat = matchFormat !== "proleague";
+
   // 붙여넣은 내용 실시간 인식 미리보기
   const preview = useMemo(
-    () => (bulkText.trim() ? parseBulk(bulkText, myName, playerNames, matchFormat === "university" ? universityOf : undefined) : null),
-    [bulkText, myName, playerNames, matchFormat, universityOf],
+    () => (bulkText.trim() ? parseBulk(bulkText, myName, playerNames, useUnivMatch ? universityOf : undefined, allowVsFormat) : null),
+    [bulkText, myName, playerNames, useUnivMatch, allowVsFormat, universityOf],
   );
 
   const applyBulk = () => {
-    const parsed = parseBulk(bulkText, myName, playerNames, matchFormat === "university" ? universityOf : undefined);
+    const parsed = parseBulk(bulkText, myName, playerNames, useUnivMatch ? universityOf : undefined, allowVsFormat);
     if (!parsed) { setNotice("선수 줄을 못 찾았어요. 최소 두 줄(양 팀)을 붙여넣어 주세요."); return; }
-    onReplaceEntries(parsed.rows);
+    // "vs" 형식은 줄 수가 곧 경기 수 → 기존 대진표 칸 수는 유지하고 앞에서부터 채움 (줄이 더 많으면 칸을 늘림)
+    let rows = parsed.rows;
+    if (parsed.vsFormat) {
+      const slots = Math.max(rows.length, set.entries.length || defaultSlots);
+      rows = Array.from({ length: slots }, (_, i) => rows[i] ?? { leftPlayer: "", rightPlayer: "", map: "" });
+    }
+    onReplaceEntries(rows);
     const warns: string[] = [];
-    if (parsed.mapsOnly) {
-      // 맵만 입력 — 경고 없음
+    if (parsed.mapsOnly || parsed.vsFormat) {
+      // 맵만 입력 / "vs" 형식(맵 없는 게 정상) — 경고 없음
     } else {
-      if (!parsed.detectedP1)   warns.push(matchFormat === "university" ? "대학 자동인식 실패 → 첫 줄을 P1로 배치" : "내 팀 자동인식 실패 → 첫 줄을 P1로 배치");
+      if (!parsed.detectedP1)   warns.push(useUnivMatch ? "대학 자동인식 실패 → 첫 줄을 P1로 배치" : "내 팀 자동인식 실패 → 첫 줄을 P1로 배치");
       if (!parsed.detectedMaps) warns.push("맵 줄 미인식 → 맵 칸 직접 입력");
     }
     if (warns.length === 0) { setBulkText(""); setBulkOpen(false); setNotice(null); }
@@ -1324,10 +1272,9 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
             })}
           </div>
           <span className="text-sm font-semibold text-white/55">
-            {set.winnersMode
-              ? "승자가 다음 경기에 자동 잔류 · 상대만 선택"
-              : "정해진 대진 순서대로 진행 (승패만 체크)"}
+            {set.winnersMode ? "승자가 다음 경기에 자동 잔류 · 상대만 선택" : "정해진 대진 순서대로 진행"}
           </span>
+          <EntryHint />
 
           {/* 프로리그 전환 확인 토스트 */}
           {confirmFixed && (
@@ -1348,10 +1295,10 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
         </div>
       )}
 
-      {/* 대학대전: 진행 방식은 상단 헤더에서 선택 (여기선 방식 안내만) */}
-      {!set.isAce && matchFormat === "university" && (
+      {/* 프로리그 외 방식: 진행 방식 컨트롤이 없으므로 입력 단축키 안내만 */}
+      {matchFormat !== "proleague" && (
         <div className="flex items-center gap-2.5">
-          <span className="text-sm font-semibold text-white/55">정해진 대진 순서대로 진행 (승패만 체크)</span>
+          <EntryHint />
         </div>
       )}
 
@@ -1422,20 +1369,42 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
           };
           const waiting = !entry.leftPlayer && !entry.rightPlayer && !!entry.map; // 맵만 있는 대기 경기
           const tint = entry.result === "left" ? "rgba(196,85,77,0.10)" : entry.result === "right" ? "rgba(85,119,176,0.10)" : "";
+          // 드롭 표시선: 아래쪽으로 옮기는 중이면 대상 행 "아래", 위쪽이면 "위"에 그림
+          const dropLine: "above" | "below" | null =
+            dragIdx === null || overIdx !== idx || dragIdx === idx ? null : dragIdx < idx ? "below" : "above";
           return (
             <div key={entry.id}
-              onDragOver={e => { if (dragIdx !== null) e.preventDefault(); }}
-              onDrop={() => { if (dragIdx !== null) onReorder(dragIdx, idx); setDragIdx(null); }}
-              className={`group grid grid-cols-[30px_1fr_30px_64px_30px_1fr_auto] items-center gap-1 px-2 h-11 border-b border-white/6 last:border-b-0 transition-colors ${isCurrent ? "ring-1 ring-inset ring-emerald-500/40" : "hover:bg-white/[0.02]"} ${dragIdx === idx ? "opacity-40" : waiting ? "opacity-70" : ""}`}
+              onDragOver={e => {
+                if (dragIdx === null) return;
+                e.preventDefault();                      // 드롭 허용 (안 하면 입력칸에 텍스트로 떨어짐)
+                e.dataTransfer.dropEffect = "move";
+                if (overIdx !== idx) setOverIdx(idx);
+              }}
+              onDrop={e => {
+                if (dragIdx === null) return;
+                e.preventDefault();                      // 입력칸에 드롭 텍스트가 들어가는 것 방지
+                if (dragIdx !== idx) onReorder(dragIdx, idx);
+                endDrag();
+              }}
+              className={`group relative grid grid-cols-[30px_1fr_30px_64px_30px_1fr_auto] items-center gap-1 px-2 h-11 border-b border-white/6 last:border-b-0 transition-colors ${isCurrent ? "ring-1 ring-inset ring-emerald-500/40" : "hover:bg-white/[0.02]"} ${dragIdx === idx ? "opacity-40" : waiting ? "opacity-70" : ""}`}
               style={{ background: tint || undefined }}>
+              {/* 드롭 위치 표시선 — 아래로 옮기면 행 아래, 위로 옮기면 행 위 */}
+              {dropLine && (
+                <span className={`pointer-events-none absolute left-0 right-0 h-[3px] rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] ${dropLine === "above" ? "-top-[1.5px]" : "-bottom-[1.5px]"}`} />
+              )}
               {/* 번호 배지 = 드래그 핸들 (행 hover 시 그립 표시) */}
               <span className="flex items-center justify-center">
                 <span draggable
-                  onDragStart={() => setDragIdx(idx)} onDragEnd={() => setDragIdx(null)}
+                  onDragStart={e => {
+                    setDragIdx(idx);
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", String(idx)); // 파이어폭스는 이게 없으면 드래그가 시작 안 됨
+                  }}
+                  onDragEnd={endDrag}
                   title="드래그해서 순서 변경"
-                  className={`relative w-6 h-6 rounded-md flex items-center justify-center cursor-grab active:cursor-grabbing ${isCurrent ? "bg-emerald-500/30 text-emerald-300" : "bg-white/8 text-white/45 group-hover:bg-white/15"}`}>
+                  className={`relative w-6 h-6 rounded-md flex items-center justify-center cursor-grab active:cursor-grabbing transition-all ${isCurrent ? "bg-emerald-500/30 text-emerald-300" : "bg-white/8 text-white/45 group-hover:bg-white/20 group-hover:ring-1 group-hover:ring-white/20"}`}>
                   <span className="text-[11px] font-black tabular-nums group-hover:opacity-0 transition-opacity">{idx + 1}</span>
-                  <GripVertical size={13} className="absolute opacity-0 group-hover:opacity-100 transition-opacity text-white/60" />
+                  <GripVertical size={13} className="absolute opacity-0 group-hover:opacity-100 transition-opacity text-white/70" />
                 </span>
               </span>
               {/* P1 */}
@@ -1469,10 +1438,11 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
               </div>
               {/* ✓ 좌 */}
               {check("left")}
-              {/* 맵 */}
+              {/* 맵 — 맵풀에서 고르거나 직접 입력 */}
               <input id={fieldId(idx, "map")} value={entry.map} onChange={e => onPatchEntry(entry.id, { map: e.target.value })}
-                onPaste={smartPaste("map")} onKeyDown={jumpTo(idx, "p2")} title="여러 맵을 한 번에 붙여넣으면 아래로 자동 채워집니다"
-                placeholder="맵" spellCheck={false} maxLength={6}
+                onPaste={smartPaste("map")} onKeyDown={jumpTo(idx, "p2")}
+                list={`map-pool-${set.id}`} title="맵풀에서 고르거나 직접 입력 · 여러 맵을 한 번에 붙여넣으면 아래로 자동 채워집니다"
+                placeholder="맵" spellCheck={false} maxLength={10}
                 className="h-8 w-full rounded-md bg-white/[0.035] border border-white/8 px-1 text-xs font-semibold text-center text-white/55 outline-none focus:bg-emerald-500/[0.1] focus:border-emerald-500/50 focus:text-white/90 transition-colors min-w-0 placeholder:text-white/20" />
               {/* ✓ 우 */}
               {check("right")}
@@ -1507,10 +1477,13 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
               </div>
               {/* 액션: 송출 · 삭제 */}
               <div className="flex items-center gap-1 shrink-0 pl-0.5">
-                <button onClick={() => onLoad(idx)} title="이 경기를 스코어보드에 띄우기"
-                  className={`h-7 px-2 rounded-md text-[11px] font-bold transition-all ${isCurrent ? "bg-emerald-500/25 text-emerald-300" : "bg-white/5 text-white/30 hover:text-emerald-300"}`}>송출</button>
+                {/* 송출 · 삭제 — 행 hover 시에만 나타나므로 배경을 꽉 채워 버튼임을 명확히 */}
+                <button onClick={() => onLoad(idx)} title="이 경기로 건너뛰기 (스코어보드에 띄우기)"
+                  className="h-7 px-2.5 rounded-md text-[11px] font-black bg-emerald-600 text-white hover:bg-emerald-500 active:scale-[0.97] transition-all opacity-0 group-hover:opacity-100">
+                  송출
+                </button>
                 <button onClick={() => onRemoveEntry(entry.id)} title="삭제"
-                  className="h-7 w-6 flex items-center justify-center rounded-md text-white/15 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100">✕</button>
+                  className="h-7 w-7 flex items-center justify-center rounded-md text-[11px] font-black bg-white/12 text-white/70 hover:bg-red-600 hover:text-white active:scale-[0.97] transition-all opacity-0 group-hover:opacity-100">✕</button>
               </div>
             </div>
           );
@@ -1524,6 +1497,8 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
       {/* 선수 드롭다운 후보 (다른 세트에 등장한 선수들 = 팀 멤버) */}
       <datalist id={`pool-left-${set.id}`}>{leftPool.map(n => <option key={n} value={n} />)}</datalist>
       <datalist id={`pool-right-${set.id}`}>{rightPool.map(n => <option key={n} value={n} />)}</datalist>
+      {/* 맵풀 후보 (좌측 맵풀 카드에서 등록한 맵들) */}
+      <datalist id={`map-pool-${set.id}`}>{mapPool.map(m => <option key={m} value={m} />)}</datalist>
 
       {/* 일괄 입력 트리거 */}
       <button onClick={() => { setNotice(null); setBulkOpen(true); }}
@@ -1533,7 +1508,7 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
 
       {/* 일괄 입력 모달 */}
       {bulkOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setBulkOpen(false)} />
           <div className="relative z-10 w-full max-w-3xl mx-4 max-h-[94vh] flex flex-col rounded-2xl border border-white/15 border-l-[3px] border-l-emerald-500/60 bg-[#111114] shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-white/[0.04]">
@@ -1544,35 +1519,48 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
               <button onClick={() => setBulkOpen(false)} className="text-white/30 hover:text-white/70 transition-colors"><X size={20} /></button>
             </div>
             <div className="px-5 py-4 space-y-3 overflow-y-auto">
-              {/* 한 줄 설명 + 장점 */}
+              {/* 무시되는 것만 한 줄로 */}
               <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/20 px-4 py-2.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                 <span className="text-sm font-semibold text-emerald-100/85">
-                  채팅 <b className="text-white font-black">복사 → 붙여넣기</b>, 그거면 끝!
-                  <b className="text-emerald-200 font-black"> ID·잡담·맵</b>까지 <b className="text-white font-black">알아서</b> 싹 정리돼요
+                  {allowVsFormat
+                    ? <>메모장에 적어둔 대로 <b className="text-white font-black">편하게 붙여넣으세요</b> · 한 줄에 <b className="text-white font-black">한 경기</b>씩 ·
+                        <b className="text-emerald-200"> 경기번호·채팅 ID·잡담</b>은 알아서 무시돼요</>
+                    : <>인게임 채팅을 <b className="text-white font-black">편하게 그대로 붙여넣으세요</b> ·
+                        <b className="text-emerald-200"> 채팅 ID·잡담</b>은 알아서 무시돼요</>}
                 </span>
               </div>
-              {/* 우리팀 기준 이름 */}
-              <div className="flex items-center gap-2.5">
-                <span className="text-sm text-white/40">우리팀(P1) 기준</span>
-                <span className="text-2xl font-black" style={{ color: myName ? "#d9938d" : "rgba(255,255,255,0.25)" }}>{myName || "미설정"}</span>
-              </div>
+
+              {/* 우리팀 기준 이름 — "vs" 형식은 줄마다 좌/우가 명시되므로 불필요 */}
+              {!allowVsFormat && (
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm text-white/40">우리팀(P1) 기준</span>
+                  <span className="text-2xl font-black" style={{ color: myName ? "#d9938d" : "rgba(255,255,255,0.25)" }}>{myName || "미설정"}</span>
+                </div>
+              )}
+
               {/* 붙여넣기 */}
               <textarea autoFocus
-                className="w-full h-32 rounded-xl bg-white/5 border border-white/12 px-3.5 py-3 text-sm leading-snug font-mono outline-none resize-none focus:border-emerald-500/50 placeholder:text-white/20"
+                className="w-full h-60 rounded-xl bg-white/5 border border-white/12 px-3.5 py-3 text-sm leading-snug font-mono outline-none resize-none focus:border-emerald-500/50 placeholder:text-white/20"
                 value={bulkText}
                 onChange={e => setBulkText(e.target.value)}
-                placeholder={"인게임 채팅을 드래그·복사해서 그대로 붙여넣으세요\n예)[2. llllllllllllllllllllllllll] JSA_Sharp1: 11111111111111\n[2. llllllllllllllllllllllllll] JSA_Sharp1: 일장 재호 기석 현재 정우\n[2. llllllllllllllllllllllllll] RoyaL1111: 지성 성대 짭제 영재 윤철\n[2. llllllllllllllllllllllllll] RoyaL1111: 매치 실피 옥타 녹아 애티 제인 폴스"}
+                placeholder={allowVsFormat
+                  ? `여기에 붙여넣으세요\n\n${VS_SAMPLE_TEXT}`
+                  : "여기에 붙여넣으세요  (우리팀 / 상대팀 / 맵 줄)\n\n[2. lllllll] JSA_Sharp1: 일장 재호 기석 현재 정우\n[2. lllllll] RoyaL1111: 지성 성대 짭제 영재 윤철\n[2. lllllll] RoyaL1111: 매치 실피 옥타 녹아 애티"}
               />
 
               {/* 인식 미리보기 */}
               <div className="flex items-center gap-2.5">
                 <span className="text-sm font-bold text-white/55">인식 미리보기</span>
-                {preview && (preview.mapsOnly ? (
+                {preview && (preview.vsFormat ? (
+                  <span className="text-xs font-bold text-emerald-400">
+                    &ldquo;vs&rdquo; 형식 ✓ {preview.rows.length}경기{preview.detectedMaps ? " · 맵 인식 ✓" : " · 맵은 표에서 입력"}
+                  </span>
+                ) : preview.mapsOnly ? (
                   <span className="text-xs font-bold text-emerald-400">맵만 입력 ✓ (선수는 표에서 입력)</span>
                 ) : (
                   <span className="flex items-center gap-2.5 text-xs font-bold">
-                    <span className={preview.detectedP1 ? "text-emerald-400" : "text-amber-400"}>{matchFormat === "university" ? "대학" : "내 팀"} {preview.detectedP1 ? "인식 ✓" : "미인식 ✗"}</span>
+                    <span className={preview.detectedP1 ? "text-emerald-400" : "text-amber-400"}>{useUnivMatch ? "대학" : "내 팀"} {preview.detectedP1 ? "인식 ✓" : "미인식 ✗"}</span>
                     <span className={preview.detectedMaps ? "text-emerald-400" : "text-amber-400"}>맵 {preview.detectedMaps ? "인식 ✓" : "미인식 ✗"}</span>
                   </span>
                 ))}
@@ -1587,8 +1575,9 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
                   <div className="px-4 py-6 text-center text-sm text-white/25">붙여넣으면 여기에 분류 결과가 표시됩니다</div>
                 ) : (
                   preview.rows.map((r, i) => {
-                    const lRace = r.leftPlayer  ? raceOf(r.leftPlayer)  : undefined;
-                    const rRace = r.rightPlayer ? raceOf(r.rightPlayer) : undefined;
+                    // 입력에 명시된 종족이 있으면 그것을 우선, 없으면 선수 DB 자동 인식
+                    const lRace = r.leftRace  ?? (r.leftPlayer  ? raceOf(r.leftPlayer)  : undefined);
+                    const rRace = r.rightRace ?? (r.rightPlayer ? raceOf(r.rightPlayer) : undefined);
                     return (
                       <div key={i} className="grid grid-cols-[1fr_84px_1fr] items-center px-4 py-2 border-b border-white/5 last:border-b-0">
                         <span className="flex items-center justify-end gap-1 pr-1 text-base font-bold truncate" style={{ color: r.leftPlayer ? "#d9938d" : "rgba(255,255,255,0.18)" }}>
@@ -1613,8 +1602,7 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
               {notice && <p className="text-sm text-amber-400/90">{notice}</p>}
             </div>
             {/* 하단 고정 액션 */}
-            <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-white/10 bg-white/[0.03]">
-              <span className="text-xs text-white/30">줄 안은 공백·쉼표 구분 · 위 미리보기처럼 들어갑니다</span>
+            <div className="flex items-center justify-end gap-3 px-5 py-3.5 border-t border-white/10 bg-white/[0.03]">
               <button onClick={applyBulk} disabled={!bulkText.trim()}
                 className="h-11 px-6 rounded-xl bg-emerald-600 text-base font-bold text-white hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
                 적용 (기존 교체)
@@ -1630,7 +1618,7 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, myName, race
 // ─── 사용법 모달 ───
 function HelpModal({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-xl mx-4 max-h-[90vh] flex flex-col rounded-2xl border border-white/15 border-l-[3px] border-l-blue-500/60 bg-[#111114] shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-white/[0.04]">
@@ -1642,20 +1630,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
         </div>
         <div className="px-5 py-4 space-y-4 overflow-y-auto">
 
-          {/* 일괄 입력 */}
-          <div className="rounded-xl bg-white/[0.03] border border-white/8 px-4 py-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="shrink-0 px-2.5 py-1 rounded-md bg-blue-500/15 border border-blue-400/25 text-xs font-bold text-blue-200">일괄 입력</span>
-              <p className="text-base font-bold text-white/90">채팅 통째로 붙여넣기</p>
-            </div>
-            <p className="text-sm text-white/60 leading-relaxed">
-              인게임 채팅을 <b className="text-white">통째로 복사해 붙여넣기만</b> 하면 끝.
-              <b className="text-blue-200"> ID·잡담·맵은 자동으로 걸러지고</b>,
-              <b className="text-blue-200"> &lsquo;내 팀 인식 이름&rsquo;</b>이 든 줄은 <b className="text-white">우리팀(P1)으로 자동 배치</b>됩니다.
-            </p>
-          </div>
-
-          {/* 스마트 붙여넣기 (시각 예시) */}
+          {/* 스마트 붙여넣기 (시각 예시) — 일괄 입력 설명은 일괄 입력 창 안에 있으므로 여기선 생략 */}
           <div className="rounded-xl bg-white/[0.03] border border-white/8 px-4 py-4">
             <div className="flex items-center gap-2 mb-2">
               <span className="shrink-0 px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-400/25 text-xs font-bold text-emerald-200">스마트 붙여넣기</span>
