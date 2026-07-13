@@ -369,12 +369,29 @@ export default function OverlayAdminClient({
 
   // 경기 행 인라인 수정
   const patchEntry = (setId: string, entryId: string, patch: Partial<OverlayEntryRow>) =>
-    setState(s => ({
-      ...s,
-      sets: s.sets.map(set => set.id === setId
-        ? { ...set, entries: set.entries.map(e => e.id === entryId ? { ...e, ...patch } : e) }
-        : set),
-    }));
+    setState(s => {
+      const set = s.sets.find(x => x.id === setId);
+      const idx = set ? set.entries.findIndex(e => e.id === entryId) : -1;
+      const sets = s.sets.map(x => x.id === setId
+        ? { ...x, entries: x.entries.map(e => e.id === entryId ? { ...e, ...patch } : e) }
+        : x);
+
+      // 지금 송출 중인 경기(활성 세트 + currentMatch 행)의 선수 이름/종족을 엔트리에서 고치면
+      // 스코어보드 선수명·종족도 즉시 따라 바뀌게 한다. (위너스에서 다음 상대 이름을 나중에 입력하는 경우 등)
+      let left = s.left, right = s.right;
+      if (set && idx >= 0 && s.activeSetId === setId && set.currentMatch === idx) {
+        const m = { ...set.entries[idx], ...patch };
+        if ("leftPlayer" in patch || "leftRace" in patch) {
+          const lRace = m.leftRace ?? raceOf(m.leftPlayer);
+          left = { ...s.left, ...("leftPlayer" in patch ? { playerName: m.leftPlayer } : {}), ...(lRace ? { race: lRace } : {}) };
+        }
+        if ("rightPlayer" in patch || "rightRace" in patch) {
+          const rRace = m.rightRace ?? raceOf(m.rightPlayer);
+          right = { ...s.right, ...("rightPlayer" in patch ? { playerName: m.rightPlayer } : {}), ...(rRace ? { race: rRace } : {}) };
+        }
+      }
+      return { ...s, left, right, sets };
+    });
 
   const removeEntry = (setId: string, entryId: string) => {
     setState(s => ({
