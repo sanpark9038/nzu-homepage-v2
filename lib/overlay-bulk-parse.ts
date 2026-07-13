@@ -17,6 +17,7 @@ export function parseBulk(
   allowVsFormat = false,
 ): {
   rows: ParsedRow[]; detectedP1: boolean; detectedMaps: boolean; mapsOnly: boolean; vsFormat?: boolean;
+  unrecognized?: string[]; // vs 형식에서 경기로 인식하지 못하고 건너뛴 줄(원문) — UI에서 짚어주기 위함
 } | null {
   // 채팅 접두어 제거: 콜론 앞부분([2]. llllll id:) 통째로 버림, 남은 선두 [..]. 도 제거
   const stripPrefix = (l: string) => {
@@ -41,9 +42,20 @@ export function parseBulk(
   // 맵은 줄 끝("... 숙자 T 실") 또는 선수 앞("실 영희P vs ...") 어느 쪽에 와도 인식.
   // 단, 종족이 없으면 맵도 없는 것으로 본다 → 두 어절 이름을 맵으로 오인하지 않기 위함.
   if (allowVsFormat) {
+    // "vs"를 구분자로 정규화 — 붙여쓰기·띄어쓰기·한글·종족글자·숫자 무엇이 붙어 있어도 독립 토큰이 되게 공백 삽입.
+    // 단 하나의 예외: 양옆이 둘 다 영문 글자면 닉네임 내부(예: "SharpZvsBest")로 보고 건드리지 않는다.
+    // 이 분기 안에서만 다시 토큰화 → 다른 경로(명단형)엔 영향 없음.
+    const padVs = (l: string) => l.replace(/vs\.?/gi, (m, off: number, s: string) => {
+      const before = s[off - 1] ?? " ";
+      const after  = s[off + m.length] ?? " ";
+      return (/[A-Za-z]/.test(before) && /[A-Za-z]/.test(after)) ? m : ` ${m} `;
+    });
+    const vsToks = lines.map(l => tokenize(padVs(l)));
     const RACE_RE   = /^[TPZ]$/i;
     const isVsTok   = (t: string) => /^vs\.?$/i.test(t);
     const isNumTok  = (t: string) => /^\d+$/.test(t);
+    // 티어 표기 제외 — "티어" / "4티어" / "10티어" 같은 순위 접두어는 선수 이름이 아니므로 버림
+    const isTierTok = (t: string) => /^\d*티어$/.test(t);
     const isRaceTok = (t: string) => RACE_RE.test(t);
     const asRace    = (t: string) => t.toUpperCase() as OverlayRace;
     // "영희P" → { name:"영희", race:"P" }. 앞 글자가 영문이면(예: "SharpZ") 닉네임으로 보고 분리하지 않음.
@@ -56,13 +68,15 @@ export function parseBulk(
     };
 
     const vsRows: ParsedRow[] = [];
+    const unrecognized: string[] = [];                               // 경기로 못 만든 줄(원문) — UI에서 짚어줌
     let sawMap = false;
-    for (const ts of toks) {
+    for (let li = 0; li < vsToks.length; li++) {
+      const ts = vsToks[li];
       const vsIdx = ts.findIndex(isVsTok);
-      if (vsIdx < 1) continue;                                        // vs 없거나 앞에 좌선수가 없는 줄은 무시
+      if (vsIdx < 1) { unrecognized.push(lines[li]); continue; }      // vs 없거나 앞에 좌선수가 없는 줄
 
-      // 좌측: [경기번호] [맵] 이름[종족]
-      const lt = ts.slice(0, vsIdx).filter(t => !isNumTok(t));
+      // 좌측: [경기번호] [티어] [맵] 이름[종족]
+      const lt = ts.slice(0, vsIdx).filter(t => !isNumTok(t) && !isTierTok(t));
       let leftRace: OverlayRace | undefined;
       if (lt.length >= 2 && isRaceTok(lt[lt.length - 1])) {
         leftRace = asRace(lt.pop()!);                                 // "영희 P"
@@ -79,8 +93,8 @@ export function parseBulk(
         leftPlayer = lt.join(" ").trim();
       }
 
-      // 우측: 이름[종족] [맵...]
-      const rt = ts.slice(vsIdx + 1);
+      // 우측: [티어] 이름[종족] [맵...]
+      const rt = ts.slice(vsIdx + 1).filter(t => !isTierTok(t));
       let rightRace: OverlayRace | undefined;
       let rightPlayer = "";
       let backMap = "";
@@ -103,12 +117,12 @@ export function parseBulk(
       }
 
       const map = backMap || frontMap;
-      if (!leftPlayer && !rightPlayer) continue;
+      if (!leftPlayer && !rightPlayer) { unrecognized.push(lines[li]); continue; }
       if (map) sawMap = true;
       vsRows.push({ leftPlayer, rightPlayer, map, leftRace, rightRace });
     }
     if (vsRows.length > 0) {
-      return { rows: vsRows, detectedP1: true, detectedMaps: sawMap, mapsOnly: false, vsFormat: true };
+      return { rows: vsRows, detectedP1: true, detectedMaps: sawMap, mapsOnly: false, vsFormat: true, unrecognized };
     }
   }
 

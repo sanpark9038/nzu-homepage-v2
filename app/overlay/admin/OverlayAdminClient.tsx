@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy, Check, Eye, EyeOff,
-  Settings, X, Layers, Plus, GripVertical, ClipboardPaste, HelpCircle, Lock, RotateCcw, ChevronRight,
+  Settings, X, Layers, Plus, GripVertical, ClipboardPaste, HelpCircle, Lock, RotateCcw, ChevronRight, ArrowLeftRight,
 } from "lucide-react";
 import {
   defaultOverlayState,
@@ -23,7 +23,6 @@ import {
   type OverlaySet,
   type OverlayState,
 } from "@/lib/overlay-types";
-import { getUniversityLabel } from "@/lib/university-config";
 import { parseBulk, type ParsedRow } from "@/lib/overlay-bulk-parse";
 import { RACES, RACE_COLORS, RACE_BG, raceOfName } from "@/lib/overlay-race";
 
@@ -134,8 +133,6 @@ export default function OverlayAdminClient({
     }).catch(() => {});
   }, []);
   const raceOf = useCallback((name: string) => raceOfName(playerDb, name), [playerDb]);
-  // 등록된 대학 목록 (대학대전 "내 팀 인식" 드롭다운용)
-  const universities = Array.from(new Set(playerDb.map(p => p.university).filter((u): u is string => !!u))).sort();
   const [toast, setToast]       = useState<string | null>(null);
   const [adminTab, setAdminTab] = useState<string | null>(null);
   // 세트가 방금 끝났을 때 "다음 세트로" 카드를 띄울 대상 세트 id. 닫으면 그 세트에선 다시 안 뜸(promptedSets).
@@ -635,29 +632,21 @@ export default function OverlayAdminClient({
               </button>
             )}
           </div>
-          {/* 내 팀 인식 (프로리그=선수 이름 직접 입력 / 대학대전=대학 드롭다운) */}
-          <div className="flex-1 min-w-0 flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] px-3 py-2">
-            <span className="shrink-0 text-[11px] font-bold text-emerald-300/80 leading-tight">
-              내 팀<br/>인식{isUniversityFormat ? " 대학" : " 이름"}
-            </span>
-            {isUniversityFormat ? (
-              <select
-                className="flex-1 min-w-0 bg-white/5 border border-white/12 rounded-lg px-3 py-2 text-sm font-bold outline-none focus:border-emerald-500/50 transition-colors cursor-pointer"
-                style={{ colorScheme: "dark" }}
-                value={myName}
-                onChange={e => saveMyName(e.target.value)}>
-                <option value="" style={{ background: "#16161a", color: "rgba(255,255,255,0.5)" }}>대학 선택 (일괄 입력 시 우리팀 자동 배치)</option>
-                {universities.map(u => <option key={u} value={u} style={{ background: "#16161a", color: "#fff" }}>{getUniversityLabel(u)}</option>)}
-              </select>
-            ) : (
+          {/* 내 팀 인식 (프로리그 전용 — 명단 붙여넣기에서 우리팀 줄을 P1으로 자동 배치.
+              vs 형식을 쓰는 대전 및 CK·미니대전·자유방식은 좌우가 줄마다 명시돼 불필요) */}
+          {state.matchFormat === "proleague" && (
+            <div className="flex-1 min-w-0 flex items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] px-3 py-2">
+              <span className="shrink-0 text-[11px] font-bold text-emerald-300/80 leading-tight">
+                내 팀<br/>인식 이름
+              </span>
               <input
                 className="flex-1 min-w-0 bg-white/5 border border-white/12 rounded-lg px-3 py-2 text-sm font-bold outline-none placeholder:text-white/15 focus:border-emerald-500/50 transition-colors"
                 value={myName}
                 onChange={e => saveMyName(e.target.value)}
                 placeholder="예: 이재호 (일괄 입력 시 P1 자동 배치)"
               />
-            )}
-          </div>
+            </div>
+          )}
           <div className="shrink-0 flex items-end gap-2">
             <UrlCopyBtn url={scoreboardUrl} />
             <button onClick={() => setObsModalOpen(true)}
@@ -1261,6 +1250,12 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myN
   const [overIdx, setOverIdx] = useState<number | null>(null); // 드롭될 위치 표시용
   const endDrag = () => { setDragIdx(null); setOverIdx(null); };
   const [confirmFixed, setConfirmFixed] = useState(false);
+  // vs 형식에서 우리팀이 오른쪽에 적힌 경우: 좌우(P1↔P2)를 통째로 뒤집어 붙여넣기
+  const [vsSwap, setVsSwap] = useState(false);
+  const swapRow = (r: ParsedRow): ParsedRow => ({
+    leftPlayer: r.rightPlayer, rightPlayer: r.leftPlayer,
+    leftRace: r.rightRace, rightRace: r.leftRace, map: r.map,
+  });
   // 판수는 고정 설정이 아니라 실제 경기(행) 수로 결정됨
   const winTarget = Math.floor(set.entries.length / 2) + 1;
 
@@ -1315,17 +1310,21 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myN
     () => (bulkText.trim() ? parseBulk(bulkText, myName, playerNames, useUnivMatch ? universityOf : undefined, allowVsFormat) : null),
     [bulkText, myName, playerNames, useUnivMatch, allowVsFormat, universityOf],
   );
+  // vs 형식 + 좌우 교체 시 미리보기·적용에 쓰일 실제 행
+  const previewRows = preview ? (preview.vsFormat && vsSwap ? preview.rows.map(swapRow) : preview.rows) : [];
 
   const applyBulk = () => {
     const parsed = parseBulk(bulkText, myName, playerNames, useUnivMatch ? universityOf : undefined, allowVsFormat);
     if (!parsed) { setNotice("선수 줄을 못 찾았어요. 최소 두 줄(양 팀)을 붙여넣어 주세요."); return; }
     // "vs" 형식은 줄 수가 곧 경기 수 → 기존 대진표 칸 수는 유지하고 앞에서부터 채움 (줄이 더 많으면 칸을 늘림)
-    let rows = parsed.rows;
+    // 좌우 교체(vsSwap)가 켜져 있으면 우리팀이 왼쪽(P1)에 오도록 뒤집어서 적용
+    let rows = parsed.vsFormat && vsSwap ? parsed.rows.map(swapRow) : parsed.rows;
     if (parsed.vsFormat) {
       const slots = Math.max(rows.length, set.entries.length || defaultSlots);
       rows = Array.from({ length: slots }, (_, i) => rows[i] ?? { leftPlayer: "", rightPlayer: "", map: "" });
     }
     onReplaceEntries(rows);
+    setVsSwap(false);
     const warns: string[] = [];
     if (parsed.mapsOnly || parsed.vsFormat) {
       // 맵만 입력 / "vs" 형식(맵 없는 게 정상) — 경고 없음
@@ -1588,7 +1587,7 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myN
       <datalist id={`map-pool-${set.id}`}>{mapPool.map(m => <option key={m} value={m} />)}</datalist>
 
       {/* 일괄 입력 트리거 */}
-      <button onClick={() => { setNotice(null); setBulkOpen(true); }}
+      <button onClick={() => { setNotice(null); setVsSwap(false); setBulkOpen(true); }}
         className="w-full flex items-center justify-center gap-2 h-10 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-sm font-bold text-emerald-300 hover:bg-emerald-500/20 transition-all">
         <Plus size={15} /> 일괄 입력 (채팅 붙여넣기)
       </button>
@@ -1611,8 +1610,8 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myN
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                 <span className="text-sm font-semibold text-emerald-100/85">
                   {allowVsFormat
-                    ? <>메모장에 적어둔 대로 <b className="text-white font-black">편하게 붙여넣으세요</b> · 한 줄에 <b className="text-white font-black">한 경기</b>씩 ·
-                        <b className="text-emerald-200"> 경기번호·채팅 ID·잡담</b>은 알아서 무시돼요</>
+                    ? <>메모장/카톡에 받은 그대로 <b className="text-white font-black">그냥 붙여넣기</b> · 선수 사이에 <b className="text-white font-black">VS</b>만 넣으면 알아서 인식 ·
+                        <b className="text-emerald-200"> 불필요한 문구는 알아서 무시</b> · <b className="text-white font-black">좌우 바꾸기</b>도 가능</>
                     : <>인게임 채팅을 <b className="text-white font-black">편하게 그대로 붙여넣으세요</b> ·
                         <b className="text-emerald-200"> 채팅 ID·잡담</b>은 알아서 무시돼요</>}
                 </span>
@@ -1632,7 +1631,7 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myN
                 value={bulkText}
                 onChange={e => setBulkText(e.target.value)}
                 placeholder={allowVsFormat
-                  ? `여기에 붙여넣으세요\n\n${VS_SAMPLE_TEXT}`
+                  ? `여기에 붙여넣으세요 (좌우 바꾸기 가능)\n\n${VS_SAMPLE_TEXT}`
                   : "여기에 붙여넣으세요  (우리팀 / 상대팀 / 맵 줄)\n\n[2. lllllll] JSA_Sharp1: 일장 재호 기석 현재 정우\n[2. lllllll] RoyaL1111: 지성 성대 짭제 영재 윤철\n[2. lllllll] RoyaL1111: 매치 실피 옥타 녹아 애티"}
               />
 
@@ -1651,6 +1650,16 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myN
                     <span className={preview.detectedMaps ? "text-emerald-400" : "text-amber-400"}>맵 {preview.detectedMaps ? "인식 ✓" : "미인식 ✗"}</span>
                   </span>
                 ))}
+                {/* 우리팀이 오른쪽에 적혀 있을 때 한 번에 좌우 뒤집기 (vs 형식 전용) — 상태 문구 바로 옆 */}
+                {preview?.vsFormat && (
+                  <button onClick={() => setVsSwap(v => !v)}
+                    title="우리팀(P1)과 상대팀(P2)의 좌우를 통째로 바꿉니다"
+                    className={`flex items-center gap-1 h-7 px-2.5 rounded-lg text-xs font-bold border transition-all ${
+                      vsSwap ? "bg-purple-500/20 border-purple-400/45 text-purple-200" : "bg-white/5 border-white/12 text-white/45 hover:text-white/75 hover:bg-white/10"
+                    }`}>
+                    <ArrowLeftRight size={13} />좌우 바꾸기{vsSwap ? " ✓" : ""}
+                  </button>
+                )}
               </div>
               <div className="rounded-xl border border-white/10 overflow-hidden">
                 <div className="grid grid-cols-[1fr_84px_1fr] bg-black/30 border-b border-white/10 px-4 py-2 text-sm font-bold">
@@ -1661,7 +1670,7 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myN
                 {!preview ? (
                   <div className="px-4 py-6 text-center text-sm text-white/25">붙여넣으면 여기에 분류 결과가 표시됩니다</div>
                 ) : (
-                  preview.rows.map((r, i) => {
+                  previewRows.map((r, i) => {
                     // 입력에 명시된 종족이 있으면 그것을 우선, 없으면 선수 DB 자동 인식
                     const lRace = r.leftRace  ?? (r.leftPlayer  ? raceOf(r.leftPlayer)  : undefined);
                     const rRace = r.rightRace ?? (r.rightPlayer ? raceOf(r.rightPlayer) : undefined);
@@ -1686,12 +1695,35 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myN
                 )}
               </div>
 
+              {/* 인식 못 한 줄 — 원문 그대로 보여줘서 사용자가 어디가 문제인지 바로 알게 함 (주로 vs 누락·형식 오류) */}
+              {preview?.vsFormat && preview.unrecognized && preview.unrecognized.length > 0 && (
+                <div className="rounded-xl border border-amber-400/30 bg-amber-500/[0.07] px-4 py-3">
+                  <p className="text-sm font-bold text-amber-200">
+                    인식 못 한 줄 {preview.unrecognized.length}개 — &ldquo;vs&rdquo;를 못 찾았어요
+                  </p>
+                  <ul className="mt-1.5 space-y-1">
+                    {preview.unrecognized.map((line, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs font-mono text-amber-100/70">
+                        <span className="text-amber-400/50 select-none shrink-0">·</span>
+                        <span className="break-all">{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-[11px] text-amber-200/50 leading-relaxed">
+                    각 줄은 <b className="text-amber-200/80">선수 vs 선수</b> 형식이어야 해요. 이 줄들은 빼고 나머지만 적용되며, 표에서 직접 추가할 수도 있어요.
+                  </p>
+                </div>
+              )}
+
               {notice && <p className="text-sm text-amber-400/90">{notice}</p>}
             </div>
             {/* 하단 고정 액션 */}
-            <div className="flex items-center justify-end gap-3 px-5 py-3.5 border-t border-white/10 bg-white/[0.03]">
+            <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-white/10 bg-white/[0.03]">
+              <p className="text-xs text-white/40 leading-snug">
+                인식이 잘못된 부분은 <b className="text-white/60 font-semibold">대진표 관리</b> 창에서 바로 수정할 수 있어요
+              </p>
               <button onClick={applyBulk} disabled={!bulkText.trim()}
-                className="h-11 px-6 rounded-xl bg-emerald-600 text-base font-bold text-white hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                className="shrink-0 h-11 px-6 rounded-xl bg-emerald-600 text-base font-bold text-white hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
                 적용 (기존 교체)
               </button>
             </div>
