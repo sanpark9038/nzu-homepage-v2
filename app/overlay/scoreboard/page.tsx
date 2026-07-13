@@ -530,8 +530,8 @@ function RaceStartBadge({ race, point: pointRaw, color }: { race: string; point:
       border: `1.5px solid ${badgeColor}90`,
       padding: "0 15px", boxShadow: `0 0 12px ${badgeColor}22`,
     }}>
-      {r     && <span style={{ fontSize: "34px", fontWeight: 900, color: badgeColor, lineHeight: 1 }}>{r}</span>}
-      {point && <span style={{ fontSize: "31px", fontWeight: 900, color: badgeColor, lineHeight: 1 }}>{point}</span>}
+      {r     && <span style={{ fontSize: "32px", fontWeight: 900, color: badgeColor, lineHeight: 1 }}>{r}</span>}
+      {point && <span style={{ fontSize: "32px", fontWeight: 900, color: badgeColor, lineHeight: 1 }}>{point}</span>}
     </span>
   );
 }
