@@ -138,6 +138,9 @@ export default function OverlayAdminClient({
   const universities = Array.from(new Set(playerDb.map(p => p.university).filter((u): u is string => !!u))).sort();
   const [toast, setToast]       = useState<string | null>(null);
   const [adminTab, setAdminTab] = useState<string | null>(null);
+  // 세트가 방금 끝났을 때 "다음 세트로" 카드를 띄울 대상 세트 id. 닫으면 그 세트에선 다시 안 뜸(promptedSets).
+  const [nextPromptSetId, setNextPromptSetId] = useState<string | null>(null);
+  const promptedSets = useRef<Set<string>>(new Set());
   const saveTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -381,6 +384,8 @@ export default function OverlayAdminClient({
 
   const setResult = (setId: string, entryId: string, result: "left" | "right") => {
     let msg = "";
+    let toPrompt: string | null = null;   // 방금 끝나서 카드 띄울 세트
+    let toUnprompt: string | null = null;  // 결과 취소로 다시 미결이 된 세트
     setState(s => {
       const set = s.sets.find(set => set.id === setId);
       if (!set) return s;
@@ -418,15 +423,32 @@ export default function OverlayAdminClient({
         nextRight = { ...s.right, playerName: nx.rightPlayer || s.right.playerName, ...(rRace ? { race: rRace } : {}),
                       startingPoint: "", startingColor: defaultOverlaySide("right").startingColor };
       }
+      const newSets = s.sets.map(set => set.id === setId
+        ? { ...set, entries: newEntries, currentMatch: nextCurrent }
+        : set);
+
+      // 이 클릭으로 세트가 "미결 → 결정"으로 넘어갔고 이어갈 다음 세트가 있으면 카드 띄움.
+      // 반대로 결과 취소로 다시 미결이 됐으면 그 세트 카드는 내림.
+      const wasDecided = setWinnerOf(set) !== null;
+      const nowDecided = setWinnerOf({ ...set, entries: newEntries }) !== null;
+      if (!wasDecided && nowDecided) {
+        const idx  = newSets.findIndex(x => x.id === setId);
+        const aceN = miniAceNeeded(newSets);
+        const nxt  = newSets.slice(idx + 1).find(x => !(s.matchFormat === "mini" && x.isAce && aceN === false));
+        if (nxt && !promptedSets.current.has(setId)) toPrompt = setId;
+      } else if (wasDecided && !nowDecided) {
+        toUnprompt = setId;
+      }
+
       return {
         ...s,
         ...(newResult !== null ? { activeSetId: setId, title: set.title || s.title, left: nextLeft, right: nextRight } : {}),
-        sets: s.sets.map(set => set.id === setId
-          ? { ...set, entries: newEntries, currentMatch: nextCurrent }
-          : set),
+        sets: newSets,
       };
     });
     if (msg) showToast(msg);
+    if (toPrompt)   { promptedSets.current.add(toPrompt); setNextPromptSetId(toPrompt); }
+    if (toUnprompt) { promptedSets.current.delete(toUnprompt); setNextPromptSetId(cur => cur === toUnprompt ? null : cur); }
   };
 
   // 스마트 붙여넣기: 한 칸에 여러 토큰 붙여넣으면 그 열을 아래로 채움 (필요 시 행 추가)
@@ -547,19 +569,27 @@ export default function OverlayAdminClient({
   const isMini = state.matchFormat === "mini";
   const aceNeeded = miniAceNeeded(state.sets);
 
-  // 편집 중인 세트가 끝났으면(과반 승) 그 다음 세트. 미니대전 2:0이면 슈에는 건너뛴다.
-  // 없으면 null → 버튼은 평소대로 "세트 송출"로 남는다.
-  const nextSet = (() => {
-    if (!editingSet || editingSet.entries.length === 0) return null;
-    if (!setWinnerOf(editingSet)) return null;
-    const idx = state.sets.findIndex(s => s.id === editingSet.id);
+  // 주어진 세트가 끝났으면(과반 승) 이어갈 다음 세트. 미니대전 2:0이면 슈에는 건너뛴다. 아니면 null.
+  const nextSetOf = (set: OverlaySet | null): OverlaySet | null => {
+    if (!set || set.entries.length === 0 || !setWinnerOf(set)) return null;
+    const idx = state.sets.findIndex(s => s.id === set.id);
     return state.sets.slice(idx + 1).find(s => !(isMini && s.isAce && aceNeeded === false)) ?? null;
-  })();
+  };
+  // 편집 중인 세트 기준 — 있으면 탭 바 버튼이 "세트 송출" 대신 "다음 세트로"가 된다.
+  const nextSet = nextSetOf(editingSet);
 
-  // "다음 세트로" 원클릭 — 탭 전환 + 송출(첫 미결 경기 자동 로드)을 한 번에.
+  // "다음 세트로" 카드 대상 — 방금 끝난 세트와 그 다음 세트. 상태가 바뀌어 다음 세트가 사라지면 카드도 사라짐.
+  const promptSet     = nextPromptSetId ? state.sets.find(s => s.id === nextPromptSetId) ?? null : null;
+  const promptNextSet = nextSetOf(promptSet);
+  const promptScore   = promptSet
+    ? { l: promptSet.entries.filter(e => e.result === "left").length, r: promptSet.entries.filter(e => e.result === "right").length }
+    : null;
+
+  // "다음 세트로" 원클릭 — 탭 전환 + 송출(첫 미결 경기 자동 로드)을 한 번에. 카드가 떠 있었다면 닫는다.
   const goNextSet = (next: OverlaySet) => {
     setAdminTab(next.id);
     setRemoveSetConfirm(false);
+    setNextPromptSetId(null);
     broadcastSet(next);
     showToast(`${setLabelOf(next)} 송출`); // loadMatch의 "N경기 로드" 토스트를 덮어씀
   };
@@ -1148,6 +1178,38 @@ export default function OverlayAdminClient({
             </div>
           </div>
         </div>
+      )}
+
+      {/* 세트 종료 → "다음 세트로" 카드. 뒤 화면은 안 막고(결과 수정 가능) 눌러 처리하거나 닫을 때까지 떠 있음.
+          닫으면 promptedSets에 남아 그 세트에선 다시 안 뜨지만, 탭 바의 "다음 세트로" 버튼은 그대로 fallback. */}
+      {promptSet && promptNextSet && (
+        <>
+          <style>{`@keyframes nextCardIn{from{opacity:0;transform:translate(-50%,16px)}to{opacity:1;transform:translate(-50%,0)}}`}</style>
+          <div className="fixed bottom-24 left-1/2 z-[210]"
+            style={{ animation: "nextCardIn 0.22s cubic-bezier(0.16,1,0.3,1)", transform: "translateX(-50%)" }}>
+            <div className="rounded-2xl bg-[#1a1510] border border-amber-400/45 shadow-2xl shadow-black/70 px-5 py-4 flex items-center gap-4">
+              <div className="flex items-center gap-2.5">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/20 text-amber-300 font-black">✓</span>
+                <div className="leading-tight">
+                  <p className="text-sm font-black text-amber-100">
+                    {setLabelOf(promptSet)} 종료
+                    {promptScore && <span className="ml-1.5 text-amber-300/80 font-bold">{promptScore.l}:{promptScore.r}</span>}
+                  </p>
+                  <p className="text-[11px] text-amber-200/55 mt-0.5">이어서 {setLabelOf(promptNextSet)} 진행할까요?</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button onClick={() => goNextSet(promptNextSet)}
+                  className="flex items-center gap-0.5 h-9 pl-4 pr-3 rounded-xl text-sm font-black bg-amber-500 text-black hover:bg-amber-400 active:scale-[0.97] transition-all">
+                  {setLabelOf(promptNextSet)}{promptNextSet.isAce ? "로" : "으로"}
+                  <ChevronRight size={16} />
+                </button>
+                <button onClick={() => setNextPromptSetId(null)}
+                  className="h-9 px-3 rounded-xl text-sm font-bold text-white/40 hover:text-white/75 hover:bg-white/5 transition-all">닫기</button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {toast && (
