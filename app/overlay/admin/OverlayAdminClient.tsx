@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Copy, Check, Eye, EyeOff,
-  Settings, X, Layers, Plus, GripVertical, ClipboardPaste, HelpCircle, Lock, RotateCcw,
+  Settings, X, Layers, Plus, GripVertical, ClipboardPaste, HelpCircle, Lock, RotateCcw, ChevronRight,
 } from "lucide-react";
 import {
   defaultOverlayState,
@@ -527,11 +527,11 @@ export default function OverlayAdminClient({
   const scoreLeft  = activeSet?.entries.filter(e => e.result === "left").length  ?? 0;
   const scoreRight = activeSet?.entries.filter(e => e.result === "right").length ?? 0;
   const editingSet = state.sets.find(s => s.id === adminTab) ?? null;
-  const activeSetLabel = (() => {
-    const idx = state.sets.findIndex(s => s.id === state.activeSetId);
-    if (activeSet?.isAce) return state.matchFormat === "mini" ? "슈에" : "에이스";
-    return idx >= 0 ? `${idx + 1}SET` : "-";
-  })();
+  const setLabelOf = (set: OverlaySet) => {
+    if (set.isAce) return state.matchFormat === "mini" ? "슈에" : "에이스";
+    return `${state.sets.findIndex(s => s.id === set.id) + 1}SET`;
+  };
+  const activeSetLabel = activeSet ? setLabelOf(activeSet) : "-";
   const defaultSlotsOf = (set: OverlaySet) => {
     if (set.isAce) return 1;                                              // 에이스·슈에 = 단판
     const mf = state.matchFormat;
@@ -546,6 +546,23 @@ export default function OverlayAdminClient({
   // 미니대전: 슈에 필요 여부(1:1이면 필요, 2:0이면 불필요) + 세트 승자 표시
   const isMini = state.matchFormat === "mini";
   const aceNeeded = miniAceNeeded(state.sets);
+
+  // 편집 중인 세트가 끝났으면(과반 승) 그 다음 세트. 미니대전 2:0이면 슈에는 건너뛴다.
+  // 없으면 null → 버튼은 평소대로 "세트 송출"로 남는다.
+  const nextSet = (() => {
+    if (!editingSet || editingSet.entries.length === 0) return null;
+    if (!setWinnerOf(editingSet)) return null;
+    const idx = state.sets.findIndex(s => s.id === editingSet.id);
+    return state.sets.slice(idx + 1).find(s => !(isMini && s.isAce && aceNeeded === false)) ?? null;
+  })();
+
+  // "다음 세트로" 원클릭 — 탭 전환 + 송출(첫 미결 경기 자동 로드)을 한 번에.
+  const goNextSet = (next: OverlaySet) => {
+    setAdminTab(next.id);
+    setRemoveSetConfirm(false);
+    broadcastSet(next);
+    showToast(`${setLabelOf(next)} 송출`); // loadMatch의 "N경기 로드" 토스트를 덮어씀
+  };
 
   if (!loaded) return (
     <div className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground">
@@ -985,14 +1002,22 @@ export default function OverlayAdminClient({
                 </div>
               )}
 
-              {/* 송출 — 방송 제어 액션, 구조 변경 버튼들과 분리해 오른쪽 끝에 배치 */}
-              {editingSet && (
+              {/* 송출 — 방송 제어 액션, 구조 변경 버튼들과 분리해 오른쪽 끝에 배치.
+                  세트가 끝나면 같은 자리에서 "다음 세트로"(탭 전환 + 송출)로 바뀐다. */}
+              {editingSet && (nextSet ? (
+                <button onClick={() => goNextSet(nextSet)}
+                  title={`${setLabelOf(nextSet)} 탭으로 넘어가면서 첫 경기를 송출합니다`}
+                  className="ml-auto flex items-center gap-0.5 h-8 pl-4 pr-3 rounded-lg text-xs font-black bg-amber-500 text-black shadow-lg shadow-amber-500/25 hover:bg-amber-400 active:scale-[0.97] transition-all">
+                  {setLabelOf(nextSet)}{nextSet.isAce ? "로" : "으로"}
+                  <ChevronRight size={14} />
+                </button>
+              ) : (
                 <button onClick={() => broadcastSet(editingSet)}
                   title="이 세트를 송출하고 첫 경기를 자동으로 띄웁니다"
                   className="ml-auto h-8 px-4 rounded-lg text-xs font-black bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 hover:bg-emerald-500 active:scale-[0.97] transition-all">
                   세트 송출
                 </button>
-              )}
+              ))}
             </div>
             )}
 
