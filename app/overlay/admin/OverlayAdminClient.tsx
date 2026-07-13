@@ -164,8 +164,16 @@ export default function OverlayAdminClient({
     if (isUniversityFormat) { setMyNameUniversity(v); localStorage.setItem(MY_NAME_KEY_UNIVERSITY, v); }
     else { setMyNameProleague(v); localStorage.setItem(MY_NAME_KEY_PROLEAGUE, v); }
   };
-  // (팀명 자동 채움은 제거 — 리셋 후 빈칸이 기본값이어야 하고,
-  //  대전 및 CK·미니대전에선 myName이 대학 코드라 "C9팀" 처럼 잘못 채워졌음)
+  // 스코어보드 팀명 기본값 — 프로리그만: 왼쪽=내 팀 인식 이름, 오른쪽="상대팀".
+  // (대전 및 CK·미니대전·자유방식은 vs 형식이라 우리팀 개념을 안 쓰므로 빈칸 유지.
+  //  예전에 자동 채움을 뺐던 건 대학대전에서 myName이 대학코드라 잘못 채워졌기 때문 — 이제 프로리그 전용이라 안전)
+  // "택용" → "택용팀" (이미 "팀"으로 끝나면 그대로). 빈 이름이면 빈칸.
+  const teamLabel = (name: string) => { const n = name.trim(); return n ? (n.endsWith("팀") ? n : `${n}팀`) : ""; };
+  const defaultSidesFor = (fmt: OverlayMatchFormat) => {
+    const left = defaultOverlaySide("left"), right = defaultOverlaySide("right");
+    if (fmt !== "proleague") return { left, right };
+    return { left: { ...left, teamName: teamLabel(myNameProleague || displayName || "") }, right: { ...right, teamName: "상대팀" } };
+  };
 
   const scoreboardUrl = typeof window !== "undefined"
     ? `${window.location.origin}/overlay/scoreboard?key=${encodeURIComponent(overlayKey)}`
@@ -216,6 +224,11 @@ export default function OverlayAdminClient({
             }),
           };
         }
+        // 프로리그이고 팀명이 둘 다 비어 있으면 기본값 시드(왼쪽=내 이름+"팀", 오른쪽=상대팀). 저장된 팀명은 보존.
+        if (next.matchFormat === "proleague" && !next.left.teamName && !next.right.teamName) {
+          const mine = (typeof window !== "undefined" ? localStorage.getItem(MY_NAME_KEY_PROLEAGUE) : null) || displayName || "";
+          next = { ...next, left: { ...next.left, teamName: teamLabel(mine) }, right: { ...next.right, teamName: "상대팀" } };
+        }
         setState(next);
         setAdminTab(next.activeSetId ?? next.sets[0]?.id ?? null);
         setLoaded(true);
@@ -226,6 +239,8 @@ export default function OverlayAdminClient({
         setAdminTab(next.sets[0]?.id ?? null);
         setLoaded(true);
       });
+    // 최초 1회 로드 — MY_NAME_KEY_PROLEAGUE는 overlayKey 파생, displayName은 세션 고정이라 재실행 불필요
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overlayKey]);
 
   // ── 자동 저장 ──
@@ -290,7 +305,7 @@ export default function OverlayAdminClient({
     if (state.matchFormat === fmt) return;
     const apply = () => {
       const newSets = buildDefaultSets(fmt);
-      setState(s => ({ ...s, matchFormat: fmt, mode: defaultModeFor(fmt), sets: newSets, activeSetId: newSets[0].id, title: defaultBroadcastTitle(fmt) }));
+      setState(s => ({ ...s, matchFormat: fmt, mode: defaultModeFor(fmt), sets: newSets, activeSetId: newSets[0].id, title: defaultBroadcastTitle(fmt), ...defaultSidesFor(fmt) }));
       setAdminTab(newSets[0].id);
       if (fmt === "mini" && !miniIntroDismissed) setMiniIntroOpen(true);
       showToast(`${MATCH_FORMAT_LABEL[fmt]} 방식으로 전환`);
@@ -529,8 +544,7 @@ export default function OverlayAdminClient({
   const clearSetEntries = (setId: string, slots: number) => {
     setState(s => ({
       ...s,
-      left:  defaultOverlaySide("left"),
-      right: defaultOverlaySide("right"),
+      ...defaultSidesFor(s.matchFormat),
       sets: s.sets.map(set => set.id === setId
         ? { ...set, currentMatch: null, entries: Array.from({ length: slots }, () => ({ id: genId(), leftPlayer: "", rightPlayer: "", map: "", result: null })) }
         : set),
