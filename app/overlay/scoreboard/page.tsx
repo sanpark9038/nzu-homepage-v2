@@ -65,19 +65,21 @@ const SEP = (
 // ── 엔트리 테이블 ──────────────────────────────────────────
 
 const ET = {
-  bg:        "rgba(14, 14, 16, 0.96)",
-  header:    "rgba(8, 8, 10, 0.97)",
+  bg:        "rgba(14, 14, 16, 0.86)",   // 살짝 투명 — 뒤 화면이 은은히 비침
+  // 헤더(SET·타이틀·팀명·점수) — 본문보다 밝은 띠로 구분해 가독성↑ (본문과 비슷한 투명도)
+  header:    "linear-gradient(180deg, rgba(46,49,58,0.88), rgba(31,33,40,0.88))",
   border:    "rgba(255, 255, 255, 0.16)",
   divider:   "rgba(255, 255, 255, 0.06)",
   accent:    "rgba(225, 227, 232, 0.85)",
-  aceBg:     "rgba(180, 130, 30, 0.12)",
+  aceBg:     "rgba(48, 40, 18, 0.86)",   // 에이스 열 — 본문과 같은 투명도의 따뜻한 어두운 톤
   aceBorder: "rgba(200, 160, 40, 0.60)",
-  current:   "rgba(255, 255, 255, 0.07)",
+  currentBorder: "rgba(255, 255, 255, 0.92)", // 현재 경기 강조 — 배경 대신 테두리만(정적, 깜빡임 없음)
   text:      "rgba(232, 233, 236, 0.90)",
   muted:     "rgba(180, 180, 186, 0.50)",
+  mapText:   "rgba(214, 216, 222, 0.88)", // 맵 약자 — muted보다 밝게(방송에서 잘 보이게)
 };
 
-const SET_COL_W = 210;
+const SET_COL_W = 200;
 
 function mapAbbr(name: string) {
   return name.slice(0, 2);
@@ -93,7 +95,13 @@ function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLab
   mini: boolean;
   raceOf: (name: string) => OverlayRace | undefined;
 }) {
-  if (!layout.visible || sets.length === 0) return null;
+  // 진행되는 세트만 노출 — 활성 세트이거나, 이미 결과가 하나라도 나온 세트.
+  // (처음부터 1SET·2SET·에이스를 다 띄우지 않고, 세트가 시작되면 그때 추가로 나타남)
+  // 원래 세트 순번(setIdx)은 라벨용으로 유지.
+  const shown = sets
+    .map((set, setIdx) => ({ set, setIdx }))
+    .filter(({ set }) => set.id === activeSetId || set.entries.some(e => e.result !== null));
+  if (!layout.visible || shown.length === 0) return null;
 
   return (
     <div style={{
@@ -103,18 +111,19 @@ function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLab
       transform: layout.scale !== 1 ? `scale(${layout.scale})` : undefined,
       transformOrigin: "left top",
       display: "flex",
+      alignItems: "flex-start", // 세트마다 경기 수가 달라도 각 열은 자기 내용 높이만 — 짧은 열 밑에 빈 배경 안 생기게
       fontFamily: "'Pretendard Variable','Pretendard','Malgun Gothic',sans-serif",
       borderRadius: "10px",
       overflow: "hidden",
       border: `1px solid ${ET.border}`,
       boxShadow: "0 4px 32px rgba(0,0,0,0.7)",
     }}>
-      {sets.map((set, setIdx) => (
+      {shown.map(({ set, setIdx }, pos) => (
         <SetColumn
           key={set.id}
           set={set}
           setIdx={setIdx}
-          total={sets.length}
+          isLast={pos === shown.length - 1}
           isActive={set.id === activeSetId}
           leftTeam={leftTeam}
           rightTeam={rightTeam}
@@ -127,8 +136,8 @@ function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLab
   );
 }
 
-function SetColumn({ set, setIdx, total, isActive: _isActive, leftTeam, rightTeam, showSetLabel, mini, raceOf }: {
-  set: OverlaySet; setIdx: number; total: number;
+function SetColumn({ set, setIdx, isLast, isActive: _isActive, leftTeam, rightTeam, showSetLabel, mini, raceOf }: {
+  set: OverlaySet; setIdx: number; isLast: boolean;
   isActive: boolean; leftTeam: string; rightTeam: string; showSetLabel: boolean; mini: boolean;
   raceOf: (name: string) => OverlayRace | undefined;
 }) {
@@ -137,7 +146,9 @@ function SetColumn({ set, setIdx, total, isActive: _isActive, leftTeam, rightTea
   const setLabel   = mini
     ? (set.isAce ? "슈에" : `${setIdx + 1}SET`)
     : (set.isAce ? "에이스" : `${setIdx + 1}SET`);
-  const isLast     = setIdx === total - 1;
+  // 선수·맵이 모두 없는 완전 빈 행만 렌더 제외. 맵만 미리 적어둔 행(위너스 대기 경기 등)은 맵을 보여줌.
+  const hasContent = (e: OverlayEntryRow) => !!(e.leftPlayer || e.rightPlayer || e.map);
+  const hasAnyRow  = set.entries.some(hasContent);
 
   return (
     <div style={{
@@ -151,41 +162,44 @@ function SetColumn({ set, setIdx, total, isActive: _isActive, leftTeam, rightTea
       <div style={{
         background: ET.header,
         borderBottom: `1px solid ${set.isAce ? ET.aceBorder : ET.border}`,
-        padding: "6px 10px 5px",
+        padding: "2px 8px 3px",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "5px", marginBottom: "3px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "5px", marginBottom: "1px", lineHeight: 1 }}>
           {showSetLabel && (
             <span style={{
-              fontSize: "10px", fontWeight: 900, letterSpacing: "0.05em",
+              fontSize: "13px", fontWeight: 900, letterSpacing: "0.05em", lineHeight: 1,
               color: set.isAce ? "rgba(200,160,40,0.9)" : ET.accent,
             }}>{setLabel}</span>
           )}
           {set.title && (
             <>
-              {showSetLabel && <span style={{ color: ET.muted, fontSize: "9px" }}>|</span>}
-              <span style={{ fontSize: "10px", color: ET.muted, letterSpacing: "0.03em" }}>{set.title}</span>
+              {showSetLabel && <span style={{ color: ET.muted, fontSize: "12px", lineHeight: 1 }}>|</span>}
+              <span style={{ fontSize: "13px", color: ET.muted, letterSpacing: "0.03em", lineHeight: 1 }}>{set.title}</span>
             </>
           )}
         </div>
-        {/* 팀 스코어 */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: "11px", fontWeight: 700, color: ET.text, maxWidth: "60px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{leftTeam || "좌팀"}</span>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span style={{ fontSize: "13px", fontWeight: 900, color: "rgba(225,227,232,0.95)" }}>{scoreLeft}</span>
-            <span style={{ fontSize: "10px", color: ET.muted }}>:</span>
-            <span style={{ fontSize: "13px", fontWeight: 900, color: "rgba(225,227,232,0.95)" }}>{scoreRight}</span>
+        {/* 팀 스코어 — 아래 경기행과 같은 열 구조로 정렬(번호칸 자리 · 좌팀=좌선수열 · 스코어=맵열 · 우팀=우선수열) */}
+        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+          <span style={{ width: "16px", flexShrink: 0 }} />
+          <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "14px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{leftTeam || "좌팀"}</span>
+          <div style={{ width: "30px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "3px" }}>
+            <span style={{ fontSize: "17px", fontWeight: 900, color: "rgba(225,227,232,0.95)", lineHeight: 1 }}>{scoreLeft}</span>
+            <span style={{ fontSize: "12px", color: ET.muted, lineHeight: 1 }}>:</span>
+            <span style={{ fontSize: "17px", fontWeight: 900, color: "rgba(225,227,232,0.95)", lineHeight: 1 }}>{scoreRight}</span>
           </div>
-          <span style={{ fontSize: "11px", fontWeight: 700, color: ET.text, maxWidth: "60px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>{rightTeam || "우팀"}</span>
+          <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "14px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{rightTeam || "우팀"}</span>
         </div>
       </div>
 
-      {/* 경기 목록 */}
-      {set.entries.map((entry, idx) => (
-        <EntryRow key={entry.id} entry={entry} idx={idx} isCurrent={set.currentMatch === idx} raceOf={raceOf} />
-      ))}
+      {/* 경기 목록 — 선수 또는 맵이 있는 행만 (원래 경기 번호 유지 위해 원본 idx 사용) */}
+      {set.entries.map((entry, idx) =>
+        hasContent(entry)
+          ? <EntryRow key={entry.id} entry={entry} idx={idx} isCurrent={set.currentMatch === idx} raceOf={raceOf} />
+          : null
+      )}
 
-      {set.entries.length === 0 && (
-        <div style={{ padding: "12px 10px", textAlign: "center", color: ET.muted, fontSize: "10px" }}>
+      {!hasAnyRow && (
+        <div style={{ padding: "15px 13px", textAlign: "center", color: ET.muted, fontSize: "13px" }}>
           경기 없음
         </div>
       )}
@@ -208,28 +222,32 @@ function EntryRow({ entry, idx, isCurrent, raceOf }: {
     color: race ? RACE_COLORS[race] : ET.text,
     opacity: lost ? 0.32 : 1,
   });
+  // 강조는 "지금 진행 중인 경기"에만 — 결과가 이미 나온 경기는(세트 종료 후 마지막 경기 포함) 강조 안 함
+  const active = isCurrent && entry.result === null;
 
   return (
     <div style={{
       display: "flex",
       alignItems: "center",
-      padding: "4px 8px",
-      background: isCurrent ? ET.current : "transparent",
-      borderLeft: isCurrent ? `2px solid ${ET.accent}` : "2px solid transparent",
+      padding: "3px 8px",
+      background: "transparent",
+      // 진행 중 경기: 배경 채움 없이 테두리만 강조 (박스 안쪽 라인 + 은은한 글로우, 정적)
+      boxShadow: active ? `inset 0 0 0 2px ${ET.currentBorder}, inset 0 0 9px rgba(255,255,255,0.14)` : undefined,
+      borderRadius: active ? "5px" : undefined,
       gap: "4px",
-      minHeight: "24px",
+      minHeight: "29px",
     }}>
-      <span style={{ width: "14px", fontSize: "9px", color: isCurrent ? ET.accent : ET.muted, fontWeight: isCurrent ? 900 : 400, flexShrink: 0 }}>
+      <span style={{ width: "16px", fontSize: "13px", color: active ? ET.accent : ET.muted, fontWeight: active ? 900 : 400, flexShrink: 0, lineHeight: 1 }}>
         {idx + 1}
       </span>
       <span style={{
-        flex: 1, textAlign: "right", fontSize: "11px", fontWeight: 700,
+        flex: 1, textAlign: "center", fontSize: "18px", fontWeight: 700, lineHeight: 1.1,
         ...nameStyle(leftRace, leftLost),
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       }}>{entry.leftPlayer}</span>
-      <span style={{ width: "20px", textAlign: "center", fontSize: "9px", color: ET.muted, flexShrink: 0 }}>{abbr}</span>
+      <span style={{ width: "30px", textAlign: "center", fontSize: "15px", fontWeight: 600, color: ET.mapText, flexShrink: 0, whiteSpace: "nowrap", lineHeight: 1 }}>{abbr}</span>
       <span style={{
-        flex: 1, textAlign: "left", fontSize: "11px", fontWeight: 700,
+        flex: 1, textAlign: "center", fontSize: "18px", fontWeight: 700, lineHeight: 1.1,
         ...nameStyle(rightRace, rightLost),
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       }}>{entry.rightPlayer}</span>

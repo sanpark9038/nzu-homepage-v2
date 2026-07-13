@@ -174,7 +174,7 @@ export function defaultOverlayState(): OverlayState {
     activeSetId: null,
     maps: [],
     scoreboardLayout: { x: 0, y: 373, scale: 0.54, visible: true },
-    entryLayout: { x: 1200, y: 30, scale: 1, visible: true },
+    entryLayout: { x: 330, y: 770, scale: 1, visible: true },
     favorites: [],
     matchFormat: "proleague",
     universityFormat: "bo7",
