@@ -55,7 +55,7 @@ export default function EntryBoardOverlayPage() {
       border: `1px solid ${ET.border}`,
       borderRadius: "12px",
       overflow: "hidden",
-      boxShadow: "0 6px 28px rgba(0,0,0,0.7)",
+      // 바깥 그림자 없음 — OBS 투명 배경 위에 그림자가 떠 보여서 지저분함
     }}>
       {/* 전체 헤더 — 팀명 + 점수. 아래 경기 행과 같은 열 구조로 맞춘다
           (번호칸 자리 · 좌팀=좌선수열 · 점수=종족/맵 가운데 · 우팀=우선수열)
