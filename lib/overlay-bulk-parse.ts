@@ -1,6 +1,6 @@
 // 일괄 입력 파서 — 채팅 접두어 제거 + 잡담 줄 폐기, "N 좌선수 [종족] vs 우선수 [종족] [맵]" 형식 지원
 // 순수 함수라 UI와 분리해 둠 (테스트/재사용 용이)
-import type { OverlayRace } from "./overlay-types";
+import type { OverlayRace, OverlayResult } from "./overlay-types";
 
 export type ParsedRow = {
   leftPlayer: string;
@@ -8,7 +8,80 @@ export type ParsedRow = {
   map: string;
   leftRace?: OverlayRace;   // 입력에 종족이 명시된 경우에만
   rightRace?: OverlayRace;
+  result?: OverlayResult;   // 이모지 양식의 ✅(승자)에서만 채워짐
 };
+
+// ── 이모지 대진표 양식 ──────────────────────────────────────────────
+// "1️⃣구보라3P⬜️🆚️✅️라 미3Z [녹]" 처럼 구분자·맵·티어·종족·승패가 전부 명시된 양식.
+// 추측할 게 없으므로 아래 vs 파서와 섞지 않고 따로 읽는다 → 기존 규칙에 영향 없음.
+const VS_EMOJI  = "\u{1F19A}"; // 🆚
+const WIN_EMOJI = "✅";    // ✅
+
+function parseEmojiFormat(lines: string[]): { rows: ParsedRow[]; unrecognized: string[] } | null {
+  if (!lines.some(l => l.includes(VS_EMOJI))) return null;
+
+  // 경기번호 키캡(1️⃣)·빈칸(⬜)·현재경기 마커(<<)·이모지 variation selector 제거. ✅는 승패 판단에 써야 하므로 남김.
+  const stripNoise = (s: string) =>
+    s.replace(/[0-9]️?⃣/g, " ")   // 1️⃣ ~ 9️⃣
+     .replace(/\u{1F51F}/gu, " ")           // 🔟
+     .replace(/[\u{1F170}-\u{1F18F}]/gu, " ") // 🅰(에이스) 🅱 🅾 🆎 등 경기 마커 — 🆚(1F19A)는 제외
+     .replace(/[⬛⬜]/g, " ")       // ⬛ ⬜
+     .replace(/<</g, " ")
+     .replace(/️/g, "")
+     .replace(/\s+/g, " ")
+     .trim();
+
+  // "구보라3P" → 이름 구보라 / 종족 P (티어 3은 버림). "라 미3Z"처럼 이름에 공백이 있어도 됨.
+  // 티어 숫자가 없고 종족 앞이 영문이면(SharpZ) 닉네임으로 보고 떼지 않는다.
+  const splitNameRace = (raw: string): { name: string; race?: OverlayRace } => {
+    const s = raw.trim();
+    const m = s.match(/^(.*?)(\d*)([TPZ])$/i);
+    if (!m) return { name: s };
+    const [, name, tier, race] = m;
+    if (!name.trim()) return { name: s };
+    if (!tier && /[A-Za-z]/.test(name[name.length - 1])) return { name: s };
+    return { name: name.trim(), race: race.toUpperCase() as OverlayRace };
+  };
+
+  const rows: ParsedRow[] = [];
+  const unrecognized: string[] = [];
+  for (const raw of lines) {
+    // 맵은 [] 안에 명시돼 있으므로 먼저 떼어낸다 → 이름/맵을 추측할 필요가 없어짐
+    const mapM = raw.match(/\[([^\]]*)\]/);
+    const map  = mapM ? mapM[1].trim() : "";
+    const body = stripNoise(raw.replace(/\[[^\]]*\]/g, " "));
+
+    if (!body.includes(VS_EMOJI)) {
+      if (map) rows.push({ leftPlayer: "", rightPlayer: "", map }); // "5️⃣[녹]" = 선수 미정, 맵만
+      else if (body) unrecognized.push(raw.trim());
+      continue;
+    }
+
+    const i    = body.indexOf(VS_EMOJI);
+    const lRaw = body.slice(0, i);
+    const rRaw = body.slice(i + VS_EMOJI.length);
+    const result: OverlayResult =
+      lRaw.includes(WIN_EMOJI) ? "left" : rRaw.includes(WIN_EMOJI) ? "right" : null;
+
+    const dropWin = (s: string) => s.split(WIN_EMOJI).join(" ").replace(/\s+/g, " ").trim();
+    const L = splitNameRace(dropWin(lRaw));
+    const R = splitNameRace(dropWin(rRaw));
+    // 양쪽 다 비었으면 "🅰️⬜️🆚️⬜️ [라]" 같은 선수 미정 경기 — 맵만 있으면 그 행으로 살린다
+    if (!L.name && !R.name) {
+      if (map) rows.push({ leftPlayer: "", rightPlayer: "", map });
+      else unrecognized.push(raw.trim());
+      continue;
+    }
+
+    rows.push({
+      leftPlayer: L.name, rightPlayer: R.name, map,
+      ...(L.race ? { leftRace: L.race } : {}),
+      ...(R.race ? { rightRace: R.race } : {}),
+      ...(result ? { result } : {}),
+    });
+  }
+  return rows.length ? { rows, unrecognized } : null;
+}
 export function parseBulk(
   text: string,
   myName: string,
@@ -26,8 +99,19 @@ export function parseBulk(
     body = body.replace(/^\s*\[[^\]]*\]\.?\s*/, "");
     return body.trim();
   };
-  // 채팅 줄(콜론 포함)이 하나라도 있으면 그 줄들만 후보로 — 안내문/잡줄 제거
   const rawLines = text.split(/\r?\n/);
+
+  // 🆚가 있으면 이모지 양식 — 채팅 명단/vs 양식과 절대 헷갈리지 않으므로 먼저 처리하고 끝낸다
+  const emoji = parseEmojiFormat(rawLines.filter(l => l.trim()));
+  if (emoji) {
+    return {
+      rows: emoji.rows, detectedP1: true,
+      detectedMaps: emoji.rows.some(r => r.map), mapsOnly: false,
+      vsFormat: true, unrecognized: emoji.unrecognized,
+    };
+  }
+
+  // 채팅 줄(콜론 포함)이 하나라도 있으면 그 줄들만 후보로 — 안내문/잡줄 제거
   const cells = rawLines.map(l => ({ hadColon: l.includes(":"), body: stripPrefix(l) })).filter(x => x.body);
   const anyColon = cells.some(x => x.hadColon);
   const lines = (anyColon ? cells.filter(x => x.hadColon) : cells).map(x => x.body);

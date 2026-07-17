@@ -359,7 +359,7 @@ export default function OverlayAdminClient({
         ? { ...set, currentMatch: null, entries: rows.map(r => ({
             id: genId(),
             leftPlayer: r.leftPlayer, rightPlayer: r.rightPlayer, map: r.map,
-            result: null as OverlayResult,
+            result: (r.result ?? null) as OverlayResult, // 이모지 양식의 ✅에서만 채워짐
             ...(r.leftRace  ? { leftRace:  r.leftRace }  : {}),
             ...(r.rightRace ? { rightRace: r.rightRace } : {}),
           })) }
@@ -1286,6 +1286,7 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myN
   const swapRow = (r: ParsedRow): ParsedRow => ({
     leftPlayer: r.rightPlayer, rightPlayer: r.leftPlayer,
     leftRace: r.rightRace, rightRace: r.leftRace, map: r.map,
+    result: r.result === "left" ? "right" : r.result === "right" ? "left" : r.result,
   });
   // 판수는 고정 설정이 아니라 실제 경기(행) 수로 결정됨
   const winTarget = Math.floor(set.entries.length / 2) + 1;
@@ -1343,6 +1344,7 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myN
   );
   // vs 형식 + 좌우 교체 시 미리보기·적용에 쓰일 실제 행
   const previewRows = preview ? (preview.vsFormat && vsSwap ? preview.rows.map(swapRow) : preview.rows) : [];
+  const previewWins = previewRows.filter(r => r.result).length; // 이모지 양식의 ✅ 승패 인식 건수
 
   const applyBulk = () => {
     const parsed = parseBulk(bulkText, myName, playerNames, useUnivMatch ? universityOf : undefined, allowVsFormat);
@@ -1672,6 +1674,7 @@ function SetEditor({ set, leftTeam, rightTeam, leftPool, rightPool, mapPool, myN
                 {preview && (preview.vsFormat ? (
                   <span className="text-xs font-bold text-emerald-400">
                     &ldquo;vs&rdquo; 형식 ✓ {preview.rows.length}경기{preview.detectedMaps ? " · 맵 인식 ✓" : " · 맵은 표에서 입력"}
+                    {previewWins > 0 && <span className="text-amber-300"> · 승패 {previewWins}건 인식</span>}
                   </span>
                 ) : preview.mapsOnly ? (
                   <span className="text-xs font-bold text-emerald-400">맵만 입력 ✓ (선수는 표에서 입력)</span>
