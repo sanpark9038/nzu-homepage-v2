@@ -70,3 +70,9 @@ MAIN_AI_UI_ONLY_INSTRUCTION.md
 prod-sync.log
 tmp-next-start.out.log
 tmp-next-start.err.log
+
+# 로컬 에이전트 스킬/설정 (npx skills add로 설치, 개인 도구라 공유 안 함)
+.agents/
+.claude/
+skills-lock.json
+debug.log
