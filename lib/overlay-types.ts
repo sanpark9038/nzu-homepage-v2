@@ -75,10 +75,11 @@ export function buildDefaultSets(mf: OverlayMatchFormat): OverlaySet[] {
         defaultOverlaySet("에이스", true),
       ];
     case "mini":
+      // 세트 번호는 옆에 1SET/슈에로 따로 표시되므로 타이틀엔 방식명만 (중복 방지)
       return [
-        defaultOverlaySet("1세트", false),
-        defaultOverlaySet("2세트", false),
-        defaultOverlaySet("슈에", true),
+        defaultOverlaySet("미니대전", false),
+        defaultOverlaySet("미니대전", false),
+        defaultOverlaySet("미니대전", true),
       ];
     case "free":
       return [defaultOverlaySet("", false)];

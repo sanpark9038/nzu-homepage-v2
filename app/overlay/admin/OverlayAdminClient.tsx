@@ -175,9 +175,11 @@ export default function OverlayAdminClient({
     return { left: { ...left, teamName: teamLabel(myNameProleague || displayName || "") }, right: { ...right, teamName: "상대팀" } };
   };
 
-  const scoreboardUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/overlay/scoreboard?key=${encodeURIComponent(overlayKey)}`
-    : "";
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const scoreboardUrl = origin ? `${origin}/overlay/scoreboard?key=${encodeURIComponent(overlayKey)}` : "";
+  // 풀캠 등 스코어보드가 없는 장면용 대진표 전용 오버레이.
+  // 위치는 OBS에서, 크기는 URL의 scale로 (OBS로 확대하면 흐려짐)
+  const entryBoardUrl = origin ? `${origin}/overlay/entry?key=${encodeURIComponent(overlayKey)}&scale=1` : "";
 
   // ── 초기 로드 ──
   useEffect(() => {
@@ -352,10 +354,21 @@ export default function OverlayAdminClient({
 
   // 일괄 입력: 경기 목록 교체
   // 일괄 입력 결과로 교체. 입력에 종족이 명시돼 있으면 수동 지정으로 함께 반영 (없으면 DB 자동 인식에 맡김)
+  // 세트가 결정됐고 이어갈 다음 세트가 있으면 "다음 세트로" 카드를 띄울 세트 id. 아니면 null.
+  // (미니대전 2:0이면 슈에는 건너뜀 / 이미 닫은 세트는 다시 안 띄움)
+  const promptTargetFor = (sets: OverlaySet[], setId: string, matchFormat: OverlayMatchFormat) => {
+    const set = sets.find(x => x.id === setId);
+    if (!set || !setWinnerOf(set)) return null;
+    const idx  = sets.findIndex(x => x.id === setId);
+    const aceN = miniAceNeeded(sets);
+    const nxt  = sets.slice(idx + 1).find(x => !(matchFormat === "mini" && x.isAce && aceN === false));
+    return nxt && !promptedSets.current.has(setId) ? setId : null;
+  };
+
   const replaceEntries = (setId: string, rows: ParsedRow[]) => {
-    setState(s => ({
-      ...s,
-      sets: s.sets.map(set => set.id === setId
+    let toPrompt: string | null = null;
+    setState(s => {
+      const sets = s.sets.map(set => set.id === setId
         ? { ...set, currentMatch: null, entries: rows.map(r => ({
             id: genId(),
             leftPlayer: r.leftPlayer, rightPlayer: r.rightPlayer, map: r.map,
@@ -363,8 +376,12 @@ export default function OverlayAdminClient({
             ...(r.leftRace  ? { leftRace:  r.leftRace }  : {}),
             ...(r.rightRace ? { rightRace: r.rightRace } : {}),
           })) }
-        : set),
-    }));
+        : set);
+      // 일괄입력의 ✅로 승패가 한 번에 들어와 세트가 바로 끝난 경우에도 카드를 띄운다
+      toPrompt = promptTargetFor(sets, setId, s.matchFormat);
+      return { ...s, sets };
+    });
+    if (toPrompt) { promptedSets.current.add(toPrompt); setNextPromptSetId(toPrompt); }
   };
 
   // 경기 행 인라인 수정
@@ -456,18 +473,12 @@ export default function OverlayAdminClient({
         ? { ...set, entries: newEntries, currentMatch: nextCurrent }
         : set);
 
-      // 이 클릭으로 세트가 "미결 → 결정"으로 넘어갔고 이어갈 다음 세트가 있으면 카드 띄움.
+      // 이 클릭으로 세트가 "미결 → 결정"으로 넘어갔으면 카드 띄움.
       // 반대로 결과 취소로 다시 미결이 됐으면 그 세트 카드는 내림.
       const wasDecided = setWinnerOf(set) !== null;
       const nowDecided = setWinnerOf({ ...set, entries: newEntries }) !== null;
-      if (!wasDecided && nowDecided) {
-        const idx  = newSets.findIndex(x => x.id === setId);
-        const aceN = miniAceNeeded(newSets);
-        const nxt  = newSets.slice(idx + 1).find(x => !(s.matchFormat === "mini" && x.isAce && aceN === false));
-        if (nxt && !promptedSets.current.has(setId)) toPrompt = setId;
-      } else if (wasDecided && !nowDecided) {
-        toUnprompt = setId;
-      }
+      if (!wasDecided && nowDecided) toPrompt = promptTargetFor(newSets, setId, s.matchFormat);
+      else if (wasDecided && !nowDecided) toUnprompt = setId;
 
       return {
         ...s,
@@ -679,7 +690,8 @@ export default function OverlayAdminClient({
             </div>
           )}
           <div className="shrink-0 flex items-end gap-2">
-            <UrlCopyBtn url={scoreboardUrl} />
+            <UrlCopyBtn url={scoreboardUrl} label="스코어보드 URL" title={`경기 화면용 (스코어보드 + 대진표)\n${scoreboardUrl}`} />
+            <UrlCopyBtn url={entryBoardUrl} label="대진표 URL" title={`풀캠 등 다른 장면용 — 대진표만. 위치는 OBS에서, 크기는 URL 끝 scale=1 을 고쳐서 조절\n${entryBoardUrl}`} />
             <button onClick={() => setObsModalOpen(true)}
               className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-white/6 border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all">
               <Settings size={13} />
@@ -1938,13 +1950,13 @@ function ScoreboardModePreview({ mode }: { mode: "team" | "individual" }) {
 }
 
 // ─── URL 복사 버튼 ───
-function UrlCopyBtn({ url }: { url: string }) {
+function UrlCopyBtn({ url, label = "OBS URL", title }: { url: string; label?: string; title?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button onClick={() => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="flex items-center gap-1.5 rounded-lg bg-white/8 px-3 py-1.5 text-xs font-semibold hover:bg-white/15 transition-all" title={url}>
+      className="flex items-center gap-1.5 rounded-lg bg-white/8 px-3 py-1.5 text-xs font-semibold hover:bg-white/15 transition-all" title={title ?? url}>
       {copied ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
-      {copied ? "복사됨" : "OBS URL"}
+      {copied ? "복사됨" : label}
     </button>
   );
 }

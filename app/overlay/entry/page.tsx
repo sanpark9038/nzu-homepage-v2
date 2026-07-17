@@ -1,0 +1,282 @@
+"use client";
+
+// 풀캠 등 "스코어보드가 없는 장면"용 대진표 전용 오버레이.
+// 스코어보드 안의 가로 대진표와 목적이 다르다 — 여기선 전체 판세를 보여주므로
+//   · 세로로 모든 세트를 쌓고
+//   · 아직 시작 안 한 세트·빈 행도 그대로 노출한다.
+// 관리자의 대진표 X/Y/크기/표시 슬라이더는 의도적으로 무시한다.
+// (게임 장면에서 대진표를 숨겨도 이 화면은 남아야 하므로. 위치는 OBS에서, 크기는 ?scale=)
+import { useSearchParams } from "next/navigation";
+import { setScoreOf, type OverlayEntryRow, type OverlayRace, type OverlayResult, type OverlaySet } from "@/lib/overlay-types";
+import { RACE_COLORS } from "@/lib/overlay-race";
+import { ET, EDGE_LINE, CENTER_LINE, mapAbbr } from "@/lib/overlay-entry-theme";
+import { useOverlayLive } from "@/lib/use-overlay-live";
+
+const BOARD_W = 430;
+
+// 열 치수 — 헤더와 경기 행이 같은 값을 써야 세로로 정렬됨 (한 곳에서만 관리)
+const IDX_W   = 17; // 경기 번호 칸
+const RACE_W  = 20; // 종족 태그
+const MAP_W   = 36; // 맵 약자
+const ROW_GAP = 5;
+const MID_W   = RACE_W + MAP_W + RACE_W + ROW_GAP * 2; // 종족|맵|종족 = 헤더 점수 자리
+
+export default function EntryBoardOverlayPage() {
+  const searchParams = useSearchParams();
+  const overlayKey   = searchParams.get("key") ?? "";
+  const scale        = Number(searchParams.get("scale")) || 1;
+  const { state, raceOf } = useOverlayLive(overlayKey);
+
+  if (!overlayKey) return null;
+
+  const { left, right, sets, activeSetId, matchFormat } = state;
+  const isMini = matchFormat === "mini";
+  // 대전 및 CK는 단판이라 세트 개념이 없음 → "1SET" 라벨을 숨긴다 (스코어보드와 같은 규칙)
+  const showSetLabel = matchFormat !== "university";
+  if (sets.length === 0) return null;
+
+  // 맨 위 헤더 칩 — 세트가 여럿이면 "획득 세트 수", 단판이면 세트 수가 무의미하므로 "경기 스코어"
+  const headScore = showSetLabel
+    ? setScoreOf(sets)
+    : {
+        left:  sets[0].entries.filter(e => e.result === "left").length,
+        right: sets[0].entries.filter(e => e.result === "right").length,
+      };
+
+  return (
+    <div style={{
+      position: "absolute", top: 0, left: 0,
+      transform: scale !== 1 ? `scale(${scale})` : undefined,
+      transformOrigin: "left top",
+      width: `${BOARD_W}px`,
+      fontFamily: "'Pretendard Variable','Pretendard','Malgun Gothic',sans-serif",
+      background: ET.bg,
+      border: `1px solid ${ET.border}`,
+      borderRadius: "12px",
+      overflow: "hidden",
+      boxShadow: "0 6px 28px rgba(0,0,0,0.7)",
+    }}>
+      {/* 전체 헤더 — 팀명 + 점수. 아래 경기 행과 같은 열 구조로 맞춘다
+          (번호칸 자리 · 좌팀=좌선수열 · 점수=종족/맵 가운데 · 우팀=우선수열)
+          가로 여백도 경기 행과 동일: 행의 margin 6 + padding 10 = 16 */}
+      <div style={{
+        background: ET.boardHeader,
+        boxShadow: ET.boardEdge,
+        display: "flex", alignItems: "center", gap: `${ROW_GAP}px`,
+        padding: "7px 16px",
+      }}>
+        <span style={{ width: `${IDX_W}px`, flexShrink: 0 }} />
+        <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "21px", fontWeight: 800, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
+          {left.teamName || "좌팀"}
+        </span>
+        <div style={{ width: `${MID_W}px`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+          <SetScoreChip won={headScore.left} />
+          <span style={{ fontSize: "13px", fontWeight: 700, color: ET.muted, lineHeight: 1 }}>vs</span>
+          <SetScoreChip won={headScore.right} />
+        </div>
+        <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "21px", fontWeight: 800, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
+          {right.teamName || "우팀"}
+        </span>
+      </div>
+      {/* 보드 헤더 ↔ 첫 세트 헤더 — 세트 사이와 같은 양끝 페이드 선.
+          모든 세트 헤더가 EDGE_LINE 아래에 오게 되어 규칙이 하나로 통일됨 */}
+      <div style={{ height: "1px", background: EDGE_LINE }} />
+
+      {sets.map((set, i) => (
+        <SetBlock
+          key={set.id}
+          set={set}
+          label={showSetLabel ? setLabelOf(set, sets, isMini) : ""}
+          // 단판(대전 및 CK)은 세트 헤더가 맨 위 헤더와 같은 점수를 반복할 뿐이라 숨긴다
+          showHeader={showSetLabel}
+          isActive={set.id === activeSetId}
+          isLast={i === sets.length - 1}
+          raceOf={raceOf}
+        />
+      ))}
+    </div>
+  );
+}
+
+// 세트 이름 — 원래 순번 기준(숨겨진 세트가 있어도 번호가 밀리지 않게)
+function setLabelOf(set: OverlaySet, all: OverlaySet[], mini: boolean) {
+  if (set.isAce) return mini ? "슈에" : "에이스";
+  return `${all.findIndex(s => s.id === set.id) + 1}SET`;
+}
+
+function setWinnerOfEntries(set: OverlaySet): OverlayResult {
+  const target = Math.floor(set.entries.length / 2) + 1;
+  const l = set.entries.filter(e => e.result === "left").length;
+  const r = set.entries.filter(e => e.result === "right").length;
+  if (set.entries.length === 0) return null;
+  return l >= target ? "left" : r >= target ? "right" : null;
+}
+
+function SetBlock({ set, label, showHeader, isActive, isLast, raceOf }: {
+  set: OverlaySet; label: string; showHeader: boolean; isActive: boolean; isLast: boolean;
+  raceOf: (name: string) => OverlayRace | undefined;
+}) {
+  const l = set.entries.filter(e => e.result === "left").length;
+  const r = set.entries.filter(e => e.result === "right").length;
+  const winner = setWinnerOfEntries(set);
+  // 이긴 쪽에서 번지는 틴트 — 세트 승패를 배지뿐 아니라 "면"으로도 읽히게
+  const winTint = winner === "left"
+    ? `linear-gradient(to right, ${ET.winTint}, rgba(0,0,0,0) 42%)`
+    : winner === "right"
+    ? `linear-gradient(to left, ${ET.winTint}, rgba(0,0,0,0) 42%)`
+    : null;
+  const headerBase = set.isAce ? ET.aceBg : ET.header;
+
+  return (
+    <div>
+      {/* 세트 헤더 — W/L 배지 + 세트 안 경기 스코어 + 세트명.
+          가운데로 뭉쳐서 배치 — 양 끝으로 벌리면 시선이 흩어짐 */}
+      {showHeader && (<>
+      <div style={{
+        position: "relative",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: "9px",
+        padding: "4px 12px",
+        background: winTint ? `${winTint}, ${headerBase}` : headerBase,
+        boxShadow: ET.topHighlight,
+      }}>
+        {/* 진행 중인 세트만 왼쪽에 세로 액센트 바 — 테두리로 두르면 무거움 */}
+        {isActive && (
+          <span style={{
+            position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)",
+            width: "3px", height: "62%", borderRadius: "0 2px 2px 0",
+            background: ET.currentBorder,
+          }} />
+        )}
+        <WinBadge side="left" winner={winner} />
+        <span style={{ fontSize: "20px", fontWeight: 900, color: ET.text, lineHeight: 1, minWidth: "15px", textAlign: "right" }}>{l}</span>
+        {/* 라벨이 없으면(대전 및 CK 단판) 빈 칸을 남기지 않고 점수·배지가 가운데로 모이게 */}
+        {label && (
+          <span style={{
+            minWidth: "78px", textAlign: "center", fontSize: "15px", fontWeight: 900, letterSpacing: "0.05em", lineHeight: 1,
+            color: set.isAce ? ET.aceText : ET.accent,
+          }}>{label}</span>
+        )}
+        <span style={{ fontSize: "20px", fontWeight: 900, color: ET.text, lineHeight: 1, minWidth: "15px", textAlign: "left" }}>{r}</span>
+        <WinBadge side="right" winner={winner} />
+      </div>
+      {/* 세트 헤더 아래 — 가운데가 밝고 양 끝으로 사라지는 선 */}
+      <div style={{ height: "1px", background: CENTER_LINE }} />
+      </>)}
+
+      {/* 경기 행 — 아직 안 채운 빈 행도 그대로 노출(전체 판세를 보여주는 게 목적) */}
+      {set.entries.map((entry, idx) => (
+        <EntryLine key={entry.id} entry={entry} idx={idx} isCurrent={set.currentMatch === idx} raceOf={raceOf} />
+      ))}
+
+      {/* 세트 사이 구분 — 양 끝이 사라지는 얇은 선 */}
+      {!isLast && <div style={{ height: "1px", background: EDGE_LINE }} />}
+    </div>
+  );
+}
+
+function WinBadge({ side, winner }: { side: "left" | "right"; winner: OverlayResult }) {
+  const decided = winner !== null;
+  const won = winner === side;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      width: "23px", height: "21px", borderRadius: "5px", flexShrink: 0,
+      fontSize: "14px", fontWeight: 900, lineHeight: 1,
+      background: won ? "rgba(120,220,150,0.16)" : "transparent",
+      border: `1.5px solid ${won ? ET.win : "rgba(255,255,255,0.16)"}`,
+      color: won ? ET.win : ET.muted,
+    }}>{decided ? (won ? "W" : "L") : ""}</span>
+  );
+}
+
+function EntryLine({ entry, idx, isCurrent, raceOf }: {
+  entry: OverlayEntryRow; idx: number; isCurrent: boolean;
+  raceOf: (name: string) => OverlayRace | undefined;
+}) {
+  const leftRace  = entry.leftRace  ?? raceOf(entry.leftPlayer);
+  const rightRace = entry.rightRace ?? raceOf(entry.rightPlayer);
+  // 진 쪽은 종족색 대신 중립 회색 (주황 P를 흐리면 갈색으로 보여서).
+  // 이긴 쪽은 자기 종족색으로 은은히 빛나게 — 죽이기만 하면 "이긴 쪽"이 안 보임
+  const nameStyle = (race: OverlayRace | undefined, side: "left" | "right") => {
+    if (entry.result && entry.result !== side) return { color: ET.lostText };
+    const color = race ? RACE_COLORS[race] : ET.text;
+    return entry.result === side
+      ? { color, textShadow: `0 0 10px ${color}66` }
+      : { color };
+  };
+  const active = isCurrent && entry.result === null;
+  // 진행 중 경기: 두 선수의 종족색 그라디언트 테두리 — 움직임 없이(경쟁사는 흰 테두리 펄스)
+  // 우리 색 언어(종족색)로 구분. 테두리만 그려야 해서 마스크로 가운데를 뚫는다.
+  const borderFrom = leftRace  ? RACE_COLORS[leftRace]  : ET.currentBorder;
+  const borderTo   = rightRace ? RACE_COLORS[rightRace] : ET.currentBorder;
+
+  return (
+    <div style={{
+      position: "relative",
+      display: "flex", alignItems: "center", gap: `${ROW_GAP}px`,
+      padding: "3px 10px", minHeight: "31px",
+      margin: "1px 6px",
+      borderRadius: "6px",
+      background: ET.rowBoxDark,
+    }}>
+      {active && (
+        <span style={{
+          position: "absolute", inset: 0, borderRadius: "6px", padding: "2px",
+          background: `linear-gradient(90deg, ${borderFrom}, ${borderTo})`,
+          WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+        }} />
+      )}
+      <span style={{ width: `${IDX_W}px`, flexShrink: 0, fontSize: "14px", lineHeight: 1, color: active ? ET.accent : ET.muted, fontWeight: active ? 900 : 400 }}>
+        {idx + 1}
+      </span>
+      <span style={{
+        flex: 1, minWidth: 0, textAlign: "right", fontSize: "20px", fontWeight: 700, lineHeight: 1.1,
+        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        ...nameStyle(leftRace, "left"),
+      }}>{entry.leftPlayer}</span>
+      <RaceTag race={leftRace} lost={entry.result === "right"} />
+      <span style={{ width: `${MAP_W}px`, flexShrink: 0, textAlign: "center", fontSize: "14px", fontWeight: 600, color: ET.mapText, whiteSpace: "nowrap", lineHeight: 1 }}>
+        {entry.map ? mapAbbr(entry.map) : ""}
+      </span>
+      <RaceTag race={rightRace} lost={entry.result === "left"} />
+      <span style={{
+        flex: 1, minWidth: 0, textAlign: "left", fontSize: "20px", fontWeight: 700, lineHeight: 1.1,
+        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        ...nameStyle(rightRace, "right"),
+      }}>{entry.rightPlayer}</span>
+    </div>
+  );
+}
+
+// 종족 태그 — 이름 옆에 작게. 종족색은 overlay-race.ts 한 곳에서만 관리.
+// 진 쪽은 이름과 마찬가지로 중립 회색 — 배지까지 같이 죽어야 승패 대비가 확실해짐
+// (종족색을 흐리기만 하면 주황 P가 갈색으로 보여서 다른 색처럼 읽힘)
+function RaceTag({ race, lost }: { race: OverlayRace | undefined; lost: boolean }) {
+  if (!race) return <span style={{ width: "17px", flexShrink: 0 }} />;
+  return (
+    <span style={{
+      width: `${RACE_W}px`, height: `${RACE_W}px`, flexShrink: 0,
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      borderRadius: "4px", fontSize: "13px", fontWeight: 900, lineHeight: 1,
+      background: lost ? "rgba(150,152,158,0.12)" : `${RACE_COLORS[race]}22`,
+      color: lost ? ET.lostText : RACE_COLORS[race],
+    }}>{race}</span>
+  );
+}
+
+// 획득 세트 수 — 세트 안 경기 스코어와 헷갈리지 않게 칩(박스)으로 형태를 구분
+function SetScoreChip({ won }: { won: number }) {
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      minWidth: "28px", height: "28px", padding: "0 6px", flexShrink: 0,
+      borderRadius: "8px",
+      background: "rgba(255,255,255,0.09)",
+      border: "1.5px solid rgba(255,255,255,0.30)",
+      color: ET.text, fontSize: "20px", fontWeight: 900, lineHeight: 1,
+    }}>{won}</span>
+  );
+}

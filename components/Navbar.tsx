@@ -38,7 +38,7 @@ function normalizeNavbarPathname(value: string | null | undefined) {
   return pathname;
 }
 
-const OVERLAY_VIEWER_ROUTES = ["/overlay/scoreboard"];
+const OVERLAY_VIEWER_ROUTES = ["/overlay/scoreboard", "/overlay/entry"];
 
 export default function Navbar() {
   const pathname = usePathname();

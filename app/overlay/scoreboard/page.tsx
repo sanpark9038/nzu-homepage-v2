@@ -1,18 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { defaultOverlayState, setScoreOf, miniAceNeeded, type OverlayEntryRow, type OverlayRace, type OverlaySet, type OverlayState } from "@/lib/overlay-types";
-import { RACE_COLORS, raceOfName, type RaceLookupPlayer } from "@/lib/overlay-race";
-
-const POLL_INTERVAL = 500;
+import { setScoreOf, miniAceNeeded, type OverlayEntryRow, type OverlayRace, type OverlaySet } from "@/lib/overlay-types";
+import { RACE_COLORS } from "@/lib/overlay-race";
+import { ET, mapAbbr, nameColWidth } from "@/lib/overlay-entry-theme";
+import { useOverlayLive } from "@/lib/use-overlay-live";
 
 // 보드 치수 (스펙 기준, scale=1)
+// 행 높이는 "내용물 + 최소 여백"으로 잡는다 — 뒤 화면을 덜 가리려고 글씨는 그대로 두고 여백만 압축.
+// 바닥값: 타이틀=글씨 40 / 팀=스코어박스 56 / 선수=글씨 44 / 노치=배지 48
 const W        = 600;
-const TITLE_H  = 88;
-const TEAM_H   = 96;
-const PLAYER_H = 64;
-const NOTCH_H  = 78;
+const TITLE_H  = 62;
+const TEAM_H   = 66;
+const PLAYER_H = 56;
+const NOTCH_H  = 70;
 const GAP_D    = 59;
 const GAP_W    = 224;
 const SHOULDER = 36;
@@ -42,16 +43,18 @@ function buildNotchTopPath(h: number) {
   return `M ${xL} ${yi} L ${xR} ${yi}`;
 }
 
+// 색온도는 대진표(overlay-entry-theme의 ET)와 맞춘 딥 네이비 계열.
+// 게임 장면에선 이 스코어보드와 대진표 카드가 한 화면에 같이 뜨므로 톤이 어긋나면 안 됨.
 const TH = {
-  bg:         "rgba(17, 17, 19, 0.98)",
-  bgInner:    "rgba(10, 10, 12, 0.97)",
-  bgRow:      "rgba(22, 22, 26, 0.65)",
-  bgRowHero:  "rgba(42, 42, 48, 0.8)", // 선수명 행(Row3) — 다크 톤 유지하되 한 단계 밝혀서 구역 구분
+  bg:         "rgba(15, 18, 27, 0.98)",
+  bgInner:    "rgba(9, 11, 17, 0.97)",
+  bgRow:      "rgba(19, 23, 34, 0.65)",
+  bgRowHero:  "rgba(34, 41, 60, 0.8)", // 선수명 행(Row3) — 다크 톤 유지하되 한 단계 밝혀서 구역 구분
   border:     "rgba(200, 202, 208, 0.32)",
   borderDark: "rgba(0, 0, 0, 0.85)",
   divider:    "rgba(255, 255, 255, 0.07)",
   divGlow:    "rgba(255, 255, 255, 0.10)",
-  titleBg:    "rgba(8, 8, 10, 0.55)",  // 타이틀 행만 살짝 투명 — 뒤 화면이 은은히 비침
+  titleBg:    "rgba(7, 9, 14, 0.55)",  // 타이틀 행만 살짝 투명 — 뒤 화면이 은은히 비침
   titleText:  "rgba(245, 246, 248, 0.95)",
   accent:     "rgba(225, 227, 232, 0.9)",
   text:       "#ffffff",
@@ -64,26 +67,7 @@ const SEP = (
 
 // ── 엔트리 테이블 ──────────────────────────────────────────
 
-const ET = {
-  bg:        "rgba(14, 14, 16, 0.86)",   // 살짝 투명 — 뒤 화면이 은은히 비침
-  // 헤더(SET·타이틀·팀명·점수) — 본문보다 밝은 띠로 구분해 가독성↑ (본문과 비슷한 투명도)
-  header:    "linear-gradient(180deg, rgba(46,49,58,0.88), rgba(31,33,40,0.88))",
-  border:    "rgba(255, 255, 255, 0.16)",
-  accent:    "rgba(225, 227, 232, 0.85)",
-  aceBg:     "rgba(48, 40, 18, 0.86)",   // 에이스 열 — 본문과 같은 투명도의 따뜻한 어두운 톤
-  aceBorder: "rgba(200, 160, 40, 0.60)",
-  currentBorder: "rgba(255, 255, 255, 0.92)", // 현재 경기 강조 — 배경 대신 테두리만(정적, 깜빡임 없음)
-  text:      "rgba(232, 233, 236, 0.90)",
-  lostText:  "rgba(150, 152, 158, 0.55)", // 패자 이름 — 종족색 대신 중립 회색
-  muted:     "rgba(180, 180, 186, 0.50)",
-  mapText:   "rgba(214, 216, 222, 0.88)", // 맵 약자 — muted보다 밝게(방송에서 잘 보이게)
-};
-
 const SET_COL_W = 200;
-
-function mapAbbr(name: string) {
-  return name.slice(0, 2);
-}
 
 function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLabel, mini, raceOf }: {
   sets: OverlaySet[];
@@ -145,6 +129,11 @@ function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, show
   // 선수·맵이 모두 없는 완전 빈 행만 렌더 제외. 맵만 미리 적어둔 행(위너스 대기 경기 등)은 맵을 보여줌.
   const hasContent = (e: OverlayEntryRow) => !!(e.leftPlayer || e.rightPlayer || e.map);
   const hasAnyRow  = set.entries.some(hasContent);
+  // 이름 칸 폭 — 이 세트에서 가장 긴 이름 기준(6글자 상한). 모든 행이 같은 폭을 쓰므로 열이 어긋나지 않음
+  const nameW = nameColWidth(
+    [...set.entries.flatMap(e => [e.leftPlayer, e.rightPlayer]), leftTeam, rightTeam],
+    18,
+  );
 
   return (
     <div style={{
@@ -180,22 +169,22 @@ function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, show
           )}
         </div>
         {/* 팀 스코어 — 아래 경기행과 같은 열 구조로 정렬(번호칸 자리 · 좌팀=좌선수열 · 스코어=맵열 · 우팀=우선수열) */}
-        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}>
           <span style={{ width: "16px", flexShrink: 0 }} />
-          <span style={{ flex: 1, minWidth: 0, maxWidth: "6.5em", textAlign: "center", fontSize: "16px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{leftTeam || "좌팀"}</span>
+          <span style={{ width: nameW, flexShrink: 0, minWidth: 0, textAlign: "center", fontSize: "16px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{leftTeam || "좌팀"}</span>
           <div style={{ width: "30px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "3px" }}>
             <span style={{ fontSize: "20px", fontWeight: 900, color: "rgba(225,227,232,0.95)", lineHeight: 1 }}>{scoreLeft}</span>
             <span style={{ fontSize: "13px", color: ET.muted, lineHeight: 1 }}>:</span>
             <span style={{ fontSize: "20px", fontWeight: 900, color: "rgba(225,227,232,0.95)", lineHeight: 1 }}>{scoreRight}</span>
           </div>
-          <span style={{ flex: 1, minWidth: 0, maxWidth: "6.5em", textAlign: "center", fontSize: "16px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{rightTeam || "우팀"}</span>
+          <span style={{ width: nameW, flexShrink: 0, minWidth: 0, textAlign: "center", fontSize: "16px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{rightTeam || "우팀"}</span>
         </div>
       </div>
 
       {/* 경기 목록 — 선수 또는 맵이 있는 행만 (원래 경기 번호 유지 위해 원본 idx 사용) */}
       {set.entries.map((entry, idx) =>
         hasContent(entry)
-          ? <EntryRow key={entry.id} entry={entry} idx={idx} isCurrent={set.currentMatch === idx} raceOf={raceOf} />
+          ? <EntryRow key={entry.id} entry={entry} idx={idx} isCurrent={set.currentMatch === idx} nameW={nameW} raceOf={raceOf} />
           : null
       )}
 
@@ -208,8 +197,8 @@ function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, show
   );
 }
 
-function EntryRow({ entry, idx, isCurrent, raceOf }: {
-  entry: OverlayEntryRow; idx: number; isCurrent: boolean;
+function EntryRow({ entry, idx, isCurrent, nameW, raceOf }: {
+  entry: OverlayEntryRow; idx: number; isCurrent: boolean; nameW: number;
   raceOf: (name: string) => OverlayRace | undefined;
 }) {
   const leftLost  = entry.result === "right";
@@ -228,6 +217,7 @@ function EntryRow({ entry, idx, isCurrent, raceOf }: {
     <div style={{
       display: "flex",
       alignItems: "center",
+      justifyContent: "center",
       padding: "3px 8px",
       background: "transparent",
       // 진행 중 경기: 배경 채움 없이 테두리만 강조 (박스 안쪽 라인 + 은은한 글로우, 정적)
@@ -240,13 +230,13 @@ function EntryRow({ entry, idx, isCurrent, raceOf }: {
         {idx + 1}
       </span>
       <span style={{
-        flex: 1, minWidth: 0, maxWidth: "6.5em", textAlign: "center", fontSize: "18px", fontWeight: 700, lineHeight: 1.1,
+        width: nameW, flexShrink: 0, minWidth: 0, textAlign: "center", fontSize: "18px", fontWeight: 700, lineHeight: 1.1,
         ...nameStyle(leftRace, leftLost),
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       }}>{entry.leftPlayer}</span>
       <span style={{ width: "30px", textAlign: "center", fontSize: "15px", fontWeight: 600, color: ET.mapText, flexShrink: 0, whiteSpace: "nowrap", lineHeight: 1 }}>{abbr}</span>
       <span style={{
-        flex: 1, minWidth: 0, maxWidth: "6.5em", textAlign: "center", fontSize: "18px", fontWeight: 700, lineHeight: 1.1,
+        width: nameW, flexShrink: 0, minWidth: 0, textAlign: "center", fontSize: "18px", fontWeight: 700, lineHeight: 1.1,
         ...nameStyle(rightRace, rightLost),
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       }}>{entry.rightPlayer}</span>
@@ -259,35 +249,7 @@ function EntryRow({ entry, idx, isCurrent, raceOf }: {
 export default function ScoreboardOverlayPage() {
   const searchParams = useSearchParams();
   const overlayKey   = searchParams.get("key") ?? "";
-  const [state, setState] = useState<OverlayState>(defaultOverlayState());
-  const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // 선수 DB — 대진표의 이름을 종족 색으로 칠하기 위해 한 번만 불러옴
-  const [playerDb, setPlayerDb] = useState<RaceLookupPlayer[]>([]);
-  useEffect(() => {
-    fetch("/api/players")
-      .then(r => r.json())
-      .then(p => { if (p.ok) setPlayerDb(p.players.map((x: RaceLookupPlayer) => ({ name: x.name, nickname: x.nickname ?? null, race: x.race }))); })
-      .catch(() => {});
-  }, []);
-  const raceOf = useCallback((name: string) => raceOfName(playerDb, name), [playerDb]);
-
-  useEffect(() => {
-    document.documentElement.style.background = "transparent";
-    document.body.style.background = "transparent";
-  }, []);
-
-  useEffect(() => {
-    if (!overlayKey) return;
-    const poll = () =>
-      fetch(`/api/overlay/state?key=${encodeURIComponent(overlayKey)}`, { cache: "no-store" })
-        .then(r => r.json())
-        .then(p => { if (p.ok) setState({ ...defaultOverlayState(), ...p.state }); })
-        .catch(() => {});
-    poll();
-    intervalRef.current = setInterval(poll, POLL_INTERVAL);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [overlayKey]);
+  const { state, raceOf } = useOverlayLive(overlayKey);
 
   if (!overlayKey) return null;
 
@@ -300,8 +262,6 @@ export default function ScoreboardOverlayPage() {
   // 미니대전: 세트 스코어(세트 획득 수) + 슈에 필요 여부
   const setScore   = setScoreOf(sets);
   const aceNeeded  = miniAceNeeded(sets);
-  // 세트 승리 조건 (3세트 중 2선승) — 핀 칸 수로 그대로 씀
-  const setsToWin  = Math.max(1, Math.ceil(sets.length / 2));
   // 슈에가 불필요(한쪽 2:0)하면 방송 대진표에서 슈에 세트를 숨김
   const visibleSets = isMini && aceNeeded === false ? sets.filter(s => !s.isAce) : sets;
 
@@ -331,8 +291,6 @@ export default function ScoreboardOverlayPage() {
   return (
     <>
       <style>{`
-        html, body, body > * { background: transparent !important; }
-        #main-scroll-container { background: transparent !important; overflow: visible !important; }
         @keyframes scorePulse {
           0%   { transform: scale(1);    color: rgba(235,236,240,0.95); }
           40%  { transform: scale(1.18); color: #ffffff; }
@@ -395,7 +353,7 @@ export default function ScoreboardOverlayPage() {
                       도형이라 타이틀 글자·아래 줄 박스 점수와 절대 안 헷갈림 */}
                   {isMini && (
                     <span style={{ position: "absolute", left: "26px", top: "50%", transform: "translateY(-50%)" }}>
-                      <SetPips won={setScore.left} total={setsToWin} />
+                      <SetScoreChip won={setScore.left} />
                     </span>
                   )}
                   {!isTeam && currentMap && (
@@ -414,7 +372,7 @@ export default function ScoreboardOverlayPage() {
                   )}
                   {isMini && (
                     <span style={{ position: "absolute", right: "26px", top: "50%", transform: "translateY(-50%)" }}>
-                      <SetPips won={setScore.right} total={setsToWin} mirrored />
+                      <SetScoreChip won={setScore.right} />
                     </span>
                   )}
                 </div>
@@ -520,19 +478,18 @@ function ScoreBox({ score }: { score: number }) {
 
 // 세트 스코어 핀 — total칸 중 won칸이 채워짐 (예: ●○ = 1승, ●● = 2승·매치 승리)
 // 바깥쪽부터 안쪽으로 채워지도록 우측은 mirrored
-function SetPips({ won, total, mirrored }: { won: number; total: number; mirrored?: boolean }) {
-  const pips = Array.from({ length: total }, (_, i) => i < won);
-  const ordered = mirrored ? [...pips].reverse() : pips;
+// 세트 스코어(획득 세트 수). 아래 줄의 경기 스코어(0 : 1)와 헷갈리지 않게
+// 숫자를 칩(테두리 박스)에 담아 형태로 구분한다.
+function SetScoreChip({ won }: { won: number }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
-      {ordered.map((filled, i) => (
-        <span key={i} style={{
-          width: "14px", height: "14px", borderRadius: "50%",
-          background: filled ? TH.titleText : "transparent",
-          border: filled ? "none" : `2px solid rgba(255,255,255,0.3)`,
-        }} />
-      ))}
-    </span>
+    <span style={{
+      display: "inline-flex", alignItems: "center", justifyContent: "center",
+      minWidth: "46px", height: "46px", padding: "0 11px",
+      borderRadius: "11px",
+      background: "rgba(255,255,255,0.09)",
+      border: "2px solid rgba(255,255,255,0.32)",
+      color: TH.titleText, fontSize: "34px", fontWeight: 900, lineHeight: 1,
+    }}>{won}</span>
   );
 }
 
