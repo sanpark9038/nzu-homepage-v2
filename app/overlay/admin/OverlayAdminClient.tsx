@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Copy, Check, Eye, EyeOff,
+  Eye, EyeOff,
   Settings, X, Layers, Plus, GripVertical, ClipboardPaste, HelpCircle, Lock, RotateCcw, ChevronRight, ArrowLeftRight,
 } from "lucide-react";
 import {
@@ -214,8 +214,9 @@ export default function OverlayAdminClient({
         // 구버전 기본값(흰색)이 그대로 남아있으면 새 기본값(좌 빨강/우 파랑)으로 이전
         if (next.left.startingColor  === "#ffffff") next = { ...next, left:  { ...next.left,  startingColor: "#e0524a" } };
         if (next.right.startingColor === "#ffffff") next = { ...next, right: { ...next.right, startingColor: "#4a7fe0" } };
-        // 이미 만들어진 세트 중 제목이 비어있으면 기본 타이틀(프로리그 7/4, 위너스리그 9/5)로 이전
-        {
+        // 프로리그만 세트별 타이틀(프로리그 7/4 · 위너스리그 9/5)이 의미가 있어 비어 있으면 채운다.
+        // 다른 방식은 세트 타이틀이 비어 있는 게 정상 — 비어 있어야 방송 타이틀을 따라가므로 건드리면 안 됨.
+        if (next.matchFormat === "proleague") {
           const nonAce = next.sets.filter(s => !s.isAce);
           next = {
             ...next,
@@ -225,6 +226,11 @@ export default function OverlayAdminClient({
               return { ...s, title: idx === 0 ? "프로리그 7/4" : idx === 1 ? "위너스리그 9/5" : s.title };
             }),
           };
+        } else if (next.sets.some(s => s.title)) {
+          // 프로리그 외 방식은 세트 타이틀이 비어 있어야 방송 타이틀을 따라간다.
+          // 세트 타이틀 편집 UI가 없어 여기 남아있는 값은 전부 옛 기본값("대전 및 CK", "미니대전" …)이므로
+          // 지워야 사용자가 바꾼 타이틀이 대진표에도 반영됨.
+          next = { ...next, sets: next.sets.map(s => (s.title ? { ...s, title: "" } : s)) };
         }
         // 프로리그이고 팀명이 둘 다 비어 있으면 기본값 시드(왼쪽=내 이름+"팀", 오른쪽=상대팀). 저장된 팀명은 보존.
         if (next.matchFormat === "proleague" && !next.left.teamName && !next.right.teamName) {
@@ -566,6 +572,29 @@ export default function OverlayAdminClient({
   };
 
 
+  // OBS 레이아웃을 기본값으로 — 지금 값(스코어보드 0/373/0.54, 대진표 330/770/1)이 일반 상황에 맞게 잡혀 있어서,
+  // 이것저것 만지다 틀어졌을 때 되돌릴 수 있게 해둔다. 표시 on/off는 사용자가 방금 정한 것이라 건드리지 않음.
+  const resetLayouts = () => {
+    const d = defaultOverlayState();
+    setState(s => ({
+      ...s,
+      scoreboardLayout: { ...d.scoreboardLayout, visible: s.scoreboardLayout.visible },
+      entryLayout:      { ...d.entryLayout,      visible: s.entryLayout.visible },
+    }));
+    showToast("위치·크기를 기본값으로");
+  };
+
+  // 스타팅 색상 좌우 교체 — 보통 우리팀 빨강/상대 파랑인데, 게임 입장 순서에 따라 뒤바뀜.
+  // 매번 팔레트로 고르는 대신 한 번에 맞바꾼다. (색만 교환 — 스타팅 위치는 각자 그대로)
+  const swapStartingColors = () => {
+    setState(s => ({
+      ...s,
+      left:  { ...s.left,  startingColor: s.right.startingColor },
+      right: { ...s.right, startingColor: s.left.startingColor },
+    }));
+    showToast("스타팅 색상 좌우 교체");
+  };
+
   // 리셋 버튼 — 새 경기 시작용.
   // 대진표(선수·맵·결과)를 빈 칸으로 되돌리고, 스코어보드(팀명·선수명·종족·스타팅)도 기본값으로.
   // 맵목록(state.maps)은 매 경기 재사용하므로 유지한다.
@@ -689,13 +718,38 @@ export default function OverlayAdminClient({
               />
             </div>
           )}
-          <div className="shrink-0 flex items-end gap-2">
-            <UrlCopyBtn url={scoreboardUrl} label="스코어보드 URL" title={`경기 화면용 (스코어보드 + 대진표)\n${scoreboardUrl}`} />
-            <UrlCopyBtn url={entryBoardUrl} label="대진표 URL" title={`풀캠 등 다른 장면용 — 대진표만. 위치는 OBS에서, 크기는 URL 끝 scale=1 을 고쳐서 조절\n${entryBoardUrl}`} />
+          {/* OBS 소스 URL — 씬 단위로 쓰므로 "URL"은 한 번만 쓰고 버튼엔 씬 이름만.
+              게임화면은 그 안에 뭘 띄울지 고를 게 있어 URL과 토글을 한 테두리로 묶는다
+              → 이 표시 토글이 "게임화면 씬 안의 것"임이 라벨 없이도 읽힘 (풀캠용 대진표는 무관) */}
+          <div className="shrink-0 flex items-center gap-2.5">
+            <span className="text-xs font-bold text-white/30 shrink-0">OBS URL</span>
+
+            <div className="flex items-center gap-1.5 rounded-xl border border-white/12 bg-white/[0.03] px-1.5 py-1">
+              <UrlCopyBtn url={scoreboardUrl} label="게임화면" title={`게임 화면 씬용 — 스코어보드 + 대진표\n${scoreboardUrl}`} />
+              <span className="w-px h-5 bg-white/12 shrink-0" />
+              {([
+                { k: "scoreboardLayout", label: "스코어보드" },
+                { k: "entryLayout",      label: "대진표" },
+              ] as const).map(o => (
+                <button key={o.k}
+                  onClick={() => updLayout(o.k, { visible: !state[o.k].visible })}
+                  title={`게임화면 송출에서 ${o.label}를 ${state[o.k].visible ? "숨깁니다" : "띄웁니다"}${o.k === "entryLayout" ? " (풀캠용 대진표는 영향 없음)" : ""}`}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-semibold border transition-all ${
+                    state[o.k].visible
+                      ? "bg-blue-500/15 border-blue-400/40 text-blue-200"
+                      : "bg-white/5 border-white/10 text-white/30 hover:text-white/60"
+                  }`}>
+                  {state[o.k].visible ? <Eye size={13} /> : <EyeOff size={13} />}
+                  {o.label}
+                </button>
+              ))}
+            </div>
+
+            <UrlCopyBtn url={entryBoardUrl} label="풀캠용대진표" title={`풀캠 등 스코어보드가 없는 씬용 — 대진표만.\n위치는 OBS에서, 크기는 URL 끝 scale=1 을 고쳐서 조절\n${entryBoardUrl}`} />
             <button onClick={() => setObsModalOpen(true)}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-white/6 border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all">
+              className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-white/6 border border-white/10 text-white/40 hover:text-white/80 hover:bg-white/10 transition-all">
               <Settings size={13} />
-              <span className="text-xs font-semibold">OBS</span>
+              <span className="text-xs font-semibold">위치 조정</span>
             </button>
             <span className={`w-[76px] shrink-0 text-xs py-1.5 rounded-lg border font-medium text-center ${saving ? "border-blue-500/50 bg-blue-500/10 text-blue-300" : dirty ? "border-yellow-500/30 bg-yellow-500/5 text-yellow-400/70" : "border-green-500/30 bg-green-500/5 text-green-400/70"}`}>
               {saving ? "저장 중..." : dirty ? "미저장" : "저장됨"}
@@ -863,6 +917,19 @@ export default function OverlayAdminClient({
                 );
               })}
             </div>
+
+            {/* 스타팅 색상 교체 — 두 색상 스와치 바로 아래 가운데. 현재 두 색을 미리보기로 얹어
+                "이 둘이 바뀐다"가 눈에 보이게 함 */}
+            <div className="flex justify-center pb-3">
+              <button onClick={swapStartingColors}
+                title="좌우 선수의 스타팅 색상을 서로 바꿉니다 (위치는 그대로)"
+                className="group flex items-center gap-2 h-8 px-3 rounded-lg bg-white/[0.06] border border-white/12 text-white/50 hover:text-white/90 hover:bg-white/[0.12] active:scale-[0.97] transition-all">
+                <span className="w-3.5 h-3.5 rounded-[3px] border border-white/25" style={{ background: state.left.startingColor }} />
+                <ArrowLeftRight size={13} />
+                <span className="w-3.5 h-3.5 rounded-[3px] border border-white/25" style={{ background: state.right.startingColor }} />
+                <span className="text-[11px] font-bold">색상 교체</span>
+              </button>
+            </div>
           </div>
 
           {/* ── 맵풀 ── 대진표 맵 칸의 드롭다운 후보 */}
@@ -910,21 +977,6 @@ export default function OverlayAdminClient({
                 </div>
               )}
             </div>
-          </div>
-
-          {/* 엔트리 표시 토글 */}
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 flex items-center justify-between">
-            <span className="text-xs font-semibold text-white/55">오버레이 대진표 표시</span>
-            <button
-              onClick={() => updLayout("entryLayout", { visible: !state.entryLayout.visible })}
-              className={`flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-semibold border transition-all ${
-                state.entryLayout.visible
-                  ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
-                  : "bg-white/5 border-white/10 text-white/30"
-              }`}>
-              {state.entryLayout.visible ? <Eye size={12} /> : <EyeOff size={12} />}
-              {state.entryLayout.visible ? "표시 중" : "숨김"}
-            </button>
           </div>
 
         </div>
@@ -1155,30 +1207,22 @@ export default function OverlayAdminClient({
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/[0.04] border-l-[3px] border-l-white/25">
               <div className="flex items-center gap-2.5">
                 <Settings size={14} className="text-white/50" />
-                <span className="font-bold text-sm text-white/80">OBS 레이아웃 설정</span>
+                <span className="font-bold text-sm text-white/80">게임화면 위치</span>
               </div>
+              <button onClick={resetLayouts}
+                title="스코어보드·대진표의 위치와 크기를 기본값으로 되돌립니다 (표시 on/off는 그대로)"
+                className="ml-auto mr-2 flex items-center gap-1 h-7 px-2.5 rounded-lg bg-white/6 border border-white/10 text-[11px] font-bold text-white/45 hover:text-white/85 hover:bg-white/12 transition-all">
+                <RotateCcw size={12} /> 기본값
+              </button>
               <button onClick={() => setObsModalOpen(false)} className="text-white/30 hover:text-white/70 transition-colors">
                 <X size={16} />
               </button>
             </div>
             <div className="p-5 space-y-5">
-              {/* 패널 표시 */}
-              <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-2.5">패널 표시</p>
-                <div className="flex gap-2">
-                  {(["scoreboardLayout", "entryLayout"] as const).map(k => (
-                    <button key={k}
-                      onClick={() => updLayout(k, { visible: !state[k].visible })}
-                      className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold border transition-all ${state[k].visible ? "bg-blue-500/20 border-blue-400/50 text-blue-300" : "bg-white/5 border-white/10 text-white/35"}`}>
-                      {state[k].visible ? <Eye size={12} /> : <EyeOff size={12} />}
-                      {k === "scoreboardLayout" ? "스코어보드" : "대진표"}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* 표시 on/off는 상단 "표시" 토글로 옮김 — 이 모달은 위치/크기 전용 (한 컨트롤 = 한 자리) */}
               {/* 위치/크기 */}
               <div>
-                <p className="text-xs font-semibold text-muted-foreground mb-3">위치 / 크기 <span className="text-white/20 font-normal">(Y: 스코어보드=하단에서, 대진표=상단에서)</span></p>
+                <p className="text-xs font-semibold text-muted-foreground mb-3">위치 <span className="text-white/20 font-normal">(Y: 스코어보드=하단에서, 대진표=상단에서 · 크기는 OBS에서)</span></p>
                 <div className="space-y-4">
                   <LayoutPanel label="스코어보드" layout={state.scoreboardLayout} onChange={p => updLayout("scoreboardLayout", p)} />
                   <LayoutPanel label="대진표"     layout={state.entryLayout}      onChange={p => updLayout("entryLayout",      p)} />
@@ -1897,10 +1941,11 @@ function LayoutPanel({ label, layout, onChange }: {
   label: string; layout: OverlayPanelLayout;
   onChange: (p: Partial<OverlayPanelLayout>) => void;
 }) {
+  // 크기(scale)는 OBS에서 소스 크기로 조절하므로 여기선 안 다룬다 — 항목을 두면 실수로만 틀어짐.
+  // scale 값 자체는 렌더에 그대로 쓰이고(기본 스코어보드 0.54/대진표 1), UI만 X/Y로 한정.
   const rows = [
-    { label: "X",   unit: "px", value: layout.x,     min: -200, max: 1920, step: 1,    key: "x"     as const },
-    { label: "Y",   unit: "px", value: layout.y,     min: -200, max: 1080, step: 1,    key: "y"     as const },
-    { label: "크기", unit: "×",  value: layout.scale, min: 0.3,  max: 2,    step: 0.01, key: "scale" as const },
+    { label: "X", unit: "px", value: layout.x, min: -200, max: 1920, step: 1, key: "x" as const },
+    { label: "Y", unit: "px", value: layout.y, min: -200, max: 1080, step: 1, key: "y" as const },
   ];
   return (
     <div>
@@ -1954,8 +1999,9 @@ function UrlCopyBtn({ url, label = "OBS URL", title }: { url: string; label?: st
   const [copied, setCopied] = useState(false);
   return (
     <button onClick={() => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="flex items-center gap-1.5 rounded-lg bg-white/8 px-3 py-1.5 text-xs font-semibold hover:bg-white/15 transition-all" title={title ?? url}>
-      {copied ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+      className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold transition-all ${
+        copied ? "bg-green-500/20 text-green-300" : "bg-white/8 hover:bg-white/15"
+      }`} title={title ?? url}>
       {copied ? "복사됨" : label}
     </button>
   );
