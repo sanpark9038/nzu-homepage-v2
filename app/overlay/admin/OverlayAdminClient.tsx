@@ -1579,8 +1579,10 @@ function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, matchFor
                       style={{ color: RACE_COLORS[race] }}>{race}</button>
                   ) : (
                     <button onClick={() => setRaceEditor({ id: entry.id, side: "left" })}
-                      title="선수 인식 안 됨 — 오타이거나 등록되지 않은 선수일 수 있어요. 클릭해서 종족 직접 설정"
-                      className="shrink-0 text-xs font-bold text-white/25 hover:text-white/60 transition-colors">?</button>
+                      title="종족 자동 인식 실패(오타·미등록 선수). 클릭해서 직접 선택하세요"
+                      className="shrink-0 flex items-center gap-0.5 h-5 px-1.5 rounded-md border border-amber-400/50 bg-amber-400/15 text-amber-300 text-[10px] font-black hover:bg-amber-400/25 transition-colors animate-pulse">
+                      종족?
+                    </button>
                   );
                 })()}
                 <input id={fieldId(idx, "p1")} value={entry.leftPlayer} onChange={e => onPatchEntry(entry.id, { leftPlayer: e.target.value })}
@@ -1622,8 +1624,10 @@ function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, matchFor
                       style={{ color: RACE_COLORS[race] }}>{race}</button>
                   ) : (
                     <button onClick={() => setRaceEditor({ id: entry.id, side: "right" })}
-                      title="선수 인식 안 됨 — 오타이거나 등록되지 않은 선수일 수 있어요. 클릭해서 종족 직접 설정"
-                      className="shrink-0 text-xs font-bold text-white/25 hover:text-white/60 transition-colors">?</button>
+                      title="종족 자동 인식 실패(오타·미등록 선수). 클릭해서 직접 선택하세요"
+                      className="shrink-0 flex items-center gap-0.5 h-5 px-1.5 rounded-md border border-amber-400/50 bg-amber-400/15 text-amber-300 text-[10px] font-black hover:bg-amber-400/25 transition-colors animate-pulse">
+                      종족?
+                    </button>
                   );
                 })()}
                 {raceEditor?.id === entry.id && raceEditor.side === "right" && (
