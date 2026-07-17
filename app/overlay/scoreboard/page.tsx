@@ -69,7 +69,6 @@ const ET = {
   // 헤더(SET·타이틀·팀명·점수) — 본문보다 밝은 띠로 구분해 가독성↑ (본문과 비슷한 투명도)
   header:    "linear-gradient(180deg, rgba(46,49,58,0.88), rgba(31,33,40,0.88))",
   border:    "rgba(255, 255, 255, 0.16)",
-  divider:   "rgba(255, 255, 255, 0.06)",
   accent:    "rgba(225, 227, 232, 0.85)",
   aceBg:     "rgba(48, 40, 18, 0.86)",   // 에이스 열 — 본문과 같은 투명도의 따뜻한 어두운 톤
   aceBorder: "rgba(200, 160, 40, 0.60)",
@@ -111,19 +110,15 @@ function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLab
       transform: layout.scale !== 1 ? `scale(${layout.scale})` : undefined,
       transformOrigin: "left top",
       display: "flex",
-      alignItems: "flex-start", // 세트마다 경기 수가 달라도 각 열은 자기 내용 높이만 — 짧은 열 밑에 빈 배경 안 생기게
+      alignItems: "flex-start", // 세트마다 경기 수가 달라도 각 카드는 자기 내용 높이만
+      gap: "8px",               // 세트별 독립 카드 사이 간격
       fontFamily: "'Pretendard Variable','Pretendard','Malgun Gothic',sans-serif",
-      borderRadius: "10px",
-      overflow: "hidden",
-      border: `1px solid ${ET.border}`,
-      boxShadow: "0 4px 32px rgba(0,0,0,0.7)",
     }}>
-      {shown.map(({ set, setIdx }, pos) => (
+      {shown.map(({ set, setIdx }) => (
         <SetColumn
           key={set.id}
           set={set}
           setIdx={setIdx}
-          isLast={pos === shown.length - 1}
           isActive={set.id === activeSetId}
           leftTeam={leftTeam}
           rightTeam={rightTeam}
@@ -136,8 +131,8 @@ function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLab
   );
 }
 
-function SetColumn({ set, setIdx, isLast, isActive: _isActive, leftTeam, rightTeam, showSetLabel, mini, raceOf }: {
-  set: OverlaySet; setIdx: number; isLast: boolean;
+function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, showSetLabel, mini, raceOf }: {
+  set: OverlaySet; setIdx: number;
   isActive: boolean; leftTeam: string; rightTeam: string; showSetLabel: boolean; mini: boolean;
   raceOf: (name: string) => OverlayRace | undefined;
 }) {
@@ -152,11 +147,16 @@ function SetColumn({ set, setIdx, isLast, isActive: _isActive, leftTeam, rightTe
 
   return (
     <div style={{
-      width: `${SET_COL_W}px`,
-      borderRight: !isLast ? `1px solid ${ET.divider}` : "none",
+      minWidth: `${SET_COL_W}px`,   // 최소 폭은 유지, 이름이 길면 6글자 상한까지 반응형으로 늘어남
+      width: "max-content",
       background: set.isAce ? ET.aceBg : ET.bg,
       display: "flex",
       flexDirection: "column",
+      // 세트별 독립 카드 — 자기 테두리·모서리·그림자
+      border: `1px solid ${set.isAce ? ET.aceBorder : ET.border}`,
+      borderRadius: "10px",
+      overflow: "hidden",
+      boxShadow: "0 4px 24px rgba(0,0,0,0.65)",
     }}>
       {/* SET 헤더 */}
       <div style={{
@@ -164,30 +164,30 @@ function SetColumn({ set, setIdx, isLast, isActive: _isActive, leftTeam, rightTe
         borderBottom: `1px solid ${set.isAce ? ET.aceBorder : ET.border}`,
         padding: "2px 8px 3px",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "5px", marginBottom: "1px", lineHeight: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", marginBottom: "2px", lineHeight: 1 }}>
           {showSetLabel && (
             <span style={{
-              fontSize: "13px", fontWeight: 900, letterSpacing: "0.05em", lineHeight: 1,
+              fontSize: "15px", fontWeight: 900, letterSpacing: "0.05em", lineHeight: 1,
               color: set.isAce ? "rgba(200,160,40,0.9)" : ET.accent,
             }}>{setLabel}</span>
           )}
           {set.title && (
             <>
-              {showSetLabel && <span style={{ color: ET.muted, fontSize: "12px", lineHeight: 1 }}>|</span>}
-              <span style={{ fontSize: "13px", color: ET.muted, letterSpacing: "0.03em", lineHeight: 1 }}>{set.title}</span>
+              {showSetLabel && <span style={{ color: ET.muted, fontSize: "13px", lineHeight: 1 }}>|</span>}
+              <span style={{ fontSize: "15px", color: ET.muted, letterSpacing: "0.03em", lineHeight: 1 }}>{set.title}</span>
             </>
           )}
         </div>
         {/* 팀 스코어 — 아래 경기행과 같은 열 구조로 정렬(번호칸 자리 · 좌팀=좌선수열 · 스코어=맵열 · 우팀=우선수열) */}
         <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
           <span style={{ width: "16px", flexShrink: 0 }} />
-          <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "14px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{leftTeam || "좌팀"}</span>
+          <span style={{ flex: 1, minWidth: 0, maxWidth: "6.5em", textAlign: "center", fontSize: "16px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{leftTeam || "좌팀"}</span>
           <div style={{ width: "30px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "3px" }}>
-            <span style={{ fontSize: "17px", fontWeight: 900, color: "rgba(225,227,232,0.95)", lineHeight: 1 }}>{scoreLeft}</span>
-            <span style={{ fontSize: "12px", color: ET.muted, lineHeight: 1 }}>:</span>
-            <span style={{ fontSize: "17px", fontWeight: 900, color: "rgba(225,227,232,0.95)", lineHeight: 1 }}>{scoreRight}</span>
+            <span style={{ fontSize: "20px", fontWeight: 900, color: "rgba(225,227,232,0.95)", lineHeight: 1 }}>{scoreLeft}</span>
+            <span style={{ fontSize: "13px", color: ET.muted, lineHeight: 1 }}>:</span>
+            <span style={{ fontSize: "20px", fontWeight: 900, color: "rgba(225,227,232,0.95)", lineHeight: 1 }}>{scoreRight}</span>
           </div>
-          <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "14px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{rightTeam || "우팀"}</span>
+          <span style={{ flex: 1, minWidth: 0, maxWidth: "6.5em", textAlign: "center", fontSize: "16px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{rightTeam || "우팀"}</span>
         </div>
       </div>
 
@@ -237,17 +237,17 @@ function EntryRow({ entry, idx, isCurrent, raceOf }: {
       gap: "4px",
       minHeight: "29px",
     }}>
-      <span style={{ width: "16px", fontSize: "13px", color: active ? ET.accent : ET.muted, fontWeight: active ? 900 : 400, flexShrink: 0, lineHeight: 1 }}>
+      <span style={{ width: "16px", fontSize: "15px", color: active ? ET.accent : ET.muted, fontWeight: active ? 900 : 400, flexShrink: 0, lineHeight: 1 }}>
         {idx + 1}
       </span>
       <span style={{
-        flex: 1, textAlign: "center", fontSize: "18px", fontWeight: 700, lineHeight: 1.1,
+        flex: 1, minWidth: 0, maxWidth: "6.5em", textAlign: "center", fontSize: "18px", fontWeight: 700, lineHeight: 1.1,
         ...nameStyle(leftRace, leftLost),
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       }}>{entry.leftPlayer}</span>
       <span style={{ width: "30px", textAlign: "center", fontSize: "15px", fontWeight: 600, color: ET.mapText, flexShrink: 0, whiteSpace: "nowrap", lineHeight: 1 }}>{abbr}</span>
       <span style={{
-        flex: 1, textAlign: "center", fontSize: "18px", fontWeight: 700, lineHeight: 1.1,
+        flex: 1, minWidth: 0, maxWidth: "6.5em", textAlign: "center", fontSize: "18px", fontWeight: 700, lineHeight: 1.1,
         ...nameStyle(rightRace, rightLost),
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
       }}>{entry.rightPlayer}</span>
