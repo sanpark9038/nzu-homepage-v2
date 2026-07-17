@@ -51,7 +51,7 @@ const TH = {
   borderDark: "rgba(0, 0, 0, 0.85)",
   divider:    "rgba(255, 255, 255, 0.07)",
   divGlow:    "rgba(255, 255, 255, 0.10)",
-  titleBg:    "rgba(8, 8, 10, 0.95)",
+  titleBg:    "rgba(8, 8, 10, 0.55)",  // 타이틀 행만 살짝 투명 — 뒤 화면이 은은히 비침
   titleText:  "rgba(245, 246, 248, 0.95)",
   accent:     "rgba(225, 227, 232, 0.9)",
   text:       "#ffffff",
@@ -74,6 +74,7 @@ const ET = {
   aceBorder: "rgba(200, 160, 40, 0.60)",
   currentBorder: "rgba(255, 255, 255, 0.92)", // 현재 경기 강조 — 배경 대신 테두리만(정적, 깜빡임 없음)
   text:      "rgba(232, 233, 236, 0.90)",
+  lostText:  "rgba(150, 152, 158, 0.55)", // 패자 이름 — 종족색 대신 중립 회색
   muted:     "rgba(180, 180, 186, 0.50)",
   mapText:   "rgba(214, 216, 222, 0.88)", // 맵 약자 — muted보다 밝게(방송에서 잘 보이게)
 };
@@ -217,11 +218,9 @@ function EntryRow({ entry, idx, isCurrent, raceOf }: {
   // 수동 지정 종족이 있으면 우선, 없으면 선수 DB 자동 인식
   const leftRace  = entry.leftRace  ?? raceOf(entry.leftPlayer);
   const rightRace = entry.rightRace ?? raceOf(entry.rightPlayer);
-  // 진 쪽은 취소선 대신 흐리게 (심플하게)
-  const nameStyle = (race: OverlayRace | undefined, lost: boolean) => ({
-    color: race ? RACE_COLORS[race] : ET.text,
-    opacity: lost ? 0.32 : 1,
-  });
+  // 진 쪽은 종족색을 버리고 회색으로 — 흐리게만 하면 주황(P)이 갈색으로 보여 다른 색처럼 읽힘
+  const nameStyle = (race: OverlayRace | undefined, lost: boolean) =>
+    lost ? { color: ET.lostText } : { color: race ? RACE_COLORS[race] : ET.text };
   // 강조는 "지금 진행 중인 경기"에만 — 결과가 이미 나온 경기는(세트 종료 후 마지막 경기 포함) 강조 안 함
   const active = isCurrent && entry.result === null;
 
@@ -377,7 +376,12 @@ export default function ScoreboardOverlayPage() {
             <div style={{ position: "relative", width: `${W}px`, height: `${boardH}px` }}>
 
               {/* 보드 본체 */}
-              <div style={{ position: "absolute", inset: 0, background: TH.bg, clipPath: clipPoly }}>
+              {/* 본체 배경은 타이틀 행(위 TITLE_H px) 아래부터만 칠한다 —
+                  그래야 타이틀 행이 자기 titleBg만 갖고 뒤 화면이 비침 */}
+              <div style={{
+                position: "absolute", inset: 0, clipPath: clipPoly,
+                background: `linear-gradient(to bottom, rgba(0,0,0,0) ${TITLE_H}px, ${TH.bg} ${TITLE_H}px)`,
+              }}>
 
                 {/* Row 1: 타이틀 (미니대전은 양 끝에 세트 스코어 = 세트 획득 수) */}
                 <div style={{
@@ -520,13 +524,12 @@ function SetPips({ won, total, mirrored }: { won: number; total: number; mirrore
   const pips = Array.from({ length: total }, (_, i) => i < won);
   const ordered = mirrored ? [...pips].reverse() : pips;
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: "11px" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
       {ordered.map((filled, i) => (
         <span key={i} style={{
-          width: "26px", height: "26px", borderRadius: "50%",
+          width: "14px", height: "14px", borderRadius: "50%",
           background: filled ? TH.titleText : "transparent",
-          border: filled ? "none" : `3px solid rgba(255,255,255,0.35)`,
-          boxShadow: filled ? "0 0 12px rgba(255,255,255,0.35)" : "none",
+          border: filled ? "none" : `2px solid rgba(255,255,255,0.3)`,
         }} />
       ))}
     </span>
