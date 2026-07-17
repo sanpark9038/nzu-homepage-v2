@@ -15,11 +15,12 @@ import { useOverlayLive } from "@/lib/use-overlay-live";
 const BOARD_W = 430;
 
 // 열 치수 — 헤더와 경기 행이 같은 값을 써야 세로로 정렬됨 (한 곳에서만 관리)
-const IDX_W   = 17; // 경기 번호 칸
-const RACE_W  = 20; // 종족 태그
-const MAP_W   = 36; // 맵 약자
-const ROW_GAP = 5;
-const MID_W   = RACE_W + MAP_W + RACE_W + ROW_GAP * 2; // 종족|맵|종족 = 헤더 점수 자리
+const IDX_W   = 18; // 경기 번호 칸
+const RACE_W  = 21; // 종족 태그
+const MAP_W   = 38; // 맵 약자
+const ROW_GAP = 9;  // 선수명 ↔ 종족 태그 간격
+const MAP_GAP = 6;  // 맵 양옆 추가 여백 — 가운데가 덜 뭉치게 맵만 더 벌림
+const MID_W   = RACE_W + MAP_W + RACE_W + ROW_GAP * 2 + MAP_GAP * 2; // 종족|맵|종족 = 헤더 점수 자리
 
 export default function EntryBoardOverlayPage() {
   const searchParams = useSearchParams();
@@ -66,7 +67,7 @@ export default function EntryBoardOverlayPage() {
         padding: "7px 16px",
       }}>
         <span style={{ width: `${IDX_W}px`, flexShrink: 0 }} />
-        <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "21px", fontWeight: 800, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
+        <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "22px", fontWeight: 800, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
           {left.teamName || "좌팀"}
         </span>
         <div style={{ width: `${MID_W}px`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
@@ -74,7 +75,7 @@ export default function EntryBoardOverlayPage() {
           <span style={{ fontSize: "13px", fontWeight: 700, color: ET.muted, lineHeight: 1 }}>vs</span>
           <SetScoreChip won={headScore.right} />
         </div>
-        <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "21px", fontWeight: 800, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
+        <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "22px", fontWeight: 800, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
           {right.teamName || "우팀"}
         </span>
       </div>
@@ -119,12 +120,7 @@ function SetBlock({ set, label, showHeader, isActive, isLast, raceOf }: {
   const l = set.entries.filter(e => e.result === "left").length;
   const r = set.entries.filter(e => e.result === "right").length;
   const winner = setWinnerOfEntries(set);
-  // 이긴 쪽에서 번지는 틴트 — 세트 승패를 배지뿐 아니라 "면"으로도 읽히게
-  const winTint = winner === "left"
-    ? `linear-gradient(to right, ${ET.winTint}, rgba(0,0,0,0) 42%)`
-    : winner === "right"
-    ? `linear-gradient(to left, ${ET.winTint}, rgba(0,0,0,0) 42%)`
-    : null;
+  // 세트 승패는 W/L 배지 하나로만 말한다 — 초록 틴트까지 쓰면 같은 사실을 두 번 말하는 셈
   const headerBase = set.isAce ? ET.aceBg : ET.header;
 
   return (
@@ -136,7 +132,7 @@ function SetBlock({ set, label, showHeader, isActive, isLast, raceOf }: {
         position: "relative",
         display: "flex", alignItems: "center", justifyContent: "center", gap: "9px",
         padding: "4px 12px",
-        background: winTint ? `${winTint}, ${headerBase}` : headerBase,
+        background: headerBase,
         boxShadow: ET.topHighlight,
       }}>
         {/* 진행 중인 세트만 왼쪽에 세로 액센트 바 — 테두리로 두르면 무거움 */}
@@ -148,15 +144,15 @@ function SetBlock({ set, label, showHeader, isActive, isLast, raceOf }: {
           }} />
         )}
         <WinBadge side="left" winner={winner} />
-        <span style={{ fontSize: "20px", fontWeight: 900, color: ET.text, lineHeight: 1, minWidth: "15px", textAlign: "right" }}>{l}</span>
+        <span style={{ fontSize: "21px", fontWeight: 900, color: ET.text, lineHeight: 1, minWidth: "16px", textAlign: "right" }}>{l}</span>
         {/* 라벨이 없으면(대전 및 CK 단판) 빈 칸을 남기지 않고 점수·배지가 가운데로 모이게 */}
         {label && (
           <span style={{
-            minWidth: "78px", textAlign: "center", fontSize: "15px", fontWeight: 900, letterSpacing: "0.05em", lineHeight: 1,
+            minWidth: "80px", textAlign: "center", fontSize: "16px", fontWeight: 900, letterSpacing: "0.05em", lineHeight: 1,
             color: set.isAce ? ET.aceText : ET.accent,
           }}>{label}</span>
         )}
-        <span style={{ fontSize: "20px", fontWeight: 900, color: ET.text, lineHeight: 1, minWidth: "15px", textAlign: "left" }}>{r}</span>
+        <span style={{ fontSize: "21px", fontWeight: 900, color: ET.text, lineHeight: 1, minWidth: "16px", textAlign: "left" }}>{r}</span>
         <WinBadge side="right" winner={winner} />
       </div>
       {/* 세트 헤더 아래 — 가운데가 밝고 양 끝으로 사라지는 선 */}
@@ -180,8 +176,8 @@ function WinBadge({ side, winner }: { side: "left" | "right"; winner: OverlayRes
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center",
-      width: "23px", height: "21px", borderRadius: "5px", flexShrink: 0,
-      fontSize: "14px", fontWeight: 900, lineHeight: 1,
+      width: "24px", height: "22px", borderRadius: "5px", flexShrink: 0,
+      fontSize: "15px", fontWeight: 900, lineHeight: 1,
       background: won ? "rgba(120,220,150,0.16)" : "transparent",
       border: `1.5px solid ${won ? ET.win : "rgba(255,255,255,0.16)"}`,
       color: won ? ET.win : ET.muted,
@@ -214,7 +210,7 @@ function EntryLine({ entry, idx, isCurrent, raceOf }: {
     <div style={{
       position: "relative",
       display: "flex", alignItems: "center", gap: `${ROW_GAP}px`,
-      padding: "3px 10px", minHeight: "31px",
+      padding: "3px 10px", minHeight: "33px",
       margin: "1px 6px",
       borderRadius: "6px",
       background: ET.rowBoxDark,
@@ -229,21 +225,21 @@ function EntryLine({ entry, idx, isCurrent, raceOf }: {
           pointerEvents: "none",
         }} />
       )}
-      <span style={{ width: `${IDX_W}px`, flexShrink: 0, fontSize: "14px", lineHeight: 1, color: active ? ET.accent : ET.muted, fontWeight: active ? 900 : 400 }}>
+      <span style={{ width: `${IDX_W}px`, flexShrink: 0, fontSize: "15px", lineHeight: 1, color: active ? ET.accent : ET.muted, fontWeight: active ? 900 : 400 }}>
         {idx + 1}
       </span>
       <span style={{
-        flex: 1, minWidth: 0, textAlign: "right", fontSize: "20px", fontWeight: 700, lineHeight: 1.1,
+        flex: 1, minWidth: 0, textAlign: "right", fontSize: "21px", fontWeight: 700, lineHeight: 1.1,
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         ...nameStyle(leftRace, "left"),
       }}>{entry.leftPlayer}</span>
       <RaceTag race={leftRace} lost={entry.result === "right"} />
-      <span style={{ width: `${MAP_W}px`, flexShrink: 0, textAlign: "center", fontSize: "14px", fontWeight: 600, color: ET.mapText, whiteSpace: "nowrap", lineHeight: 1 }}>
+      <span style={{ width: `${MAP_W}px`, margin: `0 ${MAP_GAP}px`, flexShrink: 0, textAlign: "center", fontSize: "15px", fontWeight: 600, color: ET.mapText, whiteSpace: "nowrap", lineHeight: 1 }}>
         {entry.map ? mapAbbr(entry.map) : ""}
       </span>
       <RaceTag race={rightRace} lost={entry.result === "left"} />
       <span style={{
-        flex: 1, minWidth: 0, textAlign: "left", fontSize: "20px", fontWeight: 700, lineHeight: 1.1,
+        flex: 1, minWidth: 0, textAlign: "left", fontSize: "21px", fontWeight: 700, lineHeight: 1.1,
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         ...nameStyle(rightRace, "right"),
       }}>{entry.rightPlayer}</span>
@@ -260,7 +256,7 @@ function RaceTag({ race, lost }: { race: OverlayRace | undefined; lost: boolean 
     <span style={{
       width: `${RACE_W}px`, height: `${RACE_W}px`, flexShrink: 0,
       display: "inline-flex", alignItems: "center", justifyContent: "center",
-      borderRadius: "4px", fontSize: "13px", fontWeight: 900, lineHeight: 1,
+      borderRadius: "4px", fontSize: "14px", fontWeight: 900, lineHeight: 1,
       background: lost ? "rgba(150,152,158,0.12)" : `${RACE_COLORS[race]}22`,
       color: lost ? ET.lostText : RACE_COLORS[race],
     }}>{race}</span>
@@ -272,11 +268,11 @@ function SetScoreChip({ won }: { won: number }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center",
-      minWidth: "28px", height: "28px", padding: "0 6px", flexShrink: 0,
+      minWidth: "30px", height: "30px", padding: "0 7px", flexShrink: 0,
       borderRadius: "8px",
       background: "rgba(255,255,255,0.09)",
       border: "1.5px solid rgba(255,255,255,0.30)",
-      color: ET.text, fontSize: "20px", fontWeight: 900, lineHeight: 1,
+      color: ET.text, fontSize: "21px", fontWeight: 900, lineHeight: 1,
     }}>{won}</span>
   );
 }

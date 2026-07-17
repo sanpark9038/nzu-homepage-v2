@@ -49,7 +49,9 @@ const TH = {
   bg:         "rgba(15, 18, 27, 0.98)",
   bgInner:    "rgba(9, 11, 17, 0.97)",
   bgRow:      "rgba(19, 23, 34, 0.65)",
-  bgRowHero:  "rgba(34, 41, 60, 0.8)", // 선수명 행(Row3) — 다크 톤 유지하되 한 단계 밝혀서 구역 구분
+  // 선수명 행(Row3)만 중립 검정 — 이 행은 선수의 스타팅 색(빨강/파랑) 그라디언트를 담는 캔버스라
+  // 네이비로 두면 파란 스타팅색이 묻힌다. 다른 행과 톤이 다른 건 역할이 달라서.
+  bgRowHero:  "rgba(10, 11, 14, 0.85)",
   border:     "rgba(200, 202, 208, 0.32)",
   borderDark: "rgba(0, 0, 0, 0.85)",
   divider:    "rgba(255, 255, 255, 0.07)",
@@ -71,7 +73,7 @@ const SEP = (
 
 const SET_COL_W = 200;
 
-function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLabel, mini, raceOf }: {
+function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLabel, mini, broadcastTitle, raceOf }: {
   sets: OverlaySet[];
   activeSetId: string | null;
   leftTeam: string;
@@ -79,6 +81,7 @@ function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLab
   layout: { x: number; y: number; scale: number; visible: boolean };
   showSetLabel: boolean;
   mini: boolean;
+  broadcastTitle: string;
   raceOf: (name: string) => OverlayRace | undefined;
 }) {
   // 진행되는 세트만 노출 — 활성 세트이거나, 이미 결과가 하나라도 나온 세트.
@@ -111,6 +114,7 @@ function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLab
           rightTeam={rightTeam}
           showSetLabel={showSetLabel}
           mini={mini}
+          broadcastTitle={broadcastTitle}
           raceOf={raceOf}
         />
       ))}
@@ -118,9 +122,9 @@ function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLab
   );
 }
 
-function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, showSetLabel, mini, raceOf }: {
+function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, showSetLabel, mini, broadcastTitle, raceOf }: {
   set: OverlaySet; setIdx: number;
-  isActive: boolean; leftTeam: string; rightTeam: string; showSetLabel: boolean; mini: boolean;
+  isActive: boolean; leftTeam: string; rightTeam: string; showSetLabel: boolean; mini: boolean; broadcastTitle: string;
   raceOf: (name: string) => OverlayRace | undefined;
 }) {
   const scoreLeft  = set.entries.filter(e => e.result === "left").length;
@@ -128,6 +132,11 @@ function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, show
   const setLabel   = mini
     ? (set.isAce ? "슈에" : `${setIdx + 1}SET`)
     : (set.isAce ? "에이스" : `${setIdx + 1}SET`);
+  // 세트 타이틀이 비어 있으면(대전 및 CK·미니대전·자유방식) 방송 타이틀을 그대로 따라간다.
+  // 프로리그만 세트마다 다른 타이틀(프로리그 7/4 · 위너스리그 9/5)이 의미가 있어 그대로 씀.
+  // 라벨과 같은 말이면(에이스 | 에이스) 반복이라 생략.
+  const cardTitle  = set.title || broadcastTitle;
+  const showTitle  = cardTitle && cardTitle !== setLabel ? cardTitle : "";
   // 선수·맵이 모두 없는 완전 빈 행만 렌더 제외. 맵만 미리 적어둔 행(위너스 대기 경기 등)은 맵을 보여줌.
   const hasContent = (e: OverlayEntryRow) => !!(e.leftPlayer || e.rightPlayer || e.map);
   const hasAnyRow  = set.entries.some(hasContent);
@@ -163,10 +172,10 @@ function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, show
               color: set.isAce ? "rgba(200,160,40,0.9)" : ET.accent,
             }}>{setLabel}</span>
           )}
-          {set.title && (
+          {showTitle && (
             <>
               {showSetLabel && <span style={{ color: ET.muted, fontSize: "13px", lineHeight: 1 }}>|</span>}
-              <span style={{ fontSize: "15px", color: ET.muted, letterSpacing: "0.03em", lineHeight: 1 }}>{set.title}</span>
+              <span style={{ fontSize: "15px", color: ET.muted, letterSpacing: "0.03em", lineHeight: 1 }}>{showTitle}</span>
             </>
           )}
         </div>
@@ -320,6 +329,7 @@ export default function ScoreboardOverlayPage() {
           layout={entryLayout}
           showSetLabel={showSetLabel}
           mini={isMini}
+          broadcastTitle={title}
           raceOf={raceOf}
         />
 
@@ -359,7 +369,7 @@ export default function ScoreboardOverlayPage() {
                     </span>
                   )}
                   {!isTeam && currentMap && (
-                    <><span style={{ fontSize: "30px", fontWeight: 800, letterSpacing: "0.04em", color: TH.textMuted }}>{currentMap}</span>{SEP}</>
+                    <><span style={{ fontSize: "33px", fontWeight: 800, letterSpacing: "0.04em", color: TH.textMuted }}>{currentMap}</span>{SEP}</>
                   )}
                   <span style={{ fontSize: "40px", fontWeight: 800, letterSpacing: "0.12em", color: TH.titleText, textTransform: "uppercase" }}>
                     {title || "HOSAGA"}
@@ -406,7 +416,7 @@ export default function ScoreboardOverlayPage() {
                 }}>
                   <div style={{ fontSize: "44px", fontWeight: 900, color: TH.text, letterSpacing: "-0.02em", lineHeight: 1 }}>{left.playerName || " "}</div>
                   {isTeam
-                    ? <div style={{ fontSize: "28px", fontWeight: 800, color: TH.textMuted, letterSpacing: "0.04em", textAlign: "center", minWidth: "80px" }}>{currentMap || ""}</div>
+                    ? <div style={{ fontSize: "31px", fontWeight: 800, color: TH.textMuted, letterSpacing: "0.04em", textAlign: "center", minWidth: "80px" }}>{currentMap || ""}</div>
                     : <ScoreWidget scoreLeft={scoreLeft} scoreRight={scoreRight} />}
                   <div style={{ fontSize: "44px", fontWeight: 900, color: TH.text, letterSpacing: "-0.02em", lineHeight: 1, textAlign: "right" }}>{right.playerName || " "}</div>
                 </div>
@@ -510,8 +520,8 @@ function RaceStartBadge({ race, point: pointRaw, color }: { race: string; point:
       border: `1.5px solid ${badgeColor}90`,
       padding: "0 15px", boxShadow: `0 0 12px ${badgeColor}22`,
     }}>
-      {r     && <span style={{ fontSize: "32px", fontWeight: 900, color: badgeColor, lineHeight: 1 }}>{r}</span>}
-      {point && <span style={{ fontSize: "32px", fontWeight: 900, color: badgeColor, lineHeight: 1 }}>{point}</span>}
+      {r     && <span style={{ fontSize: "36px", fontWeight: 900, color: badgeColor, lineHeight: 1 }}>{r}</span>}
+      {point && <span style={{ fontSize: "36px", fontWeight: 900, color: badgeColor, lineHeight: 1 }}>{point}</span>}
     </span>
   );
 }

@@ -74,18 +74,20 @@ export function buildDefaultSets(mf: OverlayMatchFormat): OverlaySet[] {
         { ...defaultOverlaySet("위너스리그 9/5", false), winnersMode: true },
         defaultOverlaySet("에이스", true),
       ];
+    // 아래 방식들은 세트마다 다른 타이틀이 필요 없다(경기 하나 = 타이틀 하나).
+    // set.title을 비워두면 화면·송출 모두 방송 타이틀(state.title)을 그대로 따라간다
+    // → 사용자가 타이틀을 바꾸면 대진표도 같이 바뀌고, 송출해도 되돌아가지 않음.
     case "mini":
-      // 세트 번호는 옆에 1SET/슈에로 따로 표시되므로 타이틀엔 방식명만 (중복 방지)
       return [
-        defaultOverlaySet("미니대전", false),
-        defaultOverlaySet("미니대전", false),
-        defaultOverlaySet("미니대전", true),
+        defaultOverlaySet("", false),
+        defaultOverlaySet("", false),
+        defaultOverlaySet("", true),
       ];
     case "free":
       return [defaultOverlaySet("", false)];
     case "university":
     default:
-      return [defaultOverlaySet("대전 및 CK", false)];
+      return [defaultOverlaySet("", false)];
   }
 }
 
