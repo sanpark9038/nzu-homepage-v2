@@ -36,12 +36,11 @@ export function AccessGate({ initialStatus, displayName }: {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] p-7">
-        <h1 className="text-lg font-black text-white/90">방송 스코어보드</h1>
-        <p className="mt-2 text-sm leading-relaxed text-white/55">
-          스트리머·매니저분들을 위한 방송 오버레이 도구입니다.<br />
-          현재 <b className="text-white/80">테스트 기간</b>이라 일부 사용자에게만 열려 있어요.
-          모든 분이 쓰실 수 있도록 준비 중입니다.
+      <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-white/[0.03] p-8">
+        <h1 className="text-2xl font-black text-white/95">방송 스코어보드</h1>
+        <p className="mt-3 text-base leading-relaxed text-white/65">
+          스트리머·매니저를 위한 <b className="text-white/90">방송 오버레이 도구</b>입니다.<br />
+          지금은 <b className="text-white/90">테스트 기간</b> — 신청 후 승인되면 바로 사용할 수 있어요.
         </p>
 
         {status === "pending" ? (
@@ -54,14 +53,14 @@ export function AccessGate({ initialStatus, displayName }: {
         ) : (
           <div className="mt-6 space-y-4">
             <div>
-              <p className="mb-1.5 text-xs font-bold text-white/45">누구신가요?</p>
+              <p className="mb-2 text-sm font-bold text-white/55">누구신가요?</p>
               <div className="grid grid-cols-2 gap-1.5">
                 {([
                   { v: "streamer", label: "스트리머 본인" },
                   { v: "manager",  label: "매니저" },
                 ] as const).map(o => (
                   <button key={o.v} onClick={() => setRole(o.v)}
-                    className={`h-9 rounded-lg text-sm font-bold border transition-all ${
+                    className={`h-11 rounded-lg text-base font-bold border transition-all ${
                       role === o.v
                         ? "bg-purple-600 border-purple-500 text-white"
                         : "bg-white/[0.03] border-white/10 text-white/45 hover:text-white/80"
@@ -73,19 +72,24 @@ export function AccessGate({ initialStatus, displayName }: {
             </div>
 
             <div>
-              <p className="mb-1.5 text-xs font-bold text-white/45">
-                {role === "streamer" ? "방송 채널명 (닉네임)" : "어느 스트리머의 매니저이신가요?"}
+              <p className="mb-2 text-sm font-bold text-white/55">
+                {role === "streamer" ? "SOOP TV 아이디" : "어느 스트리머의 매니저이신가요?"}
               </p>
               <input
                 value={target}
                 onChange={e => setTarget(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") submit(); }}
                 maxLength={80}
-                placeholder={role === "streamer" ? "예: 호사가TV" : "예: 호사가TV 매니저입니다"}
-                className="w-full rounded-lg bg-white/5 border border-white/12 px-3 py-2.5 text-sm outline-none placeholder:text-white/20 focus:border-purple-500/50 transition-colors"
+                placeholder={role === "streamer" ? "예: ddoongcar" : "예: 호사가TV 매니저입니다"}
+                className="w-full rounded-lg bg-white/5 border border-white/12 px-3.5 py-3 text-base outline-none placeholder:text-white/20 focus:border-purple-500/50 transition-colors"
               />
+              {role === "streamer" && (
+                <p className="mt-1.5 text-xs text-white/40">
+                  숲티비 채널 주소에 쓰는 아이디예요. (ch.sooplive.co.kr/<b className="text-white/60">아이디</b>)
+                </p>
+              )}
               {role === "manager" && (
-                <p className="mt-1.5 text-[11px] text-white/35">
+                <p className="mt-1.5 text-xs text-white/40">
                   매니저분들은 본인 아이디로 로그인한 상태에서 신청해주시면 감사하겠습니다.
                 </p>
               )}
@@ -94,7 +98,7 @@ export function AccessGate({ initialStatus, displayName }: {
             {error && <p className="text-xs text-red-400">{error}</p>}
 
             <button onClick={submit} disabled={!target.trim() || submitting}
-              className="w-full h-10 rounded-xl bg-purple-600 text-sm font-bold text-white hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+              className="w-full h-12 rounded-xl bg-purple-600 text-base font-bold text-white hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
               {submitting ? "신청 중..." : "사용 신청"}
             </button>
           </div>
