@@ -28,7 +28,7 @@ test("tier default route is cacheable while query URLs keep filtered/live behavi
   assert.match(queryRouteSource, /<TierPageView\s+params=\{params\}\s*\/>/);
 
   assert.match(viewSource, /TierClientView/);
-  assert.match(viewSource, /getUniversityOptions\(\)/);
+  assert.match(viewSource, /getUniversityOptionsFromDB\(\)/);
   assert.doesNotMatch(viewSource, /playerService\.getCachedPlayersList\(\)/);
   assert.doesNotMatch(viewSource, /playerService\.getLivePlayers\(\)/);
   assert.doesNotMatch(viewSource, /<TierGroup\b/);
@@ -194,7 +194,7 @@ test("tier lightweight card keeps compact profile media and delegates live hover
   assert.match(source, /from ["']next\/image["']/);
   assert.doesNotMatch(source, /TierLiveHoverPreview/);
   assert.match(source, /resolveSoopChannelImageUrl/);
-  assert.match(source, /buildSoopThumbnailProxyUrl/);
+  assert.match(source, /normalizeSoopImageUrl/);
   assert.match(source, /const liveThumbnailUrl = /);
   assert.doesNotMatch(source, /const mediaUrl = liveThumbnailUrl \|\| profileUrl/);
   assert.match(source, /src=\{profileUrl\}/);
