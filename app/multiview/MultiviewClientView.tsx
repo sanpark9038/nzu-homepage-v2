@@ -547,7 +547,7 @@ export function MultiviewClientView() {
   <span>${p.name}${raceLabel ? ` <span style="color:rgba(255,255,255,0.4);">· ${raceLabel}</span>` : ""}</span>
   <a href="${buildPlayUrl(p.soopId)}" target="_blank" rel="noopener noreferrer" style="color:rgba(255,255,255,0.5);text-decoration:none;font-size:12px;padding:2px 8px;border:1px solid rgba(255,255,255,0.15);border-radius:4px;">새창</a>
 </div>
-<iframe src="${buildEmbedUrl(p.soopId)}" style="flex:1;width:100%;border:none;" allow="autoplay;fullscreen"></iframe>
+<iframe src="${buildEmbedUrl(p.soopId)}" style="flex:1;width:100%;border:none;" allow="autoplay;fullscreen;local-network-access"></iframe>
 </div>`;
     }).join("");
 
