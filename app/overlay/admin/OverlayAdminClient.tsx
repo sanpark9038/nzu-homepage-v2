@@ -1654,7 +1654,7 @@ function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, matchFor
                 <input id={fieldId(idx, "p1")} value={entry.leftPlayer} onChange={e => onPatchEntry(entry.id, { leftPlayer: e.target.value })}
                   onPaste={smartPaste("leftPlayer")} onKeyDown={jumpTo(idx, "map")}
                   list={`pool-left-${set.id}`} placeholder="선수" spellCheck={false} maxLength={8}
-                  className={`${fieldCls} text-right`} style={cellInput("left")} />
+                  className={`${fieldCls} text-center`} style={cellInput("left")} />
                 {raceEditor?.id === entry.id && raceEditor.side === "left" && (
                   <RacePicker
                     align="left"
@@ -1680,7 +1680,7 @@ function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, matchFor
                 <input id={fieldId(idx, "p2")} value={entry.rightPlayer} onChange={e => onPatchEntry(entry.id, { rightPlayer: e.target.value })}
                   onPaste={smartPaste("rightPlayer")} onKeyDown={jumpTo(idx + 1, "p1")}
                   list={`pool-right-${set.id}`} placeholder="선수" spellCheck={false} maxLength={8}
-                  className={`${fieldCls} text-left`} style={cellInput("right")} />
+                  className={`${fieldCls} text-center`} style={cellInput("right")} />
                 {entry.rightPlayer && (() => {
                   const race = entry.rightRace ?? raceOf(entry.rightPlayer);
                   return race ? (
