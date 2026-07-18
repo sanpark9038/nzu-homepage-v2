@@ -103,6 +103,9 @@ function EntryBoardInner() {
         <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "22px", fontWeight: 800, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
           {right.teamName || "우팀"}
         </span>
+        {/* 왼쪽 경기번호 칸 스페이서의 짝 — 이게 없으면 가운데 점수가 오른쪽으로 밀려
+            세트 헤더 점수와 세로 정렬이 안 맞음 */}
+        <span style={{ width: `${IDX_W}px`, flexShrink: 0 }} />
       </div>
       {/* 보드 헤더 ↔ 첫 세트 헤더 — 세트 사이와 같은 양끝 페이드 선.
           모든 세트 헤더가 EDGE_LINE 아래에 오게 되어 규칙이 하나로 통일됨 */}
