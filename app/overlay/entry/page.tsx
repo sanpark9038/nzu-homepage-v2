@@ -156,7 +156,7 @@ function SetBlock({ set, label, showHeader, isLast, raceOf }: {
         position: "relative",
         display: "flex", alignItems: "center", justifyContent: "center", gap: "9px",
         padding: "4px 12px",
-        background: set.isAce ? ET.aceHeader : ET.header,
+        background: ET.header,
         boxShadow: set.isAce ? ET.aceTopHighlight : ET.topHighlight,
       }}>
         <WinBadge side="left" winner={winner} />
@@ -230,9 +230,10 @@ function EntryLine({ entry, idx, isCurrent, raceOf }: {
       position: "relative",
       display: "flex", alignItems: "center", gap: `${ROW_GAP}px`,
       padding: "3px 10px", minHeight: "33px",
-      margin: "1px 6px",
+      margin: "2px 6px",
       borderRadius: "6px",
-      background: ET.rowBoxDark,
+      // 빈 행은 얕게 — 전 행이 같은 깊이면 엑셀표처럼 보임
+      background: entry.leftPlayer || entry.rightPlayer || entry.map ? ET.rowBoxDark : ET.rowBoxEmpty,
     }}>
       {active && (
         <span style={{
