@@ -187,6 +187,8 @@ function WinBadge({ side, winner }: { side: "left" | "right"; winner: OverlayRes
       background: won ? "rgba(120,220,150,0.16)" : "transparent",
       border: `1.5px solid ${won ? ET.win : "rgba(255,255,255,0.16)"}`,
       color: won ? ET.win : ET.muted,
+      // 승패 확정 전엔 빈 박스를 그리지 않는다 — 자리만 유지해 확정 시 레이아웃이 안 밀리게
+      visibility: decided ? "visible" : "hidden",
     }}>{decided ? (won ? "W" : "L") : ""}</span>
   );
 }
