@@ -119,7 +119,7 @@ test("exact player search stays on the fast collapsed query result path", () => 
   );
   assert.match(
     viewSource,
-    /const\s+shouldExpandDetailByDefault\s*=\s*hasSelectedId/,
+    /if\s*\(\s*exactMatch\s*&&\s*hasSelectedId\s*&&\s*!detailSummaryLoaded\s*\)/,
     "Only explicit selected-player routes should expand detail summaries by default"
   );
 
@@ -129,7 +129,7 @@ test("exact player search stays on the fast collapsed query result path", () => 
   assert.notEqual(queryBranchEnd, -1);
 
   const queryBranchSource = viewSource.slice(queryBranchStart, queryBranchEnd);
-  assert.match(queryBranchSource, /const\s+results\s*=\s*await\s+playerService\.searchPlayers\(normalizedQuery\)/);
+  assert.match(queryBranchSource, /const\s+results\s*=\s*await\s+playerService\.searchPlayers\(query\)/);
   assert.doesNotMatch(
     queryBranchSource,
     /playerService\.getPlayerById\(/,
@@ -186,7 +186,7 @@ test("exact player search defers full match-summary work until detail is expande
   );
   assert.match(
     source,
-    /if\s*\(\s*exactMatch\s*&&\s*shouldExpandDetailByDefault\s*\)\s*{[\s\S]*?buildPlayerDetailSummary\(exactMatch\)/,
+    /if\s*\(\s*exactMatch\s*&&\s*hasSelectedId\s*&&\s*!detailSummaryLoaded\s*\)\s*{[\s\S]*?buildPlayerDetailSummary\(exactMatch\)/,
     "Only explicitly expanded detail routes should preload the heavy match summary"
   );
 });
@@ -211,7 +211,7 @@ test("collapsed player cards can auto-load detail summaries through a focused AP
   );
   assert.match(
     viewSource,
-    /loadDetailSummaryOnMount=\{!shouldExpandDetailByDefault\}/,
+    /loadDetailSummaryOnMount=\{!detailSummaryLoaded\}/,
     "Collapsed exact query cards should auto-load the summary after the fast first paint"
   );
   assert.match(

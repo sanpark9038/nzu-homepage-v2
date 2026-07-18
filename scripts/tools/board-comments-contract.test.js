@@ -130,7 +130,7 @@ test("board base menu route is cacheable while query URLs keep filters and statu
   assert.match(queryPage, /normalizeBoardListFilter\(params\.filter\)/);
   assert.match(queryPage, /loginStatus/);
   assert.match(queryPage, /downloadStatus/);
-  assert.match(queryPage, /getCachedBoardPostsWithCommentCounts\(20,\s*boardFilter\)/);
+  assert.match(queryPage, /getCachedBoardPostsWithCommentCounts\(20,\s*boardFilter,\s*page\)/);
 
   assert.match(authStartRoute, /\/board\?login=soop-not-configured/);
   assert.match(authLogoutRoute, /\/board\?login=logged-out/);
@@ -185,7 +185,7 @@ test("board all-list falls back to full rows when summary reads are unavailable"
 
   assert.match(board, /listBoardPostSummariesFromFullRows/);
   assert.match(board, /!scheduleResult\.storageReady \|\| !regularResult\.storageReady/);
-  assert.match(board, /return listBoardPostSummariesFromFullRows\(limit\)/);
+  assert.match(board, /await listBoardPostSummariesFromFullRows\(limit\)/);
 });
 
 test("package exposes the board comments contract test", () => {

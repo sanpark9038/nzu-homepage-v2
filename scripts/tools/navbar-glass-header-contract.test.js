@@ -24,9 +24,8 @@ test("navbar uses one shared component with home overlay and default sticky stat
 
   assert.match(source, /function normalizeNavbarPathname/);
   assert.match(source, /pathname === "\/index"/);
-  assert.match(source, /function resolveNavbarPathname/);
   assert.doesNotMatch(source, /window\.location\.pathname/);
-  assert.match(source, /return normalizeNavbarPathname\(pathname\)/);
+  assert.match(source, /const resolvedPathname = normalizeNavbarPathname\(pathname\)/);
   assert.match(source, /const isHome = resolvedPathname === "\/"/);
   assert.doesNotMatch(source, /: "\/";/);
   assert.match(source, /const isActive = resolvedPathname === item\.href/);
@@ -36,14 +35,15 @@ test("navbar uses one shared component with home overlay and default sticky stat
   assert.match(source, /bg-background\/18/);
   assert.doesNotMatch(source, /bg-background\/44/);
   assert.match(source, /bg-background\/72/);
-  assert.doesNotMatch(source, /transition-all/);
+  // 헤더 자체는 transition-colors만 (backdrop-blur/레이아웃 애니메이션 금지). 링크의 transition-all은 d9b96cb 리디자인 의도.
+  assert.match(source, /backdrop-blur-2xl transition-colors/);
 });
 
 test("navbar does not server-default every route to home overlay", () => {
   const source = readProjectFile("components/Navbar.tsx");
 
   assert.doesNotMatch(source, /typeof window !== "undefined" \? window\.location\.pathname : "\/"/);
-  assert.match(source, /resolveNavbarPathname\(pathname\)/);
+  assert.match(source, /normalizeNavbarPathname\(pathname\)/);
 });
 
 test("navbar session check runs from the shared root layout mount only", () => {

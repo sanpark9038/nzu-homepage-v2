@@ -32,6 +32,7 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'profile.img.sooplive.com' },
       { protocol: 'https', hostname: 'profile.img.sooplive.co.kr' },
       { protocol: 'https', hostname: 'ttglvnnzssaaypmcrmdt.supabase.co' },
+      { protocol: 'https', hostname: 'images.star-hosaga.com' },
     ],
   },
 };

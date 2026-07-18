@@ -1,6 +1,6 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getAdminWriteDisabledMessage } from "@/lib/admin-runtime";
 
@@ -204,7 +204,7 @@ export default function HeroMediaAdmin({
                 {entry.type === "video" ? (
                   <video src={entry.url} controls muted playsInline className="h-full w-full object-cover" />
                 ) : (
-                  <img src={entry.url} alt="히어로 미디어 미리보기" className="h-full w-full object-cover" />
+                  <Image src={entry.url} alt="히어로 미디어 미리보기" fill sizes="(max-width: 1280px) 100vw, 640px" className="object-cover" />
                 )}
                 <div className="absolute left-3 top-3 flex gap-2">
                   <span className="rounded-full bg-black/65 px-3 py-1 text-[11px] font-black tracking-[0.14em] text-white">

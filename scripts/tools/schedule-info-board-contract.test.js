@@ -30,7 +30,7 @@ test("board list shows schedule timing as a title badge while preserving created
   assert.match(listPage, /const scheduleBadge = formatBoardScheduleBadge\(post\)/);
   assert.match(listPage, /\{scheduleBadge \? \(/);
   assert.match(listPage, /bg-sky-300\/\[0\.035\]/);
-  assert.match(listPage, /border-sky-300\/45/);
+  assert.match(listPage, /border-sky-300\/28/);
   assert.match(listPage, /w-\[6\.9rem\]/);
   assert.match(listPage, /justify-center/);
   assert.match(listPage, /formatBoardListDate\(post\.created_at\)/);
@@ -54,15 +54,17 @@ test("board list orders schedule posts by schedule start before regular latest p
 test("board list exposes a past schedule tab backed by expired schedule filtering", () => {
   const board = readProjectFile("lib/board.ts");
   const listPage = readProjectFile("app/board/page.tsx");
+  // 필터 정규화는 쿼리 라우트에서 수행 (7af65a8 이후 분리)
+  const queryPage = readProjectFile("app/board/query/page.tsx");
 
   assert.match(board, /export type BoardListFilter = "all" \| "schedule" \| "past-schedule"/);
   assert.match(board, /normalizeBoardListFilter/);
   assert.match(board, /isPastSchedulePost/);
-  assert.match(board, /listBoardSchedulePostSummaries\(limit,\s*"past"/);
-  assert.match(board, /listBoardSchedulePostSummaries\(limit,\s*"active"/);
+  assert.match(board, /listBoardSchedulePostSummaries\(limit(?: \+ 1)?,\s*"past"/);
+  assert.match(board, /listBoardSchedulePostSummaries\(limit(?: \+ 1)?,\s*"active"/);
   assert.match(board, /filter === "past-schedule"/);
   assert.match(board, /filter === "schedule"/);
-  assert.match(listPage, /normalizeBoardListFilter/);
+  assert.match(queryPage, /normalizeBoardListFilter/);
   assert.match(listPage, /past-schedule/);
   assert.match(listPage, /boardFilterHref\("past-schedule"\)/);
 });

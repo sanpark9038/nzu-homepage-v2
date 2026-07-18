@@ -14,14 +14,18 @@ function existsProjectFile(relativePath) {
 }
 
 test("public data routes expose route-level loading boundaries", () => {
+  // player uses a route-specific skeleton since d9b96cb; the rest share PublicRouteLoading.
   const routes = ["board", "player", "schedule", "prediction", "tier"];
+  const sharedLoadingRoutes = new Set(["board", "schedule", "prediction", "tier"]);
 
   for (const route of routes) {
     const loadingPath = `app/${route}/loading.tsx`;
     assert.ok(existsProjectFile(loadingPath), `${loadingPath} should exist`);
 
     const source = readProjectFile(loadingPath);
-    assert.match(source, /PublicRouteLoading/);
+    if (sharedLoadingRoutes.has(route)) {
+      assert.match(source, /PublicRouteLoading/);
+    }
     assert.doesNotMatch(source, /"use client"|\'use client\'/);
   }
 

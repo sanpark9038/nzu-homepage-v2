@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
@@ -147,8 +148,14 @@ export default async function BoardDetailPage({
 
           {post.image_url ? (
             <div className="mt-6 overflow-hidden rounded-[1.2rem] border border-white/8 bg-black/20">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={post.image_url} alt={post.title} className="mx-auto h-auto max-h-[720px] max-w-full object-contain" />
+              <Image
+                src={post.image_url}
+                alt={post.title}
+                width={1280}
+                height={720}
+                sizes="(max-width: 1280px) 100vw, 1280px"
+                className="mx-auto h-auto max-h-[720px] w-auto max-w-full object-contain"
+              />
             </div>
           ) : null}
 

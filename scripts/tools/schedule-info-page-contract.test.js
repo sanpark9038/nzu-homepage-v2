@@ -142,9 +142,10 @@ test("schedule info list uses readable typography scale for controls and cards",
   assert.doesNotMatch(source, /min-h-\[4\.75rem\] w-\[5\.25rem\]/);
   assert.match(source, /text-base md:text-lg/);
   assert.match(source, /rounded-full border border-white\/10 bg-white\/\[0\.035\] p-1/);
-  assert.match(source, /bg-nzu-green px-5 text-base font-black text-black/);
-  assert.match(source, /bg-white\/\[0\.04\] px-4 text-sm font-black text-white\/74/);
-  assert.match(source, /text-lg font-black leading-7 md:text-xl/);
+  // d9b96cb 폰트 위계 정리: font-black → font-bold/semibold
+  assert.match(source, /bg-nzu-green px-5 text-base font-bold text-black/);
+  assert.match(source, /bg-white\/\[0\.04\] px-4 text-sm font-semibold text-white\/65/);
+  assert.match(source, /text-lg font-bold leading-7 md:text-xl/);
   assert.match(source, /text-base font-medium leading-8/);
 });
 

@@ -736,8 +736,8 @@ test("buildTournamentPredictionMatches uses admin-selected player lists", () => 
       matches: [
         {
           id: "match-selected",
-          team_a_code: "t1",
-          team_b_code: "t2",
+          team_a_code: "Team A",
+          team_b_code: "Team B",
           team_a_player_ids: [teamAPlayer.id],
           team_b_player_ids: [teamBPlayer.id],
           start_at: "2026-05-05T13:00:00.000Z",

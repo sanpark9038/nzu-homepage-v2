@@ -86,7 +86,7 @@ function run() {
   const playerSearchResult = read("app/player/PlayerSearchResult.tsx");
   includesAll(
     playerSearchResult,
-    ["const profileImageSizes = \"112px\";", "sizes={profileImageSizes}"],
+    ["const profileImageSizes = \"124px\";", "sizes={profileImageSizes}"],
     "player search result fill image"
   );
   assertAllBlocksUnoptimized(
