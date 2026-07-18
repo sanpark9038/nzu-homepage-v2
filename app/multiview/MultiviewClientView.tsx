@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 
 import { unpackTierPlayersPayload, type TierPlayerPayload } from "@/lib/tier-player-payload";
+import type { H2HStats } from "@/types";
 import { UNIVERSITY_MAP, getUniversityLabel, normalizeUniversityKey } from "@/lib/university-config";
 import { useDuelviewRoom, type ChatMessage } from "./useDuelviewRoom";
 
@@ -48,11 +49,6 @@ function saveFavorites(favorites: Set<string>) {
 
 type Panel = { soopId: string; name: string; race: string | null; playerId: string } | null;
 type RecentCombo = { p1: NonNullable<Panel>; p2: NonNullable<Panel>; savedAt: number };
-
-type H2HStats = {
-  p1: { total: number; wins: number; losses: number; winRate: string };
-  p2: { total: number; wins: number; losses: number; winRate: string };
-} | null;
 
 function toPanel(p: TierPlayerPayload): Panel {
   if (!p.soop_id) return null;
@@ -106,6 +102,15 @@ async function fetchCachedPlayers(liveOnly: boolean): Promise<TierPlayerPayload[
     sessionStorage.setItem(cacheKey, JSON.stringify({ players, ts: Date.now() }));
   } catch {}
   return players;
+}
+
+function removeFromRecent(combo: RecentCombo) {
+  try {
+    const next = loadRecent().filter(
+      (c) => !(c.p1.soopId === combo.p1.soopId && c.p2.soopId === combo.p2.soopId)
+    );
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {}
 }
 
 function saveToRecent(p1: NonNullable<Panel>, p2: NonNullable<Panel>) {
@@ -187,11 +192,12 @@ function SearchResultItem({
 
 // ── H2H 위젯 ────────────────────────────────────────────────────
 function H2HWidget({ panel1, panel2 }: { panel1: Panel; panel2: Panel }) {
-  const [stats, setStats] = useState<H2HStats>(null);
+  const [stats, setStats] = useState<H2HStats | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!panel1 || !panel2) { setStats(null); return; }
+    let cancelled = false;
     setLoading(true);
     const params = new URLSearchParams({
       p1: panel1.name, p2: panel2.name,
@@ -199,17 +205,22 @@ function H2HWidget({ panel1, panel2 }: { panel1: Panel; panel2: Panel }) {
     });
     fetch(`/api/stats/h2h?${params}`)
       .then((r) => r.json())
-      .then((data) => { setStats(data?.p1 && data?.p2 ? data : null); setLoading(false); })
-      .catch(() => { setStats(null); setLoading(false); });
+      .then((data) => { if (cancelled) return; setStats(data?.summary ? data : null); setLoading(false); })
+      .catch(() => { if (cancelled) return; setStats(null); setLoading(false); });
+    return () => { cancelled = true; };
   }, [panel1?.playerId, panel2?.playerId]);
 
   if (!panel1 || !panel2) return null;
 
-  const total = stats?.p1.total ?? 0;
-  const p1Wins = stats?.p1.wins ?? 0;
-  const p2Wins = stats?.p2?.wins ?? (total - p1Wins);
+  const summary = stats?.summary;
+  const total = summary?.total ?? 0;
+  const p1Wins = summary?.wins ?? 0;
+  const p2Wins = summary?.losses ?? 0;
   const p1Pct = total > 0 ? Math.round((p1Wins / total) * 100) : 50;
   const p2Pct = 100 - p1Pct;
+  const momentum = summary?.momentum90;
+  // API는 최신순으로 주므로 뒤집어서 왼→오 = 과거→최신
+  const recentForm = (stats?.recentMatches ?? []).slice(0, 5).reverse();
 
   return (
     <div className="flex items-center gap-4 rounded-lg border border-white/8 bg-white/2 px-5 py-3">
@@ -241,6 +252,29 @@ function H2HWidget({ panel1, panel2 }: { panel1: Panel; panel2: Panel }) {
               <div className="bg-rose-400 transition-all duration-500" style={{ width: `${p2Pct}%` }} />
             </div>
             <span className="text-[10px] text-white/25">{p1Pct}% · {p2Pct}%</span>
+            {(momentum?.total || recentForm.length > 0) ? (
+              <div className="flex items-center gap-2.5 text-[10px] text-white/40">
+                {momentum && momentum.total > 0 && (
+                  <span>
+                    최근 3개월{" "}
+                    <span className="font-semibold text-nzu-green">{momentum.wins}승</span>{" "}
+                    <span className="font-semibold text-rose-400">{momentum.losses}패</span>
+                  </span>
+                )}
+                {recentForm.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    <span className="text-white/25">최근 {recentForm.length}경기</span>
+                    {recentForm.map((m) => (
+                      <span
+                        key={m.id}
+                        title={[m.match_date, m.map].filter(Boolean).join(" · ")}
+                        className={`h-2 w-2 rounded-full ${m.is_win ? "bg-nzu-green" : "bg-rose-400"}`}
+                      />
+                    ))}
+                  </span>
+                )}
+              </div>
+            ) : null}
           </>
         )}
       </div>
@@ -705,13 +739,23 @@ export function MultiviewClientView() {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs text-white/25 flex-shrink-0">최근</span>
                 {recent.map((combo, i) => (
-                  <button
+                  <div
                     key={i}
                     onClick={() => { setPanel1(combo.p1); setPanel2(combo.p2); }}
-                    className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/40 hover:border-white/25 hover:text-white/70 transition-all"
+                    className="flex items-center gap-1 rounded-full border border-white/10 px-3 py-1 text-xs text-white/40 cursor-pointer select-none hover:border-white/25 hover:text-white/70 transition-all"
                   >
-                    {combo.p1.name} vs {combo.p2.name}
-                  </button>
+                    <span>{combo.p1.name} vs {combo.p2.name}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFromRecent(combo);
+                        setRecent(loadRecent());
+                      }}
+                      className="ml-0.5 text-white/25 hover:text-white/70 transition-colors"
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
