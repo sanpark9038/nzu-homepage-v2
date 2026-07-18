@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-15T18:10:14.010Z",
+  "generated_at": "2026-07-18T11:01:45.244Z",
   "project": "ncs",
   "team_name": "뉴캣슬",
   "team_code": "ncs",
@@ -9,7 +9,7 @@
     "뉴캣슬",
     "NCS"
   ],
-  "roster_count": 26,
+  "roster_count": 27,
   "roster": [
     {
       "team_name": "뉴캣슬",
@@ -965,6 +965,34 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=62",
       "profile_kind": "default",
       "soop_user_id": "peros777"
+    },
+    {
+      "team_name": "뉴캣슬",
+      "team_code": "ncs",
+      "entity_id": "eloboard:male:232",
+      "wr_id": 232,
+      "gender": "male",
+      "name": "저그맨박성준",
+      "display_name": "저그맨박성준",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=232",
+      "profile_kind": "default",
+      "tier": "스페이드",
+      "race": "Zerg",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:ncs",
+        "team_code:ncs",
+        "team_ko:뉴캣슬",
+        "team_en:ncs",
+        "gender:male",
+        "race:zerg",
+        "tier:spade"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "spade"
     }
   ],
   "source_file": "data/metadata/projects/ncs/players.ncs.v1.json",

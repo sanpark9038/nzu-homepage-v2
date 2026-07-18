@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-06-21T00:00:00.000Z",
+  "generated_at": "2026-07-18T11:01:45.245Z",
   "project": "ssg",
   "team_name": "신세계",
   "team_code": "ssg",
@@ -9,8 +9,65 @@
     "SSG",
     "신세계"
   ],
-  "roster_count": 0,
-  "roster": [],
+  "roster_count": 2,
+  "roster": [
+    {
+      "team_name": "신세계",
+      "team_code": "ssg",
+      "entity_id": "eloboard:male:172",
+      "wr_id": 172,
+      "gender": "male",
+      "name": "김상곤",
+      "display_name": "김상곤",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=172",
+      "profile_kind": "default",
+      "tier": "조커",
+      "race": "Zerg",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:ssg",
+        "team_code:ssg",
+        "team_ko:신세계",
+        "team_en:ssg",
+        "gender:male",
+        "race:zerg",
+        "tier:joker"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "joker"
+    },
+    {
+      "team_name": "신세계",
+      "team_code": "ssg",
+      "entity_id": "eloboard:female:659",
+      "wr_id": 659,
+      "gender": "female",
+      "name": "김설",
+      "display_name": "김설",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=659",
+      "profile_kind": "default",
+      "tier": "6",
+      "race": "Zerg",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:ssg",
+        "team_code:ssg",
+        "team_ko:신세계",
+        "team_en:ssg",
+        "gender:female",
+        "race:zerg",
+        "tier:6"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "6"
+    }
+  ],
   "source_file": "data/metadata/projects/ssg/players.ssg.v1.json",
   "roster_ordering": {
     "role_priority_first": true,
@@ -26,12 +83,32 @@
       "3"
     ],
     "tier_aliases": {
-      "god": ["god", "갓"],
-      "king": ["king", "킹"],
-      "jack": ["jack", "잭"],
-      "joker": ["joker", "조커"],
-      "spade": ["spade", "스페이드"],
-      "baby": ["baby", "베이비", "유스", "9"]
+      "god": [
+        "god",
+        "갓"
+      ],
+      "king": [
+        "king",
+        "킹"
+      ],
+      "jack": [
+        "jack",
+        "잭"
+      ],
+      "joker": [
+        "joker",
+        "조커"
+      ],
+      "spade": [
+        "spade",
+        "스페이드"
+      ],
+      "baby": [
+        "baby",
+        "베이비",
+        "유스",
+        "9"
+      ]
     }
   },
   "manual_managed": false

@@ -190,7 +190,9 @@
     "sync:ops-review-reports": "node scripts/tools/sync-ops-review-reports.js",
     "sync:matches": "node scripts/sync-bj-matches.js",
     "test:overlay-view-token": "node scripts/tools/overlay-view-token-contract.test.js",
-    "test:overlay-access-gate": "node scripts/tools/overlay-access-gate-contract.test.js"
+    "test:overlay-access-gate": "node scripts/tools/overlay-access-gate-contract.test.js",
+    "roster:materialize": "node -r dotenv/config scripts/tools/materialize-approved-candidates.js dotenv_config_path=.env.local",
+    "roster:materialize:apply": "node -r dotenv/config scripts/tools/materialize-approved-candidates.js dotenv_config_path=.env.local --apply"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1037.0",

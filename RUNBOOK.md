@@ -103,6 +103,20 @@ Use the sync variant only when service-role credentials are present and the run 
 npm run pipeline:manual:refresh:with-sync
 ```
 
+## Materialize Approved Roster Candidates
+
+Ops-review 승인은 Supabase `roster_admin_corrections` 에 기록만 남기고 선수를 만들지 않는다.
+승인 후에는 로컬에서 아래를 실행해 베이스라인에 실제 등록해야 한다 (커밋·푸시까지).
+Supabase `players` 반영은 다음 파이프라인 sync 가 처리한다.
+
+```bash
+npm run roster:materialize        # dry-run: 등록 대상 확인
+npm run roster:materialize:apply  # projects 베이스라인에 등록
+```
+
+동명이 다른 entity 로 이미 등록된 경우(`skip_name_conflict`)는 identity migration
+여부를 사람이 판단한 뒤 처리한다.
+
 ## Serving Identity Verification
 
 If the current work touches `players`, `players_staging`, or identifier-based sync:

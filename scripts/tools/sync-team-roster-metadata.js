@@ -1060,6 +1060,8 @@ async function main() {
 module.exports = {
   buildLegacyEntityIdsBySuccessor,
   buildExcludedEntityIds,
+  fetchHtml,
+  parseRoster,
   buildRetainedFaEntityIds,
   collapseObservedLegacyDuplicates,
   collapseStalePreviousDuplicateEntities,

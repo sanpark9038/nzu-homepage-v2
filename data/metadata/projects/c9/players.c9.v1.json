@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-15T18:10:13.521Z",
+  "generated_at": "2026-07-18T11:01:45.242Z",
   "project": "c9",
   "team_name": "씨나인",
   "team_code": "c9",
@@ -9,7 +9,7 @@
     "씨나인",
     "C9"
   ],
-  "roster_count": 19,
+  "roster_count": 22,
   "roster": [
     {
       "team_name": "씨나인",
@@ -708,6 +708,90 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=19",
       "profile_kind": "default",
       "soop_user_id": "rlekfu6"
+    },
+    {
+      "team_name": "씨나인",
+      "team_code": "c9",
+      "entity_id": "eloboard:male:97",
+      "wr_id": 97,
+      "gender": "male",
+      "name": "박정일",
+      "display_name": "박정일",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=97",
+      "profile_kind": "default",
+      "tier": "조커",
+      "race": "Terran",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:c9",
+        "team_code:c9",
+        "team_ko:씨나인",
+        "team_en:c9",
+        "gender:male",
+        "race:terran",
+        "tier:joker"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "joker"
+    },
+    {
+      "team_name": "씨나인",
+      "team_code": "c9",
+      "entity_id": "eloboard:female:14",
+      "wr_id": 14,
+      "gender": "female",
+      "name": "앵지",
+      "display_name": "앵지",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=14",
+      "profile_kind": "default",
+      "tier": "4",
+      "race": "Zerg",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:c9",
+        "team_code:c9",
+        "team_ko:씨나인",
+        "team_en:c9",
+        "gender:female",
+        "race:zerg",
+        "tier:4"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "4"
+    },
+    {
+      "team_name": "씨나인",
+      "team_code": "c9",
+      "entity_id": "eloboard:female:569",
+      "wr_id": 569,
+      "gender": "female",
+      "name": "깅예솔",
+      "display_name": "깅예솔",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=569",
+      "profile_kind": "default",
+      "tier": "미정",
+      "race": "Unknown",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:c9",
+        "team_code:c9",
+        "team_ko:씨나인",
+        "team_en:c9",
+        "gender:female",
+        "race:unknown",
+        "tier:unknown"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "unknown"
     }
   ],
   "source_file": "data/metadata/projects/c9/players.c9.v1.json",
