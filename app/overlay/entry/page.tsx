@@ -12,7 +12,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { setScoreOf, setWinnerOf, type OverlayEntryRow, type OverlayRace, type OverlayResult, type OverlaySet } from "@/lib/overlay-types";
 import { RACE_COLORS } from "@/lib/overlay-race";
-import { ET, EDGE_LINE, CENTER_LINE, ACE_CENTER_LINE, mapAbbr } from "@/lib/overlay-entry-theme";
+import { ET, EDGE_LINE, CENTER_LINE, ACE_CENTER_LINE, MASTHEAD_LINE, mapAbbr } from "@/lib/overlay-entry-theme";
 import { useOverlayLive } from "@/lib/use-overlay-live";
 
 const BOARD_W = 430;
@@ -86,10 +86,10 @@ function EntryBoardInner() {
         background: ET.boardHeader,
         boxShadow: ET.boardEdge,
         display: "flex", alignItems: "center", gap: `${ROW_GAP}px`,
-        padding: "7px 16px",
+        padding: "10px 16px",
       }}>
         <span style={{ width: `${IDX_W}px`, flexShrink: 0 }} />
-        <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "22px", fontWeight: 800, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
+        <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "22px", fontWeight: 800, letterSpacing: "0.04em", color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
           {left.teamName || "좌팀"}
         </span>
         {/* 세트 스코어 — 박스 없이 크기·두께로만 위계(세트 헤더 숫자 21px보다 크게).
@@ -100,16 +100,15 @@ function EntryBoardInner() {
           <span style={{ minWidth: "80px", textAlign: "center", fontSize: "16px", fontWeight: 800, color: ET.muted, lineHeight: 1 }}>vs</span>
           <span style={{ fontSize: "28px", fontWeight: 900, color: "#fff", lineHeight: 1, minWidth: "16px", textAlign: "left" }}>{headScore.right}</span>
         </div>
-        <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "22px", fontWeight: 800, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
+        <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "22px", fontWeight: 800, letterSpacing: "0.04em", color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
           {right.teamName || "우팀"}
         </span>
         {/* 왼쪽 경기번호 칸 스페이서의 짝 — 이게 없으면 가운데 점수가 오른쪽으로 밀려
             세트 헤더 점수와 세로 정렬이 안 맞음 */}
         <span style={{ width: `${IDX_W}px`, flexShrink: 0 }} />
       </div>
-      {/* 보드 헤더 ↔ 첫 세트 헤더 — 세트 사이와 같은 양끝 페이드 선.
-          모든 세트 헤더가 EDGE_LINE 아래에 오게 되어 규칙이 하나로 통일됨 */}
-      <div style={{ height: "1px", background: EDGE_LINE }} />
+      {/* 마스트헤드 아래 — 보드에서 가장 강한 2px 액센트선. 팀 헤더가 1티어임을 선으로 선언 */}
+      <div style={{ height: "2px", background: MASTHEAD_LINE }} />
 
       {sets.map((set, i) => (
         <SetBlock
@@ -155,7 +154,7 @@ function SetBlock({ set, label, showHeader, isLast, raceOf }: {
       <div style={{
         position: "relative",
         display: "flex", alignItems: "center", justifyContent: "center", gap: "9px",
-        padding: "4px 12px",
+        padding: "3px 12px",
         background: ET.header,
         boxShadow: set.isAce ? ET.aceTopHighlight : ET.topHighlight,
       }}>
@@ -164,9 +163,14 @@ function SetBlock({ set, label, showHeader, isLast, raceOf }: {
         {/* 라벨이 없으면(대전 및 CK 단판) 빈 칸을 남기지 않고 점수·배지가 가운데로 모이게 */}
         {label && (
           <span style={{
-            minWidth: "80px", textAlign: "center", fontSize: "16px", fontWeight: 900, letterSpacing: "0.05em", lineHeight: 1,
+            minWidth: "80px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "5px",
+            fontSize: "16px", fontWeight: 900, letterSpacing: "0.05em", lineHeight: 1,
             color: set.isAce ? ET.aceText : ET.accent,
-          }}>{label}</span>
+          }}>
+            {/* 세로 마커 — 텍스트만 있을 때보다 그래픽 밀도를 줌 (슈에는 골드) */}
+            <span style={{ width: "3px", height: "12px", borderRadius: "2px", background: set.isAce ? ET.aceText : ET.accent }} />
+            {label}
+          </span>
         )}
         <span style={{ fontSize: "21px", fontWeight: 900, color: ET.text, lineHeight: 1, minWidth: "16px", textAlign: "left" }}>{r}</span>
         <WinBadge side="right" winner={winner} />

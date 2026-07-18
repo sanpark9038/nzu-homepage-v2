@@ -6,9 +6,10 @@ export const ET = {
   // 전부 진흙처럼 뭉쳐 칙칙해짐(2026-07-18 사용자 피드백). 아이스블루는 명도·채도가
   // 종족색(진파랑 T/보라 Z/주황 P)과 달라 선수 이름과 안 싸우고, 골드는 에이스 전용으로 남긴다.
   bg:        "rgba(10, 12, 20, 0.90)",
-  // 밝기 3단 위계는 유지 — 보드 헤더 > 세트 헤더 > 경기 행. 채도를 올려 위계가 또렷하게.
-  boardHeader: "linear-gradient(180deg, rgba(49,62,102,0.97), rgba(24,30,52,0.97))",
-  header:      "linear-gradient(180deg, rgba(35,44,74,0.94), rgba(21,26,45,0.94))",
+  // 위계는 명도 차만으로는 부족(다 같은 네이비로 읽힘) — 형태 언어를 다르게:
+  // 팀 헤더 = 마스트헤드(채도 높은 인디고 + 상단 광 + 하단 2px 액센트선), 세트 헤더 = 어둡고 슬림한 밴드
+  boardHeader: "radial-gradient(130% 130% at 50% -20%, rgba(96,128,214,0.38), rgba(96,128,214,0) 55%), linear-gradient(180deg, rgba(54,68,118,0.97), rgba(25,31,56,0.97))",
+  header:      "linear-gradient(180deg, rgba(27,34,58,0.92), rgba(17,21,36,0.92))",
   rowBoxDark:  "rgba(0, 0, 0, 0.42)",  // 경기 행 — 확실히 깊게 파야 배경과 구분됨(얕으면 엑셀표처럼 보임)
   rowBoxEmpty: "rgba(0, 0, 0, 0.15)",  // 빈 행은 얕게 — 채워진 행과 위계를 만들어 표 느낌을 깸
   topHighlight: "inset 0 1px 0 rgba(165,195,255,0.18)", // 세트 헤더 윗면 하이라이트 — 크롬 톤
@@ -36,6 +37,8 @@ export const EDGE_LINE = "linear-gradient(to right, rgba(170,200,255,0), rgba(17
 export const CENTER_LINE = "linear-gradient(to right, rgba(180,210,255,0), rgba(180,210,255,0.48) 50%, rgba(180,210,255,0))";
 // 에이스·슈에 헤더 아래 전용 — 샴페인 골드 (헤더가 골드인데 밑선만 파랗면 어긋나 보임)
 export const ACE_CENTER_LINE = "linear-gradient(to right, rgba(242,220,160,0), rgba(242,220,160,0.50) 50%, rgba(242,220,160,0))";
+// 팀명 헤더(마스트헤드) 아래 — 보드에서 가장 강한 선. "여기가 제목줄" 선언용 (2px로 쓴다)
+export const MASTHEAD_LINE = "linear-gradient(to right, rgba(168,205,255,0), rgba(168,205,255,0.80) 18%, rgba(168,205,255,0.80) 82%, rgba(168,205,255,0))";
 
 
 // 방송 화면엔 맵을 두 글자로 줄여 표기 (녹아웃 → 녹아)
