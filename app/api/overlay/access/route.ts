@@ -7,6 +7,22 @@ import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// 새 신청이 들어오면 디스코드로 즉시 알림 (기존 OPS 채널 재사용).
+// 실패해도 신청 자체는 성공해야 하므로 절대 throw하지 않는다.
+async function notifyDiscord(content: string) {
+  const webhook = String(process.env.OPS_DISCORD_WEBHOOK_URL || "").trim();
+  if (!webhook) return;
+  try {
+    await fetch(webhook, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+  } catch {
+    // 알림 실패는 무시 — 신청 처리에 영향 없음
+  }
+}
+
 // 오버레이 사용 신청 — 숲 로그인 세션 기반이라 ID 위조 불가.
 // 신청 레코드: { 숲ID, 표시이름, 역할(스트리머 본인|매니저), 대상(채널명|담당 스트리머) }
 export async function POST(req: Request) {
@@ -52,6 +68,19 @@ export async function POST(req: Request) {
 
   if (error) {
     return NextResponse.json({ ok: false, message: error.message }, { status: 500 });
+  }
+
+  // 새 신청일 때만 알림 — 같은 사람의 재신청(기존 행 갱신)은 생략해 사람당 알림 1번이 상한
+  if (!existing) {
+    const roleLabel = role === "streamer" ? "스트리머 본인" : "매니저";
+    await notifyDiscord(
+      [
+        "📺 **오버레이 사용 신청**",
+        `- 신청자: ${session.displayName} (숲 ID: ${session.providerUserId})`,
+        `- 역할: ${roleLabel} · ${target}`,
+        "- 승인: https://www.star-hosaga.com/admin/overlay-access",
+      ].join("\n")
+    );
   }
 
   return NextResponse.json({ ok: true, status: "pending" });
