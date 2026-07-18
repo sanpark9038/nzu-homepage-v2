@@ -12,7 +12,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { setScoreOf, setWinnerOf, type OverlayEntryRow, type OverlayRace, type OverlayResult, type OverlaySet } from "@/lib/overlay-types";
 import { RACE_COLORS } from "@/lib/overlay-race";
-import { ET, EDGE_LINE, CENTER_LINE, mapAbbr } from "@/lib/overlay-entry-theme";
+import { ET, EDGE_LINE, CENTER_LINE, ACE_CENTER_LINE, mapAbbr } from "@/lib/overlay-entry-theme";
 import { useOverlayLive } from "@/lib/use-overlay-live";
 
 const BOARD_W = 430;
@@ -23,14 +23,13 @@ const RACE_W  = 21; // 종족 태그
 const MAP_W   = 38; // 맵 약자
 const ROW_GAP = 9;  // 선수명 ↔ 종족 태그 간격
 const MAP_GAP = 6;  // 맵 양옆 추가 여백 — 가운데가 덜 뭉치게 맵만 더 벌림
-const MID_W   = RACE_W + MAP_W + RACE_W + ROW_GAP * 2 + MAP_GAP * 2; // 종족|맵|종족 = 헤더 점수 자리
 
 function EntryBoardInner() {
   const searchParams = useSearchParams();
   const overlayKey   = searchParams.get("key") ?? "";
   const { state, raceOf } = useOverlayLive(overlayKey);
 
-  const { left, right, sets, activeSetId, matchFormat } = state;
+  const { left, right, sets, matchFormat } = state;
   const isMini = matchFormat === "mini";
   // 대전 및 CK는 단판이라 세트 개념이 없음 → "1SET" 라벨을 숨긴다 (스코어보드와 같은 규칙)
   const showSetLabel = matchFormat !== "university";
@@ -93,10 +92,13 @@ function EntryBoardInner() {
         <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "22px", fontWeight: 800, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
           {left.teamName || "좌팀"}
         </span>
-        <div style={{ width: `${MID_W}px`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-          <SetScoreChip won={headScore.left} />
-          <span style={{ fontSize: "13px", fontWeight: 700, color: ET.muted, lineHeight: 1 }}>vs</span>
-          <SetScoreChip won={headScore.right} />
+        {/* 세트 스코어 — 박스 없이 크기·두께로만 위계(세트 헤더 숫자 21px보다 크게).
+            간격 체계(숫자 minWidth 16 · gap 9 · 가운데 80)를 세트 헤더와 똑같이 맞춰
+            위아래 숫자 열이 정렬되게 한다 */}
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: `${ROW_GAP}px` }}>
+          <span style={{ fontSize: "28px", fontWeight: 900, color: "#fff", lineHeight: 1, minWidth: "16px", textAlign: "right" }}>{headScore.left}</span>
+          <span style={{ minWidth: "80px", textAlign: "center", fontSize: "16px", fontWeight: 800, color: ET.muted, lineHeight: 1 }}>vs</span>
+          <span style={{ fontSize: "28px", fontWeight: 900, color: "#fff", lineHeight: 1, minWidth: "16px", textAlign: "left" }}>{headScore.right}</span>
         </div>
         <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontSize: "22px", fontWeight: 800, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
           {right.teamName || "우팀"}
@@ -113,7 +115,6 @@ function EntryBoardInner() {
           label={showSetLabel ? setLabelOf(set, sets, isMini) : ""}
           // 단판(대전 및 CK)은 세트 헤더가 맨 위 헤더와 같은 점수를 반복할 뿐이라 숨긴다
           showHeader={showSetLabel}
-          isActive={set.id === activeSetId}
           isLast={i === sets.length - 1}
           raceOf={raceOf}
         />
@@ -133,15 +134,15 @@ function setLabelOf(set: OverlaySet, all: OverlaySet[], mini: boolean) {
   return `${all.findIndex(s => s.id === set.id) + 1}SET`;
 }
 
-function SetBlock({ set, label, showHeader, isActive, isLast, raceOf }: {
-  set: OverlaySet; label: string; showHeader: boolean; isActive: boolean; isLast: boolean;
+function SetBlock({ set, label, showHeader, isLast, raceOf }: {
+  set: OverlaySet; label: string; showHeader: boolean; isLast: boolean;
   raceOf: (name: string) => OverlayRace | undefined;
 }) {
   const l = set.entries.filter(e => e.result === "left").length;
   const r = set.entries.filter(e => e.result === "right").length;
   const winner = setWinnerOf(set);
   // 세트 승패는 W/L 배지 하나로만 말한다 — 초록 틴트까지 쓰면 같은 사실을 두 번 말하는 셈
-  const headerBase = set.isAce ? ET.aceBg : ET.header;
+  // "진행 중인 세트" 세로 바는 제거 — 진행 중인 경기 테두리가 이미 위치를 말해줘서 중복이었음
 
   return (
     <div>
@@ -152,17 +153,9 @@ function SetBlock({ set, label, showHeader, isActive, isLast, raceOf }: {
         position: "relative",
         display: "flex", alignItems: "center", justifyContent: "center", gap: "9px",
         padding: "4px 12px",
-        background: headerBase,
-        boxShadow: ET.topHighlight,
+        background: set.isAce ? ET.aceHeader : ET.header,
+        boxShadow: set.isAce ? ET.aceTopHighlight : ET.topHighlight,
       }}>
-        {/* 진행 중인 세트만 왼쪽에 세로 액센트 바 — 테두리로 두르면 무거움 */}
-        {isActive && (
-          <span style={{
-            position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)",
-            width: "3px", height: "62%", borderRadius: "0 2px 2px 0",
-            background: ET.currentBorder,
-          }} />
-        )}
         <WinBadge side="left" winner={winner} />
         <span style={{ fontSize: "21px", fontWeight: 900, color: ET.text, lineHeight: 1, minWidth: "16px", textAlign: "right" }}>{l}</span>
         {/* 라벨이 없으면(대전 및 CK 단판) 빈 칸을 남기지 않고 점수·배지가 가운데로 모이게 */}
@@ -175,8 +168,8 @@ function SetBlock({ set, label, showHeader, isActive, isLast, raceOf }: {
         <span style={{ fontSize: "21px", fontWeight: 900, color: ET.text, lineHeight: 1, minWidth: "16px", textAlign: "left" }}>{r}</span>
         <WinBadge side="right" winner={winner} />
       </div>
-      {/* 세트 헤더 아래 — 가운데가 밝고 양 끝으로 사라지는 선 */}
-      <div style={{ height: "1px", background: CENTER_LINE }} />
+      {/* 세트 헤더 아래 — 가운데가 밝고 양 끝으로 사라지는 선 (에이스는 골드) */}
+      <div style={{ height: "1px", background: set.isAce ? ACE_CENTER_LINE : CENTER_LINE }} />
       </>)}
 
       {/* 경기 행 — 아직 안 채운 빈 행도 그대로 노출(전체 판세를 보여주는 게 목적) */}
@@ -286,16 +279,3 @@ function RaceTag({ race, lost }: { race: OverlayRace | undefined; lost: boolean 
   );
 }
 
-// 획득 세트 수 — 세트 안 경기 스코어와 헷갈리지 않게 칩(박스)으로 형태를 구분
-function SetScoreChip({ won }: { won: number }) {
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", justifyContent: "center",
-      minWidth: "30px", height: "30px", padding: "0 7px", flexShrink: 0,
-      borderRadius: "8px",
-      background: ET.chipBg,
-      border: `1.5px solid ${ET.chipBorder}`,
-      color: ET.text, fontSize: "21px", fontWeight: 900, lineHeight: 1,
-    }}>{won}</span>
-  );
-}
