@@ -456,10 +456,12 @@ export default function OverlayAdminClient({
       const cur = set.entries[rowIdx];
       const newResult = cur.result === result ? null : result;
       let newEntries = set.entries.map(e => e.id === entryId ? { ...e, result: newResult } : e);
+      // 이 클릭으로 세트가 확정됐으면(과반 도달) 다음 경기는 없다 — 자동 진행·잔류 기입 모두 중단
+      const nowDecided = setWinnerOf({ ...set, entries: newEntries }) !== null;
 
       // 위너스 방식: 승자 지정 시 다음 경기의 '이긴 쪽' 칸에 승자 이름 자동 기입(잔류). 상대 칸은 비워둠.
       // 고정 방식: 잔류 없이 정해진 대진 그대로 진행.
-      if (newResult !== null && set.winnersMode && rowIdx + 1 < newEntries.length) {
+      if (newResult !== null && !nowDecided && set.winnersMode && rowIdx + 1 < newEntries.length) {
         const winnerName = newResult === "left" ? cur.leftPlayer : cur.rightPlayer;
         const field: "leftPlayer" | "rightPlayer" = newResult === "left" ? "leftPlayer" : "rightPlayer";
         if (winnerName && !newEntries[rowIdx + 1][field]) {
@@ -475,7 +477,7 @@ export default function OverlayAdminClient({
       // 새 경기이므로 스타팅 위치는 선택 해제, 색상은 좌/우 기본값으로 되돌림
       let nextCurrent = newResult !== null ? rowIdx : set.currentMatch;
       let nextLeft = s.left, nextRight = s.right;
-      if (newResult !== null && rowIdx + 1 < newEntries.length) {
+      if (newResult !== null && !nowDecided && rowIdx + 1 < newEntries.length) {
         const nx = newEntries[rowIdx + 1];
         const lRace = nx.leftRace  ?? raceOf(nx.leftPlayer);
         const rRace = nx.rightRace ?? raceOf(nx.rightPlayer);
@@ -492,7 +494,6 @@ export default function OverlayAdminClient({
       // 이 클릭으로 세트가 "미결 → 결정"으로 넘어갔으면 카드 띄움.
       // 반대로 결과 취소로 다시 미결이 됐으면 그 세트 카드는 내림.
       const wasDecided = setWinnerOf(set) !== null;
-      const nowDecided = setWinnerOf({ ...set, entries: newEntries }) !== null;
       if (!wasDecided && nowDecided) toPrompt = promptTargetFor(newSets, setId, s.matchFormat);
       else if (wasDecided && !nowDecided) toUnprompt = setId;
 

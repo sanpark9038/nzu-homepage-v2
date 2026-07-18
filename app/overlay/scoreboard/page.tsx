@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { setScoreOf, miniAceNeeded, type OverlayEntryRow, type OverlayRace, type OverlaySet } from "@/lib/overlay-types";
+import { setScoreOf, setWinnerOf, miniAceNeeded, type OverlayEntryRow, type OverlayRace, type OverlaySet } from "@/lib/overlay-types";
 import { RACE_COLORS } from "@/lib/overlay-race";
 import { ET, mapAbbr, nameColWidth } from "@/lib/overlay-entry-theme";
 import { useOverlayLive } from "@/lib/use-overlay-live";
@@ -196,7 +196,8 @@ function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, show
       {/* 경기 목록 — 선수 또는 맵이 있는 행만 (원래 경기 번호 유지 위해 원본 idx 사용) */}
       {set.entries.map((entry, idx) =>
         hasContent(entry)
-          ? <EntryRow key={entry.id} entry={entry} idx={idx} isCurrent={set.currentMatch === idx} nameW={nameW} raceOf={raceOf} />
+          // 세트 승패가 이미 확정됐으면 남은 경기는 치르지 않음 — 강조 테두리도 없어야 함
+          ? <EntryRow key={entry.id} entry={entry} idx={idx} isCurrent={setWinnerOf(set) === null && set.currentMatch === idx} nameW={nameW} raceOf={raceOf} />
           : null
       )}
 

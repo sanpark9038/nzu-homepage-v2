@@ -8,7 +8,7 @@
 // (게임 장면에서 대진표를 숨겨도 이 화면은 남아야 하므로. 위치는 OBS에서, 크기는 ?scale=)
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { setScoreOf, type OverlayEntryRow, type OverlayRace, type OverlayResult, type OverlaySet } from "@/lib/overlay-types";
+import { setScoreOf, setWinnerOf, type OverlayEntryRow, type OverlayRace, type OverlayResult, type OverlaySet } from "@/lib/overlay-types";
 import { RACE_COLORS } from "@/lib/overlay-race";
 import { ET, EDGE_LINE, CENTER_LINE, mapAbbr } from "@/lib/overlay-entry-theme";
 import { useOverlayLive } from "@/lib/use-overlay-live";
@@ -111,21 +111,13 @@ function setLabelOf(set: OverlaySet, all: OverlaySet[], mini: boolean) {
   return `${all.findIndex(s => s.id === set.id) + 1}SET`;
 }
 
-function setWinnerOfEntries(set: OverlaySet): OverlayResult {
-  const target = Math.floor(set.entries.length / 2) + 1;
-  const l = set.entries.filter(e => e.result === "left").length;
-  const r = set.entries.filter(e => e.result === "right").length;
-  if (set.entries.length === 0) return null;
-  return l >= target ? "left" : r >= target ? "right" : null;
-}
-
 function SetBlock({ set, label, showHeader, isActive, isLast, raceOf }: {
   set: OverlaySet; label: string; showHeader: boolean; isActive: boolean; isLast: boolean;
   raceOf: (name: string) => OverlayRace | undefined;
 }) {
   const l = set.entries.filter(e => e.result === "left").length;
   const r = set.entries.filter(e => e.result === "right").length;
-  const winner = setWinnerOfEntries(set);
+  const winner = setWinnerOf(set);
   // 세트 승패는 W/L 배지 하나로만 말한다 — 초록 틴트까지 쓰면 같은 사실을 두 번 말하는 셈
   const headerBase = set.isAce ? ET.aceBg : ET.header;
 
@@ -167,7 +159,8 @@ function SetBlock({ set, label, showHeader, isActive, isLast, raceOf }: {
 
       {/* 경기 행 — 아직 안 채운 빈 행도 그대로 노출(전체 판세를 보여주는 게 목적) */}
       {set.entries.map((entry, idx) => (
-        <EntryLine key={entry.id} entry={entry} idx={idx} isCurrent={set.currentMatch === idx} raceOf={raceOf} />
+        // 세트 승패가 이미 확정됐으면(예: 5경기 중 3:1) 남은 경기는 치르지 않음 — 강조 테두리도 없어야 함
+        <EntryLine key={entry.id} entry={entry} idx={idx} isCurrent={winner === null && set.currentMatch === idx} raceOf={raceOf} />
       ))}
 
       {/* 세트 사이 구분 — 양 끝이 사라지는 얇은 선 */}
