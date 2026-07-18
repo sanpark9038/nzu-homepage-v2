@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Eye, EyeOff,
+  Eye, EyeOff, Copy, Check,
   Settings, X, Layers, Plus, GripVertical, ClipboardPaste, HelpCircle, Lock, RotateCcw, ChevronRight, ArrowLeftRight,
 } from "lucide-react";
 import {
@@ -772,14 +772,14 @@ export default function OverlayAdminClient({
               />
             </div>
           )}
-          {/* OBS 소스 URL — 씬 단위로 쓰므로 "URL"은 한 번만 쓰고 버튼엔 씬 이름만.
-              게임화면은 그 안에 뭘 띄울지 고를 게 있어 URL과 토글을 한 테두리로 묶는다
-              → 이 표시 토글이 "게임화면 씬 안의 것"임이 라벨 없이도 읽힘 (풀캠용 대진표는 무관) */}
+          {/* OBS 소스 URL — 씬 박스 2개(게임화면·풀캠)로 위계를 세움: 캡션=씬 이름, 버튼=URL 복사 액션.
+              게임화면 박스에만 송출 토글이 들어가 "이 토글은 게임화면 씬 안의 것"이 형태로 읽힘 */}
           <div className="shrink-0 flex items-center gap-2.5">
             <span className="text-xs font-bold text-white/30 shrink-0">OBS URL</span>
 
-            <div className="flex items-center gap-1.5 rounded-xl border border-white/12 bg-white/[0.03] px-1.5 py-1">
-              <UrlCopyBtn url={scoreboardUrl} label="게임화면" title={`게임 화면 씬용 — 스코어보드 + 대진표\n${scoreboardUrl}`} />
+            <div className="flex items-center gap-1.5 rounded-xl border border-white/12 bg-white/[0.03] pl-3 pr-1.5 py-1">
+              <span className="text-[12px] font-black text-white/60 shrink-0">게임화면</span>
+              <UrlCopyBtn url={scoreboardUrl} title={`게임 화면 씬용 — 스코어보드 + 대진표\n${scoreboardUrl}`} />
               <span className="w-px h-5 bg-white/12 shrink-0" />
               {([
                 { k: "scoreboardLayout", label: "스코어보드" },
@@ -799,7 +799,10 @@ export default function OverlayAdminClient({
               ))}
             </div>
 
-            <UrlCopyBtn url={entryBoardUrl} label="풀캠용대진표" title={`풀캠 등 스코어보드가 없는 씬용 — 대진표만.\n소스 너비 1920 · 높이 1080 권장 — 대진표가 가로폭을 꽉 채우니\nOBS에서 원하는 크기로 줄여서 쓰면 항상 선명합니다.\n${entryBoardUrl}`} />
+            <div className="flex items-center gap-1.5 rounded-xl border border-white/12 bg-white/[0.03] pl-3 pr-1.5 py-1">
+              <span className="text-[12px] font-black text-white/60 shrink-0">풀캠</span>
+              <UrlCopyBtn url={entryBoardUrl} title={`풀캠 등 스코어보드가 없는 씬용 — 대진표만.\n소스 너비 1920 · 높이 1080 권장 — 대진표가 가로폭을 꽉 채우니\nOBS에서 원하는 크기로 줄여서 쓰면 항상 선명합니다.\n${entryBoardUrl}`} />
+            </div>
 
             {/* 구분선 — 여기부터는 소스 URL과 성격이 다른 것들(설정 / 상태) */}
             <span className="w-px h-6 bg-white/10 shrink-0 mx-0.5" />
@@ -2051,15 +2054,16 @@ function ScoreboardModePreview({ mode }: { mode: "team" | "individual" }) {
 }
 
 // ─── URL 복사 버튼 ───
-function UrlCopyBtn({ url, label = "OBS URL", title }: { url: string; label?: string; title?: string }) {
+function UrlCopyBtn({ url, label = "URL 복사", title }: { url: string; label?: string; title?: string }) {
   const [copied, setCopied] = useState(false);
   // 토큰 로드 전(url 빈 문자열)엔 빈 값을 복사하면 안 되므로 비활성
   return (
     <button disabled={!url}
       onClick={() => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold transition-all ${
-        copied ? "bg-green-500/20 text-green-300" : "bg-white/8 hover:bg-white/15 disabled:opacity-40 disabled:cursor-wait"
+      className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[13px] font-semibold border transition-all ${
+        copied ? "bg-green-500/20 border-green-400/40 text-green-300" : "bg-white/8 border-white/15 hover:bg-white/15 disabled:opacity-40 disabled:cursor-wait"
       }`} title={url ? (title ?? url) : "URL 준비 중..."}>
+      {copied ? <Check size={13} /> : <Copy size={13} />}
       {copied ? "복사됨" : label}
     </button>
   );
