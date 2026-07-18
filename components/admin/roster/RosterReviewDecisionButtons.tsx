@@ -10,6 +10,7 @@ type Props = {
   reviewKind: string;
   observedFrom: string;
   observedTo: string;
+  existingSoopId?: string;
 };
 
 const TEAM_CHANGE_KINDS = new Set(["affiliation_change", "new_candidate"]);
@@ -21,6 +22,7 @@ export default function RosterReviewDecisionButtons({
   reviewKind,
   observedFrom,
   observedTo,
+  existingSoopId = "",
 }: Props) {
   const router = useRouter();
   const [applying, setApplying] = useState(false);
@@ -101,13 +103,18 @@ export default function RosterReviewDecisionButtons({
   return (
     <div className="space-y-2">
       {isTeamChange && (
-        <input
-          type="text"
-          value={soopUserId}
-          onChange={(e) => setSoopUserId(e.target.value)}
-          placeholder="숲 ID (선택)"
-          className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-nzu-green/50"
-        />
+        <>
+          {existingSoopId ? (
+            <p className="text-xs font-bold text-nzu-green">숲 ID 등록됨: {existingSoopId}</p>
+          ) : null}
+          <input
+            type="text"
+            value={soopUserId}
+            onChange={(e) => setSoopUserId(e.target.value)}
+            placeholder={existingSoopId ? "숲 ID 변경 시에만 입력" : "숲 ID (선택)"}
+            className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-nzu-green/50"
+          />
+        </>
       )}
       <div className="flex flex-wrap gap-2">
         <button

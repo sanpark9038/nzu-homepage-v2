@@ -212,6 +212,7 @@ function ApprovalRows({
                       reviewKind={text(item.review_kind)}
                       observedFrom={text(item.from)}
                       observedTo={text(item.to)}
+                      existingSoopId={typeof item.known_soop_id === "string" ? item.known_soop_id : ""}
                     />
                   </td>
                 </tr>

@@ -495,9 +495,17 @@ function buildRosterChangeItems(
     !kinds || kinds.length === 0
       ? rows
       : rows.filter((row) => kinds.includes(trim(row.review_kind)));
-  return selectedRows.filter(
-    (row) => !isOperatorExcludedReviewItem(row) && !isAlreadyAppliedReviewItem(row, appliedState)
-  );
+  return selectedRows
+    .filter((row) => !isOperatorExcludedReviewItem(row) && !isAlreadyAppliedReviewItem(row, appliedState))
+    .map((row) => {
+      // 숲 ID가 이미 등록돼 있으면(교정 기록 또는 로스터 베이스라인) 행에 표시해
+      // 매번 다시 입력해야 하는 것처럼 보이지 않게 한다
+      const entityId = trim(row.entity_id);
+      const knownSoopId =
+        trim(appliedState?.overridesByEntityId.get(entityId)?.soop_user_id) ||
+        trim(appliedState?.approvedByEntityId.get(entityId)?.soop_user_id);
+      return knownSoopId ? { ...row, known_soop_id: knownSoopId } : row;
+    });
 }
 
 function buildZeroRecordPlayers(
