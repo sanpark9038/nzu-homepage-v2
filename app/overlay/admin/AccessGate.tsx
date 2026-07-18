@@ -47,8 +47,11 @@ export function AccessGate({ initialStatus, displayName }: {
       <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-white/[0.03] p-8">
         <h1 className="text-2xl font-black text-white/95">방송 스코어보드</h1>
         <p className="mt-3 text-base leading-relaxed text-white/65">
-          스트리머·매니저를 위한 <b className="text-white/90">방송 오버레이 도구</b>입니다.<br />
+          스트리머·<b className="text-white/90">실제 매니저</b>분들을 위한 <b className="text-white/90">방송 오버레이 도구</b>입니다.<br />
           지금은 <b className="text-white/90">테스트 기간</b> — 신청 후 승인되면 바로 사용할 수 있어요.
+        </p>
+        <p className="mt-2 text-sm text-white/40">
+          (테스트 기간 중이라 신청 승인이 제한될 수 있는 점 양해 바랍니다)
         </p>
 
         {status === "pending" ? (

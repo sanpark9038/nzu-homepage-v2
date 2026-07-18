@@ -17,7 +17,7 @@ export default async function OverlayAdminPage() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
         <h1 className="text-lg font-black text-white/90">방송 스코어보드</h1>
         <p className="max-w-md text-sm leading-relaxed text-white/55">
-          스트리머·매니저분들을 위한 방송 오버레이 도구입니다.<br />
+          스트리머·실제 매니저분들을 위한 방송 오버레이 도구입니다.<br />
           현재 테스트 기간이라 일부 사용자에게만 열려 있어요. 숲티비로 로그인 후 신청할 수 있습니다.
         </p>
         <a
