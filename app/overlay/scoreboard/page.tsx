@@ -170,7 +170,7 @@ function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, show
           {showSetLabel && (
             <span style={{
               fontSize: "15px", fontWeight: 900, letterSpacing: "0.05em", lineHeight: 1,
-              color: set.isAce ? "rgba(200,160,40,0.9)" : ET.accent,
+              color: set.isAce ? ET.aceText : ET.accent,
             }}>{setLabel}</span>
           )}
           {showTitle && (
@@ -185,9 +185,9 @@ function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, show
           <span style={{ width: "16px", flexShrink: 0 }} />
           <span style={{ width: nameW, flexShrink: 0, minWidth: 0, textAlign: "center", fontSize: "16px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{leftTeam || "좌팀"}</span>
           <div style={{ width: "30px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "3px" }}>
-            <span style={{ fontSize: "20px", fontWeight: 900, color: "rgba(225,227,232,0.95)", lineHeight: 1 }}>{scoreLeft}</span>
+            <span style={{ fontSize: "20px", fontWeight: 900, color: ET.text, lineHeight: 1 }}>{scoreLeft}</span>
             <span style={{ fontSize: "13px", color: ET.muted, lineHeight: 1 }}>:</span>
-            <span style={{ fontSize: "20px", fontWeight: 900, color: "rgba(225,227,232,0.95)", lineHeight: 1 }}>{scoreRight}</span>
+            <span style={{ fontSize: "20px", fontWeight: 900, color: ET.text, lineHeight: 1 }}>{scoreRight}</span>
           </div>
           <span style={{ width: nameW, flexShrink: 0, minWidth: 0, textAlign: "center", fontSize: "16px", fontWeight: 700, color: ET.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>{rightTeam || "우팀"}</span>
         </div>

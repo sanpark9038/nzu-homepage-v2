@@ -293,8 +293,8 @@ function SetScoreChip({ won }: { won: number }) {
       display: "inline-flex", alignItems: "center", justifyContent: "center",
       minWidth: "30px", height: "30px", padding: "0 7px", flexShrink: 0,
       borderRadius: "8px",
-      background: "rgba(255,255,255,0.09)",
-      border: "1.5px solid rgba(255,255,255,0.30)",
+      background: ET.chipBg,
+      border: `1.5px solid ${ET.chipBorder}`,
       color: ET.text, fontSize: "21px", fontWeight: 900, lineHeight: 1,
     }}>{won}</span>
   );
