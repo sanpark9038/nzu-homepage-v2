@@ -182,8 +182,8 @@ export default function OverlayAdminClient({
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const scoreboardUrl = origin && viewToken ? `${origin}/overlay/scoreboard?key=${encodeURIComponent(viewToken)}` : "";
   // 풀캠 등 스코어보드가 없는 장면용 대진표 전용 오버레이.
-  // 위치는 OBS에서, 크기는 URL의 scale로 (OBS로 확대하면 흐려짐)
-  const entryBoardUrl = origin && viewToken ? `${origin}/overlay/entry?key=${encodeURIComponent(viewToken)}&scale=1` : "";
+  // 대진표가 소스 가로폭을 꽉 채우므로 위치·크기 모두 OBS에서 조절
+  const entryBoardUrl = origin && viewToken ? `${origin}/overlay/entry?key=${encodeURIComponent(viewToken)}` : "";
 
   // ── 초기 로드 ──
   useEffect(() => {
@@ -786,7 +786,7 @@ export default function OverlayAdminClient({
               ))}
             </div>
 
-            <UrlCopyBtn url={entryBoardUrl} label="풀캠용대진표" title={`풀캠 등 스코어보드가 없는 씬용 — 대진표만.\n위치는 OBS에서, 크기는 URL 끝 scale=1 을 고쳐서 조절\n${entryBoardUrl}`} />
+            <UrlCopyBtn url={entryBoardUrl} label="풀캠용대진표" title={`풀캠 등 스코어보드가 없는 씬용 — 대진표만.\n대진표가 소스 가로폭을 꽉 채움 — 위치·크기 모두 OBS에서.\n흐려 보이면 소스 속성에서 가로폭(px)을 키우세요.\n${entryBoardUrl}`} />
 
             {/* 구분선 — 여기부터는 소스 URL과 성격이 다른 것들(설정 / 상태) */}
             <span className="w-px h-6 bg-white/10 shrink-0 mx-0.5" />
