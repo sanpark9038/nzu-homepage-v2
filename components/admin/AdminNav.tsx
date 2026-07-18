@@ -13,6 +13,7 @@ const ADMIN_LINKS = [
   { href: "/admin/prediction", label: "예측 경기 설정" },
   { href: "/admin/schedule", label: "정보/일정" },
   { href: "/admin/rankings", label: "순위 관리" },
+  { href: "/admin/overlay-access", label: "오버레이 신청" },
   { href: "/", label: "홈페이지" },
 ];
 

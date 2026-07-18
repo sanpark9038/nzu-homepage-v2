@@ -595,6 +595,36 @@ export type Database = {
         }
         Relationships: []
       }
+      overlay_access: {
+        Row: {
+          provider_user_id: string
+          display_name: string
+          role: string
+          target: string
+          status: string
+          created_at: string
+          approved_at: string | null
+        }
+        Insert: {
+          provider_user_id: string
+          display_name: string
+          role: string
+          target: string
+          status?: string
+          created_at?: string
+          approved_at?: string | null
+        }
+        Update: {
+          provider_user_id?: string
+          display_name?: string
+          role?: string
+          target?: string
+          status?: string
+          created_at?: string
+          approved_at?: string | null
+        }
+        Relationships: []
+      }
       overlay_state: {
         Row: {
           overlay_key: string

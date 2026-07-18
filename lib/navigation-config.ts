@@ -22,6 +22,8 @@ export const visibleNavbarLinks: NavbarLinkItem[] = [
   { type: "link", href: "/match", label: "상대전적" },
   { type: "link", href: "/entry", label: "엔트리" },
   { type: "link", href: "/multiview", label: "대결뷰" },
+  // 스트리머·매니저용 방송 오버레이 도구 — 게이트(/overlay/admin)가 로그인·권한별 안내를 담당
+  { type: "link", href: "/overlay/admin", label: "스코어보드" },
 ];
 
 export const hiddenNavbarLinks: NavbarLinkItem[] = [
