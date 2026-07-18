@@ -78,7 +78,7 @@ export async function POST(req: Request) {
         "📺 **오버레이 사용 신청**",
         `- 신청자: ${session.displayName} (숲 ID: ${session.providerUserId})`,
         `- 역할: ${roleLabel} · ${target}`,
-        "- 승인: https://www.star-hosaga.com/admin/overlay-access",
+        "- 승인: <https://www.star-hosaga.com/admin/overlay-access>", // <>로 감싸 디스코드 미리보기 카드 억제
       ].join("\n")
     );
   }
