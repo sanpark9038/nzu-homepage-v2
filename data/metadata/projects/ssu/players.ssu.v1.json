@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-18T11:01:45.245Z",
+  "generated_at": "2026-07-18T11:44:15.829Z",
   "project": "ssu",
   "team_name": "수술대",
   "team_code": "ssu",
@@ -836,7 +836,8 @@
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "9"
+      "tier_key": "9",
+      "soop_user_id": "ode0411"
     }
   ],
   "source_file": "data/metadata/projects/ssu/players.ssu.v1.json",

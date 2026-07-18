@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-18T11:01:45.242Z",
+  "generated_at": "2026-07-18T11:44:15.825Z",
   "project": "c9",
   "team_name": "씨나인",
   "team_code": "c9",
@@ -716,7 +716,7 @@
       "wr_id": 97,
       "gender": "male",
       "name": "박정일",
-      "display_name": "박정일",
+      "display_name": "짭호",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=97",
       "profile_kind": "default",
       "tier": "조커",
@@ -735,7 +735,8 @@
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "joker"
+      "tier_key": "joker",
+      "soop_user_id": "wjddlf4695"
     },
     {
       "team_name": "씨나인",
@@ -763,7 +764,8 @@
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "4"
+      "tier_key": "4",
+      "soop_user_id": "gks2wl"
     },
     {
       "team_name": "씨나인",

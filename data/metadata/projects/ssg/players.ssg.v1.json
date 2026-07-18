@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-18T11:01:45.245Z",
+  "generated_at": "2026-07-18T11:44:15.828Z",
   "project": "ssg",
   "team_name": "신세계",
   "team_code": "ssg",
@@ -37,7 +37,8 @@
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "joker"
+      "tier_key": "joker",
+      "soop_user_id": "byspire"
     },
     {
       "team_name": "신세계",
@@ -65,7 +66,8 @@
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "6"
+      "tier_key": "6",
+      "soop_user_id": "rnfma14"
     }
   ],
   "source_file": "data/metadata/projects/ssg/players.ssg.v1.json",

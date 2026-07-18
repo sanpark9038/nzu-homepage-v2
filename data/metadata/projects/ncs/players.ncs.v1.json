@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-18T11:01:45.244Z",
+  "generated_at": "2026-07-18T11:44:15.827Z",
   "project": "ncs",
   "team_name": "뉴캣슬",
   "team_code": "ncs",
@@ -992,7 +992,8 @@
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "spade"
+      "tier_key": "spade",
+      "soop_user_id": "jun10280"
     }
   ],
   "source_file": "data/metadata/projects/ncs/players.ncs.v1.json",

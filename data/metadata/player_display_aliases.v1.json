@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-05-15T15:01:05.440Z",
+  "updated_at": "2026-07-18T11:44:15.831Z",
   "description": "Homepage display aliases. Match data collection should keep canonical player name.",
   "global": [
     {
@@ -94,6 +94,10 @@
     {
       "name": "임홍규",
       "display_name": "홍구"
+    },
+    {
+      "name": "박정일",
+      "display_name": "짭호"
     }
   ],
   "teams": {

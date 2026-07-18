@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-18T11:01:45.243Z",
+  "generated_at": "2026-07-18T11:44:15.827Z",
   "project": "jsa",
   "team_name": "JSA",
   "team_code": "jsa",
@@ -693,7 +693,8 @@
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "9"
+      "tier_key": "9",
+      "soop_user_id": "littlekim12"
     },
     {
       "team_name": "JSA",
@@ -721,7 +722,8 @@
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "9"
+      "tier_key": "9",
+      "soop_user_id": "kidsaoq"
     },
     {
       "team_name": "JSA",
