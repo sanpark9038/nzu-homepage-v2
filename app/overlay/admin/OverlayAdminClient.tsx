@@ -786,7 +786,7 @@ export default function OverlayAdminClient({
               ))}
             </div>
 
-            <UrlCopyBtn url={entryBoardUrl} label="풀캠용대진표" title={`풀캠 등 스코어보드가 없는 씬용 — 대진표만.\n대진표가 소스 가로폭을 꽉 채움 — 위치·크기 모두 OBS에서.\n흐려 보이면 소스 속성에서 가로폭(px)을 키우세요.\n${entryBoardUrl}`} />
+            <UrlCopyBtn url={entryBoardUrl} label="풀캠용대진표" title={`풀캠 등 스코어보드가 없는 씬용 — 대진표만.\n소스 너비 1920 · 높이 1080 권장 — 대진표가 가로폭을 꽉 채우니\nOBS에서 원하는 크기로 줄여서 쓰면 항상 선명합니다.\n${entryBoardUrl}`} />
 
             {/* 구분선 — 여기부터는 소스 URL과 성격이 다른 것들(설정 / 상태) */}
             <span className="w-px h-6 bg-white/10 shrink-0 mx-0.5" />
