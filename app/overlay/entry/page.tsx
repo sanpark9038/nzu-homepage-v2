@@ -6,9 +6,9 @@
 //   · 아직 시작 안 한 세트·빈 행도 그대로 노출한다.
 // 관리자의 대진표 X/Y/크기/표시 슬라이더는 의도적으로 무시한다.
 // (게임 장면에서 대진표를 숨겨도 이 화면은 남아야 하므로.)
-// 크기: 보드가 브라우저 소스 가로폭을 항상 꽉 채운다 → OBS에서 소스 크기 = 대진표 크기.
-// 높이는 내용에 따라 아래로 흐르므로 소스 높이는 넉넉히 잡으면 됨(남는 부분 투명).
-import { Suspense, useEffect, useState } from "react";
+// 크기: 보드가 브라우저 소스 안에 최대로 들어차게 확대(contain) → OBS에서 소스를 줄이는 게 곧 크기 조절.
+// 소스는 1920×1080 권장(크게 렌더해서 줄이면 항상 선명), 남는 부분은 투명.
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { setScoreOf, setWinnerOf, type OverlayEntryRow, type OverlayRace, type OverlayResult, type OverlaySet } from "@/lib/overlay-types";
 import { RACE_COLORS } from "@/lib/overlay-race";
@@ -30,23 +30,32 @@ function EntryBoardInner() {
   const overlayKey   = searchParams.get("key") ?? "";
   const { state, raceOf } = useOverlayLive(overlayKey);
 
-  // 뷰포트 가로폭에 맞춰 확대 — calc(100vw/430px) 나눗셈은 OBS 내장 브라우저(구형 Chromium)가 못 읽어서 JS로
-  const [vw, setVw] = useState(0);
-  useEffect(() => {
-    const update = () => setVw(window.innerWidth);
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  if (!overlayKey || !vw) return null;
-  const scale = vw / BOARD_W;
-
   const { left, right, sets, activeSetId, matchFormat } = state;
   const isMini = matchFormat === "mini";
   // 대전 및 CK는 단판이라 세트 개념이 없음 → "1SET" 라벨을 숨긴다 (스코어보드와 같은 규칙)
   const showSetLabel = matchFormat !== "university";
-  if (sets.length === 0) return null;
+  const hasBoard = !!overlayKey && sets.length > 0;
+
+  // 소스 크기가 뭐든 대진표 전체가 안에 들어오게 — 가로·세로 중 먼저 닿는 쪽에 맞춰 확대(contain).
+  // 가로에만 맞추면 1920×1080 소스에서 세로가 잘림. 높이는 세트 수에 따라 변해서 실측(ResizeObserver).
+  // calc(100vw/430px) 나눗셈은 OBS 내장 브라우저(구형 Chromium)가 못 읽어서 JS로 계산.
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const [scale, setScale] = useState(0);
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el) return;
+    const update = () => setScale(Math.min(
+      window.innerWidth / BOARD_W,
+      window.innerHeight / Math.max(el.offsetHeight, 1),
+    ));
+    update();
+    window.addEventListener("resize", update);
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => { window.removeEventListener("resize", update); ro.disconnect(); };
+  }, [hasBoard]);
+
+  if (!hasBoard) return null;
 
   // 맨 위 헤더 칩 — 세트가 여럿이면 "획득 세트 수", 단판이면 세트 수가 무의미하므로 "경기 스코어"
   const headScore = showSetLabel
@@ -57,9 +66,11 @@ function EntryBoardInner() {
       };
 
   return (
-    <div style={{
+    <div ref={boardRef} style={{
       position: "absolute", top: 0, left: 0,
-      transform: `scale(${scale})`,
+      // 첫 프레임은 실측 전(scale=0) — 원본 크기로 그려두고 숨겼다가 측정 후 노출
+      visibility: scale ? "visible" : "hidden",
+      transform: `scale(${scale || 1})`,
       transformOrigin: "left top",
       width: `${BOARD_W}px`,
       fontFamily: "'Pretendard Variable','Pretendard','Malgun Gothic',sans-serif",
