@@ -10,19 +10,27 @@ export function AccessGate({ initialStatus, displayName }: {
 }) {
   const [status, setStatus] = useState<"pending" | "none">(initialStatus);
   const [role, setRole] = useState<"streamer" | "manager">("streamer");
-  const [target, setTarget] = useState("");
+  const [soopId, setSoopId] = useState("");   // 본인 SOOP 아이디 (두 탭 공통 — 통일성 + 승인 시 대조용)
+  const [target, setTarget] = useState("");   // 매니저만: 담당 스트리머
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const canSubmit = soopId.trim() && (role === "streamer" || target.trim());
+
   const submit = async () => {
-    if (!target.trim() || submitting) return;
+    if (!canSubmit || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
+      // 저장 형식은 기존 target 하나 유지 — 매니저는 "담당 스트리머 (본인: 아이디)"로 합쳐
+      // 승인 화면에서 둘 다 보이게 함 (스키마 변경 없이)
+      const composedTarget = role === "streamer"
+        ? soopId.trim()
+        : `${target.trim()} (본인: ${soopId.trim()})`;
       const r = await fetch("/api/overlay/access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, target: target.trim() }),
+        body: JSON.stringify({ role, target: composedTarget }),
       });
       const p = await r.json();
       if (p.ok) setStatus("pending");
@@ -73,31 +81,41 @@ export function AccessGate({ initialStatus, displayName }: {
 
             <div>
               <p className="mb-2 text-sm font-bold text-white/55">
-                {role === "streamer" ? "SOOP TV 아이디" : "어느 스트리머의 매니저이신가요?"}
+                {role === "streamer" ? "SOOP TV 아이디" : "본인 SOOP TV 아이디"}
               </p>
               <input
-                value={target}
-                onChange={e => setTarget(e.target.value)}
+                value={soopId}
+                onChange={e => setSoopId(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") submit(); }}
-                maxLength={80}
-                placeholder={role === "streamer" ? "예: ddoongcar" : "예: 호사가TV 매니저입니다"}
+                maxLength={40}
+                placeholder="예: abcd1234"
                 className="w-full rounded-lg bg-white/5 border border-white/12 px-3.5 py-3 text-base outline-none placeholder:text-white/20 focus:border-purple-500/50 transition-colors"
               />
-              {role === "streamer" && (
-                <p className="mt-1.5 text-xs text-white/40">
-                  숲티비 채널 주소에 쓰는 아이디예요. (ch.sooplive.co.kr/<b className="text-white/60">아이디</b>)
-                </p>
-              )}
-              {role === "manager" && (
-                <p className="mt-1.5 text-xs text-white/40">
-                  매니저분들은 본인 아이디로 로그인한 상태에서 신청해주시면 감사하겠습니다.
-                </p>
-              )}
+              <p className="mt-2 text-sm text-white/50">
+                숲티비 채널 주소에 쓰는 아이디예요. (ch.sooplive.co.kr/<b className="text-white/75">아이디</b>)
+              </p>
             </div>
 
-            {error && <p className="text-xs text-red-400">{error}</p>}
+            {role === "manager" && (
+              <div>
+                <p className="mb-2 text-sm font-bold text-white/55">어느 스트리머의 매니저이신가요?</p>
+                <input
+                  value={target}
+                  onChange={e => setTarget(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") submit(); }}
+                  maxLength={40}
+                  placeholder="예: 호사가TV"
+                  className="w-full rounded-lg bg-white/5 border border-white/12 px-3.5 py-3 text-base outline-none placeholder:text-white/20 focus:border-purple-500/50 transition-colors"
+                />
+                <p className="mt-2 text-sm text-white/50">
+                  본인 아이디로 로그인한 상태에서 신청해주시면 감사하겠습니다.
+                </p>
+              </div>
+            )}
 
-            <button onClick={submit} disabled={!target.trim() || submitting}
+            {error && <p className="text-sm text-red-400">{error}</p>}
+
+            <button onClick={submit} disabled={!canSubmit || submitting}
               className="w-full h-12 rounded-xl bg-purple-600 text-base font-bold text-white hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
               {submitting ? "신청 중..." : "사용 신청"}
             </button>

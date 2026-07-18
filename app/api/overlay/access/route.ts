@@ -20,7 +20,8 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({})) as { role?: string; target?: string };
   const role = body.role === "streamer" || body.role === "manager" ? body.role : null;
-  const target = String(body.target ?? "").trim().slice(0, 80);
+  // 매니저는 "담당 스트리머 (본인: 아이디)" 합성 문자열이라 여유 있게
+  const target = String(body.target ?? "").trim().slice(0, 120);
 
   if (!role || !target) {
     return NextResponse.json({ ok: false, message: "role/target required" }, { status: 400 });
