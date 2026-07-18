@@ -643,6 +643,41 @@ runTest("buildDiscordSummaryCheck does not fallback to baseline joiners after su
   assert.equal(actual.joiners_source, "previous_roster_state");
 });
 
+runTest("buildDiscordSummaryCheck suppresses joiners already reviewed as external opponents", () => {
+  const reportsDir = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-discord-external-joiner-"));
+  const baselinePath = path.join(reportsDir, "manual_refresh_baseline.json");
+  fs.writeFileSync(baselinePath, JSON.stringify({ teams: [] }, null, 2));
+  fs.writeFileSync(
+    path.join(reportsDir, "team_roster_sync_report.json"),
+    JSON.stringify(
+      {
+        added: [
+          { entity_id: "eloboard:male:2001", name: "외부인", to: "c9", change_confidence: "confirmed" },
+          { entity_id: "eloboard:female:2002", name: "진짜신규", to: "ku", change_confidence: "confirmed" },
+        ],
+      },
+      null,
+      2
+    )
+  );
+
+  const actual = buildDiscordSummaryCheck({
+    reportsDir,
+    baselinePath,
+    projectsDir: path.join(reportsDir, "missing-projects"),
+    previousRosterStatePlayers: [],
+    currentPlayers: [],
+    snapshot: { teams: [] },
+    alertsDoc: { counts: { critical: 0, high: 0, medium: 0, low: 0, total: 0 }, alerts: [] },
+    externalOpponentNames: new Set(["외부인"]),
+  });
+
+  assert.deepEqual(
+    actual.joiners.map((row) => row.player_name),
+    ["진짜신규"]
+  );
+});
+
 runTest("report-only roster review summary uses Korean review labels and keeps match collection separate", () => {
   const lines = buildRosterReviewSummaryLines({
     reportOnly: true,

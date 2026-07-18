@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-05-15T18:35:36.146Z",
+  "updated_at": "2026-07-18T11:16:43.612Z",
   "description": "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
   "overrides": [
     {
@@ -1075,19 +1075,6 @@
       "updated_at": "2026-05-15T14:28:38.735Z"
     },
     {
-      "entity_id": "eloboard:female:703",
-      "name": "세월",
-      "team_code": "hm",
-      "team_name": "HM",
-      "tier": "7",
-      "race": "Terran",
-      "soop_id": "asdsa1113",
-      "manual_lock": true,
-      "manual_mode": "temporary",
-      "note": "User-confirmed HM SOOP ID during metadata source consolidation.",
-      "updated_at": "2026-05-15T14:34:51.057Z"
-    },
-    {
       "entity_id": "eloboard:female:1036",
       "name": "이아라",
       "team_code": "hm",
@@ -1372,6 +1359,21 @@
       "race": "Protoss",
       "soop_id": "harumyong",
       "note": "User-confirmed former YB player remains active as FA."
+    },
+    {
+      "entity_id": "eloboard:female:948",
+      "legacy_entity_ids": [
+        "eloboard:female:703"
+      ],
+      "name": "세월",
+      "team_code": "hm",
+      "team_name": "HM",
+      "tier": "7",
+      "race": "Protoss",
+      "soop_id": "asdsa1113",
+      "manual_lock": true,
+      "note": "Canonical successor mapping: use wr_id=948 after race transition (Terran→Protoss); retire legacy wr_id=703 from roster-change alerts.",
+      "updated_at": "2026-07-18T11:16:43.611Z"
     }
   ]
 }

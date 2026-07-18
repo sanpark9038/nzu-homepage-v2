@@ -18,6 +18,7 @@ const {
   loadBaselinePlayers,
   loadCurrentRosterState,
   loadCurrentRosterStateSnapshot,
+  readExternalOpponentNames: readSharedExternalOpponentNames,
 } = require("./lib/discord-summary");
 
 function readJson(filePath) {
@@ -43,19 +44,7 @@ function readReviewDecisions(decisionsPath = REVIEW_DECISIONS_PATH) {
 }
 
 function readExternalOpponentNames(decisionsPath = OPPONENT_REVIEW_DECISIONS_PATH) {
-  if (!decisionsPath || !fs.existsSync(decisionsPath)) return new Set();
-  try {
-    const doc = readJson(decisionsPath);
-    const rows = Array.isArray(doc.decisions) ? doc.decisions : [];
-    return new Set(
-      rows
-        .filter((row) => clean(row.decision) === "external_opponent")
-        .map((row) => normalizeName(row.opponent_name))
-        .filter(Boolean)
-    );
-  } catch {
-    return new Set();
-  }
+  return readSharedExternalOpponentNames(decisionsPath);
 }
 
 function rowIdentity(row) {
