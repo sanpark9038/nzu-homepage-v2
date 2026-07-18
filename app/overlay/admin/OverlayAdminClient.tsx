@@ -100,6 +100,7 @@ export default function OverlayAdminClient({
   const [saving, setSaving]     = useState(false);
   const [dirty, setDirty]       = useState(false);
   const [loaded, setLoaded]     = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null); // 로드 실패 시 편집 차단(자동저장이 빈 상태로 덮어쓰는 것 방지)
   const [obsModalOpen, setObsModalOpen] = useState(false);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [removeSetConfirm, setRemoveSetConfirm] = useState(false);
@@ -175,11 +176,14 @@ export default function OverlayAdminClient({
     return { left: { ...left, teamName: teamLabel(myNameProleague || displayName || "") }, right: { ...right, teamName: "상대팀" } };
   };
 
+  // 공개 URL의 key는 숲 ID가 아니라 서버가 발급한 랜덤 토큰 —
+  // ID만 알면 남의 대진표(라인업)를 경기 전에 볼 수 있던 문제 차단. 초기 로드 때 서버에서 받아옴.
+  const [viewToken, setViewToken] = useState<string | null>(null);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const scoreboardUrl = origin ? `${origin}/overlay/scoreboard?key=${encodeURIComponent(overlayKey)}` : "";
+  const scoreboardUrl = origin && viewToken ? `${origin}/overlay/scoreboard?key=${encodeURIComponent(viewToken)}` : "";
   // 풀캠 등 스코어보드가 없는 장면용 대진표 전용 오버레이.
   // 위치는 OBS에서, 크기는 URL의 scale로 (OBS로 확대하면 흐려짐)
-  const entryBoardUrl = origin ? `${origin}/overlay/entry?key=${encodeURIComponent(overlayKey)}&scale=1` : "";
+  const entryBoardUrl = origin && viewToken ? `${origin}/overlay/entry?key=${encodeURIComponent(viewToken)}&scale=1` : "";
 
   // ── 초기 로드 ──
   useEffect(() => {
@@ -191,12 +195,20 @@ export default function OverlayAdminClient({
       const sa = defaultOverlaySet("에이스", true);
       return { ...st, sets: [s1, s2, sa], activeSetId: s1.id, mode: "individual", title: st.title || s1.title }; // 프로리그 기본 = 개인전
     };
-    fetch(`/api/overlay/state?key=${encodeURIComponent(overlayKey)}`)
+    // key 없이 호출 = 세션 기반 자기 상태 로드 (+ 공개 URL 토큰 수령)
+    fetch("/api/overlay/state")
       .then(r => r.json())
       .then(p => {
+        // 로드 실패 시 기본(빈) 상태로 편집 모드에 들어가면 자동저장이
+        // 진짜 데이터를 빈 상태로 덮어쓴다 → 편집 진입 자체를 막는다
+        if (!p.ok || !p.state) {
+          setLoadError(p.message || "불러오기 실패");
+          return;
+        }
+        if (p.viewToken) setViewToken(p.viewToken);
         const d = defaultOverlayState();
         let next: OverlayState = d;
-        if (p.ok && p.state) {
+        {
           next = {
             ...d,
             ...p.state,
@@ -242,10 +254,8 @@ export default function OverlayAdminClient({
         setLoaded(true);
       })
       .catch(() => {
-        const next = seedSets(defaultOverlayState());
-        setState(next);
-        setAdminTab(next.sets[0]?.id ?? null);
-        setLoaded(true);
+        // 네트워크 오류도 동일 — 빈 상태로 열어두면 자동저장이 데이터를 지울 수 있음
+        setLoadError("네트워크 오류");
       });
     // 최초 1회 로드 — MY_NAME_KEY_PROLEAGUE는 overlayKey 파생, displayName은 세션 고정이라 재실행 불필요
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -584,6 +594,22 @@ export default function OverlayAdminClient({
     showToast("위치·크기를 기본값으로");
   };
 
+  // 공개 URL 토큰 재발급 — 기존 OBS URL은 즉시 무효화됨
+  const regenerateToken = async () => {
+    try {
+      const r = await fetch("/api/overlay/token", { method: "POST" });
+      const p = await r.json();
+      if (p.ok && p.viewToken) {
+        setViewToken(p.viewToken);
+        showToast("새 URL 발급 — OBS에 새 URL을 넣어주세요");
+      } else {
+        showToast("재발급 실패 — 잠시 후 다시 시도해주세요");
+      }
+    } catch {
+      showToast("재발급 실패 — 잠시 후 다시 시도해주세요");
+    }
+  };
+
   // 스타팅 색상 좌우 교체 — 보통 우리팀 빨강/상대 파랑인데, 게임 입장 순서에 따라 뒤바뀜.
   // 매번 팔레트로 고르는 대신 한 번에 맞바꾼다. (색만 교환 — 스타팅 위치는 각자 그대로)
   const swapStartingColors = () => {
@@ -661,6 +687,16 @@ export default function OverlayAdminClient({
     broadcastSet(next);
     showToast(`${setLabelOf(next)} 송출`); // loadMatch의 "N경기 로드" 토스트를 덮어씀
   };
+
+  if (loadError) return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+      <p className="text-sm text-white/60">저장된 데이터를 불러오지 못했어요. ({loadError})</p>
+      <button onClick={() => window.location.reload()}
+        className="h-9 px-4 rounded-lg bg-white/8 border border-white/12 text-sm font-bold text-white/70 hover:bg-white/15 transition-all">
+        새로고침
+      </button>
+    </div>
+  );
 
   if (!loaded) return (
     <div className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground">
@@ -1234,6 +1270,21 @@ export default function OverlayAdminClient({
                 <div className="space-y-4">
                   <LayoutPanel label="스코어보드" layout={state.scoreboardLayout} onChange={p => updLayout("scoreboardLayout", p)} />
                   <LayoutPanel label="대진표"     layout={state.entryLayout}      onChange={p => updLayout("entryLayout",      p)} />
+                </div>
+              </div>
+
+              {/* URL 재발급 — 토큰이 유출됐을 때(남이 내 대진표를 미리 봄) 기존 URL 즉시 무효화.
+                  자주 쓰는 게 아니고 OBS URL을 다시 넣어야 하는 부작용이 있어 모달 안에 둠 */}
+              <div className="pt-4 border-t border-white/8">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-white/35 leading-relaxed">
+                    OBS URL이 다른 사람에게 알려졌다면 재발급하세요.<br/>
+                    <b className="text-white/55">기존 URL은 즉시 무효화</b>되니 OBS에 새 URL을 다시 넣어야 해요.
+                  </p>
+                  <button onClick={regenerateToken}
+                    className="shrink-0 h-8 px-3 rounded-lg bg-red-500/10 border border-red-400/25 text-xs font-bold text-red-300 hover:bg-red-500/20 transition-all">
+                    URL 재발급
+                  </button>
                 </div>
               </div>
             </div>
@@ -1987,11 +2038,13 @@ function ScoreboardModePreview({ mode }: { mode: "team" | "individual" }) {
 // ─── URL 복사 버튼 ───
 function UrlCopyBtn({ url, label = "OBS URL", title }: { url: string; label?: string; title?: string }) {
   const [copied, setCopied] = useState(false);
+  // 토큰 로드 전(url 빈 문자열)엔 빈 값을 복사하면 안 되므로 비활성
   return (
-    <button onClick={() => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+    <button disabled={!url}
+      onClick={() => { navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
       className={`rounded-lg px-3.5 py-2 text-[13px] font-semibold transition-all ${
-        copied ? "bg-green-500/20 text-green-300" : "bg-white/8 hover:bg-white/15"
-      }`} title={title ?? url}>
+        copied ? "bg-green-500/20 text-green-300" : "bg-white/8 hover:bg-white/15 disabled:opacity-40 disabled:cursor-wait"
+      }`} title={url ? (title ?? url) : "URL 준비 중..."}>
       {copied ? "복사됨" : label}
     </button>
   );

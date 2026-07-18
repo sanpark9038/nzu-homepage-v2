@@ -600,16 +600,19 @@ export type Database = {
           overlay_key: string
           data: Record<string, unknown>
           updated_at: string
+          view_token: string | null
         }
         Insert: {
           overlay_key: string
           data: Record<string, unknown>
           updated_at?: string
+          view_token?: string | null
         }
         Update: {
           overlay_key?: string
           data?: Record<string, unknown>
           updated_at?: string
+          view_token?: string | null
         }
         Relationships: []
       }
