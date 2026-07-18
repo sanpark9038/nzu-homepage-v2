@@ -381,10 +381,34 @@ export default function OverlayAdminClient({
     return nxt && !promptedSets.current.has(setId) ? setId : null;
   };
 
+  // 세트 "미결 → 확정" 전환 감지 → "다음 세트로" 카드.
+  // 결과가 어느 경로로 들어오든(승패 체크·일괄입력 ✅·행 수정) 상태 전환 한 곳에서 잡는다.
+  // 이전엔 setState 업데이터 안에서 바깥 변수에 값을 심어 전달했는데, React가 업데이터
+  // 실행 시점을 보장하지 않아 카드가 조용히 안 뜨는 경우가 있었음.
+  const prevDecidedRef = useRef<Map<string, boolean>>(new Map());
+  useEffect(() => {
+    const prev = prevDecidedRef.current;
+    const next = new Map<string, boolean>();
+    for (const set of state.sets) {
+      const now = setWinnerOf(set) !== null;
+      const was = prev.has(set.id) ? !!prev.get(set.id) : now; // 처음 보는 세트(초기 로드 포함)는 전환으로 안 봄
+      if (!was && now) {
+        const target = promptTargetFor(state.sets, set.id, state.matchFormat);
+        if (target) { promptedSets.current.add(target); setNextPromptSetId(target); }
+      } else if (was && !now) {
+        // 결과 취소로 다시 미결 — 카드 내리고, 다시 확정되면 또 뜰 수 있게
+        promptedSets.current.delete(set.id);
+        setNextPromptSetId(cur => (cur === set.id ? null : cur));
+      }
+      next.set(set.id, now);
+    }
+    prevDecidedRef.current = next;
+  }, [state.sets, state.matchFormat]);
+
   const replaceEntries = (setId: string, rows: ParsedRow[]) => {
-    let toPrompt: string | null = null;
-    setState(s => {
-      const sets = s.sets.map(set => set.id === setId
+    setState(s => ({
+      ...s,
+      sets: s.sets.map(set => set.id === setId
         ? { ...set, currentMatch: null, entries: rows.map(r => ({
             id: genId(),
             leftPlayer: r.leftPlayer, rightPlayer: r.rightPlayer, map: r.map,
@@ -392,12 +416,8 @@ export default function OverlayAdminClient({
             ...(r.leftRace  ? { leftRace:  r.leftRace }  : {}),
             ...(r.rightRace ? { rightRace: r.rightRace } : {}),
           })) }
-        : set);
-      // 일괄입력의 ✅로 승패가 한 번에 들어와 세트가 바로 끝난 경우에도 카드를 띄운다
-      toPrompt = promptTargetFor(sets, setId, s.matchFormat);
-      return { ...s, sets };
-    });
-    if (toPrompt) { promptedSets.current.add(toPrompt); setNextPromptSetId(toPrompt); }
+        : set),
+    }));
   };
 
   // 경기 행 인라인 수정
@@ -446,8 +466,6 @@ export default function OverlayAdminClient({
 
   const setResult = (setId: string, entryId: string, result: "left" | "right") => {
     let msg = "";
-    let toPrompt: string | null = null;   // 방금 끝나서 카드 띄울 세트
-    let toUnprompt: string | null = null;  // 결과 취소로 다시 미결이 된 세트
     setState(s => {
       const set = s.sets.find(set => set.id === setId);
       if (!set) return s;
@@ -491,12 +509,6 @@ export default function OverlayAdminClient({
         ? { ...set, entries: newEntries, currentMatch: nextCurrent }
         : set);
 
-      // 이 클릭으로 세트가 "미결 → 결정"으로 넘어갔으면 카드 띄움.
-      // 반대로 결과 취소로 다시 미결이 됐으면 그 세트 카드는 내림.
-      const wasDecided = setWinnerOf(set) !== null;
-      if (!wasDecided && nowDecided) toPrompt = promptTargetFor(newSets, setId, s.matchFormat);
-      else if (wasDecided && !nowDecided) toUnprompt = setId;
-
       return {
         ...s,
         ...(newResult !== null ? { activeSetId: setId, title: set.title || s.title, left: nextLeft, right: nextRight } : {}),
@@ -504,8 +516,6 @@ export default function OverlayAdminClient({
       };
     });
     if (msg) showToast(msg);
-    if (toPrompt)   { promptedSets.current.add(toPrompt); setNextPromptSetId(toPrompt); }
-    if (toUnprompt) { promptedSets.current.delete(toUnprompt); setNextPromptSetId(cur => cur === toUnprompt ? null : cur); }
   };
 
   // 스마트 붙여넣기: 한 칸에 여러 토큰 붙여넣으면 그 열을 아래로 채움 (필요 시 행 추가)
@@ -622,18 +632,21 @@ export default function OverlayAdminClient({
     showToast("스타팅 색상 좌우 교체");
   };
 
-  // 리셋 버튼 — 새 경기 시작용.
-  // 대진표(선수·맵·결과)를 빈 칸으로 되돌리고, 스코어보드(팀명·선수명·종족·스타팅)도 기본값으로.
-  // 맵목록(state.maps)은 매 경기 재사용하므로 유지한다.
-  const clearSetEntries = (setId: string, slots: number) => {
-    setState(s => ({
-      ...s,
-      ...defaultSidesFor(s.matchFormat),
-      sets: s.sets.map(set => set.id === setId
-        ? { ...set, currentMatch: null, entries: Array.from({ length: slots }, () => ({ id: genId(), leftPlayer: "", rightPlayer: "", map: "", result: null })) }
-        : set),
-    }));
-    showToast("대진표·스코어보드 초기화 (맵목록은 유지)");
+  // 리셋 버튼 — 새 경기 시작용. 현재 세트만이 아니라 모든 세트를 비운다(하루에 한 경기 = 리셋은 곧 새 경기).
+  // 각 세트의 대진표(선수·맵·결과)를 기본 칸수의 빈 칸으로 되돌리고, 스코어보드(팀명·선수명·종족·스타팅)도 기본값으로.
+  // 맵목록(state.maps)은 매 경기 재사용하므로 유지한다. 편집 탭·송출 세트는 1세트로 되돌림.
+  const resetAllSets = () => {
+    promptedSets.current.clear();
+    setNextPromptSetId(null);
+    if (state.sets[0]) setAdminTab(state.sets[0].id);
+    setState(s => {
+      const sets = s.sets.map(set => ({
+        ...set, currentMatch: null,
+        entries: Array.from({ length: defaultSlotsOf(set) }, () => ({ id: genId(), leftPlayer: "", rightPlayer: "", map: "", result: null })),
+      }));
+      return { ...s, ...defaultSidesFor(s.matchFormat), sets, activeSetId: sets[0]?.id ?? s.activeSetId };
+    });
+    showToast("전체 대진표·스코어보드 초기화 (맵목록은 유지)");
   };
 
 
@@ -1070,11 +1083,11 @@ export default function OverlayAdminClient({
                           <div>
                             <p className="text-sm font-bold text-amber-100">새 경기로 리셋할까요?</p>
                             <p className="text-xs text-amber-200/60 mt-1 leading-relaxed">
-                              대진표({defaultSlotsOf(editingSet)}칸)와 스코어보드(팀명·선수명·종족·스타팅)가 모두 비워집니다.
+                              <b className="text-amber-100">모든 세트</b>의 대진표와 스코어보드(팀명·선수명·종족·스타팅)가 비워집니다.
                               <b className="text-amber-100"> 맵목록은 그대로 유지</b>돼요.
                             </p>
                             <div className="flex items-center gap-2 mt-2.5">
-                              <button onClick={() => { clearSetEntries(editingSet.id, defaultSlotsOf(editingSet)); setClearConfirm(false); }}
+                              <button onClick={() => { resetAllSets(); setClearConfirm(false); }}
                                 className="h-8 px-3.5 rounded-lg bg-amber-500 text-xs font-bold text-black hover:bg-amber-400 transition-all">리셋할게요</button>
                               <button onClick={() => setClearConfirm(false)}
                                 className="h-8 px-3.5 rounded-lg text-xs font-bold text-white/40 hover:text-white/70 transition-all">취소</button>
