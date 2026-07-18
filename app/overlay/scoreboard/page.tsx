@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { setScoreOf, miniAceNeeded, type OverlayEntryRow, type OverlayRace, type OverlaySet } from "@/lib/overlay-types";
 import { RACE_COLORS } from "@/lib/overlay-race";
@@ -257,7 +258,7 @@ function EntryRow({ entry, idx, isCurrent, nameW, raceOf }: {
 
 // ── 메인 페이지 ────────────────────────────────────────────
 
-export default function ScoreboardOverlayPage() {
+function ScoreboardInner() {
   const searchParams = useSearchParams();
   const overlayKey   = searchParams.get("key") ?? "";
   const { state, raceOf } = useOverlayLive(overlayKey);
@@ -524,4 +525,9 @@ function RaceStartBadge({ race, point: pointRaw, color }: { race: string; point:
       {point && <span style={{ fontSize: "36px", fontWeight: 900, color: badgeColor, lineHeight: 1 }}>{point}</span>}
     </span>
   );
+}
+
+// useSearchParams()는 Suspense 경계가 필요(빌드 프리렌더 CSR bailout) — 오버레이는 어차피 클라 전용
+export default function ScoreboardOverlayPage() {
+  return <Suspense fallback={null}><ScoreboardInner /></Suspense>;
 }

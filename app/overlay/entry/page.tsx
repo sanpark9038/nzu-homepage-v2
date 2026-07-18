@@ -6,6 +6,7 @@
 //   · 아직 시작 안 한 세트·빈 행도 그대로 노출한다.
 // 관리자의 대진표 X/Y/크기/표시 슬라이더는 의도적으로 무시한다.
 // (게임 장면에서 대진표를 숨겨도 이 화면은 남아야 하므로. 위치는 OBS에서, 크기는 ?scale=)
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { setScoreOf, type OverlayEntryRow, type OverlayRace, type OverlayResult, type OverlaySet } from "@/lib/overlay-types";
 import { RACE_COLORS } from "@/lib/overlay-race";
@@ -22,7 +23,7 @@ const ROW_GAP = 9;  // 선수명 ↔ 종족 태그 간격
 const MAP_GAP = 6;  // 맵 양옆 추가 여백 — 가운데가 덜 뭉치게 맵만 더 벌림
 const MID_W   = RACE_W + MAP_W + RACE_W + ROW_GAP * 2 + MAP_GAP * 2; // 종족|맵|종족 = 헤더 점수 자리
 
-export default function EntryBoardOverlayPage() {
+function EntryBoardInner() {
   const searchParams = useSearchParams();
   const overlayKey   = searchParams.get("key") ?? "";
   const scale        = Number(searchParams.get("scale")) || 1;
@@ -97,6 +98,11 @@ export default function EntryBoardOverlayPage() {
       ))}
     </div>
   );
+}
+
+// useSearchParams()는 Suspense 경계가 필요(빌드 프리렌더 CSR bailout) — 오버레이는 어차피 클라 전용
+export default function EntryBoardOverlayPage() {
+  return <Suspense fallback={null}><EntryBoardInner /></Suspense>;
 }
 
 // 세트 이름 — 원래 순번 기준(숨겨진 세트가 있어도 번호가 밀리지 않게)
