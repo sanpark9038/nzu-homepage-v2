@@ -20,6 +20,9 @@ const RACE_LABEL: Record<string, string> = {
 
 const SOOP_EMBED_BASE = "https://play.sooplive.com";
 const FAVORITES_KEY = "duelview_favorites_v1";
+const CHAT_WIDTH_KEY = "duelview_chat_width_v1";
+const CHAT_MIN_WIDTH = 200;
+const CHAT_MAX_WIDTH = 480;
 const RECENT_KEY = "duelview_recent_v1";
 const MAX_RECENT = 5;
 const QUALITY_PARAMS = "quality=1080p&resolution=1080p&preferredQuality=1080p&vq=hd1080&hd=1";
@@ -190,8 +193,15 @@ function SearchResultItem({
   );
 }
 
-// ── H2H 위젯 ────────────────────────────────────────────────────
-function H2HWidget({ panel1, panel2 }: { panel1: Panel; panel2: Panel }) {
+// ── 스코어보드 스트립 (패널 헤더 + H2H 통합) ─────────────────────
+function ScoreboardStrip({
+  panel1, panel2, onClose, onOpenNew,
+}: {
+  panel1: Panel;
+  panel2: Panel;
+  onClose: (slot: 1 | 2) => void;
+  onOpenNew: (slot: 1 | 2) => void;
+}) {
   const [stats, setStats] = useState<H2HStats | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -210,7 +220,7 @@ function H2HWidget({ panel1, panel2 }: { panel1: Panel; panel2: Panel }) {
     return () => { cancelled = true; };
   }, [panel1?.playerId, panel2?.playerId]);
 
-  if (!panel1 || !panel2) return null;
+  if (!panel1 && !panel2) return null;
 
   const summary = stats?.summary;
   const total = summary?.total ?? 0;
@@ -222,73 +232,81 @@ function H2HWidget({ panel1, panel2 }: { panel1: Panel; panel2: Panel }) {
   // API는 최신순으로 주므로 뒤집어서 왼→오 = 과거→최신
   const recentForm = (stats?.recentMatches ?? []).slice(0, 5).reverse();
 
-  return (
-    <div className="flex items-center gap-4 rounded-lg border border-white/8 bg-white/2 px-5 py-3">
-      <div className="flex flex-col items-end min-w-0 flex-1">
-        <span className="text-base font-bold text-white truncate">{panel1.name}</span>
-        <span className="text-xs text-white/40">{RACE_LABEL[panel1.race ?? ""] ?? ""}</span>
-      </div>
+  const sideInfo = (panel: NonNullable<Panel>, slot: 1 | 2, reverse: boolean) => (
+    <div className={`flex min-w-0 flex-1 items-center gap-2 ${reverse ? "flex-row-reverse" : ""}`}>
+      <span className="truncate text-sm font-bold text-white">{panel.name}</span>
+      <span className="flex-shrink-0 text-xs text-white/40">{RACE_LABEL[panel.race ?? ""] ?? ""}</span>
+      <button
+        onClick={() => onOpenNew(slot)}
+        className="flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] text-white/40 hover:bg-white/10 hover:text-white transition-colors"
+      >
+        새창
+      </button>
+      <button
+        onClick={() => onClose(slot)}
+        className="flex-shrink-0 rounded p-0.5 text-white/30 hover:bg-white/10 hover:text-white transition-colors"
+      >
+        <X size={12} />
+      </button>
+    </div>
+  );
 
-      <div className="flex flex-col items-center gap-1 flex-shrink-0 min-w-[120px]">
-        {loading ? (
-          <span className="text-xs text-white/30">조회 중...</span>
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-white/8 bg-white/2 px-4 py-1.5">
+      {panel1 ? sideInfo(panel1, 1, false) : <div className="flex-1 text-xs text-white/25">선수 1을 선택하세요</div>}
+
+      <div className="flex flex-col items-center flex-shrink-0">
+        {!panel1 || !panel2 ? (
+          <span className="text-xs font-semibold text-white/25">VS</span>
+        ) : loading ? (
+          <span className="text-xs text-white/30">전적 조회 중...</span>
         ) : total === 0 ? (
-          <>
-            <div className="flex items-center gap-1.5 text-xs text-white/30">
-              <Swords size={11} />
-              <span>첫 대결</span>
-            </div>
-            <div className="h-1.5 w-36 rounded-full bg-white/10" />
-          </>
+          <div className="flex items-center gap-1.5 text-xs text-white/30">
+            <Swords size={11} />
+            <span>첫 대결</span>
+          </div>
         ) : (
           <>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl font-black text-nzu-green">{p1Wins}</span>
-              <span className="text-xs text-white/30 font-normal">{total}전</span>
-              <span className="text-xl font-black text-rose-400">{p2Wins}</span>
-            </div>
-            <div className="flex h-1.5 w-36 overflow-hidden rounded-full bg-white/10">
-              <div className="bg-nzu-green transition-all duration-500" style={{ width: `${p1Pct}%` }} />
-              <div className="bg-rose-400 transition-all duration-500" style={{ width: `${p2Pct}%` }} />
-            </div>
-            <span className="text-[10px] text-white/25">{p1Pct}% · {p2Pct}%</span>
-            {(momentum?.total || recentForm.length > 0) ? (
-              <div className="flex items-center gap-2.5 text-[10px] text-white/40">
-                {momentum && momentum.total > 0 && (
-                  <span>
-                    최근 3개월{" "}
-                    <span className="font-semibold text-nzu-green">{momentum.wins}승</span>{" "}
-                    <span className="font-semibold text-rose-400">{momentum.losses}패</span>
-                  </span>
-                )}
-                {recentForm.length > 0 && (
-                  <span className="flex items-center gap-1">
-                    <span className="text-white/25">최근 {recentForm.length}경기</span>
-                    {recentForm.map((m) => (
-                      <span
-                        key={m.id}
-                        title={[m.match_date, m.map].filter(Boolean).join(" · ")}
-                        className={`h-2 w-2 rounded-full ${m.is_win ? "bg-nzu-green" : "bg-rose-400"}`}
-                      />
-                    ))}
-                  </span>
-                )}
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-black leading-none text-nzu-green">{p1Wins}</span>
+              <div className="flex h-1 w-24 overflow-hidden rounded-full bg-white/10">
+                <div className="bg-nzu-green transition-all duration-500" style={{ width: `${p1Pct}%` }} />
+                <div className="bg-rose-400 transition-all duration-500" style={{ width: `${p2Pct}%` }} />
               </div>
-            ) : null}
+              <span className="text-lg font-black leading-none text-rose-400">{p2Wins}</span>
+            </div>
+            <div className="mt-0.5 flex items-center gap-2 text-[10px] text-white/35">
+              <span>{total}전 · {p1Pct}% vs {p2Pct}%</span>
+              {momentum && momentum.total > 0 && (
+                <span>
+                  최근 3개월{" "}
+                  <span className="font-semibold text-nzu-green">{momentum.wins}승</span>{" "}
+                  <span className="font-semibold text-rose-400">{momentum.losses}패</span>
+                </span>
+              )}
+              {recentForm.length > 0 && (
+                <span className="flex items-center gap-1">
+                  {recentForm.map((m) => (
+                    <span
+                      key={m.id}
+                      title={[m.match_date, m.map].filter(Boolean).join(" · ")}
+                      className={`h-1.5 w-1.5 rounded-full ${m.is_win ? "bg-nzu-green" : "bg-rose-400"}`}
+                    />
+                  ))}
+                </span>
+              )}
+            </div>
           </>
         )}
       </div>
 
-      <div className="flex flex-col items-start min-w-0 flex-1">
-        <span className="text-base font-bold text-white truncate">{panel2.name}</span>
-        <span className="text-xs text-white/40">{RACE_LABEL[panel2.race ?? ""] ?? ""}</span>
-      </div>
+      {panel2 ? sideInfo(panel2, 2, true) : <div className="flex-1 text-right text-xs text-white/25">선수 2를 선택하세요</div>}
     </div>
   );
 }
 
-// ── 워치파티 채팅 ────────────────────────────────────────────────
-function WatchpartyChat({
+// ── 관전 채팅 사이드바 ───────────────────────────────────────────
+function ChatSidebar({
   viewerCount, messages, sendMessage, guestId,
 }: {
   viewerCount: number;
@@ -296,13 +314,20 @@ function WatchpartyChat({
   sendMessage: (text: string) => void;
   guestId: string;
 }) {
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [width, setWidth] = useState(256);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (historyOpen) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, historyOpen]);
+    try {
+      const saved = Number(localStorage.getItem(CHAT_WIDTH_KEY));
+      if (saved >= CHAT_MIN_WIDTH && saved <= CHAT_MAX_WIDTH) setWidth(saved);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   function handleSend() {
     if (!input.trim()) return;
@@ -310,44 +335,64 @@ function WatchpartyChat({
     setInput("");
   }
 
-  return (
-    <div className="rounded-lg border border-white/8 bg-white/2 overflow-hidden">
-      {historyOpen && (
-        <div className="border-b border-white/8">
-          <div className="h-40 overflow-y-auto px-3 py-2 space-y-1.5">
-            {messages.length === 0 ? (
-              <p className="text-xs text-white/25 text-center mt-6">첫 메시지를 남겨보세요!</p>
-            ) : (
-              messages.map((msg) => (
-                <div key={msg.id} className="flex gap-2 text-xs">
-                  <span className={`flex-shrink-0 font-medium ${msg.sender === guestId ? "text-nzu-green" : "text-white/60"}`}>
-                    {msg.sender}
-                  </span>
-                  <span className="text-white/80 break-all">{msg.text}</span>
-                </div>
-              ))
-            )}
-            <div ref={bottomRef} />
-          </div>
-        </div>
-      )}
+  function startResize(e: React.MouseEvent) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = width;
+    const clamp = (x: number) =>
+      Math.min(CHAT_MAX_WIDTH, Math.max(CHAT_MIN_WIDTH, startWidth + (startX - x)));
+    // 드래그 중 iframe이 mousemove를 삼키지 않도록 잠시 꺼둔다
+    const iframes = Array.from(document.querySelectorAll("iframe"));
+    iframes.forEach((f) => { f.style.pointerEvents = "none"; });
+    function onMove(ev: MouseEvent) {
+      setWidth(clamp(ev.clientX));
+    }
+    function onUp(ev: MouseEvent) {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      iframes.forEach((f) => { f.style.pointerEvents = ""; });
+      try { localStorage.setItem(CHAT_WIDTH_KEY, String(clamp(ev.clientX))); } catch {}
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
 
-      <div className="flex items-center gap-2 px-3 py-2">
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <Users size={12} className="text-white/40" />
-          <span className="text-xs text-white/60 font-medium">{viewerCount > 0 ? viewerCount : 1}</span>
-          <span className="text-xs text-white/30">명</span>
-        </div>
-        <div className="h-3.5 w-px bg-white/10 flex-shrink-0" />
-        <button
-          onClick={() => setHistoryOpen((v) => !v)}
-          className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 transition-colors flex-shrink-0"
-        >
-          <MessageSquare size={11} />
-          <span>대화 보기</span>
-          {historyOpen ? <ChevronDown size={10} /> : <ChevronUp size={10} />}
-        </button>
-        <div className="h-3.5 w-px bg-white/10 flex-shrink-0" />
+  return (
+    <div
+      style={{ "--chat-w": `${width}px` } as React.CSSProperties}
+      className="relative flex h-48 w-full flex-shrink-0 flex-col overflow-hidden rounded-lg border border-white/8 bg-white/2 lg:h-auto lg:w-[var(--chat-w)]"
+    >
+      <div
+        onMouseDown={startResize}
+        title="드래그해서 폭 조절"
+        className="absolute left-0 top-0 z-10 hidden h-full w-1.5 cursor-col-resize transition-colors hover:bg-white/15 lg:block"
+      />
+      <div className="flex flex-shrink-0 items-center gap-1.5 border-b border-white/8 px-3 py-2">
+        <MessageSquare size={12} className="text-white/40" />
+        <span className="text-xs font-medium text-white/60">관전 채팅</span>
+        <span className="ml-auto flex items-center gap-1 text-xs text-white/40">
+          <Users size={11} />
+          {viewerCount > 0 ? viewerCount : 1}명
+        </span>
+      </div>
+
+      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-3 py-2">
+        {messages.length === 0 ? (
+          <p className="mt-6 text-center text-xs text-white/25">첫 메시지를 남겨보세요!</p>
+        ) : (
+          messages.map((msg) => (
+            <div key={msg.id} className="break-all text-xs leading-relaxed">
+              <span className={`font-medium ${msg.sender === guestId ? "text-nzu-green" : "text-white/50"}`}>
+                {msg.sender}
+              </span>{" "}
+              <span className="text-white/85">{msg.text}</span>
+            </div>
+          ))
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      <div className="flex flex-shrink-0 items-center gap-2 border-t border-white/8 px-3 py-2">
         <input
           type="text"
           value={input}
@@ -355,12 +400,12 @@ function WatchpartyChat({
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="메시지 입력..."
           maxLength={100}
-          className="flex-1 bg-transparent text-xs text-white placeholder:text-white/25 outline-none min-w-0"
+          className="min-w-0 flex-1 bg-transparent text-xs text-white placeholder:text-white/25 outline-none"
         />
         <button
           onClick={handleSend}
           disabled={!input.trim()}
-          className="text-white/30 hover:text-white disabled:opacity-20 transition-colors flex-shrink-0"
+          className="flex-shrink-0 text-white/30 hover:text-white disabled:opacity-20 transition-colors"
         >
           <Send size={13} />
         </button>
@@ -369,15 +414,8 @@ function WatchpartyChat({
   );
 }
 
-// ── 스트림 패널 ──────────────────────────────────────────────────
-function StreamPanel({
-  panel, slot, onClose, onOpenNew,
-}: {
-  panel: Panel;
-  slot: 1 | 2;
-  onClose: () => void;
-  onOpenNew: () => void;
-}) {
+// ── 스트림 패널 (헤더는 스코어보드 스트립으로 이동) ──────────────
+function StreamPanel({ panel, slot }: { panel: Panel; slot: 1 | 2 }) {
   if (!panel) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-lg border border-white/8 bg-white/2 text-white/30 min-h-[180px]">
@@ -387,24 +425,8 @@ function StreamPanel({
     );
   }
 
-  const raceLabel = RACE_LABEL[panel.race ?? ""] ?? panel.race ?? "";
-
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden rounded-lg border border-white/10 min-h-[180px]">
-      <div className="flex items-center justify-between border-b border-white/10 bg-background/80 px-3 py-2 text-sm">
-        <span className="font-semibold text-white">
-          {panel.name}
-          {raceLabel && <span className="ml-1.5 font-normal text-white/50">· {raceLabel}</span>}
-        </span>
-        <div className="flex items-center gap-2">
-          <button onClick={onOpenNew} className="rounded px-2 py-0.5 text-xs text-white/50 hover:bg-white/10 hover:text-white transition-colors">
-            새창
-          </button>
-          <button onClick={onClose} className="rounded p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-colors">
-            <X size={14} />
-          </button>
-        </div>
-      </div>
       <iframe
         key={panel.soopId}
         src={buildEmbedUrl(panel.soopId)}
@@ -442,6 +464,12 @@ export function MultiviewClientView() {
     setFavorites(loadFavorites());
     setRecent(loadRecent());
   }, []);
+
+  // 시청 모드: 두 패널이 다 차면 컨트롤을 접어 방송 공간 확보
+  const bothLoaded = Boolean(panel1 && panel2);
+  useEffect(() => {
+    setControlsOpen(!bothLoaded);
+  }, [bothLoaded]);
 
   // URL 파라미터 읽기 (마운트 시 1회)
   useEffect(() => {
@@ -581,7 +609,7 @@ export function MultiviewClientView() {
   const hasAnyPanel = panel1 || panel2;
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col gap-2 p-4">
+    <div className="flex h-[calc(100vh-4rem)] flex-col gap-2 p-2">
 
       {/* ── 컨트롤 카드 ── */}
       <div className="flex flex-col gap-2.5 rounded-lg border border-white/8 bg-white/2 p-3">
@@ -763,43 +791,44 @@ export function MultiviewClientView() {
         )}
       </div>
 
-      {/* ── 스트림 패널 (메인) ── */}
-      <div className="relative flex flex-1 flex-col gap-3 min-h-0 md:flex-row">
-        <StreamPanel
-          panel={panel1}
-          slot={1}
-          onClose={() => setPanel1(null)}
-          onOpenNew={() => panel1 && window.open(buildPlayUrl(panel1.soopId), "_blank", "noopener,noreferrer")}
-        />
+      {/* ── 메인: (스코어보드 + 스트림) 컬럼 + 채팅 사이드바 (좁은 화면에선 아래로) ── */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 lg:flex-row">
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          {/* 스코어보드 스트립 — 방송 영역과 같은 폭이라 중앙이 두 방송 사이에 온다 */}
+          <ScoreboardStrip
+            panel1={panel1}
+            panel2={panel2}
+            onClose={(slot) => (slot === 1 ? setPanel1(null) : setPanel2(null))}
+            onOpenNew={(slot) => {
+              const p = slot === 1 ? panel1 : panel2;
+              if (p) window.open(buildPlayUrl(p.soopId), "_blank", "noopener,noreferrer");
+            }}
+          />
+
+          <div className="relative flex min-h-0 flex-1 flex-col gap-2 md:flex-row">
+            <StreamPanel panel={panel1} slot={1} />
+            {panel1 && panel2 && (
+              <button
+                onClick={handleSwap}
+                title="패널 좌우 교체"
+                className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/60 p-1.5 backdrop-blur-sm hover:border-white/30 hover:bg-white/10 transition-all"
+              >
+                <ArrowLeftRight size={13} className="text-white/60" />
+              </button>
+            )}
+            <StreamPanel panel={panel2} slot={2} />
+          </div>
+        </div>
+
         {panel1 && panel2 && (
-          <button
-            onClick={handleSwap}
-            title="패널 좌우 교체"
-            className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/60 p-1.5 backdrop-blur-sm hover:border-white/30 hover:bg-white/10 transition-all"
-          >
-            <ArrowLeftRight size={13} className="text-white/60" />
-          </button>
+          <ChatSidebar
+            viewerCount={viewerCount}
+            messages={messages}
+            sendMessage={sendMessage}
+            guestId={guestId}
+          />
         )}
-        <StreamPanel
-          panel={panel2}
-          slot={2}
-          onClose={() => setPanel2(null)}
-          onOpenNew={() => panel2 && window.open(buildPlayUrl(panel2.soopId), "_blank", "noopener,noreferrer")}
-        />
       </div>
-
-      {/* ── H2H 역대 전적 ── */}
-      <H2HWidget panel1={panel1} panel2={panel2} />
-
-      {/* ── 워치파티 채팅 ── */}
-      {panel1 && panel2 && (
-        <WatchpartyChat
-          viewerCount={viewerCount}
-          messages={messages}
-          sendMessage={sendMessage}
-          guestId={guestId}
-        />
-      )}
     </div>
   );
 }
