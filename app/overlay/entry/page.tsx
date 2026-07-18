@@ -163,14 +163,9 @@ function SetBlock({ set, label, showHeader, isLast, raceOf }: {
         {/* 라벨이 없으면(대전 및 CK 단판) 빈 칸을 남기지 않고 점수·배지가 가운데로 모이게 */}
         {label && (
           <span style={{
-            minWidth: "80px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "5px",
-            fontSize: "16px", fontWeight: 900, letterSpacing: "0.05em", lineHeight: 1,
+            minWidth: "80px", textAlign: "center", fontSize: "16px", fontWeight: 900, letterSpacing: "0.05em", lineHeight: 1,
             color: set.isAce ? ET.aceText : ET.accent,
-          }}>
-            {/* 세로 마커 — 텍스트만 있을 때보다 그래픽 밀도를 줌 (슈에는 골드) */}
-            <span style={{ width: "3px", height: "12px", borderRadius: "2px", background: set.isAce ? ET.aceText : ET.accent }} />
-            {label}
-          </span>
+          }}>{label}</span>
         )}
         <span style={{ fontSize: "21px", fontWeight: 900, color: ET.text, lineHeight: 1, minWidth: "16px", textAlign: "left" }}>{r}</span>
         <WinBadge side="right" winner={winner} />
@@ -182,7 +177,7 @@ function SetBlock({ set, label, showHeader, isLast, raceOf }: {
       {/* 경기 행 — 아직 안 채운 빈 행도 그대로 노출(전체 판세를 보여주는 게 목적) */}
       {set.entries.map((entry, idx) => (
         // 세트 승패가 이미 확정됐으면(예: 5경기 중 3:1) 남은 경기는 치르지 않음 — 강조 테두리도 없어야 함
-        <EntryLine key={entry.id} entry={entry} idx={idx} isCurrent={winner === null && set.currentMatch === idx} raceOf={raceOf} />
+        <EntryLine key={entry.id} entry={entry} idx={idx} isAce={set.isAce} isCurrent={winner === null && set.currentMatch === idx} raceOf={raceOf} />
       ))}
 
       {/* 세트 사이 구분 — 양 끝이 사라지는 얇은 선 */}
@@ -208,8 +203,8 @@ function WinBadge({ side, winner }: { side: "left" | "right"; winner: OverlayRes
   );
 }
 
-function EntryLine({ entry, idx, isCurrent, raceOf }: {
-  entry: OverlayEntryRow; idx: number; isCurrent: boolean;
+function EntryLine({ entry, idx, isAce, isCurrent, raceOf }: {
+  entry: OverlayEntryRow; idx: number; isAce: boolean; isCurrent: boolean;
   raceOf: (name: string) => OverlayRace | undefined;
 }) {
   const leftRace  = entry.leftRace  ?? raceOf(entry.leftPlayer);
@@ -249,8 +244,9 @@ function EntryLine({ entry, idx, isCurrent, raceOf }: {
           pointerEvents: "none",
         }} />
       )}
-      <span style={{ width: `${IDX_W}px`, flexShrink: 0, fontSize: "15px", lineHeight: 1, color: active ? ET.accent : ET.muted, fontWeight: active ? 900 : 400 }}>
-        {idx + 1}
+      {/* 슈에(에이스)는 어차피 단판이라 번호 대신 골드 다이아몬드 — 특별한 경기 표시 */}
+      <span style={{ width: `${IDX_W}px`, flexShrink: 0, fontSize: isAce ? "12px" : "15px", lineHeight: 1, color: isAce ? ET.aceText : active ? ET.accent : ET.muted, fontWeight: active ? 900 : 400 }}>
+        {isAce ? "◆" : idx + 1}
       </span>
       <span style={{
         flex: 1, minWidth: 0, textAlign: "right", fontSize: "21px", fontWeight: 700, lineHeight: 1.1,
@@ -258,7 +254,14 @@ function EntryLine({ entry, idx, isCurrent, raceOf }: {
         ...nameStyle(leftRace, "left"),
       }}>{entry.leftPlayer}</span>
       <RaceTag race={leftRace} lost={entry.result === "right"} />
-      <span style={{ width: `${MAP_W}px`, margin: `0 ${MAP_GAP}px`, flexShrink: 0, textAlign: "center", fontSize: "15px", fontWeight: 600, color: ET.mapText, whiteSpace: "nowrap", lineHeight: 1 }}>
+      {/* 맵은 칩(박스)으로 — 맨 텍스트 줄세우기가 엑셀표 느낌의 주범 */}
+      <span style={{
+        width: `${MAP_W}px`, margin: `0 ${MAP_GAP}px`, flexShrink: 0, height: "22px",
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        borderRadius: "5px", fontSize: "14px", fontWeight: 600, color: ET.mapText, whiteSpace: "nowrap", lineHeight: 1,
+        background: entry.map ? "rgba(148,180,255,0.09)" : "transparent",
+        border: `1px solid ${entry.map ? "rgba(255,255,255,0.12)" : "transparent"}`,
+      }}>
         {entry.map ? mapAbbr(entry.map) : ""}
       </span>
       <RaceTag race={rightRace} lost={entry.result === "left"} />
@@ -267,6 +270,8 @@ function EntryLine({ entry, idx, isCurrent, raceOf }: {
         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         ...nameStyle(rightRace, "right"),
       }}>{entry.rightPlayer}</span>
+      {/* 왼쪽 번호칸의 짝 스페이서 — 이게 있어야 맵 칩이 보드 정중앙 = SET 라벨과 세로 정렬 */}
+      <span style={{ width: `${IDX_W}px`, flexShrink: 0 }} />
     </div>
   );
 }
