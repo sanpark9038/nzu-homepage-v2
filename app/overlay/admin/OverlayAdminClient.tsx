@@ -1561,7 +1561,8 @@ function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, matchFor
               textDecoration: lost ? "line-through" : "none",
             };
           };
-          const fieldCls = "h-8 w-[5.5rem] rounded-md bg-white/[0.06] border border-white/10 px-2 text-base font-bold outline-none focus:bg-emerald-500/[0.12] focus:border-emerald-500/60 transition-colors min-w-0 placeholder:text-white/20";
+          // 선수 입력칸 — 한글 5글자(bold 16px ≈ 80px) + 패딩이 다 보이는 폭
+          const fieldCls = "h-8 w-[6.5rem] rounded-md bg-white/[0.06] border border-white/10 px-2 text-base font-bold outline-none focus:bg-emerald-500/[0.12] focus:border-emerald-500/60 transition-colors min-w-0 placeholder:text-white/20";
           // 스마트 붙여넣기: 여러 토큰이면 그 열을 아래로 자동 채움
           const smartPaste = (field: "leftPlayer" | "rightPlayer" | "map") => (e: React.ClipboardEvent<HTMLInputElement>) => {
             const tokens = e.clipboardData.getData("text").split(/[,\t\r\n]+|\s+/).map(t => t.trim()).filter(Boolean);
