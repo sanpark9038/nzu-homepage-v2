@@ -67,6 +67,7 @@ export function TierBadge({
   className?: string;
 }) {
   const config = getTierTone(tier);
+  const compactLabel = config.label.length >= 4 && (size === "xs" || size === "sm");
 
   const sizeClasses = {
     xs: "text-[11px] px-1.5 py-0.5 rounded-md",
@@ -81,6 +82,7 @@ export function TierBadge({
         "inline-flex items-center justify-center gap-1 border font-black transition-all whitespace-nowrap",
         config.color,
         sizeClasses[size],
+        compactLabel && "px-1.5 tracking-tight",
         className
       )}
     >
