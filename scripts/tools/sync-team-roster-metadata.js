@@ -12,7 +12,9 @@ const {
 } = require("./lib/eloboard-special-cases");
 const { ensureAutoDiscoveredTeamProjects } = require("./lib/team-project-discovery");
 const {
+  evaluateTemporaryOverrideAgainstObserved,
   loadMergedRosterAdminState,
+  markOverrideReleasedRemote,
   shouldApplyManualAffiliationOverride,
   shouldApplyManualRaceOverride,
   shouldApplyManualTierOverride,
@@ -812,6 +814,8 @@ async function main() {
     }
     observedByEntity.delete(excludedEntityId);
   }
+  const temporaryOverrideReleases = [];
+  const temporaryOverrideMismatches = [];
   for (const ov of manualOverrides) {
     if (!ov) continue;
     if (ov.retired === true) continue;
@@ -821,6 +825,33 @@ async function main() {
     const current = observedByEntity.get(entityId);
     const base = current || (prev ? { ...prev.player, team_code: prev.team_code } : null);
     if (!base) continue;
+
+    const temporaryVerdict = evaluateTemporaryOverrideAgainstObserved(ov, current || null);
+    if (temporaryVerdict && temporaryVerdict.action === "release") {
+      temporaryOverrideReleases.push({
+        entity_id: entityId,
+        name: String(ov.name || base.name || "").trim(),
+        team_code: String(ov.team_code || "").trim(),
+        tier: String(ov.tier || "").trim(),
+        race: String(ov.race || "").trim(),
+        persisted: false,
+      });
+      continue;
+    }
+    if (temporaryVerdict && temporaryVerdict.action === "mismatch") {
+      temporaryOverrideMismatches.push({
+        entity_id: entityId,
+        name: String(ov.name || base.name || "").trim(),
+        reason: temporaryVerdict.reason,
+        fields: temporaryVerdict.fields,
+      });
+    }
+
+    const hasApplicableCorrection =
+      shouldApplyManualAffiliationOverride(ov) ||
+      shouldApplyManualTierOverride(ov) ||
+      shouldApplyManualRaceOverride(ov);
+    if (!hasApplicableCorrection) continue;
 
     const next = { ...base };
     if (shouldApplyManualAffiliationOverride(ov)) next.team_code = String(ov.team_code).toLowerCase();
@@ -833,6 +864,21 @@ async function main() {
       team_code: next.team_code,
       tier: next.tier || "",
     });
+  }
+
+  if (writeRosterFiles) {
+    for (const release of temporaryOverrideReleases) {
+      try {
+        const persisted = await markOverrideReleasedRemote(release);
+        release.persisted = Boolean(persisted && persisted.ok);
+        if (!release.persisted) {
+          release.persist_error = persisted && persisted.reason ? persisted.reason : "unknown";
+        }
+      } catch (error) {
+        release.persisted = false;
+        release.persist_error = error instanceof Error ? error.message : String(error);
+      }
+    }
   }
 
   const identityReconciliation = reconcileObservedIdentityMigrations(observedByEntity, beforeByEntity);
@@ -1025,6 +1071,10 @@ async function main() {
     fa_fallback_allowed: faFallbackAllowed,
     manual_overrides_applied_count: appliedManualOverrides.length,
     manual_overrides_applied: appliedManualOverrides,
+    temporary_override_releases_count: temporaryOverrideReleases.length,
+    temporary_override_releases: temporaryOverrideReleases,
+    temporary_override_mismatches_count: temporaryOverrideMismatches.length,
+    temporary_override_mismatches: temporaryOverrideMismatches,
     guarded_teams_count: guardedTeams.length,
     guarded_teams: guardedTeams,
     observed_conflicts_count: observedConflicts.length,

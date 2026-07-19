@@ -608,6 +608,69 @@ function pushLimitedRows(lines, rows, formatter, limit = 5) {
   }
 }
 
+const OVERRIDE_WATCH_STATE_PATH = path.join(REPORTS_DIR, "roster_override_watch_state.json");
+const OVERRIDE_FIELD_LABELS = { team_code: "소속", tier: "티어", race: "종족" };
+const SYNC_REPORT_FRESHNESS_MS = 12 * 60 * 60 * 1000;
+
+function mismatchStateKey(row) {
+  const fields = Array.isArray(row && row.fields) ? row.fields : [];
+  return `${row.entity_id}|${row.reason}|${fields
+    .map((f) => `${f.field}:${f.manual}>${f.observed == null ? "" : f.observed}`)
+    .join(",")}`;
+}
+
+function loadTemporaryOverrideWatch() {
+  const syncReport = readJsonIfExists(path.join(REPORTS_DIR, "team_roster_sync_report.json"));
+  const generatedAtMs = Date.parse(String(syncReport && syncReport.generated_at ? syncReport.generated_at : ""));
+  const isFresh = Number.isFinite(generatedAtMs) && Date.now() - generatedAtMs < SYNC_REPORT_FRESHNESS_MS;
+  const releases = isFresh && Array.isArray(syncReport.temporary_override_releases)
+    ? syncReport.temporary_override_releases
+    : [];
+  const mismatches = isFresh && Array.isArray(syncReport.temporary_override_mismatches)
+    ? syncReport.temporary_override_mismatches
+    : [];
+  const state = readJsonIfExists(OVERRIDE_WATCH_STATE_PATH) || {};
+  const previouslyReported = new Set(
+    Array.isArray(state.reported_mismatch_keys) ? state.reported_mismatch_keys : []
+  );
+  return {
+    releases,
+    newMismatches: mismatches.filter((row) => !previouslyReported.has(mismatchStateKey(row))),
+    totalMismatches: mismatches.length,
+    saveState() {
+      if (!isFresh) return;
+      try {
+        fs.writeFileSync(
+          OVERRIDE_WATCH_STATE_PATH,
+          JSON.stringify({ reported_mismatch_keys: mismatches.map(mismatchStateKey) }, null, 2)
+        );
+      } catch {}
+    },
+  };
+}
+
+function formatOverrideReleaseRow(row) {
+  const values = [
+    row.team_code ? `소속 ${row.team_code}` : "",
+    row.tier ? `티어 ${row.tier}` : "",
+    row.race ? `종족 ${row.race}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const persistNote = row.persisted ? "" : " (기록 실패 — 다음 실행 때 재시도)";
+  return `- ${row.name} : ${values} — 엘로보드와 일치, 자동 해제${persistNote}`;
+}
+
+function formatOverrideMismatchRow(row) {
+  if (row.reason === "not_on_eloboard") {
+    return `- ${row.name} : 엘로보드에서 확인 불가 (수동 설정 유지 중)`;
+  }
+  const diffs = (Array.isArray(row.fields) ? row.fields : [])
+    .map((f) => `${OVERRIDE_FIELD_LABELS[f.field] || f.field}: 내 설정 ${f.manual} / 엘로보드 ${f.observed || "-"}`)
+    .join(", ");
+  return `- ${row.name} : ${diffs}`;
+}
+
 function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
   const previousRosterStatePlayers = loadCurrentRosterStateSnapshot(REPORTS_DIR);
   const beforePlayers = previousRosterStatePlayers.length
@@ -749,6 +812,23 @@ function buildSuccessMessage({ snapshot, alertsDoc, runUrl }) {
       );
     }
   }
+
+  const overrideWatch = loadTemporaryOverrideWatch();
+  if (overrideWatch.releases.length) {
+    lines.push("");
+    lines.push(`🔓 임시 교정 자동 해제 (${overrideWatch.releases.length}건)`);
+    pushLimitedRows(lines, overrideWatch.releases, formatOverrideReleaseRow);
+    lines.push("- 엘로보드가 수동 교정과 같아져 해당 교정을 자동으로 풀었습니다. 이후 엘로보드를 그대로 따라갑니다.");
+  }
+  if (overrideWatch.newMismatches.length) {
+    lines.push("");
+    lines.push(
+      `⚠️ 임시 교정 확인 필요 (신규 ${overrideWatch.newMismatches.length}건 / 전체 ${overrideWatch.totalMismatches}건)`
+    );
+    pushLimitedRows(lines, overrideWatch.newMismatches, formatOverrideMismatchRow);
+    lines.push("- 수동 교정과 엘로보드 값이 다릅니다. 엘로보드가 맞다면 해당 교정 삭제를 지시해 주세요.");
+  }
+  overrideWatch.saveState();
 
   if ((alertCounts.total || 0) > 0) {
     lines.push("");

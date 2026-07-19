@@ -100,6 +100,94 @@ function shouldApplyManualRaceOverride(row) {
   return Boolean(String(row && row.race ? row.race : "").trim()) && !isFixedAffiliationOverride(row);
 }
 
+function isIdentityMappingOverride(row) {
+  return Array.isArray(row && row.legacy_entity_ids) && row.legacy_entity_ids.length > 0;
+}
+
+function isReleasableTemporaryOverride(row) {
+  return Boolean(
+    row &&
+      row.manual_mode === "temporary" &&
+      row.retired !== true &&
+      !isIdentityMappingOverride(row)
+  );
+}
+
+function normalizeCompareValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+// 임시(temporary) 교정을 엘로보드 관측값과 비교한다.
+// 반환: null(검사 대상 아님) | {action:"release"} | {action:"mismatch", reason, fields}
+function evaluateTemporaryOverrideAgainstObserved(overrideRow, observed) {
+  if (!isReleasableTemporaryOverride(overrideRow)) return null;
+  const checks = [];
+  if (shouldApplyManualAffiliationOverride(overrideRow)) {
+    checks.push(["team_code", overrideRow.team_code, observed && observed.team_code]);
+  }
+  if (shouldApplyManualTierOverride(overrideRow)) {
+    checks.push(["tier", overrideRow.tier, observed && observed.tier]);
+  }
+  if (shouldApplyManualRaceOverride(overrideRow)) {
+    checks.push(["race", overrideRow.race, observed && observed.race]);
+  }
+  if (!checks.length) return null;
+  if (!observed) {
+    return {
+      action: "mismatch",
+      reason: "not_on_eloboard",
+      fields: checks.map(([field, manual]) => ({ field, manual: String(manual), observed: null })),
+    };
+  }
+  const diffs = checks
+    .filter(([, manual, observedValue]) => normalizeCompareValue(manual) !== normalizeCompareValue(observedValue))
+    .map(([field, manual, observedValue]) => ({
+      field,
+      manual: String(manual),
+      observed: String(observedValue || ""),
+    }));
+  if (!diffs.length) return { action: "release", reason: "eloboard_match", fields: [] };
+  return { action: "mismatch", reason: "eloboard_differs", fields: diffs };
+}
+
+// 해제 = Supabase에 교정 필드가 비워진 행을 upsert. 병합 시 remote가 local 파일 위에
+// 덮이므로, 파일을 커밋 없이도 (CI에서도) 못이 영구히 빠진다. soop_id 등 교정 외
+// 필드는 remote 행에 키가 없어 local 값이 그대로 보존된다.
+async function markOverrideReleasedRemote(overrideRow) {
+  const entityId = String(overrideRow && overrideRow.entity_id ? overrideRow.entity_id : "").trim();
+  if (!entityId) return { ok: false, reason: "missing_entity_id" };
+  if (!hasSupabaseAdminEnv()) return { ok: false, reason: "missing_supabase_admin_env" };
+
+  const released = {
+    team_code: String(overrideRow.team_code || "").trim(),
+    tier: String(overrideRow.tier || "").trim(),
+    race: String(overrideRow.race || "").trim(),
+  };
+  const note =
+    `[auto-released ${new Date().toISOString().slice(0, 10)}] ` +
+    `eloboard matched manual correction (team=${released.team_code || "-"}, tier=${released.tier || "-"}, race=${released.race || "-"}); ` +
+    `correction cleared automatically.`;
+
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.from("roster_admin_corrections").upsert(
+    {
+      entity_id: entityId,
+      name: String(overrideRow.name || "").trim() || null,
+      team_code: null,
+      team_name: null,
+      tier: null,
+      race: null,
+      manual_lock: false,
+      manual_mode: null,
+      note,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "entity_id" }
+  );
+  if (error) return { ok: false, reason: String(error.message || error) };
+  return { ok: true };
+}
+
 function remoteRowToOverride(row) {
   if (
     !String(row && row.team_code ? row.team_code : "").trim() &&
@@ -250,6 +338,9 @@ module.exports = {
   loadMergedRosterAdminState,
   clearRemoteResumeMarker,
   isFixedAffiliationOverride,
+  isReleasableTemporaryOverride,
+  evaluateTemporaryOverrideAgainstObserved,
+  markOverrideReleasedRemote,
   shouldApplyManualAffiliationOverride,
   shouldApplyManualTierOverride,
   shouldApplyManualRaceOverride,
