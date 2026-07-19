@@ -5,7 +5,12 @@ import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
 import { TierBadge } from "@/components/ui/nzu-badges";
 import { mapPlayerToMatchupSummary } from "@/lib/matchup-helpers";
 import { buildPlayerHref } from "@/lib/player-route";
-import { normalizeSoopImageUrl, resolveSoopChannelImageUrl } from "@/lib/soop";
+import {
+  normalizeSoopImageUrl,
+  resolveSoopChannelImageUrl,
+  resolveSoopChannelUrl,
+  resolveSoopWatchUrl,
+} from "@/lib/soop";
 import type { TierPlayerPayload } from "@/lib/tier-player-payload";
 import { getUniversityLabel } from "@/lib/university-config";
 import { cn, normalizeRace } from "@/lib/utils";
@@ -30,9 +35,29 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
   const universityLabel = getUniversityLabel(player.university);
   const matchupSummary = mapPlayerToMatchupSummary(player);
   const profileUrl = resolveSoopChannelImageUrl(player) || player.photo_url || "/placeholder-player.svg";
+  const soopUrl = isLive ? resolveSoopWatchUrl(player) : resolveSoopChannelUrl(player);
   const liveThumbnailUrl = isLive
     ? normalizeSoopImageUrl(player.live_thumbnail_url) || ""
     : "";
+
+  const photoClassName =
+    "group/photo absolute left-3 top-3 h-[4.75rem] w-[4.75rem] overflow-hidden rounded-xl border border-white/10 bg-muted/30";
+  const photoContent = (
+    <>
+      <span className="ui-value absolute inset-0 flex items-center justify-center text-white/45">
+        {player.name.slice(0, 1)}
+      </span>
+      <Image
+        src={profileUrl}
+        alt={player.name}
+        width={76}
+        height={76}
+        sizes="76px"
+        unoptimized
+        className="relative z-10 h-full w-full object-cover object-top"
+      />
+    </>
+  );
 
   return (
     <div
@@ -62,33 +87,33 @@ export function TierPlayerCard({ player, className }: TierPlayerCardProps) {
         ) : null}
 
         <div className="flex flex-1 flex-col gap-3 p-3.5">
-          <Link
-            href={buildPlayerHref(player)}
-            className="absolute left-3 top-3 h-[4.75rem] w-[4.75rem] overflow-hidden rounded-xl border border-white/10 bg-muted/30"
-            aria-label={`${player.name} profile`}
-          >
-            <span className="ui-value absolute inset-0 flex items-center justify-center text-white/45">
-              {player.name.slice(0, 1)}
-            </span>
-            <Image
-              src={profileUrl}
-              alt={player.name}
-              width={76}
-              height={76}
-              sizes="76px"
-              unoptimized
-              className="relative z-10 h-full w-full object-cover object-top"
-            />
-          </Link>
-
-          <div className="pl-[5.25rem]">
+          {soopUrl ? (
+            <a
+              href={soopUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={photoClassName}
+              aria-label={`${player.name} ${isLive ? "방송 보기" : "방송국 가기"}`}
+            >
+              {photoContent}
+              <span className="ui-label pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-black/75 py-1 text-center text-white opacity-0 transition-opacity group-hover/photo:opacity-100">
+                {isLive ? "▶ 방송 보기" : "방송국"}
+              </span>
+            </a>
+          ) : (
             <Link
               href={buildPlayerHref(player)}
-              className="ui-card-title block min-w-0 truncate tracking-tight transition-colors hover:text-nzu-green"
-              aria-label={`${player.name} 전적 보기`}
+              className={photoClassName}
+              aria-label={`${player.name} profile`}
             >
-              {player.name}
+              {photoContent}
             </Link>
+          )}
+
+          <div className="pl-[5.25rem]">
+            <span className="ui-card-title block min-w-0 truncate tracking-tight">
+              {player.name}
+            </span>
           </div>
 
           <div className="flex items-center gap-1 overflow-hidden pl-[5.25rem]">
