@@ -123,7 +123,7 @@ function EntryTable({ sets, activeSetId, leftTeam, rightTeam, layout, showSetLab
   );
 }
 
-function SetColumn({ set, setIdx, isActive: _isActive, leftTeam, rightTeam, showSetLabel, mini, broadcastTitle, raceOf }: {
+function SetColumn({ set, setIdx, leftTeam, rightTeam, showSetLabel, mini, broadcastTitle, raceOf }: {
   set: OverlaySet; setIdx: number;
   isActive: boolean; leftTeam: string; rightTeam: string; showSetLabel: boolean; mini: boolean; broadcastTitle: string;
   raceOf: (name: string) => OverlayRace | undefined;

@@ -72,7 +72,7 @@ function PlayerSearchResultInner({
   const [matchFilter, setMatchFilter] = useState<MatchFilter>("recent90");
   const [filterPage, setFilterPage] = useState(1);
   const [filteredData, setFilteredData] = useState<MatchHistoryApiResponse | null>(null);
-  const [isFilterLoading, setIsFilterLoading] = useState(false);
+  const [isFilterLoading, setIsFilterLoading] = useState(defaultExpanded);
   const [failedThumbnailSrc, setFailedThumbnailSrc] = useState<string | null>(null);
   const [detailSummary, setDetailSummary] = useState<PlayerDetailSummary>({
     raceSummaries: initialRaceSummaries,
@@ -120,14 +120,9 @@ function PlayerSearchResultInner({
   }, [detailSummaryEndpoint, isDetailSummaryLoaded, isExpanded, loadDetailSummaryOnMount]);
 
   useEffect(() => {
-    if (!isExpanded) {
-      setFilteredData(null);
-      setIsFilterLoading(false);
-      return;
-    }
+    if (!isExpanded) return;
 
     let cancelled = false;
-    setIsFilterLoading(true);
 
     const params = new URLSearchParams({ page: String(filterPage) });
     if (matchFilter === "recent90") {
@@ -165,7 +160,6 @@ function PlayerSearchResultInner({
     recentSummary,
   } = detailSummary;
   const recentForm = recentSummary.form;
-  const hasRaceData = raceSummaries.some((item) => item.hasRecord);
   const displayRaceSummaries = filteredData?.stats?.raceSummaries ?? raceSummaries;
   const hasDisplayRaceData = displayRaceSummaries.some((item) => item.hasRecord);
   const recentForm10 = recentLogs.slice(0, 10).map((log) => log.result);
@@ -181,7 +175,10 @@ function PlayerSearchResultInner({
   const universityLabel = getUniversityLabel(player.university);
 
   function handleToggleExpanded() {
-    setIsExpanded((prev) => !prev);
+    const next = !isExpanded;
+    setIsExpanded(next);
+    setIsFilterLoading(next);
+    if (!next) setFilteredData(null);
   }
 
   return (
@@ -366,7 +363,12 @@ function PlayerSearchResultInner({
                   <button
                     key={f}
                     type="button"
-                    onClick={() => { setMatchFilter(f); setFilterPage(1); }}
+                    onClick={() => {
+                      if (matchFilter === f && filterPage === 1) return;
+                      setMatchFilter(f);
+                      setFilterPage(1);
+                      setIsFilterLoading(true);
+                    }}
                     className={cn(
                       "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
                       matchFilter === f
@@ -474,7 +476,7 @@ function PlayerSearchResultInner({
                       <button
                         type="button"
                         disabled={filteredData.page <= 1}
-                        onClick={() => setFilterPage((p) => Math.max(1, p - 1))}
+                        onClick={() => { setFilterPage((p) => Math.max(1, p - 1)); setIsFilterLoading(true); }}
                         className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white/55 transition-all hover:border-white/18 hover:bg-white/[0.07] hover:text-white disabled:pointer-events-none disabled:opacity-30"
                       >
                         ← 이전
@@ -485,7 +487,7 @@ function PlayerSearchResultInner({
                       <button
                         type="button"
                         disabled={filteredData.page >= filteredData.totalPages}
-                        onClick={() => setFilterPage((p) => Math.min(filteredData.totalPages, p + 1))}
+                        onClick={() => { setFilterPage((p) => Math.min(filteredData.totalPages, p + 1)); setIsFilterLoading(true); }}
                         className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white/55 transition-all hover:border-white/18 hover:bg-white/[0.07] hover:text-white disabled:pointer-events-none disabled:opacity-30"
                       >
                         다음 →
@@ -538,49 +540,6 @@ function CompactRow({
       {leading ? <span className="shrink-0">{leading}</span> : null}
       {label ? <span className="shrink-0 text-white/42">{label}</span> : null}
       <span className="min-w-0 truncate">{value}</span>
-    </div>
-  );
-}
-
-function DataTile({
-  title,
-  headline,
-  lines,
-  tone = "neutral",
-  className,
-  headlineClassName,
-}: {
-  title?: React.ReactNode;
-  headline: string;
-  lines: string[];
-  tone?: "neutral" | "strong" | "weak" | Race;
-  className?: string;
-  headlineClassName?: string;
-}) {
-  const toneClass =
-    tone === "T"
-      ? "border-terran/20 bg-terran/10"
-      : tone === "Z"
-        ? "border-zerg/20 bg-zerg/10"
-        : tone === "P"
-          ? "border-protoss/20 bg-protoss/10"
-          : tone === "strong"
-            ? "border-nzu-green/18 bg-nzu-green/[0.08]"
-            : tone === "weak"
-              ? "border-red-400/18 bg-red-400/[0.08]"
-              : "border-white/8 bg-white/[0.03]";
-
-  return (
-    <div className={cn("rounded-xl border px-3 py-4 text-center md:px-4 md:py-5", toneClass, className)}>
-      {title ? <div className="mb-2.5 flex min-h-[24px] items-center justify-center">{title}</div> : null}
-      <p className={cn("text-xl font-bold tracking-tight text-white md:text-[1.26rem] xl:text-[1.3rem]", headlineClassName)}>{headline}</p>
-      <div className="mt-2 space-y-1">
-        {lines.map((line) => (
-          <p key={line} className="text-sm font-medium tracking-tight text-white/52">
-            {line}
-          </p>
-        ))}
-      </div>
     </div>
   );
 }

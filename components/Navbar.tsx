@@ -42,10 +42,7 @@ const OVERLAY_VIEWER_ROUTES = ["/overlay/scoreboard", "/overlay/entry"];
 
 export default function Navbar() {
   const pathname = usePathname();
-  if (OVERLAY_VIEWER_ROUTES.some((r) => pathname?.startsWith(r))) return null;
-  const resolvedPathname = normalizeNavbarPathname(pathname);
   const [session, setSession] = useState<NavbarSession | null>(null);
-  const isHome = resolvedPathname === "/";
 
   useEffect(() => {
     let active = true;
@@ -63,6 +60,10 @@ export default function Navbar() {
       active = false;
     };
   }, []);
+
+  if (OVERLAY_VIEWER_ROUTES.some((r) => pathname?.startsWith(r))) return null;
+  const resolvedPathname = normalizeNavbarPathname(pathname);
+  const isHome = resolvedPathname === "/";
 
   return (
     <header

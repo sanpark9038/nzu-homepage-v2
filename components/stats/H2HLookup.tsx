@@ -591,7 +591,7 @@ export default function H2HLookup({
                 strategy={verticalListSortingStrategy}
               >
                 <div className="space-y-4">
-                    {groupedMatches.map((group, groupIndex) => {
+                    {groupedMatches.map((group) => {
                       const isGrouped = group.entries.length > 1
                       const tierKey = normalizeTier(group.entries[0].match.p1.tier)
                       const tone = getTierTone(tierKey)
