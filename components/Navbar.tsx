@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Grid, LogOut, User } from "lucide-react";
+import { Grid, LockKeyhole, LogOut, User } from "lucide-react";
 
 import { visibleNavbarLinks } from "@/lib/navigation-config";
 import type { PublicAuthSession } from "@/lib/public-auth";
@@ -149,6 +149,14 @@ export default function Navbar() {
               <span>LOGIN</span>
             </a>
           )}
+          <Link
+            href="/admin"
+            prefetch={false}
+            aria-label="관리자"
+            className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full text-foreground/35 transition-colors hover:bg-white/7 hover:text-nzu-green"
+          >
+            <LockKeyhole size={18} aria-hidden="true" />
+          </Link>
           <button
             type="button"
             aria-label="메뉴 열기"

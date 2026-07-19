@@ -311,7 +311,7 @@ test("tier footer exposes a short admin entry without leaking credentials", () =
   assert.match(source, /href=["']\/admin["']/);
   assert.match(source, /LockKeyhole/);
   assert.match(source, /\\uC804\\uC801 \\uCD9C\\uCC98: ELOBOARD\.COM|전적 출처:\s*ELOBOARD\.COM/);
-  assert.match(source, /2026 HOSAGA BY SANPARK\./);
+  assert.match(source, /HOSAGA BY 엘레이드/);
   assert.doesNotMatch(source, /HOSAGA ARCHIVE/);
   assert.doesNotMatch(source, /HOSAGA 티어 데이터/);
   assert.doesNotMatch(source, /ADMIN_ACCESS_KEY|adminAccessKey|password|next=\/admin/);

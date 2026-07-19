@@ -316,7 +316,7 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
             <span className="mb-2 text-[13px] font-semibold uppercase tracking-widest text-nzu-green transition-colors">
               {"\uC804\uC801 \uCD9C\uCC98: ELOBOARD.COM"}
             </span>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30">2026 HOSAGA BY SANPARK.</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/30">HOSAGA BY 엘레이드</p>
           </div>
         </div>
       </footer>
