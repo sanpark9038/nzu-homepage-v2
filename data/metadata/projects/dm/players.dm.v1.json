@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-05-15T18:10:13.665Z",
+  "generated_at": "2026-07-20T12:15:58.115Z",
   "project": "dm",
   "team_name": "DM",
   "team_code": "dm",
@@ -9,7 +9,7 @@
   "team_aliases": [
     "DM"
   ],
-  "roster_count": 11,
+  "roster_count": 12,
   "roster": [
     {
       "team_name": "DM",
@@ -150,36 +150,30 @@
     {
       "team_name": "DM",
       "team_code": "dm",
-      "entity_id": "eloboard:female:136",
-      "wr_id": 136,
+      "entity_id": "eloboard:female:361",
+      "wr_id": 361,
       "gender": "female",
-      "name": "혜로로",
-      "display_name": "혜로로",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=136",
+      "name": "다나짱",
+      "display_name": "다나짱",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=361",
       "profile_kind": "default",
       "tier": "2",
-      "race": "Zerg",
+      "race": "Protoss",
       "source": "roster_sync",
       "missing_in_master": false,
       "meta_tags": [
         "domain:player",
-        "gender:female",
         "team:dm",
         "team_code:dm",
         "team_ko:DM",
         "team_en:dm",
-        "race:zerg",
+        "gender:female",
+        "race:protoss",
         "tier:2"
       ],
       "role_title": "",
       "role_priority": null,
-      "tier_key": "2",
-      "last_checked_at": "2026-05-14T15:51:14.497Z",
-      "last_match_at": "2026-05-14T00:00:00.000Z",
-      "check_priority": "high",
-      "check_interval_days": 1,
-      "last_changed_at": "2026-05-14T16:27:48.134Z",
-      "soop_user_id": "llqqqq"
+      "tier_key": "2"
     },
     {
       "team_name": "DM",
@@ -214,6 +208,34 @@
       "check_interval_days": 1,
       "last_changed_at": "2026-05-14T16:27:48.137Z",
       "soop_user_id": "jscando77"
+    },
+    {
+      "team_name": "DM",
+      "team_code": "dm",
+      "entity_id": "eloboard:female:618",
+      "wr_id": 618,
+      "gender": "female",
+      "name": "정소이",
+      "display_name": "정소이",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=618",
+      "profile_kind": "default",
+      "tier": "4",
+      "race": "Zerg",
+      "source": "roster_sync",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:dm",
+        "team_code:dm",
+        "team_ko:DM",
+        "team_en:dm",
+        "gender:female",
+        "race:zerg",
+        "tier:4"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "4"
     },
     {
       "team_name": "DM",

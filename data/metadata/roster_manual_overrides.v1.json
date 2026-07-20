@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-07-18T11:16:43.612Z",
+  "updated_at": "2026-07-20T12:15:34.755Z",
   "description": "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
   "overrides": [
     {
@@ -1374,6 +1374,42 @@
       "manual_lock": true,
       "note": "Canonical successor mapping: use wr_id=948 after race transition (Terran→Protoss); retire legacy wr_id=703 from roster-change alerts.",
       "updated_at": "2026-07-18T11:16:43.611Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:671",
+      "name": "쌍디",
+      "team_code": "fa",
+      "team_name": "무소속",
+      "tier": "6",
+      "race": "Zerg",
+      "manual_lock": true,
+      "manual_mode": "fixed",
+      "note": "User-confirmed 2026-07-20: keep on site as FA after dropping off the eloboard FA listing (record preserved).",
+      "updated_at": "2026-07-20T12:15:34.755Z"
+    },
+    {
+      "entity_id": "eloboard:female:981",
+      "name": "지아송",
+      "team_code": "fa",
+      "team_name": "무소속",
+      "tier": "8",
+      "race": "Protoss",
+      "manual_lock": true,
+      "manual_mode": "fixed",
+      "note": "User-confirmed 2026-07-20: keep on site as FA after dropping off the eloboard FA listing (record preserved).",
+      "updated_at": "2026-07-20T12:15:34.755Z"
+    },
+    {
+      "entity_id": "eloboard:female:991",
+      "name": "있찌",
+      "team_code": "fa",
+      "team_name": "무소속",
+      "tier": "8",
+      "race": "Protoss",
+      "manual_lock": true,
+      "manual_mode": "fixed",
+      "note": "User-confirmed 2026-07-20: keep on site as FA after dropping off the eloboard FA listing (record preserved).",
+      "updated_at": "2026-07-20T12:15:34.755Z"
     }
   ]
 }
