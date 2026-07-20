@@ -139,15 +139,25 @@ function evaluateTemporaryOverrideAgainstObserved(overrideRow, observed) {
       fields: checks.map(([field, manual]) => ({ field, manual: String(manual), observed: null })),
     };
   }
-  const diffs = checks
+  // 관측 tier/race가 빈값·미정("-")이면 "정보 없음"이지 불일치가 아니다.
+  // FA 페이지는 티어를 표시하지 않으므로 빈값이 정상이며, 이를 불일치로 보면
+  // 해제도 못 하고 매일 "확인 필요"로 재보고되어 노이즈만 쌓인다.
+  // 소속(team_code)은 항상 관측되므로 이 완화를 적용하지 않는다.
+  const isUnknownObservation = (field, observedValue) =>
+    field !== "team_code" && ["", "-", "미정"].includes(normalizeCompareValue(observedValue));
+
+  const comparable = checks.filter(([field, , observedValue]) => !isUnknownObservation(field, observedValue));
+  const diffs = comparable
     .filter(([, manual, observedValue]) => normalizeCompareValue(manual) !== normalizeCompareValue(observedValue))
     .map(([field, manual, observedValue]) => ({
       field,
       manual: String(manual),
       observed: String(observedValue || ""),
     }));
-  if (!diffs.length) return { action: "release", reason: "eloboard_match", fields: [] };
-  return { action: "mismatch", reason: "eloboard_differs", fields: diffs };
+  if (diffs.length) return { action: "mismatch", reason: "eloboard_differs", fields: diffs };
+  // 비교 가능한 필드가 하나도 없으면 확인된 일치가 아니므로 해제하지 않고 유지한다.
+  if (!comparable.length) return null;
+  return { action: "release", reason: "eloboard_match", fields: [] };
 }
 
 // 해제 = Supabase에 교정 필드가 비워진 행을 upsert. 병합 시 remote가 local 파일 위에

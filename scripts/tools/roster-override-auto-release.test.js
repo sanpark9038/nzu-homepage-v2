@@ -56,6 +56,47 @@ runTest("temporary override differing from eloboard reports mismatch with diffs 
   assert.deepEqual(verdict.fields, [{ field: "team_code", manual: "fa", observed: "ssg" }]);
 });
 
+runTest("empty observed tier is treated as no-information, not a mismatch", () => {
+  const verdict = evaluateTemporaryOverrideAgainstObserved(temporaryOverride, {
+    team_code: "fa",
+    tier: "",
+    race: "Zerg",
+  });
+  assert.equal(verdict && verdict.action, "release");
+
+  const dashTier = evaluateTemporaryOverrideAgainstObserved(temporaryOverride, {
+    team_code: "fa",
+    tier: "-",
+    race: "Zerg",
+  });
+  assert.equal(dashTier && dashTier.action, "release");
+});
+
+runTest("unknown observed tier does not mask a real affiliation mismatch", () => {
+  const verdict = evaluateTemporaryOverrideAgainstObserved(temporaryOverride, {
+    team_code: "ssu",
+    tier: "",
+    race: "Zerg",
+  });
+  assert.equal(verdict && verdict.action, "mismatch");
+  assert.deepEqual(verdict.fields, [{ field: "team_code", manual: "fa", observed: "ssu" }]);
+});
+
+runTest("empty observed team_code stays a mismatch because affiliation is always observable", () => {
+  const verdict = evaluateTemporaryOverrideAgainstObserved(temporaryOverride, {
+    team_code: "",
+    tier: "6",
+    race: "Zerg",
+  });
+  assert.equal(verdict && verdict.action, "mismatch");
+  assert.deepEqual(verdict.fields, [{ field: "team_code", manual: "fa", observed: "" }]);
+});
+
+runTest("tier-only override with unknown observed tier is held, not released", () => {
+  const tierOnly = { ...temporaryOverride, team_code: "", race: "" };
+  assert.equal(evaluateTemporaryOverrideAgainstObserved(tierOnly, { tier: "" }), null);
+});
+
 runTest("player missing from eloboard reports not_on_eloboard mismatch", () => {
   const verdict = evaluateTemporaryOverrideAgainstObserved(temporaryOverride, null);
   assert.equal(verdict && verdict.action, "mismatch");
