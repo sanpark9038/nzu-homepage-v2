@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-05-15T17:50:27.873Z",
+  "updated_at": "2026-07-20T15:31:07.462Z",
   "description": "Players excluded from match collection pipeline.",
   "players": [
     {
@@ -261,6 +261,20 @@
       "name": "성예린",
       "reason": "user_excluded_unneeded_for_homepage",
       "updated_at": "2026-05-15T17:50:27.873Z"
+    },
+    {
+      "entity_id": "eloboard:female:1007",
+      "name": "땃쥐",
+      "wr_id": 1007,
+      "reason": "superseded_identity_race_change",
+      "note": "Eloboard issues a new wr_id on race change. 1007(Protoss) was superseded by 1015(Zerg); 1015 is the current identity (user-confirmed 2026-07-20)."
+    },
+    {
+      "entity_id": "eloboard:female:1046",
+      "name": "슬아",
+      "wr_id": 1046,
+      "reason": "superseded_identity_race_change",
+      "note": "Merged into eloboard:female:57, which is the current identity (user-confirmed 2026-07-20)."
     }
   ]
 }

@@ -9,7 +9,7 @@
     "무소속",
     "FA"
   ],
-  "roster_count": 87,
+  "roster_count": 86,
   "roster": [
     {
       "team_name": "무소속",
@@ -2506,34 +2506,6 @@
         "team_en:fa",
         "gender:female",
         "race:zerg",
-        "tier:unknown"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "unknown"
-    },
-    {
-      "team_name": "무소속",
-      "team_code": "fa",
-      "entity_id": "eloboard:female:1007",
-      "wr_id": 1007,
-      "gender": "female",
-      "name": "땃쥐",
-      "display_name": "땃쥐",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1007",
-      "profile_kind": "default",
-      "tier": "미정",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "team:fa",
-        "team_code:fa",
-        "team_ko:무소속",
-        "team_en:fa",
-        "gender:female",
-        "race:protoss",
         "tier:unknown"
       ],
       "role_title": "",

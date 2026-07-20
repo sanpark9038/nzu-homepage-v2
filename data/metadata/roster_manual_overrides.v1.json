@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-07-20T12:45:52.709Z",
+  "updated_at": "2026-07-20T15:28:56.854Z",
   "description": "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
   "overrides": [
     {
@@ -84,7 +84,13 @@
       "tier": "8",
       "race": "Zerg",
       "manual_lock": true,
-      "note": "Confirmed FA tier from manual review."
+      "note": "Canonical successor mapping: eloboard issues a new wr_id on race change. 1007(Protoss) -> 1015(Zerg); 1015 is current (user-confirmed 2026-07-20).",
+      "legacy_entity_ids": [
+        "eloboard:female:1007"
+      ],
+      "team_code": "fa",
+      "team_name": "무소속",
+      "updated_at": "2026-07-20T15:28:56.852Z"
     },
     {
       "entity_id": "eloboard:male:20",
@@ -1415,6 +1421,20 @@
       "manual_mode": "fixed",
       "note": "User-confirmed 2026-07-20: keep on site as FA after dropping off the eloboard FA listing (record preserved).",
       "updated_at": "2026-07-20T12:15:34.755Z"
+    },
+    {
+      "entity_id": "eloboard:female:57",
+      "legacy_entity_ids": [
+        "eloboard:female:1046"
+      ],
+      "name": "슬아",
+      "team_code": "hm",
+      "team_name": "HM",
+      "tier": "4",
+      "race": "Zerg",
+      "manual_lock": true,
+      "note": "Canonical successor mapping: eloboard issues a new wr_id on race change. 1046 merges into 57; 57 is current (user-confirmed 2026-07-20).",
+      "updated_at": "2026-07-20T15:28:56.852Z"
     }
   ]
 }

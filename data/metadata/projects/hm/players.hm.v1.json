@@ -8,7 +8,7 @@
   "team_aliases": [
     "HM"
   ],
-  "roster_count": 16,
+  "roster_count": 15,
   "roster": [
     {
       "team_name": "HM",
@@ -253,34 +253,6 @@
       "check_interval_days": 3,
       "last_changed_at": "2026-05-14T16:27:48.413Z",
       "soop_user_id": "ekfrqkf"
-    },
-    {
-      "team_name": "HM",
-      "team_code": "hm",
-      "entity_id": "eloboard:female:1046",
-      "wr_id": 1046,
-      "gender": "female",
-      "name": "슬아",
-      "display_name": "슬아",
-      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1046",
-      "profile_kind": "default",
-      "tier": "4",
-      "race": "Protoss",
-      "source": "roster_sync",
-      "missing_in_master": false,
-      "meta_tags": [
-        "domain:player",
-        "team:hm",
-        "team_code:hm",
-        "team_ko:HM",
-        "team_en:hm",
-        "gender:female",
-        "race:protoss",
-        "tier:4"
-      ],
-      "role_title": "",
-      "role_priority": null,
-      "tier_key": "4"
     },
     {
       "team_name": "HM",
