@@ -21,10 +21,13 @@
     },
     {
       "opponent_name": "하루묭",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
+      "target_entity_id": "eloboard:female:898",
+      "canonical_name": "하루묭",
       "review_rank": 2,
       "match_rows": 587,
-      "latest_match_date": "2026-05-02"
+      "latest_match_date": "2026-05-02",
+      "review_note": "Operator confirmed 하루묭 is our own FA player (eloboard:female:898, soop=harumyong), not an external opponent. Previously misfiled because our metadata carried the typo 하루뮭, so the name never matched."
     },
     {
       "opponent_name": "두디",
