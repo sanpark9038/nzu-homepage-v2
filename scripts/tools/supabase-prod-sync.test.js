@@ -14,6 +14,7 @@ const {
   summarizeDetailedStatsSize,
   findProductionIdentityConflicts,
   loadApprovedIdentitySuccessions,
+  planIdentitySuccessionMigrations,
   selectStaleProductionRows,
   findUnsafeStaleDeleteRows,
   buildServingPayload,
@@ -726,6 +727,39 @@ runTest("loadApprovedIdentitySuccessions reads legacy_entity_ids mappings from r
   const legacy = successions.get("female:948");
   assert.ok(legacy, "세월 canonical succession (female:948) should be loaded from repo overrides");
   assert.ok(legacy.has("female:703"), "legacy female:703 should map to female:948");
+});
+
+runTest("planIdentitySuccessionMigrations moves approved legacy rows onto the canonical identity", () => {
+  const approved = new Map([["female:948", new Set(["female:703"])]]);
+  const actual = planIdentitySuccessionMigrations(
+    [{ name: "세월", eloboard_id: "eloboard:female:703", gender: "female" }],
+    [{ name: "세월", eloboard_id: "eloboard:female:948", gender: "female" }],
+    approved
+  );
+
+  assert.deepEqual(actual, [{ name: "세월", from_identity: "female:703", to_identity: "female:948" }]);
+});
+
+runTest("planIdentitySuccessionMigrations ignores unapproved identity changes and matching rows", () => {
+  const approved = new Map([["female:948", new Set(["female:703"])]]);
+
+  assert.deepEqual(
+    planIdentitySuccessionMigrations(
+      [{ name: "다른선수", eloboard_id: "eloboard:female:111", gender: "female" }],
+      [{ name: "다른선수", eloboard_id: "eloboard:female:222", gender: "female" }],
+      approved
+    ),
+    []
+  );
+
+  assert.deepEqual(
+    planIdentitySuccessionMigrations(
+      [{ name: "세월", eloboard_id: "eloboard:female:948", gender: "female" }],
+      [{ name: "세월", eloboard_id: "eloboard:female:948", gender: "female" }],
+      approved
+    ),
+    []
+  );
 });
 
 runTest("selectStaleProductionRows keeps renamed rows when the same serving identity remains active", () => {

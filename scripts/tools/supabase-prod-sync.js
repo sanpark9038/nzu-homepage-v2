@@ -1095,6 +1095,38 @@ function loadApprovedIdentitySuccessions(filePath = ROSTER_MANUAL_OVERRIDES_PATH
   return successions;
 }
 
+// 승인된 승계의 prod 행은 아직 legacy 키를 들고 있다. upsert는 serving_identity_key로
+// 매칭하므로 그대로 두면 신규 INSERT가 되어 players_name_unique(name)에 걸린다.
+// 같은 이름·승인된 legacy 키인 행만 canonical 키로 미리 옮겨 in-place UPDATE가 되게 한다.
+function planIdentitySuccessionMigrations(prodRows = [], sanitizedRows = [], approvedSuccessions = null) {
+  if (!approvedSuccessions || !approvedSuccessions.size) return [];
+
+  const prodByName = new Map();
+  for (const row of Array.isArray(prodRows) ? prodRows : []) {
+    const name = normalizeName(row && row.name ? row.name : '');
+    if (name) prodByName.set(name, row);
+  }
+
+  const migrations = [];
+  for (const row of Array.isArray(sanitizedRows) ? sanitizedRows : []) {
+    const name = normalizeName(row && row.name ? row.name : '');
+    if (!name) continue;
+    const existing = prodByName.get(name);
+    if (!existing) continue;
+
+    const canonicalKey = buildSyncIdentityKey(row);
+    const existingKey = buildSyncIdentityKey(existing);
+    if (!canonicalKey || canonicalKey === existingKey) continue;
+
+    const legacySet = approvedSuccessions.get(canonicalKey);
+    if (!legacySet || !legacySet.has(existingKey)) continue;
+
+    migrations.push({ name, from_identity: existingKey, to_identity: canonicalKey });
+  }
+
+  return migrations;
+}
+
 function findProductionIdentityConflicts(prodRows = [], sanitizedRows = [], approvedSuccessions = null) {
   const prodByName = new Map();
   for (const row of Array.isArray(prodRows) ? prodRows : []) {
@@ -1515,10 +1547,11 @@ async function main() {
     );
   }
 
+  const approvedSuccessions = loadApprovedIdentitySuccessions();
   const identityConflicts = findProductionIdentityConflicts(
     prodData || [],
     sanitized,
-    loadApprovedIdentitySuccessions()
+    approvedSuccessions
   );
   if (identityConflicts.length > 0) {
     const preview = identityConflicts
@@ -1546,6 +1579,27 @@ async function main() {
   // 3) Upsert changed staging rows by unique serving key when available. Do not pass id.
   const chunkSize = resolveInitialChunkSize();
   const upsertConflictTarget = canWriteServingIdentityKey ? 'serving_identity_key' : 'name';
+
+  if (canWriteServingIdentityKey) {
+    const successionMigrations = planIdentitySuccessionMigrations(prodData || [], sanitized, approvedSuccessions);
+    for (const migration of successionMigrations) {
+      await runSupabaseOperationWithRetry(`identity succession migrate ${migration.name}`, () =>
+        supabase
+          .from('players')
+          .update({ serving_identity_key: migration.to_identity })
+          .eq('name', migration.name)
+          .eq('serving_identity_key', migration.from_identity)
+      );
+      console.log(
+        `[+] migrated identity in place: ${migration.name} ${migration.from_identity} -> ${migration.to_identity}`
+      );
+      for (const row of prodData || []) {
+        if (normalizeName(row && row.name ? row.name : '') === migration.name) {
+          row.serving_identity_key = migration.to_identity;
+        }
+      }
+    }
+  }
   const rowsToUpsert = selectRowsNeedingUpsert(prodData || [], sanitized);
   for (let i = 0; i < rowsToUpsert.length; i += chunkSize) {
     const chunk = rowsToUpsert.slice(i, i + chunkSize);
@@ -1622,6 +1676,7 @@ module.exports = {
   summarizeDetailedStatsSize,
   findProductionIdentityConflicts,
   loadApprovedIdentitySuccessions,
+  planIdentitySuccessionMigrations,
   selectStaleProductionRows,
   findUnsafeStaleDeleteRows,
   selectRowsNeedingUpsert,
