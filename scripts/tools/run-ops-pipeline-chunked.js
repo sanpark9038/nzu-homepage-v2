@@ -192,8 +192,10 @@ function hasBlockingAlerts(alertDoc) {
 async function runCommonPreparation(teamCodes, allTeamCodes) {
   const steps = [];
   const isFullSync = teamCodes.length === allTeamCodes.length && teamCodes.every((code, idx) => code === allTeamCodes[idx]);
+  // 로스터 파일은 여전히 report-only(운영자 검토 대상)지만, 해제 기록은 매일 반영한다.
+  // 전체 동기화일 때만 — 부분 동기화는 관측 범위가 좁아 해제 판정 근거가 불완전하다.
   const rosterArgs = isFullSync
-    ? [ROSTER_SYNC_SCRIPT, "--report-only"]
+    ? [ROSTER_SYNC_SCRIPT, "--report-only", "--persist-releases"]
     : [ROSTER_SYNC_SCRIPT, "--report-only", "--teams", teamCodes.join(","), "--allow-partial"];
   const rosterRes = await runNode(rosterArgs, "roster_sync");
   steps.push({

@@ -41,6 +41,13 @@ function shouldWriteRosterFiles(argv = process.argv) {
   return !argv.includes("--report-only");
 }
 
+// 해제 기록은 로스터 파일 쓰기와 분리한다. 파이프라인은 --report-only로 돌지만
+// 해제(= 엘로보드가 수동 교정과 일치해 교정이 불필요해진 상태)는 Supabase에
+// 남겨야 매일 재계산·재보고되며 누적되지 않는다.
+function shouldPersistTemporaryReleases(argv = process.argv) {
+  return shouldWriteRosterFiles(argv) || argv.includes("--persist-releases");
+}
+
 function readJson(p) {
   return JSON.parse(fs.readFileSync(p, "utf8").replace(/^\uFEFF/, ""));
 }
@@ -652,6 +659,7 @@ function shouldGuardObservedRoster(existingCount, observedCount) {
 
 async function main() {
   const writeRosterFiles = shouldWriteRosterFiles();
+  const persistTemporaryReleases = shouldPersistTemporaryReleases();
   let autoDiscovery = {
     created_projects_count: 0,
     created_projects: [],
@@ -866,7 +874,7 @@ async function main() {
     });
   }
 
-  if (writeRosterFiles) {
+  if (persistTemporaryReleases) {
     for (const release of temporaryOverrideReleases) {
       try {
         const persisted = await markOverrideReleasedRemote(release);
@@ -1063,6 +1071,7 @@ async function main() {
   const report = {
     generated_at: new Date().toISOString(),
     report_only: !writeRosterFiles,
+    releases_persisted: persistTemporaryReleases,
     auto_discovery: autoDiscovery,
     teams: teams.map((t) => t.code),
     fa_source_univ: faSourceUniv,
@@ -1108,6 +1117,8 @@ async function main() {
 }
 
 module.exports = {
+  shouldWriteRosterFiles,
+  shouldPersistTemporaryReleases,
   buildLegacyEntityIdsBySuccessor,
   buildExcludedEntityIds,
   fetchHtml,

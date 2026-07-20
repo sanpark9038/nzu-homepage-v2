@@ -15,6 +15,7 @@ const {
   reconcileObservedIdentityMigrations,
   restoreMissingFaBaselinePlayers,
   shouldWriteRosterFiles,
+  shouldPersistTemporaryReleases,
   shouldRetainPreviousAffiliation,
   shouldGuardObservedRoster,
   upsertRosterEntry,
@@ -267,6 +268,18 @@ runTest("shouldGuardObservedRoster blocks suspicious partial roster collapses", 
 runTest("roster sync writes files only when report-only is not requested", () => {
   assert.equal(shouldWriteRosterFiles(["node", "sync-team-roster-metadata.js"]), true);
   assert.equal(shouldWriteRosterFiles(["node", "sync-team-roster-metadata.js", "--report-only"]), false);
+});
+
+runTest("temporary release persistence is independent from roster file writes", () => {
+  const base = ["node", "sync-team-roster-metadata.js"];
+
+  // 파일을 쓰는 일반 실행은 해제도 기록한다.
+  assert.equal(shouldPersistTemporaryReleases(base), true);
+  // report-only 단독은 아무것도 기록하지 않는다(기존 동작 유지).
+  assert.equal(shouldPersistTemporaryReleases([...base, "--report-only"]), false);
+  // 파이프라인 조합: 파일은 안 쓰지만 해제는 기록한다.
+  assert.equal(shouldPersistTemporaryReleases([...base, "--report-only", "--persist-releases"]), true);
+  assert.equal(shouldWriteRosterFiles([...base, "--report-only", "--persist-releases"]), false);
 });
 
 runTest("restoreMissingFaBaselinePlayers rehydrates FA players missing from current docs", () => {
