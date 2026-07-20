@@ -17,6 +17,7 @@ const TMP_DIR = path.join(ROOT, 'tmp');
 const REPORTS_DIR = path.join(TMP_DIR, 'reports');
 const SOOP_MAPPINGS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_channel_mappings.v1.json');
 const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_manual_review_decisions.v1.json');
+const ROSTER_MANUAL_OVERRIDES_PATH = path.join(ROOT, 'data', 'metadata', 'roster_manual_overrides.v1.json');
 const DEBUG_PAYLOAD_PATH = path.join(TMP_DIR, 'supabase_prod_sync_payload_preview.json');
 const HISTORY_QUALITY_REPORT_PATH = path.join(REPORTS_DIR, 'prod_sync_history_quality_latest.json');
 const STABLE_CSV_ROW_COUNT_CACHE = new Map();
@@ -1069,7 +1070,32 @@ function buildSyncIdentityKey(row) {
   return name ? `name:${name}` : 'unknown';
 }
 
-function findProductionIdentityConflicts(prodRows = [], sanitizedRows = []) {
+// roster_manual_overrides의 legacy_entity_ids 선언(예: 세월 703→948 승계)을
+// Map<canonical identity key, Set<legacy identity key>>로 로드한다.
+function loadApprovedIdentitySuccessions(filePath = ROSTER_MANUAL_OVERRIDES_PATH) {
+  const successions = new Map();
+  let overrides = [];
+  try {
+    overrides = JSON.parse(fs.readFileSync(filePath, 'utf8')).overrides || [];
+  } catch {
+    return successions;
+  }
+  for (const entry of Array.isArray(overrides) ? overrides : []) {
+    const legacyIds = Array.isArray(entry && entry.legacy_entity_ids) ? entry.legacy_entity_ids : [];
+    if (!legacyIds.length) continue;
+    const canonicalKey = buildSyncIdentityKey({ eloboard_id: entry.entity_id });
+    if (!canonicalKey || canonicalKey === 'unknown') continue;
+    const legacySet = successions.get(canonicalKey) || new Set();
+    for (const legacyId of legacyIds) {
+      const legacyKey = buildSyncIdentityKey({ eloboard_id: legacyId });
+      if (legacyKey && legacyKey !== 'unknown') legacySet.add(legacyKey);
+    }
+    if (legacySet.size) successions.set(canonicalKey, legacySet);
+  }
+  return successions;
+}
+
+function findProductionIdentityConflicts(prodRows = [], sanitizedRows = [], approvedSuccessions = null) {
   const prodByName = new Map();
   for (const row of Array.isArray(prodRows) ? prodRows : []) {
     const name = normalizeName(row && row.name ? row.name : '');
@@ -1086,6 +1112,11 @@ function findProductionIdentityConflicts(prodRows = [], sanitizedRows = []) {
     const incomingIdentity = buildSyncIdentityKey(row);
     const existingIdentity = buildSyncIdentityKey(existing);
     if (incomingIdentity !== existingIdentity) {
+      const legacySet = approvedSuccessions ? approvedSuccessions.get(incomingIdentity) : null;
+      if (legacySet && legacySet.has(existingIdentity)) {
+        console.log(`[=] approved identity succession: ${name} ${existingIdentity} -> ${incomingIdentity}`);
+        continue;
+      }
       conflicts.push({
         name,
         existing_identity: existingIdentity,
@@ -1484,7 +1515,11 @@ async function main() {
     );
   }
 
-  const identityConflicts = findProductionIdentityConflicts(prodData || [], sanitized);
+  const identityConflicts = findProductionIdentityConflicts(
+    prodData || [],
+    sanitized,
+    loadApprovedIdentitySuccessions()
+  );
   if (identityConflicts.length > 0) {
     const preview = identityConflicts
       .slice(0, 5)
@@ -1586,6 +1621,7 @@ module.exports = {
   buildDetailedStats,
   summarizeDetailedStatsSize,
   findProductionIdentityConflicts,
+  loadApprovedIdentitySuccessions,
   selectStaleProductionRows,
   findUnsafeStaleDeleteRows,
   selectRowsNeedingUpsert,

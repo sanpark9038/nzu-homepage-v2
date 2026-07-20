@@ -13,6 +13,7 @@ const {
   buildDetailedStats,
   summarizeDetailedStatsSize,
   findProductionIdentityConflicts,
+  loadApprovedIdentitySuccessions,
   selectStaleProductionRows,
   findUnsafeStaleDeleteRows,
   buildServingPayload,
@@ -695,6 +696,36 @@ runTest("findProductionIdentityConflicts flags same-name rows with different dur
   assert.equal(actual[0].name, "same-name");
   assert.equal(actual[0].existing_identity, "female:111");
   assert.equal(actual[0].incoming_identity, "female:222");
+});
+
+runTest("findProductionIdentityConflicts allows approved identity successions from manual overrides", () => {
+  const approved = new Map([["female:948", new Set(["female:703"])]]);
+  const actual = findProductionIdentityConflicts(
+    [{ name: "세월", eloboard_id: "eloboard:female:703", gender: "female" }],
+    [{ name: "세월", eloboard_id: "eloboard:female:948", gender: "female" }],
+    approved
+  );
+
+  assert.deepEqual(actual, []);
+});
+
+runTest("findProductionIdentityConflicts still flags conflicts not covered by approved successions", () => {
+  const approved = new Map([["female:948", new Set(["female:703"])]]);
+  const actual = findProductionIdentityConflicts(
+    [{ name: "다른선수", eloboard_id: "eloboard:female:111", gender: "female" }],
+    [{ name: "다른선수", eloboard_id: "eloboard:female:222", gender: "female" }],
+    approved
+  );
+
+  assert.equal(actual.length, 1);
+});
+
+runTest("loadApprovedIdentitySuccessions reads legacy_entity_ids mappings from roster manual overrides", () => {
+  const successions = loadApprovedIdentitySuccessions();
+
+  const legacy = successions.get("female:948");
+  assert.ok(legacy, "세월 canonical succession (female:948) should be loaded from repo overrides");
+  assert.ok(legacy.has("female:703"), "legacy female:703 should map to female:948");
 });
 
 runTest("selectStaleProductionRows keeps renamed rows when the same serving identity remains active", () => {
