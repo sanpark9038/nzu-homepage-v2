@@ -2,6 +2,11 @@ name: NZU Ops Pipeline
 
 on:
   workflow_dispatch:
+    inputs:
+      with_sync:
+        description: "Supabase 서빙 동기화 포함 (스케줄 실행과 동일한 풀런)"
+        type: boolean
+        default: false
   schedule:
     - cron: "10 21 * * *"
 
@@ -76,12 +81,15 @@ jobs:
             has_supabase_secrets="true"
           fi
 
-          if [ "${{ github.event_name }}" = "schedule" ]; then
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ inputs.with_sync }}" = "true" ]; then
             sync_requested="true"
             if [ "$has_supabase_secrets" = "true" ]; then
               run_command="npm run pipeline:manual:refresh:with-sync"
               mode_label="scheduled auto-sync"
               sync_enabled="true"
+              if [ "${{ github.event_name }}" != "schedule" ]; then
+                mode_label="manual full-run with sync"
+              fi
             else
               mode_label="scheduled auto-sync unavailable, downgraded to collect-only"
               sync_warning="Supabase service-role secret is not configured in GitHub Actions, so homepage serving sync was skipped."
