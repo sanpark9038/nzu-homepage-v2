@@ -906,10 +906,13 @@
     },
     {
       "opponent_name": "박정일",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
+      "target_entity_id": "eloboard:male:97",
+      "canonical_name": "박정일",
       "review_rank": 19,
       "match_rows": 10,
-      "latest_match_date": "2025-12-01"
+      "latest_match_date": "2025-12-01",
+      "review_note": "Operator confirmed 박정일 is our own C9 player (eloboard:male:97, Terran, soop=wjddlf4695). The external_opponent decision was silently excluding him from collection via the name-only exclusion rule."
     },
     {
       "opponent_name": "파이",
