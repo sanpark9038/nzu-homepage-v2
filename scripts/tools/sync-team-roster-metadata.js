@@ -1071,6 +1071,31 @@ async function main() {
     restoreMissingFaBaselinePlayers(faDoc, faBaselinePlayers, observedByEntity, beforeByEntity, guardedTeamCodes);
   }
 
+  // 쓰기 직전 관문: 유효하지 않은 행이 하나라도 있으면 아무 파일도 쓰지 않는다.
+  // 2026-07-20에 엘로보드 FA 페이지가 0명을 반환했을 때 복구 경로가 wr_id·gender 없는
+  // 행 26건을 로스터에 썼다. validate를 따로 돌려야만 발견되는 구조였다 —
+  // 사람이 기억해야 하는 규칙 대신 여기서 막는다.
+  if (writeRosterFiles) {
+    const invalid = [];
+    for (const d of allDocs) {
+      for (const p of Array.isArray(d.json.roster) ? d.json.roster : []) {
+        const wrId = Number(p && p.wr_id);
+        const gender = String(p && p.gender ? p.gender : "").trim();
+        const name = String(p && p.name ? p.name : "").trim();
+        if (!Number.isFinite(wrId) || wrId <= 0 || !["male", "female"].includes(gender) || !name) {
+          invalid.push(`${d.team.code}: ${name || "<이름없음>"} (wr_id=${p && p.wr_id}, gender=${gender || "-"})`);
+        }
+      }
+    }
+    if (invalid.length) {
+      throw new Error(
+        `유효하지 않은 로스터 행 ${invalid.length}건이 있어 파일을 쓰지 않았습니다. ` +
+          `엘로보드 응답이 비었을 때 자주 발생합니다(fa_observed_count 확인). ` +
+          `예: ${invalid.slice(0, 5).join("; ")}`
+      );
+    }
+  }
+
   const changedTeams = [];
   for (const d of allDocs) {
     sortRoster(d.json);
