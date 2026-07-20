@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-07-18T11:44:15.831Z",
+  "updated_at": "2026-07-20T13:26:00.391Z",
   "description": "Homepage display aliases. Match data collection should keep canonical player name.",
   "global": [
     {
@@ -17,7 +17,7 @@
     },
     {
       "name": "김준혁",
-      "display_name": "얍삽"
+      "display_name": "얍삽e"
     },
     {
       "name": "김호성",
@@ -116,7 +116,7 @@
     "mbu": [
       {
         "name": "김준혁",
-        "display_name": "얍삽"
+        "display_name": "얍삽e"
       },
       {
         "name": "김호성",
@@ -181,8 +181,8 @@
     ],
     "ssu": [
       {
-        "name": "???",
-        "display_name": "???"
+        "name": "박성용",
+        "display_name": "이소룡"
       }
     ],
     "fa": [

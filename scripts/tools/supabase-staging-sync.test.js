@@ -89,12 +89,31 @@ runTest("staging sync applies admin-confirmed team tier race and name overrides"
   assert.deepEqual(actual, {
     entity_id: "eloboard:female:99991",
     name: "after-name",
+    display_name: "after-name",
     team_code: "hm",
     team_name: "HM",
     tier: "6",
     race: "Terran",
   });
   assert.equal(player.team_code, "jsa");
+});
+
+runTest("staging sync serves the broadcast display name, not the eloboard real name", () => {
+  const source = fs.readFileSync(path.join(ROOT, "scripts", "tools", "supabase-staging-sync.js"), "utf8");
+
+  // 엘로보드가 본명을 쓰기 시작해도 사이트에는 방송 표시명이 나와야 한다
+  // (얍삽e -> 김준혁, 난수 -> 장영근 회귀를 막는다).
+  assert.match(source, /name:\s*p\.display_name\s*\|\|\s*p\.name/);
+});
+
+runTest("admin name override also wins over a stale display alias", () => {
+  const actual = applyRosterAdminOverrideToPlayer(
+    { entity_id: "eloboard:male:1", name: "real", display_name: "old-alias" },
+    { entity_id: "eloboard:male:1", name: "corrected" }
+  );
+
+  assert.equal(actual.name, "corrected");
+  assert.equal(actual.display_name, "corrected");
 });
 
 runTest("staging sync does not prepare SOOP live state from local snapshots", () => {

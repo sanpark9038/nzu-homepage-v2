@@ -253,7 +253,12 @@ function applyRosterAdminOverrideToPlayer(player, override) {
     next.team_code = override.team_code;
     if (override.team_name) next.team_name = override.team_name;
   }
-  if (override.name) next.name = override.name;
+  // 관리자가 이름을 직접 지정하면 그 값이 사이트에 나와야 하므로 표시명도 함께 맞춘다.
+  // (서빙은 display_name을 우선 쓰므로, 이걸 안 맞추면 교정한 이름이 별칭에 가려진다.)
+  if (override.name) {
+    next.name = override.name;
+    next.display_name = override.name;
+  }
   return next;
 }
 
@@ -304,9 +309,12 @@ async function main() {
         const rMode = String(p.race || '').trim().toUpperCase();
         const shortRace = rMode.startsWith('T') ? 'T' : rMode.startsWith('Z') ? 'Z' : rMode.startsWith('P') ? 'P' : 'T';
         // Map to DB schema
+        // 사이트에는 방송 표시명(별칭)이 나와야 한다. 엘로보드가 본명을 쓰기 시작하면
+        // roster의 name이 본명으로 바뀌는데, 그동안 서빙이 name만 써서 별칭 17건이
+        // 통째로 무시되고 있었다(라박이->박지호, 흑운장->이성은 등).
         allPlayers.push({
           eloboard_id: p.entity_id,
-          name: p.name || '',
+          name: p.display_name || p.name || '',
           tier: p.tier || '미정',
           race: shortRace,
           university: p.team_name || '',

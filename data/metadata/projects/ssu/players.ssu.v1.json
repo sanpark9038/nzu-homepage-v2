@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-20T12:15:58.119Z",
+  "generated_at": "2026-07-20T13:27:21.803Z",
   "project": "ssu",
   "team_name": "수술대",
   "team_code": "ssu",
@@ -33,7 +33,7 @@
       "role_title": "",
       "role_priority": null,
       "tier_key": "god",
-      "display_name": "짭제",
+      "display_name": "박상현",
       "last_checked_at": "2026-05-14T16:06:41.824Z",
       "last_match_at": "2026-05-14T00:00:00.000Z",
       "check_priority": "high",
@@ -176,7 +176,7 @@
       "wr_id": 137,
       "gender": "male",
       "name": "박준영",
-      "display_name": "박준영",
+      "display_name": "미동미동",
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=137",
       "profile_kind": "default",
       "tier": "조커",
@@ -191,7 +191,8 @@
         "team_en:ssu",
         "gender:male",
         "race:protoss",
-        "tier:joker"
+        "tier:joker",
+        "display_alias:true"
       ],
       "role_title": "",
       "role_priority": null,
@@ -216,7 +217,8 @@
         "team_ko:수술대",
         "team_en:ssu",
         "race:protoss",
-        "tier:0"
+        "tier:0",
+        "display_alias:true"
       ],
       "missing_in_master": false,
       "role_title": "",
