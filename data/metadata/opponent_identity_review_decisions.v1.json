@@ -87,10 +87,13 @@
     },
     {
       "opponent_name": "김설",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
+      "target_entity_id": "eloboard:female:659",
+      "canonical_name": "김설",
       "review_rank": 11,
       "match_rows": 416,
-      "latest_match_date": "2026-02-26"
+      "latest_match_date": "2026-02-26",
+      "review_note": "Operator confirmed 김설 is our own SSG player (eloboard:female:659, Zerg, soop=rnfma14). Misfiled as external because the player has never been collected, so opponent resolution never linked her."
     },
     {
       "opponent_name": "나능토끼야",
@@ -199,10 +202,13 @@
     },
     {
       "opponent_name": "앵지",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
+      "target_entity_id": "eloboard:female:14",
+      "canonical_name": "앵지",
       "review_rank": 27,
       "match_rows": 287,
-      "latest_match_date": "2025-07-13"
+      "latest_match_date": "2025-07-13",
+      "review_note": "Operator confirmed 앵지 is our own C9 player (eloboard:female:14, Zerg, soop=gks2wl). Misfiled as external because the player has never been collected, so opponent resolution never linked her."
     },
     {
       "opponent_name": "뀨알",
