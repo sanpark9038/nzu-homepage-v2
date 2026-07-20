@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-07-20T12:15:34.755Z",
+  "updated_at": "2026-07-20T12:45:52.709Z",
   "description": "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
   "overrides": [
     {
@@ -424,7 +424,9 @@
       "tier": "3",
       "race": "Zerg",
       "manual_lock": true,
-      "note": "Confirmed FA tier from manual review."
+      "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+      "manual_mode": "fixed",
+      "updated_at": "2026-07-20T12:45:52.708Z"
     },
     {
       "entity_id": "eloboard:female:767",
@@ -565,8 +567,9 @@
       "tier": "조커",
       "race": "Zerg",
       "manual_lock": true,
-      "manual_mode": "temporary",
-      "updated_at": "2026-04-08T06:24:08.846Z"
+      "manual_mode": "fixed",
+      "updated_at": "2026-07-20T12:45:52.709Z",
+      "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it."
     },
     {
       "entity_id": "eloboard:male:100",
@@ -585,8 +588,9 @@
       "tier": "스페이드",
       "race": "Protoss",
       "manual_lock": true,
-      "manual_mode": "temporary",
-      "updated_at": "2026-04-08T06:24:21.108Z"
+      "manual_mode": "fixed",
+      "updated_at": "2026-07-20T12:45:52.709Z",
+      "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it."
     },
     {
       "entity_id": "eloboard:male:208",
@@ -595,8 +599,9 @@
       "tier": "스페이드",
       "race": "Protoss",
       "manual_lock": true,
-      "manual_mode": "temporary",
-      "updated_at": "2026-04-08T06:24:27.040Z"
+      "manual_mode": "fixed",
+      "updated_at": "2026-07-20T12:45:52.709Z",
+      "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it."
     },
     {
       "entity_id": "eloboard:female:846",
@@ -655,11 +660,11 @@
       "tier": "3",
       "race": "Zerg",
       "manual_lock": true,
-      "note": "User-confirmed FA SOOP ID during metadata source consolidation.",
-      "updated_at": "2026-05-15T15:01:05.440Z",
+      "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+      "updated_at": "2026-07-20T12:45:52.709Z",
       "team_name": "무소속",
       "soop_id": "pookygamja",
-      "manual_mode": "temporary"
+      "manual_mode": "fixed"
     },
     {
       "entity_id": "eloboard:male:26",
@@ -901,9 +906,9 @@
       "race": "Protoss",
       "soop_id": "kthrs9207",
       "manual_lock": true,
-      "manual_mode": "temporary",
-      "note": "User-confirmed CALM SOOP ID during metadata source consolidation.",
-      "updated_at": "2026-05-15T14:13:47.485Z"
+      "manual_mode": "fixed",
+      "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+      "updated_at": "2026-07-20T12:45:52.709Z"
     },
     {
       "entity_id": "eloboard:female:808",
@@ -1239,9 +1244,9 @@
       "race": "Protoss",
       "soop_id": "hckkhc21",
       "manual_lock": true,
-      "manual_mode": "temporary",
-      "note": "User-confirmed BGM SOOP ID during metadata source consolidation.",
-      "updated_at": "2026-05-15T14:54:12.174Z"
+      "manual_mode": "fixed",
+      "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+      "updated_at": "2026-07-20T12:45:52.709Z"
     },
     {
       "entity_id": "eloboard:female:1018",
@@ -1252,9 +1257,9 @@
       "race": "Zerg",
       "soop_id": "nbomichae7",
       "manual_lock": true,
-      "manual_mode": "temporary",
-      "note": "User-confirmed BGM SOOP ID during metadata source consolidation.",
-      "updated_at": "2026-05-15T14:54:12.174Z"
+      "manual_mode": "fixed",
+      "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+      "updated_at": "2026-07-20T12:45:52.709Z"
     },
     {
       "entity_id": "eloboard:male:120",
@@ -1317,9 +1322,9 @@
       "race": "Zerg",
       "soop_id": "khsoo0105",
       "manual_lock": true,
-      "manual_mode": "temporary",
-      "note": "User-confirmed FA SOOP ID during metadata source consolidation.",
-      "updated_at": "2026-05-15T15:01:05.440Z"
+      "manual_mode": "fixed",
+      "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+      "updated_at": "2026-07-20T12:45:52.709Z"
     },
     {
       "entity_id": "eloboard:male:56",
@@ -1337,28 +1342,28 @@
     {
       "entity_id": "eloboard:male:48",
       "manual_lock": true,
-      "manual_mode": "temporary",
-      "updated_at": "2026-05-15T18:35:36.146Z",
+      "manual_mode": "fixed",
+      "updated_at": "2026-07-20T12:45:52.709Z",
       "name": "오메킴",
       "team_code": "fa",
       "team_name": "무소속",
       "tier": "잭",
       "race": "Protoss",
       "soop_id": "rlatldgus",
-      "note": "User-confirmed former YB player remains active as FA."
+      "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it."
     },
     {
       "entity_id": "eloboard:female:898",
       "manual_lock": true,
-      "manual_mode": "temporary",
-      "updated_at": "2026-05-15T18:35:36.146Z",
+      "manual_mode": "fixed",
+      "updated_at": "2026-07-20T12:45:52.709Z",
       "name": "하루묭",
       "team_code": "fa",
       "team_name": "무소속",
       "tier": "7",
       "race": "Protoss",
       "soop_id": "harumyong",
-      "note": "User-confirmed former YB player remains active as FA."
+      "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it."
     },
     {
       "entity_id": "eloboard:female:948",

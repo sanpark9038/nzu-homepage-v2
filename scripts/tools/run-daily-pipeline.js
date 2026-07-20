@@ -454,6 +454,13 @@ function summarizeTeamFromReport(team, report) {
   const results = Array.isArray(report.results) ? report.results : [];
   const actionable = results.filter((row) => !row.excluded);
   const excludedPlayers = results.filter((row) => row.excluded).map((row) => String(row.player || ""));
+  // 외부인 결정은 "이름만" 담은 제외 규칙을 만든다. 로스터 선수와 이름이 겹치면
+  // 그 선수가 조용히 수집에서 빠진다(김설·앵지·박정일이 두 달간 이렇게 누락됐다).
+  // 팀 요약 필드에만 찍혀 아무도 못 봤으므로, 별도 항목으로 뽑아 경보까지 올린다.
+  const opponentNameExcludedPlayers = results
+    .filter((row) => row.excluded && String(row.exclude_reason || "") === "external_opponent_reviewed")
+    .map((row) => String(row.player || ""))
+    .filter(Boolean);
   const fetchedPlayers = actionable.filter((row) => String(row.fetch_status || "") === "ok").length;
   const reusedPlayers = actionable.filter((row) =>
     [
@@ -507,6 +514,8 @@ function summarizeTeamFromReport(team, report) {
     players: actionable.length,
     excluded_players: excludedPlayers.length,
     excluded_player_names: excludedPlayers.join(", "),
+    opponent_name_excluded_players: opponentNameExcludedPlayers.length,
+    opponent_name_excluded_player_names: opponentNameExcludedPlayers.join(", "),
     fetched_players: fetchedPlayers,
     reused_players: reusedPlayers,
     fetch_fail: failures.filter(
@@ -963,6 +972,24 @@ function buildAlerts(
         team_code: row.team_code,
         rule: "zero_record_players",
         message: `zero_record_players=${actionableZeroPlayers.length} (${actionableZeroPlayers.join(", ") || "-"})`,
+      });
+    }
+    // 로스터에 있는 선수가 "외부인 이름" 규칙으로 제외되면 반드시 사람이 봐야 한다.
+    // 동명이인이면 규칙이 맞고, 우리 선수면 상대선수 결정을 canonical_candidate로 고쳐야 한다.
+    const opponentNameExcluded = Number(row.opponent_name_excluded_players || 0);
+    if (opponentNameExcluded > 0) {
+      alerts.push({
+        // medium 고정 의도: 선수 한 명의 이름 충돌로 서빙 동기화 전체를 멈추지 않는다
+        // (blocking_severities = critical/high). 보고에는 뜨되 파이프라인은 계속 돈다.
+        severity: rules.opponent_name_excluded_players_severity || "medium",
+        team: row.team,
+        team_code: row.team_code,
+        rule: "roster_player_excluded_by_opponent_name",
+        message:
+          `roster_player_excluded_by_opponent_name=${opponentNameExcluded} ` +
+          `(${row.opponent_name_excluded_player_names || "-"}) — ` +
+          `상대선수 "외부인" 결정과 이름이 겹쳐 수집에서 빠졌다. 동명이인이 아니면 ` +
+          `opponent_identity_review_decisions에서 canonical_candidate로 고칠 것`,
       });
     }
     const rosterChanged = typeof row.delta_players === "number" && row.delta_players !== 0;

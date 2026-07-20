@@ -164,6 +164,78 @@ runTest("buildAlerts ignores moved-in zero-record players for the current run", 
   ]);
 });
 
+runTest("buildAlerts surfaces roster players excluded by an external-opponent name rule", () => {
+  const actual = buildAlerts(
+    [
+      {
+        team: "신세계",
+        team_code: "ssg",
+        zero_players: "",
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: 0,
+        delta_players: 0,
+        opponent_name_excluded_players: 1,
+        opponent_name_excluded_player_names: "김설",
+      },
+    ],
+    {
+      rules: {
+        zero_record_players_severity: "high",
+        zero_record_players_allowlist: {},
+        negative_delta_matches_severity: "critical",
+        roster_size_changed_severity: "medium",
+        roster_size_changed_team_allowlist: [],
+        no_new_matches_enabled: false,
+      },
+    },
+    null,
+    []
+  );
+
+  const hit = actual.find((row) => row.rule === "roster_player_excluded_by_opponent_name");
+  assert.ok(hit, "이름 충돌로 제외된 로스터 선수는 경보로 떠야 한다");
+  assert.equal(hit.team_code, "ssg");
+  // 선수 한 명 때문에 서빙 동기화 전체가 막히면 안 되므로 차단 등급(critical/high)이 아니어야 한다.
+  assert.equal(hit.severity, "medium");
+  assert.match(hit.message, /김설/);
+});
+
+runTest("buildAlerts stays quiet when no roster player is caught by a name rule", () => {
+  const actual = buildAlerts(
+    [
+      {
+        team: "신세계",
+        team_code: "ssg",
+        zero_players: "",
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: 0,
+        delta_players: 0,
+        opponent_name_excluded_players: 0,
+        opponent_name_excluded_player_names: "",
+      },
+    ],
+    {
+      rules: {
+        zero_record_players_severity: "high",
+        zero_record_players_allowlist: {},
+        negative_delta_matches_severity: "critical",
+        roster_size_changed_severity: "medium",
+        roster_size_changed_team_allowlist: [],
+        no_new_matches_enabled: false,
+      },
+    },
+    null,
+    []
+  );
+
+  assert.equal(
+    actual.some((row) => row.rule === "roster_player_excluded_by_opponent_name"),
+    false
+  );
+});
+
 runTest("buildAlerts suppresses stale roster_size_changed alerts when current run has no roster transition", () => {
   const actual = buildAlerts(
     [

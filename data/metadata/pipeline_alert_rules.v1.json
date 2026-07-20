@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-04-17T00:00:00.000Z",
+  "updated_at": "2026-07-20T12:41:20.040Z",
   "blocking_severities": [
     "critical",
     "high"
@@ -31,6 +31,7 @@
     "stale_snapshot_disagreement_threshold": 1,
     "homepage_integrity_report_max_age_minutes": 180,
     "no_new_matches_enabled": false,
-    "no_new_matches_severity": "low"
+    "no_new_matches_severity": "low",
+    "opponent_name_excluded_players_severity": "medium"
   }
 }
