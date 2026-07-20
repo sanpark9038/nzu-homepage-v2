@@ -325,8 +325,10 @@ function upsertRosterEntry(teamJson, observed, source, fallbackPlayer = null) {
   const roster = Array.isArray(teamJson.roster) ? teamJson.roster : [];
   const idx = roster.findIndex((p) => String(p.entity_id) === observed.entity_id);
   const base = idx >= 0 ? roster[idx] : {};
-  const observedTier = String(observed.tier || "").trim();
-  const observedRace = String(observed.race || "").trim();
+  // 관측 없음("-" 등)은 값이 아니라 정보 부재다. 정규화하지 않으면 fallbackValue가
+  // 이를 유효 티어로 받아 확정 티어를 덮어쓴다(혁민 9 -> "-").
+  const observedTier = normalizeObservedTier(observed.tier);
+  const observedRace = normalizeObservedRace(observed.race);
   const profileUrl = normalizeProfileUrl(
     observed.profile_url ||
       base.profile_url ||
@@ -448,15 +450,32 @@ function restoreMissingFaBaselinePlayers(faDoc, baselinePlayers, observedByEntit
   return restored;
 }
 
+// 엘로보드는 티어 미표기를 빈값·"미정"뿐 아니라 "-"로도 내보낸다.
+// "-"를 실제 티어로 받으면 확정 티어(예: 9)가 지워진다 — 관측 없음은 기존 값을 유지한다.
+const UNKNOWN_TIER_MARKS = new Set(["", "미정", "-"]);
+const UNKNOWN_RACE_MARKS = new Set(["", "Unknown", "-"]);
+
+// 관측값에서 "정보 없음" 표기를 빈 문자열로 통일한다. 쓰기 경로(fallbackValue)와
+// 보고 경로(effectiveTier) 양쪽이 같은 기준을 쓰게 하는 단일 지점.
+function normalizeObservedTier(value) {
+  const o = String(value || "").trim();
+  return UNKNOWN_TIER_MARKS.has(o) ? "" : o;
+}
+
+function normalizeObservedRace(value) {
+  const o = String(value || "").trim();
+  return UNKNOWN_RACE_MARKS.has(o) ? "" : o;
+}
+
 function effectiveTier(observedTier, baseTier) {
-  const o = String(observedTier || "").trim();
-  if (o && o !== "미정") return o;
+  const o = normalizeObservedTier(observedTier);
+  if (o) return o;
   return String(baseTier || "미정");
 }
 
 function effectiveRace(observedRace, baseRace) {
-  const o = String(observedRace || "").trim();
-  if (o && o !== "Unknown") return o;
+  const o = normalizeObservedRace(observedRace);
+  if (o) return o;
   return String(baseRace || "Unknown");
 }
 
