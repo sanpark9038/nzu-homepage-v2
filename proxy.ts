@@ -48,6 +48,8 @@ export const config = {
     { source: "/board", has: [{ type: "query", key: "filter" }] },
     { source: "/board", has: [{ type: "query", key: "login" }] },
     { source: "/board", has: [{ type: "query", key: "download" }] },
+    { source: "/board", has: [{ type: "query", key: "page" }] },
+    { source: "/board", has: [{ type: "query", key: "q" }] },
     { source: "/player", has: [{ type: "query", key: "query" }] },
     { source: "/player", has: [{ type: "query", key: "id" }] },
     "/admin/:path*",

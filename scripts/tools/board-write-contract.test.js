@@ -48,6 +48,6 @@ test("board image preview stays compact and media inputs align", () => {
 test("board detail images keep their natural size instead of stretching to full width", () => {
   const detailPage = readProjectFile("app/board/[id]/page.tsx");
 
-  assert.match(detailPage, /mx-auto h-auto max-h-\[720px\] max-w-full object-contain/);
+  assert.match(detailPage, /mx-auto h-auto max-h-\[720px\] w-auto max-w-full object-contain/);
   assert.equal(detailPage.includes("max-h-[720px] w-full object-cover"), false);
 });

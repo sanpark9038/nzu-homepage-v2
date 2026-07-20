@@ -153,6 +153,12 @@
     scrollbar-gutter: stable;
   }
 
+  /* 키보드 포커스 링 — focus-visible이라 마우스 클릭에는 나타나지 않는다 */
+  :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--nzu-green);
+    outline-offset: 2px;
+  }
+
   .input-base {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.12);

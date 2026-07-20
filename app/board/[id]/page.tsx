@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { ArrowLeft, ChevronLeft, ChevronRight, ImageIcon, Pencil, PlayCircle } from "lucide-react";
 
 import { BoardComments } from "@/components/board/BoardComments";
@@ -13,6 +14,7 @@ import {
   getBoardCategoryLabel,
   getBoardCategoryTone,
   getBoardPostById,
+  incrementBoardPostView,
 } from "@/lib/board";
 import { buildBoardCommentAuthorId, listVisibleBoardComments } from "@/lib/board-comments";
 import { renderBoardContentToHtml } from "@/lib/board-content";
@@ -57,6 +59,8 @@ export default async function BoardDetailPage({
   if (!post) {
     notFound();
   }
+
+  after(() => incrementBoardPostView(id));
 
   const session = parsePublicAuthSessionCookieValue(cookieStore.get(PUBLIC_AUTH_SESSION_COOKIE)?.value);
   const isAdmin = isValidAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);

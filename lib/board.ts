@@ -15,7 +15,7 @@ const BOARD_SCHEDULE_SCAN_LIMIT = 100;
 export const BOARD_LIST_CACHE_TAG = "board-list";
 const BOARD_LIST_REVALIDATE_SECONDS = 30;
 const BOARD_POST_LIST_COLUMNS =
-  "id,title,author_name,created_at,category,image_url,video_url,published,schedule_date,schedule_start_time";
+  "id,title,author_name,created_at,category,image_url,video_url,published,schedule_date,schedule_start_time,view_count";
 const IMAGE_URL_EXTENSIONS = new Set([".gif", ".jpeg", ".jpg", ".png", ".webp"]);
 const SOOP_VIDEO_HOSTS = ["sooplive.com", "sooplive.co.kr"];
 
@@ -33,6 +33,10 @@ export function normalizeBoardListFilter(value: unknown): BoardListFilter {
 export function normalizeBoardPage(value: unknown): number {
   const n = parseInt(String(Array.isArray(value) ? value[0] : value || ""), 10);
   return Number.isFinite(n) && n > 1 ? n : 1;
+}
+
+export function normalizeBoardSearchQuery(value: unknown): string {
+  return normalizeText(Array.isArray(value) ? value[0] : value).slice(0, 50);
 }
 
 function normalizeOptionalUrl(value: unknown) {
@@ -367,6 +371,7 @@ export type BoardPostListRow = Pick<
   | "published"
   | "schedule_date"
   | "schedule_start_time"
+  | "view_count"
 >;
 
 function normalizeScheduleTimeForTimestamp(value: string | null | undefined) {
@@ -482,6 +487,7 @@ async function listBoardPostSummariesFromFullRows(limit: number) {
         published: post.published,
         schedule_date: post.schedule_date,
         schedule_start_time: post.schedule_start_time,
+        view_count: post.view_count,
       })),
     storageReady: result.storageReady,
   };
@@ -575,6 +581,59 @@ export async function listBoardPostsWithCommentCounts(
   };
 }
 
+export async function searchBoardPostsWithCommentCounts(
+  query: string,
+  limit = BOARD_POST_LIMIT,
+  page = 1
+) {
+  const safePage = Math.max(1, page);
+  const offset = (safePage - 1) * limit;
+  const escaped = query.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+
+  try {
+    const { data, error, count } = await publicSupabase
+      .from("board_posts")
+      .select(BOARD_POST_LIST_COLUMNS, { count: "exact" })
+      .eq("published", true)
+      .ilike("title", `%${escaped}%`)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit);
+
+    if (error) throw error;
+
+    const rows = (data || []) as BoardPostListRow[];
+    const hasMore = rows.length > limit;
+    const posts = rows.slice(0, limit);
+    const counts = posts.length
+      ? await getVisibleBoardCommentCounts(posts.map((post) => post.id))
+      : new Map<string, number>();
+
+    return {
+      ok: true as const,
+      posts: posts.map((post) => ({
+        ...post,
+        comment_count: Number(counts.get(post.id) || 0),
+      })) as BoardPostWithCommentCount[],
+      storageReady: true,
+      hasMore,
+      totalCount: count ?? posts.length,
+      commentsStorageReady: true,
+    };
+  } catch (error) {
+    if (isBoardStorageMissing(error) || isBoardReadUnavailable(error)) {
+      return {
+        ok: true as const,
+        posts: [] as BoardPostWithCommentCount[],
+        storageReady: false,
+        hasMore: false,
+        totalCount: 0,
+        commentsStorageReady: true,
+      };
+    }
+    throw error;
+  }
+}
+
 export const getCachedBoardPostsWithCommentCounts = unstable_cache(
   async (limit = BOARD_POST_LIMIT, filter: BoardListFilter = "all", page = 1) =>
     listBoardPostsWithCommentCounts(limit, filter, page),
@@ -643,6 +702,19 @@ export async function listAdminScheduleInfoPosts(limit = 100) {
   };
 }
 
+export async function listAdminBoardPosts(limit = 200) {
+  const safeLimit = Math.min(Math.max(limit, 1), 500);
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("board_posts")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(safeLimit);
+
+  if (error) throw error;
+  return (data || []) as BoardPostRow[];
+}
+
 export async function getBoardPostById(id: string) {
   const { data, error } = await publicSupabase
     .from("board_posts")
@@ -694,6 +766,17 @@ export async function getAdjacentBoardPosts(
       : null;
 
   return { prev, next };
+}
+
+export async function incrementBoardPostView(id: string) {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { error } = await supabase.rpc("increment_board_post_view", { post_id: id });
+    if (error) throw error;
+  } catch (error) {
+    // 조회수는 부가 정보 — SQL 미적용·일시 장애로 페이지를 깨뜨리지 않는다.
+    console.warn("[board] view count increment failed", { postId: id, error });
+  }
 }
 
 export async function getBoardPostForMutation(id: string) {

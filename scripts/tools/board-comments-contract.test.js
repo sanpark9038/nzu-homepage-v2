@@ -166,7 +166,7 @@ test("board list uses cached lightweight summary data and invalidates it on writ
   assert.match(board, /listBoardPostSummaries/);
   assert.match(
     board,
-    /BOARD_POST_LIST_COLUMNS =\s*"id,title,author_name,created_at,category,image_url,video_url,published,schedule_date,schedule_start_time"/
+    /BOARD_POST_LIST_COLUMNS =\s*"id,title,author_name,created_at,category,image_url,video_url,published,schedule_date,schedule_start_time,view_count"/
   );
   assert.match(board, /\.select\(BOARD_POST_LIST_COLUMNS\)/);
   assert.match(page, /getCachedBoardPostsWithCommentCounts/);

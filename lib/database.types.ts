@@ -160,6 +160,7 @@ export type Database = {
           title: string
           updated_at: string | null
           video_url: string | null
+          view_count: number
         }
         Insert: {
           author_name: string
@@ -179,6 +180,7 @@ export type Database = {
           title: string
           updated_at?: string | null
           video_url?: string | null
+          view_count?: number
         }
         Update: {
           author_name?: string
@@ -198,6 +200,7 @@ export type Database = {
           title?: string
           updated_at?: string | null
           video_url?: string | null
+          view_count?: number
         }
         Relationships: []
       }
@@ -651,6 +654,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_board_post_view: {
+        Args: {
+          post_id: string
+        }
+        Returns: undefined
+      }
       board_visible_comment_counts: {
         Args: {
           post_ids: string[]

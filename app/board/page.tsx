@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ImageIcon, PlayCircle, SquarePen } from "lucide-react";
+import { ImageIcon, PlayCircle, Search, SquarePen } from "lucide-react";
 
 import {
   type BoardPostWithCommentCount,
@@ -78,15 +78,17 @@ function boardFilterTabClassName(active: boolean) {
 }
 
 type BoardPageContentProps = {
-  board: Awaited<ReturnType<typeof getCachedBoardPostsWithCommentCounts>>;
+  board: Awaited<ReturnType<typeof getCachedBoardPostsWithCommentCounts>> & { totalCount?: number };
   boardFilter: BoardListFilter;
   page?: number;
   loginStatus?: string;
   downloadStatus?: string;
+  searchQuery?: string;
 };
 
-function buildPageHref(filter: BoardListFilter, page: number) {
+function buildPageHref(filter: BoardListFilter, page: number, searchQuery = "") {
   const params = new URLSearchParams();
+  if (searchQuery) params.set("q", searchQuery);
   if (filter !== "all") params.set("filter", filter);
   if (page > 1) params.set("page", String(page));
   const qs = params.toString();
@@ -99,6 +101,7 @@ export function BoardPageContent({
   page = 1,
   loginStatus = "",
   downloadStatus = "",
+  searchQuery = "",
 }: BoardPageContentProps) {
   const hasPrev = page > 1;
   const hasNext = board.hasMore ?? false;
@@ -152,7 +155,7 @@ export function BoardPageContent({
 
         <section className="rounded-[1.6rem] border border-white/8 bg-[linear-gradient(180deg,rgba(11,17,19,0.98),rgba(7,9,10,0.96))] shadow-[0_22px_70px_rgba(0,0,0,0.16)]">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/6 px-4 py-3 md:px-5">
-            <div className="flex items-center gap-2 text-sm font-semibold [&>span]:hidden">
+            <div className="flex items-center gap-2 text-sm font-semibold">
               <Link href={boardFilterHref("all")} prefetch={false} className={boardFilterTabClassName(boardFilter === "all")}>
                 전체글
               </Link>
@@ -166,10 +169,41 @@ export function BoardPageContent({
               >
                 지난일정
               </Link>
-              <span className="rounded-lg bg-nzu-green/10 px-3 py-2 text-nzu-green">전체글</span>
-              <span className="rounded-lg bg-white/[0.03] px-3 py-2 text-white/42">공지/일정</span>
             </div>
+            <form action="/board" method="get" className="flex items-center gap-2">
+              <div className="relative">
+                <Search
+                  size={14}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/36"
+                />
+                <input
+                  type="search"
+                  name="q"
+                  defaultValue={searchQuery}
+                  maxLength={50}
+                  placeholder="제목 검색"
+                  className="h-9 w-36 rounded-lg border border-white/10 bg-white/[0.03] pl-8 pr-3 text-sm font-medium text-white outline-none transition placeholder:text-white/36 focus:border-nzu-green/50 md:w-52"
+                />
+              </div>
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm font-semibold text-white/60 transition hover:border-white/22 hover:text-white"
+              >
+                검색
+              </button>
+            </form>
           </div>
+
+          {searchQuery ? (
+            <div className="flex flex-wrap items-center gap-2 border-b border-white/6 px-4 py-3 text-sm font-medium text-white/58 md:px-5">
+              <span>
+                &lsquo;{searchQuery}&rsquo; 검색 결과 {board.totalCount ?? board.posts.length}건
+              </span>
+              <Link href="/board" prefetch={false} className="font-semibold text-nzu-green transition hover:underline">
+                전체글 보기
+              </Link>
+            </div>
+          ) : null}
 
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse text-sm">
@@ -199,10 +233,12 @@ export function BoardPageContent({
                           <Link
                             href={`/board/${post.id}`}
                             prefetch={false}
-                            className="inline-flex max-w-full items-center gap-2 font-bold tracking-tight text-white transition hover:text-nzu-green"
+                            className={`inline-flex max-w-full items-center gap-2 tracking-tight text-white transition hover:text-nzu-green ${
+                              post.category === "notice" || post.category === "schedule" ? "font-bold" : "font-semibold"
+                            }`}
                           >
                             {scheduleBadge ? (
-                              <span className="inline-flex h-6 w-[6.9rem] shrink-0 items-center justify-center rounded-md border border-sky-300/28 bg-sky-300/12 px-2.5 text-xs font-semibold leading-none text-sky-100">
+                              <span className="inline-flex h-6 w-[6.9rem] shrink-0 items-center justify-center rounded-md border border-sky-300/28 bg-sky-300/12 px-2.5 text-xs font-semibold leading-none tabular-nums text-sky-100">
                                 {scheduleBadge}
                               </span>
                             ) : null}
@@ -215,18 +251,31 @@ export function BoardPageContent({
                           </Link>
                         </td>
                         <td className="hidden px-4 py-3 text-sm font-semibold text-white/68 md:table-cell">{post.author_name}</td>
-                        <td className="px-4 py-3 text-sm text-white/54">{formatBoardListDate(post.created_at)}</td>
-                        <td className="hidden px-4 py-3 text-right text-sm text-white/46 md:table-cell">-</td>
+                        <td className="px-4 py-3 text-sm tabular-nums text-white/54">{formatBoardListDate(post.created_at)}</td>
+                        <td className="hidden px-4 py-3 text-right text-sm tabular-nums text-white/46 md:table-cell">
+                          {post.view_count ?? 0}
+                        </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
                     <td colSpan={5} className="px-4 py-16 text-center md:px-5">
-                      <div className="text-2xl font-bold tracking-tight text-white">첫 글을 남겨 주세요</div>
-                      <p className="mt-3 text-sm font-medium text-white/55">
-                        짧은 소식이나 의견부터 편하게 시작해도 좋습니다.
-                      </p>
+                      {searchQuery ? (
+                        <>
+                          <div className="text-2xl font-bold tracking-tight text-white">검색 결과가 없습니다</div>
+                          <p className="mt-3 text-sm font-medium text-white/55">
+                            다른 검색어로 다시 시도해 보세요.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-2xl font-bold tracking-tight text-white">첫 글을 남겨 주세요</div>
+                          <p className="mt-3 text-sm font-medium text-white/55">
+                            짧은 소식이나 의견부터 편하게 시작해도 좋습니다.
+                          </p>
+                        </>
+                      )}
                     </td>
                   </tr>
                 )}
@@ -240,7 +289,7 @@ export function BoardPageContent({
               const end = hasNext ? page + 2 : page;
               const pageNums: number[] = [];
               for (let i = start; i <= end; i++) pageNums.push(i);
-              const btnBase = "inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold transition";
+              const btnBase = "inline-flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold tabular-nums transition";
               const btnActive = `${btnBase} bg-nzu-green/15 text-nzu-green`;
               const btnIdle = `${btnBase} border border-white/10 bg-white/[0.03] text-white/60 hover:border-white/22 hover:text-white`;
               const btnDisabled = `${btnBase} border border-white/6 text-white/20 cursor-not-allowed select-none`;
@@ -248,7 +297,7 @@ export function BoardPageContent({
               return (
                 <div className="flex items-center gap-1">
                   {hasPrev ? (
-                    <Link href={buildPageHref(boardFilter, page - 1)} prefetch={false} className={btnChevron}>
+                    <Link href={buildPageHref(boardFilter, page - 1, searchQuery)} prefetch={false} className={btnChevron}>
                       <ChevronLeft size={15} />
                     </Link>
                   ) : (
@@ -256,7 +305,7 @@ export function BoardPageContent({
                   )}
                   {start > 1 && (
                     <>
-                      <Link href={buildPageHref(boardFilter, 1)} prefetch={false} className={btnIdle}>1</Link>
+                      <Link href={buildPageHref(boardFilter, 1, searchQuery)} prefetch={false} className={btnIdle}>1</Link>
                       {start > 2 && <span className="px-1 text-sm text-white/30">…</span>}
                     </>
                   )}
@@ -264,12 +313,12 @@ export function BoardPageContent({
                     p === page ? (
                       <span key={p} className={btnActive}>{p}</span>
                     ) : (
-                      <Link key={p} href={buildPageHref(boardFilter, p)} prefetch={false} className={btnIdle}>{p}</Link>
+                      <Link key={p} href={buildPageHref(boardFilter, p, searchQuery)} prefetch={false} className={btnIdle}>{p}</Link>
                     )
                   )}
                   {hasNext && <span className="px-1 text-sm text-white/30">…</span>}
                   {hasNext ? (
-                    <Link href={buildPageHref(boardFilter, page + 1)} prefetch={false} className={btnChevron}>
+                    <Link href={buildPageHref(boardFilter, page + 1, searchQuery)} prefetch={false} className={btnChevron}>
                       <ChevronRight size={15} />
                     </Link>
                   ) : (

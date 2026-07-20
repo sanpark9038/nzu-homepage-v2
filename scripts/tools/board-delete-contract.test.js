@@ -40,6 +40,6 @@ test("board detail page only renders the delete control when allowed", () => {
   assert.match(detailPage, /const canEdit/);
   assert.match(detailPage, /session\.providerUserId === post\.author_provider_user_id/);
   assert.match(deleteButton, /method:\s*"DELETE"/);
-  assert.match(deleteButton, /window\.confirm/);
+  assert.match(deleteButton, /setConfirming\(true\)/);
   assert.match(deleteButton, /router\.replace\("\/board"\)/);
 });
