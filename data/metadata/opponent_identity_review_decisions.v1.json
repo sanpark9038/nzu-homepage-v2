@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-05-21T00:00:00.000+09:00",
+  "updated_at": "2026-07-20T13:34:15.047Z",
   "description": "Operator-reviewed decisions for unresolved player-history opponent identities. This file is an input for future metadata review only; it does not create roster metadata by itself.",
   "allowed_decisions": [
     "canonical_candidate",
@@ -31,10 +31,13 @@
     },
     {
       "opponent_name": "두디",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
       "review_rank": 3,
       "match_rows": 534,
-      "latest_match_date": "2025-10-26"
+      "latest_match_date": "2025-10-26",
+      "target_entity_id": "eloboard:female:707",
+      "canonical_name": "두디",
+      "review_note": "Operator confirmed 2026-07-20: our own player (무소속, eloboard:female:707). Eloboard now lists them on a roster page; the stale external_opponent decision was blocking collection via the name-only exclusion rule."
     },
     {
       "opponent_name": "빵미유",
@@ -45,10 +48,13 @@
     },
     {
       "opponent_name": "뿌하",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
       "review_rank": 5,
       "match_rows": 496,
-      "latest_match_date": "2025-12-02"
+      "latest_match_date": "2025-12-02",
+      "target_entity_id": "eloboard:female:606",
+      "canonical_name": "뿌하",
+      "review_note": "Operator confirmed 2026-07-20: our own player (무소속, eloboard:female:606). Eloboard now lists them on a roster page; the stale external_opponent decision was blocking collection via the name-only exclusion rule."
     },
     {
       "opponent_name": "뷰러",
@@ -118,10 +124,13 @@
     },
     {
       "opponent_name": "연수",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
       "review_rank": 15,
       "match_rows": 361,
-      "latest_match_date": "2026-02-10"
+      "latest_match_date": "2026-02-10",
+      "target_entity_id": "eloboard:female:648",
+      "canonical_name": "연수",
+      "review_note": "Operator confirmed 2026-07-20: our own player (MBU, eloboard:female:648). Eloboard now lists them on a roster page; the stale external_opponent decision was blocking collection via the name-only exclusion rule."
     },
     {
       "opponent_name": "묘아",
@@ -174,10 +183,13 @@
     },
     {
       "opponent_name": "남덕선",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
       "review_rank": 23,
       "match_rows": 303,
-      "latest_match_date": "2026-03-02"
+      "latest_match_date": "2026-03-02",
+      "target_entity_id": "eloboard:female:35",
+      "canonical_name": "남덕선",
+      "review_note": "Operator confirmed 2026-07-20: our own player (캄몬스타즈, eloboard:female:35). Eloboard now lists them on a roster page; the stale external_opponent decision was blocking collection via the name-only exclusion rule."
     },
     {
       "opponent_name": "렘레미",
@@ -226,10 +238,13 @@
     },
     {
       "opponent_name": "허로아",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
       "review_rank": 30,
       "match_rows": 257,
-      "latest_match_date": "2025-12-08"
+      "latest_match_date": "2025-12-08",
+      "target_entity_id": "eloboard:female:909",
+      "canonical_name": "허로아",
+      "review_note": "Operator confirmed 2026-07-20: our own player (C9, eloboard:female:909). Eloboard now lists them on a roster page; the stale external_opponent decision was blocking collection via the name-only exclusion rule."
     },
     {
       "opponent_name": "우마루대장",
@@ -303,10 +318,13 @@
     },
     {
       "opponent_name": "윤진규",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
       "review_rank": 41,
       "match_rows": 155,
-      "latest_match_date": "2026-02-16"
+      "latest_match_date": "2026-02-16",
+      "target_entity_id": "eloboard:male:129",
+      "canonical_name": "윤진규",
+      "review_note": "Operator confirmed 2026-07-20: our own player (무소속, eloboard:male:129). Eloboard now lists them on a roster page; the stale external_opponent decision was blocking collection via the name-only exclusion rule."
     },
     {
       "opponent_name": "쩡아",
@@ -352,10 +370,13 @@
     },
     {
       "opponent_name": "최하니",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
       "review_rank": 48,
       "match_rows": 128,
-      "latest_match_date": "2026-02-12"
+      "latest_match_date": "2026-02-12",
+      "target_entity_id": "eloboard:female:46",
+      "canonical_name": "최하니",
+      "review_note": "Operator confirmed 2026-07-20: our own player (WFU, eloboard:female:46). Eloboard now lists them on a roster page; the stale external_opponent decision was blocking collection via the name-only exclusion rule."
     },
     {
       "opponent_name": "너부리",
@@ -654,10 +675,13 @@
     },
     {
       "opponent_name": "김준혁",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
       "review_rank": 3,
       "match_rows": 43,
-      "latest_match_date": "2026-05-10"
+      "latest_match_date": "2026-05-10",
+      "target_entity_id": "eloboard:male:27",
+      "canonical_name": "김준혁",
+      "review_note": "Operator confirmed 2026-07-20: our own player (MBU, eloboard:male:27). Eloboard now lists them on a roster page; the stale external_opponent decision was blocking collection via the name-only exclusion rule."
     },
     {
       "opponent_name": "하연진",
@@ -710,10 +734,13 @@
     },
     {
       "opponent_name": "브희",
-      "decision": "external_opponent",
+      "decision": "canonical_candidate",
       "review_rank": 11,
       "match_rows": 30,
-      "latest_match_date": "2025-06-08"
+      "latest_match_date": "2025-06-08",
+      "target_entity_id": "eloboard:female:518",
+      "canonical_name": "브희",
+      "review_note": "Operator confirmed 2026-07-20: our own player (무소속, eloboard:female:518). Eloboard now lists them on a roster page; the stale external_opponent decision was blocking collection via the name-only exclusion rule."
     },
     {
       "opponent_name": "송혜림",
