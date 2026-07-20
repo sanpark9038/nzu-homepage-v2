@@ -50,6 +50,7 @@
     "check:metadata:identity-aliases": "node scripts/tools/check-identity-alias-exceptions.js",
     "check:metadata:university-labels": "node scripts/tools/check-university-label-contract.js",
     "check:serving-identity-readiness": "node scripts/tools/check-serving-identity-readiness.js",
+    "player:truth": "node scripts/tools/report-player-truth.js",
     "report:team:records": "node scripts/tools/report-team-records.js",
     "report:player-history:freshness-audit": "node scripts/tools/audit-player-history-freshness.js",
     "report:player-history:opponent-identity": "node scripts/tools/report-player-history-opponent-identity-coverage.js",
