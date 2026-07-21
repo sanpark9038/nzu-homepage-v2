@@ -49,7 +49,7 @@ type H2HLookupProps = {
   universityOptions?: UniversityOption[]
 }
 
-const EXCLUDED_TIERS = ['미정', '조커', '스페이드']
+const EXCLUDED_TIERS = ['잭', '조커', '스페이드', '9', '미정']
 const EMPTY_PACKED_PLAYERS: PackedMatchupPlayerSummary[] = []
 
 function getMatchupStats(stats: H2HStats | null | undefined) {
