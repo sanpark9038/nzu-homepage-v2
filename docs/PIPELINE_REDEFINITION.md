@@ -128,10 +128,14 @@ soop_channel_mappings(선수 매핑 부분), team_role_overrides(역할 순서).
 검증 원칙: 옛 코드/새 코드로 각각 시험 실행(report-only) → **결과물이 동일함을 diff로 증명**
 + 전체 계약 테스트. 밤 실행은 최종 확인 역할.
 
-- **1일차** (2026-07-20 아침 보고에서 자동해제 첫 가동 확인 후): 죽은 파일 삭제,
-  대장 생성, 소형 파일·상대선수 목록·수집 제외 흡수 — 파이프라인 스크립트 전용 영역.
+- **1일차 ✅ 완료 (2026-07-21)**: 죽은 파일 삭제(`identity_alias_exceptions`),
+  대장 생성(`data/metadata/player_ledger.v1.json`) + 공유 로더(`scripts/tools/lib/player-ledger.js`),
+  상대선수 목록(`opponent_identity_review_decisions`)·상대 별명(`opponent_identity_aliases`) 흡수 후 삭제.
+  리더 8곳 + validator 전환. 검증: 옛/새 report-only diff 동일 + `test:player-ledger` + 파이프라인 테스트 전체.
+  **수집 제외(`pipeline_collection_exclusions`)는 이연** — 관리자 화면(roster-admin-store·admin API·ops-review)도
+  읽어 "파이프라인 전용"이 아니라 관리자 영역과 함께 처리해야 한다(당초 설계 가정과 다름).
 - **2일차**: 수동 교정·숲 ID·표시 별명 흡수 — **사이트 화면이 직접 읽는 영역이라 분리**
-  (lib/player-serving-metadata.ts). 빌드 + 실제 페이지 확인 후 배포. 옛 파일 삭제로 완료.
+  (lib/player-serving-metadata.ts). 수집 제외도 여기서 함께. 빌드 + 실제 페이지 확인 후 배포. 옛 파일 삭제로 완료.
 
 ## 4. 뭘 "이상"으로 보고 멈추나 — ✅ 확정 (2026-07-21)
 

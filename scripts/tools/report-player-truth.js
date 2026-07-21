@@ -19,7 +19,7 @@ const ROOT = path.join(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
-const OPPONENT_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "opponent_identity_review_decisions.v1.json");
+const { loadOpponentIdentityDecisions } = require("./lib/player-ledger");
 const SYNC_REPORT_PATH = path.join(ROOT, "tmp", "reports", "team_roster_sync_report.json");
 
 function readJsonIfExists(filePath, fallback) {
@@ -82,7 +82,7 @@ function collectionExclusion(entityId, wrId, name) {
   }
 
   // 외부인 결정은 이름만으로 수집 제외를 만든다 — 동명이인이 걸리면 조용히 미수집된다.
-  const decisions = readJsonIfExists(OPPONENT_DECISIONS_PATH, { decisions: [] });
+  const decisions = loadOpponentIdentityDecisions();
   const external = (decisions.decisions || []).find(
     (row) => norm(row.decision) === "external_opponent" && norm(row.opponent_name) === norm(name)
   );

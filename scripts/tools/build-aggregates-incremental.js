@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { LEDGER_PATH, loadOpponentIdentityAliases: ledgerAliases } = require("./lib/player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const TMP_DIR = path.join(ROOT, "tmp");
@@ -15,7 +16,7 @@ const AGG_PLAYER_DETAIL_PATH = path.join(WAREHOUSE_DIR, "agg_player_detail_break
 const REPORT_PATH = path.join(TMP_DIR, "warehouse_build_report.json");
 const STATE_PATH = path.join(CACHE_DIR, "warehouse_state.json");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
-const OPPONENT_IDENTITY_ALIASES_PATH = path.join(ROOT, "data", "metadata", "opponent_identity_aliases.v1.json");
+const OPPONENT_IDENTITY_ALIASES_PATH = LEDGER_PATH;
 
 const FACT_HEADERS = [
   "match_key",
@@ -321,8 +322,7 @@ function buildRosterIndexFromProjects() {
 }
 
 function loadOpponentIdentityAliases(aliasPath = OPPONENT_IDENTITY_ALIASES_PATH) {
-  const doc = readJson(aliasPath, { aliases: [] });
-  return Array.isArray(doc.aliases) ? doc.aliases : [];
+  return ledgerAliases(aliasPath).aliases;
 }
 
 function applyOpponentIdentityAliases(rosterIndexOrByEntityId, aliases, maybeAliases = null) {

@@ -1,10 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { loadProjectPlayerMetadata } = require("./project-player-metadata");
+const { loadOpponentIdentityDecisions } = require("./player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
 const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
-const OPPONENT_REVIEW_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "opponent_identity_review_decisions.v1.json");
 const CURRENT_ROSTER_STATE_FILE = "current_roster_state.json";
 
 const TEAM_CODE_TO_NAME = {
@@ -28,15 +28,8 @@ function readJsonIfExists(filePath) {
 
 // ops-review \uD398\uC774\uC9C0(build-roster-change-review)\uC640 \uAC19\uC740 \uC678\uBD80 \uC0C1\uB300 \uC120\uC218 \uD544\uD130.
 // \uC5EC\uAE30 \uC774\uB984\uC774 \uC788\uC73C\uBA74 \uC2E0\uADDC\uD6C4\uBCF4\uB85C \uC54C\uB9AC\uC9C0 \uC54A\uB294\uB2E4 \u2014 \uC54C\uB9BC\uACFC \uD398\uC774\uC9C0\uAC00 \uAC19\uC740 \uBAA9\uB85D\uC744 \uBCF4\uAC8C \uC720\uC9C0.
-function readExternalOpponentNames(decisionsPath = OPPONENT_REVIEW_DECISIONS_PATH) {
-  const doc = (() => {
-    try {
-      return readJsonIfExists(decisionsPath);
-    } catch {
-      return null;
-    }
-  })();
-  const rows = Array.isArray(doc && doc.decisions) ? doc.decisions : [];
+function readExternalOpponentNames(decisionsPath) {
+  const rows = loadOpponentIdentityDecisions(decisionsPath).decisions;
   return new Set(
     rows
       .filter((row) => String(row && row.decision ? row.decision : "").trim() === "external_opponent")

@@ -13,6 +13,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
+const { loadOpponentIdentityDecisions } = require("./lib/player-ledger");
 
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local") });
 
@@ -99,7 +100,7 @@ function pendingDecisions(servingRows) {
   }
 
   // 2. 우리 선수가 "외부인" 이름 규칙에 걸려 수집에서 빠지는 건 (조용한 미수집의 원인)
-  const decisions = readJsonIfExists(path.join(ROOT, "data/metadata/opponent_identity_review_decisions.v1.json"), { decisions: [] });
+  const decisions = loadOpponentIdentityDecisions();
   const external = new Set(
     (decisions.decisions || [])
       .filter((r) => String(r.decision || "").trim() === "external_opponent")

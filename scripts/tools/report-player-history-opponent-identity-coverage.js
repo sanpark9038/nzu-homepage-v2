@@ -1,5 +1,10 @@
 const fs = require("fs");
 const path = require("path");
+const {
+  LEDGER_PATH,
+  loadOpponentIdentityAliases: ledgerAliases,
+  loadOpponentIdentityDecisions: ledgerDecisions,
+} = require("./lib/player-ledger");
 
 const ROOT = path.join(__dirname, "..", "..");
 const DEFAULT_ARTIFACT_DIR = path.join(ROOT, "tmp", "player-history-artifacts");
@@ -9,13 +14,9 @@ const DEFAULT_MD_REPORT = path.join(REPORTS_DIR, "player_history_opponent_identi
 const DEFAULT_REVIEW_QUEUE_JSON = path.join(REPORTS_DIR, "player_history_opponent_identity_review_queue_latest.json");
 const DEFAULT_REVIEW_QUEUE_CSV = path.join(REPORTS_DIR, "player_history_opponent_identity_review_queue_latest.csv");
 const DEFAULT_PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
-const DEFAULT_ALIAS_PATH = path.join(ROOT, "data", "metadata", "opponent_identity_aliases.v1.json");
-const DEFAULT_REVIEW_DECISIONS_PATH = path.join(
-  ROOT,
-  "data",
-  "metadata",
-  "opponent_identity_review_decisions.v1.json"
-);
+// 상대 별명·상대 신원 결정은 선수 대장(player_ledger)에 흡수됐다. 로더가 대장/legacy 양쪽을 읽는다.
+const DEFAULT_ALIAS_PATH = LEDGER_PATH;
+const DEFAULT_REVIEW_DECISIONS_PATH = LEDGER_PATH;
 const ALLOWED_REVIEW_DECISIONS = new Set(["canonical_candidate", "external_opponent"]);
 
 function argValue(argv, flag, fallback = null) {
@@ -58,9 +59,7 @@ function registerCandidateName(byLookupName, candidateName, candidate) {
 }
 
 function loadOpponentIdentityAliases(aliasPath = DEFAULT_ALIAS_PATH) {
-  if (!aliasPath || !fs.existsSync(aliasPath)) return [];
-  const doc = readJson(aliasPath);
-  const rows = Array.isArray(doc.aliases) ? doc.aliases : [];
+  const rows = ledgerAliases(aliasPath).aliases;
   return rows
     .map((row) => {
       const entityId = String(row.entity_id || "").trim();
@@ -79,9 +78,7 @@ function loadOpponentIdentityAliases(aliasPath = DEFAULT_ALIAS_PATH) {
 
 function loadOpponentReviewDecisions(decisionsPath = DEFAULT_REVIEW_DECISIONS_PATH) {
   const decisions = new Map();
-  if (!decisionsPath || !fs.existsSync(decisionsPath)) return decisions;
-  const doc = readJson(decisionsPath);
-  const rows = Array.isArray(doc.decisions) ? doc.decisions : [];
+  const rows = ledgerDecisions(decisionsPath).decisions;
   for (const row of rows) {
     const opponentName = String(row.opponent_name || "").trim();
     const decision = String(row.decision || "").trim();

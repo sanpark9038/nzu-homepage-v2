@@ -989,7 +989,7 @@ function buildAlerts(
           `roster_player_excluded_by_opponent_name=${opponentNameExcluded} ` +
           `(${row.opponent_name_excluded_player_names || "-"}) — ` +
           `상대선수 "외부인" 결정과 이름이 겹쳐 수집에서 빠졌다. 동명이인이 아니면 ` +
-          `opponent_identity_review_decisions에서 canonical_candidate로 고칠 것`,
+          `선수 대장(player_ledger)의 opponent_identity_decisions에서 canonical_candidate로 고칠 것`,
       });
     }
     const rosterChanged = typeof row.delta_players === "number" && row.delta_players !== 0;

@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { LEDGER_PATH, loadOpponentIdentityDecisions } = require("./lib/player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const DEFAULT_QUEUE_PATH = path.join(
@@ -8,7 +9,16 @@ const DEFAULT_QUEUE_PATH = path.join(
   "reports",
   "player_history_opponent_identity_review_queue_latest.json"
 );
-const DEFAULT_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "opponent_identity_review_decisions.v1.json");
+// 상대 신원 결정은 선수 대장(player_ledger)에 흡수됐다. 검증은 대장을 읽는다.
+const DEFAULT_DECISIONS_PATH = LEDGER_PATH;
+// --init-from-queue 는 decisions 를 빈 배열로 리셋하는 수동 부트스트랩이라 대장을 덮으면 안 된다.
+// 기본 출력을 tmp 스크래치로 두어 실수로 장부를 지우지 못하게 한다 (명시 --output 은 그대로 존중).
+const DEFAULT_TEMPLATE_OUTPUT_PATH = path.join(
+  ROOT,
+  "tmp",
+  "reports",
+  "opponent_identity_review_decisions.template.json"
+);
 const ALLOWED_DECISIONS = ["canonical_candidate", "external_opponent"];
 
 function argValue(argv, flag, fallback = null) {
@@ -117,7 +127,7 @@ function validateDecisionDocument(doc) {
 
 function writeDecisionTemplate(options = {}) {
   const queuePath = path.resolve(options.queuePath || DEFAULT_QUEUE_PATH);
-  const outputPath = path.resolve(options.outputPath || DEFAULT_DECISIONS_PATH);
+  const outputPath = path.resolve(options.outputPath || DEFAULT_TEMPLATE_OUTPUT_PATH);
   const queue = readJson(queuePath);
   const template = buildDecisionTemplateFromQueue(queue, {
     generatedAt: options.generatedAt,
@@ -129,9 +139,9 @@ function writeDecisionTemplate(options = {}) {
 
 function main(argv = process.argv.slice(2)) {
   const queuePath = argValue(argv, "--queue", DEFAULT_QUEUE_PATH);
-  const outputPath = argValue(argv, "--output", DEFAULT_DECISIONS_PATH);
 
   if (hasFlag(argv, "--init-from-queue")) {
+    const outputPath = argValue(argv, "--output", DEFAULT_TEMPLATE_OUTPUT_PATH);
     const written = writeDecisionTemplate({ queuePath, outputPath });
     console.log("Generated opponent identity review decisions template.");
     console.log(`- output: ${path.relative(ROOT, written.outputPath)}`);
@@ -139,8 +149,9 @@ function main(argv = process.argv.slice(2)) {
     return;
   }
 
-  const doc = readJson(outputPath);
-  const result = validateDecisionDocument(doc);
+  const sourcePath = argValue(argv, "--source", DEFAULT_DECISIONS_PATH);
+  const { decisions } = loadOpponentIdentityDecisions(sourcePath);
+  const result = validateDecisionDocument({ schema_version: "1.0.0", decisions });
   if (!result.ok) {
     console.error("Opponent identity review decisions validation failed.");
     for (const error of result.errors) console.error(`- ${error}`);

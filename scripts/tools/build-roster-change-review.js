@@ -7,12 +7,6 @@ const SOURCE_REPORT = path.join(REPORTS_DIR, "team_roster_sync_report.json");
 const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const REVIEW_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "roster_review_decisions.v1.json");
-const OPPONENT_REVIEW_DECISIONS_PATH = path.join(
-  ROOT,
-  "data",
-  "metadata",
-  "opponent_identity_review_decisions.v1.json"
-);
 const {
   buildPlayerKey,
   loadBaselinePlayers,
@@ -43,7 +37,7 @@ function readReviewDecisions(decisionsPath = REVIEW_DECISIONS_PATH) {
   }
 }
 
-function readExternalOpponentNames(decisionsPath = OPPONENT_REVIEW_DECISIONS_PATH) {
+function readExternalOpponentNames(decisionsPath) {
   return readSharedExternalOpponentNames(decisionsPath);
 }
 

@@ -104,10 +104,21 @@
 
 ---
 
-## 6. 정리 후보
+## 6. 선수 대장 통합 (진행 중)
 
-- `identity_alias_exceptions.v1.json` — 0건, SOOP ID 통합 후 역할이 사라짐.
-  삭제하려면 `check-identity-alias-exceptions.js`와 `check:metadata:identity-aliases`
-  (predeploy 체인 포함), `check-soop-id-collisions.js`의 참조까지 함께 정리해야 한다.
-- 같은 사실이 여러 파일에 복제된 문제는 [PIPELINE_REDEFINITION.md](PIPELINE_REDEFINITION.md)의
-  **선수 대장 통합**이 근본 해결책이다. 이 지도는 그 작업 전까지의 현재 상태다.
+같은 사실이 여러 파일에 복제된 문제의 근본 해결책은
+[PIPELINE_REDEFINITION.md](PIPELINE_REDEFINITION.md)의 **선수 대장 통합**이다.
+예외/교정을 파일 하나(`data/metadata/player_ledger.v1.json`)로 합치고,
+파이프라인 스크립트는 공유 로더 `scripts/tools/lib/player-ledger.js` 하나로만 읽는다.
+
+**1일차 완료 (2026-07-21) — 파이프라인 전용 영역:**
+- 삭제: `identity_alias_exceptions.v1.json`(0건, 역할 소멸) + 그 체커/`check:metadata:identity-aliases`
+  (predeploy 체인 포함) + `check-soop-id-collisions.js`의 죽은 참조.
+- 대장으로 흡수 후 삭제: `opponent_identity_review_decisions.v1.json`(외부인/후보 결정 126건),
+  `opponent_identity_aliases.v1.json`(상대 별명 3건). 리더 8곳 + validator를 로더로 전환.
+- 검증: 옛/새 report-only diff 동일(`pipeline:now`·opponent coverage) + 계약 테스트(`test:player-ledger`) +
+  파이프라인 테스트 전체 통과.
+
+**남은 단계:** 2일차 = 서빙 영역(로스터 교정·숲ID·표시별명, `lib/player-serving-metadata.ts`) 흡수.
+수집 제외(`pipeline_collection_exclusions`)는 관리자 화면도 읽어 별도 처리.
+최종형은 §5대로 Supabase 테이블 — 대장 파일은 그 전까지의 단일 소스 겸 오프라인 스냅샷.

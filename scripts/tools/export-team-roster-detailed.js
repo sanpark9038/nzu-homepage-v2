@@ -3,6 +3,7 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 const { defaultProfileUrlForPlayer } = require("./lib/eloboard-special-cases");
 const { clearRemoteResumeMarker, loadMergedRosterAdminState } = require("./lib/roster-admin-store");
+const { loadOpponentIdentityDecisions } = require("./lib/player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-team-records.js");
@@ -20,13 +21,6 @@ const RESUMES_PATH = path.join(
   "metadata",
   "pipeline_collection_resumes.v1.json"
 );
-const OPPONENT_REVIEW_DECISIONS_PATH = path.join(
-  ROOT,
-  "data",
-  "metadata",
-  "opponent_identity_review_decisions.v1.json"
-);
-
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
   if (idx >= 0 && process.argv[idx + 1]) return process.argv[idx + 1];
@@ -246,7 +240,7 @@ function buildExternalOpponentExclusionRows(doc) {
 }
 
 function loadExternalOpponentCollectionExclusions() {
-  return buildExternalOpponentExclusionRows(readJsonIfExists(OPPONENT_REVIEW_DECISIONS_PATH, { decisions: [] }));
+  return buildExternalOpponentExclusionRows(loadOpponentIdentityDecisions());
 }
 
 function loadCollectionResumes() {
