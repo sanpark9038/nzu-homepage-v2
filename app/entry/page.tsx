@@ -18,19 +18,13 @@ export default async function EntryPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <main className="mx-auto w-full max-w-[1800px] px-4 py-8 lg:px-8">
-        <section className="hosaga-card mb-6 px-5 py-5">
-          <div className="flex flex-col gap-2">
-            <div className="ui-label uppercase text-nzu-green">
-              Entry Tool
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
-              엔트리
-            </h1>
-            <p className="mt-1 text-sm font-medium text-white/55">
-              대학별 선수 구성을 비교하고 H2H를 보면서 대진을 빠르게 정리할 수 있습니다.
-            </p>
-          </div>
+      <main className="mx-auto w-full max-w-[1800px] px-4 py-5 lg:px-8">
+        <section className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="ui-label uppercase text-nzu-green">Entry Tool</span>
+          <h1 className="text-2xl font-bold tracking-tight text-white">엔트리</h1>
+          <p className="text-xs font-medium text-white/45">
+            대학별 선수 구성을 비교하고 대진을 빠르게 정리
+          </p>
         </section>
 
         <H2HLookup packedPlayersPayload={packedPlayersPayload} universityOptions={universityOptions} />

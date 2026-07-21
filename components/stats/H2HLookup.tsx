@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
-import { Activity, Plus, RotateCcw, Swords, Trophy, X, Zap } from 'lucide-react'
+import { ChevronDown, Plus, RotateCcw, Trophy, X } from 'lucide-react'
 
 import { RaceLetterBadge } from '@/components/ui/race-letter-badge'
 import { TierBadge, getTierTone } from '@/components/ui/nzu-badges'
@@ -141,26 +141,62 @@ export default function H2HLookup({
   }, [packedPlayers, packedPlayersPayload, players])
   const [p1, setP1] = useState<Player | null>(null)
   const [p2, setP2] = useState<Player | null>(null)
-  const [results, setResults] = useState<H2HStats | null>(null)
-  const [resultResolvedKey, setResultResolvedKey] = useState<string | null>(null)
-  const [resultFailedKey, setResultFailedKey] = useState<string | null>(null)
   const [u1, setU1] = useState('')
   const [u2, setU2] = useState('')
   const [hideEmptyTiers, setHideEmptyTiers] = useState(true)
   const [matches, setMatches] = useState<Match[]>([])
+  // 결과 패널 너비. null이면 CSS 기본값(lg:w-[520px]) 사용, 리사이즈하면 px 고정.
+  const [panelWidth, setPanelWidth] = useState<number | null>(null)
+  const [isDesktop, setIsDesktop] = useState(false)
 
   const matchIdCounter = useRef(0)
   const h2hRequestCacheRef = useRef<Map<string, Promise<H2HStats | null>>>(new Map())
-  const activeResultRequestKeyRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const update = () => setIsDesktop(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+
+  // 엔트리↔결과 패널 사이 핸들로 결과 패널 너비 조절. 왼쪽으로 끌수록 패널이 넓어진다.
+  const clampPanelWidth = (width: number) => Math.min(820, Math.max(340, width))
+
+  const beginResize = useCallback((startX: number) => {
+    const startWidth = panelWidth ?? 520
+    const onMouseMove = (e: MouseEvent) => setPanelWidth(clampPanelWidth(startWidth + (startX - e.clientX)))
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault()
+      setPanelWidth(clampPanelWidth(startWidth + (startX - e.touches[0].clientX)))
+    }
+    const stop = () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', stop)
+      document.removeEventListener('touchmove', onTouchMove)
+      document.removeEventListener('touchend', stop)
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+    }
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', stop)
+    document.addEventListener('touchmove', onTouchMove, { passive: false })
+    document.addEventListener('touchend', stop)
+  }, [panelWidth])
+
+  const onResizeKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const current = panelWidth ?? 520
+    if (e.key === 'ArrowLeft') { e.preventDefault(); setPanelWidth(clampPanelWidth(current + 24)) }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); setPanelWidth(clampPanelWidth(current - 24)) }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPanelWidth(null) }
+  }, [panelWidth])
 
   const resetEntryBoard = useCallback(() => {
     setMatches([])
     setP1(null)
     setP2(null)
-    setResults(null)
-    setResultResolvedKey(null)
-    setResultFailedKey(null)
-    activeResultRequestKeyRef.current = null
   }, [])
 
   const nextMatchId = useCallback(() => {
@@ -185,59 +221,6 @@ export default function H2HLookup({
     })
     return promise
   }, [])
-
-  const selectedResultKey = useMemo(() => {
-    if (!p1 || !p2) return null
-    return buildH2HCacheKey(p1, p2)
-  }, [p1, p2])
-
-  const currentResult = selectedResultKey && resultResolvedKey === selectedResultKey ? results : null
-  const resultStatus = !selectedResultKey
-    ? 'idle'
-    : resultFailedKey === selectedResultKey
-      ? 'error'
-      : resultResolvedKey === selectedResultKey
-        ? (currentResult?.summary?.total || 0) > 0
-          ? 'ready'
-          : 'empty'
-        : 'loading'
-  const displayResult = resultStatus === 'empty' ? EMPTY_H2H_STATS : currentResult
-
-  const selectP1 = useCallback((player: Player) => {
-    setResults(null)
-    setResultResolvedKey(null)
-    setResultFailedKey(null)
-    activeResultRequestKeyRef.current = null
-    setP1((current) => (current?.id === player.id ? null : player))
-  }, [])
-
-  const selectP2 = useCallback((player: Player) => {
-    setResults(null)
-    setResultResolvedKey(null)
-    setResultFailedKey(null)
-    activeResultRequestKeyRef.current = null
-    setP2((current) => (current?.id === player.id ? null : player))
-  }, [])
-
-  useEffect(() => {
-    if (!p1 || !p2 || !selectedResultKey) return
-
-    activeResultRequestKeyRef.current = selectedResultKey
-    requestH2HStats(p1, p2)
-      .then((data) => {
-        if (activeResultRequestKeyRef.current !== selectedResultKey) return
-        setResults(data)
-        setResultResolvedKey(selectedResultKey)
-        setResultFailedKey(null)
-      })
-      .catch((error) => {
-        if (activeResultRequestKeyRef.current !== selectedResultKey) return
-        reportMatchupRuntimeIssue('Entry H2H fetch failed', error)
-        setResults(null)
-        setResultResolvedKey(null)
-        setResultFailedKey(selectedResultKey)
-      })
-  }, [p1, p2, requestH2HStats, selectedResultKey])
 
   const groupPlayers = useCallback((players: Player[]) => {
     const groups: Record<string, Player[]> = {}
@@ -349,10 +332,7 @@ export default function H2HLookup({
   )
 
   const autoMatch = useCallback(() => {
-    if (!u1 || !u2) {
-      alert('양쪽 학교를 모두 선택해 주세요.')
-      return
-    }
+    if (!u1 || !u2) return
 
     const newMatches: Match[] = []
 
@@ -399,6 +379,27 @@ export default function H2HLookup({
     setMatches((prev) => prev.filter((match) => match.id !== id))
   }, [])
 
+  // 왼쪽·오른쪽 한 명씩 찍으면 그 대진을 바로 매치 목록에 추가한다. 같은 선수 재클릭은 선택 해제.
+  const pickLeft = useCallback((player: Player) => {
+    if (p2) {
+      addMatch(player, p2)
+      setP1(null)
+      setP2(null)
+      return
+    }
+    setP1((current) => (current?.id === player.id ? null : player))
+  }, [p2, addMatch])
+
+  const pickRight = useCallback((player: Player) => {
+    if (p1) {
+      addMatch(p1, player)
+      setP1(null)
+      setP2(null)
+      return
+    }
+    setP2((current) => (current?.id === player.id ? null : player))
+  }, [p1, addMatch])
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -413,12 +414,18 @@ export default function H2HLookup({
     })
   }, [])
 
+  // distance 임계값 없이는 dnd-kit 포인터 센서가 카드 안 X 버튼 클릭을 삼킨다. 8px 이동 전엔 클릭으로 통과.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
   const groupedMatches = useMemo(() => buildGroupedMatches(matches), [matches])
 
   return (
     <div className="w-full space-y-16">
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-        <div className="flex-1 space-y-6">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-0">
+        <div className="min-w-0 flex-1 space-y-6">
           <div className="rounded-[2rem] border border-white/10 bg-[#0A100D] p-6 shadow-2xl">
             <div className="flex flex-col gap-6 md:flex-row md:items-center">
               <div className="flex-1">
@@ -438,7 +445,7 @@ export default function H2HLookup({
                       </option>
                     ))}
                   </select>
-                  <div className="e-caret">v</div>
+                  <ChevronDown className="e-caret h-4 w-4" />
                 </div>
               </div>
 
@@ -446,7 +453,7 @@ export default function H2HLookup({
                 <button
                   onClick={() => setHideEmptyTiers((value) => !value)}
                   className={cn(
-                    'rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-widest shadow-lg transition-all active:scale-95',
+                    'rounded-2xl px-6 py-4 text-lg font-black tracking-tight shadow-lg transition-all active:scale-95',
                     hideEmptyTiers
                       ? 'bg-nzu-green text-black hover:brightness-110'
                       : 'border border-white/10 bg-white/5 text-white/40 hover:bg-white/10'
@@ -456,16 +463,22 @@ export default function H2HLookup({
                 </button>
                 <button
                   onClick={autoMatch}
-                  className="flex items-center gap-2 rounded-2xl bg-white px-7 py-4 text-base font-bold text-black shadow-xl transition-all hover:bg-nzu-green hover:text-black active:scale-95"
+                  disabled={!u1 || !u2}
+                  className={cn(
+                    'flex items-center gap-2 rounded-2xl px-7 py-4 text-lg font-bold shadow-xl transition-all',
+                    !u1 || !u2
+                      ? 'cursor-not-allowed bg-white/10 text-white/30'
+                      : 'bg-white text-black hover:bg-nzu-green hover:text-black active:scale-95'
+                  )}
                 >
-                  <Plus className="h-5 w-5" />
+                  <Plus className="h-6 w-6" />
                   자동 매치
                 </button>
                 <button
                   onClick={() => setMatches([])}
                   className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white/20 shadow-lg transition-all hover:bg-red-500/10 hover:text-red-500"
                 >
-                  <RotateCcw className="h-5 w-5" />
+                  <RotateCcw className="h-6 w-6" />
                 </button>
               </div>
 
@@ -486,7 +499,7 @@ export default function H2HLookup({
                       </option>
                     ))}
                   </select>
-                  <div className="e-caret">v</div>
+                  <ChevronDown className="e-caret h-4 w-4" />
                 </div>
               </div>
             </div>
@@ -494,13 +507,13 @@ export default function H2HLookup({
 
           <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 border-t-2 border-t-nzu-green/30 bg-[#050706] shadow-[0_0_50px_rgba(0,0,0,0.5)]">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-nzu-green/50 to-transparent shadow-[0_0_15px_#2ed573]" />
-            <div className="grid grid-cols-[1fr_120px_1fr] items-center border-b border-white/5 bg-white/[0.04] px-10 py-7 text-left backdrop-blur-md">
-              <span className="truncate text-2xl font-black tracking-tight text-white/90">
-                {getUniversityDisplayName(u1) || '왼쪽 학교'}
+            <div className="grid grid-cols-[1fr_84px_1fr] items-center border-b border-white/5 bg-white/[0.04] px-6 py-4 text-left backdrop-blur-md">
+              <span className="truncate text-xl font-black tracking-tight text-white/90">
+                {u1 ? getUniversityDisplayName(u1) : '왼쪽 학교'}
               </span>
               <div className="text-center" />
-              <span className="truncate text-right text-2xl font-black tracking-tight text-white/90">
-                {getUniversityDisplayName(u2) || '오른쪽 학교'}
+              <span className="truncate text-right text-xl font-black tracking-tight text-white/90">
+                {u2 ? getUniversityDisplayName(u2) : '오른쪽 학교'}
               </span>
             </div>
 
@@ -517,18 +530,18 @@ export default function H2HLookup({
                   return (
                     <div
                       key={tier}
-                      className="grid min-h-[90px] grid-cols-[1fr_120px_1fr] border-b border-white/[0.03] transition-colors hover:bg-white/[0.01]"
+                      className="grid min-h-[68px] grid-cols-[1fr_84px_1fr] border-b border-white/[0.03] transition-colors hover:bg-white/[0.01]"
                     >
-                      <div className="flex flex-wrap items-center justify-end gap-3 p-4 pr-6">
+                      <div className="flex flex-wrap items-center justify-end gap-2.5 p-3 pr-4">
                         {leftGroup?.players.map((player) => (
                           <button
                             key={player.id}
-                            onClick={() => selectP1(player)}
+                            onClick={() => pickLeft(player)}
                             className={cn(
-                              'relative flex items-center gap-4 rounded-xl border-2 px-5 py-3 text-base font-black shadow-lg transition-all duration-300',
+                              'relative flex items-center gap-3 rounded-xl border-2 px-4 py-2.5 text-base font-black shadow-lg transition-all duration-200',
                               p1?.id === player.id
                                 ? 'z-10 scale-105 border-nzu-green bg-nzu-green text-black'
-                                : 'border-white/5 bg-[#0D1210] text-white/40 hover:border-white/20 hover:text-white'
+                                : 'border-white/5 bg-[#0D1210] text-white/70 hover:border-white/25 hover:text-white'
                             )}
                           >
                             <span>{player.name}</span>
@@ -538,19 +551,19 @@ export default function H2HLookup({
                       </div>
 
                       <div className="relative flex items-center justify-center border-x border-white/[0.03] bg-black/40">
-                        <TierBadge tier={tier} size="sm" className="min-w-[72px] justify-center shadow-2xl" />
+                        <TierBadge tier={tier} size="sm" className="min-w-[56px] justify-center shadow-2xl" />
                       </div>
 
-                      <div className="flex flex-wrap items-center justify-start gap-3 p-4 pl-6">
+                      <div className="flex flex-wrap items-center justify-start gap-2.5 p-3 pl-4">
                         {rightGroup?.players.map((player) => (
                           <button
                             key={player.id}
-                            onClick={() => selectP2(player)}
+                            onClick={() => pickRight(player)}
                             className={cn(
-                              'relative flex items-center gap-4 rounded-xl border-2 px-5 py-3 text-base font-black shadow-lg transition-all duration-300',
+                              'relative flex items-center gap-3 rounded-xl border-2 px-4 py-2.5 text-base font-black shadow-lg transition-all duration-200',
                               p2?.id === player.id
                                 ? 'z-10 scale-105 border-nzu-green bg-nzu-green text-black'
-                                : 'border-white/5 bg-[#0D1210] text-white/40 hover:border-white/20 hover:text-white'
+                                : 'border-white/5 bg-[#0D1210] text-white/70 hover:border-white/25 hover:text-white'
                             )}
                           >
                             <RaceLetterBadge race={player.race} size="sm" />
@@ -566,7 +579,25 @@ export default function H2HLookup({
           </div>
         </div>
 
-        <div className="mt-2 flex h-[760px] w-full flex-col overflow-hidden rounded-[2.5rem] border border-white/10 bg-background shadow-[0_30px_60px_rgba(0,0,0,0.8)] lg:sticky lg:top-8 lg:w-[520px]">
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="결과 패널 너비 조절"
+          tabIndex={0}
+          onMouseDown={(e) => { e.preventDefault(); beginResize(e.clientX) }}
+          onTouchStart={(e) => beginResize(e.touches[0].clientX)}
+          onKeyDown={onResizeKeyDown}
+          onDoubleClick={() => setPanelWidth(null)}
+          title="드래그·좌우 화살표로 너비 조절 · 더블클릭/Enter로 초기화"
+          className="group hidden shrink-0 cursor-col-resize items-center justify-center self-stretch px-1.5 lg:flex"
+        >
+          <div className="h-28 w-1.5 rounded-full bg-white/10 transition-colors group-hover:bg-nzu-green/60 group-focus-visible:bg-nzu-green/60" />
+        </div>
+
+        <div
+          style={isDesktop && panelWidth != null ? { width: panelWidth } : undefined}
+          className="mt-2 flex h-[760px] w-full flex-col overflow-hidden rounded-[2.5rem] border border-white/10 bg-background shadow-[0_30px_60px_rgba(0,0,0,0.8)] lg:sticky lg:top-8 lg:w-[520px]"
+        >
           <div className="flex items-center justify-between border-b border-white/5 bg-gradient-to-b from-white/[0.04] to-transparent p-7">
             <div className="flex items-center gap-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-nzu-gold/20 bg-nzu-gold/10">
@@ -585,7 +616,17 @@ export default function H2HLookup({
           </div>
 
           <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
-            <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis]}>
+            {matches.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
+                <div className="text-sm font-bold text-white/45">아직 추가된 대진이 없습니다</div>
+                <p className="text-xs font-medium leading-relaxed text-white/25">
+                  양쪽에서 선수를 하나씩 클릭하면 대진이 추가됩니다.
+                  <br />
+                  또는 <span className="font-bold text-nzu-green/70">자동 매치</span>로 한 번에 채우세요.
+                </p>
+              </div>
+            ) : (
+            <DndContext sensors={sensors} onDragEnd={handleDragEnd} collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis]}>
               <SortableContext
                 items={groupedMatches.map(g => `${g.p1Id}:${g.entries[0].match.id}`)}
                 strategy={verticalListSortingStrategy}
@@ -610,7 +651,7 @@ export default function H2HLookup({
                                   <div
                                     key={match.id}
                                     className={cn(
-                                      'group relative grid grid-cols-[44px_minmax(0,1fr)_82px_minmax(0,1fr)_24px] items-center gap-x-1.5 px-3 py-2.5 transition-[background-color,box-shadow,ring-color,border-radius]',
+                                      'group relative grid grid-cols-[44px_minmax(0,1fr)_82px_minmax(0,1fr)_34px] items-center gap-x-1.5 px-3 py-2.5 transition-[background-color,box-shadow,ring-color,border-radius]',
                                       index !== 0 && 'border-t border-white/[0.02]',
                                       !isDragging && 'hover:bg-white/[0.05]'
                                     )}
@@ -683,13 +724,14 @@ export default function H2HLookup({
                                     </div>
 
                                     <button
+                                      aria-label="이 대진 제거"
                                       onClick={(event) => {
                                         event.stopPropagation()
                                         removeMatch(match.id)
                                       }}
-                                      className="flex justify-center rounded-lg p-1 text-white/20 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500"
+                                      className="flex justify-center rounded-lg p-1.5 text-white/35 opacity-100 transition-all hover:bg-red-500/10 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100"
                                     >
-                                      <X className="h-3.5 w-3.5" />
+                                      <X className="h-5 w-5" />
                                     </button>
                                   </div>
                                 )
@@ -702,120 +744,10 @@ export default function H2HLookup({
                 </div>
               </SortableContext>
             </DndContext>
+            )}
           </div>
         </div>
       </div>
-
-      {p1 && p2 && resultStatus !== 'idle' && (
-        <section className="relative overflow-hidden rounded-[3rem] border-2 border-nzu-green/40 bg-black/80 p-12 shadow-[0_0_100px_rgba(46,213,115,0.1)] fade-in">
-          <div className="absolute right-0 top-0 p-8 opacity-10">
-            <Swords className="h-64 w-64 rotate-12 text-nzu-green" />
-          </div>
-
-          <div className="relative z-10 space-y-12">
-            {resultStatus === 'loading' ? (
-              <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 text-center">
-                <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/10 border-t-nzu-green" />
-                <div className="text-lg font-black text-white">상대전적 불러오는 중</div>
-                <div className="text-sm font-bold text-white/35">2025 이후 표본과 최근 90일 전적을 확인하고 있습니다.</div>
-              </div>
-            ) : resultStatus === 'error' ? (
-              <div className="flex min-h-[280px] flex-col items-center justify-center gap-4 text-center">
-                <div className="text-lg font-black text-red-300">상대전적 조회 실패</div>
-                <div className="text-sm font-bold text-white/35">잠시 후 다시 시도해 주세요.</div>
-              </div>
-            ) : displayResult ? (
-            <>
-            <div className="flex items-center justify-between border-b border-white/10 pb-8">
-              <div className="flex items-center gap-6">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-nzu-green/20 bg-nzu-green/10">
-                  <Activity className="h-8 w-8 text-nzu-green" />
-                </div>
-                <div>
-                  <h3 className="mb-1 text-3xl font-black uppercase tracking-tighter text-white">상세 분석 리포트</h3>
-                  <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/40">
-                    <span className="h-2 w-2 animate-ping rounded-full bg-nzu-green" />
-                    상대전적 기반 비교 분석
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-right">
-                <span className="mb-2 block text-sm font-bold text-white/40">예상 승률</span>
-                <div className="text-5xl font-black tracking-tighter text-white tabular-nums">
-                  {Math.round((displayResult.summary.wins / (displayResult.summary.wins + displayResult.summary.losses || 1)) * 100)}%
-                  <span className="text-nzu-green"> 우세</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-3">
-              <div className="space-y-4 rounded-[2rem] border border-white/5 bg-white/[0.02] p-8 text-center">
-                <TierBadge tier={p1.tier} size="lg" />
-                <h4 className="text-4xl font-black text-white">{p1.name}</h4>
-                <div className="flex justify-center gap-3">
-                  <span className="rounded-lg border border-terran/20 bg-terran/10 px-4 py-1.5 text-xs font-black text-terran">
-                    {p1.race}
-                  </span>
-                  <span className="rounded-lg border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-black text-white/40">
-                    {getUniversityLabel(p1.university)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center space-y-8">
-                <div className="flex items-center gap-8">
-                  <div className="text-center">
-                    <div className="mb-2 text-7xl font-black text-white">{displayResult.summary.wins}</div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-nzu-green">승</div>
-                  </div>
-                  <div className="text-4xl font-black text-white/10">VS</div>
-                  <div className="text-center">
-                    <div className="mb-2 text-7xl font-black text-white/40">{displayResult.summary.losses}</div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-white/10">패</div>
-                  </div>
-                </div>
-
-                <div className="relative h-4 w-full overflow-hidden rounded-full bg-white/5">
-                  <div className="absolute inset-0 bg-gradient-to-r from-nzu-green/20 to-transparent" />
-                  <div
-                    className="h-full bg-nzu-green shadow-[0_0_20px_#2ed573] transition-all duration-1000"
-                    style={{ width: `${(displayResult.summary.wins / (displayResult.summary.wins + displayResult.summary.losses || 1)) * 100}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4 rounded-[2rem] border border-white/5 bg-white/[0.02] p-8 text-center">
-                <TierBadge tier={p2.tier} size="lg" />
-                <h4 className="text-4xl font-black text-white/60">{p2.name}</h4>
-                <div className="flex justify-center gap-3">
-                  <span className="rounded-lg border border-zerg/20 bg-zerg/10 px-4 py-1.5 text-xs font-black text-zerg">
-                    {p2.race}
-                  </span>
-                  <span className="rounded-lg border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-black text-white/40">
-                    {getUniversityLabel(p2.university)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-center pt-8">
-              <button
-                onClick={() => addMatch(p1, p2)}
-                className="group relative overflow-hidden rounded-3xl bg-white px-12 py-5 text-xl font-black uppercase tracking-tighter text-black shadow-[0_0_50px_rgba(46,213,115,0.3)] transition-all hover:scale-105 active:scale-95"
-              >
-                <div className="absolute inset-0 translate-x-[-100%] bg-nzu-green transition-transform duration-500 group-hover:translate-x-0" />
-                <span className="relative z-10 flex items-center gap-3 group-hover:text-black">
-                  <Zap className="h-6 w-6 fill-current" />
-                  현재 매치에 추가
-                </span>
-              </button>
-            </div>
-            </>
-            ) : null}
-          </div>
-        </section>
-      )}
     </div>
   )
 }
