@@ -15,6 +15,20 @@ export function buildSoopPlayUrl(soopId: string | null | undefined) {
   return value ? `https://play.sooplive.com/${value}/` : null;
 }
 
+export type SoopIdLookupPlayer = { name: string; nickname?: string | null; soopId?: string | null };
+
+// 이름/닉네임/"성 뗀 이름"으로 선수의 숲 ID를 찾음 (overlay-race의 raceOfName과 같은 매칭 규칙).
+export function soopIdOfName(players: SoopIdLookupPlayer[], name: string): string | null {
+  const n = name.trim();
+  if (!n) return null;
+  const hit = players.find((p) => {
+    if (p.name === n || p.nickname === n) return true;
+    const given = p.name.length >= 3 ? p.name.slice(-2) : p.name;
+    return given === n;
+  });
+  return hit?.soopId ? String(hit.soopId) : null;
+}
+
 export function buildSoopStimgProfileImageUrl(soopId: string | null | undefined) {
   const value = String(soopId || "").trim();
   if (!value) return null;

@@ -5,6 +5,7 @@ import {
   Eye, EyeOff, Copy, Check,
   Settings, X, Layers, Plus, GripVertical, ClipboardPaste, HelpCircle, Lock, RotateCcw, ChevronRight, ArrowLeftRight,
 } from "lucide-react";
+import { buildSoopPlayUrl, soopIdOfName } from "@/lib/soop";
 import {
   defaultOverlayState,
   defaultOverlaySet,
@@ -14,6 +15,7 @@ import {
   defaultModeFor,
   setWinnerOf,
   miniAceNeeded,
+  heavenHell,
   type OverlayEntryRow,
   type OverlayMatchFormat,
   type OverlayUniversityFormat,
@@ -134,6 +136,15 @@ export default function OverlayAdminClient({
     }).catch(() => {});
   }, []);
   const raceOf = useCallback((name: string) => raceOfName(playerDb, name), [playerDb]);
+
+  // 숲 방송 링크용 (soop_id 있는 선수만) — 대진표 선수 옆에서 클릭하면 라이브 방송으로 바로 이동.
+  // 공유 /api/players를 안 건드리려고 전용 최소 엔드포인트에서 따로 받아온다.
+  const [soopDb, setSoopDb] = useState<{ name: string; nickname: string | null; soopId: string }[]>([]);
+  useEffect(() => {
+    fetch("/api/overlay/soop-ids").then(r => r.json()).then(p => { if (p.ok) setSoopDb(p.players); }).catch(() => {});
+  }, []);
+  const soopUrlOf = useCallback((name: string) => buildSoopPlayUrl(soopIdOfName(soopDb, name)), [soopDb]);
+
   const [toast, setToast]       = useState<string | null>(null);
   const [adminTab, setAdminTab] = useState<string | null>(null);
   // 세트가 방금 끝났을 때 "다음 세트로" 카드를 띄울 대상 세트 id. 닫으면 그 세트에선 다시 안 뜸(promptedSets).
@@ -686,6 +697,12 @@ export default function OverlayAdminClient({
   // 편집 중인 세트 기준 — 있으면 탭 바 버튼이 "세트 송출" 대신 "다음 세트로"가 된다.
   const nextSet = nextSetOf(editingSet);
 
+  // 극락/나락 — 프로리그에서 1세트가 끝나고 2세트(이후)로 넘어온 시점부터, 지금까지 적힌 경기 전체의
+  // 최다승/최다패 명단을 보여준다. 슈퍼에이스(3세트) 극락전/나락전 명단 참고용.
+  const editingSetIdx = editingSet ? state.sets.findIndex(s => s.id === editingSet.id) : -1;
+  const showHeavenHell = state.matchFormat === "proleague" && editingSetIdx >= 1;
+  const hh = showHeavenHell ? heavenHell(state.sets) : null;
+
   // "다음 세트로" 카드 대상 — 방금 끝난 세트와 그 다음 세트. 상태가 바뀌어 다음 세트가 사라지면 카드도 사라짐.
   const promptSet     = nextPromptSetId ? state.sets.find(s => s.id === nextPromptSetId) ?? null : null;
   const promptNextSet = nextSetOf(promptSet);
@@ -1198,6 +1215,41 @@ export default function OverlayAdminClient({
             </div>
             )}
 
+            {/* 극락/나락 — 프로리그 2세트 이후, 지금까지 적힌 경기의 최다승·최다패 명단(동률 모두 포함).
+                좌팀(빨강)·우팀(파랑)을 옅은 팀색 배경 '덩어리'로 묶어 한 줄씩 압축해서 보여준다. */}
+            {hh && (
+              <div className="mx-3 mt-3 rounded-xl border border-white/10 overflow-hidden divide-y divide-white/8">
+                {([
+                  { label: "☀ 극락", list: hh.heaven, tag: "text-amber-300", rowBg: "bg-amber-500/[0.09]" },
+                  { label: "▼ 나락", list: hh.hell, tag: "text-red-300", rowBg: "bg-red-500/[0.09]" },
+                ] as const).map(({ label, list, tag, rowBg }) => {
+                  const block = (side: "left" | "right") => {
+                    const names = list.filter(x => x.side === side).map(x => x.name);
+                    if (!names.length) return null;
+                    const st = side === "left"
+                      ? { background: "rgba(196,85,77,0.16)", color: "#f4c9c4" }
+                      : { background: "rgba(85,119,176,0.18)", color: "#c2d2f0" };
+                    return (
+                      <span className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-0.5 rounded-lg px-2.5 py-1 text-sm font-bold" style={st}>
+                        {names.map(n => <span key={n}>{n}</span>)}
+                      </span>
+                    );
+                  };
+                  return (
+                    <div key={label} className={`flex items-center gap-3 px-3 py-2.5 ${rowBg}`}>
+                      <span className={`shrink-0 text-base font-black ${tag}`}>{label}</span>
+                      {list.length ? (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {block("left")}
+                          {block("right")}
+                        </div>
+                      ) : <span className="text-xs text-white/25">아직 승패가 없어요</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* 5판3선(미니대전) 안내 배너 — 첫 선택 시, "다시 보지 않기"로 닫힘 */}
             {miniIntroOpen && !miniIntroDismissed && (
               <div className="mx-3 mt-3 flex items-start gap-2.5 rounded-xl bg-purple-500/[0.1] border border-purple-400/30 px-3.5 py-2.5">
@@ -1235,6 +1287,7 @@ export default function OverlayAdminClient({
                 mapPool={state.maps}
                 myName={myName}
                 raceOf={raceOf}
+                soopUrlOf={soopUrlOf}
                 matchFormat={state.matchFormat}
                 defaultSlots={defaultSlotsOf(editingSet)}
                 onPatch={patch => patchSet(editingSet.id, patch)}
@@ -1383,13 +1436,14 @@ export default function OverlayAdminClient({
 
 
 // ─── SetEditor (단순 대진표 + 일괄 입력) ───
-function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, matchFormat, defaultSlots, onPatch, onAddEntry, onRemoveEntry, onPatchEntry, onSetResult, onLoad, onReorder, onFillDown, onReplaceEntries }: {
+function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, soopUrlOf, matchFormat, defaultSlots, onPatch, onAddEntry, onRemoveEntry, onPatchEntry, onSetResult, onLoad, onReorder, onFillDown, onReplaceEntries }: {
   set: OverlaySet;
   leftPool: string[];
   rightPool: string[];
   mapPool: string[];
   myName: string;
   raceOf: (name: string) => OverlayRace | undefined;
+  soopUrlOf: (name: string) => string | null;
   matchFormat: OverlayMatchFormat;
   defaultSlots: number;
   onPatch: (p: Partial<OverlaySet>) => void;
@@ -1639,6 +1693,21 @@ function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, matchFor
               </span>
               {/* P1 */}
               <div className="relative flex items-center justify-end gap-1.5 min-w-0">
+                {/* 방송입장 — 종족 배지 옆 방송 바로가기. soop_id 매칭 실패 시 회색 '미인식' 태그로 구분 */}
+                {entry.leftPlayer && (() => {
+                  const url = soopUrlOf(entry.leftPlayer);
+                  return url ? (
+                    <a href={url} target="_blank" rel="noopener noreferrer" title={`${entry.leftPlayer} 방송 열기`}
+                      className="shrink-0 flex items-center h-6 px-2 mr-2 rounded-md bg-red-500/15 border border-red-500/30 text-red-400 text-[11px] font-black tracking-wide hover:bg-red-500/25 hover:text-red-300 transition-colors">
+                      방송입장
+                    </a>
+                  ) : (
+                    <span title="방송국 ID를 못 찾았어요 (미등록·오타·게스트)"
+                      className="shrink-0 flex items-center h-6 px-2 mr-2 rounded-md bg-white/[0.04] border border-white/10 text-white/30 text-[11px] font-bold">
+                      미인식
+                    </span>
+                  );
+                })()}
                 {entry.leftPlayer && (() => {
                   const race = entry.leftRace ?? raceOf(entry.leftPlayer);
                   return race ? (
@@ -1697,6 +1766,21 @@ function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, matchFor
                       className="shrink-0 flex items-center gap-0.5 h-5 px-1.5 rounded-md border border-amber-400/50 bg-amber-400/15 text-amber-300 text-[10px] font-black hover:bg-amber-400/25 transition-colors animate-pulse">
                       종족?
                     </button>
+                  );
+                })()}
+                {/* 방송입장 — 종족 배지 옆 방송 바로가기. soop_id 매칭 실패 시 회색 '미인식' 태그로 구분 */}
+                {entry.rightPlayer && (() => {
+                  const url = soopUrlOf(entry.rightPlayer);
+                  return url ? (
+                    <a href={url} target="_blank" rel="noopener noreferrer" title={`${entry.rightPlayer} 방송 열기`}
+                      className="shrink-0 flex items-center h-6 px-2 ml-2 rounded-md bg-red-500/15 border border-red-500/30 text-red-400 text-[11px] font-black tracking-wide hover:bg-red-500/25 hover:text-red-300 transition-colors">
+                      방송입장
+                    </a>
+                  ) : (
+                    <span title="방송국 ID를 못 찾았어요 (미등록·오타·게스트)"
+                      className="shrink-0 flex items-center h-6 px-2 ml-2 rounded-md bg-white/[0.04] border border-white/10 text-white/30 text-[11px] font-bold">
+                      미인식
+                    </span>
                   );
                 })()}
                 {raceEditor?.id === entry.id && raceEditor.side === "right" && (

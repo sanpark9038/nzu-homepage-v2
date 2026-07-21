@@ -135,6 +135,34 @@ export function setScoreOf(sets: OverlaySet[]): { left: number; right: number } 
   return { left, right };
 }
 
+// 극락/나락: 결과가 적힌 경기 전체에서 선수별 승/패를 집계 → 최다승 명단(극락)·최다패 명단(나락).
+// 동률이면 모두 포함. 슈퍼에이스(3세트) 극락전/나락전 명단을 한눈에 보려는 용도.
+export type HeavenHellName = { name: string; side: "left" | "right" };
+export function heavenHell(sets: OverlaySet[]): {
+  heaven: HeavenHellName[]; hell: HeavenHellName[]; winMax: number; lossMax: number;
+} {
+  const win: Record<string, number> = {};
+  const loss: Record<string, number> = {};
+  const side: Record<string, "left" | "right"> = {}; // 선수는 한쪽 팀에만 속함(좌=우리팀, 우=상대팀)
+  for (const s of sets) {
+    for (const e of s.entries) {
+      if (e.result !== "left" && e.result !== "right") continue;
+      const winner = e.result === "left" ? e.leftPlayer : e.rightPlayer;
+      const loser = e.result === "left" ? e.rightPlayer : e.leftPlayer;
+      const loserSide = e.result === "left" ? "right" : "left";
+      if (winner) { win[winner] = (win[winner] ?? 0) + 1; side[winner] = e.result; }
+      if (loser) { loss[loser] = (loss[loser] ?? 0) + 1; side[loser] = loserSide; }
+    }
+  }
+  const top = (m: Record<string, number>) => {
+    const max = Math.max(0, ...Object.values(m));
+    const names = max === 0 ? [] : Object.keys(m).filter((k) => m[k] === max);
+    return { max, names: names.map((name) => ({ name, side: side[name] })) };
+  };
+  const w = top(win), l = top(loss);
+  return { heaven: w.names, hell: l.names, winMax: w.max, lossMax: l.max };
+}
+
 // 미니대전 슈에 필요 여부: 1·2세트가 1:1로 갈리면 true, 한쪽이 2:0이면 false, 아직 미정이면 null
 export function miniAceNeeded(sets: OverlaySet[]): boolean | null {
   const nonAce = sets.filter((s) => !s.isAce);

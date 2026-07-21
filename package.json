@@ -110,6 +110,8 @@
     "test:player-collection-freshness-contract": "node scripts/tools/player-collection-freshness-contract.test.js",
     "test:report-team-records-parser": "node scripts/tools/report-team-records-parser.test.js",
     "test:overlay-bulk-parse": "node --test scripts/tools/overlay-bulk-parse.test.mjs",
+    "test:overlay-heaven-hell": "node --test scripts/tools/overlay-heaven-hell.test.mjs",
+    "test:soop-id-of-name": "node --test scripts/tools/soop-id-of-name.test.mjs",
     "test:player-history-freshness-sentinel": "node scripts/tools/player-history-freshness-sentinel.test.js",
     "test:player-history-freshness-audit": "node scripts/tools/player-history-freshness-audit.test.js",
     "test:report:low-sample": "node scripts/tools/report-low-sample-players.test.js",
