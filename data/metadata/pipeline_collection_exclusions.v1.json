@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-07-20T15:31:07.462Z",
+  "updated_at": "2026-07-23T05:44:50.872Z",
   "description": "Players excluded from match collection pipeline.",
   "players": [
     {
@@ -275,6 +275,22 @@
       "wr_id": 1046,
       "reason": "superseded_identity_race_change",
       "note": "Merged into eloboard:female:57, which is the current identity (user-confirmed 2026-07-20)."
+    },
+    {
+      "entity_id": "eloboard:female:1031",
+      "wr_id": 1031,
+      "name": "이영숙",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "note": "운영자 확인 2026-07-23: 예전 자료의 외부인. 기록·사이트 표시 모두 불필요.",
+      "updated_at": "2026-07-23T05:44:50.872Z"
+    },
+    {
+      "entity_id": "eloboard:male:mix:810",
+      "wr_id": 810,
+      "name": "지방시",
+      "reason": "user_excluded_unneeded_for_homepage",
+      "note": "운영자 확인 2026-07-23: 기록 정리·사이트 표시 모두 불필요.",
+      "updated_at": "2026-07-23T05:44:50.872Z"
     }
   ]
 }

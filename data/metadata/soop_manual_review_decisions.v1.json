@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-04-10T15:45:00+09:00",
+  "updated_at": "2026-07-23T05:45:08.028Z",
   "description": "User-reviewed SOOP onboarding decisions for ambiguous reference candidates.",
   "decisions": [
     {
@@ -30,7 +30,9 @@
       "soop_user_id": "khy12088wsss",
       "decision": "include",
       "canonical_name": "강민기",
-      "alias_names": ["쿨지지"],
+      "alias_names": [
+        "쿨지지"
+      ],
       "soop_requirement": "required",
       "elo_requirement": "required"
     },
@@ -39,7 +41,9 @@
       "soop_user_id": "lky6407",
       "decision": "include",
       "canonical_name": "이광용",
-      "alias_names": ["프발"],
+      "alias_names": [
+        "프발"
+      ],
       "soop_requirement": "required",
       "elo_requirement": "required"
     },
@@ -142,7 +146,9 @@
       "soop_user_id": "parkjaehyeon",
       "decision": "include",
       "canonical_name": "박재현",
-      "alias_names": ["쿰신"],
+      "alias_names": [
+        "쿰신"
+      ],
       "soop_requirement": "required",
       "elo_requirement": "required",
       "notes": "Eloboard canonical name is 박재현"
@@ -201,7 +207,9 @@
       "soop_user_id": "dpfgc3",
       "decision": "include",
       "canonical_name": "임홍규",
-      "alias_names": ["홍구"],
+      "alias_names": [
+        "홍구"
+      ],
       "soop_requirement": "required",
       "elo_requirement": "required"
     },
@@ -210,7 +218,9 @@
       "soop_user_id": "thakzkf",
       "decision": "include",
       "canonical_name": "박상현",
-      "alias_names": ["짭제"],
+      "alias_names": [
+        "짭제"
+      ],
       "soop_requirement": "required",
       "elo_requirement": "required"
     },
@@ -219,7 +229,9 @@
       "soop_user_id": "cksgmldbs",
       "decision": "include",
       "canonical_name": "윤찬희",
-      "alias_names": ["몽군"],
+      "alias_names": [
+        "몽군"
+      ],
       "soop_requirement": "required",
       "elo_requirement": "required"
     },
@@ -257,7 +269,9 @@
       "soop_user_id": "zalalz",
       "decision": "include",
       "canonical_name": "조은",
-      "alias_names": ["오조은"],
+      "alias_names": [
+        "오조은"
+      ],
       "soop_requirement": "required",
       "elo_requirement": "required"
     },
@@ -266,7 +280,9 @@
       "soop_user_id": "fudnjs0235",
       "decision": "include",
       "canonical_name": "려원님",
-      "alias_names": ["려원"],
+      "alias_names": [
+        "려원"
+      ],
       "soop_requirement": "required",
       "elo_requirement": "required"
     },
@@ -492,14 +508,6 @@
       "notes": "ELO required but id/url does not exist yet"
     },
     {
-      "source_name": "이영숙",
-      "soop_user_id": "yeonvelyo3o",
-      "decision": "include",
-      "soop_requirement": "required",
-      "elo_requirement": "pending_registration",
-      "notes": "ELO required but id/url does not exist yet"
-    },
-    {
       "source_name": "저그맨박성준",
       "soop_user_id": "jun10280",
       "decision": "include",
@@ -520,7 +528,9 @@
       "soop_user_id": "dbrbals",
       "decision": "include",
       "canonical_name": "유규민",
-      "alias_names": ["초난강"],
+      "alias_names": [
+        "초난강"
+      ],
       "soop_requirement": "required",
       "elo_requirement": "required",
       "notes": "Eloboard search name is 유규민"
