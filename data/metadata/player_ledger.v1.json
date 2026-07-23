@@ -1,7 +1,147 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-07-21T06:22:17.013Z",
-  "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). 1일차 흡수: 상대 신원 결정(외부인/후보) + 상대 별명. 이후 수집제외·로스터 교정·숲ID·표시별명이 순차 흡수된다. 소스는 opponent_identity_review_decisions + opponent_identity_aliases 를 그대로 옮긴 것.",
+  "updated_at": "2026-07-23T06:02:55.732Z",
+  "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). players=선수(entity_id)당 한 줄(표시명 등), 그 외 상대 신원 결정·상대 별명. 이후 숲ID·로스터 교정·수집제외가 여기로 합쳐진다.",
+  "players": {
+    "eloboard:male:124": {
+      "display_name": "쿰신",
+      "also_known_as": [
+        "박재현"
+      ]
+    },
+    "eloboard:male:137": {
+      "display_name": "미동미동",
+      "also_known_as": [
+        "박준영"
+      ]
+    },
+    "eloboard:male:149": {
+      "display_name": "구라미스",
+      "also_known_as": [
+        "김성민"
+      ]
+    },
+    "eloboard:male:155": {
+      "display_name": "쿨지지",
+      "also_known_as": [
+        "강민기"
+      ]
+    },
+    "eloboard:male:176": {
+      "display_name": "빡죠스",
+      "also_known_as": [
+        "박종승"
+      ]
+    },
+    "eloboard:male:2": {
+      "display_name": "홍구",
+      "also_known_as": [
+        "임홍규"
+      ]
+    },
+    "eloboard:male:21": {
+      "display_name": "사테",
+      "also_known_as": [
+        "김태영"
+      ]
+    },
+    "eloboard:male:23": {
+      "display_name": "철구",
+      "also_known_as": [
+        "이예준"
+      ]
+    },
+    "eloboard:male:24": {
+      "display_name": "몽군",
+      "also_known_as": [
+        "윤찬희"
+      ]
+    },
+    "eloboard:male:27": {
+      "display_name": "얍삽e",
+      "also_known_as": [
+        "김준혁"
+      ]
+    },
+    "eloboard:male:46": {
+      "display_name": "기뉴다",
+      "also_known_as": [
+        "박현재"
+      ]
+    },
+    "eloboard:male:48": {
+      "display_name": "오메킴",
+      "also_known_as": [
+        "김승현"
+      ]
+    },
+    "eloboard:male:78": {
+      "display_name": "샤이니",
+      "also_known_as": [
+        "김재현"
+      ]
+    },
+    "eloboard:male:79": {
+      "display_name": "이소룡",
+      "also_known_as": [
+        "박성용"
+      ]
+    },
+    "eloboard:male:80": {
+      "display_name": "난수",
+      "also_known_as": [
+        "장영근"
+      ]
+    },
+    "eloboard:male:85": {
+      "display_name": "초난강",
+      "also_known_as": [
+        "유규민"
+      ]
+    },
+    "eloboard:male:86": {
+      "display_name": "라박이",
+      "also_known_as": [
+        "박지호"
+      ]
+    },
+    "eloboard:male:88": {
+      "display_name": "흑운장",
+      "also_known_as": [
+        "이성은"
+      ]
+    },
+    "eloboard:male:89": {
+      "display_name": "만두호성",
+      "also_known_as": [
+        "김호성"
+      ]
+    },
+    "eloboard:male:91": {
+      "display_name": "허유",
+      "also_known_as": [
+        "허유진"
+      ]
+    },
+    "eloboard:male:93": {
+      "display_name": "프발",
+      "also_known_as": [
+        "이광용"
+      ]
+    },
+    "eloboard:male:95": {
+      "display_name": "액션구드론",
+      "also_known_as": [
+        "김동민"
+      ]
+    },
+    "eloboard:male:97": {
+      "display_name": "짭호",
+      "also_known_as": [
+        "박정일"
+      ]
+    }
+  },
   "opponent_identity_decisions": {
     "allowed_decisions": [
       "canonical_candidate",

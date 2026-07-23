@@ -63,7 +63,6 @@
     "export:player-history": "node scripts/tools/export-player-history-artifacts.js",
     "enrich:wfu:metadata": "node scripts/tools/enrich-wfu-metadata.js",
     "enrich:team:metadata": "node scripts/tools/enrich-team-metadata.js",
-    "apply:display:aliases": "node scripts/tools/apply-player-display-aliases.js",
     "order:roster": "node scripts/tools/apply-team-roster-order.js",
     "organize:artifacts": "node scripts/tools/organize-generated-artifacts.js",
     "pipeline:daily": "node scripts/tools/run-daily-pipeline.js",

@@ -4,7 +4,7 @@ const { execFileSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const ROLE_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "team_role_overrides.v1.json");
-const DISPLAY_ALIASES_PATH = path.join(ROOT, "data", "metadata", "player_display_aliases.v1.json");
+const LEDGER_PATH = path.join(ROOT, "data", "metadata", "player_ledger.v1.json");
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -92,20 +92,50 @@ function upsertRoleOverrides(project, chairs) {
   return { updated: true, count: chairs.length };
 }
 
+// 표시명은 선수 대장에 선수(entity_id)당 한 줄로 적는다. 팀별 목록이 아니라 번호로
+// 묶으므로 선수가 팀을 옮겨도 방송명이 따라간다. 이름은 방금 만들어진 로스터로 해석한다.
 function upsertDisplayAliases(project, aliases) {
-  if (!aliases.length) return { updated: false, count: 0 };
-  const doc =
-    readJson(DISPLAY_ALIASES_PATH, {
-      schema_version: "1.0.0",
-      updated_at: new Date().toISOString(),
-      description: "Homepage display aliases. Match data collection should keep canonical player name.",
-      teams: {},
-    }) || {};
-  if (!doc.teams || typeof doc.teams !== "object") doc.teams = {};
-  doc.teams[project] = aliases;
-  doc.updated_at = new Date().toISOString();
-  writeJson(DISPLAY_ALIASES_PATH, doc);
-  return { updated: true, count: aliases.length };
+  if (!aliases.length) return { updated: false, count: 0, unresolved: [] };
+
+  const rosterPath = path.join(ROOT, "data", "metadata", "projects", project, `players.${project}.v1.json`);
+  const roster = (readJson(rosterPath, { roster: [] }) || {}).roster || [];
+  const entityIdByName = new Map();
+  for (const row of Array.isArray(roster) ? roster : []) {
+    const name = String((row && row.name) || "").trim();
+    const entityId = String((row && row.entity_id) || "").trim();
+    if (name && entityId) entityIdByName.set(name, entityId);
+  }
+
+  const doc = readJson(LEDGER_PATH, { schema_version: "1.0.0", players: {} }) || {};
+  if (!doc.players || typeof doc.players !== "object") doc.players = {};
+
+  let count = 0;
+  const unresolved = [];
+  for (const row of aliases) {
+    const name = String((row && row.name) || "").trim();
+    const displayName = String((row && row.display_name) || "").trim();
+    if (!name || !displayName) continue;
+    const entityId = entityIdByName.get(name);
+    if (!entityId) {
+      unresolved.push(`${name}=${displayName}`);
+      continue;
+    }
+    const existing = doc.players[entityId] || {};
+    const alsoKnownAs = new Set(Array.isArray(existing.also_known_as) ? existing.also_known_as : []);
+    if (name !== displayName) alsoKnownAs.add(name);
+    doc.players[entityId] = {
+      ...existing,
+      display_name: displayName,
+      ...(alsoKnownAs.size ? { also_known_as: [...alsoKnownAs] } : {}),
+    };
+    count += 1;
+  }
+
+  if (count) {
+    doc.updated_at = new Date().toISOString();
+    writeJson(LEDGER_PATH, doc);
+  }
+  return { updated: count > 0, count, unresolved };
 }
 
 function main() {
@@ -129,7 +159,6 @@ function main() {
   const buildProjectScript = path.join(ROOT, "scripts", "tools", "build-project-metadata-from-roster-record.js");
   const enrichScript = path.join(ROOT, "scripts", "tools", "enrich-team-metadata.js");
   const orderScript = path.join(ROOT, "scripts", "tools", "apply-team-roster-order.js");
-  const displayAliasScript = path.join(ROOT, "scripts", "tools", "apply-player-display-aliases.js");
   const tableScript = path.join(ROOT, "scripts", "tools", "report-team-roster-table.js");
 
   let recordPath = path.join(ROOT, "tmp", `${makeTeamSlug(univ)}_roster_record_metadata.json`);
@@ -168,9 +197,6 @@ function main() {
 
   runNode(orderScript, ["--project", project]);
   logs.push("order_done");
-
-  runNode(displayAliasScript, ["--project", project]);
-  logs.push("display_apply_done");
 
   const table = runNode(tableScript, ["--team-code", project]);
   const out = {

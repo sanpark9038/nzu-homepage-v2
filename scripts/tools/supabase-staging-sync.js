@@ -13,6 +13,7 @@ const {
   withServingIdentityKey,
 } = require('./lib/serving-identity-key');
 const { loadProjectPlayerMetadata } = require('./lib/project-player-metadata');
+const { loadPlayerDisplayNames } = require('./lib/player-ledger');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
@@ -293,6 +294,7 @@ async function main() {
   });
 
   // 2. Load all project JSONs
+  const ledgerDisplayNames = loadPlayerDisplayNames();
   let allPlayers = [];
   const dirs = fs.readdirSync(PROJECTS_DIR, { withFileTypes: true }).filter(d => d.isDirectory());
   
@@ -312,9 +314,11 @@ async function main() {
         // 사이트에는 방송 표시명(별칭)이 나와야 한다. 엘로보드가 본명을 쓰기 시작하면
         // roster의 name이 본명으로 바뀌는데, 그동안 서빙이 name만 써서 별칭 17건이
         // 통째로 무시되고 있었다(라박이->박지호, 흑운장->이성은 등).
+        // 표시명의 유일한 출처는 선수 대장이다(entity_id로 묶여 팀 이동에도 안 날아감).
+        // roster의 display_name은 대장에 행이 없는 선수를 위한 보조값일 뿐이다.
         allPlayers.push({
           eloboard_id: p.entity_id,
-          name: p.display_name || p.name || '',
+          name: ledgerDisplayNames.get(String(p.entity_id || '').trim()) || p.display_name || p.name || '',
           tier: p.tier || '미정',
           race: shortRace,
           university: p.team_name || '',

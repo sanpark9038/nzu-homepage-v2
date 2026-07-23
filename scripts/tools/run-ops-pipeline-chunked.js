@@ -10,7 +10,6 @@ const NODE_BIN_FALLBACK = "node";
 const MERGE_SCRIPT = "scripts/tools/merge-chunked-daily-reports.js";
 const ROSTER_SYNC_SCRIPT = "scripts/tools/sync-team-roster-metadata.js";
 const ROSTER_REVIEW_SCRIPT = "scripts/tools/build-roster-change-review.js";
-const DISPLAY_ALIAS_SCRIPT = "scripts/tools/apply-player-display-aliases.js";
 const PRIORITY_SCRIPT = "scripts/tools/update-player-check-priority.js";
 const { ensureAutoDiscoveredTeamProjects } = require("./lib/team-project-discovery");
 
@@ -218,18 +217,8 @@ async function runCommonPreparation(teamCodes, allTeamCodes) {
   });
   if (!reviewRes.ok) return { ok: false, steps };
 
-  for (const teamCode of teamCodes.filter((code) => code !== "fa")) {
-    const aliasArgs = [DISPLAY_ALIAS_SCRIPT, "--project", teamCode];
-    const aliasRes = await runNode(aliasArgs, `display_alias:${teamCode}`);
-    steps.push({
-      name: `display_alias:${teamCode}`,
-      ok: aliasRes.ok,
-      command: `${aliasRes.node_bin} ${aliasArgs.join(" ")}`,
-      stdout_tail: tail(aliasRes.stdout),
-      stderr_tail: tail([aliasRes.stderr, aliasRes.error].filter(Boolean).join("\n")),
-    });
-    if (!aliasRes.ok) return { ok: false, steps };
-  }
+  // 표시명은 선수 대장이 유일한 출처이고 서빙·동기화가 직접 읽는다.
+  // 로스터 파일에 별명 사본을 밀어넣던 display_alias 단계는 은퇴했다.
 
   return { ok: true, steps };
 }

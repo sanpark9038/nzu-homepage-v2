@@ -103,7 +103,10 @@ runTest("staging sync serves the broadcast display name, not the eloboard real n
 
   // 엘로보드가 본명을 쓰기 시작해도 사이트에는 방송 표시명이 나와야 한다
   // (얍삽e -> 김준혁, 난수 -> 장영근 회귀를 막는다).
-  assert.match(source, /name:\s*p\.display_name\s*\|\|\s*p\.name/);
+  // 표시명의 유일한 출처는 선수 대장이고(entity_id로 묶여 팀 이동에도 안 날아감),
+  // roster의 display_name은 대장에 행이 없는 선수를 위한 보조값이다.
+  assert.match(source, /name:\s*ledgerDisplayNames\.get\(.*\)\s*\|\|\s*p\.display_name\s*\|\|\s*p\.name/);
+  assert.match(source, /const ledgerDisplayNames = loadPlayerDisplayNames\(\)/);
 });
 
 runTest("admin name override also wins over a stale display alias", () => {

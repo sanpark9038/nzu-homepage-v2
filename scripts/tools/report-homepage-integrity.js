@@ -6,7 +6,7 @@ const { loadProjectPlayerMetadata } = require("./lib/project-player-metadata");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
-const DISPLAY_ALIASES_PATH = path.join(ROOT, "data", "metadata", "player_display_aliases.v1.json");
+const DISPLAY_ALIASES_PATH = path.join(ROOT, "data", "metadata", "player_ledger.v1.json");
 const REVIEW_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "soop_manual_review_decisions.v1.json");
 const SNAPSHOT_PATH = path.join(ROOT, "data", "metadata", "soop_live_snapshot.generated.v1.json");
 const OUTPUT_PATH = path.join(ROOT, "tmp", "reports", "homepage_integrity_report.json");
@@ -61,8 +61,9 @@ function createSupabaseAdminClient() {
 }
 
 function loadDisplayAliases() {
-  if (!fs.existsSync(DISPLAY_ALIASES_PATH)) return { teams: {} };
-  return readJson(DISPLAY_ALIASES_PATH);
+  if (!fs.existsSync(DISPLAY_ALIASES_PATH)) return {};
+  const doc = readJson(DISPLAY_ALIASES_PATH);
+  return doc && doc.players && typeof doc.players === "object" ? doc.players : {};
 }
 
 function loadProjectRosters() {
@@ -173,75 +174,37 @@ async function fetchHeroMediaServing() {
   return Array.isArray(data) ? data : [];
 }
 
-function buildAliasSection(rosters, aliasDoc) {
-  const teams = aliasDoc && typeof aliasDoc.teams === "object" ? aliasDoc.teams : {};
-  const globalRows = Array.isArray(aliasDoc && aliasDoc.global) ? aliasDoc.global : [];
-  const rosterByProjectAndName = new Map(
-    rosters.filter((row) => row.project && row.name).map((row) => [`${row.project}:${row.name}`, row])
+// 표시명은 선수 대장이 유일한 출처이고 서빙·동기화가 직접 읽는다. 그래서 "로스터에
+// 반영됐는가"는 더 이상 의미가 없고, 대신 대장 행이 실존하는 선수를 가리키는지를 본다
+// (가리키는 선수가 없는 행은 조용히 썩는다 — 박단원->탱크가 그런 경우였다).
+function buildAliasSection(rosters, ledgerPlayers) {
+  const rosterByEntityId = new Map(
+    rosters.filter((row) => trim(row && row.entity_id)).map((row) => [trim(row.entity_id), row])
   );
-  const rostersByName = new Map();
-  for (const row of rosters) {
-    const name = trim(row && row.name);
-    if (!name) continue;
-    const bucket = rostersByName.get(name) || [];
-    bucket.push(row);
-    rostersByName.set(name, bucket);
-  }
 
-  const expected = [];
-  const mismatches = [];
+  const rows = [];
+  const orphans = [];
 
-  for (const row of globalRows) {
-    const canonicalName = trim(row && row.name);
+  for (const [rawEntityId, row] of Object.entries(ledgerPlayers || {})) {
+    const entityId = trim(rawEntityId);
     const displayName = trim(row && row.display_name);
-    if (!canonicalName || !displayName) continue;
-    const matches = rostersByName.get(canonicalName) || [];
-    if (!matches.length) continue;
-    for (const roster of matches) {
-      const payload = {
-        project: roster.project,
-        canonical_name: canonicalName,
-        expected_display_name: displayName,
-        roster_display_name: roster ? roster.display_name : null,
-        entity_id: roster ? roster.entity_id : null,
-      };
-      expected.push(payload);
-      if (trim(roster.display_name) !== displayName) {
-        mismatches.push(payload);
-      }
-    }
-  }
-
-  for (const [project, rows] of Object.entries(teams)) {
-    for (const row of Array.isArray(rows) ? rows : []) {
-      const canonicalName = trim(row && row.name);
-      const displayName = trim(row && row.display_name);
-      if (!canonicalName || !displayName) continue;
-      const roster = rosterByProjectAndName.get(`${project}:${canonicalName}`) || null;
-      const payload = {
-        project,
-        canonical_name: canonicalName,
-        expected_display_name: displayName,
-        roster_display_name: roster ? roster.display_name : null,
-        entity_id: roster ? roster.entity_id : null,
-      };
-      if (expected.some((item) => item.project === payload.project && item.canonical_name === payload.canonical_name)) {
-        continue;
-      }
-      expected.push(payload);
-      if (!roster || trim(roster.display_name) !== displayName) {
-        mismatches.push(payload);
-      }
-    }
+    if (!entityId || !displayName) continue;
+    const roster = rosterByEntityId.get(entityId) || null;
+    const payload = {
+      entity_id: entityId,
+      expected_display_name: displayName,
+      project: roster ? roster.project : null,
+      roster_name: roster ? roster.name : null,
+    };
+    rows.push(payload);
+    if (!roster) orphans.push(payload);
   }
 
   return {
-    total_expected_aliases: expected.length,
-    applied: expected.length - mismatches.length,
-    missing_or_mismatched: mismatches.length,
-    mismatches: mismatches.sort((a, b) =>
-      `${a.project}:${a.canonical_name}`.localeCompare(`${b.project}:${b.canonical_name}`, "ko")
-    ),
+    total_expected_aliases: rows.length,
+    applied: rows.length - orphans.length,
+    missing_or_mismatched: orphans.length,
+    mismatches: orphans.sort((a, b) => a.entity_id.localeCompare(b.entity_id)),
   };
 }
 

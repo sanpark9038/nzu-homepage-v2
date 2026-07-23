@@ -22,7 +22,6 @@ const EXPORT_METADATA_SCRIPT = path.join(ROOT, "scripts", "tools", "export-team-
 const ORGANIZE_SCRIPT = path.join(ROOT, "scripts", "tools", "organize-generated-artifacts.js");
 const TEAM_TABLE_SCRIPT = path.join(ROOT, "scripts", "tools", "report-team-roster-table.js");
 const ROSTER_SYNC_SCRIPT = path.join(ROOT, "scripts", "tools", "sync-team-roster-metadata.js");
-const DISPLAY_ALIAS_SCRIPT = path.join(ROOT, "scripts", "tools", "apply-player-display-aliases.js");
 const TEAM_TABLE_OUT_DIR = path.join(TMP_DIR, "reports", "team-roster-table");
 const NODE_BIN_FALLBACK = "node";
 const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
@@ -626,39 +625,6 @@ function ensureFaRecordMetadata(teams) {
   }
 }
 
-function applyDisplayAliasesForTeams(teams) {
-  const rows = [];
-  for (const team of teams) {
-    try {
-      const raw = runNode(DISPLAY_ALIAS_SCRIPT, ["--project", team.code], {
-        label: `display_alias:${team.code}`,
-        timeoutMs: 120000,
-      }).trim();
-      let parsed = null;
-      try {
-        parsed = JSON.parse(raw);
-      } catch {
-        parsed = null;
-      }
-      rows.push({
-        team_code: team.code,
-        ok: true,
-        summary: parsed,
-      });
-    } catch (error) {
-      rows.push({
-        team_code: team.code,
-        ok: false,
-        error: error.message,
-      });
-    }
-  }
-  return {
-    ok: rows.every((r) => r.ok),
-    teams: rows,
-  };
-}
-
 function movedInPlayersByTeam(rosterSyncReport) {
   const map = new Map();
   const moved = Array.isArray(rosterSyncReport && rosterSyncReport.summary && rosterSyncReport.summary.moved)
@@ -1049,7 +1015,6 @@ async function main() {
   const strict = !hasFlag("--no-strict");
   const organize = !hasFlag("--no-organize");
   const rosterSync = !hasFlag("--no-roster-sync");
-  const displayAliasApply = !hasFlag("--no-display-alias");
   const teamTableEnabled = !hasFlag("--no-team-table");
   const faRecordMetadataEnabled = !hasFlag("--no-fa-record-metadata");
   const useExistingJson = !hasFlag("--no-use-existing-json");
@@ -1097,13 +1062,9 @@ async function main() {
   if (rosterSync && !rosterSyncReport.ok) {
     console.error(`[WARN] roster sync failed: ${rosterSyncReport.error}`);
   }
-  const aliasApplyReport = displayAliasApply
-    ? applyDisplayAliasesForTeams(teams)
-    : { ok: false, skipped: true, teams: [] };
-  if (displayAliasApply && !aliasApplyReport.ok) {
-    const failed = aliasApplyReport.teams.filter((t) => !t.ok).map((t) => t.team_code).join(",");
-    console.error(`[WARN] display alias apply failed for: ${failed}`);
-  }
+  // 표시명은 선수 대장이 유일한 출처이고 서빙·동기화가 직접 읽는다.
+  // 로스터 파일에 별명 사본을 밀어넣던 단계는 은퇴했다(사본이 팀 이동 때 어긋나던 원인).
+  const aliasApplyReport = { ok: true, retired: true, teams: [] };
 
   const perTeamReports = [];
   for (const team of teams) {

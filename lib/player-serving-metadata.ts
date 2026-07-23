@@ -156,7 +156,9 @@ function resolveIdentityOverrides(
   const canonicalName = String(player.name || "").trim();
   const rosterOverride = entityId ? overrides.get(entityId) || null : null;
   const soopOverride = wrId && hasMixedEloboardIdentity(player) ? soopIdentityOverrides.get(wrId) || null : null;
-  const displayName = String(displayAliases.get(canonicalName) || rosterOverride?.display_name || "").trim();
+  const displayName = String(
+    (entityId ? displayAliases.get(entityId) : "") || rosterOverride?.display_name || ""
+  ).trim();
 
   return {
     canonicalName,
@@ -264,6 +266,8 @@ function loadManualRosterOverrides(): Map<string, RosterPlayerOverride> {
   return overrides;
 }
 
+// 표시명(방송명)은 선수 대장이 유일한 출처다. 이름이 아니라 entity_id로 묶으므로
+// 엘로보드가 이름을 본명으로 바꾸거나 선수가 팀을 옮겨도 방송명이 날아가지 않는다.
 function loadDisplayAliases(): Map<string, string> {
   const aliases = new Map<string, string>();
   if (typeof window !== "undefined") return aliases;
@@ -271,7 +275,7 @@ function loadDisplayAliases(): Map<string, string> {
   const req = eval("require") as NodeRequire;
   const fs = req("fs") as typeof import("fs");
   const path = req("path") as typeof import("path");
-  const filePath = path.join(process.cwd(), "data", "metadata", "player_display_aliases.v1.json");
+  const filePath = path.join(process.cwd(), "data", "metadata", "player_ledger.v1.json");
   if (!fs.existsSync(filePath)) return aliases;
 
   try {
@@ -286,17 +290,11 @@ function loadDisplayAliases(): Map<string, string> {
 
   try {
     const doc = readJsonFile<{
-      global?: Array<{ name?: string; display_name?: string }>;
-      teams?: Record<string, Array<{ name?: string; display_name?: string }>>;
+      players?: Record<string, { display_name?: string }>;
     }>(filePath);
 
-    for (const row of Array.isArray(doc?.global) ? doc.global : []) {
-      registerDisplayAlias(aliases, row?.name, row?.display_name);
-    }
-    for (const rows of Object.values(doc?.teams || {})) {
-      for (const row of Array.isArray(rows) ? rows : []) {
-        registerDisplayAlias(aliases, row?.name, row?.display_name);
-      }
+    for (const [entityId, row] of Object.entries(doc?.players || {})) {
+      registerDisplayAlias(aliases, entityId, row?.display_name);
     }
   } catch {
     return aliases;
@@ -416,7 +414,7 @@ function loadSearchAliases(): Map<string, string[]> {
   const fs = req("fs") as typeof import("fs");
   const path = req("path") as typeof import("path");
   const mappingPath = path.join(process.cwd(), "data", "metadata", "soop_channel_mappings.v1.json");
-  const displayAliasPath = path.join(process.cwd(), "data", "metadata", "player_display_aliases.v1.json");
+  const displayAliasPath = path.join(process.cwd(), "data", "metadata", "player_ledger.v1.json");
 
   const existingFiles = [mappingPath, displayAliasPath].filter((filePath) => fs.existsSync(filePath));
   if (!existingFiles.length) return new Map();
@@ -441,20 +439,15 @@ function loadSearchAliases(): Map<string, string[]> {
     registerSearchAlias(aliases, String(aliasName || ""), String(canonicalName || ""));
   }
 
+  // 대장의 선수 행: 표시명(방송명)과 다른 표기(본명 등)를 서로 검색어로 잇는다.
   const displayDoc = readJsonFile<{
-    global?: Array<{ name?: string; display_name?: string }>;
-    teams?: Record<string, Array<{ name?: string; display_name?: string }>>;
+    players?: Record<string, { display_name?: string; also_known_as?: string[] }>;
   }>(displayAliasPath);
-  const globalRows = Array.isArray(displayDoc?.global) ? displayDoc.global : [];
-  for (const row of globalRows) {
-    registerSearchAlias(aliases, String(row?.name || ""), String(row?.display_name || ""));
-    registerSearchAlias(aliases, String(row?.display_name || ""), String(row?.name || ""));
-  }
-  const teams = displayDoc && typeof displayDoc.teams === "object" ? displayDoc.teams : {};
-  for (const rows of Object.values(teams)) {
-    for (const row of Array.isArray(rows) ? rows : []) {
-      registerSearchAlias(aliases, String(row?.name || ""), String(row?.display_name || ""));
-      registerSearchAlias(aliases, String(row?.display_name || ""), String(row?.name || ""));
+  for (const row of Object.values(displayDoc?.players || {})) {
+    const displayName = String(row?.display_name || "");
+    for (const aka of Array.isArray(row?.also_known_as) ? row.also_known_as : []) {
+      registerSearchAlias(aliases, displayName, String(aka || ""));
+      registerSearchAlias(aliases, String(aka || ""), displayName);
     }
   }
 
