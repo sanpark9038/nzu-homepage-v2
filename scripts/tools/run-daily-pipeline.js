@@ -32,6 +32,19 @@ const TEAM_EXPORT_TIMEOUT_MS = 900000;
 const FA_EXPORT_TIMEOUT_MS = 1800000;
 const FA_EXPORT_CONCURRENCY = "2";
 
+// 수집 성공 상태: 엘로보드 프로필을 실제로 읽어냈다는 뜻(신규 fetch 또는 유효한 기존 JSON 재사용).
+// 0건이 이 상태에 근거하면 "엘로보드에도 경기가 없다"는 관측 증명이므로 경보하지 않는다.
+const FETCH_OK_STATES = new Set([
+  "ok",
+  "used_existing_json",
+  "used_existing_json_inactive",
+  "used_existing_json_priority_window",
+  "used_existing_json_regression_guard",
+]);
+function isFetchObserved(status) {
+  return FETCH_OK_STATES.has(String(status || ""));
+}
+
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
   if (idx >= 0 && process.argv[idx + 1]) return process.argv[idx + 1];
@@ -194,8 +207,6 @@ function defaultAlertConfig() {
     rules: {
       pipeline_failure_severity: "critical",
       zero_record_players_severity: "high",
-      zero_record_players_allowlist: {},
-      zero_record_players_team_allowlist: [],
       negative_delta_matches_severity: "critical",
       roster_size_changed_severity: "medium",
       roster_size_changed_team_allowlist: [],
@@ -473,17 +484,11 @@ function summarizeTeamFromReport(team, report) {
   let totalWins = 0;
   let totalLosses = 0;
   const zeroPlayers = [];
+  const zeroPlayersDetail = [];
   const failures = [];
 
   for (const row of actionable) {
-    const fetchOkStates = new Set([
-      "ok",
-      "used_existing_json",
-      "used_existing_json_inactive",
-      "used_existing_json_priority_window",
-      "used_existing_json_regression_guard",
-    ]);
-    const fetchFail = !fetchOkStates.has(String(row.fetch_status || ""));
+    const fetchFail = !isFetchObserved(row.fetch_status);
     const csvFail = !["ok", "used_existing_csv"].includes(String(row.csv_status || ""));
     if (fetchFail || csvFail) {
       failures.push({
@@ -504,7 +509,11 @@ function summarizeTeamFromReport(team, report) {
     totalMatches += t;
     totalWins += w;
     totalLosses += l;
-    if (t === 0) zeroPlayers.push(String(row.player || ""));
+    if (t === 0) {
+      // 0건에 fetch_status를 붙여 판정부가 "관측된 0건"(경보 없음)과 "근거 없는 0건"(경보)을 구분한다.
+      zeroPlayers.push(String(row.player || ""));
+      zeroPlayersDetail.push({ name: String(row.player || ""), fetch_status: String(row.fetch_status || "") });
+    }
   }
 
   return {
@@ -517,22 +526,14 @@ function summarizeTeamFromReport(team, report) {
     opponent_name_excluded_player_names: opponentNameExcludedPlayers.join(", "),
     fetched_players: fetchedPlayers,
     reused_players: reusedPlayers,
-    fetch_fail: failures.filter(
-      (f) =>
-        ![
-          "ok",
-          "used_existing_json",
-          "used_existing_json_inactive",
-          "used_existing_json_priority_window",
-          "used_existing_json_regression_guard",
-        ].includes(String(f.fetch_status || ""))
-    ).length,
+    fetch_fail: failures.filter((f) => !isFetchObserved(f.fetch_status)).length,
     csv_fail: failures.filter((f) => !["ok", "used_existing_csv"].includes(String(f.csv_status || ""))).length,
     total_matches: totalMatches,
     total_wins: totalWins,
     total_losses: totalLosses,
     zero_record_players: zeroPlayers.length,
     zero_players: zeroPlayers.join(", "),
+    zero_players_detail: zeroPlayersDetail,
     failures,
   };
 }
@@ -695,17 +696,18 @@ function loadManualAliasConflictLookup() {
   return lookup;
 }
 
+function zeroPlayerFetchStatusLookup(teamRow) {
+  // 0건 선수 → fetch_status. 관측 근거(읽기 성공)가 있는 0건인지 판정하는 데 쓴다.
+  const lookup = new Map();
+  const detail = Array.isArray(teamRow && teamRow.zero_players_detail) ? teamRow.zero_players_detail : [];
+  for (const row of detail) {
+    const name = String(row && row.name ? row.name : "").trim();
+    if (name) lookup.set(name, String(row && row.fetch_status ? row.fetch_status : ""));
+  }
+  return lookup;
+}
+
 function classifyZeroRecordPlayers(rowsWithDelta, cfg) {
-  const rules = cfg && cfg.rules ? cfg.rules : {};
-  const zeroRecordAllowlist =
-    rules && rules.zero_record_players_allowlist && typeof rules.zero_record_players_allowlist === "object"
-      ? rules.zero_record_players_allowlist
-      : {};
-  const teamAllowlist = new Set(
-    Array.isArray(rules && rules.zero_record_players_team_allowlist)
-      ? rules.zero_record_players_team_allowlist.map((value) => String(value || "").trim())
-      : []
-  );
   const collectionExclusions = loadCollectionExclusionLookup();
   const manualOverrides = loadManualOverrideLookup();
   const manualAliasConflicts = loadManualAliasConflictLookup();
@@ -714,21 +716,16 @@ function classifyZeroRecordPlayers(rowsWithDelta, cfg) {
   for (const teamRow of Array.isArray(rowsWithDelta) ? rowsWithDelta : []) {
     const teamCode = String(teamRow && teamRow.team_code ? teamRow.team_code : "").trim();
     const teamName = String(teamRow && teamRow.team ? teamRow.team : teamCode).trim();
-    const playerAllowlist = new Set(
-      Array.isArray(zeroRecordAllowlist[teamCode])
-        ? zeroRecordAllowlist[teamCode].map((value) => String(value || "").trim())
-        : []
-    );
+    // detail이 없으면(구버전 스냅샷) 빈 맵 → 관측 근거 없음 → 안전하게 needs_review로 떨어진다.
+    const fetchStatusByName = zeroPlayerFetchStatusLookup(teamRow);
 
     for (const playerName of splitZeroPlayers(teamRow && teamRow.zero_players ? teamRow.zero_players : "")) {
       let category = "needs_review";
       let reason = "unclassified_zero_record";
-      if (teamAllowlist.has(teamCode)) {
-        category = "team_allowlisted";
-        reason = "zero_record_team_allowlist";
-      } else if (playerAllowlist.has(playerName)) {
-        category = "player_allowlisted";
-        reason = "zero_record_player_allowlist";
+      if (fetchStatusByName.has(playerName) && isFetchObserved(fetchStatusByName.get(playerName))) {
+        // 읽기 성공 + 0건 = 엘로보드에도 경기가 없다는 관측 증명. 경보 대상 아님.
+        category = "observed_zero";
+        reason = "zero_confirmed_by_eloboard_read";
       } else if (collectionExclusions.has(playerName)) {
         category = "collection_excluded";
         reason = collectionExclusions.get(playerName).reason;
@@ -888,15 +885,6 @@ function buildAlerts(
   referenceTimeMs = Date.now()
 ) {
   const rules = cfg.rules || {};
-  const allowlist =
-    rules && rules.zero_record_players_allowlist && typeof rules.zero_record_players_allowlist === "object"
-      ? rules.zero_record_players_allowlist
-      : {};
-  const zeroRecordTeamAllowlist = new Set(
-    Array.isArray(rules && rules.zero_record_players_team_allowlist)
-      ? rules.zero_record_players_team_allowlist.map((v) => String(v))
-      : []
-  );
   const movedInByTeam = movedInPlayersByTeam(rosterSyncReport);
   const rosterSizeChangedAllowlist = new Set(
     Array.isArray(rules && rules.roster_size_changed_team_allowlist)
@@ -922,16 +910,15 @@ function buildAlerts(
       });
     }
     const zeroPlayers = splitZeroPlayers(row.zero_players);
-    const allowSet = new Set(
-      Array.isArray(allowlist[row.team_code]) ? allowlist[row.team_code].map((v) => String(v)) : []
-    );
     const movedInSet = movedInByTeam.get(String(row.team_code || "")) || new Set();
-    const actionableZeroPlayers = zeroPlayers.filter((name) => !allowSet.has(name) && !movedInSet.has(name));
-    if (
-      actionableZeroPlayers.length > 0 &&
-      !rosterTransition &&
-      !zeroRecordTeamAllowlist.has(String(row.team_code || ""))
-    ) {
+    // 관측된 0건(읽기 성공)은 경보하지 않는다. detail이 없거나 읽기 실패인 0건만 경보 대상.
+    const fetchStatusByName = zeroPlayerFetchStatusLookup(row);
+    const actionableZeroPlayers = zeroPlayers.filter(
+      (name) =>
+        !movedInSet.has(name) &&
+        !(fetchStatusByName.has(name) && isFetchObserved(fetchStatusByName.get(name)))
+    );
+    if (actionableZeroPlayers.length > 0 && !rosterTransition) {
       alerts.push({
         severity: rules.zero_record_players_severity || "high",
         team: row.team,
@@ -1174,6 +1161,7 @@ async function main() {
       total_losses: r.total_losses,
       zero_record_players: r.zero_record_players,
       zero_players: r.zero_players,
+      zero_players_detail: r.zero_players_detail,
       delta_total_matches: r.delta_total_matches,
       delta_total_wins: r.delta_total_wins,
       delta_total_losses: r.delta_total_losses,

@@ -52,6 +52,28 @@ runTest("team rows merge across chunks and zero_players string is preserved", ()
   assert.equal(mergedSnapshot.teams.length, 2, "merged snapshot carries the merged teams");
 });
 
+// 1b. zero_players_detail (0건 선수별 fetch_status)도 병합된 팀 행에 그대로 실려야 한다.
+//     판정부가 "관측된 0건"과 "근거 없는 0건"을 구분하는 근거이므로 청크 병합에서 유실되면 안 된다.
+runTest("zero_players_detail is carried through the merge onto the team row", () => {
+  const detail = [
+    { name: "kim", fetch_status: "ok" },
+    { name: "lee", fetch_status: "failed" },
+  ];
+  const snapshots = [
+    chunk("chunkA", {
+      teams: [{ team: "Alpha", team_code: "ALP", players: 5, zero_players: "kim, lee", zero_players_detail: detail }],
+    }),
+  ];
+
+  const { mergedTeams } = buildMergedReports(snapshots, {
+    tags: ["chunkA"],
+    outputDate: "2026-07-24",
+  });
+
+  const alp = mergedTeams.find((t) => t.team_code === "ALP");
+  assert.deepEqual(alp.zero_players_detail, detail, "zero_players_detail survives the merge");
+});
+
 // 2a. dedupeAlerts collapses alerts that share (severity, team_code, rule, message).
 runTest("dedupeAlerts collapses identical alerts from two chunks", () => {
   const dup = { severity: "high", team_code: "ALP", rule: "roster_gap", message: "missing player" };

@@ -72,29 +72,6 @@ function main() {
       fail(errors, "rules.homepage_integrity_report_max_age_minutes", "must be a non-negative number");
     }
 
-    if (
-      !doc.rules.zero_record_players_allowlist ||
-      typeof doc.rules.zero_record_players_allowlist !== "object" ||
-      Array.isArray(doc.rules.zero_record_players_allowlist)
-    ) {
-      fail(errors, "rules.zero_record_players_allowlist", "must be an object");
-    } else {
-      for (const [teamCode, players] of Object.entries(doc.rules.zero_record_players_allowlist)) {
-        if (!/^[a-z0-9_-]+$/i.test(String(teamCode))) {
-          fail(errors, `rules.zero_record_players_allowlist.${teamCode}`, "invalid team code key");
-        }
-        if (!Array.isArray(players)) {
-          fail(errors, `rules.zero_record_players_allowlist.${teamCode}`, "must be an array");
-          continue;
-        }
-        players.forEach((name, index) => {
-          if (typeof name !== "string" || !name.trim()) {
-            fail(errors, `rules.zero_record_players_allowlist.${teamCode}[${index}]`, "must be non-empty string");
-          }
-        });
-      }
-    }
-
     if (!Array.isArray(doc.rules.roster_size_changed_team_allowlist)) {
       fail(errors, "rules.roster_size_changed_team_allowlist", "must be an array");
     } else {

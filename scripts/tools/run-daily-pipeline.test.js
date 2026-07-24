@@ -109,7 +109,6 @@ runTest("buildAlerts ignores moved-in zero-record players for the current run", 
     {
       rules: {
         zero_record_players_severity: "high",
-        zero_record_players_allowlist: {},
         negative_delta_matches_severity: "critical",
         roster_size_changed_severity: "medium",
         roster_size_changed_team_allowlist: ["fa"],
@@ -182,7 +181,6 @@ runTest("buildAlerts surfaces roster players excluded by an external-opponent na
     {
       rules: {
         zero_record_players_severity: "high",
-        zero_record_players_allowlist: {},
         negative_delta_matches_severity: "critical",
         roster_size_changed_severity: "medium",
         roster_size_changed_team_allowlist: [],
@@ -219,7 +217,6 @@ runTest("buildAlerts stays quiet when no roster player is caught by a name rule"
     {
       rules: {
         zero_record_players_severity: "high",
-        zero_record_players_allowlist: {},
         negative_delta_matches_severity: "critical",
         roster_size_changed_severity: "medium",
         roster_size_changed_team_allowlist: [],
@@ -252,7 +249,6 @@ runTest("buildAlerts suppresses stale roster_size_changed alerts when current ru
     {
       rules: {
         zero_record_players_severity: "high",
-        zero_record_players_allowlist: {},
         negative_delta_matches_severity: "critical",
         roster_size_changed_severity: "medium",
         roster_size_changed_team_allowlist: [],
@@ -292,7 +288,6 @@ runTest("buildAlerts suppresses blocking alerts for teams with roster transition
     {
       rules: {
         zero_record_players_severity: "high",
-        zero_record_players_allowlist: {},
         negative_delta_matches_severity: "critical",
         roster_size_changed_severity: "medium",
         roster_size_changed_team_allowlist: [],
@@ -340,7 +335,6 @@ runTest("buildAlerts suppresses roster transition alerts for allowlisted teams",
     {
       rules: {
         zero_record_players_severity: "high",
-        zero_record_players_allowlist: {},
         negative_delta_matches_severity: "critical",
         roster_size_changed_severity: "medium",
         roster_size_changed_team_allowlist: ["fa"],
@@ -364,43 +358,94 @@ runTest("buildAlerts suppresses roster transition alerts for allowlisted teams",
   assert.deepEqual(actual, []);
 });
 
-runTest("buildAlerts suppresses zero-record alerts for team-allowlisted teams", () => {
+// 0건 경보는 이제 이름 허용목록이 아니라 "관측 근거"로 판정한다.
+// 읽기 성공 + 0건 = 엘로보드에도 경기가 없다는 증명 → 경보 없음.
+const ZERO_RECORD_RULES = {
+  rules: {
+    zero_record_players_severity: "high",
+    negative_delta_matches_severity: "critical",
+    roster_size_changed_severity: "medium",
+    roster_size_changed_team_allowlist: [],
+    no_new_matches_enabled: false,
+  },
+};
+
+runTest("buildAlerts stays quiet for observed zero-record players (eloboard read succeeded)", () => {
   const actual = buildAlerts(
     [
       {
         team: "연합팀",
         team_code: "fa",
-        zero_players: "고요, 권혁진, 루다",
+        zero_players: "고요, 권혁진",
+        zero_players_detail: [
+          { name: "고요", fetch_status: "ok" },
+          { name: "권혁진", fetch_status: "used_existing_json" },
+        ],
         fetch_fail: 0,
         csv_fail: 0,
-        delta_total_matches: -100,
+        delta_total_matches: 0,
         delta_players: 0,
       },
     ],
-    {
-      rules: {
-        zero_record_players_severity: "high",
-        zero_record_players_allowlist: {},
-        zero_record_players_team_allowlist: ["fa"],
-        negative_delta_matches_severity: "critical",
-        roster_size_changed_severity: "medium",
-        roster_size_changed_team_allowlist: ["fa"],
-        no_new_matches_enabled: false,
-      },
-    },
+    ZERO_RECORD_RULES,
     null,
     []
   );
 
-  assert.deepEqual(actual, [
-    {
-      severity: "critical",
-      team: "연합팀",
-      team_code: "fa",
-      rule: "total_matches_decreased",
-      message: "delta_total_matches=-100",
-    },
-  ]);
+  assert.deepEqual(actual, []);
+});
+
+runTest("buildAlerts alerts on zero-record players whose fetch failed (no observation basis)", () => {
+  const actual = buildAlerts(
+    [
+      {
+        team: "연합팀",
+        team_code: "fa",
+        zero_players: "고요, 권혁진",
+        zero_players_detail: [
+          { name: "고요", fetch_status: "failed" },
+          { name: "권혁진", fetch_status: "ok" },
+        ],
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: 0,
+        delta_players: 0,
+      },
+    ],
+    ZERO_RECORD_RULES,
+    null,
+    []
+  );
+
+  // 권혁진은 관측된 0건이라 빠지고, 읽기 실패한 고요만 경보에 남는다.
+  const hit = actual.find((row) => row.rule === "zero_record_players");
+  assert.ok(hit, "관측 근거 없는 0건은 경보로 떠야 한다");
+  assert.equal(hit.severity, "high");
+  assert.equal(hit.message, "zero_record_players=1 (고요)");
+});
+
+runTest("buildAlerts treats zero-record players without detail (old snapshot) as needs review", () => {
+  const actual = buildAlerts(
+    [
+      {
+        team: "연합팀",
+        team_code: "fa",
+        zero_players: "고요",
+        // zero_players_detail 없음 = 구버전 스냅샷. 관측 근거를 확인할 수 없으니 안전하게 경보.
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: 0,
+        delta_players: 0,
+      },
+    ],
+    ZERO_RECORD_RULES,
+    null,
+    []
+  );
+
+  const hit = actual.find((row) => row.rule === "zero_record_players");
+  assert.ok(hit, "detail이 없으면 안전하게 경보로 떠야 한다");
+  assert.equal(hit.message, "zero_record_players=1 (고요)");
 });
 
 runTest("buildHomepageIntegrityOperationalAlerts adds medium alert for fresh stale-snapshot disagreement reports", () => {
@@ -599,33 +644,32 @@ runTest("exportTimeoutForTeam extends timeout for fa only", () => {
   assert.equal(exportTimeoutForTeam("jsa"), 900000);
 });
 
-runTest("classifyZeroRecordPlayers separates team allowlist, player allowlist, and review players", () => {
+runTest("classifyZeroRecordPlayers marks observed 0-records quiet and unobserved ones for review", () => {
   const actual = classifyZeroRecordPlayers(
     [
       {
         team: "연합팀",
         team_code: "fa",
-        zero_players: "박퍼니",
+        zero_players: "관측선수, 실패선수",
+        zero_players_detail: [
+          // 읽기 성공 → 관측된 0건 → 경보 대상 아님
+          { name: "관측선수", fetch_status: "used_existing_json" },
+          // 읽기 실패 → 근거 없는 0건 → 판단 필요
+          { name: "실패선수", fetch_status: "failed" },
+        ],
       },
       {
-        team: "케이대",
-        team_code: "ku",
-        zero_players: "케이, 신규점검대상1, 신규점검대상2",
+        team: "구버전팀",
+        team_code: "old",
+        // detail 없음(구버전 스냅샷) → 관측 근거 확인 불가 → 안전하게 needs_review
+        zero_players: "무디테일선수",
       },
     ],
-    {
-      rules: {
-        zero_record_players_allowlist: {
-          ku: ["케이"],
-        },
-        zero_record_players_team_allowlist: ["fa"],
-      },
-    }
+    { rules: {} }
   );
 
-  assert.equal(actual.total, 4);
-  assert.equal(actual.counts.team_allowlisted, 1);
-  assert.equal(actual.counts.player_allowlisted, 1);
+  assert.equal(actual.total, 3);
+  assert.equal(actual.counts.observed_zero, 1);
   assert.equal(actual.counts.needs_review, 2);
   assert.equal(actual.needs_review_count, 2);
 });
