@@ -69,6 +69,27 @@ export function extractHeroMediaObjectPath(url: string) {
   }
 }
 
+export const DEFAULT_HERO_TITLE = "오늘은\n당신입니다";
+
+export async function getHeroTitle(): Promise<string> {
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "hero_title")
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "PGRST205") {
+      return DEFAULT_HERO_TITLE;
+    }
+    console.error("failed to load hero title", error);
+    return DEFAULT_HERO_TITLE;
+  }
+
+  const value = data?.value?.trim();
+  return value ? value : DEFAULT_HERO_TITLE;
+}
+
 export async function getActiveHeroMedia(): Promise<HeroMediaRow | null> {
   const { data, error } = await supabase
     .from("hero_media")

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
+import { DEFAULT_HERO_TITLE } from "@/lib/hero-media";
 import LogoutButton from "../ops/LogoutButton";
 import HeroMediaAdmin from "./HeroMediaAdmin";
 
@@ -29,6 +30,28 @@ async function loadHeroMedia() {
   }
 }
 
+async function loadHeroTitle() {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "hero_title")
+      .maybeSingle();
+
+    if (error) {
+      if (error.code !== "PGRST205") console.error("failed to load hero title", error);
+      return DEFAULT_HERO_TITLE;
+    }
+
+    const value = data?.value?.trim();
+    return value ? value : DEFAULT_HERO_TITLE;
+  } catch (error) {
+    console.error("failed to initialize hero title", error);
+    return DEFAULT_HERO_TITLE;
+  }
+}
+
 export default async function AdminHeroMediaPage() {
   const cookieStore = await cookies();
   const sessionValue = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
@@ -37,7 +60,7 @@ export default async function AdminHeroMediaPage() {
     redirect("/admin/login?next=/admin/hero-media");
   }
 
-  const initialMedia = await loadHeroMedia();
+  const [initialMedia, initialTitle] = await Promise.all([loadHeroMedia(), loadHeroTitle()]);
 
   return (
     <main className="min-h-screen bg-background p-6 text-foreground md:p-10">
@@ -54,7 +77,7 @@ export default async function AdminHeroMediaPage() {
           </p>
         </div>
 
-        <HeroMediaAdmin initialMedia={initialMedia} />
+        <HeroMediaAdmin initialMedia={initialMedia} initialTitle={initialTitle} />
       </div>
     </main>
   );

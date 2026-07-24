@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { ADMIN_SESSION_COOKIE, assertValidAdminSession } from "@/lib/admin-auth";
 import {
   buildHeroMediaObjectPath,
+  DEFAULT_HERO_TITLE,
   extractHeroMediaObjectPath,
   HERO_MEDIA_BUCKET,
   inferHeroMediaTypeFromFilename,
@@ -29,11 +30,65 @@ async function listHeroMedia() {
   return data || [];
 }
 
+async function loadHeroTitle() {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("value")
+    .eq("key", "hero_title")
+    .maybeSingle();
+
+  // site_settings 테이블이 아직 없으면(PGRST205) 기본 문구로 대체.
+  if (error && error.code !== "PGRST205") throw error;
+  const value = data?.value?.trim();
+  return value ? value : DEFAULT_HERO_TITLE;
+}
+
+async function setTitle(rawTitle: string) {
+  const title = rawTitle.trim();
+  if (title.length > 60) {
+    return NextResponse.json({ ok: false, message: "히어로 문구는 60자 이하여야 합니다." }, { status: 400 });
+  }
+
+  const supabase = createSupabaseAdminClient();
+
+  if (!title) {
+    const { error } = await supabase.from("site_settings").delete().eq("key", "hero_title");
+    if (error) {
+      if (error.code === "PGRST205") {
+        return NextResponse.json(
+          { ok: false, message: "site_settings 테이블이 없습니다. scripts/sql/create-site-settings.sql 을 Supabase에서 실행해주세요." },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
+  } else {
+    const { error } = await supabase
+      .from("site_settings")
+      .upsert({ key: "hero_title", value: title, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    if (error) {
+      if (error.code === "PGRST205") {
+        return NextResponse.json(
+          { ok: false, message: "site_settings 테이블이 없습니다. scripts/sql/create-site-settings.sql 을 Supabase에서 실행해주세요." },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/hero-media");
+  return NextResponse.json({ ok: true, title: title || DEFAULT_HERO_TITLE });
+}
+
 export async function GET() {
   try {
     await requireAdmin();
     const media = await listHeroMedia();
-    return NextResponse.json({ ok: true, media });
+    const title = await loadHeroTitle();
+    return NextResponse.json({ ok: true, media, title });
   } catch (error) {
     const status =
       error instanceof Error && error.message === "unauthorized"
@@ -133,8 +188,13 @@ export async function POST(req: Request) {
       filename?: string;
       path?: string;
       activate?: boolean;
+      title?: string;
     };
     const action = String(body.action || "").trim();
+
+    if (action === "set-title") {
+      return await setTitle(String(body.title ?? ""));
+    }
 
     if (action === "sign-upload") {
       const filename = String(body.filename || "").trim();

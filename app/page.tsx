@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 
-import { getActiveHeroMedia, sanitizeHeroMediaType } from "@/lib/hero-media";
+import { getActiveHeroMedia, getHeroTitle, sanitizeHeroMediaType } from "@/lib/hero-media";
 
 export const revalidate = 60;
 
@@ -12,6 +12,10 @@ export const metadata = {
 
 export default async function HomePage() {
   const activeHeroMedia = await getActiveHeroMedia();
+  const heroTitleLines = (await getHeroTitle())
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
   const heroMediaType = activeHeroMedia ? sanitizeHeroMediaType(activeHeroMedia.type) : "image";
   // 저장된 히어로가 없으면 미디어 없이 배경 그라디언트만 그린다 (샘플 폴백 이미지는 제거됨).
   const heroMediaUrl = activeHeroMedia?.url || null;
@@ -53,22 +57,16 @@ export default async function HomePage() {
           <div className="relative mx-auto flex h-full w-full max-w-6xl items-end px-4 pb-10 pt-8 md:px-8 md:pb-14 lg:px-6 lg:pb-16 xl:px-0">
             <div className="max-w-5xl">
               <h1 className="relative -left-[2rem] top-3 text-[2.55rem] font-black leading-[0.92] tracking-[-0.07em] text-white drop-shadow-[0_18px_44px_rgba(0,0,0,0.34)] md:-left-[9.5rem] md:top-5 md:text-[4.9rem] lg:-left-[20rem] lg:top-7 lg:text-[6.4rem]">
-                <span className="block overflow-hidden">
-                  <span
-                    className="block [animation:heroTitleLift_720ms_cubic-bezier(0.22,1,0.36,1)_1000ms_both]"
-                    style={{ willChange: "transform, opacity" }}
-                  >
-                    오늘은
+                {heroTitleLines.map((line, index) => (
+                  <span key={`${index}-${line}`} className="block overflow-hidden">
+                    <span
+                      className="block [animation:heroTitleLift_720ms_cubic-bezier(0.22,1,0.36,1)_both]"
+                      style={{ willChange: "transform, opacity", animationDelay: `${1000 + index * 320}ms` }}
+                    >
+                      {line}
+                    </span>
                   </span>
-                </span>
-                <span className="block overflow-hidden">
-                  <span
-                    className="block [animation:heroTitleLift_720ms_cubic-bezier(0.22,1,0.36,1)_1320ms_both]"
-                    style={{ willChange: "transform, opacity" }}
-                  >
-                    당신입니다
-                  </span>
-                </span>
+                ))}
               </h1>
 
               <div className="relative -left-[2rem] top-3 mt-8 flex flex-col gap-3 sm:flex-row md:-left-[9.5rem] md:top-5 lg:-left-[20rem] lg:top-7">

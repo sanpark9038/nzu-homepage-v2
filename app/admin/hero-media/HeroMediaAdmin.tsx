@@ -16,9 +16,11 @@ const MAX_RECOMMENDED_VIDEO_SIZE_MB = 50;
 
 export default function HeroMediaAdmin({
   initialMedia,
+  initialTitle,
   readOnly = false,
 }: {
   initialMedia: HeroMediaEntry[];
+  initialTitle: string;
   readOnly?: boolean;
 }) {
   const [media, setMedia] = useState<HeroMediaEntry[]>(initialMedia);
@@ -27,10 +29,39 @@ export default function HeroMediaAdmin({
   const [file, setFile] = useState<File | null>(null);
   const [activateOnUpload, setActivateOnUpload] = useState(true);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [title, setTitle] = useState(initialTitle);
 
   useEffect(() => {
     setMedia(initialMedia);
   }, [initialMedia]);
+
+  useEffect(() => {
+    setTitle(initialTitle);
+  }, [initialTitle]);
+
+  async function saveTitle() {
+    if (readOnly) {
+      setMessage(getAdminWriteDisabledMessage("히어로 문구 수정"));
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/admin/hero-media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set-title", title }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "히어로 문구 저장에 실패했습니다.");
+      setTitle(json.title || "");
+      setMessage("히어로 문구를 저장했습니다.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "히어로 문구 저장에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function refreshMedia() {
     setLoading(true);
@@ -163,6 +194,32 @@ export default function HeroMediaAdmin({
 
   return (
     <div className="space-y-8">
+      <section className="rounded-[2rem] border border-white/10 bg-card p-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-black tracking-tight text-white">히어로 문구</h2>
+          <p className="text-sm text-white/55">
+            줄바꿈으로 줄을 나눕니다. 비우고 저장하면 기본 문구로 돌아갑니다.
+          </p>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          <textarea
+            rows={2}
+            value={title}
+            disabled={readOnly}
+            onChange={(event) => setTitle(event.target.value)}
+            className="block w-full resize-none rounded-xl border border-white/10 bg-background px-4 py-3 text-sm font-bold text-white"
+          />
+          <button
+            onClick={saveTitle}
+            disabled={loading || readOnly}
+            className="inline-flex min-h-12 items-center justify-center rounded-xl bg-nzu-green px-5 text-sm font-black text-black disabled:opacity-50"
+          >
+            문구 저장
+          </button>
+        </div>
+      </section>
+
       <section className="rounded-[2rem] border border-white/10 bg-card p-6">
         <div className="space-y-2">
           <h2 className="text-xl font-black tracking-tight text-white">히어로 미디어 업로드</h2>
