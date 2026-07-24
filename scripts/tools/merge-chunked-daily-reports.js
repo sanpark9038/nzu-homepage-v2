@@ -95,41 +95,7 @@ function dedupeAlerts(alertRows) {
   return Array.from(deduped.values());
 }
 
-function main() {
-  const outputDate = argValue("--output-date", "");
-  const tagsRaw = argValue("--chunk-date-tags", "");
-  const tags = tagsRaw
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
-
-  if (!outputDate) {
-    throw new Error("Missing --output-date (e.g. 2026-03-22)");
-  }
-  if (!tags.length) {
-    throw new Error("Missing --chunk-date-tags");
-  }
-
-  const snapshots = tags.map((tag) => {
-    const snapshotPath = path.join(REPORTS_DIR, `daily_pipeline_snapshot_${tag}.json`);
-    const alertsPath = path.join(REPORTS_DIR, `daily_pipeline_alerts_${tag}.json`);
-    if (!fs.existsSync(snapshotPath)) {
-      throw new Error(`Missing chunk snapshot: ${path.relative(ROOT, snapshotPath).replace(/\\/g, "/")}`);
-    }
-    if (!fs.existsSync(alertsPath)) {
-      throw new Error(`Missing chunk alerts: ${path.relative(ROOT, alertsPath).replace(/\\/g, "/")}`);
-    }
-    return {
-      tag,
-      snapshotPath,
-      alertsPath,
-      snapshot: readJson(snapshotPath),
-      alerts: readJson(alertsPath),
-    };
-  });
-
-  ensureConsistentAlertSettings(snapshots);
-
+function buildMergedReports(snapshots, { tags, outputDate }) {
   const first = snapshots[0].snapshot;
   const teamMap = new Map();
   const failedPlayers = [];
@@ -222,6 +188,47 @@ function main() {
     alerts: mergedAlertRows,
   };
 
+  return { mergedTeams, mergedSnapshot, mergedAlertRows, counts, mergedAlerts };
+}
+
+function main() {
+  const outputDate = argValue("--output-date", "");
+  const tagsRaw = argValue("--chunk-date-tags", "");
+  const tags = tagsRaw
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  if (!outputDate) {
+    throw new Error("Missing --output-date (e.g. 2026-03-22)");
+  }
+  if (!tags.length) {
+    throw new Error("Missing --chunk-date-tags");
+  }
+
+  const snapshots = tags.map((tag) => {
+    const snapshotPath = path.join(REPORTS_DIR, `daily_pipeline_snapshot_${tag}.json`);
+    const alertsPath = path.join(REPORTS_DIR, `daily_pipeline_alerts_${tag}.json`);
+    if (!fs.existsSync(snapshotPath)) {
+      throw new Error(`Missing chunk snapshot: ${path.relative(ROOT, snapshotPath).replace(/\\/g, "/")}`);
+    }
+    if (!fs.existsSync(alertsPath)) {
+      throw new Error(`Missing chunk alerts: ${path.relative(ROOT, alertsPath).replace(/\\/g, "/")}`);
+    }
+    return {
+      tag,
+      snapshotPath,
+      alertsPath,
+      snapshot: readJson(snapshotPath),
+      alerts: readJson(alertsPath),
+    };
+  });
+
+  ensureConsistentAlertSettings(snapshots);
+
+  const { mergedTeams, mergedSnapshot, mergedAlertRows, counts, mergedAlerts } =
+    buildMergedReports(snapshots, { tags, outputDate });
+
   const outSnapshotJson = path.join(REPORTS_DIR, `daily_pipeline_snapshot_${outputDate}.json`);
   const outSnapshotCsv = path.join(REPORTS_DIR, `daily_pipeline_snapshot_${outputDate}.csv`);
   const outAlertsJson = path.join(REPORTS_DIR, `daily_pipeline_alerts_${outputDate}.json`);
@@ -283,4 +290,14 @@ function main() {
   );
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  buildMergedReports,
+  dedupeAlerts,
+  normalizeAlertMessage,
+  ensureConsistentAlertSettings,
+  stableStringify,
+};

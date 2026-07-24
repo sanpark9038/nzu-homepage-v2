@@ -70,6 +70,7 @@
     "pipeline:ops:with-sync": "node scripts/tools/run-manual-refresh.js --with-supabase-sync",
     "pipeline:ops:freshness": "node scripts/tools/check-ops-pipeline-freshness.js",
     "test:pipeline:daily": "node scripts/tools/run-daily-pipeline.test.js",
+    "test:merge-chunked": "node scripts/tools/merge-chunked-daily-reports.test.js",
     "test:pipeline:manual-refresh": "node scripts/tools/run-manual-refresh.test.js",
     "test:pipeline:ops": "node scripts/tools/run-ops-pipeline.test.js",
     "test:prod-sync": "node scripts/tools/supabase-prod-sync.test.js",
