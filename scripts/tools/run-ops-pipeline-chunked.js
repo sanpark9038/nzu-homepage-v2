@@ -11,6 +11,7 @@ const MERGE_SCRIPT = "scripts/tools/merge-chunked-daily-reports.js";
 const ROSTER_SYNC_SCRIPT = "scripts/tools/sync-team-roster-metadata.js";
 const ROSTER_REVIEW_SCRIPT = "scripts/tools/build-roster-change-review.js";
 const PRIORITY_SCRIPT = "scripts/tools/update-player-check-priority.js";
+const CADENCE_SCRIPT = "scripts/tools/sync-collection-cadence.js";
 const { ensureAutoDiscoveredTeamProjects } = require("./lib/team-project-discovery");
 
 function argValue(flag, fallback = null) {
@@ -272,6 +273,19 @@ async function main() {
   const preparation = await runCommonPreparation(teams, all);
   if (!preparation.ok) hadFailure = true;
 
+  // Cadence state is an optimization, not a gate: hydrate the roster files from
+  // R2 before collecting so shouldSkipByPriorityWindow honors yesterday's work.
+  // A failure here (or missing R2 env) is a warning only — never stops the run.
+  const hydrateArgs = [CADENCE_SCRIPT, "--hydrate"];
+  const hydrateRes = await runNode(hydrateArgs, "cadence_hydrate");
+  const cadenceHydrate = {
+    ok: hydrateRes.ok,
+    command: `${hydrateRes.node_bin} ${hydrateArgs.join(" ")}`,
+    stdout_tail: tail(hydrateRes.stdout),
+    stderr_tail: tail([hydrateRes.stderr, hydrateRes.error].filter(Boolean).join("\n")),
+  };
+  if (!hydrateRes.ok) console.log("[WARN] cadence hydrate failed (continuing — state is an optimization)");
+
   console.log(`[START] chunked ops: teams=${teams.length}, chunk_size=${chunkSize}, chunks=${chunks.length}`);
   if (!preparation.ok) {
     console.log("[PREP] FAIL common preparation");
@@ -378,6 +392,18 @@ async function main() {
     if (!priorityRes.ok) hadFailure = true;
   }
 
+  // Persist the freshly-recomputed cadence back to R2 once, after all chunks and
+  // the priority recompute. Warning-only, same as hydrate.
+  const persistArgs = [CADENCE_SCRIPT, "--persist"];
+  const persistRes = await runNode(persistArgs, "cadence_persist");
+  const cadencePersist = {
+    ok: persistRes.ok,
+    command: `${persistRes.node_bin} ${persistArgs.join(" ")}`,
+    stdout_tail: tail(persistRes.stdout),
+    stderr_tail: tail([persistRes.stderr, persistRes.error].filter(Boolean).join("\n")),
+  };
+  if (!persistRes.ok) console.log("[WARN] cadence persist failed (continuing — state is an optimization)");
+
   const summary = {
     generated_at: new Date().toISOString(),
     status: hadFailure ? "fail" : "pass",
@@ -390,8 +416,10 @@ async function main() {
     teams,
     run_tag: runTag,
     preparation,
+    cadence_hydrate: cadenceHydrate,
     merged_daily_snapshot: merged,
     priority_update: priorityUpdate,
+    cadence_persist: cadencePersist,
     chunks: chunkReports,
   };
 
