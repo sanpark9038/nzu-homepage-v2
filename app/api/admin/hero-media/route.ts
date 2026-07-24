@@ -56,59 +56,103 @@ export async function GET() {
   }
 }
 
+// 서명 URL 발급: 브라우저가 Supabase Storage로 직접 PUT 업로드하도록 함
+// (Vercel 서버리스 요청 본문 한도 ~4.5MB / 413 회피).
+async function signUpload(filename: string) {
+  if (!inferHeroMediaTypeFromFilename(filename)) {
+    return NextResponse.json({ ok: false, message: "지원하지 않는 파일 형식입니다." }, { status: 400 });
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const objectPath = buildHeroMediaObjectPath(filename);
+  const { data, error } = await supabase.storage.from(HERO_MEDIA_BUCKET).createSignedUploadUrl(objectPath);
+  if (error || !data) {
+    throw new Error(error?.message || "signed_upload_url_failed");
+  }
+
+  // signedUrl 은 절대 URL(https://<proj>.supabase.co/storage/v1/object/upload/sign/... ?token=...).
+  // 브라우저는 이 URL 로 method:"PUT", body:file 만 하면 된다.
+  return NextResponse.json({ ok: true, path: data.path, token: data.token, signedUrl: data.signedUrl });
+}
+
+// 업로드 완료된 오브젝트를 hero_media 테이블에 등록.
+async function registerUpload(objectPath: string, activate: boolean) {
+  const inferredType = inferHeroMediaTypeFromFilename(objectPath);
+  if (!inferredType) {
+    return NextResponse.json({ ok: false, message: "지원하지 않는 파일 형식입니다." }, { status: 400 });
+  }
+
+  const supabase = createSupabaseAdminClient();
+
+  // 유령 행 방지: 서명 URL 만료 등으로 실제 업로드가 안 됐으면 등록하지 않는다.
+  const slashIndex = objectPath.indexOf("/");
+  const dir = slashIndex >= 0 ? objectPath.slice(0, slashIndex) : "";
+  const name = slashIndex >= 0 ? objectPath.slice(slashIndex + 1) : objectPath;
+  const { data: listed, error: listError } = await supabase.storage
+    .from(HERO_MEDIA_BUCKET)
+    .list(dir, { search: name, limit: 100 });
+  if (listError) throw listError;
+  if (!listed || !listed.some((object) => object.name === name)) {
+    return NextResponse.json(
+      { ok: false, message: "업로드된 파일을 찾지 못했습니다. 서명 URL이 만료됐을 수 있으니 다시 업로드해주세요." },
+      { status: 400 }
+    );
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(HERO_MEDIA_BUCKET).getPublicUrl(objectPath);
+
+  if (activate) {
+    const { error: clearError } = await supabase.from("hero_media").update({ is_active: false }).eq("is_active", true);
+    if (clearError) throw clearError;
+  }
+
+  const { error: insertError } = await supabase.from("hero_media").insert({
+    url: publicUrl,
+    type: inferredType,
+    is_active: activate,
+  });
+
+  if (insertError) {
+    await supabase.storage.from(HERO_MEDIA_BUCKET).remove([objectPath]);
+    throw new Error(insertError.message || "hero_media_insert_failed");
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/hero-media");
+  const media = await listHeroMedia();
+  return NextResponse.json({ ok: true, media });
+}
+
 export async function POST(req: Request) {
   try {
     await requireAdmin();
-    const formData = await req.formData();
-    const file = formData.get("file");
-    const activate = String(formData.get("activate") || "").trim() === "true";
+    const body = (await req.json().catch(() => ({}))) as {
+      action?: string;
+      filename?: string;
+      path?: string;
+      activate?: boolean;
+    };
+    const action = String(body.action || "").trim();
 
-    if (!(file instanceof File)) {
-      return NextResponse.json({ ok: false, message: "업로드할 파일이 필요합니다." }, { status: 400 });
+    if (action === "sign-upload") {
+      const filename = String(body.filename || "").trim();
+      if (!filename) {
+        return NextResponse.json({ ok: false, message: "업로드할 파일 이름이 필요합니다." }, { status: 400 });
+      }
+      return await signUpload(filename);
     }
 
-    const inferredType = inferHeroMediaTypeFromFilename(file.name, file.type);
-    if (!inferredType) {
-      return NextResponse.json({ ok: false, message: "지원하지 않는 파일 형식입니다." }, { status: 400 });
+    if (action === "register-upload") {
+      const objectPath = String(body.path || "").trim();
+      if (!objectPath) {
+        return NextResponse.json({ ok: false, message: "등록할 업로드 경로가 필요합니다." }, { status: 400 });
+      }
+      return await registerUpload(objectPath, Boolean(body.activate));
     }
 
-    const supabase = createSupabaseAdminClient();
-    const objectPath = buildHeroMediaObjectPath(file.name);
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    const { error: uploadError } = await supabase.storage.from(HERO_MEDIA_BUCKET).upload(objectPath, buffer, {
-      contentType: file.type || undefined,
-      upsert: false,
-    });
-
-    if (uploadError) {
-      throw new Error(uploadError.message || "storage_upload_failed");
-    }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from(HERO_MEDIA_BUCKET).getPublicUrl(objectPath);
-
-    if (activate) {
-      const { error: clearError } = await supabase.from("hero_media").update({ is_active: false }).eq("is_active", true);
-      if (clearError) throw clearError;
-    }
-
-    const { error: insertError } = await supabase.from("hero_media").insert({
-      url: publicUrl,
-      type: inferredType,
-      is_active: activate,
-    });
-
-    if (insertError) {
-      await supabase.storage.from(HERO_MEDIA_BUCKET).remove([objectPath]);
-      throw new Error(insertError.message || "hero_media_insert_failed");
-    }
-
-    revalidatePath("/");
-    revalidatePath("/admin/hero-media");
-    const media = await listHeroMedia();
-    return NextResponse.json({ ok: true, media });
+    return NextResponse.json({ ok: false, message: "알 수 없는 요청입니다." }, { status: 400 });
   } catch (error) {
     const status = error instanceof Error && error.message === "unauthorized" ? 401 : 500;
     return NextResponse.json(

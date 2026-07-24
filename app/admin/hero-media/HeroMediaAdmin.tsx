@@ -66,18 +66,38 @@ export default function HeroMediaAdmin({
     setLoading(true);
     setMessage("");
     try {
-      const formData = new FormData();
-      formData.set("file", file);
-      formData.set("activate", String(activateOnUpload));
-
-      const res = await fetch("/api/admin/hero-media", {
+      // 1) 서명 업로드 URL 발급 (서버 경유 X — 파일 본문은 서버로 안 보냄)
+      setMessage("업로드 준비 중...");
+      const signRes = await fetch("/api/admin/hero-media", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sign-upload", filename: file.name }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "히어로 미디어 업로드에 실패했습니다.");
+      const signJson = await signRes.json();
+      if (!signRes.ok) throw new Error(signJson.message || "업로드 URL 발급에 실패했습니다.");
 
-      setMedia(json.media || []);
+      // 2) 브라우저 → Supabase Storage 직접 PUT (Vercel 4.5MB 본문 한도/413 우회)
+      setMessage("파일 업로드 중...");
+      const putRes = await fetch(signJson.signedUrl, {
+        method: "PUT",
+        headers: file.type ? { "Content-Type": file.type } : undefined,
+        body: file,
+      });
+      if (!putRes.ok) {
+        throw new Error("파일 업로드에 실패했습니다. 서명 URL이 만료됐을 수 있으니 다시 시도해주세요.");
+      }
+
+      // 3) 업로드된 오브젝트를 hero_media 에 등록
+      setMessage("등록 중...");
+      const registerRes = await fetch("/api/admin/hero-media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "register-upload", path: signJson.path, activate: activateOnUpload }),
+      });
+      const registerJson = await registerRes.json();
+      if (!registerRes.ok) throw new Error(registerJson.message || "히어로 미디어 등록에 실패했습니다.");
+
+      setMedia(registerJson.media || []);
       setFile(null);
       setActivateOnUpload(true);
       setMessage("히어로 미디어를 업로드했습니다.");
