@@ -13,14 +13,15 @@ export const metadata = {
 export default async function HomePage() {
   const activeHeroMedia = await getActiveHeroMedia();
   const heroMediaType = activeHeroMedia ? sanitizeHeroMediaType(activeHeroMedia.type) : "image";
-  const heroMediaUrl = activeHeroMedia?.url || "/home-hero-reference.webp";
-  const heroVideoMimeType = heroMediaUrl.toLowerCase().includes(".webm") ? "video/webm" : "video/mp4";
+  // 저장된 히어로가 없으면 미디어 없이 배경 그라디언트만 그린다 (샘플 폴백 이미지는 제거됨).
+  const heroMediaUrl = activeHeroMedia?.url || null;
+  const heroVideoMimeType = (heroMediaUrl || "").toLowerCase().includes(".webm") ? "video/webm" : "video/mp4";
 
   return (
     <div className="min-h-full bg-background text-foreground">
       <main>
         <section className="relative isolate h-[100svh] min-h-[min(560px,100svh)] w-full overflow-hidden">
-          {heroMediaType === "video" ? (
+          {heroMediaUrl && heroMediaType === "video" ? (
             <video
               key={heroMediaUrl}
               className="absolute inset-0 h-full w-full scale-[1.02] object-cover object-center"
@@ -32,7 +33,7 @@ export default async function HomePage() {
             >
               <source src={heroMediaUrl} type={heroVideoMimeType} />
             </video>
-          ) : (
+          ) : heroMediaUrl ? (
             <Image
               src={heroMediaUrl}
               alt="홈 메인 히어로"
@@ -41,6 +42,8 @@ export default async function HomePage() {
               sizes="100vw"
               className="scale-[1.02] object-cover object-center"
             />
+          ) : (
+            <div className="absolute inset-0 bg-[#060a08]" />
           )}
 
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,6,8,0.08),rgba(3,6,8,0.16)_34%,rgba(3,6,8,0.34)_68%,rgba(3,6,8,0.72))]" />
