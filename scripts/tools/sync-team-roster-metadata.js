@@ -19,12 +19,12 @@ const {
   shouldApplyManualRaceOverride,
   shouldApplyManualTierOverride,
 } = require("./lib/roster-admin-store");
+const { loadCollectionExclusions } = require("./lib/player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const REPORT_DIR = path.join(ROOT, "tmp", "reports");
 const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORT_DIR, "manual_refresh_baseline.json");
-const COLLECTION_EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
 const FA_UNIV_FALLBACKS = ["연합팀", "FA", "무소속"];
 
 function argValue(flag, fallback = "") {
@@ -824,8 +824,7 @@ async function main() {
   }
 
   const { overrides: manualOverrides } = await loadMergedRosterAdminState();
-  const collectionExclusionsDoc = readJsonIfExists(COLLECTION_EXCLUSIONS_PATH, {});
-  const excludedEntityIds = buildExcludedEntityIds(collectionExclusionsDoc && collectionExclusionsDoc.players);
+  const excludedEntityIds = buildExcludedEntityIds(loadCollectionExclusions());
   const retiredEntityIds = buildRetiredEntityIds(manualOverrides);
   const legacyEntityIdsBySuccessor = buildLegacyEntityIdsBySuccessor(manualOverrides);
   const appliedManualOverrides = [];

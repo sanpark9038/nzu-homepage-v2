@@ -2,10 +2,10 @@ const fs = require("fs");
 const path = require("path");
 
 const { loadProjectPlayerMetadata, readJson, trim } = require("./lib/project-player-metadata");
+const { loadCollectionExclusions } = require("./lib/player-ledger");
 
 const ROOT = path.join(__dirname, "..", "..");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
-const EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
 const JSON_REPORT_PATH = path.join(REPORTS_DIR, "serving_roster_diff_latest.json");
 const MD_REPORT_PATH = path.join(REPORTS_DIR, "serving_roster_diff_latest.md");
 
@@ -105,9 +105,7 @@ function normalizeRosterRow(row, source) {
 }
 
 function loadExclusionRules() {
-  if (!fs.existsSync(EXCLUSIONS_PATH)) return [];
-  const doc = readJson(EXCLUSIONS_PATH);
-  return (Array.isArray(doc && doc.players) ? doc.players : []).map((row) => ({
+  return loadCollectionExclusions().map((row) => ({
     entity_id: trim(row && row.entity_id) || null,
     wr_id: extractWrId(row && row.wr_id) || null,
     name: trim(row && row.name).toLowerCase() || null,

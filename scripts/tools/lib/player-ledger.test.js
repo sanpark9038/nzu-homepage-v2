@@ -6,6 +6,7 @@ const {
   LEDGER_PATH,
   loadOpponentIdentityDecisions,
   loadOpponentIdentityAliases,
+  loadCollectionExclusions,
 } = require("./player-ledger");
 
 function runTest(name, fn) {
@@ -77,6 +78,71 @@ runTest("missing source degrades to empty, never throws", () => {
   const missing = path.join(os.tmpdir(), `player-ledger-does-not-exist-${process.pid}.json`);
   assert.deepEqual(loadOpponentIdentityDecisions(missing), { allowed_decisions: [], policy: {}, decisions: [] });
   assert.deepEqual(loadOpponentIdentityAliases(missing), { aliases: [] });
+  assert.deepEqual(loadCollectionExclusions(missing), []);
+});
+
+// 수집 제외 흡수: 대장(players[].excluded + collection_exclusions_without_entity)이 옛 수집 제외
+// 파일의 players[] 행으로 복원되고, 레거시 파일(players=배열)은 dual-shape로 그대로 반환돼
+// 기존 리더/테스트 fixture가 무변경으로 동작한다.
+runTest("collection exclusions restore identically from ledger shape and legacy shape (+ without_entity)", () => {
+  const ledger = {
+    players: {
+      "eloboard:male:118": {
+        display_name: "김수환",
+        excluded: {
+          name: "김수환",
+          wr_id: 118,
+          reason: "user_excluded_unneeded_for_homepage",
+          updated_at: "2026-05-15T15:03:41.507Z",
+        },
+      },
+      "eloboard:female:889": {
+        excluded: { name: "Hiyoko", wr_id: 889, reason: "user_excluded_retired_or_unneeded", note: "keep note" },
+      },
+      "eloboard:male:9999": { display_name: "표시만" }, // excluded 없음 → 복원 대상 아님
+    },
+    collection_exclusions_without_entity: [{ name: "옥수수", wr_id: 1022, reason: "user_excluded" }],
+  };
+  const legacyRows = [
+    {
+      entity_id: "eloboard:male:118",
+      wr_id: 118,
+      name: "김수환",
+      reason: "user_excluded_unneeded_for_homepage",
+      updated_at: "2026-05-15T15:03:41.507Z",
+    },
+    { entity_id: "eloboard:female:889", wr_id: 889, name: "Hiyoko", reason: "user_excluded_retired_or_unneeded", note: "keep note" },
+    { name: "옥수수", wr_id: 1022, reason: "user_excluded" },
+  ];
+
+  const fromLedger = loadCollectionExclusions(writeTmp("exc-ledger", ledger));
+  const fromLegacy = loadCollectionExclusions(writeTmp("exc-legacy", { players: legacyRows }));
+
+  // dual-shape: 레거시 파일은 rows[] 그대로 반환
+  assert.deepEqual(fromLegacy, legacyRows);
+
+  // 대장 복원 == 레거시 행 (순서 무관, 필드 동일)
+  const tup = (r) =>
+    JSON.stringify([r.entity_id || "", r.wr_id ?? "", r.name || "", r.reason || "", r.note || "", r.updated_at || ""]);
+  assert.deepEqual(new Set(fromLedger.map(tup)), new Set(fromLegacy.map(tup)));
+
+  // 표시명만 있는 행(excluded 없음)은 복원되지 않는다
+  assert.ok(!fromLedger.some((r) => r.entity_id === "eloboard:male:9999"));
+});
+
+runTest("real ledger collection exclusions carry dedup outcome (no legacy name-only duplicates)", () => {
+  const rows = loadCollectionExclusions();
+  assert.ok(rows.length > 0, "exclusions present");
+
+  // without_entity 3건은 wr_id로만 식별(이름-only 아님)
+  const withoutEntity = rows.filter((r) => !r.entity_id);
+  assert.ok(withoutEntity.length >= 1, "without_entity rows present");
+  assert.ok(withoutEntity.every((r) => Number.isFinite(Number(r.wr_id))), "without_entity rows carry wr_id");
+
+  // 저라뎃은 entity(male:mix:159)로 한 번만 — 옛 이름-only 중복 행은 흡수 시 제거됐다
+  const jaradet = rows.filter((r) => r.name === "저라뎃");
+  assert.equal(jaradet.length, 1);
+  assert.ok(jaradet[0].entity_id, "저라뎃 is entity-based only");
 });
 
 console.log(`\nledger path: ${path.relative(process.cwd(), LEDGER_PATH)}`);

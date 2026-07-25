@@ -8,6 +8,7 @@ const {
   latestPreviousSnapshotPath,
   parseDateTag,
 } = require("./lib/daily-pipeline-snapshot");
+const { loadCollectionExclusions } = require("./lib/player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const TMP_DIR = path.join(ROOT, "tmp");
@@ -25,7 +26,6 @@ const ROSTER_SYNC_SCRIPT = path.join(ROOT, "scripts", "tools", "sync-team-roster
 const TEAM_TABLE_OUT_DIR = path.join(TMP_DIR, "reports", "team-roster-table");
 const NODE_BIN_FALLBACK = "node";
 const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
-const COLLECTION_EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
 const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 let ACTIVE_PROGRESS_LOG_PATH = null;
 const TEAM_EXPORT_TIMEOUT_MS = 900000;
@@ -464,11 +464,11 @@ function summarizeTeamFromReport(team, report) {
   const results = Array.isArray(report.results) ? report.results : [];
   const actionable = results.filter((row) => !row.excluded);
   const excludedPlayers = results.filter((row) => row.excluded).map((row) => String(row.player || ""));
-  // 외부인 결정은 "이름만" 담은 제외 규칙을 만든다. 로스터 선수와 이름이 겹치면
-  // 그 선수가 조용히 수집에서 빠진다(김설·앵지·박정일이 두 달간 이렇게 누락됐다).
-  // 팀 요약 필드에만 찍혀 아무도 못 봤으므로, 별도 항목으로 뽑아 경보까지 올린다.
-  const opponentNameExcludedPlayers = results
-    .filter((row) => row.excluded && String(row.exclude_reason || "") === "external_opponent_reviewed")
+  // 외부인(external_opponent) 결정은 "이름만" 담은 규칙이다. 이제 로스터 선수는 이 규칙으로
+  // 제외되지 않고 정상 수집되지만(김설·앵지·박정일 2달 누락 사고 방지), 이름이 겹치면 표시된다.
+  // 동일인이면 대장에서 정정, 동명이인이면 무시하도록 별도 항목으로 뽑아 경보까지 올린다.
+  const opponentNameOverlapPlayers = results
+    .filter((row) => row.opponent_name_overlap)
     .map((row) => String(row.player || ""))
     .filter(Boolean);
   const fetchedPlayers = actionable.filter((row) => String(row.fetch_status || "") === "ok").length;
@@ -522,8 +522,8 @@ function summarizeTeamFromReport(team, report) {
     players: actionable.length,
     excluded_players: excludedPlayers.length,
     excluded_player_names: excludedPlayers.join(", "),
-    opponent_name_excluded_players: opponentNameExcludedPlayers.length,
-    opponent_name_excluded_player_names: opponentNameExcludedPlayers.join(", "),
+    opponent_name_overlap_players: opponentNameOverlapPlayers.length,
+    opponent_name_overlap_player_names: opponentNameOverlapPlayers.join(", "),
     fetched_players: fetchedPlayers,
     reused_players: reusedPlayers,
     fetch_fail: failures.filter((f) => !isFetchObserved(f.fetch_status)).length,
@@ -649,8 +649,7 @@ function splitZeroPlayers(raw) {
 }
 
 function loadCollectionExclusionLookup() {
-  const doc = readJsonIfExists(COLLECTION_EXCLUSIONS_PATH, { players: [] });
-  const rows = Array.isArray(doc && doc.players) ? doc.players : [];
+  const rows = loadCollectionExclusions();
   const lookup = new Map();
   for (const row of rows) {
     const name = String(row && row.name ? row.name : "").trim();
@@ -927,22 +926,22 @@ function buildAlerts(
         message: `zero_record_players=${actionableZeroPlayers.length} (${actionableZeroPlayers.join(", ") || "-"})`,
       });
     }
-    // 로스터에 있는 선수가 "외부인 이름" 규칙으로 제외되면 반드시 사람이 봐야 한다.
-    // 동명이인이면 규칙이 맞고, 우리 선수면 상대선수 결정을 canonical_candidate로 고쳐야 한다.
-    const opponentNameExcluded = Number(row.opponent_name_excluded_players || 0);
-    if (opponentNameExcluded > 0) {
+    // 로스터 선수의 이름이 "외부인" 결정과 겹치면 사람이 확인해야 한다. 이제 수집은 계속되므로
+    // (조용한 미수집 사고 방지), 동일인이면 대장에서 정정하고 동명이인이면 무시하면 된다.
+    const opponentNameOverlap = Number(row.opponent_name_overlap_players || 0);
+    if (opponentNameOverlap > 0) {
       alerts.push({
-        // medium 고정 의도: 선수 한 명의 이름 충돌로 서빙 동기화 전체를 멈추지 않는다
+        // medium 고정 의도: 이름 충돌로 서빙 동기화 전체를 멈추지 않는다
         // (blocking_severities = critical/high). 보고에는 뜨되 파이프라인은 계속 돈다.
         severity: rules.opponent_name_excluded_players_severity || "medium",
         team: row.team,
         team_code: row.team_code,
         rule: "roster_player_excluded_by_opponent_name",
         message:
-          `roster_player_excluded_by_opponent_name=${opponentNameExcluded} ` +
-          `(${row.opponent_name_excluded_player_names || "-"}) — ` +
-          `상대선수 "외부인" 결정과 이름이 겹쳐 수집에서 빠졌다. 동명이인이 아니면 ` +
-          `선수 대장(player_ledger)의 opponent_identity_decisions에서 canonical_candidate로 고칠 것`,
+          `roster_player_excluded_by_opponent_name=${opponentNameOverlap} ` +
+          `(${row.opponent_name_overlap_player_names || "-"}) — ` +
+          `이름이 상대선수 "외부인" 결정과 겹친다(수집은 계속된다). 동일인이면 선수 대장(player_ledger)의 ` +
+          `opponent_identity_decisions에서 canonical_candidate로 정정, 동명이인이면 무시`,
       });
     }
     const rosterChanged = typeof row.delta_players === "number" && row.delta_players !== 0;

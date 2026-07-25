@@ -163,7 +163,7 @@ runTest("buildAlerts ignores moved-in zero-record players for the current run", 
   ]);
 });
 
-runTest("buildAlerts surfaces roster players excluded by an external-opponent name rule", () => {
+runTest("buildAlerts surfaces roster players whose name overlaps an external-opponent decision", () => {
   const actual = buildAlerts(
     [
       {
@@ -174,8 +174,8 @@ runTest("buildAlerts surfaces roster players excluded by an external-opponent na
         csv_fail: 0,
         delta_total_matches: 0,
         delta_players: 0,
-        opponent_name_excluded_players: 1,
-        opponent_name_excluded_player_names: "김설",
+        opponent_name_overlap_players: 1,
+        opponent_name_overlap_player_names: "김설",
       },
     ],
     {
@@ -192,14 +192,16 @@ runTest("buildAlerts surfaces roster players excluded by an external-opponent na
   );
 
   const hit = actual.find((row) => row.rule === "roster_player_excluded_by_opponent_name");
-  assert.ok(hit, "이름 충돌로 제외된 로스터 선수는 경보로 떠야 한다");
+  assert.ok(hit, "이름이 외부인 결정과 겹치는 로스터 선수는 경보로 떠야 한다");
   assert.equal(hit.team_code, "ssg");
-  // 선수 한 명 때문에 서빙 동기화 전체가 막히면 안 되므로 차단 등급(critical/high)이 아니어야 한다.
+  // 선수 한 명의 이름 충돌로 서빙 동기화 전체가 막히면 안 되므로 차단 등급(critical/high)이 아니어야 한다.
   assert.equal(hit.severity, "medium");
   assert.match(hit.message, /김설/);
+  // 수집은 계속된다는 새 의미가 메시지에 담겨야 한다.
+  assert.match(hit.message, /수집은 계속된다/);
 });
 
-runTest("buildAlerts stays quiet when no roster player is caught by a name rule", () => {
+runTest("buildAlerts stays quiet when no roster player name overlaps a decision", () => {
   const actual = buildAlerts(
     [
       {
@@ -210,8 +212,8 @@ runTest("buildAlerts stays quiet when no roster player is caught by a name rule"
         csv_fail: 0,
         delta_total_matches: 0,
         delta_players: 0,
-        opponent_name_excluded_players: 0,
-        opponent_name_excluded_player_names: "",
+        opponent_name_overlap_players: 0,
+        opponent_name_overlap_player_names: "",
       },
     ],
     {

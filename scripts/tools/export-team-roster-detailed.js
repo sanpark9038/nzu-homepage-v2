@@ -3,18 +3,15 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 const { defaultProfileUrlForPlayer } = require("./lib/eloboard-special-cases");
 const { clearRemoteResumeMarker, loadMergedRosterAdminState } = require("./lib/roster-admin-store");
-const { loadOpponentIdentityDecisions } = require("./lib/player-ledger");
+const {
+  loadOpponentIdentityDecisions,
+  loadCollectionExclusions: loadLedgerCollectionExclusions,
+} = require("./lib/player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-team-records.js");
 const CSV_SCRIPT = path.join(ROOT, "scripts", "tools", "export-player-matches-csv.js");
 const TMP_DIR = path.join(ROOT, "tmp");
-const EXCLUSIONS_PATH = path.join(
-  ROOT,
-  "data",
-  "metadata",
-  "pipeline_collection_exclusions.v1.json"
-);
 const RESUMES_PATH = path.join(
   ROOT,
   "data",
@@ -210,8 +207,7 @@ function normalizeName(name) {
 }
 
 function loadCollectionExclusions() {
-  const doc = readJsonIfExists(EXCLUSIONS_PATH, { players: [] });
-  const rows = Array.isArray(doc.players) ? doc.players : [];
+  const rows = loadLedgerCollectionExclusions();
   const normalizedRows = [];
   for (const row of rows) {
     const reason = String(row && row.reason ? row.reason : "excluded_from_collection");
@@ -283,6 +279,9 @@ function exclusionReason(player, exclusions) {
       continue;
     }
     if (rule.name) {
+      // 이름-only 규칙은 로스터 선수(entity_id 보유)를 제외하지 않는다. 외부인 이름 결정이
+      // 동명의 우리 선수를 조용히 미수집시키던 사고를 구조적으로 차단한다(겹침은 별도 감지·보고).
+      if (entityId) continue;
       if (nameKey && nameKey === rule.name) return rule.reason;
     }
   }
@@ -367,8 +366,16 @@ async function main() {
   const players = limit > 0 ? filteredRoster.slice(0, limit) : filteredRoster;
   const rosterAdminState = await loadMergedRosterAdminState();
   const exclusions = mergeCollectionRows(
-    [...loadCollectionExclusions(), ...loadExternalOpponentCollectionExclusions()],
+    loadCollectionExclusions(),
     rosterAdminState.exclusions || []
+  );
+  // 외부인(external_opponent) 결정은 "이름만" 담은 규칙이다. 동명의 로스터 선수를 조용히
+  // 미수집시키던 사고(김설·앵지·박정일이 두 달 누락)를 막기 위해, 이 규칙은 제외에 쓰지 않고
+  // "이름 겹침" 감지에만 쓴다. 로스터 선수는 전부 entity_id 보유 → 이름-only 규칙으로 제외되지 않는다.
+  const externalOpponentNames = new Set(
+    loadExternalOpponentCollectionExclusions()
+      .map((row) => normalizeName(row.name))
+      .filter(Boolean)
   );
   let resumes = mergeCollectionRows(loadCollectionResumes(), rosterAdminState.resumes || []);
 
@@ -415,6 +422,12 @@ async function main() {
       });
       console.log(`[SKIP] ${playerName} excluded (${excludedReason})`);
       continue;
+    }
+
+    // 수집은 계속하되, 이름이 외부인 결정과 겹치면 표시한다. 상위(run-daily)가 경보로 올려
+    // 동일인이면 대장에서 정정, 동명이인이면 무시하도록 사람이 확인한다.
+    if (externalOpponentNames.has(normalizeName(playerName))) {
+      result.opponent_name_overlap = true;
     }
 
     try {

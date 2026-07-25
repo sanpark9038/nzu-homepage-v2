@@ -4,11 +4,13 @@ import { NextResponse } from "next/server";
 import { getAdminWriteDisabledMessage, isAdminWriteDisabled } from "@/lib/admin-runtime";
 import {
   isRemoteRosterAdminCorrectionStoreEnabled,
+  loadCollectionExclusionsFromLedger,
   loadMergedRosterAdminState,
   saveRemoteRosterAdminCorrection,
   shouldApplyManualAffiliationOverride,
   shouldApplyManualRaceOverride,
   shouldApplyManualTierOverride,
+  writeCollectionExclusionsToLedger,
 } from "@/lib/roster-admin-store";
 import { TOURNAMENT_TEAM_SIZE } from "@/lib/tournament-constants";
 import {
@@ -120,6 +122,7 @@ type ExclusionRow = {
   wr_id?: number;
   entity_id?: string;
   reason?: string;
+  note?: string;
   updated_at?: string;
 };
 
@@ -133,7 +136,6 @@ type ResumeRow = {
 const ROOT = process.cwd();
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
-const EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
 const RESUMES_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_resumes.v1.json");
 const TOURNAMENT_TEAM_MEMBER_CHECK_COLUMNS = "id";
 
@@ -167,22 +169,12 @@ function writeOverrides(rows: OverrideRow[]) {
 }
 
 function readExclusions(): ExclusionRow[] {
-  if (!fs.existsSync(EXCLUSIONS_PATH)) return [];
-  try {
-    const doc = readJson<{ players?: ExclusionRow[] }>(EXCLUSIONS_PATH);
-    return Array.isArray(doc.players) ? doc.players : [];
-  } catch {
-    return [];
-  }
+  return loadCollectionExclusionsFromLedger();
 }
 
+// 원격 Supabase 저장이 되면 그 쪽이 authoritative; 이 로컬 폴백만 대장에 되쓴다.
 function writeExclusions(rows: ExclusionRow[]) {
-  writeJson(EXCLUSIONS_PATH, {
-    schema_version: "1.0.0",
-    updated_at: new Date().toISOString(),
-    description: "Players excluded from match collection pipeline.",
-    players: rows,
-  });
+  writeCollectionExclusionsToLedger(rows);
 }
 
 function readResumes(): ResumeRow[] {

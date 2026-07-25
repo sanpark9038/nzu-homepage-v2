@@ -8,10 +8,10 @@ const {
   withServingIdentityKey,
 } = require('./lib/serving-identity-key');
 const { loadProjectPlayerMetadata } = require('./lib/project-player-metadata');
+const { loadCollectionExclusions } = require('./lib/player-ledger');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
-const EXCLUSIONS_FILE = path.join(ROOT, 'data', 'metadata', 'pipeline_collection_exclusions.v1.json');
 const FACT_MATCHES_PATH = path.join(ROOT, 'data', 'warehouse', 'fact_matches.csv');
 const TMP_DIR = path.join(ROOT, 'tmp');
 const REPORTS_DIR = path.join(TMP_DIR, 'reports');
@@ -1379,8 +1379,7 @@ function findExistingPlayerForIncoming(row, lookup) {
 }
 
 function loadExpectedLocalVisibleCount() {
-  const exclusionsData = fs.existsSync(EXCLUSIONS_FILE) ? readJson(EXCLUSIONS_FILE) : { players: [] };
-  const exclusionRules = (exclusionsData.players || []).map((p) => {
+  const exclusionRules = loadCollectionExclusions().map((p) => {
     const wrId = Number(p && p.wr_id);
     const name = String(p && p.name ? p.name : '').trim().toLowerCase();
     const entityId = String(p && p.entity_id ? p.entity_id : '').trim();

@@ -18,8 +18,7 @@ require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local") 
 const ROOT = path.join(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
-const EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
-const { loadOpponentIdentityDecisions } = require("./lib/player-ledger");
+const { loadOpponentIdentityDecisions, loadCollectionExclusions } = require("./lib/player-ledger");
 const SYNC_REPORT_PATH = path.join(ROOT, "tmp", "reports", "team_roster_sync_report.json");
 
 function readJsonIfExists(filePath, fallback) {
@@ -73,8 +72,7 @@ function findObserved(entityId, name) {
 
 function collectionExclusion(entityId, wrId, name) {
   const reasons = [];
-  const doc = readJsonIfExists(EXCLUSIONS_PATH, { players: [] });
-  for (const rule of doc.players || []) {
+  for (const rule of loadCollectionExclusions()) {
     if (rule.entity_id && norm(rule.entity_id) === norm(entityId)) reasons.push(`제외목록(entity_id): ${rule.reason}`);
     else if (rule.wr_id && rule.name && Number(rule.wr_id) === Number(wrId) && norm(rule.name) === norm(name).toLowerCase())
       reasons.push(`제외목록(wr_id+이름): ${rule.reason}`);

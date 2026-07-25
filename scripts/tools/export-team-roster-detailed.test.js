@@ -188,7 +188,7 @@ runTest("filterPlayersByEntityIds returns full roster when no entity ids are req
   assert.deepEqual(filterPlayersByEntityIds(roster, ""), roster);
 });
 
-runTest("external opponent review decisions become collection exclusions by player name", () => {
+runTest("external-opponent name decisions never exclude roster players (entity_id), only entity-less matches", () => {
   const rows = buildExternalOpponentExclusionRows({
     decisions: [
       { opponent_name: " 다예 ", decision: "external_opponent" },
@@ -208,10 +208,14 @@ runTest("external opponent review decisions become collection exclusions by play
       reason: "external_opponent_reviewed",
     },
   ]);
+  // 로스터 선수는 전부 entity_id 보유 → 이름-only 외부인 규칙과 이름이 같아도 제외되지 않는다.
+  // (김설·앵지·박정일이 두 달 조용히 미수집되던 사고를 구조적으로 차단)
   assert.equal(
     exclusionReason({ name: "다예", wr_id: 999, entity_id: "eloboard:female:999" }, rows),
-    "external_opponent_reviewed"
+    null
   );
+  // entity_id 없는(비로스터) 동명 상대만 이름 규칙으로 제외된다.
+  assert.equal(exclusionReason({ name: "다예" }, rows), "external_opponent_reviewed");
 });
 
 runTest("shouldUseNoCacheForFetch honors an explicit force flag", () => {

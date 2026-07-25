@@ -24,7 +24,8 @@ runTest("buildLowSampleReview dedupes same team/name identities and excludes exc
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "nzu-low-sample-"));
   const projectsDir = path.join(root, "projects");
   const tmpDir = path.join(root, "tmp");
-  const exclusionsPath = path.join(root, "pipeline_collection_exclusions.v1.json");
+  // dual-shape: 레거시 배열 형태의 수집 제외 파일을 주입해도 loadCollectionExclusions 가 그대로 읽는다
+  const exclusionsPath = path.join(root, "legacy_collection_exclusions.v1.json");
 
   writeJson(path.join(projectsDir, "ku", "players.ku.v1.json"), {
     team_code: "ku",

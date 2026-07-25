@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import {
+  loadCollectionExclusionsFromLedger,
   loadMergedRosterAdminState,
   type ExclusionRow,
   type ManualOverrideRow,
@@ -9,7 +10,7 @@ import { readRosterReviewDecisions, rosterReviewDecisionKey } from "@/lib/roster
 
 const ROOT = process.cwd();
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
-const EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
+const LEDGER_PATH = path.join(ROOT, "data", "metadata", "player_ledger.v1.json");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const OPS_REVIEW_REPORTS_PREFIX = "ops-review";
 const REPORT_FETCH_TIMEOUT_MS = 3_000;
@@ -630,8 +631,8 @@ function buildNewPlayerCandidates(
 }
 
 function buildExcludedPlayers(players: RosterOpsReviewPlayer[]): RosterOpsReviewGroup<RosterOpsReviewPlayer> {
-  const doc = readJson<JsonObject>(EXCLUSIONS_PATH);
-  const rows = pickReportRows(doc, ["players"]);
+  const rows = loadCollectionExclusionsFromLedger();
+  const ledgerSource = path.relative(ROOT, LEDGER_PATH);
   const index = indexPlayers(players);
   const items = rows.map((row) => {
     const entityId = trim(row.entity_id);
@@ -646,7 +647,7 @@ function buildExcludedPlayers(players: RosterOpsReviewPlayer[]): RosterOpsReview
         ...known,
         reason: trim(row.reason) || "user_excluded",
         updated_at: trim(row.updated_at) || undefined,
-        source: path.relative(ROOT, EXCLUSIONS_PATH),
+        source: ledgerSource,
       };
     }
     return {
@@ -661,7 +662,7 @@ function buildExcludedPlayers(players: RosterOpsReviewPlayer[]): RosterOpsReview
       gender: "",
       reason: trim(row.reason) || "user_excluded",
       updated_at: trim(row.updated_at) || undefined,
-      source: path.relative(ROOT, EXCLUSIONS_PATH),
+      source: ledgerSource,
     };
   });
 
@@ -670,7 +671,7 @@ function buildExcludedPlayers(players: RosterOpsReviewPlayer[]): RosterOpsReview
     title: "Excluded players",
     count: items.length,
     items,
-    source: fs.existsSync(EXCLUSIONS_PATH) ? path.relative(ROOT, EXCLUSIONS_PATH) : null,
+    source: fs.existsSync(LEDGER_PATH) ? ledgerSource : null,
   };
 }
 

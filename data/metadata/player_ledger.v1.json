@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-07-23T06:02:55.732Z",
+  "updated_at": "2026-07-25T06:14:38.468Z",
   "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). players=선수(entity_id)당 한 줄(표시명 등), 그 외 상대 신원 결정·상대 별명. 이후 숲ID·로스터 교정·수집제외가 여기로 합쳐진다.",
   "players": {
     "eloboard:male:124": {
@@ -140,8 +140,304 @@
       "also_known_as": [
         "박정일"
       ]
+    },
+    "eloboard:male:646": {
+      "excluded": {
+        "name": "농떼르만",
+        "wr_id": 646,
+        "reason": "user_excluded"
+      }
+    },
+    "eloboard:male:777": {
+      "excluded": {
+        "name": "엘사",
+        "wr_id": 777,
+        "reason": "user_excluded_pending_tier"
+      }
+    },
+    "eloboard:female:41": {
+      "excluded": {
+        "name": "초롱빡",
+        "wr_id": 41,
+        "reason": "user_excluded_inactive_until_affiliated"
+      }
+    },
+    "eloboard:female:939": {
+      "excluded": {
+        "name": "행복짱",
+        "wr_id": 939,
+        "reason": "user_excluded",
+        "updated_at": "2026-03-26T08:57:45.416Z"
+      }
+    },
+    "eloboard:female:951": {
+      "excluded": {
+        "name": "단이",
+        "wr_id": 951,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:03:41.507Z"
+      }
+    },
+    "eloboard:female:998": {
+      "excluded": {
+        "name": "박쭈이",
+        "wr_id": 998,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:03:41.507Z"
+      }
+    },
+    "eloboard:female:1003": {
+      "excluded": {
+        "name": "우질",
+        "wr_id": 1003,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:03:41.507Z"
+      }
+    },
+    "eloboard:female:955": {
+      "excluded": {
+        "name": "찡찡시아",
+        "wr_id": 955,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:03:41.507Z"
+      }
+    },
+    "eloboard:male:mix:1068": {
+      "excluded": {
+        "name": "두폴조합",
+        "wr_id": 1068,
+        "reason": "user_excluded",
+        "updated_at": "2026-04-09T00:00:00.000Z"
+      }
+    },
+    "eloboard:male:mix:192": {
+      "excluded": {
+        "name": "강만식",
+        "wr_id": 192,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:03:41.507Z"
+      }
+    },
+    "eloboard:female:352": {
+      "excluded": {
+        "name": "김하선",
+        "wr_id": 352,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:03:41.507Z"
+      }
+    },
+    "eloboard:male:mix:395": {
+      "excluded": {
+        "name": "서도일",
+        "wr_id": 395,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:04:33.106Z"
+      }
+    },
+    "eloboard:male:66": {
+      "excluded": {
+        "name": "박지수",
+        "wr_id": 66,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:04:33.106Z"
+      }
+    },
+    "eloboard:male:118": {
+      "excluded": {
+        "name": "김수환",
+        "wr_id": 118,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:03:41.507Z"
+      }
+    },
+    "eloboard:male:mix:256": {
+      "excluded": {
+        "name": "수입뿌드",
+        "wr_id": 256,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:04:33.106Z"
+      }
+    },
+    "eloboard:male:mix:329": {
+      "excluded": {
+        "name": "카리스",
+        "wr_id": 329,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:04:33.106Z"
+      }
+    },
+    "eloboard:male:mix:347": {
+      "excluded": {
+        "name": "트할",
+        "wr_id": 347,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:04:33.106Z"
+      }
+    },
+    "eloboard:female:856": {
+      "excluded": {
+        "name": "한소끔",
+        "wr_id": 856,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T17:50:27.873Z"
+      }
+    },
+    "eloboard:female:999": {
+      "excluded": {
+        "name": "연또",
+        "wr_id": 999,
+        "reason": "retired_profile_after_race_change",
+        "updated_at": "2026-04-20T00:00:00.000Z"
+      }
+    },
+    "eloboard:female:889": {
+      "excluded": {
+        "name": "Hiyoko",
+        "wr_id": 889,
+        "reason": "user_excluded_retired_or_unneeded",
+        "updated_at": "2026-04-26T00:00:00.000+09:00"
+      }
+    },
+    "eloboard:male:123": {
+      "excluded": {
+        "name": "오은유",
+        "wr_id": 123,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:04:33.106Z"
+      }
+    },
+    "eloboard:male:mix:159": {
+      "excluded": {
+        "name": "저라뎃",
+        "wr_id": 159,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T13:51:21.994Z"
+      }
+    },
+    "eloboard:male:199": {
+      "excluded": {
+        "name": "탱크",
+        "wr_id": 199,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:01:05.440Z"
+      }
+    },
+    "eloboard:female:776": {
+      "excluded": {
+        "name": "밍도릿",
+        "wr_id": 776,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:01:05.440Z"
+      }
+    },
+    "eloboard:female:965": {
+      "excluded": {
+        "name": "뀨알",
+        "wr_id": 965,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:01:05.440Z"
+      }
+    },
+    "eloboard:female:354": {
+      "excluded": {
+        "name": "햄찌야",
+        "wr_id": 354,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:03:41.507Z"
+      }
+    },
+    "eloboard:male:185": {
+      "excluded": {
+        "name": "박한별",
+        "wr_id": 185,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:04:33.106Z"
+      }
+    },
+    "eloboard:male:mix:777": {
+      "excluded": {
+        "name": "엘사",
+        "wr_id": 777,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T15:04:33.106Z"
+      }
+    },
+    "eloboard:male:mix:831": {
+      "excluded": {
+        "name": "니칸",
+        "wr_id": 831,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T17:50:27.873Z"
+      }
+    },
+    "eloboard:male:mix:377": {
+      "excluded": {
+        "name": "모토케이",
+        "wr_id": 377,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T17:50:27.873Z"
+      }
+    },
+    "eloboard:female:1033": {
+      "excluded": {
+        "name": "성예린",
+        "wr_id": 1033,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "updated_at": "2026-05-15T17:50:27.873Z"
+      }
+    },
+    "eloboard:female:1007": {
+      "excluded": {
+        "name": "땃쥐",
+        "wr_id": 1007,
+        "reason": "superseded_identity_race_change",
+        "note": "Eloboard issues a new wr_id on race change. 1007(Protoss) was superseded by 1015(Zerg); 1015 is the current identity (user-confirmed 2026-07-20)."
+      }
+    },
+    "eloboard:female:1046": {
+      "excluded": {
+        "name": "슬아",
+        "wr_id": 1046,
+        "reason": "superseded_identity_race_change",
+        "note": "Merged into eloboard:female:57, which is the current identity (user-confirmed 2026-07-20)."
+      }
+    },
+    "eloboard:female:1031": {
+      "excluded": {
+        "name": "이영숙",
+        "wr_id": 1031,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "note": "운영자 확인 2026-07-23: 예전 자료의 외부인. 기록·사이트 표시 모두 불필요.",
+        "updated_at": "2026-07-23T05:44:50.872Z"
+      }
+    },
+    "eloboard:male:mix:810": {
+      "excluded": {
+        "name": "지방시",
+        "wr_id": 810,
+        "reason": "user_excluded_unneeded_for_homepage",
+        "note": "운영자 확인 2026-07-23: 기록 정리·사이트 표시 모두 불필요.",
+        "updated_at": "2026-07-23T05:44:50.872Z"
+      }
     }
   },
+  "collection_exclusions_without_entity": [
+    {
+      "name": "옥수수",
+      "wr_id": 1022,
+      "reason": "user_excluded"
+    },
+    {
+      "name": "김민교",
+      "wr_id": 162,
+      "reason": "user_excluded"
+    },
+    {
+      "name": "이상호",
+      "wr_id": 402,
+      "reason": "user_excluded"
+    }
+  ],
   "opponent_identity_decisions": {
     "allowed_decisions": [
       "canonical_candidate",

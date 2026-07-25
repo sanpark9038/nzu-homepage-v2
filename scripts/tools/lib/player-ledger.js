@@ -46,6 +46,35 @@ function loadPlayerRows(sourcePath = LEDGER_PATH) {
   return doc && doc.players && typeof doc.players === "object" ? doc.players : {};
 }
 
+// 수집 제외: 대장의 players[].excluded + collection_exclusions_without_entity 를
+// 옛 수집 제외 파일의 players[] 행 형태로 복원한다.
+// 기존 리더들(entity_id / wr_id+name / wr_id / name 분기)이 무변경으로 동작한다.
+// dual-shape: legacy 파일(players 가 배열)이 sourcePath로 들어오면 그대로 반환(테스트 fixture·기존 opponent 로더와 같은 패턴).
+function loadCollectionExclusions(sourcePath = LEDGER_PATH) {
+  const doc = readJson(sourcePath);
+  if (!doc) return [];
+  if (Array.isArray(doc.players)) return doc.players; // legacy exclusions-file shape
+  const rows = [];
+  const players = doc.players && typeof doc.players === "object" ? doc.players : {};
+  for (const [entityId, row] of Object.entries(players)) {
+    const ex = row && row.excluded;
+    if (!ex || typeof ex !== "object") continue;
+    const out = { entity_id: entityId };
+    if (ex.wr_id !== undefined && ex.wr_id !== null) out.wr_id = ex.wr_id;
+    if (ex.name !== undefined && ex.name !== null) out.name = ex.name;
+    out.reason = ex.reason;
+    if (ex.note !== undefined && ex.note !== null) out.note = ex.note;
+    if (ex.updated_at !== undefined && ex.updated_at !== null) out.updated_at = ex.updated_at;
+    rows.push(out);
+  }
+  for (const row of Array.isArray(doc.collection_exclusions_without_entity)
+    ? doc.collection_exclusions_without_entity
+    : []) {
+    rows.push({ ...row });
+  }
+  return rows;
+}
+
 // entity_id -> 표시명. 이름이 아니라 번호로 묶으므로 엘로보드가 이름을 본명으로
 // 바꾸거나 선수가 팀을 옮겨도 방송명이 날아가지 않는다.
 function loadPlayerDisplayNames(sourcePath = LEDGER_PATH) {
@@ -62,6 +91,7 @@ module.exports = {
   LEDGER_PATH,
   loadOpponentIdentityDecisions,
   loadOpponentIdentityAliases,
+  loadCollectionExclusions,
   loadPlayerRows,
   loadPlayerDisplayNames,
 };

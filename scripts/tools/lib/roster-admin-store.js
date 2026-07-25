@@ -1,10 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
+const { loadCollectionExclusions } = require("./player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
 const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
-const EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
 const RESUMES_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_resumes.v1.json");
 
 function readJsonIfExists(filePath, fallback) {
@@ -261,7 +261,7 @@ async function readRemoteCorrections() {
 
 async function loadMergedRosterAdminState() {
   const localOverridesDoc = readJsonIfExists(OVERRIDES_PATH, { overrides: [] });
-  const localExclusionsDoc = readJsonIfExists(EXCLUSIONS_PATH, { players: [] });
+  const localExclusions = loadCollectionExclusions();
   const localResumesDoc = readJsonIfExists(RESUMES_PATH, { players: [] });
 
   let remoteRows = [];
@@ -280,10 +280,7 @@ async function loadMergedRosterAdminState() {
       Array.isArray(localOverridesDoc && localOverridesDoc.overrides) ? localOverridesDoc.overrides : [],
       remoteOverrides
     ),
-    exclusions: mergeMatchRows(
-      Array.isArray(localExclusionsDoc && localExclusionsDoc.players) ? localExclusionsDoc.players : [],
-      remoteExclusions
-    ),
+    exclusions: mergeMatchRows(localExclusions, remoteExclusions),
     resumes: mergeMatchRows(
       Array.isArray(localResumesDoc && localResumesDoc.players) ? localResumesDoc.players : [],
       remoteResumes

@@ -24,6 +24,7 @@ export type ExclusionRow = {
   wr_id?: number;
   entity_id?: string;
   reason?: string;
+  note?: string;
   updated_at?: string;
 };
 
@@ -44,11 +45,88 @@ const ROSTER_ADMIN_CORRECTION_COLUMNS =
 
 const ROOT = process.cwd();
 const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
-const EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
+const LEDGER_PATH = path.join(ROOT, "data", "metadata", "player_ledger.v1.json");
 const RESUMES_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_resumes.v1.json");
 
 function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "")) as T;
+}
+
+type LedgerExcluded = { name?: string; wr_id?: number; reason?: string; note?: string; updated_at?: string };
+type LedgerDoc = {
+  players?: Record<string, { excluded?: LedgerExcluded } & Record<string, unknown>> | ExclusionRow[];
+  collection_exclusions_without_entity?: Array<{ name?: string; wr_id?: number; reason?: string; updated_at?: string }>;
+} & Record<string, unknown>;
+
+// \uC218\uC9D1 \uC81C\uC678\uB97C \uC120\uC218 \uB300\uC7A5(players[].excluded + collection_exclusions_without_entity)\uC5D0\uC11C
+// \uC61B \uC218\uC9D1 \uC81C\uC678 \uD30C\uC77C\uC758 players[] \uD589 \uD615\uD0DC\uB85C \uBCF5\uC6D0\uD55C\uB2E4.
+// dual-shape: players \uAC00 \uBC30\uC5F4(\uB808\uAC70\uC2DC \uD30C\uC77C)\uC774\uBA74 \uADF8\uB300\uB85C \uBC18\uD658.
+export function loadCollectionExclusionsFromLedger(): ExclusionRow[] {
+  if (!fs.existsSync(LEDGER_PATH)) return [];
+  let doc: LedgerDoc | null = null;
+  try {
+    doc = readJson<LedgerDoc>(LEDGER_PATH);
+  } catch {
+    return [];
+  }
+  if (!doc) return [];
+  if (Array.isArray(doc.players)) return doc.players;
+  const rows: ExclusionRow[] = [];
+  for (const [entityId, row] of Object.entries(doc.players || {})) {
+    const ex = row?.excluded;
+    if (!ex || typeof ex !== "object") continue;
+    const out: ExclusionRow = { entity_id: entityId, reason: ex.reason };
+    if (ex.wr_id !== undefined && ex.wr_id !== null) out.wr_id = ex.wr_id;
+    if (ex.name !== undefined && ex.name !== null) out.name = ex.name;
+    if (ex.note !== undefined && ex.note !== null) out.note = ex.note;
+    if (ex.updated_at !== undefined && ex.updated_at !== null) out.updated_at = ex.updated_at;
+    rows.push(out);
+  }
+  for (const row of Array.isArray(doc.collection_exclusions_without_entity)
+    ? doc.collection_exclusions_without_entity
+    : []) {
+    rows.push({ ...row });
+  }
+  return rows;
+}
+
+// \uAD00\uB9AC\uC790 API\uC758 \uB85C\uCEEC \uD3F4\uBC31(\uC6D0\uACA9 Supabase \uC800\uC7A5 \uC2E4\uD328 \uC2DC)\uB9CC \uC774 \uACBD\uB85C\uB85C \uB300\uC7A5\uC5D0 \uB418\uC4F4\uB2E4.
+// ponytail: \uC804\uCCB4 \uC7AC\uC9C1\uB82C\uD654 \u2014 \uB85C\uCEEC dev \uD3F4\uBC31 \uC804\uC6A9\uC774\uB77C \uC131\uB2A5/\uD3EC\uB9F7 \uCD5C\uC801\uD654 \uBD88\uD544\uC694. curated note\uB294 \uBCF4\uC874\uD55C\uB2E4.
+export function writeCollectionExclusionsToLedger(rows: ExclusionRow[]): void {
+  const doc = readJson<Record<string, unknown>>(LEDGER_PATH);
+  const rawPlayers = doc.players;
+  const players =
+    rawPlayers && typeof rawPlayers === "object" && !Array.isArray(rawPlayers)
+      ? (rawPlayers as Record<string, Record<string, unknown>>)
+      : {};
+  for (const key of Object.keys(players)) {
+    if (players[key] && typeof players[key] === "object") delete players[key].excluded;
+  }
+  const withoutEntity: Array<Record<string, unknown>> = [];
+  for (const row of rows) {
+    const entityId = String(row.entity_id || "").trim();
+    if (entityId) {
+      const excluded: Record<string, unknown> = { name: row.name, wr_id: row.wr_id, reason: row.reason };
+      if (row.note !== undefined) excluded.note = row.note;
+      if (row.updated_at !== undefined) excluded.updated_at = row.updated_at;
+      if (!players[entityId]) players[entityId] = {};
+      players[entityId].excluded = excluded;
+    } else {
+      const out: Record<string, unknown> = { name: row.name, wr_id: row.wr_id, reason: row.reason };
+      if (row.updated_at !== undefined) out.updated_at = row.updated_at;
+      withoutEntity.push(out);
+    }
+  }
+  for (const key of Object.keys(players)) {
+    if (players[key] && typeof players[key] === "object" && Object.keys(players[key]).length === 0) {
+      delete players[key];
+    }
+  }
+  doc.players = players;
+  doc.collection_exclusions_without_entity = withoutEntity;
+  doc.updated_at = new Date().toISOString();
+  fs.mkdirSync(path.dirname(LEDGER_PATH), { recursive: true });
+  fs.writeFileSync(LEDGER_PATH, JSON.stringify(doc, null, 2) + "\n", "utf8");
 }
 
 function dedupeKey(entityId?: string | null, wrId?: number | null, name?: string | null) {
@@ -83,13 +161,7 @@ function readLocalOverrides(): ManualOverrideRow[] {
 }
 
 function readLocalExclusions(): ExclusionRow[] {
-  if (!fs.existsSync(EXCLUSIONS_PATH)) return [];
-  try {
-    const doc = readJson<{ players?: ExclusionRow[] }>(EXCLUSIONS_PATH);
-    return Array.isArray(doc.players) ? doc.players : [];
-  } catch {
-    return [];
-  }
+  return loadCollectionExclusionsFromLedger();
 }
 
 function readLocalResumes(): ResumeRow[] {

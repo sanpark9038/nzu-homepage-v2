@@ -11,8 +11,9 @@ const LEGACY_METADATA_PATH = path.join(
   "player_metadata.legacy_reference.v1.json"
 );
 const MASTER_METADATA_PATH = path.join(ROOT, "data", "metadata", "players.master.v1.json");
-const COLLECTION_EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
 const REPORT_PATH = path.join(ROOT, "tmp", "reports", "player_metadata_source_consolidation_latest.json");
+
+const { loadCollectionExclusions } = require("./lib/player-ledger");
 
 function readJson(filePath, fallback) {
   if (!fs.existsSync(filePath)) return fallback;
@@ -107,10 +108,8 @@ function loadMasterPlayers() {
 }
 
 function loadExcludedEntityIds() {
-  const doc = readJson(COLLECTION_EXCLUSIONS_PATH, {});
-  const players = Array.isArray(doc && doc.players) ? doc.players : [];
   return new Set(
-    players
+    loadCollectionExclusions()
       .map((row) => trim(row && row.entity_id))
       .filter(Boolean)
   );

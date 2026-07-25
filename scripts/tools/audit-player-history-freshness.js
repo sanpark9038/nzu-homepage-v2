@@ -4,9 +4,10 @@ const { spawnSync } = require("node:child_process");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local") });
 
+const { LEDGER_PATH, loadCollectionExclusions } = require("./lib/player-ledger");
+
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
-const EXCLUSIONS_FILE = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
 const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-team-records.js");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const REPORT_JSON_PATH = path.join(REPORTS_DIR, "player_history_freshness_audit_latest.json");
@@ -86,10 +87,8 @@ function buildExclusionMatchers(rows = []) {
   });
 }
 
-function loadExclusionMatchers(filePath = EXCLUSIONS_FILE) {
-  if (!fs.existsSync(filePath)) return [];
-  const doc = readJson(filePath);
-  return buildExclusionMatchers(Array.isArray(doc.players) ? doc.players : []);
+function loadExclusionMatchers(filePath = LEDGER_PATH) {
+  return buildExclusionMatchers(loadCollectionExclusions(filePath));
 }
 
 function findExclusionMatch(candidate, exclusionMatchers = []) {
@@ -387,7 +386,7 @@ async function runAudit(options = {}) {
     });
   const allCandidates = options.candidates || loadProjectCandidates(options.projectsDir || PROJECTS_DIR);
   const servingRows = options.servingRows || (await readServingRows(client));
-  const exclusionMatchers = options.exclusionMatchers || loadExclusionMatchers(options.exclusionsFile || EXCLUSIONS_FILE);
+  const exclusionMatchers = options.exclusionMatchers || loadExclusionMatchers(options.exclusionsFile || LEDGER_PATH);
   const candidatePool = options.visibleOnly ? filterVisibleCandidates(allCandidates, exclusionMatchers) : allCandidates;
   const candidates = filterCandidates(candidatePool, options);
   const rows = await auditCandidates({

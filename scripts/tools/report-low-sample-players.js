@@ -1,11 +1,12 @@
 const fs = require("fs");
 const path = require("path");
 
+const { LEDGER_PATH, loadCollectionExclusions } = require("./lib/player-ledger");
+
 const ROOT = path.resolve(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
 const TMP_DIR = path.join(ROOT, "tmp");
 const REPORTS_DIR = path.join(TMP_DIR, "reports");
-const EXCLUSIONS_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_exclusions.v1.json");
 
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
@@ -47,9 +48,8 @@ function readJson(filePath, fallback = null) {
   }
 }
 
-function loadExcludedEntityIds(exclusionsPath = EXCLUSIONS_PATH) {
-  const doc = readJson(exclusionsPath, {});
-  const rows = Array.isArray(doc && doc.players) ? doc.players : [];
+function loadExcludedEntityIds(exclusionsPath = LEDGER_PATH) {
+  const rows = loadCollectionExclusions(exclusionsPath);
   return new Set(rows.map((row) => String(row && row.entity_id ? row.entity_id : "").trim()).filter(Boolean));
 }
 
@@ -97,7 +97,7 @@ function resolveMatchFilePath(player, tmpDir = TMP_DIR) {
 function buildLowSampleReview({
   projectsDir = PROJECTS_DIR,
   tmpDir = TMP_DIR,
-  exclusionsPath = EXCLUSIONS_PATH,
+  exclusionsPath = LEDGER_PATH,
   threshold = 3,
   now = new Date(),
 } = {}) {
