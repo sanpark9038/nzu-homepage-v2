@@ -11,7 +11,7 @@ const TEAM_CODE_TO_NAME = {
   c9: "씨나인", ku: "케이대", calm: "캄몬스타즈",
   ssu: "수술대", mbu: "엠비대", "b.a": "흑카데미",
   "n.c.s": "뉴캣슬", wfu: "와플대", ssg: "신세계",
-  fa: "무소속", jsa: "jsa", yb: "yb", bgm: "bgm",
+  fa: "무소속", jsa: "jsa", bgm: "bgm",
   hm: "hm", dm: "dm",
 };
 

@@ -145,7 +145,7 @@ function extractRosterCadence(rosterDoc) {
   return out;
 }
 
-// Managed team roster files (manual_managed teams like yb/ganada excluded).
+// Managed team roster files (manual_managed teams like ganada excluded).
 function loadManagedRosterFiles(projectsDir = PROJECTS_DIR) {
   if (!fs.existsSync(projectsDir)) return [];
   return fs
