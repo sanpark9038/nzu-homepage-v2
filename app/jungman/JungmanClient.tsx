@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { formatVotes, type JungmanStanding } from "@/lib/jungman";
+import { formatVotes, teamAccent, type JungmanStanding } from "@/lib/jungman";
 
 const LAST_SEEN_ROUND_KEY = "jungman:last-seen-round";
 const ROLLUP_MS = 800;
@@ -298,7 +298,7 @@ export function JungmanBoard({
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[rgba(155,185,240,0.1)]">
                     <div
                       className="h-full rounded-full"
-                      style={{ width: `${barPercent}%`, backgroundColor: standing.team.color }}
+                      style={{ width: `${barPercent}%`, backgroundColor: teamAccent(standing.team) }}
                     />
                   </div>
                 </div>

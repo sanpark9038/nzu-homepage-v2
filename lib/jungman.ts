@@ -24,6 +24,8 @@ export type JungmanTeam = {
   code: string;
   name: string;
   color: string;
+  /** 그래프·득표 바처럼 다크 배경 위에 그릴 때 쓰는 색. 브랜드색이 어두우면 로고에서 뽑아 따로 준다 */
+  accent?: string;
   /** 카드 배경이 어두워 약칭을 밝은색으로 써야 하는 팀 */
   dark: boolean;
   /** 지도 카드 좌표(배치 보정 반영) */
@@ -38,20 +40,25 @@ export type JungmanTeam = {
 
 // 좌표는 scratchpad/build-map.mjs 투영(1060x520, 인천~잠실 크롭) + 손 보정값 산출물.
 export const JUNGMAN_TEAMS: JungmanTeam[] = [
-  { code: "DM", name: "DM", color: "#7c8fd6", dark: false, x: 301.3, y: 56.5, pinX: 301.3, pinY: 56.5, aliases: ["DM", "디엠"] },
-  { code: "KMS", name: "캄몬스타즈", color: "#2f6ff5", dark: false, x: 210.9, y: 238.1, pinX: 219.4, pinY: 226.1, aliases: ["캄몬스타즈", "캄몬", "츠캄몬스타즈", "츠캄", "CALM", "TSUCALM"] },
-  { code: "C9", name: "씨나인", color: "#f08fb5", dark: false, x: 278.9, y: 373, pinX: 278.9, pinY: 373, aliases: ["씨나인", "시나인", "C9"] },
-  { code: "WFU", name: "와플대", color: "#f3c969", dark: false, x: 305.1, y: 225.4, pinX: 316.1, pinY: 237.4, aliases: ["와플대", "와플", "WFU"] },
-  { code: "JSA", name: "JSA", color: "#f26522", dark: true, x: 399.3, y: 233.5, pinX: 427.7, pinY: 260, aliases: ["JSA", "제이에스에이"] },
-  { code: "BGM", name: "BGM", color: "#d4af5a", dark: false, x: 493.3, y: 222.4, pinX: 464.9, pinY: 237.4, aliases: ["BGM", "비지엠"] },
-  { code: "HKA", name: "흑카데미", color: "#e2532b", dark: true, x: 416.3, y: 320.4, pinX: 446.3, pinY: 293.9, aliases: ["흑카데미", "블랙아카데미", "블아", "B.A", "BA", "BLACK"] },
-  { code: "HM", name: "HM", color: "#e6e0d2", dark: false, x: 513.5, y: 350.4, pinX: 483.5, pinY: 350.4, aliases: ["HM", "에이치엠"] },
-  { code: "SSG", name: "신세계", color: "#a8332c", dark: true, x: 427.7, y: 440.9, pinX: 427.7, pinY: 440.9, aliases: ["신세계", "SSG"] },
-  { code: "NCS", name: "뉴캣슬", color: "#7c5cff", dark: true, x: 725.3, y: 124.3, pinX: 725.3, pinY: 124.3, aliases: ["뉴캣슬", "뉴캐슬", "NCS", "N.C.S"] },
-  { code: "MBU", name: "엠비대", color: "#5f7391", dark: true, x: 887.1, y: 167.3, pinX: 887.1, pinY: 167.3, aliases: ["엠비대", "MBU"] },
-  { code: "SSU", name: "수술대", color: "#35b9e8", dark: true, x: 860, y: 294.6, pinX: 874, pinY: 282.6, aliases: ["수술대", "SSU"] },
-  { code: "KU", name: "케이대", color: "#b8c4d6", dark: false, x: 943.8, y: 282.6, pinX: 929.8, pinY: 282.6, aliases: ["케이대", "KU", "K.U"] },
+  { code: "DM", name: "DM", color: "#2f3f6e", accent: "#7c8fd6", dark: false, x: 301.3, y: 56.5, pinX: 301.3, pinY: 56.5, aliases: ["DM", "디엠"] },
+  { code: "KMS", name: "캄몬스타즈", color: "#2f6fd0", dark: false, x: 210.9, y: 238.1, pinX: 219.4, pinY: 226.1, aliases: ["캄몬스타즈", "캄몬", "츠캄몬스타즈", "츠캄", "CALM", "TSUCALM"] },
+  { code: "C9", name: "씨나인", color: "#f4a9c4", dark: false, x: 278.9, y: 373, pinX: 278.9, pinY: 373, aliases: ["씨나인", "시나인", "C9"] },
+  { code: "WFU", name: "와플대", color: "#ece0cc", dark: false, x: 305.1, y: 225.4, pinX: 316.1, pinY: 237.4, aliases: ["와플대", "와플", "WFU"] },
+  { code: "JSA", name: "JSA", color: "#e8801a", dark: true, x: 399.3, y: 233.5, pinX: 427.7, pinY: 260, aliases: ["JSA", "제이에스에이"] },
+  { code: "BGM", name: "BGM", color: "#f2a98f", dark: false, x: 493.3, y: 222.4, pinX: 464.9, pinY: 237.4, aliases: ["BGM", "비지엠"] },
+  { code: "HKA", name: "흑카데미", color: "#0f0f0f", accent: "#e2532b", dark: true, x: 416.3, y: 320.4, pinX: 446.3, pinY: 293.9, aliases: ["흑카데미", "블랙아카데미", "블아", "B.A", "BA", "BLACK"] },
+  { code: "HM", name: "HM", color: "#f2f2f2", dark: false, x: 513.5, y: 350.4, pinX: 483.5, pinY: 350.4, aliases: ["HM", "에이치엠"] },
+  { code: "SSG", name: "신세계", color: "#e0574a", dark: true, x: 427.7, y: 440.9, pinX: 427.7, pinY: 440.9, aliases: ["신세계", "SSG"] },
+  { code: "NCS", name: "뉴캣슬", color: "#7b6fd0", dark: true, x: 725.3, y: 124.3, pinX: 725.3, pinY: 124.3, aliases: ["뉴캣슬", "뉴캐슬", "NCS", "N.C.S"] },
+  { code: "MBU", name: "엠비대", color: "#8a8a8a", dark: true, x: 887.1, y: 167.3, pinX: 887.1, pinY: 167.3, aliases: ["엠비대", "MBU"] },
+  { code: "SSU", name: "수술대", color: "#cfe3f5", dark: true, x: 860, y: 294.6, pinX: 874, pinY: 282.6, aliases: ["수술대", "SSU"] },
+  { code: "KU", name: "케이대", color: "#2a2f3a", accent: "#b8c4d6", dark: false, x: 943.8, y: 282.6, pinX: 929.8, pinY: 282.6, aliases: ["케이대", "KU", "K.U"] },
 ];
+
+/** 다크 배경 위에 그릴 색 — 브랜드색이 어두운 팀은 로고에서 뽑은 accent를 쓴다 */
+export function teamAccent(team: JungmanTeam): string {
+  return team.accent || team.color;
+}
 
 /** 투표 대상 12팀 (수술대 제외) */
 export const JUNGMAN_VOTING_TEAMS: JungmanTeam[] = JUNGMAN_TEAMS.filter(
@@ -106,6 +113,7 @@ export type JungmanMarker = {
   code: string;
   name: string;
   color: string;
+  accent: string;
   dark: boolean;
   x: number;
   y: number;
@@ -419,6 +427,7 @@ export function buildJungmanMarkers(standings: JungmanStanding[]): JungmanMarker
       code: team.code,
       name: team.name,
       color: team.color,
+      accent: teamAccent(team),
       dark: team.dark,
       x: team.x,
       y: team.y,

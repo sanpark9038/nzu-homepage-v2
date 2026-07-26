@@ -50,17 +50,17 @@ const MAP_STYLE = `
   .jm-tick{fill:none;stroke:rgba(212,169,74,.34);stroke-width:1.6;}
   .jm-region{fill:#7a8299;opacity:.42;font-size:15px;letter-spacing:.16em;text-anchor:middle;}
 
-  .jm-pin{fill:var(--c);opacity:.85;}
-  .jm-lead{stroke:var(--c);stroke-width:1;stroke-opacity:.34;stroke-dasharray:3 3;}
+  .jm-pin{fill:var(--a);opacity:.85;}
+  .jm-lead{stroke:var(--a);stroke-width:1;stroke-opacity:.34;stroke-dasharray:3 3;}
   .jm-m{transition:transform .18s ease;cursor:default;}
   .jm-m:hover{transform:scale(1.07);}
   .jm-m .jm-card{fill:var(--c);stroke:rgba(226,236,255,.30);stroke-width:1.5;
-    filter:drop-shadow(0 0 var(--g,12px) var(--c)) drop-shadow(0 4px 10px rgba(0,0,0,.55));}
+    filter:drop-shadow(0 0 var(--g,12px) var(--a)) drop-shadow(0 4px 10px rgba(0,0,0,.55));}
   .jm-m .jm-logo-slot{fill:rgba(255,255,255,.10);stroke:rgba(255,255,255,.16);stroke-width:1;}
   .jm-m .jm-abbr{fill:#0b0f1a;font-size:13px;font-weight:800;letter-spacing:.03em;
     text-anchor:middle;dominant-baseline:central;}
   .jm-m.jm-dark .jm-abbr{fill:#eef2fa;}
-  .jm-m .jm-chip{fill:rgba(10,15,28,.82);stroke:var(--c);stroke-opacity:.5;stroke-width:1;}
+  .jm-m .jm-chip{fill:rgba(10,15,28,.82);stroke:var(--a);stroke-opacity:.5;stroke-width:1;}
   .jm-m .jm-name{fill:#e8ebf2;font-size:13px;font-weight:600;text-anchor:middle;dominant-baseline:central;}
   .jm-m .jm-sub{font-size:11px;text-anchor:middle;dominant-baseline:central;}
   .jm-rank{fill:#d4a94a;font-weight:700;}
@@ -134,7 +134,7 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
         <g dangerouslySetInnerHTML={{ __html: JUNGMAN_MAP_BASE }} />
 
         {markers.map((marker) => {
-          const style = { "--c": marker.color } as CSSProperties;
+          const style = { "--c": marker.color, "--a": marker.accent } as CSSProperties;
           const distance = Math.hypot(marker.x - marker.pinX, marker.y - marker.pinY);
           const k = distance > 24 ? (distance - 22) / distance : 0;
 

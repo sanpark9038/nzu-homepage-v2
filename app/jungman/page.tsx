@@ -11,6 +11,7 @@ import {
   JUNGMAN_VOTE_PERIOD_LABEL,
   JUNGMAN_VOTING_TEAMS,
   type JungmanSnapshot,
+  teamAccent,
 } from "@/lib/jungman";
 
 import { JungmanAutoCollect, JungmanBoard, JungmanCountdown } from "./JungmanClient";
@@ -89,7 +90,7 @@ function TrendChart({ snapshots }: { snapshots: JungmanSnapshot[] }) {
             <polyline
               points={points.join(" ")}
               fill="none"
-              stroke={team.color}
+              stroke={teamAccent(team)}
               strokeWidth={2}
               strokeOpacity={0.85}
               strokeLinejoin="round"
@@ -99,7 +100,7 @@ function TrendChart({ snapshots }: { snapshots: JungmanSnapshot[] }) {
               cx={x(snapshots.length - 1)}
               cy={y(last.votes[team.code] || 0)}
               r={4}
-              fill={team.color}
+              fill={teamAccent(team)}
               stroke="#0b0f1a"
               strokeWidth={1.5}
             />
@@ -184,7 +185,7 @@ export default async function JungmanPage() {
             <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
               {JUNGMAN_VOTING_TEAMS.map((team) => (
                 <li key={team.code} className="flex items-center gap-2 text-xs font-bold text-[#7a8299]">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: team.color }} />
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: teamAccent(team) }} />
                   {team.name}
                 </li>
               ))}
