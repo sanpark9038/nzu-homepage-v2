@@ -33,6 +33,11 @@ function subLabel(marker: JungmanMarker) {
   return `${marker.rank}위 · ${formatVotes(marker.votes)}표`;
 }
 
+// 득표 비례 카드 글로우 — 개표 전(share null)은 균일.
+function glowRadius(share: number | null) {
+  return share === null ? 12 : Math.round((7 + 15 * share) * 10) / 10;
+}
+
 const MAP_STYLE = `
   .jm-land{fill:#18223a;stroke:rgba(155,185,240,.22);stroke-width:.7;stroke-linejoin:round;}
   .jm-land.jm-b{fill:#1e2a45;}
@@ -48,7 +53,7 @@ const MAP_STYLE = `
   .jm-m{transition:transform .18s ease;cursor:default;}
   .jm-m:hover{transform:scale(1.07);}
   .jm-m .jm-card{fill:var(--c);stroke:rgba(226,236,255,.30);stroke-width:1.5;
-    filter:drop-shadow(0 0 12px var(--c)) drop-shadow(0 4px 10px rgba(0,0,0,.55));}
+    filter:drop-shadow(0 0 var(--g,12px) var(--c)) drop-shadow(0 4px 10px rgba(0,0,0,.55));}
   .jm-m .jm-logo-slot{fill:rgba(255,255,255,.10);stroke:rgba(255,255,255,.16);stroke-width:1;}
   .jm-m .jm-abbr{fill:#0b0f1a;font-size:13px;font-weight:800;letter-spacing:.03em;
     text-anchor:middle;dominant-baseline:central;}
@@ -64,13 +69,44 @@ const MAP_STYLE = `
   .jm-m.jm-seed .jm-chip{fill:rgba(10,15,28,.9);stroke:#d4a94a;stroke-opacity:1;stroke-width:1.2;}
   .jm-m.jm-seed .jm-name{font-weight:700;}
   .jm-seed-sub{fill:#d4a94a;font-weight:700;letter-spacing:.02em;}
+
+  .jm-spot{fill:url(#jm-spot);opacity:.7;animation:jm-pulse 3.6s ease-in-out infinite;}
+  .jm-badge circle{fill:rgba(10,15,28,.92);stroke:rgba(155,185,240,.4);stroke-width:1;}
+  .jm-badge text{fill:#9aa3b8;font-size:10.5px;font-weight:800;text-anchor:middle;dominant-baseline:central;}
+  .jm-m.jm-top3 .jm-badge circle{fill:#d4a94a;stroke:#0b0f1a;stroke-width:1.5;}
+  .jm-m.jm-risk .jm-badge circle{fill:#e0705f;stroke:#0b0f1a;stroke-width:1.5;}
+  .jm-m.jm-top3 .jm-badge text,.jm-m.jm-risk .jm-badge text{fill:#0b0f1a;}
+  .jm-delta{font-size:9.5px;font-weight:800;text-anchor:start;dominant-baseline:central;
+    paint-order:stroke;stroke:rgba(8,12,22,.85);stroke-width:2.4;stroke-linejoin:round;}
+  .jm-d-up{fill:#8fd18f;}
+  .jm-d-down{fill:#e0705f;}
+  .jm-m.jm-contested .jm-card{animation:jm-blink 1.6s ease-in-out infinite;}
+
+  @keyframes jm-pulse{0%,100%{opacity:.5}50%{opacity:.95}}
+  @keyframes jm-blink{0%,100%{stroke-opacity:1}50%{stroke-opacity:.25}}
+  @keyframes jm-pop{0%{transform:scale(1)}45%{transform:scale(1.18)}100%{transform:scale(1)}}
+
+  /* 보드 행 hover ↔ 지도 마커 강조. 래퍼(#jm-map)의 data-active를 클라이언트가 세팅한다. */
+  #jm-map[data-active] .jm-m{opacity:.45;}
+  /* fill-mode 없이 — 끝난 뒤 transform이 고정되면 hover·강조 확대가 죽는다 */
+  #jm-map[data-reveal] .jm-m.jm-rise{animation:jm-pop .6s ease-out var(--d,0ms);}
+
   @media (prefers-reduced-motion:reduce){
     .jm-m{transition:none;}
     .jm-m:hover{transform:none;}
+    .jm-spot,.jm-m.jm-contested .jm-card,#jm-map[data-reveal] .jm-m.jm-rise{animation:none;}
   }
 `;
 
 export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
+  // 활성 팀 규칙은 속성값끼리 짝지을 수 없어 팀 수만큼 찍는다 (코드는 A-Z0-9뿐).
+  const activeRules = markers
+    .map(
+      (marker) =>
+        `#jm-map[data-active="${marker.code}"] .jm-m[data-team="${marker.code}"]{opacity:1;transform:scale(1.14);}`
+    )
+    .join("\n  ");
+
   return (
     <svg
       viewBox={`0 0 ${JUNGMAN_MAP_WIDTH} ${JUNGMAN_MAP_HEIGHT}`}
@@ -78,8 +114,15 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
       aria-label="중만컵 참가 13개 팀의 수도권 서부 연고지와 득표 현황 지도"
       className="block h-auto w-full rounded-lg"
     >
-      <style>{MAP_STYLE}</style>
+      <style>{`${MAP_STYLE}  ${activeRules}`}</style>
       <defs dangerouslySetInnerHTML={{ __html: JUNGMAN_MAP_DEFS }} />
+      <defs>
+        <radialGradient id="jm-spot">
+          <stop offset="0" stopColor="#d4a94a" stopOpacity=".75" />
+          <stop offset=".45" stopColor="#d4a94a" stopOpacity=".28" />
+          <stop offset="1" stopColor="#d4a94a" stopOpacity="0" />
+        </radialGradient>
+      </defs>
 
       <g clipPath="url(#jm-frame)">
         {/* 바다·시군구·광원·한강·랜드마크·그리드·지역 라벨 — 전부 정적 */}
@@ -118,12 +161,24 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
                 ? " jm-risk"
                 : "";
 
+          const rise = (marker.rankDelta || 0) > 0;
+
           return (
             <g key={marker.code} transform={`translate(${marker.x},${marker.y})`}>
               <g
-                className={`jm-m${tone}${marker.dark ? " jm-dark" : ""}`}
-                style={{ "--c": marker.color } as CSSProperties}
+                className={`jm-m${tone}${marker.dark ? " jm-dark" : ""}${
+                  marker.contested ? " jm-contested" : ""
+                }${rise ? " jm-rise" : ""}`}
+                data-team={marker.code}
+                style={
+                  {
+                    "--c": marker.color,
+                    "--g": `${glowRadius(marker.voteShare)}px`,
+                    "--d": `${((marker.rank || 1) - 1) * 45}ms`,
+                  } as CSSProperties
+                }
               >
+                {marker.rank === 1 ? <circle className="jm-spot" r={58} /> : null}
                 <rect className="jm-card" x={-HALF} y={-HALF} width={CARD} height={CARD} rx={12} />
                 <rect className="jm-logo-slot" x={-16} y={-16} width={32} height={32} rx={9} />
                 {hasLogoFile(marker.code) ? (
@@ -157,6 +212,26 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
                     </>
                   )}
                 </text>
+
+                {marker.rank !== null && !marker.seed ? (
+                  <g className="jm-badge">
+                    <circle cx={-HALF} cy={-HALF} r={9.5} />
+                    <text x={-HALF} y={-HALF + 0.5}>
+                      {marker.rank}
+                    </text>
+                  </g>
+                ) : null}
+
+                {marker.rankDelta ? (
+                  <text
+                    className={`jm-delta ${marker.rankDelta > 0 ? "jm-d-up" : "jm-d-down"}`}
+                    x={HALF + 2}
+                    y={-HALF + 4}
+                  >
+                    {marker.rankDelta > 0 ? "▲" : "▼"}
+                    {Math.abs(marker.rankDelta)}
+                  </text>
+                ) : null}
               </g>
             </g>
           );

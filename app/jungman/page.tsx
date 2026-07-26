@@ -130,7 +130,8 @@ export default async function JungmanPage() {
           </div>
         </header>
 
-        <section className={`${PANEL} p-3`}>
+        {/* id는 보드 hover ↔ 마커 강조 연동의 앵커 — JungmanClient가 data-active/data-reveal을 세팅한다 */}
+        <section id="jm-map" className={`${PANEL} p-3`}>
           <JungmanMap markers={markers} />
         </section>
 

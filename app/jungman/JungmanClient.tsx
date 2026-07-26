@@ -7,6 +7,14 @@ import { formatVotes, type JungmanStanding } from "@/lib/jungman";
 const LAST_SEEN_ROUND_KEY = "jungman:last-seen-round";
 const ROLLUP_MS = 800;
 
+// 지도는 서버 컴포넌트(88KB SVG)라 상태를 공유하지 않는다 — 래퍼 속성만 찔러 CSS가 처리하게 한다.
+function pokeMap(attribute: "data-active" | "data-reveal", value: string | null) {
+  const map = document.getElementById("jm-map");
+  if (!map) return;
+  if (value === null) map.removeAttribute(attribute);
+  else map.setAttribute(attribute, value);
+}
+
 function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
@@ -109,6 +117,7 @@ export function JungmanBoard({
 
     if (seen >= round) return;
     setIsFreshRound(true);
+    pokeMap("data-reveal", "1");
     if (prefersReducedMotion()) return;
 
     setProgress(0);
@@ -160,7 +169,11 @@ export function JungmanBoard({
                     : undefined
               }
             >
-              <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl bg-[rgba(10,15,28,0.55)] px-4 py-3">
+              <div
+                className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl bg-[rgba(10,15,28,0.55)] px-4 py-3"
+                onPointerEnter={() => pokeMap("data-active", standing.team.code)}
+                onPointerLeave={() => pokeMap("data-active", null)}
+              >
                 <span
                   className={`text-lg font-black tabular-nums ${
                     standing.badge === "seed"

@@ -90,6 +90,12 @@ export type JungmanMarker = {
   pinY: number;
   rank: number | null;
   votes: number | null;
+  /** 직전 차수 대비 순위 변동 (양수 = 상승) */
+  rankDelta: number | null;
+  /** 인접 순위와 표차가 근소 */
+  contested: boolean;
+  /** 1위 대비 득표 비율 0~1 — 지도 글로우 세기용. 개표 전 null */
+  voteShare: number | null;
   badge: JungmanBadge;
   /** 수술대 전용 — 투표 없이 4시드 확보 */
   seed: boolean;
@@ -241,6 +247,7 @@ export function buildJungmanStandings(snapshots: JungmanSnapshot[]): JungmanStan
 /** 지도 마커 13개 — 투표 12팀 + 수술대(4시드 고정) */
 export function buildJungmanMarkers(standings: JungmanStanding[]): JungmanMarker[] {
   const byCode = new Map(standings.map((standing) => [standing.team.code, standing]));
+  const leaderVotes = Math.max(0, ...standings.map((standing) => standing.votes ?? 0));
 
   return JUNGMAN_TEAMS.map((team) => {
     const standing = byCode.get(team.code);
@@ -255,6 +262,9 @@ export function buildJungmanMarkers(standings: JungmanStanding[]): JungmanMarker
       pinY: team.pinY,
       rank: standing?.rank ?? null,
       votes: standing?.votes ?? null,
+      rankDelta: standing?.rankDelta ?? null,
+      contested: standing?.contested ?? false,
+      voteShare: leaderVotes > 0 && standing?.votes != null ? standing.votes / leaderVotes : null,
       badge: standing?.badge ?? null,
       seed: team.code === JUNGMAN_SEED_TEAM_CODE,
     };
