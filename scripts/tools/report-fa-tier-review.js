@@ -1,11 +1,10 @@
 const fs = require("fs");
 const path = require("path");
 const { shouldApplyManualTierOverride } = require("./lib/roster-admin-store");
-const { loadCollectionExclusions } = require("./lib/player-ledger");
+const { loadCollectionExclusions, loadRosterManualOverrides } = require("./lib/player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const FA_PATH = path.join(ROOT, "data", "metadata", "projects", "fa", "players.fa.v1.json");
-const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 
 function readJson(filePath) {
@@ -32,13 +31,7 @@ function toDateMs(value) {
 }
 
 function readOverrides() {
-  if (!fs.existsSync(OVERRIDES_PATH)) return [];
-  try {
-    const doc = readJson(OVERRIDES_PATH);
-    return Array.isArray(doc.overrides) ? doc.overrides : [];
-  } catch {
-    return [];
-  }
+  return loadRosterManualOverrides().overrides;
 }
 
 function readExclusions() {

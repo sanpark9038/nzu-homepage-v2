@@ -1,10 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
-const { loadCollectionExclusions } = require("./player-ledger");
+const { loadCollectionExclusions, loadRosterManualOverrides } = require("./player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
-const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const RESUMES_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_resumes.v1.json");
 
 function readJsonIfExists(filePath, fallback) {
@@ -260,7 +259,7 @@ async function readRemoteCorrections() {
 }
 
 async function loadMergedRosterAdminState() {
-  const localOverridesDoc = readJsonIfExists(OVERRIDES_PATH, { overrides: [] });
+  const localOverridesDoc = loadRosterManualOverrides();
   const localExclusions = loadCollectionExclusions();
   const localResumesDoc = readJsonIfExists(RESUMES_PATH, { players: [] });
 

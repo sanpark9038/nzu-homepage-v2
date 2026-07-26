@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-07-26T07:23:47.928Z",
-  "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). players=선수(entity_id)당 한 줄(표시명 등), 그 외 상대 신원 결정·상대 별명. 이후 숲ID·로스터 교정·수집제외가 여기로 합쳐진다.",
+  "updated_at": "2026-07-26T07:42:05.400Z",
+  "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). players=선수(entity_id)당 한 줄(표시명·숲ID·수집제외·로컬 교정), 그 외 상대 신원 결정·상대 별명.",
   "players": {
     "eloboard:male:124": {
       "display_name": "쿰신",
@@ -32,7 +32,18 @@
       "also_known_as": [
         "박종승"
       ],
-      "soop_user_id": "askl021"
+      "soop_user_id": "askl021",
+      "correction": {
+        "name": "빡죠스",
+        "team_code": "mbu",
+        "team_name": "엠비대",
+        "tier": "스페이드",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed MBU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:22:34.568Z"
+      }
     },
     "eloboard:male:2": {
       "display_name": "홍구",
@@ -56,14 +67,34 @@
       "display_name": "몽군",
       "also_known_as": [
         "윤찬희"
-      ]
+      ],
+      "correction": {
+        "name": "윤찬희",
+        "team_code": "fa",
+        "tier": "갓",
+        "race": "Terran",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "updated_at": "2026-03-26T08:56:39.839Z"
+      }
     },
     "eloboard:male:27": {
       "display_name": "얍삽e",
       "also_known_as": [
         "김준혁"
       ],
-      "soop_user_id": "wnsgur2da"
+      "soop_user_id": "wnsgur2da",
+      "correction": {
+        "name": "얍삽e",
+        "team_code": "mbu",
+        "team_name": "엠비대",
+        "tier": "잭",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed MBU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:22:34.568Z"
+      }
     },
     "eloboard:male:46": {
       "display_name": "기뉴다",
@@ -76,7 +107,18 @@
       "also_known_as": [
         "김승현"
       ],
-      "soop_user_id": "rlatldgus"
+      "soop_user_id": "rlatldgus",
+      "correction": {
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "updated_at": "2026-07-20T12:45:52.709Z",
+        "name": "오메킴",
+        "team_code": "fa",
+        "team_name": "무소속",
+        "tier": "잭",
+        "race": "Protoss",
+        "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it."
+      }
     },
     "eloboard:male:78": {
       "display_name": "샤이니",
@@ -90,14 +132,36 @@
         "박성용",
         "소룡님"
       ],
-      "soop_user_id": "gjgj3274"
+      "soop_user_id": "gjgj3274",
+      "correction": {
+        "name": "이소룡",
+        "manual_lock": true,
+        "note": "User-confirmed SSU SOOP ID during metadata source consolidation.",
+        "team_code": "ssu",
+        "team_name": "수술대",
+        "tier": "0",
+        "race": "Protoss",
+        "manual_mode": "temporary",
+        "updated_at": "2026-05-15T14:46:33.710Z"
+      }
     },
     "eloboard:male:80": {
       "display_name": "난수",
       "also_known_as": [
         "장영근"
       ],
-      "soop_user_id": "wkddudrms15"
+      "soop_user_id": "wkddudrms15",
+      "correction": {
+        "name": "난수",
+        "team_code": "bgm",
+        "team_name": "BGM",
+        "tier": "스페이드",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed BGM SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:54:12.174Z"
+      }
     },
     "eloboard:male:85": {
       "display_name": "초난강",
@@ -134,7 +198,18 @@
       "also_known_as": [
         "이광용"
       ],
-      "soop_user_id": "lky6407"
+      "soop_user_id": "lky6407",
+      "correction": {
+        "name": "프발",
+        "team_code": "fa",
+        "team_name": "무소속",
+        "tier": "잭",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed FA SOOP ID and display alias 프발 during metadata source consolidation.",
+        "updated_at": "2026-05-15T15:01:05.440Z"
+      }
     },
     "eloboard:male:95": {
       "display_name": "액션구드론",
@@ -175,6 +250,13 @@
         "wr_id": 939,
         "reason": "user_excluded",
         "updated_at": "2026-03-26T08:57:45.416Z"
+      },
+      "correction": {
+        "name": "행복짱",
+        "tier": "8",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
       }
     },
     "eloboard:female:951": {
@@ -216,7 +298,18 @@
         "reason": "user_excluded",
         "updated_at": "2026-04-09T00:00:00.000Z"
       },
-      "soop_user_id": "hckkhc21"
+      "soop_user_id": "hckkhc21",
+      "correction": {
+        "name": "두폴조합",
+        "team_code": "bgm",
+        "team_name": "BGM",
+        "tier": "8",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+        "updated_at": "2026-07-20T12:45:52.709Z"
+      }
     },
     "eloboard:male:mix:192": {
       "excluded": {
@@ -296,6 +389,14 @@
         "wr_id": 999,
         "reason": "retired_profile_after_race_change",
         "updated_at": "2026-04-20T00:00:00.000Z"
+      },
+      "correction": {
+        "retired": true,
+        "name": "연또",
+        "tier": "8",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Retired legacy profile. Ignore for current roster and sync."
       }
     },
     "eloboard:female:889": {
@@ -429,121 +530,537 @@
       }
     },
     "eloboard:female:881": {
-      "soop_user_id": "nasd06"
+      "soop_user_id": "nasd06",
+      "correction": {
+        "name": "수니양",
+        "tier": "6",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "User-confirmed DM SOOP ID during metadata source consolidation.",
+        "team_code": "dm",
+        "team_name": "DM",
+        "manual_mode": "temporary",
+        "updated_at": "2026-05-15T14:54:12.174Z"
+      }
     },
     "eloboard:female:858": {
-      "soop_user_id": "5eulgii"
+      "soop_user_id": "5eulgii",
+      "correction": {
+        "name": "김말랑",
+        "tier": "7",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "User-confirmed DM SOOP ID during metadata source consolidation.",
+        "team_code": "dm",
+        "team_name": "DM",
+        "manual_mode": "temporary",
+        "updated_at": "2026-05-15T14:54:12.174Z"
+      }
     },
     "eloboard:male:mix:136": {
-      "soop_user_id": "pookygamja"
+      "soop_user_id": "pookygamja",
+      "correction": {
+        "name": "김인호",
+        "team_code": "fa",
+        "tier": "3",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+        "updated_at": "2026-07-20T12:45:52.709Z",
+        "team_name": "무소속",
+        "manual_mode": "fixed"
+      }
     },
     "eloboard:female:27": {
-      "soop_user_id": "kitty1029"
+      "soop_user_id": "kitty1029",
+      "correction": {
+        "name": "꼬니부깅",
+        "team_code": "fa",
+        "team_name": "무소속",
+        "tier": "4",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed WFU roster correction during metadata source consolidation.",
+        "updated_at": "2026-05-15T13:58:36.118Z"
+      }
     },
     "eloboard:female:844": {
-      "soop_user_id": "shj06170"
+      "soop_user_id": "shj06170",
+      "correction": {
+        "name": "얌쭈",
+        "team_code": "wfu",
+        "team_name": "와플대",
+        "tier": "7",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed WFU roster correction during metadata source consolidation.",
+        "updated_at": "2026-05-15T13:58:36.118Z"
+      }
     },
     "eloboard:male:mix:1055": {
-      "soop_user_id": "tkdduddb06"
+      "soop_user_id": "tkdduddb06",
+      "correction": {
+        "name": "와이퍼",
+        "team_code": "wfu",
+        "team_name": "와플대",
+        "tier": "8",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed WFU roster correction during metadata source consolidation.",
+        "updated_at": "2026-05-15T13:58:36.118Z"
+      }
     },
     "eloboard:male:mix:751": {
-      "soop_user_id": "kthrs9207"
+      "soop_user_id": "kthrs9207",
+      "correction": {
+        "name": "파도튜브",
+        "team_code": "calm",
+        "team_name": "캄몬스타즈",
+        "tier": "스페이드",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+        "updated_at": "2026-07-20T12:45:52.709Z"
+      }
     },
     "eloboard:female:808": {
-      "soop_user_id": "fpahsdltu1"
+      "soop_user_id": "fpahsdltu1",
+      "correction": {
+        "name": "주하랑",
+        "team_code": "calm",
+        "team_name": "캄몬스타즈",
+        "tier": "5",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed CALM SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:13:47.485Z"
+      }
     },
     "eloboard:female:841": {
-      "soop_user_id": "db001202"
+      "soop_user_id": "db001202",
+      "correction": {
+        "name": "치리",
+        "team_code": "calm",
+        "team_name": "캄몬스타즈",
+        "tier": "5",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed CALM SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:13:47.485Z"
+      }
     },
     "eloboard:female:866": {
-      "soop_user_id": "2meonjin"
+      "soop_user_id": "2meonjin",
+      "correction": {
+        "name": "먼진",
+        "team_code": "calm",
+        "team_name": "캄몬스타즈",
+        "tier": "7",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed CALM SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:13:47.485Z"
+      }
     },
     "eloboard:male:mix:398": {
-      "soop_user_id": "kalmian"
+      "soop_user_id": "kalmian",
+      "correction": {
+        "name": "토스봇",
+        "team_code": "mbu",
+        "team_name": "엠비대",
+        "tier": "0",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed MBU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:22:34.568Z"
+      }
     },
     "eloboard:female:702": {
-      "soop_user_id": "rabbitmiffy"
+      "soop_user_id": "rabbitmiffy",
+      "correction": {
+        "name": "최세상",
+        "team_code": "mbu",
+        "team_name": "엠비대",
+        "tier": "5",
+        "race": "Terran",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed MBU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:22:34.568Z"
+      }
     },
     "eloboard:male:mix:1093": {
-      "soop_user_id": "tiger3006"
+      "soop_user_id": "tiger3006",
+      "correction": {
+        "name": "마예준",
+        "team_code": "mbu",
+        "team_name": "엠비대",
+        "tier": "8",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed MBU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:22:34.568Z"
+      }
     },
     "eloboard:male:mix:1147": {
-      "soop_user_id": "dlqudgk1227"
+      "soop_user_id": "dlqudgk1227",
+      "correction": {
+        "name": "병하",
+        "team_code": "mbu",
+        "team_name": "엠비대",
+        "tier": "8",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed MBU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:22:34.568Z"
+      }
     },
     "eloboard:female:977": {
-      "soop_user_id": "dyaan0v0"
+      "soop_user_id": "dyaan0v0",
+      "correction": {
+        "name": "정다닝",
+        "team_code": "mbu",
+        "team_name": "엠비대",
+        "tier": "7",
+        "race": "Terran",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed MBU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:24:13.473Z"
+      }
     },
     "eloboard:male:191": {
-      "soop_user_id": "jmc06170"
+      "soop_user_id": "jmc06170",
+      "correction": {
+        "name": "장민철",
+        "team_code": "c9",
+        "team_name": "씨나인",
+        "tier": "잭",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User confirmed alias 왜냐맨 for 장민철.",
+        "updated_at": "2026-05-15T14:28:38.735Z"
+      }
     },
     "eloboard:female:398": {
-      "soop_user_id": "yjk011599"
+      "soop_user_id": "yjk011599",
+      "correction": {
+        "name": "나무늘봉순",
+        "team_code": "c9",
+        "team_name": "씨나인",
+        "tier": "2",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed C9 SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:28:38.735Z"
+      }
     },
     "eloboard:female:880": {
-      "soop_user_id": "queen030"
+      "soop_user_id": "queen030",
+      "correction": {
+        "name": "효짱",
+        "team_code": "c9",
+        "team_name": "씨나인",
+        "tier": "6",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed C9 SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:28:38.735Z"
+      }
     },
     "eloboard:female:1036": {
-      "soop_user_id": "ara9687"
+      "soop_user_id": "ara9687",
+      "correction": {
+        "name": "이아라",
+        "team_code": "hm",
+        "team_name": "HM",
+        "tier": "9",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed HM SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:34:51.057Z"
+      }
     },
     "eloboard:male:mix:1184": {
-      "soop_user_id": "suhi370erw"
+      "soop_user_id": "suhi370erw",
+      "correction": {
+        "name": "혁민",
+        "team_code": "hm",
+        "team_name": "HM",
+        "tier": "9",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed HM baby tier during metadata source consolidation.",
+        "updated_at": "2026-05-15T17:50:27.873Z"
+      }
     },
     "eloboard:male:mix:143": {
-      "soop_user_id": "rlawhdwns6"
+      "soop_user_id": "rlawhdwns6",
+      "correction": {
+        "name": "멍이",
+        "team_code": "ssu",
+        "team_name": "수술대",
+        "tier": "0",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed SSU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:46:33.710Z"
+      }
     },
     "eloboard:male:mix:670": {
-      "soop_user_id": "ititit"
+      "soop_user_id": "ititit",
+      "correction": {
+        "name": "정중만",
+        "team_code": "ssu",
+        "team_name": "수술대",
+        "tier": "5",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed SSU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:46:33.710Z"
+      }
     },
     "eloboard:female:781": {
-      "soop_user_id": "tato1104"
+      "soop_user_id": "tato1104",
+      "correction": {
+        "name": "밍가",
+        "team_code": "ssu",
+        "team_name": "수술대",
+        "tier": "6",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed SSU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:46:33.710Z"
+      }
     },
     "eloboard:female:1035": {
-      "soop_user_id": "miiing0620"
+      "soop_user_id": "miiing0620",
+      "correction": {
+        "name": "묘묘묫",
+        "team_code": "ssu",
+        "team_name": "수술대",
+        "tier": "9",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed SSU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:46:33.710Z"
+      }
     },
     "eloboard:female:962": {
-      "soop_user_id": "owoouoowo"
+      "soop_user_id": "owoouoowo",
+      "correction": {
+        "name": "모비",
+        "team_code": "jsa",
+        "team_name": "JSA",
+        "tier": "7",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed JSA SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:48:49.356Z"
+      }
     },
     "eloboard:male:212": {
-      "soop_user_id": "minyoo3972"
+      "soop_user_id": "minyoo3972",
+      "correction": {
+        "name": "유민",
+        "team_code": "ku",
+        "team_name": "케이대",
+        "tier": "스페이드",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed KU SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:48:49.356Z"
+      }
     },
     "eloboard:female:1030": {
-      "soop_user_id": "1004yomi"
+      "soop_user_id": "1004yomi",
+      "correction": {
+        "name": "단솔",
+        "team_code": "ncs",
+        "team_name": "뉴캣슬",
+        "tier": "9",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed NCS SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:48:49.356Z"
+      }
     },
     "eloboard:female:1034": {
-      "soop_user_id": "tndkekdy"
+      "soop_user_id": "tndkekdy",
+      "correction": {
+        "name": "하윤",
+        "team_code": "ncs",
+        "team_name": "뉴캣슬",
+        "tier": "9",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed NCS SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:48:49.356Z"
+      }
     },
     "eloboard:female:761": {
-      "soop_user_id": "youaregood"
+      "soop_user_id": "youaregood",
+      "correction": {
+        "name": "진니",
+        "team_code": "bgm",
+        "team_name": "BGM",
+        "tier": "6",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed BGM SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:54:12.174Z"
+      }
     },
     "eloboard:female:1018": {
-      "soop_user_id": "nbomichae7"
+      "soop_user_id": "nbomichae7",
+      "correction": {
+        "name": "킹봄",
+        "team_code": "bgm",
+        "team_name": "BGM",
+        "tier": "9",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+        "updated_at": "2026-07-20T12:45:52.709Z"
+      }
     },
     "eloboard:male:120": {
-      "soop_user_id": "bhy95"
+      "soop_user_id": "bhy95",
+      "correction": {
+        "name": "배호연",
+        "team_code": "black",
+        "team_name": "흑카데미",
+        "tier": "잭",
+        "race": "Terran",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed BLACK SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:54:12.174Z"
+      }
     },
     "eloboard:female:722": {
-      "soop_user_id": "lingolinga"
+      "soop_user_id": "lingolinga",
+      "correction": {
+        "name": "링가",
+        "team_code": "black",
+        "team_name": "흑카데미",
+        "tier": "5",
+        "race": "Terran",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed BLACK SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T14:54:12.174Z"
+      }
     },
     "eloboard:female:177": {
-      "soop_user_id": "ovoa3316"
+      "soop_user_id": "ovoa3316",
+      "correction": {
+        "name": "나예리",
+        "team_code": "fa",
+        "team_name": "무소속",
+        "tier": "3",
+        "race": "Terran",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "note": "User-confirmed FA SOOP ID during metadata source consolidation.",
+        "updated_at": "2026-05-15T15:01:05.440Z"
+      }
     },
     "eloboard:female:784": {
-      "soop_user_id": "khsoo0105"
+      "soop_user_id": "khsoo0105",
+      "correction": {
+        "name": "귀요민정",
+        "team_code": "fa",
+        "team_name": "무소속",
+        "tier": "6",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+        "updated_at": "2026-07-20T12:45:52.709Z"
+      }
     },
     "eloboard:male:56": {
-      "soop_user_id": "rnjsgurwls15"
+      "soop_user_id": "rnjsgurwls15",
+      "correction": {
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "updated_at": "2026-05-15T17:50:27.873Z",
+        "name": "권혁진",
+        "team_code": "fa",
+        "team_name": "무소속",
+        "tier": "잭",
+        "race": "Protoss",
+        "note": "User-confirmed FA tier during metadata source consolidation."
+      }
     },
     "eloboard:female:898": {
-      "soop_user_id": "harumyong"
+      "soop_user_id": "harumyong",
+      "correction": {
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "updated_at": "2026-07-20T12:45:52.709Z",
+        "name": "하루묭",
+        "team_code": "fa",
+        "team_name": "무소속",
+        "tier": "7",
+        "race": "Protoss",
+        "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it."
+      }
     },
     "eloboard:female:948": {
-      "soop_user_id": "asdsa1113"
+      "soop_user_id": "asdsa1113",
+      "legacy_entity_ids": [
+        "eloboard:female:703"
+      ],
+      "correction": {
+        "name": "세월",
+        "team_code": "hm",
+        "team_name": "HM",
+        "tier": "7",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Canonical successor mapping: use wr_id=948 after race transition (Terran→Protoss); retire legacy wr_id=703 from roster-change alerts.",
+        "updated_at": "2026-07-18T11:16:43.611Z"
+      }
     },
     "eloboard:female:619": {
       "also_known_as": [
         "뽀뇨",
         "김뽀뇨"
-      ]
+      ],
+      "correction": {
+        "name": "김뽀뇨",
+        "tier": "3",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
     },
     "eloboard:male:22": {
       "also_known_as": [
@@ -568,6 +1085,778 @@
         "소윤",
         "정소윤"
       ]
+    },
+    "eloboard:female:1028": {
+      "legacy_entity_ids": [
+        "eloboard:female:1026"
+      ],
+      "correction": {
+        "name": "미진이",
+        "team_code": "jsa",
+        "tier": "9",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Canonical successor mapping: use wr_id=1028 after race/profile transition; retire legacy wr_id=1026 from roster-change alerts."
+      }
+    },
+    "eloboard:female:777": {
+      "correction": {
+        "name": "히댕",
+        "team_code": "c9",
+        "tier": "6",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Alias conflict: keep canonical assignment to c9/히댕 instead of FA alias 엘사."
+      }
+    },
+    "eloboard:male:73": {
+      "correction": {
+        "name": "홍덕",
+        "team_code": "ku",
+        "tier": "킹",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Alias conflict: keep canonical assignment to ku/홍덕 instead of FA alias 오뀨."
+      }
+    },
+    "eloboard:female:956": {
+      "correction": {
+        "name": "면추가",
+        "tier": "7",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:71": {
+      "correction": {
+        "name": "이예훈",
+        "tier": "킹",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:63": {
+      "correction": {
+        "name": "진영화",
+        "tier": "잭",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:15": {
+      "correction": {
+        "name": "김민철",
+        "tier": "갓",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:1015": {
+      "legacy_entity_ids": [
+        "eloboard:female:1007"
+      ],
+      "correction": {
+        "name": "땃쥐",
+        "tier": "8",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Canonical successor mapping: eloboard issues a new wr_id on race change. 1007(Protoss) -> 1015(Zerg); 1015 is current (user-confirmed 2026-07-20).",
+        "team_code": "fa",
+        "team_name": "무소속",
+        "updated_at": "2026-07-20T15:28:56.852Z"
+      }
+    },
+    "eloboard:male:20": {
+      "correction": {
+        "name": "김범수",
+        "tier": "잭",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:517": {
+      "correction": {
+        "name": "박듀듀",
+        "tier": "3",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:39": {
+      "correction": {
+        "name": "정윤종",
+        "tier": "갓",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:40": {
+      "correction": {
+        "name": "김정우",
+        "tier": "갓",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:35": {
+      "correction": {
+        "name": "변현제",
+        "tier": "갓",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:213": {
+      "correction": {
+        "name": "어윤수",
+        "tier": "잭",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:12": {
+      "correction": {
+        "name": "유영진",
+        "tier": "갓",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:33": {
+      "correction": {
+        "name": "이재호",
+        "tier": "갓",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:42": {
+      "correction": {
+        "name": "이제동",
+        "tier": "갓",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:864": {
+      "correction": {
+        "name": "하이현",
+        "tier": "7",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:32": {
+      "correction": {
+        "name": "황병영",
+        "tier": "갓",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:36": {
+      "correction": {
+        "name": "김명운",
+        "tier": "갓",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:34": {
+      "correction": {
+        "name": "김성대",
+        "tier": "갓",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:29": {
+      "correction": {
+        "name": "김지성",
+        "tier": "갓",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:750": {
+      "correction": {
+        "name": "다뉴",
+        "tier": "7",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:32": {
+      "correction": {
+        "name": "또봉순",
+        "tier": "2",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:894": {
+      "correction": {
+        "name": "사사삼",
+        "tier": "7",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:1029": {
+      "correction": {
+        "name": "연또",
+        "team_code": "ku",
+        "tier": "8",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Current canonical profile for 연또."
+      }
+    },
+    "eloboard:male:9": {
+      "correction": {
+        "name": "윤수철",
+        "tier": "킹",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:13": {
+      "correction": {
+        "name": "조일장",
+        "tier": "갓",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:974": {
+      "correction": {
+        "name": "지우리",
+        "tier": "8",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:1020": {
+      "correction": {
+        "name": "혜냥",
+        "tier": "8",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:413": {
+      "correction": {
+        "name": "구보라",
+        "tier": "3",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:605": {
+      "correction": {
+        "name": "아라미",
+        "tier": "5",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:1013": {
+      "correction": {
+        "name": "오세은",
+        "tier": "9",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:50": {
+      "correction": {
+        "name": "지유",
+        "tier": "4",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:416": {
+      "correction": {
+        "name": "하두링",
+        "tier": "6",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:233": {
+      "correction": {
+        "name": "기나",
+        "tier": "3",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:724": {
+      "correction": {
+        "name": "링고",
+        "tier": "4",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:509": {
+      "correction": {
+        "name": "만다",
+        "tier": "5",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:871": {
+      "correction": {
+        "name": "엄보리",
+        "tier": "6",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:930": {
+      "correction": {
+        "name": "엄키키",
+        "tier": "7",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:5": {
+      "correction": {
+        "name": "임진묵",
+        "tier": "잭",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:294": {
+      "correction": {
+        "name": "하리",
+        "tier": "3",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:754": {
+      "correction": {
+        "name": "김무아",
+        "tier": "6",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:912": {
+      "correction": {
+        "name": "요시",
+        "tier": "8",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:136": {
+      "correction": {
+        "name": "김인호",
+        "tier": "3",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it.",
+        "manual_mode": "fixed",
+        "updated_at": "2026-07-20T12:45:52.708Z"
+      }
+    },
+    "eloboard:female:767": {
+      "correction": {
+        "name": "유이",
+        "tier": "5",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:958": {
+      "correction": {
+        "name": "제티",
+        "tier": "7",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:565": {
+      "correction": {
+        "name": "금선",
+        "tier": "4",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:662": {
+      "correction": {
+        "name": "예슬",
+        "tier": "5",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:331": {
+      "correction": {
+        "name": "라운이",
+        "tier": "5",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:11": {
+      "correction": {
+        "name": "상어녀",
+        "tier": "3",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:693": {
+      "correction": {
+        "name": "하리보나",
+        "tier": "7",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:533": {
+      "correction": {
+        "name": "단양",
+        "tier": "5",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:386": {
+      "correction": {
+        "name": "키모야",
+        "tier": "7",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:618": {
+      "correction": {
+        "name": "정소이",
+        "tier": "4",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:297": {
+      "correction": {
+        "name": "유복실",
+        "tier": "3",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:456": {
+      "correction": {
+        "name": "이유란",
+        "tier": "3",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:female:782": {
+      "correction": {
+        "name": "황단비",
+        "tier": "8",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review."
+      }
+    },
+    "eloboard:male:671": {
+      "correction": {
+        "name": "쌍디",
+        "team_code": "fa",
+        "tier": "6",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "updated_at": "2026-04-08T06:23:48.123Z"
+      }
+    },
+    "eloboard:male:150": {
+      "correction": {
+        "name": "인치호",
+        "team_code": "fa",
+        "tier": "조커",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "updated_at": "2026-07-20T12:45:52.709Z",
+        "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it."
+      }
+    },
+    "eloboard:male:100": {
+      "correction": {
+        "name": "전흥식",
+        "team_code": "fa",
+        "tier": "조커",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "updated_at": "2026-04-08T06:24:14.381Z"
+      }
+    },
+    "eloboard:male:207": {
+      "correction": {
+        "name": "김성제",
+        "team_code": "fa",
+        "tier": "스페이드",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "updated_at": "2026-07-20T12:45:52.709Z",
+        "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it."
+      }
+    },
+    "eloboard:male:208": {
+      "correction": {
+        "name": "서기수",
+        "team_code": "fa",
+        "tier": "스페이드",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "updated_at": "2026-07-20T12:45:52.709Z",
+        "note": "[reviewed 2026-07-20] not listed on eloboard but profile alive and collection healthy; pinned as fixed so the daily auto-release check stops re-reporting it."
+      }
+    },
+    "eloboard:female:846": {
+      "correction": {
+        "name": "예실",
+        "team_code": "fa",
+        "tier": "5",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "updated_at": "2026-04-08T06:24:32.804Z"
+      }
+    },
+    "eloboard:female:627": {
+      "correction": {
+        "name": "연블비",
+        "team_code": "fa",
+        "tier": "6",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "temporary",
+        "updated_at": "2026-04-08T06:24:40.411Z"
+      }
+    },
+    "eloboard:male:75": {
+      "correction": {
+        "name": "김봉준",
+        "team_code": "fa",
+        "tier": "스페이드",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review.",
+        "updated_at": "2026-04-17T00:00:00.000Z"
+      }
+    },
+    "eloboard:male:180": {
+      "correction": {
+        "name": "김기덕",
+        "team_code": "fa",
+        "tier": "조커",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review.",
+        "updated_at": "2026-04-17T00:00:00.000Z"
+      }
+    },
+    "eloboard:male:171": {
+      "correction": {
+        "name": "김수식",
+        "team_code": "fa",
+        "tier": "잭",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review.",
+        "updated_at": "2026-04-17T00:00:00.000Z"
+      }
+    },
+    "eloboard:male:26": {
+      "correction": {
+        "name": "원선재",
+        "team_code": "fa",
+        "tier": "킹",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review.",
+        "updated_at": "2026-04-17T00:00:00.000Z"
+      }
+    },
+    "eloboard:male:17": {
+      "correction": {
+        "name": "이영웅",
+        "team_code": "fa",
+        "tier": "킹",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review.",
+        "updated_at": "2026-04-17T00:00:00.000Z"
+      }
+    },
+    "eloboard:male:122": {
+      "correction": {
+        "name": "이윤열",
+        "team_code": "fa",
+        "tier": "스페이드",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review.",
+        "updated_at": "2026-04-17T00:00:00.000Z"
+      }
+    },
+    "eloboard:male:mix:69": {
+      "correction": {
+        "name": "클템",
+        "team_code": "fa",
+        "tier": "2",
+        "race": "Terran",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review.",
+        "updated_at": "2026-04-17T00:00:00.000Z"
+      }
+    },
+    "eloboard:female:466": {
+      "correction": {
+        "name": "서윤",
+        "team_code": "fa",
+        "tier": "6",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Confirmed FA tier from manual review.",
+        "updated_at": "2026-04-17T00:00:00.000Z"
+      }
+    },
+    "eloboard:male:205": {
+      "legacy_entity_ids": [
+        "eloboard:male:mix:205"
+      ],
+      "correction": {
+        "name": "케이",
+        "team_code": "ku",
+        "tier": "8",
+        "race": "Protoss",
+        "manual_lock": true,
+        "note": "Canonical identity mapping: keep ku/케이 on male:205 and retire duplicate mix entity from roster sync alerts."
+      }
+    },
+    "eloboard:male:mix:671": {
+      "correction": {
+        "name": "쌍디",
+        "team_code": "fa",
+        "team_name": "무소속",
+        "tier": "6",
+        "race": "Zerg",
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "note": "User-confirmed 2026-07-20: keep on site as FA after dropping off the eloboard FA listing (record preserved).",
+        "updated_at": "2026-07-20T12:15:34.755Z"
+      }
+    },
+    "eloboard:female:981": {
+      "correction": {
+        "name": "지아송",
+        "team_code": "fa",
+        "team_name": "무소속",
+        "tier": "8",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "note": "User-confirmed 2026-07-20: keep on site as FA after dropping off the eloboard FA listing (record preserved).",
+        "updated_at": "2026-07-20T12:15:34.755Z"
+      }
+    },
+    "eloboard:female:991": {
+      "correction": {
+        "name": "있찌",
+        "team_code": "fa",
+        "team_name": "무소속",
+        "tier": "8",
+        "race": "Protoss",
+        "manual_lock": true,
+        "manual_mode": "fixed",
+        "note": "User-confirmed 2026-07-20: keep on site as FA after dropping off the eloboard FA listing (record preserved).",
+        "updated_at": "2026-07-20T12:15:34.755Z"
+      }
+    },
+    "eloboard:female:57": {
+      "legacy_entity_ids": [
+        "eloboard:female:1046"
+      ],
+      "correction": {
+        "name": "슬아",
+        "team_code": "hm",
+        "team_name": "HM",
+        "tier": "4",
+        "race": "Zerg",
+        "manual_lock": true,
+        "note": "Canonical successor mapping: eloboard issues a new wr_id on race change. 1046 merges into 57; 57 is current (user-confirmed 2026-07-20).",
+        "updated_at": "2026-07-20T15:28:56.852Z"
+      }
     }
   },
   "collection_exclusions_without_entity": [

@@ -6,11 +6,13 @@ import {
   isRemoteRosterAdminCorrectionStoreEnabled,
   loadCollectionExclusionsFromLedger,
   loadMergedRosterAdminState,
+  loadRosterManualOverridesFromLedger,
   saveRemoteRosterAdminCorrection,
   shouldApplyManualAffiliationOverride,
   shouldApplyManualRaceOverride,
   shouldApplyManualTierOverride,
   writeCollectionExclusionsToLedger,
+  writeManualOverridesToLedger,
 } from "@/lib/roster-admin-store";
 import { TOURNAMENT_TEAM_SIZE } from "@/lib/tournament-constants";
 import {
@@ -135,7 +137,6 @@ type ResumeRow = {
 
 const ROOT = process.cwd();
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
-const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const RESUMES_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_resumes.v1.json");
 const TOURNAMENT_TEAM_MEMBER_CHECK_COLUMNS = "id";
 
@@ -149,23 +150,12 @@ function writeJson(filePath: string, value: unknown) {
 }
 
 function readOverrides(): OverrideRow[] {
-  if (!fs.existsSync(OVERRIDES_PATH)) return [];
-  try {
-    const doc = readJson<{ overrides?: OverrideRow[] }>(OVERRIDES_PATH);
-    return Array.isArray(doc.overrides) ? doc.overrides : [];
-  } catch {
-    return [];
-  }
+  return loadRosterManualOverridesFromLedger() as OverrideRow[];
 }
 
+// 원격 Supabase 저장이 되면 그 쪽이 authoritative; 이 로컬 폴백만 대장에 되쓴다.
 function writeOverrides(rows: OverrideRow[]) {
-  writeJson(OVERRIDES_PATH, {
-    schema_version: "1.0.0",
-    updated_at: new Date().toISOString(),
-    description:
-      "Manual lock overrides for roster sync. Locked fields take precedence over source sync.",
-    overrides: rows,
-  });
+  writeManualOverridesToLedger(rows);
 }
 
 function readExclusions(): ExclusionRow[] {

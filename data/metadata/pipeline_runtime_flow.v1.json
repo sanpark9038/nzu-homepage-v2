@@ -108,7 +108,7 @@
         "data/metadata/projects/*/players.*.v1.json",
         "data/metadata/pipeline_alert_rules.v1.json",
         "data/metadata/pipeline_collection_exclusions.v1.json",
-        "data/metadata/roster_manual_overrides.v1.json",
+        "data/metadata/player_ledger.v1.json",
         "tmp/reports/manual_refresh_baseline.json",
         "tmp/reports/homepage_integrity_report.json"
       ],

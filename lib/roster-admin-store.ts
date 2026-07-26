@@ -17,6 +17,7 @@ export type ManualOverrideRow = {
   note?: string;
   soop_user_id?: string;
   updated_at?: string;
+  legacy_entity_ids?: string[];
 };
 
 export type ExclusionRow = {
@@ -44,7 +45,6 @@ const ROSTER_ADMIN_CORRECTION_COLUMNS =
   "entity_id,excluded,exclusion_reason,manual_lock,manual_mode,name,note,race,resume_requested_at,soop_user_id,team_code,team_name,tier,updated_at,wr_id" as const;
 
 const ROOT = process.cwd();
-const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const LEDGER_PATH = path.join(ROOT, "data", "metadata", "player_ledger.v1.json");
 const RESUMES_PATH = path.join(ROOT, "data", "metadata", "pipeline_collection_resumes.v1.json");
 
@@ -53,10 +53,83 @@ function readJson<T>(filePath: string): T {
 }
 
 type LedgerExcluded = { name?: string; wr_id?: number; reason?: string; note?: string; updated_at?: string };
+type LedgerPlayerRow = {
+  excluded?: LedgerExcluded;
+  correction?: Record<string, unknown>;
+  legacy_entity_ids?: string[];
+} & Record<string, unknown>;
 type LedgerDoc = {
-  players?: Record<string, { excluded?: LedgerExcluded } & Record<string, unknown>> | ExclusionRow[];
+  players?: Record<string, LedgerPlayerRow> | ExclusionRow[];
   collection_exclusions_without_entity?: Array<{ name?: string; wr_id?: number; reason?: string; updated_at?: string }>;
 } & Record<string, unknown>;
+
+function readLedgerPlayers(): Record<string, LedgerPlayerRow> {
+  if (!fs.existsSync(LEDGER_PATH)) return {};
+  try {
+    const doc = readJson<LedgerDoc>(LEDGER_PATH);
+    const players = doc?.players;
+    return players && typeof players === "object" && !Array.isArray(players) ? players : {};
+  } catch {
+    return {};
+  }
+}
+
+// 로컬 수동 교정을 대장(players[].correction + 행 레벨 legacy_entity_ids)에서
+// 옛 수동 교정 파일의 overrides[] 행 형태로 복원한다.
+// 승계(legacy_entity_ids)는 교정이 아니라 신원 속성이라 correction 밖에 산다.
+export function loadRosterManualOverridesFromLedger(): ManualOverrideRow[] {
+  const rows: ManualOverrideRow[] = [];
+  for (const [entityId, row] of Object.entries(readLedgerPlayers())) {
+    const correction = row?.correction;
+    const legacyEntityIds = Array.isArray(row?.legacy_entity_ids) ? row.legacy_entity_ids : null;
+    if ((!correction || typeof correction !== "object") && !legacyEntityIds?.length) continue;
+    const out: ManualOverrideRow = { entity_id: entityId };
+    if (legacyEntityIds?.length) out.legacy_entity_ids = legacyEntityIds;
+    rows.push(Object.assign(out, correction || {}));
+  }
+  return rows;
+}
+
+// 관리자 API의 로컬 폴백(원격 Supabase 저장 실패 시)만 이 경로로 대장에 되쓴다.
+// 교정 필드만 갈아끼우고 표시명·숲ID·수집 제외 등 다른 행 필드는 건드리지 않는다.
+export function writeManualOverridesToLedger(rows: ManualOverrideRow[]): void {
+  const doc = readJson<Record<string, unknown>>(LEDGER_PATH);
+  const rawPlayers = doc.players;
+  const players =
+    rawPlayers && typeof rawPlayers === "object" && !Array.isArray(rawPlayers)
+      ? (rawPlayers as Record<string, Record<string, unknown>>)
+      : {};
+  for (const key of Object.keys(players)) {
+    if (players[key] && typeof players[key] === "object") {
+      delete players[key].correction;
+      delete players[key].legacy_entity_ids;
+    }
+  }
+  for (const row of rows) {
+    const entityId = String(row.entity_id || "").trim();
+    if (!entityId) continue;
+    if (!players[entityId]) players[entityId] = {};
+    const correction: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(row)) {
+      if (key === "entity_id" || key === "legacy_entity_ids") continue;
+      if (value === undefined) continue;
+      correction[key] = value;
+    }
+    if (Array.isArray(row.legacy_entity_ids) && row.legacy_entity_ids.length) {
+      players[entityId].legacy_entity_ids = row.legacy_entity_ids;
+    }
+    players[entityId].correction = correction;
+  }
+  for (const key of Object.keys(players)) {
+    if (players[key] && typeof players[key] === "object" && Object.keys(players[key]).length === 0) {
+      delete players[key];
+    }
+  }
+  doc.players = players;
+  doc.updated_at = new Date().toISOString();
+  fs.mkdirSync(path.dirname(LEDGER_PATH), { recursive: true });
+  fs.writeFileSync(LEDGER_PATH, JSON.stringify(doc, null, 2) + "\n", "utf8");
+}
 
 // \uC218\uC9D1 \uC81C\uC678\uB97C \uC120\uC218 \uB300\uC7A5(players[].excluded + collection_exclusions_without_entity)\uC5D0\uC11C
 // \uC61B \uC218\uC9D1 \uC81C\uC678 \uD30C\uC77C\uC758 players[] \uD589 \uD615\uD0DC\uB85C \uBCF5\uC6D0\uD55C\uB2E4.
@@ -151,13 +224,7 @@ export function isRemoteRosterAdminCorrectionStoreEnabled() {
 }
 
 function readLocalOverrides(): ManualOverrideRow[] {
-  if (!fs.existsSync(OVERRIDES_PATH)) return [];
-  try {
-    const doc = readJson<{ overrides?: ManualOverrideRow[] }>(OVERRIDES_PATH);
-    return Array.isArray(doc.overrides) ? doc.overrides : [];
-  } catch {
-    return [];
-  }
+  return loadRosterManualOverridesFromLedger();
 }
 
 function readLocalExclusions(): ExclusionRow[] {

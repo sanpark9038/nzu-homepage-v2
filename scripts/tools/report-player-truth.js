@@ -17,8 +17,11 @@ require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local") 
 
 const ROOT = path.join(__dirname, "..", "..");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
-const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
-const { loadOpponentIdentityDecisions, loadCollectionExclusions } = require("./lib/player-ledger");
+const {
+  loadOpponentIdentityDecisions,
+  loadCollectionExclusions,
+  loadRosterManualOverrides,
+} = require("./lib/player-ledger");
 const SYNC_REPORT_PATH = path.join(ROOT, "tmp", "reports", "team_roster_sync_report.json");
 
 function readJsonIfExists(filePath, fallback) {
@@ -55,8 +58,7 @@ function findInRosterFiles(query) {
 }
 
 function findLocalOverride(query) {
-  const doc = readJsonIfExists(OVERRIDES_PATH, { overrides: [] });
-  return (doc.overrides || []).find((row) => matchesQuery(row, query)) || null;
+  return loadRosterManualOverrides().overrides.find((row) => matchesQuery(row, query)) || null;
 }
 
 function findObserved(entityId, name) {

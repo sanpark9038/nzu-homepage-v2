@@ -8,7 +8,7 @@ const {
   latestPreviousSnapshotPath,
   parseDateTag,
 } = require("./lib/daily-pipeline-snapshot");
-const { loadCollectionExclusions } = require("./lib/player-ledger");
+const { loadCollectionExclusions, loadRosterManualOverrides } = require("./lib/player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const TMP_DIR = path.join(ROOT, "tmp");
@@ -26,7 +26,6 @@ const ROSTER_SYNC_SCRIPT = path.join(ROOT, "scripts", "tools", "sync-team-roster
 const TEAM_TABLE_OUT_DIR = path.join(TMP_DIR, "reports", "team-roster-table");
 const NODE_BIN_FALLBACK = "node";
 const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
-const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 let ACTIVE_PROGRESS_LOG_PATH = null;
 const TEAM_EXPORT_TIMEOUT_MS = 900000;
 const FA_EXPORT_TIMEOUT_MS = 1800000;
@@ -664,8 +663,7 @@ function loadCollectionExclusionLookup() {
 }
 
 function loadManualOverrideLookup() {
-  const doc = readJsonIfExists(MANUAL_OVERRIDES_PATH, { overrides: [] });
-  const rows = Array.isArray(doc && doc.overrides) ? doc.overrides : [];
+  const rows = loadRosterManualOverrides().overrides;
   const lookup = new Map();
   for (const row of rows) {
     const name = String(row && row.name ? row.name : "").trim();
@@ -680,8 +678,7 @@ function loadManualOverrideLookup() {
 }
 
 function loadManualAliasConflictLookup() {
-  const doc = readJsonIfExists(MANUAL_OVERRIDES_PATH, { overrides: [] });
-  const rows = Array.isArray(doc && doc.overrides) ? doc.overrides : [];
+  const rows = loadRosterManualOverrides().overrides;
   const lookup = new Map();
   for (const row of rows) {
     const note = String(row && row.note ? row.note : "").trim();

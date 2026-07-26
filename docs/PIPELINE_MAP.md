@@ -18,7 +18,7 @@
 |---|-----|------|--------------|
 | 1 | 엘로보드 관측 | 외부 사이트 | 소속·티어·종족의 원천. 우리가 통제 못 함 |
 | 2 | 로스터 파일 | `data/metadata/projects/<팀>/players.<팀>.v1.json` | **수집 대상**과 기본 소속. 관측을 받아 적은 결과 |
-| 3 | 로컬 교정 | `data/metadata/roster_manual_overrides.v1.json` | 관측이 틀렸을 때의 수동 교정 |
+| 3 | 로컬 교정 | `data/metadata/player_ledger.v1.json`의 `players[].correction` | 관측이 틀렸을 때의 수동 교정 |
 | 4 | 원격 교정 | Supabase `roster_admin_corrections` | 같은 목적. **로컬을 덮는다** (커밋 없이 반영하려고) |
 | 5 | 표시명 | 로스터 파일의 `display_name` | 사이트에 보일 이름 (방송명) |
 

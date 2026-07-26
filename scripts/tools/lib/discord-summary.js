@@ -1,10 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { loadProjectPlayerMetadata } = require("./project-player-metadata");
-const { loadOpponentIdentityDecisions } = require("./player-ledger");
+const { loadOpponentIdentityDecisions, loadRosterManualOverrides } = require("./player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..", "..");
-const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const CURRENT_ROSTER_STATE_FILE = "current_roster_state.json";
 
 const TEAM_CODE_TO_NAME = {
@@ -99,8 +98,7 @@ function buildLegacyEntityIdLookup(manualOverrides) {
 
 function legacyEntityIdLookup() {
   if (cachedLegacyEntityIdLookup) return cachedLegacyEntityIdLookup;
-  const doc = readJsonIfExists(MANUAL_OVERRIDES_PATH);
-  cachedLegacyEntityIdLookup = buildLegacyEntityIdLookup(doc && doc.overrides);
+  cachedLegacyEntityIdLookup = buildLegacyEntityIdLookup(loadRosterManualOverrides().overrides);
   return cachedLegacyEntityIdLookup;
 }
 

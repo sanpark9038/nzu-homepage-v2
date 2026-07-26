@@ -223,7 +223,8 @@ function loadManualRosterOverrides(): Map<string, RosterPlayerOverride> {
   const req = eval("require") as NodeRequire;
   const fs = req("fs") as typeof import("fs");
   const path = req("path") as typeof import("path");
-  const filePath = path.join(process.cwd(), "data", "metadata", "roster_manual_overrides.v1.json");
+  // 로컬 수동 교정도 선수 대장이 유일한 출처다(players[].correction).
+  const filePath = path.join(process.cwd(), "data", "metadata", "player_ledger.v1.json");
   if (!fs.existsSync(filePath)) return overrides;
 
   try {
@@ -237,20 +238,26 @@ function loadManualRosterOverrides(): Map<string, RosterPlayerOverride> {
   }
 
   const doc = readJsonFile<{
-    overrides?: Array<{
-      entity_id?: string;
-      team_code?: string;
-      team_name?: string;
-      tier?: string;
-      race?: string;
-      name?: string;
-      manual_lock?: boolean;
-      manual_mode?: "temporary" | "fixed";
-    }>;
+    players?: Record<
+      string,
+      {
+        correction?: {
+          team_code?: string;
+          team_name?: string;
+          tier?: string;
+          race?: string;
+          name?: string;
+          manual_lock?: boolean;
+          manual_mode?: "temporary" | "fixed";
+        };
+      }
+    >;
   }>(filePath);
 
-  for (const row of Array.isArray(doc?.overrides) ? doc.overrides : []) {
-    const entityId = String(row?.entity_id || "").trim();
+  for (const [rawEntityId, ledgerRow] of Object.entries(doc?.players || {})) {
+    const row = ledgerRow?.correction;
+    if (!row) continue;
+    const entityId = String(rawEntityId || "").trim();
     if (!entityId) continue;
     overrides.set(entityId, {
       university: shouldApplyManualAffiliationOverride(row)

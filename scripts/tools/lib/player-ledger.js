@@ -75,6 +75,26 @@ function loadCollectionExclusions(sourcePath = LEDGER_PATH) {
   return rows;
 }
 
+// 로컬 수동 교정: 대장의 players[].correction(+행 레벨 legacy_entity_ids)을
+// 옛 수동 교정 파일의 overrides[] 행 형태로 복원한다.
+// 승계(legacy_entity_ids)는 교정이 아니라 신원 속성이라 correction 밖에 산다.
+// dual-shape: legacy 파일({overrides:[...]})이 sourcePath로 오면 그대로 반환.
+function loadRosterManualOverrides(sourcePath = LEDGER_PATH) {
+  const doc = readJson(sourcePath);
+  if (!doc) return { overrides: [] };
+  if (Array.isArray(doc.overrides)) return { overrides: doc.overrides };
+  const overrides = [];
+  for (const [entityId, row] of Object.entries(loadPlayerRows(sourcePath))) {
+    const correction = row && row.correction;
+    const legacyEntityIds = row && Array.isArray(row.legacy_entity_ids) ? row.legacy_entity_ids : null;
+    if ((!correction || typeof correction !== "object") && !(legacyEntityIds && legacyEntityIds.length)) continue;
+    const out = { entity_id: entityId };
+    if (legacyEntityIds && legacyEntityIds.length) out.legacy_entity_ids = legacyEntityIds;
+    overrides.push(Object.assign(out, correction || {}));
+  }
+  return { overrides };
+}
+
 // entity_id -> 표시명. 이름이 아니라 번호로 묶으므로 엘로보드가 이름을 본명으로
 // 바꾸거나 선수가 팀을 옮겨도 방송명이 날아가지 않는다.
 function loadPlayerDisplayNames(sourcePath = LEDGER_PATH) {
@@ -104,6 +124,7 @@ module.exports = {
   loadOpponentIdentityDecisions,
   loadOpponentIdentityAliases,
   loadCollectionExclusions,
+  loadRosterManualOverrides,
   loadPlayerRows,
   loadPlayerDisplayNames,
   loadPlayerSoopIds,

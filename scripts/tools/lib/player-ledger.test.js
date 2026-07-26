@@ -8,6 +8,7 @@ const {
   loadOpponentIdentityAliases,
   loadCollectionExclusions,
   loadPlayerSoopIds,
+  loadRosterManualOverrides,
 } = require("./player-ledger");
 
 function runTest(name, fn) {
@@ -178,16 +179,93 @@ runTest("real ledger is the single source of SOOP ids for serving and sync", () 
     seen.set(soopId.toLowerCase(), entityId);
   }
 
-  // 흡수 완료: 옛 수동 교정 파일에는 숲 ID가 남아 있지 않다
-  const overrides = JSON.parse(
-    fs
-      .readFileSync(path.join(path.dirname(LEDGER_PATH), "roster_manual_overrides.v1.json"), "utf8")
-      .replace(/^﻿/, "")
-  );
+  // 흡수 완료: 로컬 교정 행에는 숲 ID가 남아 있지 않다
   assert.ok(
-    (overrides.overrides || []).every((row) => row.soop_id === undefined),
-    "roster_manual_overrides no longer carries soop_id"
+    loadRosterManualOverrides().overrides.every((row) => row.soop_id === undefined),
+    "corrections no longer carry soop_id"
   );
+});
+
+// 로컬 교정 흡수: 대장(players[].correction + 행 레벨 legacy_entity_ids)이 옛 교정 파일의
+// overrides[] 행으로 복원되고, 레거시 파일({overrides:[...]})은 dual-shape로 그대로 반환된다.
+runTest("roster manual overrides restore identically from ledger shape and legacy shape", () => {
+  const legacyRows = [
+    {
+      entity_id: "eloboard:male:79",
+      name: "이소룡",
+      manual_lock: true,
+      note: "note",
+      team_code: "ssu",
+      team_name: "수술대",
+      tier: "0",
+      race: "Protoss",
+      manual_mode: "temporary",
+      updated_at: "2026-05-15T14:46:33.710Z",
+    },
+    {
+      entity_id: "eloboard:female:1028",
+      legacy_entity_ids: ["eloboard:female:1026"],
+      name: "미진이",
+      team_code: "jsa",
+      manual_lock: true,
+    },
+  ];
+  const ledger = {
+    players: {
+      "eloboard:male:79": {
+        display_name: "이소룡",
+        soop_user_id: "gjgj3274",
+        correction: {
+          name: "이소룡",
+          manual_lock: true,
+          note: "note",
+          team_code: "ssu",
+          team_name: "수술대",
+          tier: "0",
+          race: "Protoss",
+          manual_mode: "temporary",
+          updated_at: "2026-05-15T14:46:33.710Z",
+        },
+      },
+      "eloboard:female:1028": {
+        legacy_entity_ids: ["eloboard:female:1026"],
+        correction: { name: "미진이", team_code: "jsa", manual_lock: true },
+      },
+      "eloboard:male:9999": { display_name: "교정없음" }, // correction 없음 → 복원 대상 아님
+    },
+  };
+
+  const fromLegacy = loadRosterManualOverrides(writeTmp("ovr-legacy", { overrides: legacyRows }));
+  const fromLedger = loadRosterManualOverrides(writeTmp("ovr-ledger", ledger));
+
+  // dual-shape: 레거시 파일은 rows[] 그대로 반환
+  assert.deepEqual(fromLegacy.overrides, legacyRows);
+  // 대장 복원 == 레거시 행(전 필드, 순서 무관)
+  const tup = (r) => JSON.stringify(Object.keys(r).sort().map((k) => [k, r[k]]));
+  assert.deepEqual(new Set(fromLedger.overrides.map(tup)), new Set(fromLegacy.overrides.map(tup)));
+  // 표시명만 있는 행은 교정으로 복원되지 않는다
+  assert.ok(!fromLedger.overrides.some((r) => r.entity_id === "eloboard:male:9999"));
+
+  assert.deepEqual(loadRosterManualOverrides(path.join(os.tmpdir(), `no-such-${process.pid}.json`)), {
+    overrides: [],
+  });
+});
+
+runTest("real ledger carries the local corrections readers depend on", () => {
+  const rows = loadRosterManualOverrides().overrides;
+  assert.ok(rows.length > 0, "corrections present");
+
+  const seen = new Set();
+  for (const row of rows) {
+    const entityId = String(row.entity_id || "").trim();
+    assert.ok(entityId, "every correction has entity_id");
+    assert.ok(!seen.has(entityId), `no duplicate correction: ${entityId}`);
+    seen.add(entityId);
+  }
+
+  // 승계 선언(legacy_entity_ids)은 prod-sync가 읽는 신원 속성이라 살아있어야 한다
+  const successions = rows.filter((row) => Array.isArray(row.legacy_entity_ids) && row.legacy_entity_ids.length);
+  assert.ok(successions.length > 0, "identity successions present");
 });
 
 console.log(`\nledger path: ${path.relative(process.cwd(), LEDGER_PATH)}`);

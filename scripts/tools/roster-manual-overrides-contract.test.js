@@ -1,14 +1,6 @@
-const fs = require("fs");
-const path = require("path");
 const assert = require("node:assert/strict");
 const { loadProjectPlayerMetadata } = require("./lib/project-player-metadata");
-
-const ROOT = path.resolve(__dirname, "..", "..");
-const OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
-
-function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
-}
+const { loadRosterManualOverrides } = require("./lib/player-ledger");
 
 function runTest(name, fn) {
   try {
@@ -30,7 +22,7 @@ function parseEntityId(entityId) {
 }
 
 runTest("manual roster overrides do not replace known player metadata names with placeholders", () => {
-  const overridesDoc = readJson(OVERRIDES_PATH);
+  const overridesDoc = loadRosterManualOverrides();
   const metadataRows = loadProjectPlayerMetadata();
   const metadataByIdentity = new Map(
     metadataRows

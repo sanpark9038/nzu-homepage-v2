@@ -8,7 +8,12 @@ const {
   withServingIdentityKey,
 } = require('./lib/serving-identity-key');
 const { loadProjectPlayerMetadata } = require('./lib/project-player-metadata');
-const { loadCollectionExclusions, loadPlayerSoopIds } = require('./lib/player-ledger');
+const {
+  loadCollectionExclusions,
+  loadPlayerSoopIds,
+  loadRosterManualOverrides,
+  LEDGER_PATH,
+} = require('./lib/player-ledger');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
@@ -16,7 +21,6 @@ const FACT_MATCHES_PATH = path.join(ROOT, 'data', 'warehouse', 'fact_matches.csv
 const TMP_DIR = path.join(ROOT, 'tmp');
 const REPORTS_DIR = path.join(TMP_DIR, 'reports');
 const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_manual_review_decisions.v1.json');
-const ROSTER_MANUAL_OVERRIDES_PATH = path.join(ROOT, 'data', 'metadata', 'roster_manual_overrides.v1.json');
 const DEBUG_PAYLOAD_PATH = path.join(TMP_DIR, 'supabase_prod_sync_payload_preview.json');
 const HISTORY_QUALITY_REPORT_PATH = path.join(REPORTS_DIR, 'prod_sync_history_quality_latest.json');
 const STABLE_CSV_ROW_COUNT_CACHE = new Map();
@@ -1072,17 +1076,12 @@ function buildSyncIdentityKey(row) {
   return name ? `name:${name}` : 'unknown';
 }
 
-// roster_manual_overrides의 legacy_entity_ids 선언(예: 세월 703→948 승계)을
+// 선수 대장의 legacy_entity_ids 선언(예: 세월 703→948 승계)을
 // Map<canonical identity key, Set<legacy identity key>>로 로드한다.
-function loadApprovedIdentitySuccessions(filePath = ROSTER_MANUAL_OVERRIDES_PATH) {
+function loadApprovedIdentitySuccessions(filePath = LEDGER_PATH) {
   const successions = new Map();
-  let overrides = [];
-  try {
-    overrides = JSON.parse(fs.readFileSync(filePath, 'utf8')).overrides || [];
-  } catch {
-    return successions;
-  }
-  for (const entry of Array.isArray(overrides) ? overrides : []) {
+  const overrides = loadRosterManualOverrides(filePath).overrides;
+  for (const entry of overrides) {
     const legacyIds = Array.isArray(entry && entry.legacy_entity_ids) ? entry.legacy_entity_ids : [];
     if (!legacyIds.length) continue;
     const canonicalKey = buildSyncIdentityKey({ eloboard_id: entry.entity_id });

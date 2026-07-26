@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local") });
 const { shouldApplyManualTierOverride } = require("./lib/roster-admin-store");
+const { loadRosterManualOverrides } = require("./lib/player-ledger");
 const {
   buildDiscordSummaryCheck,
   buildPlayerKey,
@@ -18,7 +19,6 @@ const {
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
-const MANUAL_OVERRIDES_PATH = path.join(ROOT, "data", "metadata", "roster_manual_overrides.v1.json");
 const BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 const MANUAL_REFRESH_REPORT_PATH = path.join(REPORTS_DIR, "manual_refresh_latest.json");
 const OPS_PIPELINE_REPORT_PATH = path.join(REPORTS_DIR, "ops_pipeline_latest.json");
@@ -74,8 +74,7 @@ function playerArtifactKey(player) {
 }
 
 function loadManualOverrides() {
-  const doc = readJsonIfExists(MANUAL_OVERRIDES_PATH);
-  return Array.isArray(doc && doc.overrides) ? doc.overrides : [];
+  return loadRosterManualOverrides().overrides;
 }
 
 function buildManualOverrideLookup() {
