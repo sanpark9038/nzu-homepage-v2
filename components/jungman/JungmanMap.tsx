@@ -13,6 +13,8 @@ function hasLogoFile(code: string) {
 
 const CARD = 44;
 const HALF = CARD / 2;
+/** 로고는 카드 테두리 색이 남을 만큼만 안쪽으로 */
+const LOGO = CARD - 5;
 const GAP = 5;
 const CHIP_H = 32;
 const CHIP_Y = HALF + GAP;
@@ -117,6 +119,9 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
       <style>{`${MAP_STYLE}  ${activeRules}`}</style>
       <defs dangerouslySetInnerHTML={{ __html: JUNGMAN_MAP_DEFS }} />
       <defs>
+        <clipPath id="jm-logo-clip">
+          <rect x={-LOGO / 2} y={-LOGO / 2} width={LOGO} height={LOGO} rx={10} />
+        </clipPath>
         <radialGradient id="jm-spot">
           <stop offset="0" stopColor="#d4a94a" stopOpacity=".75" />
           <stop offset=".45" stopColor="#d4a94a" stopOpacity=".28" />
@@ -180,20 +185,24 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
               >
                 {marker.rank === 1 ? <circle className="jm-spot" r={58} /> : null}
                 <rect className="jm-card" x={-HALF} y={-HALF} width={CARD} height={CARD} rx={12} />
-                <rect className="jm-logo-slot" x={-16} y={-16} width={32} height={32} rx={9} />
                 {hasLogoFile(marker.code) ? (
+                  // 로고가 카드를 채운다 — 32px로는 작아서 어느 팀인지 안 읽힌다.
                   <image
+                    clipPath="url(#jm-logo-clip)"
                     href={jungmanLogoPath(marker.code)}
-                    x={-16}
-                    y={-16}
-                    width={32}
-                    height={32}
+                    x={-LOGO / 2}
+                    y={-LOGO / 2}
+                    width={LOGO}
+                    height={LOGO}
                     preserveAspectRatio="xMidYMid meet"
                   />
                 ) : (
-                  <text className="jm-abbr" y={1}>
-                    {marker.code}
-                  </text>
+                  <>
+                    <rect className="jm-logo-slot" x={-16} y={-16} width={32} height={32} rx={9} />
+                    <text className="jm-abbr" y={1}>
+                      {marker.code}
+                    </text>
+                  </>
                 )}
                 <rect className="jm-chip" x={-width / 2} y={CHIP_Y} width={width} height={CHIP_H} rx={9} />
                 <text className="jm-name" y={CHIP_Y + 11}>
