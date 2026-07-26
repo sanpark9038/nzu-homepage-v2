@@ -104,6 +104,21 @@ function elapsedLabel(ms: number) {
   return minutes < 60 ? `${minutes}분 전 갱신` : `${Math.floor(minutes / 60)}시간 전 갱신`;
 }
 
+/** 자동 수집 중인데 최근 갱신이 없을 때 — 발표 카운트다운 대신 상태만 알린다. */
+function StaleRow({ latestAt }: { latestAt: string | null }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
+      <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#7a8299]" />
+      <div>
+        <p className="text-[0.6875rem] font-black uppercase tracking-[0.22em] text-[#7a8299]">자동 집계</p>
+        <p className="mt-1 text-sm font-bold text-[#e8ebf2]">
+          {latestAt ? "갱신 대기 중" : "첫 집계를 기다리는 중"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function LiveRow({ latestAt }: { latestAt: string }) {
   const [now, setNow] = useState<number | null>(null);
 
@@ -138,11 +153,13 @@ export function JungmanCountdown({
   nextRevealAt,
   isLive = false,
   latestAt = null,
+  autoCollect = false,
 }: {
   voteCloseAt: string;
   nextRevealAt: string | null;
   isLive?: boolean;
   latestAt?: string | null;
+  autoCollect?: boolean;
 }) {
   const live = isLive && latestAt;
 
@@ -151,6 +168,9 @@ export function JungmanCountdown({
       <CountdownRow label="투표 마감까지" targetIso={voteCloseAt} closedLabel="투표 마감" />
       {live ? (
         <LiveRow latestAt={latestAt} />
+      ) : autoCollect ? (
+        // 자동 수집 중이면 "발표 시각"이란 게 없다 — 잠깐 갱신이 끊겼을 뿐이니 대기로만 알린다.
+        <StaleRow latestAt={latestAt} />
       ) : nextRevealAt ? (
         <CountdownRow label="다음 개표 발표까지" targetIso={nextRevealAt} closedLabel="발표 임박" />
       ) : null}

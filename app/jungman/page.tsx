@@ -135,6 +135,7 @@ export default async function JungmanPage() {
               nextRevealAt={config.nextRevealAt}
               isLive={isLive}
               latestAt={latest?.at ?? null}
+              autoCollect={config.autoCollect}
             />
           </div>
         </header>

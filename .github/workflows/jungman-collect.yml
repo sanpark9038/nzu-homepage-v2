@@ -1,0 +1,47 @@
+name: Jungman Collect
+
+# 중만컵 득표 수집 백업. 평소 수집은 /jungman을 보고 있는 사람이 굴리고(뷰어 구동),
+# 아무도 안 볼 때(새벽 등) 그래프에 구멍이 나지 않도록 이 워크플로가 대신 찌른다.
+# 서버 쪽 3분 쿨다운이 있어 자주 불러도 기록은 3분에 한 번을 넘지 않는다.
+# 투표 기간(7/27~7/30)에만 켜두고 끝나면 Actions 화면에서 disable 할 것.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/10 * * * *"
+
+concurrency:
+  group: jungman-collect
+  cancel-in-progress: true
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      JUNGMAN_COLLECT_URL: ${{ vars.JUNGMAN_COLLECT_URL }}
+
+    steps:
+      - name: Poke collect endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${JUNGMAN_COLLECT_URL}" ]; then
+            echo "JUNGMAN_COLLECT_URL repository variable is not set — nothing to do."
+            echo "예: https://<사이트 도메인>/api/jungman/collect"
+            exit 0
+          fi
+
+          response="$(
+            curl --fail-with-body -sS -X POST "${JUNGMAN_COLLECT_URL}" \
+              -H "content-type: application/json" \
+              --data '{}'
+          )"
+
+          echo "$response"
+          {
+            echo "## 중만컵 수집"
+            echo ""
+            echo "- Response: \`$response\`"
+          } >> "$GITHUB_STEP_SUMMARY"
