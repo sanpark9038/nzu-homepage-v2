@@ -3,11 +3,20 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { formatVotes, teamAccent, type JungmanStanding } from "@/lib/jungman";
+import {
+  formatVotes,
+  JUNGMAN_CONTEST_RATIO,
+  JUNGMAN_SEED_CUT,
+  JUNGMAN_WILDCARD_CUT,
+  teamAccent,
+  type JungmanStanding,
+} from "@/lib/jungman";
 
 const LAST_SEEN_ROUND_KEY = "jungman:last-seen-round";
 const ROLLUP_MS = 800;
 const COLLECT_POLL_MS = 60_000;
+const TICKER_MS = 5_000;
+const TICKER_FADE_MS = 240;
 
 // 지도는 서버 컴포넌트(88KB SVG)라 상태를 공유하지 않는다 — 래퍼 속성만 찔러 CSS가 처리하게 한다.
 function pokeMap(attribute: "data-active" | "data-reveal", value: string | null) {
@@ -178,21 +187,94 @@ export function JungmanCountdown({
   );
 }
 
+/** 변화가 없으면 아무것도 찍지 않는다 — 12행 중 11행이 "— 0"이면 정작 변한 값이 안 보인다. */
 function DeltaTag({ rankDelta, voteDelta }: { rankDelta: number | null; voteDelta: number | null }) {
-  if (rankDelta === null && voteDelta === null) return null;
-
-  const rankTone = !rankDelta ? "text-[#7a8299]" : rankDelta > 0 ? "text-[#5fd0a0]" : "text-[#e0705f]";
-  const rankText = !rankDelta ? "—" : `${rankDelta > 0 ? "▲" : "▼"}${Math.abs(rankDelta)}`;
-
   return (
-    <span className="flex items-baseline justify-end gap-2 tabular-nums">
-      <span className={`text-sm font-black ${rankTone}`}>{rankText}</span>
-      {voteDelta === null ? null : (
+    <>
+      {rankDelta ? (
+        <span className={`text-sm font-black ${rankDelta > 0 ? "text-[#8fd18f]" : "text-[#e0705f]"}`}>
+          {rankDelta > 0 ? "▲" : "▼"}
+          {Math.abs(rankDelta)}
+        </span>
+      ) : null}
+      {voteDelta ? (
         <span className="text-xs font-bold text-[#7a8299]">
           {voteDelta > 0 ? `+${formatVotes(voteDelta)}` : formatVotes(voteDelta)}
         </span>
-      )}
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * 바로 위 순위와의 표차. 1위만 아래(2위)와의 격차를 본다.
+ * 적색 강조는 contested 행이 아니라 "지금 보여주는 이 격차"가 근소할 때만 — 아래쪽 때문에 경합인 팀에
+ * 위쪽과의 넉넉한 격차를 빨갛게 칠하면 거짓말이 된다.
+ */
+function gapLabel(standings: JungmanStanding[], index: number, threshold: number) {
+  const other = index === 0 ? standings[1] : standings[index - 1];
+  if (!other || other.rank === null) return { text: "", tight: false };
+
+  const gap = Math.abs((standings[index].votes || 0) - (other.votes || 0));
+  return {
+    text: gap === 0 ? `${other.rank}위와 동률` : `${other.rank}위와 ${formatVotes(gap)}표 차`,
+    tight: threshold > 0 && gap <= threshold,
+  };
+}
+
+function TeamLogo({ src, team }: { src: string | null; team: JungmanStanding["team"] }) {
+  if (src) {
+    // width/height를 박아 CLS를 막는다. next/image를 쓸 만큼 큰 이미지가 아니다.
+    return <img src={src} alt="" width={28} height={28} className="h-7 w-7 rounded-full object-contain" />;
+  }
+
+  return (
+    <span
+      className="flex h-7 w-7 items-center justify-center rounded-full text-[0.5625rem] font-black text-[#0b0f1a]"
+      style={{ backgroundColor: teamAccent(team) }}
+    >
+      {team.code}
     </span>
+  );
+}
+
+/** 헤드라인이 여러 개면 쌓지 않고 5초마다 갈아끼운다. 모션 최소화면 첫 문장 고정. */
+function JungmanTicker({ headlines }: { headlines: string[] }) {
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    if (headlines.length < 2 || prefersReducedMotion()) return;
+
+    let fade = 0;
+    const timer = window.setInterval(() => {
+      setVisible(false);
+      fade = window.setTimeout(() => {
+        setIndex((current) => (current + 1) % headlines.length);
+        setVisible(true);
+      }, TICKER_FADE_MS);
+    }, TICKER_MS);
+
+    return () => {
+      window.clearInterval(timer);
+      window.clearTimeout(fade);
+    };
+  }, [headlines.length]);
+
+  return (
+    <div
+      aria-live="polite"
+      className="mb-4 flex items-center gap-2.5 rounded-xl border border-[#d4a94a]/25 bg-[rgba(212,169,74,0.06)] px-4 py-2.5"
+    >
+      <span className="h-2 w-2 shrink-0 rounded-full bg-[#d4a94a]" />
+      <p
+        className={`min-w-0 text-sm font-bold leading-snug text-[#e8ebf2] transition-opacity duration-200 motion-reduce:transition-none ${
+          visible ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        {headlines[index] ?? headlines[0]}
+      </p>
+    </div>
   );
 }
 
@@ -201,11 +283,16 @@ export function JungmanBoard({
   round,
   revealedAt,
   isLive = false,
+  logos = {},
+  headlines = [],
 }: {
   standings: JungmanStanding[];
   round: number;
   revealedAt: string;
   isLive?: boolean;
+  /** 팀코드 → 로고 경로. 파일 존재 확인은 서버(fs)에서 끝내고 내려온다 */
+  logos?: Record<string, string | null>;
+  headlines?: string[];
 }) {
   const [progress, setProgress] = useState(1);
   const [isFreshRound, setIsFreshRound] = useState(false);
@@ -240,6 +327,8 @@ export function JungmanBoard({
 
   return (
     <section className="rounded-[1.4rem] border border-[rgba(155,185,240,0.14)] bg-[linear-gradient(180deg,#101728,#0c1220)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
+      {headlines.length ? <JungmanTicker headlines={headlines} /> : null}
+
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="text-xl font-black tracking-tight text-[#e8ebf2]">
           <span
@@ -262,30 +351,40 @@ export function JungmanBoard({
       </div>
 
       <ol className="mt-5 flex flex-col gap-2">
-        {standings.map((standing) => {
+        {standings.map((standing, index) => {
           const target = standing.votes || 0;
           const from = standing.voteDelta === null ? 0 : target - standing.voteDelta;
           const shown = Math.round(from + (target - from) * progress);
           const barPercent = leaderVotes > 0 ? Math.max(2, (shown / leaderVotes) * 100) : 2;
+          const leading = standing.rank === 1;
+          const gap = gapLabel(standings, index, leaderVotes * JUNGMAN_CONTEST_RATIO);
+          const cutline =
+            standing.rank === JUNGMAN_SEED_CUT
+              ? { label: "시드 확보선", tone: "border-[#d4a94a]/45", chip: "border-[#d4a94a]/50 text-[#d4a94a]" }
+              : standing.rank === JUNGMAN_WILDCARD_CUT
+                ? {
+                    label: "와일드카드 위험선",
+                    tone: "border-[#e0705f]/45",
+                    chip: "border-[#e0705f]/50 text-[#e0705f]",
+                  }
+                : null;
 
           return (
             <li
               key={standing.team.code}
-              className={
-                standing.rank === 3
-                  ? "border-b-2 border-dashed border-[#d4a94a]/45 pb-3"
-                  : standing.rank === 10
-                    ? "border-b-2 border-dashed border-[#e0705f]/45 pb-3"
-                    : undefined
-              }
+              className={cutline ? `relative border-b-2 border-dashed pb-4 ${cutline.tone}` : undefined}
             >
               <div
-                className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 rounded-xl bg-[rgba(10,15,28,0.55)] px-4 py-3"
+                className={`grid grid-cols-[2.25rem_1.75rem_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-xl px-3 py-3 sm:gap-x-3 sm:px-4 ${
+                  leading
+                    ? "border-l-4 border-[#d4a94a] bg-[rgba(212,169,74,0.07)]"
+                    : "bg-[rgba(10,15,28,0.55)]"
+                }`}
                 onPointerEnter={() => pokeMap("data-active", standing.team.code)}
                 onPointerLeave={() => pokeMap("data-active", null)}
               >
                 <span
-                  className={`text-lg font-black tabular-nums ${
+                  className={`font-black tabular-nums ${leading ? "text-2xl" : "text-lg"} ${
                     standing.badge === "seed"
                       ? "text-[#d4a94a]"
                       : standing.badge === "wildcard"
@@ -296,8 +395,10 @@ export function JungmanBoard({
                   {standing.rank}
                 </span>
 
+                <TeamLogo src={logos[standing.team.code] ?? null} team={standing.team} />
+
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="truncate font-bold text-[#e8ebf2]">{standing.team.name}</span>
                     {standing.badge === "seed" ? (
                       <span className="rounded-full bg-[#d4a94a]/15 px-2 py-0.5 text-[0.6875rem] font-black text-[#d4a94a]">
@@ -325,9 +426,24 @@ export function JungmanBoard({
 
                 <div className="text-right">
                   <p className="text-base font-black tabular-nums text-[#e8ebf2]">{formatVotes(shown)}표</p>
-                  <DeltaTag rankDelta={standing.rankDelta} voteDelta={standing.voteDelta} />
+                  <div className="mt-0.5 flex flex-wrap items-baseline justify-end gap-x-2 tabular-nums">
+                    <DeltaTag rankDelta={standing.rankDelta} voteDelta={standing.voteDelta} />
+                    <span
+                      className={`text-[0.625rem] font-bold ${gap.tight ? "text-[#e0705f]" : "text-[#7a8299]"}`}
+                    >
+                      {gap.text}
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              {cutline ? (
+                <span
+                  className={`absolute bottom-[-0.6rem] left-1/2 -translate-x-1/2 rounded-full border bg-[#0d1322] px-2.5 py-0.5 text-[0.625rem] font-black tracking-[0.06em] ${cutline.chip}`}
+                >
+                  {cutline.label}
+                </span>
+              ) : null}
             </li>
           );
         })}

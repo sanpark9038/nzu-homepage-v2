@@ -416,6 +416,118 @@ export function buildJungmanStandings(snapshots: JungmanSnapshot[]): JungmanStan
   return standings;
 }
 
+// 조사 선택용 받침 판정. 영문·숫자는 한국어 읽기의 끝소리로 본다 (M=엠 받침O, A=에이 받침X).
+const JONGSEONG_LATIN = new Set(["L", "M", "N", "R", "0", "1", "3", "6", "7", "8"]);
+
+function hasJongseong(word: string): boolean {
+  const char = word.trim().slice(-1).toUpperCase();
+  const code = char.charCodeAt(0);
+  if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 !== 0;
+  return JONGSEONG_LATIN.has(char);
+}
+
+function withParticle(word: string, jong: string, plain: string): string {
+  return `${word}${hasJongseong(word) ? jong : plain}`;
+}
+
+/**
+ * 최신 2개 스냅샷을 비교해 "지금 무슨 일이 벌어졌는지"를 문장으로. 중요도순 최대 3개.
+ * 사건이 하나도 없으면 선두 유지 문장 1개를 돌려준다 — 티커가 비지 않게.
+ */
+export function buildJungmanHeadlines(snapshots: JungmanSnapshot[]): string[] {
+  const latest = snapshots.length ? snapshots[snapshots.length - 1] : null;
+  if (!latest) return [];
+
+  const ranks = rankMap(latest);
+  const ordered = JUNGMAN_VOTING_TEAMS.slice().sort(
+    (a, b) => (ranks.get(a.code) || 0) - (ranks.get(b.code) || 0)
+  );
+  const votesOf = (team: JungmanTeam) => latest.votes[team.code] || 0;
+  const leaderVotes = votesOf(ordered[0]);
+
+  const previous = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
+  const previousRanks = previous ? rankMap(previous) : null;
+
+  const swaps: string[] = [];
+  const cutlines: string[] = [];
+  const close: string[] = [];
+  const surge: string[] = [];
+
+  if (previous && previousRanks) {
+    for (const team of ordered) {
+      if (swaps.length >= 2) break;
+      const rank = ranks.get(team.code) || 0;
+      const before = previousRanks.get(team.code) || 0;
+      if (before <= rank) continue;
+      const passed = ordered.find(
+        (other) => other.code !== team.code && previousRanks.get(other.code) === rank
+      );
+      if (!passed || (ranks.get(passed.code) || 0) <= rank) continue;
+
+      swaps.push(
+        `${withParticle(team.name, "이", "가")} ${withParticle(passed.name, "을", "를")} 제치고 ${rank}위로 올라섰습니다`
+      );
+    }
+
+    for (const team of ordered) {
+      const rank = ranks.get(team.code) || 0;
+      const before = previousRanks.get(team.code) || 0;
+      const line =
+        before > JUNGMAN_SEED_CUT && rank <= JUNGMAN_SEED_CUT
+          ? "시드권에 진입했습니다"
+          : before <= JUNGMAN_SEED_CUT && rank > JUNGMAN_SEED_CUT
+            ? "시드권에서 밀려났습니다"
+            : before > JUNGMAN_WILDCARD_CUT && rank <= JUNGMAN_WILDCARD_CUT
+              ? "와일드카드권에서 벗어났습니다"
+              : before <= JUNGMAN_WILDCARD_CUT && rank > JUNGMAN_WILDCARD_CUT
+                ? "와일드카드권으로 밀렸습니다"
+                : null;
+      if (!line) continue;
+
+      cutlines.push(`${withParticle(team.name, "이", "가")} ${line}`);
+    }
+
+    let best: JungmanTeam | null = null;
+    let bestGain = 0;
+    for (const team of ordered) {
+      const gain = votesOf(team) - (previous.votes[team.code] || 0);
+      if (gain > bestGain) {
+        bestGain = gain;
+        best = team;
+      }
+    }
+    if (best) {
+      surge.push(
+        `이번 집계에서 ${withParticle(best.name, "이", "가")} +${formatVotes(bestGain)}표로 가장 많이 늘었습니다`
+      );
+    }
+  }
+
+  // 초박빙 — 인접 순위 표차가 1위 표수의 3% 이내. 가장 높은 순위 한 건만.
+  const threshold = leaderVotes * JUNGMAN_CONTEST_RATIO;
+  if (threshold > 0) {
+    for (let i = 0; i < ordered.length - 1 && !close.length; i++) {
+      const gap = votesOf(ordered[i]) - votesOf(ordered[i + 1]);
+      if (gap > threshold) continue;
+
+      const upper = withParticle(ordered[i].name, "과", "와");
+      const lower = withParticle(ordered[i + 1].name, "이", "가");
+      close.push(
+        gap === 0
+          ? `${i + 1}위 ${upper} ${i + 2}위 ${lower} 동률입니다`
+          : `${i + 1}위 ${upper} ${i + 2}위 ${lower} ${formatVotes(gap)}표 차입니다`
+      );
+    }
+  }
+
+  const headlines = [...swaps, ...cutlines, ...close, ...surge].slice(0, 3);
+  if (headlines.length) return headlines;
+
+  return [
+    `1위 ${withParticle(ordered[0].name, "이", "가")} ${formatVotes(leaderVotes)}표로 선두를 지키고 있습니다`,
+  ];
+}
+
 /** 지도 마커 13개 — 투표 12팀 + 수술대(4시드 고정) */
 export function buildJungmanMarkers(standings: JungmanStanding[]): JungmanMarker[] {
   const byCode = new Map(standings.map((standing) => [standing.team.code, standing]));

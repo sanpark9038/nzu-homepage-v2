@@ -256,6 +256,56 @@ test("jungman folds the soop-id signal into the guess without dropping text matc
   assert.deepEqual(legacy.guesses["9"], { code: "KU", via: "케이대" });
 });
 
+test("jungman headlines narrate what actually changed between the last two rounds", () => {
+  const { buildJungmanHeadlines } = loadJungmanLib();
+  // 12팀 votes 레코드를 만든다 — 코드 순서는 lib의 JUNGMAN_VOTING_TEAMS와 같다
+  const snapshot = (round, votes) => ({ round, at: `2026-07-2${round}T00:00:00.000Z`, votes });
+  // 인접 격차를 전부 경합 임계(1위의 3% = 30표)보다 크게 벌려 둔다 — 사건 없는 기준선
+  const base = {
+    DM: 1000, KMS: 900, WFU: 800, C9: 700, JSA: 600, BGM: 500,
+    HKA: 400, HM: 300, SSG: 200, NCS: 150, MBU: 100, KU: 50,
+  };
+
+  assert.deepEqual(buildJungmanHeadlines([]), []);
+
+  // 스냅샷이 하나면 비교 대상이 없다 — 선두 유지 문장 1개
+  const first = buildJungmanHeadlines([snapshot(1, base)]);
+  assert.deepEqual(first, ["1위 DM이 1,000표로 선두를 지키고 있습니다"]);
+
+  // 값이 그대로여도 선두 유지 문장 1개 (변화 없음 = 사건 없음)
+  assert.deepEqual(buildJungmanHeadlines([snapshot(1, base), snapshot(2, base)]), [
+    "1위 DM이 1,000표로 선두를 지키고 있습니다",
+  ]);
+
+  // 씨나인(700→850)이 와플대(800)를 넘어 3위 — 교체 + 컷라인 양쪽이 잡힌다
+  const swap = buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, C9: 850 })]);
+  assert.equal(swap[0], "씨나인이 와플대를 제치고 3위로 올라섰습니다");
+  assert.ok(swap.includes("씨나인이 시드권에 진입했습니다"), swap.join(" / "));
+  assert.ok(swap.includes("와플대가 시드권에서 밀려났습니다"), swap.join(" / "));
+
+  // 케이대(50, 12위 → 250, 9위)가 와일드카드권 탈출, 밀려난 쪽도 잡힌다
+  const escaped = buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, KU: 250 })]);
+  assert.equal(escaped[0], "케이대가 신세계를 제치고 9위로 올라섰습니다");
+  assert.ok(escaped.includes("케이대가 와일드카드권에서 벗어났습니다"), escaped.join(" / "));
+  assert.ok(escaped.includes("뉴캣슬이 와일드카드권으로 밀렸습니다"), escaped.join(" / "));
+
+  // 초박빙 — 인접 표차가 1위 표수의 3%(=30표) 이내. 조사도 받침 따라 붙는다(DM=엠 → "과")
+  const tight = buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, KMS: 999 })]);
+  assert.equal(tight[0], "1위 DM과 2위 캄몬스타즈가 1표 차입니다");
+  assert.ok(tight.includes("이번 집계에서 캄몬스타즈가 +99표로 가장 많이 늘었습니다"), tight.join(" / "));
+
+  // 순위가 안 바뀌면 최다 득표만 남는다
+  assert.deepEqual(buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, DM: 1200 })]), [
+    "이번 집계에서 DM이 +200표로 가장 많이 늘었습니다",
+  ]);
+
+  // 사건이 쏟아져도 3개까지
+  assert.equal(
+    buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, C9: 850, KU: 250 })]).length,
+    3
+  );
+});
+
 test("jungman is reachable from public and admin navigation", () => {
   assert.match(readProjectFile("lib/navigation-config.ts"), /href: "\/jungman", label: "중만컵"/);
   assert.match(readProjectFile("components/Navbar.tsx"), /"\/jungman":/);

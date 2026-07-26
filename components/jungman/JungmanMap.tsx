@@ -1,15 +1,8 @@
-import { existsSync } from "node:fs";
-import path from "node:path";
 import type { CSSProperties } from "react";
 
 import { JUNGMAN_MAP_BASE, JUNGMAN_MAP_DEFS, JUNGMAN_MAP_HEIGHT, JUNGMAN_MAP_WIDTH } from "./map-base";
-import { formatVotes, jungmanLogoPath, type JungmanMarker } from "@/lib/jungman";
-
-// 404난 SVG <image>는 브라우저가 깨진 아이콘을 그린다 — 파일이 실제로 있을 때만 로고를 렌더.
-// 서버 컴포넌트 전용이라 fs를 써도 된다.
-function hasLogoFile(code: string) {
-  return existsSync(path.join(process.cwd(), "public", jungmanLogoPath(code)));
-}
+import { formatVotes, type JungmanMarker } from "@/lib/jungman";
+import { jungmanLogoSrc } from "@/lib/jungman-logos";
 
 const CARD = 44;
 const HALF = CARD / 2;
@@ -167,6 +160,7 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
                 : "";
 
           const rise = (marker.rankDelta || 0) > 0;
+          const logo = jungmanLogoSrc(marker.code);
 
           return (
             <g key={marker.code} transform={`translate(${marker.x},${marker.y})`}>
@@ -185,11 +179,11 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
               >
                 {marker.rank === 1 ? <circle className="jm-spot" r={58} /> : null}
                 <rect className="jm-card" x={-HALF} y={-HALF} width={CARD} height={CARD} rx={12} />
-                {hasLogoFile(marker.code) ? (
+                {logo ? (
                   // 로고가 카드를 채운다 — 32px로는 작아서 어느 팀인지 안 읽힌다.
                   <image
                     clipPath="url(#jm-logo-clip)"
-                    href={jungmanLogoPath(marker.code)}
+                    href={logo}
                     x={-LOGO / 2}
                     y={-LOGO / 2}
                     width={LOGO}

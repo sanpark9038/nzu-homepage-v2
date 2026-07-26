@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import JungmanMap from "@/components/jungman/JungmanMap";
 import {
+  buildJungmanHeadlines,
   buildJungmanMarkers,
   formatVotes,
   getJungmanState,
@@ -13,6 +14,7 @@ import {
   type JungmanSnapshot,
   teamAccent,
 } from "@/lib/jungman";
+import { jungmanLogoSrc } from "@/lib/jungman-logos";
 
 import { JungmanAutoCollect, JungmanBoard, JungmanCountdown } from "./JungmanClient";
 
@@ -26,11 +28,23 @@ export const metadata: Metadata = {
 const PANEL =
   "rounded-[1.4rem] border border-[rgba(155,185,240,0.14)] bg-[linear-gradient(180deg,#101728,#0c1220)] shadow-[0_24px_60px_rgba(0,0,0,0.55)]";
 
+/** 12개 선을 전부 진하게 그리면 아무것도 안 읽힌다 — 상위 이만큼만 살리고 나머지는 배경으로 */
+const TREND_FOCUS = 5;
+/** 마지막 점 라벨 최소 세로 간격 */
+const LABEL_GAP = 12;
+
+/** 최신 스냅샷 득표 내림차순 — 선 굵기·라벨·범례 순서가 전부 이걸 따른다 */
+function rankTeamsByLatest(latest: JungmanSnapshot) {
+  return JUNGMAN_VOTING_TEAMS.slice().sort(
+    (a, b) => (latest.votes[b.code] || 0) - (latest.votes[a.code] || 0)
+  );
+}
+
 function TrendChart({ snapshots }: { snapshots: JungmanSnapshot[] }) {
   const width = 760;
   const height = 300;
   const padLeft = 52;
-  const padRight = 18;
+  const padRight = 58; // 마지막 점 오른쪽 약칭 라벨 자리
   const padTop = 18;
   const padBottom = 30;
   const innerWidth = width - padLeft - padRight;
@@ -43,6 +57,23 @@ function TrendChart({ snapshots }: { snapshots: JungmanSnapshot[] }) {
 
   const x = (index: number) => padLeft + (innerWidth * index) / Math.max(1, snapshots.length - 1);
   const y = (votes: number) => padTop + innerHeight * (1 - votes / maxVotes);
+
+  const last = snapshots[snapshots.length - 1];
+  const ranked = rankTeamsByLatest(last);
+  const focus = ranked.slice(0, TREND_FOCUS);
+  const focusCodes = new Set(focus.map((team) => team.code));
+  // 상위 팀을 뒤에 그려 위로 올린다
+  const drawOrder = [...ranked.slice(TREND_FOCUS), ...focus];
+
+  // 마지막 값이 붙어 있으면 라벨이 겹친다 — 아래에서 위로 최소 간격을 강제한다
+  const labels = focus
+    .map((team) => ({ team, y: y(last.votes[team.code] || 0) }))
+    .sort((a, b) => b.y - a.y);
+  let ceiling = Infinity;
+  for (const label of labels) {
+    label.y = Math.max(padTop + 5, Math.min(label.y, ceiling - LABEL_GAP));
+    ceiling = label.y;
+  }
 
   return (
     <svg
@@ -81,9 +112,9 @@ function TrendChart({ snapshots }: { snapshots: JungmanSnapshot[] }) {
         ) : null
       )}
 
-      {JUNGMAN_VOTING_TEAMS.map((team) => {
+      {drawOrder.map((team) => {
         const points = snapshots.map((snapshot, index) => `${x(index)},${y(snapshot.votes[team.code] || 0)}`);
-        const last = snapshots[snapshots.length - 1];
+        const lead = focusCodes.has(team.code);
 
         return (
           <g key={team.code}>
@@ -91,30 +122,51 @@ function TrendChart({ snapshots }: { snapshots: JungmanSnapshot[] }) {
               points={points.join(" ")}
               fill="none"
               stroke={teamAccent(team)}
-              strokeWidth={2}
-              strokeOpacity={0.85}
+              strokeWidth={lead ? 2.2 : 1.2}
+              strokeOpacity={lead ? 1 : 0.35}
               strokeLinejoin="round"
               strokeLinecap="round"
             />
             <circle
               cx={x(snapshots.length - 1)}
               cy={y(last.votes[team.code] || 0)}
-              r={4}
+              r={lead ? 4 : 2.6}
               fill={teamAccent(team)}
+              fillOpacity={lead ? 1 : 0.45}
               stroke="#0b0f1a"
               strokeWidth={1.5}
             />
           </g>
         );
       })}
+
+      {labels.map((label) => (
+        <text
+          key={label.team.code}
+          x={x(snapshots.length - 1) + 8}
+          y={label.y + 3.5}
+          fontSize="11"
+          fontWeight="800"
+          fill={teamAccent(label.team)}
+        >
+          {label.team.code}
+        </text>
+      ))}
     </svg>
   );
 }
 
 export default async function JungmanPage() {
-  const { config, snapshots, latest, standings, isLive } = await getJungmanState();
+  const { config, snapshots, latest, standings, isLive: inLiveWindow } = await getJungmanState();
   const markers = buildJungmanMarkers(standings);
   const seedTeam = JUNGMAN_TEAMS.find((team) => team.code === JUNGMAN_SEED_TEAM_CODE);
+  // LIVE 판정은 여기 한 곳에서만 — 카운트다운과 보드 배지가 서로 다른 조건을 쓰면 배지가 어긋난다
+  const isLive = inLiveWindow && latest !== null;
+  const headlines = buildJungmanHeadlines(snapshots);
+  // 로고 파일 존재 확인은 fs — 서버에서 끝내고 보드(클라이언트)에는 경로만 내려준다
+  const logos = Object.fromEntries(
+    JUNGMAN_VOTING_TEAMS.map((team) => [team.code, jungmanLogoSrc(team.code)])
+  );
 
   return (
     <div className="min-h-screen bg-[#0b0f1a] text-[#e8ebf2]">
@@ -148,7 +200,14 @@ export default async function JungmanPage() {
         </section>
 
         {latest ? (
-          <JungmanBoard standings={standings} round={latest.round} revealedAt={latest.at} isLive={isLive} />
+          <JungmanBoard
+            standings={standings}
+            round={latest.round}
+            revealedAt={latest.at}
+            isLive={isLive}
+            logos={logos}
+            headlines={headlines}
+          />
         ) : (
           <section className={`${PANEL} p-6`}>
             <h2 className="text-xl font-black tracking-tight">첫 개표 발표를 기다리고 있습니다</h2>
@@ -177,16 +236,25 @@ export default async function JungmanPage() {
           </div>
         ) : null}
 
-        {snapshots.length >= 2 ? (
+        {latest && snapshots.length >= 2 ? (
           <section className={`${PANEL} p-6`}>
             <h2 className="text-xl font-black tracking-tight">차수별 득표 추이</h2>
             <div className="mt-4">
               <TrendChart snapshots={snapshots.slice(-40)} />
             </div>
+            {/* 범례도 그래프와 같은 순서 — 진하게 그린 상위 팀이 앞에 온다 */}
             <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
-              {JUNGMAN_VOTING_TEAMS.map((team) => (
-                <li key={team.code} className="flex items-center gap-2 text-xs font-bold text-[#7a8299]">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: teamAccent(team) }} />
+              {rankTeamsByLatest(latest).map((team, index) => (
+                <li
+                  key={team.code}
+                  className={`flex items-center gap-2 text-xs font-bold ${
+                    index < TREND_FOCUS ? "text-[#e8ebf2]" : "text-[#7a8299]"
+                  }`}
+                >
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: teamAccent(team), opacity: index < TREND_FOCUS ? 1 : 0.4 }}
+                  />
                   {team.name}
                 </li>
               ))}
