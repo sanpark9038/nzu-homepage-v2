@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import {
   formatVotes,
+  JUNGMAN_ID_VIA,
   JUNGMAN_VOTING_TEAMS,
   type JungmanComment,
   type JungmanConfig,
@@ -12,6 +13,11 @@ import {
 
 type VoteInputs = Record<string, string>;
 type Guesses = Record<string, { code: string; via: string }>;
+
+/** 텍스트 신호는 걸린 별칭 그대로라 따옴표를 씌운다. 숲ID 근거는 문장이라 그대로 쓴다. */
+function viaLabel(via: string): string {
+  return via.startsWith(JUNGMAN_ID_VIA) ? via : `“${via}”`;
+}
 
 function guessMappingOf(guesses: Guesses): Record<string, string> {
   return Object.fromEntries(Object.entries(guesses).map(([commentNo, guess]) => [commentNo, guess.code]));
@@ -232,7 +238,7 @@ export default function JungmanAdmin({
                     <p className="truncate text-sm text-white/55">{comment.text.slice(0, 40)}</p>
                     {guesses[comment.commentNo] && mapping[comment.commentNo] === guesses[comment.commentNo].code ? (
                       <p className="truncate text-xs font-bold text-nzu-green/70">
-                        자동 추정 · &ldquo;{guesses[comment.commentNo].via}&rdquo;
+                        자동 추정 · {viaLabel(guesses[comment.commentNo].via)}
                       </p>
                     ) : null}
                   </div>

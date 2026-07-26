@@ -226,35 +226,70 @@ function matchTeamAliases(spaced: string, compact: string): Map<string, string> 
 /** 총장·이사장 신청 댓글을 팬 잡담과 가르는 문구 */
 const APPLY_PATTERN = /신청|참가|출전|등록|나갑니다|가겠습니다/;
 
+/** ID 신호로 잡혔음을 관리자에게 알리는 via 접두사 */
+export const JUNGMAN_ID_VIA = "숲ID 일치";
+
+type Candidate = {
+  comment: JungmanComment;
+  via: string;
+  /** 신청 문구가 있는 댓글 */
+  applied: boolean;
+  /** 텍스트·ID 두 신호가 일치 */
+  agreed: boolean;
+  /** ID 신호로도 잡힘 */
+  byId: boolean;
+};
+
+/** 우선순위: 신청 문구 > 두 신호 일치 > ID 신호 > 먼저 쓴 댓글 */
+function isBetterCandidate(next: Candidate, current: Candidate): boolean {
+  for (const key of ["applied", "agreed", "byId"] as const) {
+    if (next[key] !== current[key]) return next[key];
+  }
+  return next.comment.commentNo < current.comment.commentNo;
+}
+
 /**
  * 댓글 → 팀 자동 추정. 관리자가 손으로 고르는 수고를 덜기 위한 초안이고, 사람 확인이 최종이다.
  * 애매하면(팀 2개 이상, 후보 중복) 지정하지 않는다 — 틀린 추정보다 미지정이 낫다.
+ *
+ * identityByUserId: 숲ID(소문자) → 팀코드. 선수 명부에서 만들어 호출자가 넘긴다(이 파일은 DB를 모른다).
+ * 팀명을 안 쓴 "신청합니다" 댓글을 잡는 게 이 신호의 이득이다.
  */
-export function suggestJungmanMapping(comments: JungmanComment[]): {
+export function suggestJungmanMapping(
+  comments: JungmanComment[],
+  identityByUserId: Record<string, string> = {}
+): {
   mapping: Record<string, string>;
   guesses: Record<string, { code: string; via: string }>;
 } {
-  const best = new Map<string, { comment: JungmanComment; via: string; applied: boolean }>();
+  const best = new Map<string, Candidate>();
 
   for (const comment of comments) {
     const spaced = normalizeForMatch(`${comment.text} ${comment.nick}`);
     const hits = matchTeamAliases(spaced, spaced.replace(/ /g, ""));
-    // 팀이 2개 이상 잡힌 댓글은 신청 댓글인지 알 수 없다 — 미지정으로 남긴다.
-    if (hits.size !== 1) continue;
+    // 팀이 2개 이상 잡힌 댓글은 신청 댓글인지 알 수 없다 — 텍스트 신호로 치지 않는다.
+    const [textCode, textVia] = hits.size === 1 ? [...hits][0] : [null, null];
+    // 여러 팀을 언급한 댓글은 소속으로도 귀속하지 않는다 — 선수가 쓴 잡담일 수 있다.
+    const idCode = hits.size > 1 ? null : identityByUserId[comment.userId.trim().toLowerCase()] || null;
 
-    const [code, via] = [...hits][0];
-    if (code === JUNGMAN_SEED_TEAM_CODE) continue;
+    // 소속과 다른 팀을 언급한 댓글은 팬 잡담이다 — 두 신호가 어긋나면 미지정.
+    if (textCode && idCode && textCode !== idCode) continue;
+
+    const code = textCode || idCode;
+    if (!code || code === JUNGMAN_SEED_TEAM_CODE) continue;
+
+    const via = textVia ? (idCode ? `${JUNGMAN_ID_VIA} · "${textVia}"` : textVia) : JUNGMAN_ID_VIA;
 
     // 추천수로만 고르면 팀명을 언급한 팬 댓글이 총장 신청 댓글을 이길 수 있다.
-    // 신청 문구가 있는 댓글을 먼저 세우고, 그다음은 먼저 쓴 쪽(신청은 공지 직후에 달린다).
-    const applied = APPLY_PATTERN.test(comment.text);
+    const candidate: Candidate = {
+      comment,
+      via,
+      applied: APPLY_PATTERN.test(comment.text),
+      agreed: Boolean(textCode && idCode),
+      byId: Boolean(idCode),
+    };
     const current = best.get(code);
-    const better =
-      !current ||
-      (applied !== current.applied
-        ? applied
-        : comment.commentNo < current.comment.commentNo);
-    if (better) best.set(code, { comment, via, applied });
+    if (!current || isBetterCandidate(candidate, current)) best.set(code, candidate);
   }
 
   const mapping: Record<string, string> = {};

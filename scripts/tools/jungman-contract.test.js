@@ -166,7 +166,7 @@ test("jungman admin exposes the comment mapping actions", () => {
   assert.match(admin, /action: "save-snapshot"/);
 
   // 자동 추정은 서버에서 계산해 내려주고, 관리자는 확인·수정만 한다
-  assert.match(route, /suggestJungmanMapping\(comments\)/);
+  assert.match(route, /suggestJungmanMapping\(comments/);
   assert.ok(admin.includes("자동 추정으로 채우기"), "admin should offer a bulk auto-fill button");
   assert.ok(admin.includes("자동 추정 ·"), "guessed rows should be badged");
 });
@@ -203,6 +203,55 @@ test("jungman guesses a team per comment without overreaching", () => {
   assert.deepEqual(mappingOf(comment(10, "수술대 신청합니다", 50)), {});
   // 닉네임도 본다
   assert.deepEqual(mappingOf(comment(11, "신청합니다", 1, "뉴캣슬 총장")), { 11: "NCS" });
+});
+
+test("jungman folds the soop-id signal into the guess without dropping text matching", () => {
+  const { suggestJungmanMapping } = loadJungmanLib();
+  const comment = (commentNo, text, userId = "u", nick = "총장") => ({
+    commentNo,
+    userId,
+    nick,
+    text,
+    likes: 0,
+  });
+  // 숲ID(소문자) → 팀코드
+  const identities = { kuboss: "KU", c9boss: "C9" };
+
+  // 팀명이 없어도 명부에 있는 숲ID면 잡힌다 — 이 신호의 핵심 이득
+  const byId = suggestJungmanMapping([comment(1, "신청합니다", "KUBoss")], identities);
+  assert.deepEqual(byId.mapping, { 1: "KU" });
+  assert.deepEqual(byId.guesses["1"], { code: "KU", via: "숲ID 일치" });
+
+  // 두 신호가 일치하면 근거를 둘 다 남긴다
+  const agreed = suggestJungmanMapping([comment(2, "케이대 신청합니다", "kuboss")], identities);
+  assert.deepEqual(agreed.mapping, { 2: "KU" });
+  assert.equal(agreed.guesses["2"].via, '숲ID 일치 · "케이대"');
+
+  // 소속과 다른 팀을 언급하면 미지정 — 씨나인 선수의 "케이대 화이팅"은 팬 댓글이다
+  assert.deepEqual(suggestJungmanMapping([comment(3, "케이대 화이팅", "c9boss")], identities).mapping, {});
+
+  // 신청 문구가 ID 단독 신호를 이긴다
+  assert.deepEqual(
+    suggestJungmanMapping([comment(4, "ㅋㅋㅋ", "kuboss"), comment(5, "케이대 신청합니다", "someone")], identities)
+      .mapping,
+    { 5: "KU" }
+  );
+  // 신청 문구가 없으면 ID 신호가 있는 쪽 (먼저 쓴 댓글보다 위)
+  assert.deepEqual(
+    suggestJungmanMapping([comment(6, "케이대 화이팅", "fan"), comment(7, "ㅎㅇ", "kuboss")], identities).mapping,
+    { 7: "KU" }
+  );
+
+  // 여러 팀을 언급했으면 소속(ID)으로도 귀속하지 않는다 — 케이대 선수의 관전평은 신청이 아니다
+  assert.deepEqual(
+    suggestJungmanMapping([comment(10, "케이대랑 씨나인 붙는거 보고싶다", "kuboss")], identities).mapping,
+    {}
+  );
+
+  // 하위호환 — 맵을 안 넘기면 텍스트 매칭만 쓰던 그대로
+  assert.deepEqual(suggestJungmanMapping([comment(8, "신청합니다", "kuboss")]).mapping, {});
+  const legacy = suggestJungmanMapping([comment(9, "케이대 신청합니다", "kuboss")]);
+  assert.deepEqual(legacy.guesses["9"], { code: "KU", via: "케이대" });
 });
 
 test("jungman is reachable from public and admin navigation", () => {

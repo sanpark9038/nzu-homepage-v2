@@ -6,6 +6,7 @@ import { ADMIN_SESSION_COOKIE, assertValidAdminSession } from "@/lib/admin-auth"
 import {
   JUNGMAN_CONFIG_KEY,
   JUNGMAN_SNAPSHOTS_KEY,
+  JUNGMAN_TEAMS,
   JUNGMAN_VOTING_TEAMS,
   parseJungmanConfig,
   parseJungmanMapping,
@@ -19,6 +20,7 @@ import {
   readSettingAdmin as readSetting,
   writeSettingAdmin as writeSetting,
 } from "@/lib/site-settings-admin";
+import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 
 export const runtime = "nodejs";
 
@@ -62,6 +64,36 @@ function parsePostUrl(raw: unknown) {
     return { error: "공지 글 주소 형식이 아닙니다. 예: https://www.sooplive.com/station/ititit/post/202453919" as const };
   }
   return { soopId: match[1], titleNo: Number(match[2]) };
+}
+
+/** players.university 문자열 → 팀코드. 팀 사전(name+aliases)을 그대로 재사용한다. */
+const TEAM_CODE_BY_LABEL = new Map(
+  JUNGMAN_TEAMS.flatMap((team) =>
+    [team.name, ...team.aliases].map((label) => [label.trim().toUpperCase(), team.code] as const)
+  )
+);
+
+/** 숲ID(소문자) → 팀코드. 댓글 작성자의 소속을 알아내는 두 번째 신호. */
+async function loadSoopIdentities(): Promise<Record<string, string>> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("players")
+    .select("soop_id, university")
+    .not("soop_id", "is", null);
+  if (error) throw new Error(error.message);
+
+  const map: Record<string, string> = {};
+  const conflicted = new Set<string>();
+  for (const row of data || []) {
+    const soopId = String(row.soop_id || "").trim().toLowerCase();
+    const code = TEAM_CODE_BY_LABEL.get(String(row.university || "").trim().toUpperCase());
+    if (!soopId || !code) continue;
+    // 같은 숲ID가 두 팀으로 등록돼 있으면 어느 쪽도 믿지 않는다
+    if (map[soopId] && map[soopId] !== code) conflicted.add(soopId);
+    map[soopId] = code;
+  }
+  for (const soopId of conflicted) delete map[soopId];
+  return map;
 }
 
 /** 12팀 표수 검증 — 음수·비정수·모르는 코드는 여기서 막는다(공개 파서에 기대지 않음). */
@@ -168,11 +200,20 @@ export async function POST(req: Request) {
       const config: JungmanConfig = { ...current, soopId: target.soopId, titleNo: target.titleNo };
       await writeSetting(JUNGMAN_CONFIG_KEY, JSON.stringify(config));
 
+      // 선수 명부 대조는 보조 신호다 — 실패해도 추정 자체는 돌아가야 한다.
+      let identities: Record<string, string> = {};
+      let identityNote = "";
+      try {
+        identities = await loadSoopIdentities();
+      } catch {
+        identityNote = " (선수 명부를 읽지 못해 숲ID 대조는 건너뛰었습니다)";
+      }
+
       const comments = fetched.comments.slice().sort((a, b) => b.likes - a.likes);
-      const { guesses } = suggestJungmanMapping(comments);
+      const { guesses } = suggestJungmanMapping(comments, identities);
       return respondWith(
         { config, snapshots, comments, guesses },
-        `댓글 ${comments.length}개를 불러왔습니다. ${Object.keys(guesses).length}팀을 자동 인식했습니다.`
+        `댓글 ${comments.length}개를 불러왔습니다. ${Object.keys(guesses).length}팀을 자동 인식했습니다.${identityNote}`
       );
     }
 
