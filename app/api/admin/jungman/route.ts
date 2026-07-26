@@ -10,6 +10,7 @@ import {
   parseJungmanConfig,
   parseJungmanMapping,
   parseJungmanSnapshots,
+  suggestJungmanMapping,
   type JungmanConfig,
   type JungmanSnapshot,
 } from "@/lib/jungman";
@@ -168,9 +169,10 @@ export async function POST(req: Request) {
       await writeSetting(JUNGMAN_CONFIG_KEY, JSON.stringify(config));
 
       const comments = fetched.comments.slice().sort((a, b) => b.likes - a.likes);
+      const { guesses } = suggestJungmanMapping(comments);
       return respondWith(
-        { config, snapshots, comments },
-        `댓글 ${comments.length}개를 불러왔습니다.`
+        { config, snapshots, comments, guesses },
+        `댓글 ${comments.length}개를 불러왔습니다. ${Object.keys(guesses).length}팀을 자동 인식했습니다.`
       );
     }
 

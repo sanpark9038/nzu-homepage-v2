@@ -32,23 +32,25 @@ export type JungmanTeam = {
   /** 실제 연고지 투영 좌표 */
   pinX: number;
   pinY: number;
+  /** 댓글에서 이 팀을 알아보기 위한 별칭. 영문 약칭은 단어 경계를 요구한다(HMM은 HM이 아니다). */
+  aliases: string[];
 };
 
 // 좌표는 scratchpad/build-map.mjs 투영(1060x520, 인천~잠실 크롭) + 손 보정값 산출물.
 export const JUNGMAN_TEAMS: JungmanTeam[] = [
-  { code: "DM", name: "DM", color: "#3b4a8f", dark: false, x: 301.3, y: 56.5, pinX: 301.3, pinY: 56.5 },
-  { code: "KMS", name: "캄몬스타즈", color: "#2fb6c9", dark: false, x: 210.9, y: 238.1, pinX: 219.4, pinY: 226.1 },
-  { code: "C9", name: "씨나인", color: "#e88bb5", dark: false, x: 278.9, y: 373, pinX: 278.9, pinY: 373 },
-  { code: "WFU", name: "와플대", color: "#c9a24a", dark: false, x: 305.1, y: 225.4, pinX: 316.1, pinY: 237.4 },
-  { code: "JSA", name: "JSA", color: "#c23b2e", dark: true, x: 399.3, y: 233.5, pinX: 427.7, pinY: 260 },
-  { code: "BGM", name: "BGM", color: "#d98936", dark: false, x: 493.3, y: 222.4, pinX: 464.9, pinY: 237.4 },
-  { code: "HKA", name: "흑카데미", color: "#d64545", dark: true, x: 416.3, y: 320.4, pinX: 446.3, pinY: 293.9 },
-  { code: "HM", name: "HM", color: "#9fb98a", dark: false, x: 513.5, y: 350.4, pinX: 483.5, pinY: 350.4 },
-  { code: "SSG", name: "신세계", color: "#8f2f2f", dark: true, x: 427.7, y: 440.9, pinX: 427.7, pinY: 440.9 },
-  { code: "NCS", name: "뉴캣슬", color: "#7c5cff", dark: true, x: 725.3, y: 124.3, pinX: 725.3, pinY: 124.3 },
-  { code: "MBU", name: "엠비대", color: "#556080", dark: true, x: 887.1, y: 167.3, pinX: 887.1, pinY: 167.3 },
-  { code: "SSU", name: "수술대", color: "#57a8e8", dark: true, x: 860, y: 294.6, pinX: 874, pinY: 282.6 },
-  { code: "KU", name: "케이대", color: "#cdd3dd", dark: false, x: 943.8, y: 282.6, pinX: 929.8, pinY: 282.6 },
+  { code: "DM", name: "DM", color: "#3b4a8f", dark: false, x: 301.3, y: 56.5, pinX: 301.3, pinY: 56.5, aliases: ["DM", "디엠"] },
+  { code: "KMS", name: "캄몬스타즈", color: "#2fb6c9", dark: false, x: 210.9, y: 238.1, pinX: 219.4, pinY: 226.1, aliases: ["캄몬스타즈", "캄몬", "츠캄몬스타즈", "츠캄", "CALM", "TSUCALM"] },
+  { code: "C9", name: "씨나인", color: "#e88bb5", dark: false, x: 278.9, y: 373, pinX: 278.9, pinY: 373, aliases: ["씨나인", "시나인", "C9"] },
+  { code: "WFU", name: "와플대", color: "#c9a24a", dark: false, x: 305.1, y: 225.4, pinX: 316.1, pinY: 237.4, aliases: ["와플대", "와플", "WFU"] },
+  { code: "JSA", name: "JSA", color: "#c23b2e", dark: true, x: 399.3, y: 233.5, pinX: 427.7, pinY: 260, aliases: ["JSA", "제이에스에이"] },
+  { code: "BGM", name: "BGM", color: "#d98936", dark: false, x: 493.3, y: 222.4, pinX: 464.9, pinY: 237.4, aliases: ["BGM", "비지엠"] },
+  { code: "HKA", name: "흑카데미", color: "#d64545", dark: true, x: 416.3, y: 320.4, pinX: 446.3, pinY: 293.9, aliases: ["흑카데미", "블랙아카데미", "블아", "B.A", "BA", "BLACK"] },
+  { code: "HM", name: "HM", color: "#9fb98a", dark: false, x: 513.5, y: 350.4, pinX: 483.5, pinY: 350.4, aliases: ["HM", "에이치엠"] },
+  { code: "SSG", name: "신세계", color: "#8f2f2f", dark: true, x: 427.7, y: 440.9, pinX: 427.7, pinY: 440.9, aliases: ["신세계", "SSG"] },
+  { code: "NCS", name: "뉴캣슬", color: "#7c5cff", dark: true, x: 725.3, y: 124.3, pinX: 725.3, pinY: 124.3, aliases: ["뉴캣슬", "뉴캐슬", "NCS", "N.C.S"] },
+  { code: "MBU", name: "엠비대", color: "#556080", dark: true, x: 887.1, y: 167.3, pinX: 887.1, pinY: 167.3, aliases: ["엠비대", "MBU"] },
+  { code: "SSU", name: "수술대", color: "#57a8e8", dark: true, x: 860, y: 294.6, pinX: 874, pinY: 282.6, aliases: ["수술대", "SSU"] },
+  { code: "KU", name: "케이대", color: "#cdd3dd", dark: false, x: 943.8, y: 282.6, pinX: 929.8, pinY: 282.6, aliases: ["케이대", "KU", "K.U"] },
 ];
 
 /** 투표 대상 12팀 (수술대 제외) */
@@ -181,6 +183,87 @@ export function parseJungmanMapping(raw: unknown): Record<string, string> {
     mapping[commentNo] = code;
   }
   return mapping;
+}
+
+/** 매칭용 정규화 — 대문자 + 구두점 제거(B.A→BA, N.C.S→NCS), 공백은 한 칸으로 남긴다 */
+function normalizeForMatch(raw: string): string {
+  return raw
+    .toUpperCase()
+    .replace(/[^0-9A-Z가-힣ㄱ-ㅎㅏ-ㅣ\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+type AliasRule = { code: string; alias: string; latin: boolean };
+
+// 긴 별칭 우선 — "츠캄몬스타즈"가 "츠캄"보다 먼저 잡혀야 via 표시가 정확하다.
+const ALIAS_RULES: AliasRule[] = JUNGMAN_TEAMS.flatMap((team) =>
+  team.aliases.map((alias) => {
+    const normalized = normalizeForMatch(alias);
+    return { code: team.code, alias: normalized, latin: /^[0-9A-Z]+$/.test(normalized) };
+  })
+)
+  .filter(
+    (rule, index, all) =>
+      Boolean(rule.alias) && all.findIndex((other) => other.code === rule.code && other.alias === rule.alias) === index
+  )
+  .sort((a, b) => b.alias.length - a.alias.length);
+
+/** 댓글 하나에서 잡힌 팀코드 → 걸린 별칭 */
+function matchTeamAliases(spaced: string, compact: string): Map<string, string> {
+  const hits = new Map<string, string>();
+  for (const rule of ALIAS_RULES) {
+    if (hits.has(rule.code)) continue;
+    // 영문 약칭은 단어 경계 필수 — "HMM"이 HM으로, "OKU"가 KU로 잡히면 안 된다.
+    const found = rule.latin
+      ? new RegExp(`(^|[^0-9A-Z])${rule.alias}([^0-9A-Z]|$)`).test(spaced)
+      : compact.includes(rule.alias);
+    if (found) hits.set(rule.code, rule.alias);
+  }
+  return hits;
+}
+
+/** 총장·이사장 신청 댓글을 팬 잡담과 가르는 문구 */
+const APPLY_PATTERN = /신청|참가|출전|등록|나갑니다|가겠습니다/;
+
+/**
+ * 댓글 → 팀 자동 추정. 관리자가 손으로 고르는 수고를 덜기 위한 초안이고, 사람 확인이 최종이다.
+ * 애매하면(팀 2개 이상, 후보 중복) 지정하지 않는다 — 틀린 추정보다 미지정이 낫다.
+ */
+export function suggestJungmanMapping(comments: JungmanComment[]): {
+  mapping: Record<string, string>;
+  guesses: Record<string, { code: string; via: string }>;
+} {
+  const best = new Map<string, { comment: JungmanComment; via: string; applied: boolean }>();
+
+  for (const comment of comments) {
+    const spaced = normalizeForMatch(`${comment.text} ${comment.nick}`);
+    const hits = matchTeamAliases(spaced, spaced.replace(/ /g, ""));
+    // 팀이 2개 이상 잡힌 댓글은 신청 댓글인지 알 수 없다 — 미지정으로 남긴다.
+    if (hits.size !== 1) continue;
+
+    const [code, via] = [...hits][0];
+    if (code === JUNGMAN_SEED_TEAM_CODE) continue;
+
+    // 추천수로만 고르면 팀명을 언급한 팬 댓글이 총장 신청 댓글을 이길 수 있다.
+    // 신청 문구가 있는 댓글을 먼저 세우고, 그다음은 먼저 쓴 쪽(신청은 공지 직후에 달린다).
+    const applied = APPLY_PATTERN.test(comment.text);
+    const current = best.get(code);
+    const better =
+      !current ||
+      (applied !== current.applied
+        ? applied
+        : comment.commentNo < current.comment.commentNo);
+    if (better) best.set(code, { comment, via, applied });
+  }
+
+  const mapping: Record<string, string> = {};
+  const guesses: Record<string, { code: string; via: string }> = {};
+  for (const [code, { comment, via }] of best) {
+    mapping[comment.commentNo] = code;
+    guesses[comment.commentNo] = { code, via };
+  }
+  return { mapping, guesses };
 }
 
 /**

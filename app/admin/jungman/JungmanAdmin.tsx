@@ -11,6 +11,23 @@ import {
 } from "@/lib/jungman";
 
 type VoteInputs = Record<string, string>;
+type Guesses = Record<string, { code: string; via: string }>;
+
+function guessMappingOf(guesses: Guesses): Record<string, string> {
+  return Object.fromEntries(Object.entries(guesses).map(([commentNo, guess]) => [commentNo, guess.code]));
+}
+
+/** 저장된 매핑이 자동 추정보다 위 — 사람 판단을 덮지 않고, 이미 쓰인 팀에는 추정을 얹지 않는다. */
+function fillWithGuesses(saved: Record<string, string>, guesses: Guesses): Record<string, string> {
+  const next = { ...saved };
+  const taken = new Set(Object.values(next));
+  for (const [commentNo, guess] of Object.entries(guesses)) {
+    if (next[commentNo] || taken.has(guess.code)) continue;
+    next[commentNo] = guess.code;
+    taken.add(guess.code);
+  }
+  return next;
+}
 
 function postUrlOf(config: JungmanConfig) {
   return config.titleNo ? `https://www.sooplive.com/station/${config.soopId}/post/${config.titleNo}` : "";
@@ -64,6 +81,7 @@ export default function JungmanAdmin({
   const [postUrl, setPostUrl] = useState(() => postUrlOf(initialConfig));
   const [comments, setComments] = useState<JungmanComment[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>(() => initialConfig.mapping);
+  const [guesses, setGuesses] = useState<Guesses>({});
 
   const nextRound = (snapshots[snapshots.length - 1]?.round || 0) + 1;
 
@@ -83,7 +101,12 @@ export default function JungmanAdmin({
       setConfig(json.config);
       if (json.config?.mapping) setMapping(json.config.mapping);
       setMessage(json.message || "저장했습니다.");
-      return json as { snapshots: JungmanSnapshot[]; config: JungmanConfig; comments?: JungmanComment[] };
+      return json as {
+        snapshots: JungmanSnapshot[];
+        config: JungmanConfig;
+        comments?: JungmanComment[];
+        guesses?: Guesses;
+      };
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "저장에 실패했습니다.");
       return null;
@@ -95,7 +118,10 @@ export default function JungmanAdmin({
   async function loadComments() {
     const result = await send({ action: "fetch-comments", postUrl });
     if (result?.comments) {
+      const next = result.guesses || {};
       setComments(result.comments);
+      setGuesses(next);
+      setMapping(fillWithGuesses(result.config.mapping, next));
       setPostUrl(postUrlOf(result.config));
     }
   }
@@ -180,7 +206,21 @@ export default function JungmanAdmin({
 
         {comments.length ? (
           <>
-            <ul className="mt-5 space-y-2">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-background/60 px-4 py-3">
+              <p className="text-sm font-bold text-white/70">
+                {JUNGMAN_VOTING_TEAMS.length}팀 중 {Object.keys(guesses).length}팀 자동 인식 · 미지정{" "}
+                {comments.filter((comment) => !mapping[comment.commentNo]).length}건
+              </p>
+              <button
+                onClick={() => setMapping(guessMappingOf(guesses))}
+                disabled={loading || !Object.keys(guesses).length}
+                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-white/15 bg-background px-3 text-sm font-black text-white disabled:opacity-50"
+              >
+                자동 추정으로 채우기
+              </button>
+            </div>
+
+            <ul className="mt-3 space-y-2">
               {comments.map((comment) => (
                 <li
                   key={comment.commentNo}
@@ -188,7 +228,14 @@ export default function JungmanAdmin({
                 >
                   <span className="truncate text-sm font-bold text-white">{comment.nick}</span>
                   <span className="text-sm font-black tabular-nums text-nzu-green">{comment.likes}표</span>
-                  <span className="truncate text-sm text-white/55">{comment.text.slice(0, 40)}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-white/55">{comment.text.slice(0, 40)}</p>
+                    {guesses[comment.commentNo] && mapping[comment.commentNo] === guesses[comment.commentNo].code ? (
+                      <p className="truncate text-xs font-bold text-nzu-green/70">
+                        자동 추정 · &ldquo;{guesses[comment.commentNo].via}&rdquo;
+                      </p>
+                    ) : null}
+                  </div>
                   <select
                     value={mapping[comment.commentNo] || ""}
                     onChange={(event) =>

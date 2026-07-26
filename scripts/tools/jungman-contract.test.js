@@ -1,11 +1,22 @@
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
+const ts = require("typescript");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 
 function readProjectFile(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
+}
+
+/** lib/jungman.ts를 그대로 트랜스파일해 실제 로직을 돌린다. site-settings(service role)만 스텁으로 막는다. */
+function loadJungmanLib() {
+  const compiled = ts.transpileModule(readProjectFile("lib/jungman.ts"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const mod = { exports: {} };
+  new Function("module", "exports", "require", compiled)(mod, mod.exports, () => ({}));
+  return mod.exports;
 }
 
 function test(name, fn) {
@@ -153,6 +164,45 @@ test("jungman admin exposes the comment mapping actions", () => {
   // 수동 입력 폼은 폴백으로 남는다
   assert.ok(admin.includes("수동 폴백"), "manual snapshot form should stay as a fallback");
   assert.match(admin, /action: "save-snapshot"/);
+
+  // 자동 추정은 서버에서 계산해 내려주고, 관리자는 확인·수정만 한다
+  assert.match(route, /suggestJungmanMapping\(comments\)/);
+  assert.ok(admin.includes("자동 추정으로 채우기"), "admin should offer a bulk auto-fill button");
+  assert.ok(admin.includes("자동 추정 ·"), "guessed rows should be badged");
+});
+
+test("jungman guesses a team per comment without overreaching", () => {
+  const { suggestJungmanMapping } = loadJungmanLib();
+  const comment = (commentNo, text, likes = 0, nick = "총장") => ({
+    commentNo,
+    userId: "u",
+    nick,
+    text,
+    likes,
+  });
+  const mappingOf = (...comments) => suggestJungmanMapping(comments).mapping;
+
+  const single = suggestJungmanMapping([comment(1, "케이대 신청합니다")]);
+  assert.deepEqual(single.mapping, { 1: "KU" });
+  assert.deepEqual(single.guesses["1"], { code: "KU", via: "케이대" });
+
+  // 영문 약칭은 단어 경계 — HMM은 HM이 아니고, 구두점은 무시한다(B.A → 흑카데미)
+  assert.deepEqual(mappingOf(comment(2, "HMM 잘하네")), {});
+  assert.deepEqual(mappingOf(comment(3, "HM 신청합니다")), { 3: "HM" });
+  assert.deepEqual(mappingOf(comment(4, "B.A 신청합니다")), { 4: "HKA" });
+
+  // 한 댓글에 두 팀이 잡히면 미지정
+  assert.deepEqual(mappingOf(comment(5, "케이대랑 와플대 중에 누가 이기나요")), {});
+
+  // 같은 팀 후보가 여럿이면 신청 문구가 있는 쪽. 추천수로 고르면 팬 댓글이 총장을 이긴다.
+  assert.deepEqual(mappingOf(comment(6, "씨나인 신청합니다", 3), comment(7, "씨나인 화이팅", 300)), { 6: "C9" });
+  // 신청 문구가 둘 다 없으면 먼저 쓴 쪽
+  assert.deepEqual(mappingOf(comment(9, "츠캄몬스타즈 화이팅", 50), comment(8, "캄몬 최고", 5)), { 8: "KMS" });
+
+  // 수술대는 투표 대상이 아니라 결과에서 빠진다 (사전에는 있어야 오탐을 막는다)
+  assert.deepEqual(mappingOf(comment(10, "수술대 신청합니다", 50)), {});
+  // 닉네임도 본다
+  assert.deepEqual(mappingOf(comment(11, "신청합니다", 1, "뉴캣슬 총장")), { 11: "NCS" });
 });
 
 test("jungman is reachable from public and admin navigation", () => {
