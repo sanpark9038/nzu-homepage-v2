@@ -15,6 +15,7 @@ const ADMIN_LINKS = [
   { href: "/admin/board", label: "게시판 관리" },
   { href: "/admin/rankings", label: "순위 관리" },
   { href: "/admin/overlay-access", label: "오버레이 신청" },
+  { href: "/admin/jungman", label: "중만컵" },
   { href: "/", label: "홈페이지" },
 ];
 

@@ -107,7 +107,7 @@ test("entry H2H controls use short classes for repeated select markup", () => {
   const cssSource = readProjectFile("app/globals.css");
 
   assert.match(clientSource, /className="e-select"/);
-  assert.match(clientSource, /className="e-caret"/);
+  assert.match(clientSource, /className="e-caret[^"]*"/);
   assert.match(cssSource, /\.e-select/);
   assert.match(cssSource, /\.e-caret/);
 
