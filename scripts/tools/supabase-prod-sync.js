@@ -8,14 +8,13 @@ const {
   withServingIdentityKey,
 } = require('./lib/serving-identity-key');
 const { loadProjectPlayerMetadata } = require('./lib/project-player-metadata');
-const { loadCollectionExclusions } = require('./lib/player-ledger');
+const { loadCollectionExclusions, loadPlayerSoopIds } = require('./lib/player-ledger');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
 const FACT_MATCHES_PATH = path.join(ROOT, 'data', 'warehouse', 'fact_matches.csv');
 const TMP_DIR = path.join(ROOT, 'tmp');
 const REPORTS_DIR = path.join(TMP_DIR, 'reports');
-const SOOP_MAPPINGS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_channel_mappings.v1.json');
 const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_manual_review_decisions.v1.json');
 const ROSTER_MANUAL_OVERRIDES_PATH = path.join(ROOT, 'data', 'metadata', 'roster_manual_overrides.v1.json');
 const DEBUG_PAYLOAD_PATH = path.join(TMP_DIR, 'supabase_prod_sync_payload_preview.json');
@@ -77,6 +76,7 @@ function readJsonIfExists(filePath, fallback) {
 function buildSoopLookup() {
   const rows = loadProjectPlayerMetadata();
   const lookup = new Map();
+  const byEntityId = new Map();
   const byWrId = new Map();
   const byNameGenderBuckets = new Map();
   const byNameBuckets = new Map();
@@ -111,20 +111,13 @@ function buildSoopLookup() {
     registerNamePayload(name, payload);
   }
 
-  const mappingsDoc = readJsonIfExists(SOOP_MAPPINGS_PATH, {});
-  const aliases = mappingsDoc && typeof mappingsDoc.aliases === 'object' ? mappingsDoc.aliases : {};
-  const mappings = Array.isArray(mappingsDoc && mappingsDoc.mappings) ? mappingsDoc.mappings : [];
-  for (const row of mappings) {
-    const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
-    const rawName = normalizeName(row && row.name ? row.name : '');
-    if (!rawName || !soopUserId) continue;
-    const payload = {
-      name: normalizeLookupName(aliases[rawName] || rawName),
+  // 선수 대장이 숲 ID의 최우선 출처다. entity_id로 직접 맞추므로 이름 버킷을 거치지 않고,
+  // 앱 서빙(lib/player-serving-metadata.ts)과 같은 값을 쓴다.
+  for (const [entityId, soopUserId] of loadPlayerSoopIds().entries()) {
+    byEntityId.set(entityId, {
       soop_id: soopUserId,
       broadcast_url: `https://ch.sooplive.co.kr/${soopUserId}`,
-    };
-    registerNamePayload(rawName, payload);
-    registerNamePayload(aliases[rawName] || '', payload);
+    });
   }
 
   const reviewDoc = readJsonIfExists(SOOP_REVIEW_DECISIONS_PATH, {});
@@ -165,7 +158,7 @@ function buildSoopLookup() {
       byName.set(key, uniquePayloads[0]);
     }
   }
-  return { lookup, byWrId, byNameGender, byName };
+  return { lookup, byEntityId, byWrId, byNameGender, byName };
 }
 
 function resolveSoopServingMetadata(row, soopLookup) {
@@ -173,6 +166,15 @@ function resolveSoopServingMetadata(row, soopLookup) {
   const wrId = extractWrId(entityId);
   const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase();
   const name = normalizeLookupName(row && row.name ? row.name : '');
+  const fromLedger = entityId && soopLookup.byEntityId
+    ? soopLookup.byEntityId.get(entityId.toLowerCase())
+    : null;
+  if (fromLedger) {
+    return {
+      soop_id: fromLedger.soop_id,
+      broadcast_url: fromLedger.broadcast_url,
+    };
+  }
   if (wrId && gender) {
     const exact = soopLookup.lookup.get(`${wrId}:${gender}`);
     if (exact) {

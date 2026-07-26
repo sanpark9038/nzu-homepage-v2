@@ -7,6 +7,7 @@ const TMP_DIR = path.join(ROOT, "tmp");
 const FACT_MATCHES_PATH = path.join(ROOT, "data", "warehouse", "fact_matches.csv");
 
 const {
+  buildSoopLookup,
   buildSyncIdentityKey,
   buildServingStatsByIdentity,
   buildServingStatsByName,
@@ -873,6 +874,59 @@ runTest("resolveSoopServingMetadata does not use name fallback for durable elobo
     resolveSoopServingMetadata({ eloboard_id: "eloboard:female:1024", gender: "female", name: "유즈" }, soopLookup),
     { soop_id: "yuzzzz", broadcast_url: "https://ch.sooplive.co.kr/yuzzzz" }
   );
+});
+
+runTest("resolveSoopServingMetadata resolves 이소룡 from the player ledger alone", () => {
+  // 대장(entity_id 키)만 있고 이름·wr_id 버킷은 비어 있어도 숲 ID가 나와야 한다.
+  // 옛 이름 기반 매핑은 wr_id를 가진 선수에게 닿지 못해 이 경로가 유일한 보증이다.
+  const soopLookup = {
+    lookup: new Map(),
+    byEntityId: new Map([
+      ["eloboard:male:79", { soop_id: "gjgj3274", broadcast_url: "https://ch.sooplive.co.kr/gjgj3274" }],
+    ]),
+    byWrId: new Map(),
+    byNameGender: new Map(),
+    byName: new Map(),
+  };
+
+  assert.deepEqual(
+    resolveSoopServingMetadata({ eloboard_id: "eloboard:male:79", gender: "male", name: "박성용" }, soopLookup),
+    { soop_id: "gjgj3274", broadcast_url: "https://ch.sooplive.co.kr/gjgj3274" }
+  );
+
+  // 대장에 없는 선수는 예전 그대로(wr_id 보유 → 이름 폴백 없음)
+  assert.deepEqual(
+    resolveSoopServingMetadata({ eloboard_id: "eloboard:male:80", gender: "male", name: "박성용" }, soopLookup),
+    { soop_id: null, broadcast_url: null }
+  );
+});
+
+runTest("resolveSoopServingMetadata lets the ledger win over project roster metadata", () => {
+  const soopLookup = {
+    lookup: new Map([["79:male", { soop_id: "stale", broadcast_url: "https://ch.sooplive.co.kr/stale" }]]),
+    byEntityId: new Map([
+      ["eloboard:male:79", { soop_id: "gjgj3274", broadcast_url: "https://ch.sooplive.co.kr/gjgj3274" }],
+    ]),
+    byWrId: new Map(),
+    byNameGender: new Map(),
+    byName: new Map(),
+  };
+
+  assert.deepEqual(
+    resolveSoopServingMetadata({ eloboard_id: "eloboard:male:79", gender: "male" }, soopLookup),
+    { soop_id: "gjgj3274", broadcast_url: "https://ch.sooplive.co.kr/gjgj3274" }
+  );
+});
+
+runTest("buildSoopLookup indexes the real ledger by entity_id so serving and DB agree", () => {
+  const { byEntityId } = buildSoopLookup();
+
+  assert.ok(byEntityId instanceof Map);
+  assert.ok(byEntityId.size > 0, "ledger soop ids are indexed");
+  assert.deepEqual(byEntityId.get("eloboard:male:79"), {
+    soop_id: "gjgj3274",
+    broadcast_url: "https://ch.sooplive.co.kr/gjgj3274",
+  });
 });
 
 (async () => {

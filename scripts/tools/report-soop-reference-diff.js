@@ -1,9 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const { loadProjectPlayerMetadata } = require("./lib/project-player-metadata");
+const { loadPlayerRows } = require("./lib/player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..");
-const MAPPINGS_PATH = path.join(ROOT, "data", "metadata", "soop_channel_mappings.v1.json");
 const REPORTS_DIR = path.join(ROOT, "tmp", "reports");
 
 function argValue(flag, fallback = null) {
@@ -29,20 +29,24 @@ function normalizeName(value) {
   return trim(value).toLowerCase();
 }
 
-function buildAliasMaps(mappingsDoc) {
-  const aliases = mappingsDoc && typeof mappingsDoc.aliases === "object" ? mappingsDoc.aliases : {};
-  const aliasToCanonical = new Map();
-  const canonicalToAliases = new Map();
-  for (const [aliasName, canonicalName] of Object.entries(aliases)) {
-    const alias = trim(aliasName);
-    const canonical = trim(canonicalName);
-    if (!alias || !canonical) continue;
-    aliasToCanonical.set(alias, canonical);
-    const bucket = canonicalToAliases.get(canonical) || new Set();
-    bucket.add(alias);
-    canonicalToAliases.set(canonical, bucket);
+// 별칭은 선수 대장이 출처다. 한 행의 이름(표시명 + 다른 표기)은 모두 같은 사람이므로
+// 어떤 표기로 들어와도 나머지 표기로 로스터를 찾을 수 있다.
+function buildAliasMaps(ledgerPlayers) {
+  const aliasToCanonicals = new Map();
+  for (const row of Object.values(ledgerPlayers || {})) {
+    const names = [
+      trim(row && row.display_name),
+      ...(Array.isArray(row && row.also_known_as) ? row.also_known_as : []).map(trim),
+    ].filter(Boolean);
+    for (const name of names) {
+      const bucket = aliasToCanonicals.get(name) || new Set();
+      for (const other of names) {
+        if (other !== name) bucket.add(other);
+      }
+      if (bucket.size) aliasToCanonicals.set(name, bucket);
+    }
   }
-  return { aliasToCanonical, canonicalToAliases };
+  return { aliasToCanonicals };
 }
 
 function buildMetadataIndexes(metadata) {
@@ -109,15 +113,15 @@ function pickAliasTarget(row, aliasMaps, metadataIndexes) {
   ].filter(Boolean);
 
   for (const name of names) {
-    const canonical = aliasMaps.aliasToCanonical.get(name);
-    if (!canonical) continue;
-    const target = metadataIndexes.byName.get(canonical) || null;
-    if (target) {
-      return {
-        target,
-        alias_name: name,
-        canonical_name: canonical,
-      };
+    for (const canonical of aliasMaps.aliasToCanonicals.get(name) || []) {
+      const target = metadataIndexes.byName.get(canonical) || null;
+      if (target) {
+        return {
+          target,
+          alias_name: name,
+          canonical_name: canonical,
+        };
+      }
     }
   }
   return null;
@@ -155,10 +159,9 @@ function main() {
 
   const normalizedDoc = readJson(path.resolve(inputPath));
   const metadata = loadProjectPlayerMetadata();
-  const mappingsDoc = readJson(MAPPINGS_PATH);
 
   const records = Array.isArray(normalizedDoc.records) ? normalizedDoc.records : [];
-  const aliasMaps = buildAliasMaps(mappingsDoc);
+  const aliasMaps = buildAliasMaps(loadPlayerRows());
   const metadataIndexes = buildMetadataIndexes(metadata);
   const referenceIndexes = buildReferenceIndexes(records);
 

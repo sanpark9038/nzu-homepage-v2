@@ -3,10 +3,10 @@ const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local"), quiet: true });
 const { loadProjectPlayerMetadata } = require("./lib/project-player-metadata");
+const { loadPlayerSoopIds } = require("./lib/player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const MASTER_METADATA_PATH = path.join(ROOT, "data", "metadata", "players.master.v1.json");
-const SOOP_MAPPINGS_PATH = path.join(ROOT, "data", "metadata", "soop_channel_mappings.v1.json");
 const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, "data", "metadata", "soop_manual_review_decisions.v1.json");
 const SNAPSHOT_PATH = path.join(ROOT, "data", "metadata", "soop_live_snapshot.generated.v1.json");
 const SNAPSHOT_FRESH_MS = 15 * 60 * 1000;
@@ -61,6 +61,7 @@ function normalizeSoopAssetUrl(value) {
 
 function buildSoopLookup() {
   const lookup = new Map();
+  const byEntityId = new Map();
   const byWrId = new Map();
   const byNameGenderBuckets = new Map();
   const byNameBuckets = new Map();
@@ -109,16 +110,10 @@ function buildSoopLookup() {
     });
   }
 
-  const mappingsDoc = readJsonIfExists(SOOP_MAPPINGS_PATH, {});
-  const aliases = mappingsDoc && typeof mappingsDoc.aliases === "object" ? mappingsDoc.aliases : {};
-  const mappings = Array.isArray(mappingsDoc && mappingsDoc.mappings) ? mappingsDoc.mappings : [];
-  for (const row of mappings) {
-    const soopUserId = trim(row && row.soop_user_id);
-    const rawName = trim(row && row.name);
-    if (!rawName || !soopUserId) continue;
-    const payload = { soop_id: soopUserId };
-    registerNamePayload(rawName, payload);
-    registerNamePayload(aliases[rawName] || "", payload);
+  // 선수 대장이 숲 ID의 최우선 출처다. entity_id로 직접 맞추므로 이름 버킷을 거치지 않고,
+  // 앱 서빙·prod-sync와 같은 값을 쓴다.
+  for (const [entityId, soopUserId] of loadPlayerSoopIds().entries()) {
+    byEntityId.set(entityId, { soop_id: soopUserId });
   }
 
   const reviewDoc = readJsonIfExists(SOOP_REVIEW_DECISIONS_PATH, {});
@@ -155,7 +150,7 @@ function buildSoopLookup() {
     }
   }
 
-  return { lookup, byWrId, byNameGender, byName };
+  return { lookup, byEntityId, byWrId, byNameGender, byName };
 }
 
 function loadFreshSnapshot() {
@@ -186,6 +181,7 @@ function resolveSoopIdForPlayer(row, soopLookup) {
   const direct = trim(row && row.soop_id);
 
   const metadata =
+    (entityId && soopLookup.byEntityId ? soopLookup.byEntityId.get(entityId.toLowerCase()) : null) ||
     (wrId && gender ? soopLookup.lookup.get(`${wrId}:${gender}`) : null) ||
     (wrId && isMixEntityId(entityId) ? soopLookup.byWrId.get(String(wrId)) : null) ||
     (wrId ? null : name && gender ? soopLookup.byNameGender.get(`${name}:${gender}`) : null) ||

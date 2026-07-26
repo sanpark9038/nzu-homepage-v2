@@ -57,6 +57,26 @@ runTest("resolveSoopIdForPlayer clears contaminated direct soop_id for durable i
   );
 });
 
+runTest("resolveSoopIdForPlayer takes the player ledger before every other source", () => {
+  const soopLookup = {
+    lookup: new Map([["79:male", { soop_id: "stale" }]]),
+    byEntityId: new Map([["eloboard:male:79", { soop_id: "gjgj3274" }]]),
+    byWrId: new Map(),
+    byNameGender: new Map(),
+    byName: new Map(),
+  };
+
+  assert.equal(
+    resolveSoopIdForPlayer({ name: "박성용", eloboard_id: "eloboard:male:79", gender: "male" }, soopLookup),
+    "gjgj3274"
+  );
+  // 대장에 없으면 예전 그대로: wr_id 보유 선수는 이름 폴백 없이 빈 값
+  assert.equal(
+    resolveSoopIdForPlayer({ name: "박성용", eloboard_id: "eloboard:male:80", gender: "male" }, soopLookup),
+    ""
+  );
+});
+
 runTest("buildUpdatePayloads does not preserve stale soop_id when durable resolution fails", () => {
   const { updates } = buildUpdatePayloads(
     [

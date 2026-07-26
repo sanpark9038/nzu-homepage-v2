@@ -65,7 +65,7 @@ Build outputs:
 ## Source of Input
 
 - `data/metadata/projects/*/players.*.v1.json`
-- `data/metadata/soop_channel_mappings.v1.json`
+- `data/metadata/player_ledger.v1.json` (숲 ID·표시명·별칭·제외)
 
 The build step normalizes project roster rows into a reusable schema and emits a report for conflicts and data quality checks. The former `scripts/player_metadata.json` file is archived under `scripts/archive/player-metadata-source-consolidation/` as legacy reference data only and must not be used as a canonical source.
 

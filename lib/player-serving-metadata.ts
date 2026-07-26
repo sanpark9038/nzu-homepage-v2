@@ -65,6 +65,8 @@ let cachedDisplayAliasesMtimeMs: number | null = null;
 let cachedDisplayAliases = new Map<string, string>();
 let cachedManualOverridesMtimeMs: number | null = null;
 let cachedManualOverrides = new Map<string, RosterPlayerOverride>();
+let cachedLedgerSoopIdsMtimeMs: number | null = null;
+let cachedLedgerSoopIds = new Map<string, string>();
 let cachedRosterOverridesMtimeKey: string | null = null;
 let cachedRosterOverrides = new Map<string, RosterPlayerOverride>();
 let cachedSoopIdentityOverridesMtimeKey: string | null = null;
@@ -242,7 +244,6 @@ function loadManualRosterOverrides(): Map<string, RosterPlayerOverride> {
       tier?: string;
       race?: string;
       name?: string;
-      soop_id?: string;
       manual_lock?: boolean;
       manual_mode?: "temporary" | "fixed";
     }>;
@@ -258,12 +259,50 @@ function loadManualRosterOverrides(): Map<string, RosterPlayerOverride> {
       tier: shouldApplyManualTierOverride(row) ? String(row?.tier || "").trim() || undefined : undefined,
       race: shouldApplyManualRaceOverride(row) ? String(row?.race || "").trim() || undefined : undefined,
       display_name: String(row?.name || "").trim() || undefined,
-      soop_id: String(row?.soop_id || "").trim() || undefined,
+      // 숲 ID는 대장이 유일한 출처다(loadLedgerSoopIds). 여기서 undefined를 명시해야
+      // 수동 교정 대상 선수의 프로젝트 로스터 숲 ID가 그대로 새어나가지 않는다.
+      soop_id: undefined,
     });
   }
 
   cachedManualOverrides = overrides;
   return overrides;
+}
+
+// 숲 ID(soop_user_id)는 선수 대장이 유일한 출처다. entity_id로 묶으므로
+// 이름이 바뀌거나 팀을 옮겨도 채널이 어긋나지 않는다.
+function loadLedgerSoopIds(): Map<string, string> {
+  const soopIds = new Map<string, string>();
+  if (typeof window !== "undefined") return soopIds;
+
+  const req = eval("require") as NodeRequire;
+  const fs = req("fs") as typeof import("fs");
+  const path = req("path") as typeof import("path");
+  const filePath = path.join(process.cwd(), "data", "metadata", "player_ledger.v1.json");
+  if (!fs.existsSync(filePath)) return soopIds;
+
+  try {
+    const stat = fs.statSync(filePath);
+    if (cachedLedgerSoopIdsMtimeMs === stat.mtimeMs) {
+      return cachedLedgerSoopIds;
+    }
+    cachedLedgerSoopIdsMtimeMs = stat.mtimeMs;
+  } catch {
+    cachedLedgerSoopIdsMtimeMs = null;
+  }
+
+  const doc = readJsonFile<{
+    players?: Record<string, { soop_user_id?: string }>;
+  }>(filePath);
+
+  for (const [entityId, row] of Object.entries(doc?.players || {})) {
+    const soopId = String(row?.soop_user_id || "").trim();
+    const key = String(entityId || "").trim().toLowerCase();
+    if (key && soopId) soopIds.set(key, soopId);
+  }
+
+  cachedLedgerSoopIds = soopIds;
+  return soopIds;
 }
 
 // 표시명(방송명)은 선수 대장이 유일한 출처다. 이름이 아니라 entity_id로 묶으므로
@@ -390,6 +429,12 @@ export function applyPlayerServingMetadata<T extends ServingMetadataPlayer>(play
       ...override,
     });
   }
+  for (const [entityId, soopId] of loadLedgerSoopIds().entries()) {
+    mergedOverrides.set(entityId, {
+      ...(mergedOverrides.get(entityId) || {}),
+      soop_id: soopId,
+    });
+  }
   const soopIdentityOverrides = loadSoopIdentityOverrides();
   const displayAliases = loadDisplayAliases();
   return players.map((player) =>
@@ -413,16 +458,11 @@ function loadSearchAliases(): Map<string, string[]> {
   const req = eval("require") as NodeRequire;
   const fs = req("fs") as typeof import("fs");
   const path = req("path") as typeof import("path");
-  const mappingPath = path.join(process.cwd(), "data", "metadata", "soop_channel_mappings.v1.json");
   const displayAliasPath = path.join(process.cwd(), "data", "metadata", "player_ledger.v1.json");
-
-  const existingFiles = [mappingPath, displayAliasPath].filter((filePath) => fs.existsSync(filePath));
-  if (!existingFiles.length) return new Map();
+  if (!fs.existsSync(displayAliasPath)) return new Map();
 
   try {
-    const mtimeKey = existingFiles
-      .map((filePath) => `${filePath}:${fs.statSync(filePath).mtimeMs}`)
-      .join("|");
+    const mtimeKey = `${displayAliasPath}:${fs.statSync(displayAliasPath).mtimeMs}`;
     const numericKey = Array.from(mtimeKey).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
     if (cachedSearchAliasesMtimeMs === numericKey) {
       return cachedSearchAliases;
@@ -432,22 +472,20 @@ function loadSearchAliases(): Map<string, string[]> {
     cachedSearchAliasesMtimeMs = null;
   }
 
-  const mappingDoc = readJsonFile<{ aliases?: Record<string, string> }>(mappingPath);
-  const mappingAliases = mappingDoc && typeof mappingDoc.aliases === "object" ? mappingDoc.aliases : {};
-  for (const [aliasName, canonicalName] of Object.entries(mappingAliases)) {
-    registerSearchAlias(aliases, String(canonicalName || ""), String(aliasName || ""));
-    registerSearchAlias(aliases, String(aliasName || ""), String(canonicalName || ""));
-  }
-
-  // 대장의 선수 행: 표시명(방송명)과 다른 표기(본명 등)를 서로 검색어로 잇는다.
+  // 대장의 선수 행: 표시명(방송명)과 다른 표기(본명·옛 방송명 등)를 서로 검색어로 잇는다.
+  // 한 행의 이름은 모두 같은 사람이므로 전부 짝지어 등록한다.
   const displayDoc = readJsonFile<{
     players?: Record<string, { display_name?: string; also_known_as?: string[] }>;
   }>(displayAliasPath);
   for (const row of Object.values(displayDoc?.players || {})) {
-    const displayName = String(row?.display_name || "");
-    for (const aka of Array.isArray(row?.also_known_as) ? row.also_known_as : []) {
-      registerSearchAlias(aliases, displayName, String(aka || ""));
-      registerSearchAlias(aliases, String(aka || ""), displayName);
+    const names = [
+      String(row?.display_name || ""),
+      ...(Array.isArray(row?.also_known_as) ? row.also_known_as : []).map((aka) => String(aka || "")),
+    ].filter((name) => name.trim());
+    for (const name of names) {
+      for (const other of names) {
+        registerSearchAlias(aliases, name, other);
+      }
     }
   }
 

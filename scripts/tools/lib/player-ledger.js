@@ -87,6 +87,18 @@ function loadPlayerDisplayNames(sourcePath = LEDGER_PATH) {
   return map;
 }
 
+// entity_id -> 숲 ID. 이름이 아니라 번호로 묶으므로 동명이인·개명에도 채널이 어긋나지 않는다.
+// 서빙(앱)과 Supabase 동기화가 같이 읽는 유일한 숲 ID 출처다.
+function loadPlayerSoopIds(sourcePath = LEDGER_PATH) {
+  const map = new Map();
+  for (const [entityId, row] of Object.entries(loadPlayerRows(sourcePath))) {
+    const soopUserId = String((row && row.soop_user_id) || "").trim();
+    const key = String(entityId || "").trim().toLowerCase();
+    if (key && soopUserId) map.set(key, soopUserId);
+  }
+  return map;
+}
+
 module.exports = {
   LEDGER_PATH,
   loadOpponentIdentityDecisions,
@@ -94,4 +106,5 @@ module.exports = {
   loadCollectionExclusions,
   loadPlayerRows,
   loadPlayerDisplayNames,
+  loadPlayerSoopIds,
 };

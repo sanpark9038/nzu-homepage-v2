@@ -1,7 +1,26 @@
 const { loadProjectPlayerMetadata, trim } = require("./lib/project-player-metadata");
+const { loadPlayerSoopIds } = require("./lib/player-ledger");
+
+// 대장의 숲 ID도 같은 검사에 넣는다. 대장이 서빙·동기화의 최우선 출처이므로
+// 대장 한 건이 다른 선수의 채널을 가리키면 로스터끼리 겹칠 때와 똑같이 위험하다.
+function ledgerRows() {
+  const rows = [];
+  for (const [entityId, soopUserId] of loadPlayerSoopIds().entries()) {
+    const match = entityId.match(/^eloboard:(male|female)(?::mix)?:(\d+)$/);
+    rows.push({
+      entity_id: entityId,
+      gender: match ? match[1] : null,
+      wr_id: match ? Number(match[2]) : null,
+      name: null,
+      team_code: "ledger",
+      soop_user_id: soopUserId,
+    });
+  }
+  return rows;
+}
 
 function main() {
-  const rows = loadProjectPlayerMetadata();
+  const rows = [...loadProjectPlayerMetadata(), ...ledgerRows()];
 
   const bySoopId = new Map();
   for (const row of rows) {

@@ -12,13 +12,10 @@ const {
   tableHasColumn,
   withServingIdentityKey,
 } = require('./lib/serving-identity-key');
-const { loadProjectPlayerMetadata } = require('./lib/project-player-metadata');
 const { loadPlayerDisplayNames } = require('./lib/player-ledger');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECTS_DIR = path.join(ROOT, 'data', 'metadata', 'projects');
-const SOOP_MAPPINGS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_channel_mappings.v1.json');
-const SOOP_REVIEW_DECISIONS_PATH = path.join(ROOT, 'data', 'metadata', 'soop_manual_review_decisions.v1.json');
 
 function createSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -55,90 +52,6 @@ function extractWrId(value) {
   if (/^\d+$/.test(raw)) return raw;
   const match = raw.match(/(\d+)$/);
   return match ? match[1] : null;
-}
-
-function buildSoopLookup() {
-  const rows = loadProjectPlayerMetadata();
-  const lookup = new Map();
-  const byWrId = new Map();
-  const byNameGenderBuckets = new Map();
-  const byNameBuckets = new Map();
-
-  const registerNamePayload = (nameValue, payload) => {
-    const normalized = normalizeLookupName(nameValue);
-    if (!normalized || !payload || !payload.soop_id) return;
-    const bucket = byNameBuckets.get(normalized) || [];
-    bucket.push(payload);
-    byNameBuckets.set(normalized, bucket);
-  };
-
-  for (const row of rows) {
-    const wrId = Number(row && row.wr_id);
-    const gender = String(row && row.gender ? row.gender : '').trim().toLowerCase();
-    const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
-    const name = normalizeLookupName(row && (row.display_name || row.name) ? (row.display_name || row.name) : '');
-    if (!Number.isFinite(wrId) || !gender || !soopUserId) continue;
-    const payload = { soop_id: soopUserId };
-    lookup.set(`${wrId}:${gender}`, payload);
-    byWrId.set(String(wrId), payload);
-    if (name) {
-      const key = `${name}:${gender}`;
-      const bucket = byNameGenderBuckets.get(key) || [];
-      bucket.push(payload);
-      byNameGenderBuckets.set(key, bucket);
-    }
-    registerNamePayload(name, payload);
-  }
-
-  const mappingsDoc = readJson(SOOP_MAPPINGS_PATH, {});
-  const aliases = mappingsDoc && typeof mappingsDoc.aliases === 'object' ? mappingsDoc.aliases : {};
-  const mappings = Array.isArray(mappingsDoc && mappingsDoc.mappings) ? mappingsDoc.mappings : [];
-  for (const row of mappings) {
-    const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
-    const rawName = normalizeName(row && row.name ? row.name : '');
-    if (!rawName || !soopUserId) continue;
-    const payload = { soop_id: soopUserId };
-    registerNamePayload(rawName, payload);
-    registerNamePayload(aliases[rawName] || '', payload);
-  }
-
-  const reviewDoc = readJson(SOOP_REVIEW_DECISIONS_PATH, {});
-  const decisions = Array.isArray(reviewDoc && reviewDoc.decisions) ? reviewDoc.decisions : [];
-  for (const row of decisions) {
-    const decision = String(row && row.decision ? row.decision : '').trim().toLowerCase();
-    const soopUserId = String(row && row.soop_user_id ? row.soop_user_id : '').trim();
-    if (decision !== 'include' || !soopUserId) continue;
-    const payload = { soop_id: soopUserId };
-    registerNamePayload(row && row.source_name ? row.source_name : '', payload);
-    registerNamePayload(row && row.canonical_name ? row.canonical_name : '', payload);
-    for (const alias of Array.isArray(row && row.alias_names) ? row.alias_names : []) {
-      registerNamePayload(alias, payload);
-    }
-  }
-
-  const byNameGender = new Map();
-  for (const [key, bucket] of byNameGenderBuckets.entries()) {
-    const uniquePayloads = bucket.filter(
-      (payload, index, arr) =>
-        arr.findIndex((candidate) => candidate.soop_id === payload.soop_id) === index
-    );
-    if (uniquePayloads.length === 1) {
-      byNameGender.set(key, uniquePayloads[0]);
-    }
-  }
-
-  const byName = new Map();
-  for (const [key, bucket] of byNameBuckets.entries()) {
-    const uniquePayloads = bucket.filter(
-      (payload, index, arr) =>
-        arr.findIndex((candidate) => candidate.soop_id === payload.soop_id) === index
-    );
-    if (uniquePayloads.length === 1) {
-      byName.set(key, uniquePayloads[0]);
-    }
-  }
-
-  return { lookup, byWrId, byNameGender, byName };
 }
 
 function uniqueUpsertKeyCount(players) {

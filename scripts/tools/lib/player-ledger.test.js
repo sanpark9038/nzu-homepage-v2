@@ -7,6 +7,7 @@ const {
   loadOpponentIdentityDecisions,
   loadOpponentIdentityAliases,
   loadCollectionExclusions,
+  loadPlayerSoopIds,
 } = require("./player-ledger");
 
 function runTest(name, fn) {
@@ -143,6 +144,50 @@ runTest("real ledger collection exclusions carry dedup outcome (no legacy name-o
   const jaradet = rows.filter((r) => r.name === "저라뎃");
   assert.equal(jaradet.length, 1);
   assert.ok(jaradet[0].entity_id, "저라뎃 is entity-based only");
+});
+
+runTest("loadPlayerSoopIds maps entity_id to soop_user_id and skips rows without one", () => {
+  const soopIds = loadPlayerSoopIds(
+    writeTmp("soop", {
+      players: {
+        "eloboard:male:79": { display_name: "이소룡", soop_user_id: "gjgj3274" },
+        "ELOBOARD:MALE:MIX:143": { soop_user_id: "  rlawhdwns6  " },
+        "eloboard:male:9999": { display_name: "숲없음" },
+        "eloboard:male:9998": { soop_user_id: "   " },
+      },
+    })
+  );
+
+  assert.equal(soopIds.get("eloboard:male:79"), "gjgj3274");
+  // 키는 소문자로 정규화된다(서빙·prod-sync가 entity_id 대소문자 차이 없이 같은 값을 얻어야 한다)
+  assert.equal(soopIds.get("eloboard:male:mix:143"), "rlawhdwns6");
+  assert.equal(soopIds.size, 2);
+});
+
+runTest("real ledger is the single source of SOOP ids for serving and sync", () => {
+  const soopIds = loadPlayerSoopIds();
+  assert.ok(soopIds.size > 0, "ledger carries soop ids");
+  assert.equal(soopIds.get("eloboard:male:79"), "gjgj3274");
+
+  // 숲 ID는 선수당 하나이자 선수 사이에 겹치지 않아야 한다
+  const seen = new Map();
+  for (const [entityId, soopId] of soopIds.entries()) {
+    assert.equal(soopId, soopId.trim());
+    const previous = seen.get(soopId.toLowerCase());
+    assert.ok(!previous, `soop id ${soopId} shared by ${previous} and ${entityId}`);
+    seen.set(soopId.toLowerCase(), entityId);
+  }
+
+  // 흡수 완료: 옛 수동 교정 파일에는 숲 ID가 남아 있지 않다
+  const overrides = JSON.parse(
+    fs
+      .readFileSync(path.join(path.dirname(LEDGER_PATH), "roster_manual_overrides.v1.json"), "utf8")
+      .replace(/^﻿/, "")
+  );
+  assert.ok(
+    (overrides.overrides || []).every((row) => row.soop_id === undefined),
+    "roster_manual_overrides no longer carries soop_id"
+  );
 });
 
 console.log(`\nledger path: ${path.relative(process.cwd(), LEDGER_PATH)}`);

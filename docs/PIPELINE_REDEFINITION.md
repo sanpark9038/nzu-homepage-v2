@@ -120,7 +120,7 @@
 흡수 대상: roster_manual_overrides, pipeline_collection_exclusions/resumes,
 player_display_aliases, opponent_identity_aliases, opponent_identity_review_decisions,
 identity_alias_exceptions(삭제), alert_rules 내 zero_record allowlist,
-soop_channel_mappings(선수 매핑 부분), team_role_overrides(역할 순서).
+숲 채널 매핑(선수 매핑 부분), team_role_overrides(역할 순서).
 팀 단위 allowlist(fa)는 알림 규칙에 잔류.
 
 ### 전환 계획 — 2일 (전·후 결과 비교로 검증)
@@ -136,6 +136,11 @@ soop_channel_mappings(선수 매핑 부분), team_role_overrides(역할 순서).
   읽어 "파이프라인 전용"이 아니라 관리자 영역과 함께 처리해야 한다(당초 설계 가정과 다름).
 - **2일차**: 수동 교정·숲 ID·표시 별명 흡수 — **사이트 화면이 직접 읽는 영역이라 분리**
   (lib/player-serving-metadata.ts). 수집 제외도 여기서 함께. 빌드 + 실제 페이지 확인 후 배포. 옛 파일 삭제로 완료.
+  - **숲 ID ✅ 완료 (2026-07-26)**: 수동 교정의 `soop_id` 44건을 대장 `players[].soop_user_id`로 옮기고,
+    검색 별칭 18건을 `also_known_as`로 병합한 뒤 숲 채널 매핑 파일을 삭제했다. 그 파일의 이름 기반
+    매핑 117건은 **서빙에 이미 죽어 있었다** — prod-sync·live-sync 두 리졸버 모두 wr_id를 가진 선수는
+    이름 버킷에 닿기 전에 종료하고, 서빙 선수는 전원 wr_id를 가진다.
+    같은 작업에서 앱만 읽고 prod-sync는 못 읽던 숲 ID(앱≠DB) 결함도 대장 최우선 조회로 함께 고쳤다.
 
 ## 4. 뭘 "이상"으로 보고 멈추나 — ✅ 확정 (2026-07-21)
 

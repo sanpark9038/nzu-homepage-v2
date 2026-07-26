@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-07-25T06:14:38.468Z",
+  "updated_at": "2026-07-26T07:23:47.928Z",
   "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). players=선수(entity_id)당 한 줄(표시명 등), 그 외 상대 신원 결정·상대 별명. 이후 숲ID·로스터 교정·수집제외가 여기로 합쳐진다.",
   "players": {
     "eloboard:male:124": {
@@ -31,7 +31,8 @@
       "display_name": "빡죠스",
       "also_known_as": [
         "박종승"
-      ]
+      ],
+      "soop_user_id": "askl021"
     },
     "eloboard:male:2": {
       "display_name": "홍구",
@@ -61,7 +62,8 @@
       "display_name": "얍삽e",
       "also_known_as": [
         "김준혁"
-      ]
+      ],
+      "soop_user_id": "wnsgur2da"
     },
     "eloboard:male:46": {
       "display_name": "기뉴다",
@@ -73,7 +75,8 @@
       "display_name": "오메킴",
       "also_known_as": [
         "김승현"
-      ]
+      ],
+      "soop_user_id": "rlatldgus"
     },
     "eloboard:male:78": {
       "display_name": "샤이니",
@@ -84,14 +87,17 @@
     "eloboard:male:79": {
       "display_name": "이소룡",
       "also_known_as": [
-        "박성용"
-      ]
+        "박성용",
+        "소룡님"
+      ],
+      "soop_user_id": "gjgj3274"
     },
     "eloboard:male:80": {
       "display_name": "난수",
       "also_known_as": [
         "장영근"
-      ]
+      ],
+      "soop_user_id": "wkddudrms15"
     },
     "eloboard:male:85": {
       "display_name": "초난강",
@@ -127,7 +133,8 @@
       "display_name": "프발",
       "also_known_as": [
         "이광용"
-      ]
+      ],
+      "soop_user_id": "lky6407"
     },
     "eloboard:male:95": {
       "display_name": "액션구드론",
@@ -208,7 +215,8 @@
         "wr_id": 1068,
         "reason": "user_excluded",
         "updated_at": "2026-04-09T00:00:00.000Z"
-      }
+      },
+      "soop_user_id": "hckkhc21"
     },
     "eloboard:male:mix:192": {
       "excluded": {
@@ -419,6 +427,147 @@
         "note": "운영자 확인 2026-07-23: 기록 정리·사이트 표시 모두 불필요.",
         "updated_at": "2026-07-23T05:44:50.872Z"
       }
+    },
+    "eloboard:female:881": {
+      "soop_user_id": "nasd06"
+    },
+    "eloboard:female:858": {
+      "soop_user_id": "5eulgii"
+    },
+    "eloboard:male:mix:136": {
+      "soop_user_id": "pookygamja"
+    },
+    "eloboard:female:27": {
+      "soop_user_id": "kitty1029"
+    },
+    "eloboard:female:844": {
+      "soop_user_id": "shj06170"
+    },
+    "eloboard:male:mix:1055": {
+      "soop_user_id": "tkdduddb06"
+    },
+    "eloboard:male:mix:751": {
+      "soop_user_id": "kthrs9207"
+    },
+    "eloboard:female:808": {
+      "soop_user_id": "fpahsdltu1"
+    },
+    "eloboard:female:841": {
+      "soop_user_id": "db001202"
+    },
+    "eloboard:female:866": {
+      "soop_user_id": "2meonjin"
+    },
+    "eloboard:male:mix:398": {
+      "soop_user_id": "kalmian"
+    },
+    "eloboard:female:702": {
+      "soop_user_id": "rabbitmiffy"
+    },
+    "eloboard:male:mix:1093": {
+      "soop_user_id": "tiger3006"
+    },
+    "eloboard:male:mix:1147": {
+      "soop_user_id": "dlqudgk1227"
+    },
+    "eloboard:female:977": {
+      "soop_user_id": "dyaan0v0"
+    },
+    "eloboard:male:191": {
+      "soop_user_id": "jmc06170"
+    },
+    "eloboard:female:398": {
+      "soop_user_id": "yjk011599"
+    },
+    "eloboard:female:880": {
+      "soop_user_id": "queen030"
+    },
+    "eloboard:female:1036": {
+      "soop_user_id": "ara9687"
+    },
+    "eloboard:male:mix:1184": {
+      "soop_user_id": "suhi370erw"
+    },
+    "eloboard:male:mix:143": {
+      "soop_user_id": "rlawhdwns6"
+    },
+    "eloboard:male:mix:670": {
+      "soop_user_id": "ititit"
+    },
+    "eloboard:female:781": {
+      "soop_user_id": "tato1104"
+    },
+    "eloboard:female:1035": {
+      "soop_user_id": "miiing0620"
+    },
+    "eloboard:female:962": {
+      "soop_user_id": "owoouoowo"
+    },
+    "eloboard:male:212": {
+      "soop_user_id": "minyoo3972"
+    },
+    "eloboard:female:1030": {
+      "soop_user_id": "1004yomi"
+    },
+    "eloboard:female:1034": {
+      "soop_user_id": "tndkekdy"
+    },
+    "eloboard:female:761": {
+      "soop_user_id": "youaregood"
+    },
+    "eloboard:female:1018": {
+      "soop_user_id": "nbomichae7"
+    },
+    "eloboard:male:120": {
+      "soop_user_id": "bhy95"
+    },
+    "eloboard:female:722": {
+      "soop_user_id": "lingolinga"
+    },
+    "eloboard:female:177": {
+      "soop_user_id": "ovoa3316"
+    },
+    "eloboard:female:784": {
+      "soop_user_id": "khsoo0105"
+    },
+    "eloboard:male:56": {
+      "soop_user_id": "rnjsgurwls15"
+    },
+    "eloboard:female:898": {
+      "soop_user_id": "harumyong"
+    },
+    "eloboard:female:948": {
+      "soop_user_id": "asdsa1113"
+    },
+    "eloboard:female:619": {
+      "also_known_as": [
+        "뽀뇨",
+        "김뽀뇨"
+      ]
+    },
+    "eloboard:male:22": {
+      "also_known_as": [
+        "짭제",
+        "박상현"
+      ]
+    },
+    "eloboard:female:680": {
+      "also_known_as": [
+        "려원",
+        "려원님"
+      ]
+    },
+    "eloboard:female:408": {
+      "also_known_as": [
+        "오조은",
+        "조은"
+      ]
+    },
+    "eloboard:female:328": {
+      "also_known_as": [
+        "소윤",
+        "정소윤"
+      ]
     }
   },
   "collection_exclusions_without_entity": [
