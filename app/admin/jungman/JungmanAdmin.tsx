@@ -5,11 +5,16 @@ import { useState } from "react";
 import {
   formatVotes,
   JUNGMAN_VOTING_TEAMS,
+  type JungmanComment,
   type JungmanConfig,
   type JungmanSnapshot,
 } from "@/lib/jungman";
 
 type VoteInputs = Record<string, string>;
+
+function postUrlOf(config: JungmanConfig) {
+  return config.titleNo ? `https://www.sooplive.com/station/${config.soopId}/post/${config.titleNo}` : "";
+}
 
 function toLocalInput(iso: string | null) {
   if (!iso) return "";
@@ -56,6 +61,9 @@ export default function JungmanAdmin({
   const [pendingDelete, setPendingDelete] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [postUrl, setPostUrl] = useState(() => postUrlOf(initialConfig));
+  const [comments, setComments] = useState<JungmanComment[]>([]);
+  const [mapping, setMapping] = useState<Record<string, string>>(() => initialConfig.mapping);
 
   const nextRound = (snapshots[snapshots.length - 1]?.round || 0) + 1;
 
@@ -73,13 +81,22 @@ export default function JungmanAdmin({
 
       setSnapshots(json.snapshots || []);
       setConfig(json.config);
+      if (json.config?.mapping) setMapping(json.config.mapping);
       setMessage(json.message || "저장했습니다.");
-      return json as { snapshots: JungmanSnapshot[]; config: JungmanConfig };
+      return json as { snapshots: JungmanSnapshot[]; config: JungmanConfig; comments?: JungmanComment[] };
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "저장에 실패했습니다.");
       return null;
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadComments() {
+    const result = await send({ action: "fetch-comments", postUrl });
+    if (result?.comments) {
+      setComments(result.comments);
+      setPostUrl(postUrlOf(result.config));
     }
   }
 
@@ -108,11 +125,113 @@ export default function JungmanAdmin({
     if (result) setVotes(votesFromSnapshot(result.snapshots[result.snapshots.length - 1] || null));
   }
 
+  const mappedTeams = new Set(Object.values(mapping));
+
   return (
     <div className="space-y-8">
       <section className="rounded-[2rem] border border-white/10 bg-card p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-2">
+            <h2 className="text-xl font-black tracking-tight text-white">숲 댓글 자동 수집</h2>
+            <p className="text-sm text-white/55">
+              공지글 댓글의 추천수를 그대로 득표로 가져옵니다. 켜두면 /jungman을 보고 있는 사람이 있는 동안 3분
+              간격으로 자동 갱신되고, 페이지는 LIVE 모드로 바뀝니다.
+            </p>
+          </div>
+          <button
+            onClick={() => send({ action: "set-auto-collect", autoCollect: !config.autoCollect })}
+            disabled={loading}
+            className={`inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-black disabled:opacity-50 ${
+              config.autoCollect
+                ? "bg-nzu-green text-black"
+                : "border border-white/15 bg-background text-white/70"
+            }`}
+          >
+            자동 수집 {config.autoCollect ? "ON" : "OFF"}
+          </button>
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-end gap-3">
+          <label className="min-w-[18rem] flex-1 space-y-2">
+            <span className="block text-xs font-bold uppercase tracking-[0.18em] text-white/40">공지 글 주소</span>
+            <input
+              type="url"
+              value={postUrl}
+              onChange={(event) => setPostUrl(event.target.value)}
+              placeholder="https://www.sooplive.com/station/ititit/post/202453919"
+              className="w-full rounded-xl border border-white/10 bg-background px-3 py-2 text-sm font-bold text-white"
+            />
+          </label>
+          <button
+            onClick={loadComments}
+            disabled={loading}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 bg-background px-4 text-sm font-black text-white disabled:opacity-50"
+          >
+            댓글 불러오기
+          </button>
+          <button
+            onClick={() => send({ action: "collect-now" })}
+            disabled={loading}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 bg-background px-4 text-sm font-black text-white disabled:opacity-50"
+          >
+            지금 수집
+          </button>
+        </div>
+
+        {comments.length ? (
+          <>
+            <ul className="mt-5 space-y-2">
+              {comments.map((comment) => (
+                <li
+                  key={comment.commentNo}
+                  className="grid grid-cols-[7rem_4rem_minmax(0,1fr)_9rem] items-center gap-3 rounded-xl border border-white/10 bg-background/80 px-4 py-2.5"
+                >
+                  <span className="truncate text-sm font-bold text-white">{comment.nick}</span>
+                  <span className="text-sm font-black tabular-nums text-nzu-green">{comment.likes}표</span>
+                  <span className="truncate text-sm text-white/55">{comment.text.slice(0, 40)}</span>
+                  <select
+                    value={mapping[comment.commentNo] || ""}
+                    onChange={(event) =>
+                      setMapping((prev) => {
+                        const next = { ...prev };
+                        if (event.target.value) next[comment.commentNo] = event.target.value;
+                        else delete next[comment.commentNo];
+                        return next;
+                      })
+                    }
+                    className="w-full rounded-lg border border-white/10 bg-background px-2 py-1.5 text-sm font-bold text-white"
+                  >
+                    <option value="">미지정</option>
+                    {JUNGMAN_VOTING_TEAMS.map((team) => (
+                      <option key={team.code} value={team.code}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </li>
+              ))}
+            </ul>
+
+            <button
+              onClick={() => send({ action: "save-mapping", mapping })}
+              disabled={loading}
+              className="mt-5 inline-flex min-h-12 items-center justify-center rounded-xl bg-nzu-green px-5 text-sm font-black text-black disabled:opacity-50"
+            >
+              매핑 저장 ({mappedTeams.size}/{JUNGMAN_VOTING_TEAMS.length}팀)
+            </button>
+          </>
+        ) : (
+          <p className="mt-5 rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm font-bold text-white/45">
+            {Object.keys(mapping).length
+              ? `저장된 매핑 ${Object.keys(mapping).length}건이 있습니다. 수정하려면 댓글을 불러오세요.`
+              : "공지 글 주소를 넣고 댓글을 불러온 뒤, 각 총장 댓글에 팀을 지정하세요."}
+          </p>
+        )}
+      </section>
+
+      <section className="rounded-[2rem] border border-white/10 bg-card p-6">
         <div className="space-y-2">
-          <h2 className="text-xl font-black tracking-tight text-white">{nextRound}차 개표 입력</h2>
+          <h2 className="text-xl font-black tracking-tight text-white">{nextRound}차 개표 입력 (수동 폴백)</h2>
           <p className="text-sm text-white/55">
             12팀 누적 득표수를 입력합니다. 수술대는 4시드 확보로 투표에서 빠집니다. 발표 시각은 저장한 시각으로
             자동 기록됩니다.

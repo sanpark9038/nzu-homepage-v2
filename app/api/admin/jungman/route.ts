@@ -8,42 +8,22 @@ import {
   JUNGMAN_SNAPSHOTS_KEY,
   JUNGMAN_VOTING_TEAMS,
   parseJungmanConfig,
+  parseJungmanMapping,
   parseJungmanSnapshots,
+  type JungmanConfig,
   type JungmanSnapshot,
 } from "@/lib/jungman";
-import { createSupabaseAdminClient } from "@/lib/supabase-admin";
+import { collectJungmanSnapshot, fetchJungmanComments } from "@/lib/jungman-collector";
+import {
+  readSettingAdmin as readSetting,
+  writeSettingAdmin as writeSetting,
+} from "@/lib/site-settings-admin";
 
 export const runtime = "nodejs";
-
-const MISSING_TABLE_MESSAGE =
-  "site_settings 테이블이 없습니다. scripts/sql/create-site-settings.sql 을 Supabase에서 실행해주세요.";
 
 async function requireAdmin() {
   const cookieStore = await cookies();
   assertValidAdminSession(cookieStore.get(ADMIN_SESSION_COOKIE)?.value);
-}
-
-async function readSetting(key: string) {
-  const supabase = createSupabaseAdminClient();
-  const { data, error } = await supabase.from("site_settings").select("value").eq("key", key).maybeSingle();
-
-  if (error) {
-    if (error.code === "PGRST205") throw new Error(MISSING_TABLE_MESSAGE);
-    throw error;
-  }
-  return data?.value ?? null;
-}
-
-async function writeSetting(key: string, value: string) {
-  const supabase = createSupabaseAdminClient();
-  const { error } = await supabase
-    .from("site_settings")
-    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
-
-  if (error) {
-    if (error.code === "PGRST205") throw new Error(MISSING_TABLE_MESSAGE);
-    throw error;
-  }
 }
 
 async function loadState() {
@@ -58,10 +38,29 @@ async function loadState() {
   };
 }
 
-function respondWith(state: { config: unknown; snapshots: unknown }, message: string) {
+function respondWith(state: Record<string, unknown>, message: string) {
   revalidatePath("/jungman");
   revalidatePath("/admin/jungman");
   return NextResponse.json({ ok: true, message, ...state });
+}
+
+const COLLECT_SKIP_LABEL: Record<string, string> = {
+  disabled: "자동 수집이 꺼져 있거나 글·매핑이 없습니다",
+  cooldown: "수집 간격이 아직 지나지 않았습니다",
+  fetch_failed: "댓글을 불러오지 못했습니다",
+  no_match: "매핑된 댓글을 하나도 찾지 못했습니다",
+  anomaly: "득표가 비정상적으로 급락했습니다",
+  unchanged: "직전과 득표가 같습니다",
+};
+
+/** https://www.sooplive.com/station/{soopId}/post/{titleNo} */
+function parsePostUrl(raw: unknown) {
+  const url = String(raw || "").trim();
+  const match = url.match(/station\/([A-Za-z0-9_-]+)\/post\/(\d+)/);
+  if (!match) {
+    return { error: "공지 글 주소 형식이 아닙니다. 예: https://www.sooplive.com/station/ititit/post/202453919" as const };
+  }
+  return { soopId: match[1], titleNo: Number(match[2]) };
 }
 
 /** 12팀 표수 검증 — 음수·비정수·모르는 코드는 여기서 막는다(공개 파서에 기대지 않음). */
@@ -103,6 +102,9 @@ export async function POST(req: Request) {
       votes?: unknown;
       voteCloseAt?: string;
       nextRevealAt?: string | null;
+      postUrl?: string;
+      mapping?: unknown;
+      autoCollect?: boolean;
     };
     const action = String(body.action || "").trim();
 
@@ -134,14 +136,90 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: false, message: "다음 개표 시각이 올바르지 않습니다." }, { status: 400 });
       }
 
-      const config = {
+      // 수집 설정(soopId·titleNo·mapping…)을 덮어쓰지 않도록 기존 config 위에 얹는다.
+      const { config: current, snapshots } = await loadState();
+      const config: JungmanConfig = {
+        ...current,
         voteCloseAt: new Date(voteCloseAt).toISOString(),
         nextRevealAt: rawReveal ? new Date(rawReveal).toISOString() : null,
       };
 
       await writeSetting(JUNGMAN_CONFIG_KEY, JSON.stringify(config));
-      const { snapshots } = await loadState();
       return respondWith({ config, snapshots }, "일정 설정을 저장했습니다.");
+    }
+
+    if (action === "fetch-comments") {
+      const target = parsePostUrl(body.postUrl);
+      if ("error" in target) {
+        return NextResponse.json({ ok: false, message: target.error }, { status: 400 });
+      }
+
+      const fetched = await fetchJungmanComments(target.soopId, target.titleNo);
+      if (!fetched.ok) {
+        return NextResponse.json(
+          { ok: false, message: `댓글을 불러오지 못했습니다. (${fetched.reason})` },
+          { status: 502 }
+        );
+      }
+
+      // 글이 바뀌었으면 여기서 대상까지 굳힌다 — 매핑 저장 때 또 파싱하지 않도록.
+      const { config: current, snapshots } = await loadState();
+      const config: JungmanConfig = { ...current, soopId: target.soopId, titleNo: target.titleNo };
+      await writeSetting(JUNGMAN_CONFIG_KEY, JSON.stringify(config));
+
+      const comments = fetched.comments.slice().sort((a, b) => b.likes - a.likes);
+      return respondWith(
+        { config, snapshots, comments },
+        `댓글 ${comments.length}개를 불러왔습니다.`
+      );
+    }
+
+    if (action === "save-mapping") {
+      const mapping = parseJungmanMapping(body.mapping);
+
+      const seen = new Map<string, string>();
+      for (const [commentNo, code] of Object.entries(mapping)) {
+        const already = seen.get(code);
+        if (already) {
+          const team = JUNGMAN_VOTING_TEAMS.find((item) => item.code === code);
+          return NextResponse.json(
+            {
+              ok: false,
+              message: `${team?.name || code}이(가) 두 댓글(${already}, ${commentNo})에 중복 지정됐습니다.`,
+            },
+            { status: 400 }
+          );
+        }
+        seen.set(code, commentNo);
+      }
+
+      const { config: current, snapshots } = await loadState();
+      const config: JungmanConfig = { ...current, mapping };
+      await writeSetting(JUNGMAN_CONFIG_KEY, JSON.stringify(config));
+      return respondWith({ config, snapshots }, `팀 ${Object.keys(mapping).length}개를 매핑했습니다.`);
+    }
+
+    if (action === "set-auto-collect") {
+      const { config: current, snapshots } = await loadState();
+      const config: JungmanConfig = { ...current, autoCollect: body.autoCollect === true };
+      await writeSetting(JUNGMAN_CONFIG_KEY, JSON.stringify(config));
+      return respondWith(
+        { config, snapshots },
+        config.autoCollect ? "자동 수집을 켰습니다." : "자동 수집을 껐습니다."
+      );
+    }
+
+    if (action === "collect-now") {
+      const result = await collectJungmanSnapshot(true);
+      const { config, snapshots } = await loadState();
+      return respondWith(
+        { config, snapshots },
+        result.ok
+          ? `${result.round}차로 기록했습니다.`
+          : `기록하지 않았습니다 — ${COLLECT_SKIP_LABEL[result.skipped] || result.skipped}${
+              result.reason ? ` (${result.reason})` : ""
+            }`
+      );
     }
 
     if (action === "delete-last-snapshot") {

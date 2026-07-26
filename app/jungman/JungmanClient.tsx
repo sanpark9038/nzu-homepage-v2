@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { formatVotes, type JungmanStanding } from "@/lib/jungman";
 
 const LAST_SEEN_ROUND_KEY = "jungman:last-seen-round";
 const ROLLUP_MS = 800;
+const COLLECT_POLL_MS = 60_000;
 
 // 지도는 서버 컴포넌트(88KB SVG)라 상태를 공유하지 않는다 — 래퍼 속성만 찔러 CSS가 처리하게 한다.
 function pokeMap(attribute: "data-active" | "data-reveal", value: string | null) {
@@ -58,17 +60,98 @@ function CountdownRow({ label, targetIso, closedLabel }: { label: string; target
   );
 }
 
+/** 별도 cron 없이 /jungman을 보고 있는 사람이 수집을 돌린다. 서버가 쿨다운으로 막으니 폭주는 무해. */
+export function JungmanAutoCollect() {
+  const router = useRouter();
+
+  useEffect(() => {
+    let stopped = false;
+    let inFlight = false;
+
+    const run = async () => {
+      if (inFlight || document.hidden) return;
+      inFlight = true;
+      try {
+        const res = await fetch("/api/jungman/collect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        });
+        const json = await res.json();
+        if (!stopped && json?.ok) router.refresh();
+      } catch {
+        // 수집 실패는 조용히 넘긴다 — 다음 주기에 다시 시도한다
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    void run();
+    const timer = window.setInterval(run, COLLECT_POLL_MS);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
+  }, [router]);
+
+  return null;
+}
+
+function elapsedLabel(ms: number) {
+  const seconds = Math.max(0, Math.round(ms / 1000));
+  if (seconds < 60) return `${seconds}초 전 갱신`;
+  const minutes = Math.floor(seconds / 60);
+  return minutes < 60 ? `${minutes}분 전 갱신` : `${Math.floor(minutes / 60)}시간 전 갱신`;
+}
+
+function LiveRow({ latestAt }: { latestAt: string }) {
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    const first = window.setTimeout(tick, 0);
+    const timer = window.setInterval(tick, 1000);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-[#e0705f]/40 bg-[rgba(224,112,95,0.08)] px-5 py-4">
+      <span className="relative flex h-2.5 w-2.5 shrink-0">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#e0705f] opacity-60 motion-reduce:hidden" />
+        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#e0705f]" />
+      </span>
+      <div>
+        <p className="text-[0.6875rem] font-black uppercase tracking-[0.22em] text-[#e0705f]">LIVE</p>
+        <p className="mt-1 text-sm font-bold tabular-nums text-[#e8ebf2]">
+          {now === null ? "집계 중" : elapsedLabel(now - Date.parse(latestAt))}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function JungmanCountdown({
   voteCloseAt,
   nextRevealAt,
+  isLive = false,
+  latestAt = null,
 }: {
   voteCloseAt: string;
   nextRevealAt: string | null;
+  isLive?: boolean;
+  latestAt?: string | null;
 }) {
+  const live = isLive && latestAt;
+
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <CountdownRow label="투표 마감까지" targetIso={voteCloseAt} closedLabel="투표 마감" />
-      {nextRevealAt ? (
+      {live ? (
+        <LiveRow latestAt={latestAt} />
+      ) : nextRevealAt ? (
         <CountdownRow label="다음 개표 발표까지" targetIso={nextRevealAt} closedLabel="발표 임박" />
       ) : null}
     </div>
@@ -97,10 +180,12 @@ export function JungmanBoard({
   standings,
   round,
   revealedAt,
+  isLive = false,
 }: {
   standings: JungmanStanding[];
   round: number;
   revealedAt: string;
+  isLive?: boolean;
 }) {
   const [progress, setProgress] = useState(1);
   const [isFreshRound, setIsFreshRound] = useState(false);
@@ -139,15 +224,20 @@ export function JungmanBoard({
         <h2 className="text-xl font-black tracking-tight text-[#e8ebf2]">
           <span
             className={`mr-2 rounded-full px-3 py-1 text-[0.75rem] font-black tracking-[0.1em] ${
-              isFreshRound ? "bg-[#d4a94a] text-[#0b0f1a]" : "border border-[#d4a94a]/50 text-[#d4a94a]"
+              isLive
+                ? "border border-[#e0705f]/60 text-[#e0705f]"
+                : isFreshRound
+                  ? "bg-[#d4a94a] text-[#0b0f1a]"
+                  : "border border-[#d4a94a]/50 text-[#d4a94a]"
             }`}
           >
-            {round}차 개표 발표
+            {isLive ? "실시간 집계" : `${round}차 개표 발표`}
           </span>
           득표 순위
         </h2>
         <p className="text-xs font-bold text-[#7a8299]">
-          발표 {new Date(revealedAt).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })}
+          {isLive ? "갱신" : "발표"}{" "}
+          {new Date(revealedAt).toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })}
         </p>
       </div>
 

@@ -82,6 +82,79 @@ test("jungman map renders all 13 markers from a single data source", () => {
   assert.match(readProjectFile("components/jungman/map-base.ts"), /손으로 고치지 말 것/);
 });
 
+test("jungman collector sends a browser User-Agent", () => {
+  const collector = readProjectFile("lib/jungman-collector.ts");
+
+  // UA가 없으면 숲 댓글 API가 404 HTML을 돌려준다 — 헤더가 빠지면 수집이 통째로 죽는다
+  assert.match(collector, /USER_AGENT\s*=\s*\n?\s*"Mozilla\/5\.0/);
+  assert.match(collector, /headers: \{ "User-Agent": USER_AGENT/);
+  assert.match(collector, /cache: "no-store"/);
+  assert.match(collector, /AbortSignal\.timeout\(FETCH_TIMEOUT_MS\)/);
+  // 페이지 순회는 상한이 있어야 한다 (per_page 30 고정)
+  assert.match(collector, /MAX_PAGES = \d+/);
+  assert.match(collector, /Math\.min\(lastPage, MAX_PAGES\)/);
+  // 실패는 예외가 아니라 결과값으로 — 수집 실패가 페이지를 깨뜨리면 안 된다
+  assert.match(collector, /\{ ok: false; reason: string \}/);
+});
+
+test("jungman collect path guards writes with cooldown and anomaly checks", () => {
+  const collector = readProjectFile("lib/jungman-collector.ts");
+  const route = readProjectFile("app/api/jungman/collect/route.ts");
+
+  for (const skip of ["disabled", "cooldown", "no_match", "anomaly", "unchanged"]) {
+    assert.ok(collector.includes(`skipped: "${skip}"`), `collector should be able to skip with ${skip}`);
+  }
+  assert.match(collector, /JUNGMAN_COLLECT_INTERVAL_MS/);
+  assert.match(collector, /ANOMALY_FLOOR_RATIO/);
+  // KV 한 칸에 들어가야 하므로 스냅샷은 잘라낸다
+  assert.match(collector, /MAX_SNAPSHOTS = \d+/);
+  assert.match(collector, /\.slice\(\s*-MAX_SNAPSHOTS\s*\)/);
+
+  // 공개 엔드포인트 — force(쿨다운 무시)는 관리자 쿠키가 있을 때만
+  assert.match(route, /export const runtime = "nodejs"/);
+  assert.match(route, /isValidAdminSession\(cookieStore\.get\(ADMIN_SESSION_COOKIE\)\?\.value\)/);
+  assert.match(route, /collectJungmanSnapshot\(force\)/);
+  assert.match(route, /revalidatePath\("\/jungman"\)/);
+});
+
+test("jungman live mode has a server-computed window and a viewer-driven poller", () => {
+  const lib = readProjectFile("lib/jungman.ts");
+  const client = readProjectFile("app/jungman/JungmanClient.tsx");
+  const page = readProjectFile("app/jungman/page.tsx");
+
+  assert.match(lib, /JUNGMAN_LIVE_WINDOW_MS = \d+ \* 60 \* 1000/);
+  assert.match(lib, /JUNGMAN_COLLECT_INTERVAL_MS = \d+ \* 60 \* 1000/);
+  assert.match(lib, /isLive: isJungmanLive\(latest\)/);
+
+  // 백그라운드 탭은 수집을 돌리지 않고, 중복 요청은 in-flight로 막는다
+  assert.match(client, /if \(inFlight \|\| document\.hidden\) return;/);
+  assert.match(client, /fetch\("\/api\/jungman\/collect"/);
+  assert.match(client, /router\.refresh\(\)/);
+  assert.match(client, /실시간 집계/);
+  assert.match(client, /motion-reduce:hidden/);
+
+  assert.match(page, /config\.autoCollect \? <JungmanAutoCollect \/> : null/);
+  assert.match(page, /isLive=\{isLive\}/);
+});
+
+test("jungman admin exposes the comment mapping actions", () => {
+  const route = readProjectFile("app/api/admin/jungman/route.ts");
+  const admin = readProjectFile("app/admin/jungman/JungmanAdmin.tsx");
+
+  for (const action of ["fetch-comments", "save-mapping", "set-auto-collect", "collect-now"]) {
+    assert.ok(route.includes(`"${action}"`), `route should handle action ${action}`);
+  }
+  // 같은 팀을 두 댓글에 지정하면 저장을 거부해야 한다
+  assert.match(route, /중복 지정됐습니다/);
+  // 일정 저장이 수집 설정(soopId·mapping…)을 지우면 안 된다
+  assert.match(route, /const config: JungmanConfig = \{\s*\.\.\.current,\s*voteCloseAt:/);
+  assert.match(route, /station\\\/\(\[A-Za-z0-9_-\]\+\)\\\/post\\\/\(\\d\+\)/);
+
+  // 수동 입력 폼은 폴백으로 남는다
+  assert.ok(admin.includes("수동 폴백"), "manual snapshot form should stay as a fallback");
+  assert.match(admin, /action: "save-snapshot"/);
+});
+
 test("jungman is reachable from public and admin navigation", () => {
   assert.match(readProjectFile("lib/navigation-config.ts"), /href: "\/jungman", label: "중만컵"/);
   assert.match(readProjectFile("components/Navbar.tsx"), /"\/jungman":/);

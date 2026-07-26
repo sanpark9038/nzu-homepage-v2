@@ -13,7 +13,7 @@ import {
   type JungmanSnapshot,
 } from "@/lib/jungman";
 
-import { JungmanBoard, JungmanCountdown } from "./JungmanClient";
+import { JungmanAutoCollect, JungmanBoard, JungmanCountdown } from "./JungmanClient";
 
 export const revalidate = 30;
 
@@ -71,11 +71,14 @@ function TrendChart({ snapshots }: { snapshots: JungmanSnapshot[] }) {
         </g>
       ))}
 
-      {snapshots.map((snapshot, index) => (
-        <text key={snapshot.round} x={x(index)} y={height - 10} textAnchor="middle" fontSize="11" fill="#7a8299">
-          {snapshot.round}차
-        </text>
-      ))}
+      {/* 실시간 수집이면 차수가 수백 개까지 늘어난다 — 라벨은 8개 안쪽으로 솎는다 */}
+      {snapshots.map((snapshot, index) =>
+        index % Math.ceil(snapshots.length / 8) === 0 || index === snapshots.length - 1 ? (
+          <text key={snapshot.round} x={x(index)} y={height - 10} textAnchor="middle" fontSize="11" fill="#7a8299">
+            {snapshot.round}차
+          </text>
+        ) : null
+      )}
 
       {JUNGMAN_VOTING_TEAMS.map((team) => {
         const points = snapshots.map((snapshot, index) => `${x(index)},${y(snapshot.votes[team.code] || 0)}`);
@@ -108,7 +111,7 @@ function TrendChart({ snapshots }: { snapshots: JungmanSnapshot[] }) {
 }
 
 export default async function JungmanPage() {
-  const { config, snapshots, latest, standings } = await getJungmanState();
+  const { config, snapshots, latest, standings, isLive } = await getJungmanState();
   const markers = buildJungmanMarkers(standings);
   const seedTeam = JUNGMAN_TEAMS.find((team) => team.code === JUNGMAN_SEED_TEAM_CODE);
 
@@ -126,9 +129,16 @@ export default async function JungmanPage() {
           </p>
 
           <div className="mt-5">
-            <JungmanCountdown voteCloseAt={config.voteCloseAt} nextRevealAt={config.nextRevealAt} />
+            <JungmanCountdown
+              voteCloseAt={config.voteCloseAt}
+              nextRevealAt={config.nextRevealAt}
+              isLive={isLive}
+              latestAt={latest?.at ?? null}
+            />
           </div>
         </header>
+
+        {config.autoCollect ? <JungmanAutoCollect /> : null}
 
         {/* id는 보드 hover ↔ 마커 강조 연동의 앵커 — JungmanClient가 data-active/data-reveal을 세팅한다 */}
         <section id="jm-map" className={`${PANEL} p-3`}>
@@ -136,7 +146,7 @@ export default async function JungmanPage() {
         </section>
 
         {latest ? (
-          <JungmanBoard standings={standings} round={latest.round} revealedAt={latest.at} />
+          <JungmanBoard standings={standings} round={latest.round} revealedAt={latest.at} isLive={isLive} />
         ) : (
           <section className={`${PANEL} p-6`}>
             <h2 className="text-xl font-black tracking-tight">첫 개표 발표를 기다리고 있습니다</h2>
@@ -169,7 +179,7 @@ export default async function JungmanPage() {
           <section className={`${PANEL} p-6`}>
             <h2 className="text-xl font-black tracking-tight">차수별 득표 추이</h2>
             <div className="mt-4">
-              <TrendChart snapshots={snapshots} />
+              <TrendChart snapshots={snapshots.slice(-40)} />
             </div>
             <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
               {JUNGMAN_VOTING_TEAMS.map((team) => (

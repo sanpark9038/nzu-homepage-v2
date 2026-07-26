@@ -15,6 +15,11 @@ export const JUNGMAN_WILDCARD_CUT = 10;
 // 인접 순위와의 표차가 1위 표수의 이 비율 이내면 "경합"
 export const JUNGMAN_CONTEST_RATIO = 0.03;
 
+/** 최신 스냅샷이 이 시간 이내면 실시간 집계(LIVE)로 본다 */
+export const JUNGMAN_LIVE_WINDOW_MS = 10 * 60 * 1000;
+/** 자동 수집 최소 간격 — 뷰어가 아무리 많아도 이보다 자주는 기록하지 않는다 */
+export const JUNGMAN_COLLECT_INTERVAL_MS = 3 * 60 * 1000;
+
 export type JungmanTeam = {
   code: string;
   name: string;
@@ -57,6 +62,22 @@ const VOTING_ORDER = new Map(JUNGMAN_VOTING_TEAMS.map((team, index) => [team.cod
 export type JungmanConfig = {
   voteCloseAt: string;
   nextRevealAt: string | null;
+  /** 인기투표 공지글 주인 방송국 ID */
+  soopId: string;
+  /** 인기투표 공지글 번호. 없으면 자동 수집 불가 */
+  titleNo: number | null;
+  autoCollect: boolean;
+  /** 댓글번호 → 팀코드 */
+  mapping: Record<string, string>;
+};
+
+/** 숲 공지글 댓글 한 줄 — 추천수(likes)가 곧 그 팀의 득표 */
+export type JungmanComment = {
+  commentNo: number;
+  userId: string;
+  nick: string;
+  text: string;
+  likes: number;
 };
 
 export type JungmanSnapshot = {
@@ -106,11 +127,17 @@ export type JungmanState = {
   snapshots: JungmanSnapshot[];
   latest: JungmanSnapshot | null;
   standings: JungmanStanding[];
+  /** 최신 스냅샷이 LIVE 윈도 이내 — 서버에서 1회 계산한다 */
+  isLive: boolean;
 };
 
 export const JUNGMAN_DEFAULT_CONFIG: JungmanConfig = {
   voteCloseAt: "2026-07-31T00:00:00+09:00",
   nextRevealAt: null,
+  soopId: "ititit",
+  titleNo: null,
+  autoCollect: false,
+  mapping: {},
 };
 
 function toIsoOrNull(value: unknown): string | null {
@@ -131,10 +158,29 @@ export function parseJungmanConfig(raw: string | null): JungmanConfig {
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return JUNGMAN_DEFAULT_CONFIG;
 
   const record = parsed as Record<string, unknown>;
+  const titleNo = Math.floor(Number(record.titleNo));
+
   return {
     voteCloseAt: toIsoOrNull(record.voteCloseAt) || JUNGMAN_DEFAULT_CONFIG.voteCloseAt,
     nextRevealAt: toIsoOrNull(record.nextRevealAt),
+    soopId: typeof record.soopId === "string" && record.soopId.trim() ? record.soopId.trim() : JUNGMAN_DEFAULT_CONFIG.soopId,
+    titleNo: Number.isFinite(titleNo) && titleNo > 0 ? titleNo : null,
+    autoCollect: record.autoCollect === true,
+    mapping: parseJungmanMapping(record.mapping),
   };
+}
+
+/** 댓글번호(숫자 문자열) → 투표 대상 팀코드. 그 외는 전부 버린다. */
+export function parseJungmanMapping(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+
+  const mapping: Record<string, string> = {};
+  for (const [commentNo, code] of Object.entries(raw as Record<string, unknown>)) {
+    if (!/^\d+$/.test(commentNo)) continue;
+    if (typeof code !== "string" || !VOTING_CODES.has(code)) continue;
+    mapping[commentNo] = code;
+  }
+  return mapping;
 }
 
 /**
@@ -272,12 +318,21 @@ export function buildJungmanMarkers(standings: JungmanStanding[]): JungmanMarker
 }
 
 export function buildJungmanState(config: JungmanConfig, snapshots: JungmanSnapshot[]): JungmanState {
+  const latest = snapshots.length ? snapshots[snapshots.length - 1] : null;
+
   return {
     config,
     snapshots,
-    latest: snapshots.length ? snapshots[snapshots.length - 1] : null,
+    latest,
     standings: buildJungmanStandings(snapshots),
+    isLive: isJungmanLive(latest),
   };
+}
+
+export function isJungmanLive(latest: JungmanSnapshot | null, now = Date.now()): boolean {
+  if (!latest) return false;
+  const at = Date.parse(latest.at);
+  return Number.isFinite(at) && now - at < JUNGMAN_LIVE_WINDOW_MS;
 }
 
 export async function getJungmanState(): Promise<JungmanState> {
