@@ -28,7 +28,6 @@ const NAV_ACCENT: Record<string, {
   "/match":      { activeBg: "bg-violet-400/10",  accentText: "text-violet-300", glowRgba: "rgba(167,139,250,0.20)", hoverBg: "hover:bg-violet-400/5",   hoverText: "hover:text-violet-300" },
   "/entry":      { activeBg: "bg-indigo-400/10",  accentText: "text-indigo-300", glowRgba: "rgba(129,140,248,0.20)", hoverBg: "hover:bg-indigo-400/5",   hoverText: "hover:text-indigo-300" },
   "/multiview":  { activeBg: "bg-rose-400/10",   accentText: "text-rose-300",   glowRgba: "rgba(251,113,133,0.20)", hoverBg: "hover:bg-rose-400/5",     hoverText: "hover:text-rose-300" },
-  "/jungman":    { activeBg: "bg-yellow-400/10", accentText: "text-yellow-300", glowRgba: "rgba(212,169,74,0.22)",  hoverBg: "hover:bg-yellow-400/5",   hoverText: "hover:text-yellow-300" },
 };
 
 const DEFAULT_ACCENT = NAV_ACCENT["/"];
