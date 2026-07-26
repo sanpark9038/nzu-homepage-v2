@@ -104,6 +104,8 @@ test("jungman collector sends a browser User-Agent", () => {
   // 페이지 순회는 상한이 있어야 한다 (per_page 30 고정)
   assert.match(collector, /MAX_PAGES = \d+/);
   assert.match(collector, /Math\.min\(lastPage, MAX_PAGES\)/);
+  // 매핑된 댓글을 다 찾으면 멈춘다 — 3분마다 팬 댓글 수백 개를 끝까지 읽지 않는다
+  assert.match(collector, /if \(requiredCommentNos\?\.length && !pending\.size\) break;/);
   // 실패는 예외가 아니라 결과값으로 — 수집 실패가 페이지를 깨뜨리면 안 된다
   assert.match(collector, /\{ ok: false; reason: string \}/);
 });

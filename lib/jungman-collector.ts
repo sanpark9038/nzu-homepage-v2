@@ -64,13 +64,22 @@ async function fetchPage(soopId: string, titleNo: number, page: number) {
   return (await res.json()) as Record<string, unknown>;
 }
 
-/** 전 페이지 순회. 실패해도 예외를 던지지 않는다 — 수집 실패가 페이지를 깨뜨리면 안 된다. */
-export async function fetchJungmanComments(soopId: string, titleNo: number): Promise<JungmanFetchResult> {
+/**
+ * 전 페이지 순회. 실패해도 예외를 던지지 않는다 — 수집 실패가 페이지를 깨뜨리면 안 된다.
+ * requiredCommentNos를 주면 그 댓글을 다 찾는 즉시 멈춘다. 3분마다 도는 수집이
+ * 팬 댓글 수백 개까지 끝까지 읽을 이유가 없다(관리자 매핑 화면은 안 넘겨서 전부 받는다).
+ */
+export async function fetchJungmanComments(
+  soopId: string,
+  titleNo: number,
+  requiredCommentNos?: number[]
+): Promise<JungmanFetchResult> {
   if (!soopId.trim() || !Number.isFinite(titleNo) || titleNo <= 0) {
     return { ok: false, reason: "invalid_target" };
   }
 
   const byNo = new Map<number, JungmanComment>();
+  const pending = new Set(requiredCommentNos || []);
 
   try {
     let lastPage = 1;
@@ -87,8 +96,12 @@ export async function fetchJungmanComments(soopId: string, titleNo: number): Pro
       if (!rows.length) break;
       for (const row of rows) {
         const comment = toComment(row);
-        if (comment) byNo.set(comment.commentNo, comment);
+        if (!comment) continue;
+        byNo.set(comment.commentNo, comment);
+        pending.delete(comment.commentNo);
       }
+
+      if (requiredCommentNos?.length && !pending.size) break;
     }
   } catch (error) {
     return { ok: false, reason: error instanceof Error ? error.message : "fetch_failed" };
@@ -147,7 +160,11 @@ export async function collectJungmanSnapshot(force = false): Promise<JungmanColl
     return { ok: false, skipped: "cooldown" };
   }
 
-  const fetched = await fetchJungmanComments(config.soopId, config.titleNo);
+  const fetched = await fetchJungmanComments(
+    config.soopId,
+    config.titleNo,
+    Object.keys(config.mapping).map(Number)
+  );
   if (!fetched.ok) return { ok: false, skipped: "fetch_failed", reason: fetched.reason };
 
   const votes = buildVotesFromComments(fetched.comments, config.mapping);
