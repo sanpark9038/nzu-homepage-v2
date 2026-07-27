@@ -383,6 +383,31 @@ test("jungman charts label the x axis in Asia/Seoul and mark day boundaries", ()
   assert.deepEqual({ code: events[0].code, rank: events[0].rank, at: events[0].at }, { code: "KU", rank: 1, at: after });
 });
 
+test("jungman charts emphasise the cutlines, not the vote leaders", () => {
+  const lib = loadJungmanLib();
+  const { jungmanEmphasis, JUNGMAN_SEED_CUT, JUNGMAN_WILDCARD_CUT, JUNGMAN_VOTING_TEAMS } = lib;
+  const chart = readProjectFile("app/jungman/JungmanChart.tsx");
+
+  const tiers = Array.from({ length: JUNGMAN_VOTING_TEAMS.length }, (_, i) => jungmanEmphasis(i + 1));
+  // 1~3위(시드) + 11~12위(와카)가 1군, 컷 바로 안쪽 4위·10위가 2군, 나머지는 배경
+  assert.deepEqual(tiers, [
+    "lead", "lead", "lead", "edge", "back", "back",
+    "back", "back", "back", "edge", "lead", "lead",
+  ]);
+  // 순위가 아니라 컷 상수를 기준으로 판정해야 한다 — 컷이 움직이면 강조도 따라 움직인다
+  assert.equal(jungmanEmphasis(JUNGMAN_SEED_CUT), "lead");
+  assert.equal(jungmanEmphasis(JUNGMAN_SEED_CUT + 1), "edge");
+  assert.equal(jungmanEmphasis(JUNGMAN_WILDCARD_CUT), "edge");
+  assert.equal(jungmanEmphasis(JUNGMAN_WILDCARD_CUT + 1), "lead");
+
+  // 득표 상위 N개를 잘라 강조하던 규칙은 남아 있으면 안 된다
+  assert.doesNotMatch(chart, /FOCUS/);
+  // 차트·범례 둘 다 같은 규칙을 쓴다 (득표/순위 모드 공용)
+  assert.ok((chart.match(/jungmanEmphasis\(/g) || []).length >= 2, "chart and legend should share the rule");
+  assert.match(chart, /JUNGMAN_SEED_CUT/);
+  assert.match(chart, /JUNGMAN_WILDCARD_CUT/);
+});
+
 test("jungman dashboard keeps the map server-side and shares one selected team", () => {
   const page = readProjectFile("app/jungman/page.tsx");
   const client = readProjectFile("app/jungman/JungmanClient.tsx");

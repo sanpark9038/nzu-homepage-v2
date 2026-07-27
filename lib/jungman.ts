@@ -369,6 +369,20 @@ export function jungmanRankMap(snapshot: { votes: Record<string, number> }): Map
   return new Map(ordered.map((team, index) => [team.code, index + 1]));
 }
 
+/**
+ * 차트·범례 강조 3단계. 의미 있는 자리는 컷라인이지 득표 상위가 아니다 —
+ * 5~9위는 어느 쪽 경계도 다투지 않으므로 배경으로 뺀다.
+ */
+export type JungmanEmphasis = "lead" | "edge" | "back";
+
+export function jungmanEmphasis(rank: number): JungmanEmphasis {
+  // 시드권(1~3위)과 와일드카드권(11~12위)
+  if (rank <= JUNGMAN_SEED_CUT || rank > JUNGMAN_WILDCARD_CUT) return "lead";
+  // 컷라인 바로 안쪽에서 다투는 4위·10위
+  if (rank === JUNGMAN_SEED_CUT + 1 || rank === JUNGMAN_WILDCARD_CUT) return "edge";
+  return "back";
+}
+
 export function buildJungmanStandings(snapshots: JungmanSnapshot[]): JungmanStanding[] {
   const latest = snapshots.length ? snapshots[snapshots.length - 1] : null;
 

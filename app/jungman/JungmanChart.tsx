@@ -4,9 +4,13 @@ import {
   formatVotes,
   jungmanAxisLabel,
   jungmanDayBoundaries,
+  jungmanEmphasis,
   jungmanRankMap,
+  JUNGMAN_SEED_CUT,
   JUNGMAN_VOTING_TEAMS,
+  JUNGMAN_WILDCARD_CUT,
   teamAccent,
+  type JungmanEmphasis,
   type JungmanRangeKey,
   type JungmanSeries,
   type JungmanSeriesPoint,
@@ -21,11 +25,21 @@ const PAD_BOTTOM = 34;
 const INNER_W = WIDTH - PAD_LEFT - PAD_RIGHT;
 const INNER_H = HEIGHT - PAD_TOP - PAD_BOTTOM;
 
-/** 12개 선을 전부 진하게 그리면 아무것도 안 읽힌다 — 선택이 없을 때 상위 이만큼만 살린다 */
-const FOCUS = 5;
+/** 12개 선을 전부 진하게 그리면 아무것도 안 읽힌다 — 컷라인에 걸린 자리만 살린다(jungmanEmphasis) */
+const TIER_STYLE: Record<JungmanEmphasis, { width: number; opacity: number; dot: number }> = {
+  lead: { width: 2.4, opacity: 1, dot: 4 },
+  edge: { width: 1.8, opacity: 0.75, dot: 3.2 },
+  back: { width: 1.1, opacity: 0.25, dot: 2.2 },
+};
 /** 마지막 점 라벨 최소 세로 간격 */
 const LABEL_GAP = 12;
 const AXIS_LABELS = 7;
+
+/** 순위 모드 배경 컷라인 — 강조 이유를 눈으로 설명한다 */
+const CUT_LINES = [
+  { rank: JUNGMAN_SEED_CUT, label: "시드선", color: "#d4a94a" },
+  { rank: JUNGMAN_WILDCARD_CUT, label: "와카선", color: "#e0705f" },
+];
 
 type ChartMode = "votes" | "rank";
 
@@ -74,18 +88,24 @@ export function JungmanChart({
   const ranked = JUNGMAN_VOTING_TEAMS.slice().sort(
     (a, b) => (lastRanks.get(a.code) || 0) - (lastRanks.get(b.code) || 0)
   );
-  const leadCodes = new Set(selected ? [selected] : ranked.slice(0, FOCUS).map((team) => team.code));
+  // 선택이 있으면 그 팀만 — 없으면 컷라인 규칙
+  const tierOf = (code: string): JungmanEmphasis =>
+    selected ? (selected === code ? "lead" : "back") : jungmanEmphasis(lastRanks.get(code) || teamCount);
+  const styleOf = (code: string) =>
+    selected && selected === code
+      ? { width: 3, opacity: 1, dot: 4.5 }
+      : selected
+        ? { width: 1.1, opacity: 0.1, dot: 2.2 }
+        : TIER_STYLE[tierOf(code)];
   // 강조 팀을 뒤에 그려 위로 올린다
-  const drawOrder = [
-    ...ranked.filter((team) => !leadCodes.has(team.code)),
-    ...ranked.filter((team) => leadCodes.has(team.code)),
-  ];
-  const mutedOpacity = selected ? 0.1 : 0.32;
+  const drawOrder = ranked
+    .slice()
+    .sort((a, b) => styleOf(a.code).opacity - styleOf(b.code).opacity);
 
   // 마지막 값이 붙어 있으면 라벨이 겹친다 — 위에서 아래로 최소 간격을 밀어낸다.
   // (아래에서 위로 밀면 선두 4팀처럼 값이 붙었을 때 천장에 전부 포개진다)
   const labels = ranked
-    .filter((team) => leadCodes.has(team.code))
+    .filter((team) => tierOf(team.code) === "lead")
     .map((team) => ({ team, y: y(points.length - 1, team.code) }))
     .sort((a, b) => a.y - b.y);
   let floor = PAD_TOP + 5;
@@ -99,6 +119,13 @@ export function JungmanChart({
   if (axisIndexes[axisIndexes.length - 1] !== points.length - 1) axisIndexes.push(points.length - 1);
 
   const days = jungmanDayBoundaries(points);
+  // 컷라인은 순위 모드에서만 — 두 등수 사이(3.5·10.5)에 긋는다
+  const cutLines = ranksPerPoint
+    ? CUT_LINES.map((cut) => ({
+        ...cut,
+        y: PAD_TOP + (INNER_H * (cut.rank - 0.5)) / Math.max(1, teamCount - 1),
+      }))
+    : [];
 
   return (
     <svg
@@ -120,6 +147,20 @@ export function JungmanChart({
           </g>
         );
       })}
+
+      {/* 컷라인 — 순위 모드에서만. 왜 이 팀들만 진한지를 배경이 설명한다 */}
+      {cutLines.map(({ y: lineY, color, label }) => (
+        <line
+          key={label}
+          x1={PAD_LEFT}
+          y1={lineY}
+          x2={WIDTH - PAD_RIGHT}
+          y2={lineY}
+          stroke={color}
+          strokeOpacity={0.3}
+          strokeDasharray="2 5"
+        />
+      ))}
 
       {/* 날짜 경계 — 78시간짜리 투표라 일봉은 무의미하다. 대신 하루가 넘어간 지점만 세로선으로 */}
       {days.map(({ index, day }) => (
@@ -153,7 +194,7 @@ export function JungmanChart({
       ))}
 
       {drawOrder.map((team) => {
-        const lead = leadCodes.has(team.code);
+        const style = styleOf(team.code);
         const path = points.map((_, index) => `${x(index)},${y(index, team.code)}`);
 
         return (
@@ -170,23 +211,49 @@ export function JungmanChart({
               points={path.join(" ")}
               fill="none"
               stroke={teamAccent(team)}
-              strokeWidth={lead ? (selected ? 3 : 2.2) : 1.2}
-              strokeOpacity={lead ? 1 : mutedOpacity}
+              strokeWidth={style.width}
+              strokeOpacity={style.opacity}
               strokeLinejoin="round"
               strokeLinecap="round"
             />
             <circle
               cx={x(points.length - 1)}
               cy={y(points.length - 1, team.code)}
-              r={lead ? 4 : 2.4}
+              r={style.dot}
               fill={teamAccent(team)}
-              fillOpacity={lead ? 1 : mutedOpacity + 0.1}
+              fillOpacity={Math.min(1, style.opacity + 0.1)}
               stroke="#0b0f1a"
               strokeWidth={1.5}
             />
           </g>
         );
       })}
+
+      {/* 컷라인 이름표는 12개 선 위에 얹힌다 — 바탕을 깔지 않으면 안 읽힌다 */}
+      {cutLines.map(({ y: lineY, color, label }) => (
+        <g key={label}>
+          <rect
+            x={WIDTH - PAD_RIGHT - 42}
+            y={lineY - 14}
+            width={40}
+            height={13}
+            rx={2}
+            fill="#0b0f1a"
+            fillOpacity={0.85}
+          />
+          <text
+            x={WIDTH - PAD_RIGHT - 5}
+            y={lineY - 4}
+            textAnchor="end"
+            fontSize="10.5"
+            fontWeight="800"
+            fill={color}
+            fillOpacity={0.85}
+          >
+            {label}
+          </text>
+        </g>
+      ))}
 
       {labels.map((label) => (
         <text
@@ -205,8 +272,8 @@ export function JungmanChart({
 }
 
 /**
- * 12팀 범례 — 선 끝 약칭만으로는 상위 5팀 말고는 누가 누군지 알 수 없다.
- * 칩 클릭이 곧 팀 선택(재클릭 해제)이라 강조 규칙은 차트와 같은 FOCUS를 쓴다.
+ * 12팀 범례 — 선 끝 약칭만으로는 라벨이 붙은 팀 말고는 누가 누군지 알 수 없다.
+ * 칩 클릭이 곧 팀 선택(재클릭 해제)이라 밝기는 차트와 같은 jungmanEmphasis를 쓴다.
  */
 function TeamLegend({
   points,
@@ -222,12 +289,13 @@ function TeamLegend({
   const ranked = JUNGMAN_VOTING_TEAMS.slice().sort(
     (a, b) => (ranks.get(a.code) || 0) - (ranks.get(b.code) || 0)
   );
-  const leadCodes = new Set(selected ? [selected] : ranked.slice(0, FOCUS).map((team) => team.code));
+  const tierOf = (code: string): JungmanEmphasis =>
+    selected ? (selected === code ? "lead" : "back") : jungmanEmphasis(ranks.get(code) || JUNGMAN_VOTING_TEAMS.length);
 
   return (
     <div className="mt-2 flex flex-wrap gap-x-1 gap-y-1.5 border-t border-[rgba(155,185,240,0.1)] pt-3">
       {ranked.map((team) => {
-        const lead = leadCodes.has(team.code);
+        const tier = tierOf(team.code);
         return (
           <button
             key={team.code}
@@ -237,14 +305,16 @@ function TeamLegend({
             className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-bold transition-colors ${
               selected === team.code
                 ? "border-[#d4a94a] bg-[rgba(212,169,74,0.14)] text-[#e8ebf2]"
-                : lead
+                : tier === "lead"
                   ? "border-[rgba(155,185,240,0.2)] bg-[rgba(10,15,28,0.6)] text-[#e8ebf2] hover:border-[rgba(155,185,240,0.45)]"
-                  : "border-transparent bg-[rgba(10,15,28,0.4)] text-[#7a8299] hover:text-[#e8ebf2]"
+                  : tier === "edge"
+                    ? "border-[rgba(155,185,240,0.12)] bg-[rgba(10,15,28,0.5)] text-[#b3bbd0] hover:text-[#e8ebf2]"
+                    : "border-transparent bg-[rgba(10,15,28,0.4)] text-[#616a80] hover:text-[#e8ebf2]"
             }`}
           >
             <span
               className="h-2 w-2 shrink-0 rounded-full"
-              style={{ backgroundColor: teamAccent(team), opacity: lead ? 1 : 0.45 }}
+              style={{ backgroundColor: teamAccent(team), opacity: TIER_STYLE[tier].opacity }}
             />
             {team.name}
           </button>
