@@ -626,6 +626,17 @@ export function buildJungmanSeries(snapshots: JungmanSnapshot[]): JungmanSeries[
   });
 }
 
+/**
+ * 기본 구간 — 점이 2개 이상인 것 중 가장 넓은 쪽.
+ * 투표 초반에는 1시간 봉이 한 점뿐이라 '전체'를 기본으로 두면 빈 차트가 보인다.
+ */
+export function defaultJungmanRange(series: JungmanSeries[]): JungmanRangeKey {
+  for (let i = series.length - 1; i >= 0; i--) {
+    if (series[i].points.length >= 2) return series[i].key;
+  }
+  return series[series.length - 1]?.key ?? "all";
+}
+
 // 한국시간 표기 — ko-KR + hour12:false는 자정을 24:00으로 뱉는 ICU가 있어 en-GB/h23을 쓴다
 const SEOUL_TIME = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Seoul",

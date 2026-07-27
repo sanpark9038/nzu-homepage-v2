@@ -11,6 +11,7 @@ import {
   JUNGMAN_SEED_CUT,
   JUNGMAN_WILDCARD_CUT,
   teamAccent,
+  defaultJungmanRange,
   type JungmanRangeKey,
   type JungmanRankEvent,
   type JungmanSeries,
@@ -478,7 +479,8 @@ export function JungmanDashboard({
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [mode, setMode] = useState<"votes" | "rank">("votes");
-  const [range, setRange] = useState<JungmanRangeKey>("all");
+  // 초반에는 1시간 봉이 한 점뿐이라 "전체"로 시작하면 빈 차트가 보인다 — 점이 있는 구간부터.
+  const [range, setRange] = useState<JungmanRangeKey>(() => defaultJungmanRange(series));
   const [sort, setSort] = useState<SortKey>("rank");
 
   // 급상승순 — 1시간 증가량 내림차순. 동률이면 순위순으로 되돌아간다(자리가 흔들리지 않게).
