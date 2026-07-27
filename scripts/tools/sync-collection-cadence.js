@@ -8,6 +8,11 @@ const DEFAULT_PREFIX = "pipeline-state";
 const STATE_KEY = "collection_cadence.v1.json";
 const SCHEMA_VERSION = "1.0.0";
 
+// 수집 책갈피(선수별 마지막 경기행 지문). 주기 상태와 같은 자격·같은 단계로 실어 나른다:
+// 러너는 매번 빈 작업공간에서 시작하므로 이 파일이 없으면 전원이 full_scan을 돈다.
+const BOOKMARKS_KEY = "collection_bookmarks.v1.json";
+const BOOKMARKS_PATH = path.join(ROOT, "tmp", ".cache", "roster_report_cache.json");
+
 // The four operational fields that drive shouldSkipByPriorityWindow. These are
 // the only fields hydrate is ever allowed to touch on a roster row.
 const CADENCE_FIELDS = ["last_checked_at", "last_match_at", "check_priority", "check_interval_days"];
@@ -53,32 +58,64 @@ function makeClient(config) {
   });
 }
 
-async function downloadState(config, client = makeClient(config)) {
+async function downloadJson(config, key, fallback, client = makeClient(config)) {
   const { GetObjectCommand } = require("@aws-sdk/client-s3");
   try {
     const res = await client.send(
-      new GetObjectCommand({ Bucket: config.bucketName, Key: `${config.prefix}/${STATE_KEY}` })
+      new GetObjectCommand({ Bucket: config.bucketName, Key: `${config.prefix}/${key}` })
     );
     const text = await res.Body.transformToString();
     return JSON.parse(text.replace(/^\uFEFF/, ""));
   } catch (error) {
     const name = String((error && (error.name || error.Code)) || "");
-    if (name === "NoSuchKey" || name === "NotFound") return { players: {} };
+    if (name === "NoSuchKey" || name === "NotFound") return fallback;
     throw error;
   }
 }
 
-async function uploadState(config, doc, client = makeClient(config)) {
+async function uploadJson(config, key, doc, client = makeClient(config)) {
   const { PutObjectCommand } = require("@aws-sdk/client-s3");
   await client.send(
     new PutObjectCommand({
       Bucket: config.bucketName,
-      Key: `${config.prefix}/${STATE_KEY}`,
+      Key: `${config.prefix}/${key}`,
       Body: `${JSON.stringify(doc, null, 2)}\n`,
       ContentType: "application/json; charset=utf-8",
       CacheControl: "no-store",
     })
   );
+}
+
+// 책갈피 파일은 통째로 오간다(v2는 경기 사본 없이 지문만 담아 수백 KB 수준).
+// 읽어온 문서에 항목이 하나도 없으면 로컬 파일을 덮어쓰지 않는다 — 빈 원격 상태가
+// 살아 있는 로컬 책갈피를 지우고 전원 full_scan을 유발하는 사고를 막는다.
+async function hydrateBookmarks(config, { bookmarksPath = BOOKMARKS_PATH, log = console.log, client } = {}) {
+  const doc = await downloadJson(config, BOOKMARKS_KEY, null, client || makeClient(config));
+  const count = doc && doc.players && typeof doc.players === "object" ? Object.keys(doc.players).length : 0;
+  if (!count) {
+    log(`[cadence] bookmarks hydrate skipped: no remote bookmarks at ${config.prefix}/${BOOKMARKS_KEY}`);
+    return { skipped: true, reason: "empty_remote", bookmarks: 0 };
+  }
+  fs.mkdirSync(path.dirname(bookmarksPath), { recursive: true });
+  fs.writeFileSync(bookmarksPath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
+  log(`[cadence] bookmarks hydrate: ${count} player bookmark(s) restored`);
+  return { skipped: false, bookmarks: count };
+}
+
+async function persistBookmarks(config, { bookmarksPath = BOOKMARKS_PATH, log = console.log, client } = {}) {
+  if (!fs.existsSync(bookmarksPath)) {
+    log("[cadence] bookmarks persist skipped: no local bookmark file");
+    return { skipped: true, reason: "missing_local_file", bookmarks: 0 };
+  }
+  const doc = readJson(bookmarksPath);
+  const count = doc && doc.players && typeof doc.players === "object" ? Object.keys(doc.players).length : 0;
+  if (!count) {
+    log("[cadence] bookmarks persist skipped: local bookmark file is empty");
+    return { skipped: true, reason: "empty_local_file", bookmarks: 0 };
+  }
+  await uploadJson(config, BOOKMARKS_KEY, doc, client || makeClient(config));
+  log(`[cadence] bookmarks persist: uploaded ${count} bookmark(s) to ${config.prefix}/${BOOKMARKS_KEY}`);
+  return { skipped: false, bookmarks: count };
 }
 
 function parseTime(value) {
@@ -169,7 +206,7 @@ async function hydrate({ env = process.env, projectsDir = PROJECTS_DIR, prefix =
     log("[cadence] hydrate skipped: R2 not configured (PIPELINE_STATE_R2_*/PLAYER_HISTORY_R2_* unset)");
     return { skipped: true, reason: "missing_r2_env" };
   }
-  const stateDoc = await downloadState(config);
+  const stateDoc = await downloadJson(config, STATE_KEY, { players: {} });
   const players = (stateDoc && stateDoc.players) || {};
   const files = loadManagedRosterFiles(projectsDir);
   const results = [];
@@ -187,7 +224,15 @@ async function hydrate({ env = process.env, projectsDir = PROJECTS_DIR, prefix =
     results.push({ file: path.relative(ROOT, filePath).replace(/\\/g, "/"), updated, skipped: false, reason: null });
   }
   log(`[cadence] hydrate: ${totalUpdated} player(s) refreshed across ${files.length} team file(s)`);
-  return { skipped: false, state_players: Object.keys(players).length, total_updated: totalUpdated, files: results };
+  // 책갈피는 마지막에. R2에서 이 키만 말썽이어도 주기 오버레이는 이미 끝나 있게 한다.
+  const bookmarks = await hydrateBookmarks(config, { log });
+  return {
+    skipped: false,
+    state_players: Object.keys(players).length,
+    total_updated: totalUpdated,
+    files: results,
+    bookmarks,
+  };
 }
 
 async function persist({ env = process.env, projectsDir = PROJECTS_DIR, prefix = DEFAULT_PREFIX, log = console.log } = {}) {
@@ -201,9 +246,15 @@ async function persist({ env = process.env, projectsDir = PROJECTS_DIR, prefix =
     Object.assign(players, extractRosterCadence(readJson(filePath)));
   }
   const doc = { schema_version: SCHEMA_VERSION, updated_at: new Date().toISOString(), players };
-  await uploadState(config, doc);
+  await uploadJson(config, STATE_KEY, doc);
   log(`[cadence] persist: uploaded ${Object.keys(players).length} player(s) to ${config.prefix}/${STATE_KEY}`);
-  return { skipped: false, players: Object.keys(players).length, key: `${config.prefix}/${STATE_KEY}` };
+  const bookmarks = await persistBookmarks(config, { log });
+  return {
+    skipped: false,
+    players: Object.keys(players).length,
+    key: `${config.prefix}/${STATE_KEY}`,
+    bookmarks,
+  };
 }
 
 async function main(argv = process.argv.slice(2)) {
@@ -230,6 +281,10 @@ module.exports = {
   CADENCE_FIELDS,
   DEFAULT_PREFIX,
   STATE_KEY,
+  BOOKMARKS_KEY,
+  BOOKMARKS_PATH,
+  hydrateBookmarks,
+  persistBookmarks,
   getR2Config,
   stateIsNewer,
   overlayRosterCadence,

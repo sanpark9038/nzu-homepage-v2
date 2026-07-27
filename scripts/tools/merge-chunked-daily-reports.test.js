@@ -74,6 +74,23 @@ runTest("zero_players_detail is carried through the merge onto the team row", ()
   assert.deepEqual(alp.zero_players_detail, detail, "zero_players_detail survives the merge");
 });
 
+// 1c. full_scans(scan_strategy=full_scan 수)도 병합된 팀 행에 그대로 실려야 한다.
+//     책갈피 증분이 먹고 있는지 보는 유일한 지표라, 청크 병합에서 유실되면 아침 검증이 눈을 잃는다.
+runTest("full_scans is carried through the merge onto the team row", () => {
+  const snapshots = [
+    chunk("chunkA", { teams: [{ team: "Alpha", team_code: "ALP", players: 5, full_scans: 2 }] }),
+    chunk("chunkB", { teams: [{ team: "Bravo", team_code: "BRV", players: 3, full_scans: 0 }] }),
+  ];
+
+  const { mergedTeams } = buildMergedReports(snapshots, {
+    tags: ["chunkA", "chunkB"],
+    outputDate: "2026-07-24",
+  });
+
+  assert.equal(mergedTeams.find((t) => t.team_code === "ALP").full_scans, 2);
+  assert.equal(mergedTeams.find((t) => t.team_code === "BRV").full_scans, 0);
+});
+
 // 2a. dedupeAlerts collapses alerts that share (severity, team_code, rule, message).
 runTest("dedupeAlerts collapses identical alerts from two chunks", () => {
   const dup = { severity: "high", team_code: "ALP", rule: "roster_gap", message: "missing player" };

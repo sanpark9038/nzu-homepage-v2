@@ -71,12 +71,6 @@ function shouldReuseInactiveExistingJson(player, inactiveSkipDays, to, jsonPath)
   return Boolean(maxDate && daysBetween(todayDate, maxDate) > inactiveSkipDays);
 }
 
-function shouldFetchWithNoCache(player, to, jsonPath = null) {
-  const checkIntervalDays = Number(player && player.check_interval_days ? player.check_interval_days : 0) || 0;
-  if (checkIntervalDays <= 0 || checkIntervalDays > 1) return false;
-  return !shouldSkipByPriorityWindow(player, to, jsonPath);
-}
-
 function readPeriodMaxDate(jsonPath) {
   if (!fs.existsSync(jsonPath)) return null;
   try {
@@ -125,6 +119,9 @@ function expectedExportCsvPath(playerName, player) {
 
 function directReportArgs(teamName, playerName, player, extraFlags = []) {
   const profileUrl = defaultProfileUrl(player);
+  // 책갈피(entity_id 버킷)와 병합 원본(기존 matches json)을 수집기에 알려준다. 기존 파일이
+  // 없으면 --prior-json을 빼서, 붙일 몸통 없이 앵커만 믿고 조기 중단하는 일을 막는다.
+  const priorJsonPath = playerJsonPath(teamName, player);
   const args = [
     "--json-only",
     "--include-matches",
@@ -140,6 +137,9 @@ function directReportArgs(teamName, playerName, player, extraFlags = []) {
     String(player.gender || ""),
     "--tier",
     String(player.tier || ""),
+    "--entity-id",
+    String(player.entity_id || ""),
+    ...(fs.existsSync(priorJsonPath) ? ["--prior-json", priorJsonPath] : []),
     ...extraFlags,
   ];
   return args;
@@ -335,9 +335,12 @@ function filterPlayersByEntityIds(roster, entityIdsValue) {
   });
 }
 
-function shouldUseNoCacheForFetch(options, player, todayIso, jsonPath) {
-  if (options && options.forceNoCache) return true;
-  return shouldFetchWithNoCache(player, todayIso, jsonPath);
+// 매일 확인하는 선수도 책갈피 증분으로 읽는다. 예전에는 check_interval_days<=1이면 무조건
+// --no-cache로 전체 재수집했는데, 그 플래그는 책갈피 저장까지 막아(saveCache no-op) 해당
+// 선수들의 책갈피가 몇 달째 얼어 있었다. 이제 전체 재수집은 "수상할 때"(0건 재시도·복구·감사)와
+// 명시적 --force-no-cache에서만 일어난다.
+function shouldUseNoCacheForFetch(options) {
+  return Boolean(options && options.forceNoCache);
 }
 
 async function main() {
@@ -460,7 +463,7 @@ async function main() {
 
       if (shouldFetch) {
         const existingPeriodTotal = fs.existsSync(jsonPath) ? readPeriodTotal(jsonPath) : null;
-        const noCacheFirst = shouldUseNoCacheForFetch({ forceNoCache }, p, to, jsonPath);
+        const noCacheFirst = shouldUseNoCacheForFetch({ forceNoCache });
         const reportFlags = noCacheFirst ? ["--no-cache", "--concurrency", concurrency] : ["--concurrency", concurrency];
         appendExportProgress(reportPath, "player_report_start", {
           player: playerName,
@@ -621,7 +624,7 @@ module.exports = {
   readFileModifiedAt,
   buildExternalOpponentExclusionRows,
   exclusionReason,
-  shouldFetchWithNoCache,
+  directReportArgs,
   shouldSkipByPriorityWindow,
   shouldReuseInactiveExistingJson,
   filterPlayersByEntityIds,

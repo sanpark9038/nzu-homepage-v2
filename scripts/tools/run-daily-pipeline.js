@@ -479,6 +479,9 @@ function summarizeTeamFromReport(team, report) {
       "used_existing_json_regression_guard",
     ].includes(String(row.fetch_status || ""))
   ).length;
+  // 책갈피 증분이 실제로 먹고 있는지 보는 눈. 오늘 수집한 선수 중 처음부터 다 훑은 수다.
+  // 배포 직후엔 앵커가 없어 높지만(1회 비용), 며칠 안에 소수로 수렴해야 정상이다.
+  let fullScans = 0;
   let totalMatches = 0;
   let totalWins = 0;
   let totalLosses = 0;
@@ -502,6 +505,9 @@ function summarizeTeamFromReport(team, report) {
     const doc = readJson(jsonPath);
     const player = Array.isArray(doc.players) ? doc.players[0] : null;
     if (!player) continue;
+    if (String(row.fetch_status || "") === "ok" && String(player.scan_strategy || "") === "full_scan") {
+      fullScans += 1;
+    }
     const t = Number(player.period_total || 0);
     const w = Number(player.period_wins || 0);
     const l = Number(player.period_losses || 0);
@@ -525,6 +531,7 @@ function summarizeTeamFromReport(team, report) {
     opponent_name_overlap_player_names: opponentNameOverlapPlayers.join(", "),
     fetched_players: fetchedPlayers,
     reused_players: reusedPlayers,
+    full_scans: fullScans,
     fetch_fail: failures.filter((f) => !isFetchObserved(f.fetch_status)).length,
     csv_fail: failures.filter((f) => !["ok", "used_existing_csv"].includes(String(f.csv_status || ""))).length,
     total_matches: totalMatches,
@@ -1150,6 +1157,7 @@ async function main() {
       excluded_player_names: r.excluded_player_names,
       fetched_players: r.fetched_players,
       reused_players: r.reused_players,
+      full_scans: r.full_scans,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,
@@ -1258,6 +1266,7 @@ async function main() {
       excluded_players: r.excluded_players ?? 0,
       fetched_players: r.fetched_players ?? 0,
       reused_players: r.reused_players ?? 0,
+      full_scans: r.full_scans ?? 0,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,
@@ -1335,6 +1344,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  summarizeTeamFromReport,
   buildAlerts,
   buildClusteredUncertainAffiliationAlerts,
   buildHomepageIntegrityOperationalAlerts,

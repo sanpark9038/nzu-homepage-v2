@@ -1,11 +1,17 @@
 const assert = require("node:assert/strict");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const {
   CADENCE_FIELDS,
   DEFAULT_PREFIX,
+  BOOKMARKS_KEY,
   getR2Config,
   stateIsNewer,
   overlayRosterCadence,
   extractRosterCadence,
+  hydrateBookmarks,
+  persistBookmarks,
   hydrate,
   persist,
 } = require("./sync-collection-cadence");
@@ -185,7 +191,63 @@ runTest("getR2Config prefers PIPELINE_STATE_R2_* over PLAYER_HISTORY and honors 
   assert.equal(prefixed.prefix, "custom-state");
 });
 
+const FAKE_CONFIG = { bucketName: "bucket", prefix: "pipeline-state" };
+
+function tempBookmarkPath(name) {
+  return path.join(fs.mkdtempSync(path.join(os.tmpdir(), "bookmarks-")), name);
+}
+
 (async () => {
+  await runAsync("bookmark hydrate never clobbers a live local file with an empty remote", async () => {
+    const bookmarksPath = tempBookmarkPath("roster_report_cache.json");
+    const local = { version: 2, players: { "eloboard:male:20": { latest_key: "keep-me" } } };
+    fs.writeFileSync(bookmarksPath, JSON.stringify(local), "utf8");
+    const client = { send: async () => ({ Body: { transformToString: async () => JSON.stringify({ players: {} }) } }) };
+
+    const res = await hydrateBookmarks(FAKE_CONFIG, { bookmarksPath, log: () => {}, client });
+    assert.equal(res.skipped, true);
+    assert.equal(res.reason, "empty_remote");
+    assert.deepEqual(JSON.parse(fs.readFileSync(bookmarksPath, "utf8")), local);
+  });
+
+  await runAsync("bookmark hydrate restores the remote file when it carries bookmarks", async () => {
+    const bookmarksPath = tempBookmarkPath("roster_report_cache.json");
+    const remote = { version: 2, players: { "eloboard:female:9": { latest_key: "2026-07-25|A|B|+1|| " } } };
+    const client = { send: async () => ({ Body: { transformToString: async () => JSON.stringify(remote) } }) };
+
+    const res = await hydrateBookmarks(FAKE_CONFIG, { bookmarksPath, log: () => {}, client });
+    assert.equal(res.skipped, false);
+    assert.equal(res.bookmarks, 1);
+    assert.deepEqual(JSON.parse(fs.readFileSync(bookmarksPath, "utf8")), remote);
+  });
+
+  await runAsync("bookmark persist uploads the local file and never uploads an empty one", async () => {
+    const bookmarksPath = tempBookmarkPath("roster_report_cache.json");
+    const puts = [];
+    const client = { send: async (cmd) => puts.push(cmd) };
+
+    const missing = await persistBookmarks(FAKE_CONFIG, { bookmarksPath, log: () => {}, client });
+    assert.equal(missing.skipped, true);
+    assert.equal(missing.reason, "missing_local_file");
+
+    fs.writeFileSync(bookmarksPath, JSON.stringify({ version: 2, players: {} }), "utf8");
+    const empty = await persistBookmarks(FAKE_CONFIG, { bookmarksPath, log: () => {}, client });
+    assert.equal(empty.skipped, true);
+    assert.equal(empty.reason, "empty_local_file");
+    assert.equal(puts.length, 0);
+
+    fs.writeFileSync(
+      bookmarksPath,
+      JSON.stringify({ version: 2, players: { "eloboard:male:20": { latest_key: "k" } } }),
+      "utf8"
+    );
+    const ok = await persistBookmarks(FAKE_CONFIG, { bookmarksPath, log: () => {}, client });
+    assert.equal(ok.skipped, false);
+    assert.equal(ok.bookmarks, 1);
+    assert.equal(puts.length, 1);
+    assert.equal(puts[0].input.Key, `pipeline-state/${BOOKMARKS_KEY}`);
+  });
+
   await runAsync("hydrate degrades to a no-op (never throws) when R2 is unconfigured", async () => {
     const logs = [];
     const res = await hydrate({ env: {}, log: (m) => logs.push(m) });

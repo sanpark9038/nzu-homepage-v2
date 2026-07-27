@@ -1,7 +1,14 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { collectionDisplayTotal, extractInitialRows, selectMode } = require("./report-team-records");
+const {
+  collectionDisplayTotal,
+  extractInitialRows,
+  selectMode,
+  playerCacheKey,
+  mergePriorMatches,
+  rowKey,
+} = require("./report-team-records");
 
 const FEMALE_SECTION = "\uC5EC\uC131\uBC00\uB9AC\uC804\uC801";
 const MIXED_SECTION = "\uD63C\uC131\uBC00\uB9AC\uC804\uC801";
@@ -139,4 +146,41 @@ test("collectionDisplayTotal keeps total fallback for men profile guardrail", ()
   );
 
   assert.equal(total, 10);
+});
+
+// 책갈피 키는 팀·프로필 URL과 무관해야 한다. 예전 키(name|wr_id|profile_url) + 팀별 버킷은
+// 프로필 URL이 바뀌거나 선수가 팀을 옮기면 앵커를 잃었고, c9/씨나인처럼 같은 팀이 두 벌로 쌓였다.
+test("playerCacheKey is team- and url-independent, falling back to wr identity", () => {
+  const a = { entity_id: "eloboard:female:9", name: "김선수", wr_id: 9, gender: "female", profile_url: "https://a/x?wr_id=9" };
+  const b = { entity_id: "eloboard:female:9", name: "닉변", wr_id: 9, gender: "female", profile_url: "https://b/y?wr_id=9" };
+  assert.equal(playerCacheKey(a), playerCacheKey(b));
+  assert.equal(playerCacheKey(a), "eloboard:female:9");
+
+  assert.equal(playerCacheKey({ name: "무명", wr_id: 37, gender: "male" }), "wr_male_37");
+  assert.equal(playerCacheKey({ name: "무명" }), "무명");
+});
+
+// 날짜 단위 무효화: 이번에 읽은 날짜의 과거 행은 버리고 새로 읽은 것으로 대체한다.
+// 같은 날 경기가 뒤늦게 정정·추가돼도 반영되게 하는 안전장치다.
+test("mergePriorMatches drops prior rows on dates re-read this run", () => {
+  const fresh = [
+    { date: "2026-07-25", opponent: "A", map: "M", result_text: "+1", set_score: "", note: "", is_win: true },
+    { date: "2026-07-24", opponent: "B", map: "M", result_text: "-1", set_score: "", note: "", is_win: false },
+  ];
+  const seen = new Set(fresh.map(rowKey));
+  const prior = [
+    // 같은 날짜(2026-07-24)의 낡은 행 — 폐기되어야 한다.
+    { date: "2026-07-24", opponent: "STALE", map: "M", result_text: "+1", set_score: "", note: "", is_win: true },
+    // 더 오래된 행 — 그대로 이어 붙는다.
+    { date: "2026-07-01", opponent: "C", map: "M", result_text: "+1", set_score: "", note: "", is_win: true },
+    // 새로 읽은 것과 완전히 같은 행 — 중복 없이 한 번만.
+    { date: "2026-07-25", opponent: "A", map: "M", result_text: "+1", set_score: "", note: "", is_win: true },
+  ];
+
+  const merged = mergePriorMatches(fresh, seen, prior);
+  assert.deepEqual(merged.map((m) => `${m.date}|${m.opponent}`), [
+    "2026-07-25|A",
+    "2026-07-24|B",
+    "2026-07-01|C",
+  ]);
 });

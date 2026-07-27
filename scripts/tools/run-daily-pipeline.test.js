@@ -14,7 +14,12 @@ const {
   buildHomepageIntegrityOperationalAlerts,
   movedInPlayersByTeam,
 } = require("./run-daily-pipeline");
-const { classifyZeroRecordPlayers, exportConcurrencyForTeam, exportTimeoutForTeam } = require("./run-daily-pipeline");
+const {
+  classifyZeroRecordPlayers,
+  exportConcurrencyForTeam,
+  exportTimeoutForTeam,
+  summarizeTeamFromReport,
+} = require("./run-daily-pipeline");
 const OPS_TEAM_LABEL = "\uC6B4\uC601";
 
 function makeTempReportsDir() {
@@ -674,4 +679,37 @@ runTest("classifyZeroRecordPlayers marks observed 0-records quiet and unobserved
   assert.equal(actual.counts.observed_zero, 1);
   assert.equal(actual.counts.needs_review, 2);
   assert.equal(actual.needs_review_count, 2);
+});
+
+// full_scans: 오늘 실제로 수집한 선수 중 처음부터 다 훑은 수. 책갈피 증분이 먹고 있는지 보는
+// 유일한 지표라, 두 곳(export 보고서의 fetch_status + 선수 json의 scan_strategy)을 함께 읽는다.
+runTest("summarizeTeamFromReport counts full_scan only among players actually collected", () => {
+  const dir = makeTempReportsDir();
+  const write = (name, scanStrategy) => {
+    const p = path.join(dir, name);
+    fs.writeFileSync(
+      p,
+      JSON.stringify({ players: [{ period_total: 5, period_wins: 3, period_losses: 2, scan_strategy: scanStrategy }] }),
+      "utf8"
+    );
+    return p;
+  };
+  const report = {
+    results: [
+      { player: "a", fetch_status: "ok", csv_status: "ok", json_path: write("a.json", "full_scan") },
+      { player: "b", fetch_status: "ok", csv_status: "ok", json_path: write("b.json", "incremental_cache_merge") },
+      // 재사용은 오늘 수집한 것이 아니다 — 파일에 남은 옛 full_scan 표식을 세면 안 된다.
+      {
+        player: "c",
+        fetch_status: "used_existing_json",
+        csv_status: "used_existing_csv",
+        json_path: write("c.json", "full_scan"),
+      },
+    ],
+  };
+
+  const row = summarizeTeamFromReport({ univ: "팀", code: "tm" }, report);
+  assert.equal(row.full_scans, 1);
+  assert.equal(row.fetched_players, 2);
+  assert.equal(row.reused_players, 1);
 });

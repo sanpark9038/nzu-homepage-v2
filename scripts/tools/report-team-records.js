@@ -22,6 +22,8 @@ const profileUrlArgIndex = argv.indexOf("--profile-url");
 const wrIdArgIndex = argv.indexOf("--wr-id");
 const genderArgIndex = argv.indexOf("--gender");
 const tierArgIndex = argv.indexOf("--tier");
+const entityIdArgIndex = argv.indexOf("--entity-id");
+const priorJsonArgIndex = argv.indexOf("--prior-json");
 const TEAM_NAME = univArgIndex >= 0 && argv[univArgIndex + 1] ? argv[univArgIndex + 1] : "";
 const PLAYER_NAME = playerArgIndex >= 0 && argv[playerArgIndex + 1] ? argv[playerArgIndex + 1] : null;
 const PROFILE_URL_ARG =
@@ -29,6 +31,10 @@ const PROFILE_URL_ARG =
 const WR_ID_ARG = wrIdArgIndex >= 0 && argv[wrIdArgIndex + 1] ? Number(argv[wrIdArgIndex + 1]) : null;
 const GENDER_ARG = genderArgIndex >= 0 && argv[genderArgIndex + 1] ? argv[genderArgIndex + 1] : null;
 const TIER_ARG = tierArgIndex >= 0 && argv[tierArgIndex + 1] ? argv[tierArgIndex + 1] : "";
+const ENTITY_ID_ARG =
+  entityIdArgIndex >= 0 && argv[entityIdArgIndex + 1] ? argv[entityIdArgIndex + 1] : "";
+const PRIOR_JSON_ARG =
+  priorJsonArgIndex >= 0 && argv[priorJsonArgIndex + 1] ? argv[priorJsonArgIndex + 1] : "";
 const INCLUDE_MATCHES = process.argv.includes("--include-matches");
 const NO_CACHE = process.argv.includes("--no-cache");
 const CONCURRENCY =
@@ -50,25 +56,61 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// 책갈피 키는 팀과 무관한 단일 버킷이다. 예전 키(name|wr_id|profile_url)는 프로필 URL이
+// 바뀌거나 선수가 팀을 옮기면 앵커를 잃었고, 팀별 버킷 탓에 같은 선수가 c9/씨나인처럼 두 벌로
+// 쌓였다. 정체성(entity_id)에 매달아 두면 이름·URL·소속이 변해도 책갈피가 살아남는다.
 function playerCacheKey(player) {
-  return `${player.name}|${player.wr_id}|${player.profile_url}`;
+  const entityId = String((player && player.entity_id) || "").trim();
+  if (entityId) return entityId;
+  const wrId = Number((player && player.wr_id) || 0);
+  const gender = String((player && player.gender) || "").trim() || "unknown";
+  if (Number.isFinite(wrId) && wrId > 0) return `wr_${gender}_${wrId}`;
+  return String((player && player.name) || "unknown_player");
 }
 
 function rowKey(r) {
   return `${r.date}|${r.opponent}|${r.map}|${r.result_text}|${r.set_score}|${r.note}`;
 }
 
+function emptyCache() {
+  return { version: 2, players: {} };
+}
+
+// v2 캐시는 책갈피만 담는다(경기 사본 없음 → 103MB → 수백 KB). 구버전 파일을 만나면
+// latest_key만 건져 올리고 나머지는 버린다 — 키 체계가 달라 매칭되지 않는 항목은 자연히
+// 사라지고, 해당 선수는 다음 차례에 한 번 full_scan 하면서 새 책갈피를 남긴다.
 function loadCache() {
-  if (NO_CACHE) return { version: 1, teams: {} };
+  if (NO_CACHE) return emptyCache();
   try {
-    if (!fs.existsSync(CACHE_PATH)) return { version: 1, teams: {} };
+    if (!fs.existsSync(CACHE_PATH)) return emptyCache();
     const raw = fs.readFileSync(CACHE_PATH, "utf8").replace(/^\uFEFF/, "");
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return { version: 1, teams: {} };
-    if (!parsed.teams || typeof parsed.teams !== "object") parsed.teams = {};
-    return parsed;
+    if (!parsed || typeof parsed !== "object") return emptyCache();
+    const players = {};
+    const source = parsed.players && typeof parsed.players === "object" ? parsed.players : {};
+    for (const [key, entry] of Object.entries(source)) {
+      if (!entry || typeof entry !== "object" || !entry.latest_key) continue;
+      players[key] = {
+        latest_key: entry.latest_key,
+        updated_at: entry.updated_at || null,
+        period_to: entry.period_to || null,
+      };
+    }
+    return { version: 2, players };
   } catch {
-    return { version: 1, teams: {} };
+    return emptyCache();
+  }
+}
+
+// 병합 원본은 캐시가 아니라 선수별 matches json이다(호출자가 --prior-json으로 알려준다).
+function loadPriorMatches(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return [];
+  try {
+    const doc = JSON.parse(fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, ""));
+    const player = Array.isArray(doc.players) ? doc.players[0] : null;
+    return Array.isArray(player && player.matches) ? player.matches : [];
+  } catch {
+    return [];
   }
 }
 
@@ -434,6 +476,21 @@ function appendRows(bucket, seen, rows, anchorKey = null) {
   return { unknownOutcomeRows, hitAnchor };
 }
 
+// 앵커에 걸려 조기 중단했을 때 과거 기록을 이어 붙인다. 날짜 단위 무효화가 핵심 안전장치다:
+// 이번에 읽은 날짜의 과거 행은 통째로 버리고 새로 읽은 것으로 대체한다(같은 날 경기가 뒤늦게
+// 정정·추가돼도 반영되도록). matches/seen을 제자리에서 갱신한다.
+function mergePriorMatches(matches, seen, priorMatches) {
+  const refreshedDates = new Set(matches.map((item) => String(item.date || "")).filter(Boolean));
+  for (const old of Array.isArray(priorMatches) ? priorMatches : []) {
+    if (refreshedDates.has(String(old.date || ""))) continue;
+    const key = rowKey(old);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    matches.push(old);
+  }
+  return matches;
+}
+
 function statTotal(stats) {
   return Number(stats && stats.total ? stats.total : 0) || 0;
 }
@@ -448,7 +505,7 @@ function collectionDisplayTotal(player, mode, displayStats) {
   return statTotal(displayStats && displayStats.total);
 }
 
-async function collectPlayer(player, cacheEntry = null) {
+async function collectPlayer(player, cacheEntry = null, priorMatches = []) {
   let resolvedPlayer = { ...player };
   let profileHtml = decodeHtml(await fetchBinary(resolvedPlayer.profile_url));
   if (isMissingPostErrorPage(profileHtml)) {
@@ -493,9 +550,7 @@ async function collectPlayer(player, cacheEntry = null) {
       matches: INCLUDE_MATCHES ? [] : undefined,
       _cache_payload: {
         latest_key: null,
-        matches: [],
         updated_at: new Date().toISOString(),
-        period_from: START_DATE,
         period_to: END_DATE,
       },
     };
@@ -506,7 +561,10 @@ async function collectPlayer(player, cacheEntry = null) {
   const seen = new Set();
   const matches = [];
   let unknownOutcomeRows = 0;
-  const anchorKey = cacheEntry && cacheEntry.latest_key ? cacheEntry.latest_key : null;
+  // 붙일 과거 기록이 없으면 앵커도 쓰지 않는다. 앵커만 믿고 조기 중단하면 병합할 몸통이
+  // 없어 "짧은 전적"을 그대로 써버린다(팀 이동 등으로 prior json이 새 경로일 때 실제로 발생).
+  const prior = Array.isArray(priorMatches) ? priorMatches : [];
+  const anchorKey = prior.length && cacheEntry && cacheEntry.latest_key ? cacheEntry.latest_key : null;
   let hitAnchor = false;
   const initAppend = appendRows(matches, seen, initial.rows, anchorKey);
   unknownOutcomeRows += initAppend.unknownOutcomeRows;
@@ -565,18 +623,8 @@ async function collectPlayer(player, cacheEntry = null) {
     lastId = page.nextLastId;
   }
 
-  let usedIncrementalCache = false;
-  if (hitAnchor && cacheEntry && Array.isArray(cacheEntry.matches) && cacheEntry.matches.length) {
-    usedIncrementalCache = true;
-    const refreshedDates = new Set(matches.map((item) => String(item.date || "")).filter(Boolean));
-    for (const old of cacheEntry.matches) {
-      if (refreshedDates.has(String(old.date || ""))) continue;
-      const key = rowKey(old);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      matches.push(old);
-    }
-  }
+  const usedIncrementalCache = hitAnchor && prior.length > 0;
+  if (usedIncrementalCache) mergePriorMatches(matches, seen, prior);
 
   const wins = matches.filter((m) => m.is_win).length;
   const losses = matches.length - wins;
@@ -615,9 +663,7 @@ async function collectPlayer(player, cacheEntry = null) {
     matches: INCLUDE_MATCHES ? matches : undefined,
     _cache_payload: {
       latest_key: matches[0] ? rowKey(matches[0]) : null,
-      matches,
       updated_at: new Date().toISOString(),
-      period_from: START_DATE,
       period_to: END_DATE,
     },
   };
@@ -647,7 +693,6 @@ async function main() {
   }
 
   const cache = loadCache();
-  if (!cache.teams[TEAM_NAME]) cache.teams[TEAM_NAME] = {};
 
   let roster = [];
   if (PROFILE_URL_ARG) {
@@ -663,6 +708,7 @@ async function main() {
         tier: TIER_ARG || "",
         wr_id: wrId,
         gender: GENDER_ARG || "",
+        entity_id: ENTITY_ID_ARG || "",
         profile_url: profileUrl,
       },
     ];
@@ -683,13 +729,16 @@ async function main() {
     console.log(`[INFO] team=${TEAM_NAME} players=${roster.length} concurrency=${CONCURRENCY} cache=${NO_CACHE ? "off" : "on"}`);
   }
 
+  // --prior-json은 단일 선수 호출에서만 의미가 있다(호출자가 그 선수의 기존 matches 경로를 안다).
+  const priorMatches = roster.length === 1 ? loadPriorMatches(PRIOR_JSON_ARG) : [];
+
   const results = await mapWithConcurrency(roster, CONCURRENCY, async (player) => {
     try {
       const key = playerCacheKey(player);
-      const cached = cache.teams[TEAM_NAME][key] || null;
-      const rec = await collectPlayer(player, cached);
+      const cached = cache.players[key] || null;
+      const rec = await collectPlayer(player, cached, priorMatches);
       if (rec && rec._cache_payload) {
-        cache.teams[TEAM_NAME][key] = rec._cache_payload;
+        cache.players[key] = rec._cache_payload;
       }
       if (!JSON_ONLY) {
         console.log(
@@ -754,4 +803,7 @@ module.exports = {
   collectionDisplayTotal,
   extractInitialRows,
   selectMode,
+  playerCacheKey,
+  mergePriorMatches,
+  rowKey,
 };

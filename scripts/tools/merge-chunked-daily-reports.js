@@ -247,6 +247,7 @@ function main() {
       excluded_players: r.excluded_players ?? 0,
       fetched_players: r.fetched_players ?? 0,
       reused_players: r.reused_players ?? 0,
+      full_scans: r.full_scans ?? 0,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,

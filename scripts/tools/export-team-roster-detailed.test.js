@@ -9,8 +9,8 @@ const {
   buildExternalOpponentExclusionRows,
   filterPlayersByEntityIds,
   exclusionReason,
+  directReportArgs,
   shouldUseNoCacheForFetch,
-  shouldFetchWithNoCache,
   shouldSkipByPriorityWindow,
   shouldReuseInactiveExistingJson,
 } = require("./export-team-roster-detailed");
@@ -113,58 +113,39 @@ runTest("inactive reuse still protects legacy players without priority metadata"
   }
 });
 
-runTest("due one-day priority players bypass source cache on fetch", () => {
-  const filePath = writeTempJson("__test__due_priority_no_cache.json", {
-    players: [{ period_max_date: "2026-05-14" }],
-  });
-  try {
-    const today = "2026-05-16T00:00:00.000Z";
-    const recentCachedFile = new Date("2026-05-15T20:00:00.000Z");
-    fs.utimesSync(filePath, recentCachedFile, recentCachedFile);
-
-    assert.equal(
-      shouldFetchWithNoCache(
-        {
-          last_checked_at: "2026-05-14T15:47:26.614Z",
-          last_match_at: "2026-05-14T00:00:00.000Z",
-          check_interval_days: 1,
-        },
-        today,
-        filePath
-      ),
-      true
-    );
-  } finally {
-    try {
-      fs.unlinkSync(filePath);
-    } catch {}
-  }
+// 새 의도: 매일 확인하는 선수(check_interval_days=1)도 책갈피 증분으로 읽는다.
+// 예전에는 이들이 매일 --no-cache로 전체 재수집됐고, 그 플래그가 책갈피 저장까지 막아
+// 책갈피가 몇 달째 얼어 있었다. 전체 재수집은 명시적 --force-no-cache에서만 일어난다.
+runTest("daily-cadence players no longer bypass the bookmark cache", () => {
+  assert.equal(shouldUseNoCacheForFetch({ forceNoCache: false }), false);
+  assert.equal(shouldUseNoCacheForFetch({}), false);
+  assert.equal(shouldUseNoCacheForFetch(null), false);
 });
 
-runTest("recent priority-window players can still use source cache", () => {
-  const filePath = writeTempJson("__test__recent_priority_cache.json", {
-    players: [{ period_max_date: "2026-05-15" }],
-  });
-  try {
-    const today = "2026-05-16T00:00:00.000Z";
-    const recentCachedFile = new Date("2026-05-15T20:00:00.000Z");
-    fs.utimesSync(filePath, recentCachedFile, recentCachedFile);
+runTest("report args carry the bookmark identity and the merge source when prior json exists", () => {
+  const player = {
+    name: "선수",
+    wr_id: 123,
+    gender: "female",
+    tier: "잭",
+    entity_id: "eloboard:female:123",
+    profile_url: "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=123",
+  };
+  const args = directReportArgs("테스트팀", "선수", player);
+  assert.equal(args[args.indexOf("--entity-id") + 1], "eloboard:female:123");
+  // 병합 원본이 없으면 --prior-json도 없어야 한다(몸통 없이 앵커만 믿고 조기 중단 방지).
+  assert.equal(args.includes("--prior-json"), false);
+  assert.equal(args.includes("--no-cache"), false);
 
-    assert.equal(
-      shouldFetchWithNoCache(
-        {
-          last_checked_at: "2026-05-15T20:00:00.000Z",
-          last_match_at: "2026-05-15T00:00:00.000Z",
-          check_interval_days: 1,
-        },
-        today,
-        filePath
-      ),
-      false
-    );
+  const priorPath = path.join(TMP_DIR, "테스트팀_eloboard:female:123_matches.json".replace(/:/g, "_"));
+  fs.mkdirSync(TMP_DIR, { recursive: true });
+  fs.writeFileSync(priorPath, JSON.stringify({ players: [{ matches: [] }] }), "utf8");
+  try {
+    const withPrior = directReportArgs("테스트팀", "선수", player);
+    assert.equal(withPrior[withPrior.indexOf("--prior-json") + 1], priorPath);
   } finally {
     try {
-      fs.unlinkSync(filePath);
+      fs.unlinkSync(priorPath);
     } catch {}
   }
 });
@@ -219,5 +200,5 @@ runTest("external-opponent name decisions never exclude roster players (entity_i
 });
 
 runTest("shouldUseNoCacheForFetch honors an explicit force flag", () => {
-  assert.equal(shouldUseNoCacheForFetch({ forceNoCache: true }, {}, "2026-05-16", ""), true);
+  assert.equal(shouldUseNoCacheForFetch({ forceNoCache: true }), true);
 });
