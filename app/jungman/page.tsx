@@ -85,9 +85,10 @@ export default async function JungmanPage() {
             nextRevealAt={config.nextRevealAt}
             autoCollect={autoCollect}
             closed={closed}
-            // #jm-map은 선택·hover ↔ 마커 강조 연동의 앵커 — 대시보드가 data-active/data-reveal을 세팅한다
+            // #jm-map은 선택·hover ↔ 마커 강조 연동의 앵커 — 대시보드가 data-active/data-reveal을 세팅한다.
+            // container-type은 지도 라벨 확대 기준 — SVG가 실제로 받은 폭을 JungmanMap의 @container가 읽는다
             map={
-              <div id="jm-map">
+              <div id="jm-map" className="[container-type:inline-size]">
                 <JungmanMap markers={markers} closed={closed} />
               </div>
             }
@@ -136,7 +137,7 @@ export default async function JungmanPage() {
               </dl>
             </section>
 
-            <section id="jm-map" className={`${PANEL} p-3`}>
+            <section id="jm-map" className={`${PANEL} p-3 [container-type:inline-size]`}>
               <JungmanMap markers={markers} />
             </section>
           </div>

@@ -699,14 +699,16 @@ export function JungmanDashboard({
 
       {/* 기본 트랙은 반드시 minmax(0,1fr) — grid-cols-1은 `1fr`(=minmax(auto,1fr))이라 지도 SVG의
           고유 폭이 트랙 최소치가 되고, 모바일에서 화면 밖으로 밀린다 */}
-      <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[264px_minmax(0,1fr)_300px] 2xl:grid-cols-[300px_minmax(0,1fr)_340px]">
+      {/* lg도 xl과 같은 3열 — 다른 열 폭을 쓰면 시세판 행이 620px로 늘어져 팀명과 득표수가 갈라진다.
+          지도만 lg에서 3열을 가로질러 맨 위에 온다(폴드 안 + 폭을 최대로 벌어 라벨이 읽힌다) */}
+      <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[320px_minmax(0,1fr)_300px] xl:grid-cols-[264px_minmax(0,1fr)_300px] 2xl:grid-cols-[300px_minmax(0,1fr)_340px]">
         {/* 중앙 히어로 — 지도가 가장 크다 */}
-        <section className={`${PANEL} min-w-0 p-2 lg:col-start-1 lg:row-start-2 xl:col-start-2 xl:row-start-1`}>
+        <section className={`${PANEL} min-w-0 p-2 lg:col-span-3 lg:col-start-1 lg:row-start-1 xl:col-span-1 xl:col-start-2`}>
           {map}
         </section>
 
         {/* 좌측 팀 시세판 */}
-        <aside className="lg:col-start-1 lg:row-start-1 xl:col-start-1 xl:row-start-1 xl:row-span-3">
+        <aside className="lg:col-start-1 lg:row-start-2 xl:row-start-1 xl:row-span-3">
           <div className={`${PANEL} p-3 xl:sticky xl:top-4`}>
             <div className="px-1 pb-2">
               <div className="flex items-center justify-between gap-2">
@@ -798,7 +800,7 @@ export function JungmanDashboard({
         </aside>
 
         {/* 차트 */}
-        <section className={`${PANEL} p-4 lg:col-start-1 lg:row-start-3 xl:col-start-2 xl:row-start-2`}>
+        <section className={`${PANEL} p-4 lg:col-start-2 lg:row-start-2`}>
           <JungmanChartPanel
             series={series}
             selected={selected}
@@ -812,7 +814,7 @@ export function JungmanDashboard({
         </section>
 
         {/* 우측 상세 레일 */}
-        <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-3 xl:col-start-3 xl:row-start-1 xl:row-span-3">
+        <aside className="lg:col-start-3 lg:row-start-2 xl:row-start-1 xl:row-span-3">
           <div className="flex flex-col gap-4 lg:sticky lg:top-4">
             {detail ? (
               <RailCard title={selected ? "선택한 팀" : "선두"}>

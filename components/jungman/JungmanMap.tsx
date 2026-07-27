@@ -66,13 +66,15 @@ const MAP_STYLE = `
   .jm-seed-sub{fill:#d4a94a;font-weight:700;letter-spacing:.02em;}
 
   .jm-spot{fill:url(#jm-spot);opacity:.7;animation:jm-pulse 3.6s ease-in-out infinite;}
+  .jm-badge{transform-box:fill-box;transform-origin:50% 50%;}
   .jm-badge circle{fill:rgba(10,15,28,.92);stroke:rgba(155,185,240,.4);stroke-width:1;}
   .jm-badge text{fill:#9aa3b8;font-size:10.5px;font-weight:800;text-anchor:middle;dominant-baseline:central;}
   .jm-m.jm-top3 .jm-badge circle{fill:#d4a94a;stroke:#0b0f1a;stroke-width:1.5;}
   .jm-m.jm-risk .jm-badge circle{fill:#e0705f;stroke:#0b0f1a;stroke-width:1.5;}
   .jm-m.jm-top3 .jm-badge text,.jm-m.jm-risk .jm-badge text{fill:#0b0f1a;}
   .jm-delta{font-size:9.5px;font-weight:800;text-anchor:start;dominant-baseline:central;
-    paint-order:stroke;stroke:rgba(8,12,22,.85);stroke-width:2.4;stroke-linejoin:round;}
+    paint-order:stroke;stroke:rgba(8,12,22,.85);stroke-width:2.4;stroke-linejoin:round;
+    transform-box:fill-box;transform-origin:0 50%;}
   .jm-d-up{fill:#8fd18f;}
   .jm-d-down{fill:#e0705f;}
   .jm-m.jm-contested .jm-card{animation:jm-blink 1.6s ease-in-out infinite;}
@@ -80,6 +82,25 @@ const MAP_STYLE = `
   @keyframes jm-pulse{0%,100%{opacity:.5}50%{opacity:.95}}
   @keyframes jm-blink{0%,100%{stroke-opacity:1}50%{stroke-opacity:.25}}
   @keyframes jm-pop{0%{transform:scale(1)}45%{transform:scale(1.18)}100%{transform:scale(1)}}
+
+  /* 라벨·배지 글자는 viewBox 좌표계 고정값이라 지도가 줄면 같이 줄어든다 —
+     1060 폭을 다 못 받는 컨테이너에서는 그만큼 되키운다. 기준은 화면 폭이 아니라
+     지도 자신의 폭(#jm-map의 container-type:inline-size)이라 레이아웃이 바뀌어도 따라온다.
+     칩·글자를 한 덩어리로 확대해야 글자가 칩을 넘치지 않는다 — 칩 폭은 서버에서 13px 기준으로 계산된 값이다. */
+  .jm-label{transform-box:fill-box;transform-origin:50% 0;}
+  /* 확대한 만큼 칩이 서로 겹친다 — 좁을 때는 서브라벨(순위·득표수)을 접고 칩을 팀명 폭(--wn)으로 줄인다.
+     순위는 카드 모서리 배지에 남고 득표수는 좌측 시세판에 있다. 접은 칩은 높이 22 = 팀명 y의 정중앙. */
+  @container (max-width:940px){
+    .jm-sub{display:none}
+    .jm-chip{width:var(--wn);x:calc(var(--wn) / -2);height:22px}
+    .jm-label,.jm-delta{transform:scale(1.2)} .jm-badge{transform:scale(1.25)} .jm-region{font-size:17px}
+  }
+  @container (max-width:820px){
+    .jm-label,.jm-delta{transform:scale(1.35)} .jm-badge{transform:scale(1.45)} .jm-region{font-size:19px}
+  }
+  @container (max-width:700px){
+    .jm-label,.jm-delta{transform:scale(1.5)} .jm-badge{transform:scale(1.65)} .jm-region{font-size:21px}
+  }
 
   /* 보드 행 hover ↔ 지도 마커 강조. 래퍼(#jm-map)의 data-active를 클라이언트가 세팅한다. */
   #jm-map[data-active] .jm-m{opacity:.45;}
@@ -135,7 +156,9 @@ export default function JungmanMap({
 
         {markers.map((marker) => {
           const sub = subLabel(marker, closed);
-          const width = Math.max(58, Math.round(Math.max(textWidth(marker.name, 13), textWidth(sub, 11)) + 18));
+          // 서브라벨이 칩 폭을 좌우한다 — 좁은 폭에서 그걸 접으면 팀명 폭(nameWidth)만 남는다
+          const nameWidth = Math.max(58, Math.round(textWidth(marker.name, 13) + 18));
+          const width = Math.max(nameWidth, Math.round(textWidth(sub, 11) + 18));
           const tone = marker.seed
             ? " jm-seed"
             : marker.badge === "seed"
@@ -162,6 +185,7 @@ export default function JungmanMap({
                     "--a": marker.accent,
                     "--g": `${glowRadius(marker.voteShare)}px`,
                     "--d": `${((marker.rank || 1) - 1) * 45}ms`,
+                    "--wn": `${nameWidth}px`,
                   } as CSSProperties
                 }
               >
@@ -186,27 +210,30 @@ export default function JungmanMap({
                     </text>
                   </>
                 )}
-                <rect className="jm-chip" x={-width / 2} y={CHIP_Y} width={width} height={CHIP_H} rx={9} />
-                <text className="jm-name" y={CHIP_Y + 11}>
-                  {marker.name}
-                </text>
-                <text className="jm-sub" y={CHIP_Y + 24}>
-                  {marker.seed ? (
-                    <tspan className="jm-seed-sub">4시드 확보</tspan>
-                  ) : marker.rank === null || marker.votes === null ? (
-                    <tspan className="jm-votes">개표 대기</tspan>
-                  ) : (
-                    <>
-                      <tspan className="jm-rank">{marker.rank}위</tspan>
-                      {closed ? null : (
-                        <>
-                          <tspan className="jm-dot"> · </tspan>
-                          <tspan className="jm-votes">{formatVotes(marker.votes)}표</tspan>
-                        </>
-                      )}
-                    </>
-                  )}
-                </text>
+                {/* 칩과 글자는 한 덩어리 — 좁은 컨테이너에서 통째로 확대한다(위 @container) */}
+                <g className="jm-label">
+                  <rect className="jm-chip" x={-width / 2} y={CHIP_Y} width={width} height={CHIP_H} rx={9} />
+                  <text className="jm-name" y={CHIP_Y + 11}>
+                    {marker.name}
+                  </text>
+                  <text className="jm-sub" y={CHIP_Y + 24}>
+                    {marker.seed ? (
+                      <tspan className="jm-seed-sub">4시드 확보</tspan>
+                    ) : marker.rank === null || marker.votes === null ? (
+                      <tspan className="jm-votes">개표 대기</tspan>
+                    ) : (
+                      <>
+                        <tspan className="jm-rank">{marker.rank}위</tspan>
+                        {closed ? null : (
+                          <>
+                            <tspan className="jm-dot"> · </tspan>
+                            <tspan className="jm-votes">{formatVotes(marker.votes)}표</tspan>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </text>
+                </g>
 
                 {marker.rank !== null && !marker.seed ? (
                   <g className="jm-badge">
