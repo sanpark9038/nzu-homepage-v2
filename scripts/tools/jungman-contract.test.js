@@ -66,7 +66,7 @@ test("jungman excludes the auto-seeded team from vote tallies", () => {
   assert.match(lib, /VOTING_CODES = new Set\(JUNGMAN_VOTING_TEAMS\.map/);
   assert.match(lib, /if \(!VOTING_CODES\.has\(code\)\) continue;/);
   // 순위·경합 계산도 12팀 기준
-  assert.match(lib, /rankMap[\s\S]*?JUNGMAN_VOTING_TEAMS\.slice\(\)\.sort/);
+  assert.match(lib, /[rR]ankMap[\s\S]*?JUNGMAN_VOTING_TEAMS\.slice\(\)\.sort/);
 });
 
 test("jungman snapshot parser survives broken admin input", () => {
@@ -304,6 +304,96 @@ test("jungman headlines narrate what actually changed between the last two round
     buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, C9: 850, KU: 250 })]).length,
     3
   );
+});
+
+test("jungman buckets a range by its closing value, never an average", () => {
+  const { bucketJungmanSnapshots, buildJungmanSeries } = loadJungmanLib();
+  // 3분 간격 20점 = 1시간. 득표는 누적이라 마지막 값이 그 구간의 진짜 값이다.
+  const snapshots = Array.from({ length: 21 }, (_, i) => ({
+    round: i + 1,
+    at: new Date(Date.UTC(2026, 6, 27, 0, i * 3)).toISOString(),
+    votes: { DM: 100 + i * 10 },
+  }));
+
+  // 15분 버킷 — 각 버킷의 종가(마지막 점). 평균이면 5개 점이 145/195/... 로 나온다.
+  const quarter = bucketJungmanSnapshots(snapshots, 15 * 60 * 1000);
+  assert.deepEqual(
+    quarter.map((point) => point.votes.DM),
+    [140, 190, 240, 290, 300]
+  );
+  // 1시간 버킷 — 정시 경계로 갈리고 남는 건 각 구간 종가
+  assert.deepEqual(
+    bucketJungmanSnapshots(snapshots, 60 * 60 * 1000).map((point) => point.votes.DM),
+    [290, 300]
+  );
+  // bucketMs 0이면 원본 그대로
+  assert.equal(bucketJungmanSnapshots(snapshots, 0).length, 21);
+
+  const series = buildJungmanSeries(snapshots);
+  assert.deepEqual(
+    series.map((entry) => entry.key),
+    ["h1", "h6", "all"]
+  );
+  // 1시간 구간은 원본(3분) 그대로, 전체는 1시간 봉
+  assert.equal(series[0].points.length, 21);
+  assert.equal(series[2].points.length, 2);
+  // 어떤 구간이든 마지막 점은 최신 스냅샷과 같아야 한다 — 종가가 잘리면 순위가 어긋난다
+  for (const entry of series) {
+    assert.equal(entry.points[entry.points.length - 1].votes.DM, 300, entry.key);
+  }
+});
+
+test("jungman charts label the x axis in Asia/Seoul and mark day boundaries", () => {
+  const { jungmanAxisLabel, jungmanSeoulTime, jungmanDayBoundaries, buildJungmanRankEvents } = loadJungmanLib();
+  const chart = readProjectFile("app/jungman/JungmanChart.tsx");
+
+  // 2026-07-27T14:30Z = 07-27 23:30 KST, +1시간이면 07-28 00:30 KST로 날짜가 넘어간다
+  const before = "2026-07-27T14:30:00.000Z";
+  const after = "2026-07-27T15:30:00.000Z";
+
+  assert.equal(jungmanSeoulTime(before), "23:30");
+  assert.equal(jungmanSeoulTime(after), "00:30");
+  // 같은 날이면 시각만, 날짜가 바뀌면 그 지점만 날짜를 붙인다
+  assert.equal(jungmanAxisLabel(after, "2026-07-27T15:00:00.000Z"), "00:30");
+  assert.equal(jungmanAxisLabel(after, before), "7/28 00:30");
+
+  const points = [before, "2026-07-27T14:50:00.000Z", after, "2026-07-27T16:30:00.000Z"].map((at) => ({
+    at,
+    votes: {},
+  }));
+  assert.deepEqual(jungmanDayBoundaries(points), [{ index: 2, day: 2 }]);
+
+  // 차트는 "n차"가 아니라 시간축을 쓴다 + 날짜 경계선을 그린다
+  assert.match(chart, /jungmanAxisLabel\(/);
+  assert.match(chart, /jungmanDayBoundaries\(/);
+  assert.match(chart, /일차/);
+  assert.doesNotMatch(chart, /snapshot\.round/);
+
+  // 순위 상승 시점 타임라인 — 최신순
+  const votes = (dm, ku) => ({ DM: dm, KU: ku });
+  const events = buildJungmanRankEvents([
+    { round: 1, at: before, votes: votes(100, 50) },
+    { round: 2, at: after, votes: votes(100, 200) },
+  ]);
+  assert.equal(events.length, 1);
+  assert.deepEqual({ code: events[0].code, rank: events[0].rank, at: events[0].at }, { code: "KU", rank: 1, at: after });
+});
+
+test("jungman dashboard keeps the map server-side and shares one selected team", () => {
+  const page = readProjectFile("app/jungman/page.tsx");
+  const client = readProjectFile("app/jungman/JungmanClient.tsx");
+
+  // 88KB 지도 SVG는 서버에서 그려 children으로 넘긴다 — 클라이언트가 import하면 번들로 넘어간다
+  assert.doesNotMatch(client, /JungmanMap/);
+  assert.match(page, /map=\{/);
+  // 버킷은 서버가 끝낸다
+  assert.match(page, /buildJungmanSeries\(snapshots\)/);
+
+  // hover는 일시 강조, 클릭 선택은 지속 강조 — hover가 끝나면 선택으로 돌아온다
+  assert.match(client, /pokeMap\("data-active", hovered \|\| selected\)/);
+  // 지도 마커 클릭도 선택 입력 (서버 SVG라 이벤트 위임)
+  assert.match(client, /closest\?\.\("\[data-team\]"\)/);
+  assert.match(readProjectFile("components/jungman/JungmanMap.tsx"), /cursor:pointer/);
 });
 
 test("jungman is reachable from public and admin navigation", () => {

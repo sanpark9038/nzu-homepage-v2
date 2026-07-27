@@ -43,7 +43,8 @@ const MAP_STYLE = `
   .jm-tick{fill:none;stroke:rgba(212,169,74,.34);stroke-width:1.6;}
   .jm-region{fill:#7a8299;opacity:.42;font-size:15px;letter-spacing:.16em;text-anchor:middle;}
 
-  .jm-m{transition:transform .18s ease;cursor:default;}
+  /* 마커 클릭도 팀 선택 입력이다 — 리스너는 래퍼(#jm-map)에서 이벤트 위임으로 받는다 */
+  .jm-m{transition:transform .18s ease;cursor:pointer;}
   .jm-m:hover{transform:scale(1.07);}
   .jm-m .jm-card{fill:var(--c);stroke:rgba(226,236,255,.30);stroke-width:1.5;
     filter:drop-shadow(0 0 var(--g,12px) var(--a)) drop-shadow(0 4px 10px rgba(0,0,0,.55));}

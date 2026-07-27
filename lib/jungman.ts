@@ -358,7 +358,8 @@ export function parseJungmanSnapshots(raw: string | null): JungmanSnapshot[] {
   return snapshots;
 }
 
-function rankMap(snapshot: JungmanSnapshot): Map<string, number> {
+/** 한 시점의 순위표. 스냅샷이든 버킷 시리즈 한 점이든 votes만 있으면 된다. */
+export function jungmanRankMap(snapshot: { votes: Record<string, number> }): Map<string, number> {
   const ordered = JUNGMAN_VOTING_TEAMS.slice().sort((a, b) => {
     const diff = (snapshot.votes[b.code] || 0) - (snapshot.votes[a.code] || 0);
     if (diff !== 0) return diff;
@@ -384,8 +385,8 @@ export function buildJungmanStandings(snapshots: JungmanSnapshot[]): JungmanStan
   }
 
   const previous = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
-  const currentRanks = rankMap(latest);
-  const previousRanks = previous ? rankMap(previous) : null;
+  const currentRanks = jungmanRankMap(latest);
+  const previousRanks = previous ? jungmanRankMap(previous) : null;
 
   const standings: JungmanStanding[] = JUNGMAN_VOTING_TEAMS.map((team): JungmanStanding => {
     const votes = latest.votes[team.code] || 0;
@@ -440,7 +441,7 @@ export function buildJungmanHeadlines(snapshots: JungmanSnapshot[]): string[] {
   const latest = snapshots.length ? snapshots[snapshots.length - 1] : null;
   if (!latest) return [];
 
-  const ranks = rankMap(latest);
+  const ranks = jungmanRankMap(latest);
   const ordered = JUNGMAN_VOTING_TEAMS.slice().sort(
     (a, b) => (ranks.get(a.code) || 0) - (ranks.get(b.code) || 0)
   );
@@ -448,7 +449,7 @@ export function buildJungmanHeadlines(snapshots: JungmanSnapshot[]): string[] {
   const leaderVotes = votesOf(ordered[0]);
 
   const previous = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
-  const previousRanks = previous ? rankMap(previous) : null;
+  const previousRanks = previous ? jungmanRankMap(previous) : null;
 
   const swaps: string[] = [];
   const cutlines: string[] = [];
@@ -528,6 +529,146 @@ export function buildJungmanHeadlines(snapshots: JungmanSnapshot[]): string[] {
   return [
     `1위 ${withParticle(ordered[0].name, "이", "가")} ${formatVotes(leaderVotes)}표로 선두를 지키고 있습니다`,
   ];
+}
+
+// ── 추이 차트용 시리즈 ────────────────────────────────────────────────
+// 득표는 누적값이다. 버킷 대표값으로 평균을 쓰면 없던 계단이 생긴다 — 마지막 값(종가)만 쓴다.
+
+export type JungmanSeriesPoint = { at: string; votes: Record<string, number> };
+export type JungmanRangeKey = "h1" | "h6" | "all";
+export type JungmanSeries = {
+  key: JungmanRangeKey;
+  label: string;
+  points: JungmanSeriesPoint[];
+};
+
+const HOUR_MS = 60 * 60 * 1000;
+
+/** 구간별 창 크기와 버킷 크기. 1시간은 원본(3분) 그대로, 전체는 1시간 봉. */
+const JUNGMAN_RANGES: { key: JungmanRangeKey; label: string; windowMs: number; bucketMs: number }[] = [
+  { key: "h1", label: "1시간", windowMs: HOUR_MS, bucketMs: 0 },
+  { key: "h6", label: "6시간", windowMs: 6 * HOUR_MS, bucketMs: 15 * 60 * 1000 },
+  { key: "all", label: "전체", windowMs: Number.POSITIVE_INFINITY, bucketMs: HOUR_MS },
+];
+
+/** 구간을 버킷으로 묶어 각 버킷의 마지막(종가) 스냅샷만 남긴다. bucketMs<=0이면 원본 그대로. */
+export function bucketJungmanSnapshots(snapshots: JungmanSnapshot[], bucketMs: number): JungmanSeriesPoint[] {
+  const points = snapshots
+    .map((snapshot) => ({ at: snapshot.at, votes: snapshot.votes, time: Date.parse(snapshot.at) }))
+    .filter((point) => Number.isFinite(point.time))
+    .sort((a, b) => a.time - b.time);
+
+  if (bucketMs <= 0) return points.map(({ at, votes }) => ({ at, votes }));
+
+  // 같은 버킷은 뒤에 오는 점이 덮어쓴다 → 남는 건 그 구간의 종가
+  const byBucket = new Map<number, JungmanSeriesPoint>();
+  for (const { at, votes, time } of points) byBucket.set(Math.floor(time / bucketMs), { at, votes });
+
+  return [...byBucket.entries()].sort((a, b) => a[0] - b[0]).map(([, point]) => point);
+}
+
+/** 서버에서 3개 시리즈를 미리 만든다 — 클라이언트는 전환만 한다. */
+export function buildJungmanSeries(snapshots: JungmanSnapshot[]): JungmanSeries[] {
+  const end = snapshots.length ? Date.parse(snapshots[snapshots.length - 1].at) : 0;
+
+  return JUNGMAN_RANGES.map(({ key, label, windowMs, bucketMs }) => {
+    const window = Number.isFinite(windowMs)
+      ? snapshots.filter((snapshot) => end - Date.parse(snapshot.at) <= windowMs)
+      : snapshots;
+    return { key, label, points: bucketJungmanSnapshots(window, bucketMs) };
+  });
+}
+
+// 한국시간 표기 — ko-KR + hour12:false는 자정을 24:00으로 뱉는 ICU가 있어 en-GB/h23을 쓴다
+const SEOUL_TIME = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Seoul",
+  hourCycle: "h23",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+const SEOUL_DATE = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
+});
+
+/** 한국시간 HH:mm */
+export function jungmanSeoulTime(at: string): string {
+  return SEOUL_TIME.format(new Date(at));
+}
+
+/** 한국시간 M/D — 날짜 경계 판정 키로도 쓴다 */
+export function jungmanSeoulDate(at: string): string {
+  return SEOUL_DATE.format(new Date(at));
+}
+
+/** x축 라벨. 날짜가 바뀌는 지점(과 첫 점)에만 날짜를 붙인다. */
+export function jungmanAxisLabel(at: string, previousAt: string | null = null): string {
+  const time = jungmanSeoulTime(at);
+  if (previousAt && jungmanSeoulDate(previousAt) === jungmanSeoulDate(at)) return time;
+  return `${jungmanSeoulDate(at)} ${time}`;
+}
+
+/** 시리즈 안에서 한국시간 날짜가 바뀌는 지점 — 세로 경계선과 "n일차" 라벨용 */
+export function jungmanDayBoundaries(points: JungmanSeriesPoint[]): { index: number; day: number }[] {
+  const boundaries: { index: number; day: number }[] = [];
+  for (let i = 1; i < points.length; i++) {
+    if (jungmanSeoulDate(points[i - 1].at) === jungmanSeoulDate(points[i].at)) continue;
+    boundaries.push({ index: i, day: boundaries.length + 2 });
+  }
+  return boundaries;
+}
+
+// ── 우측 레일용 집계 ──────────────────────────────────────────────────
+
+/** 팀별 1시간 전 대비 증가분. 1시간 전 스냅샷이 없으면 빈 객체(= 화면엔 "—"). */
+export function buildJungmanHourDeltas(snapshots: JungmanSnapshot[], windowMs = HOUR_MS): Record<string, number> {
+  const latest = snapshots.length ? snapshots[snapshots.length - 1] : null;
+  if (!latest) return {};
+
+  const cutoff = Date.parse(latest.at) - windowMs;
+  // 1시간 이전 중 가장 최근 스냅샷. 그만큼 오래된 기록이 없으면 비교하지 않는다.
+  const baseline = snapshots.filter((snapshot) => Date.parse(snapshot.at) <= cutoff).pop();
+  if (!baseline) return {};
+
+  return Object.fromEntries(
+    JUNGMAN_VOTING_TEAMS.map((team) => [
+      team.code,
+      (latest.votes[team.code] || 0) - (baseline.votes[team.code] || 0),
+    ])
+  );
+}
+
+/** 팀별 최고 순위(가장 작은 등수) */
+export function buildJungmanBestRanks(snapshots: JungmanSnapshot[]): Record<string, number> {
+  const best: Record<string, number> = {};
+  for (const snapshot of snapshots) {
+    for (const [code, rank] of jungmanRankMap(snapshot)) {
+      if (best[code] === undefined || rank < best[code]) best[code] = rank;
+    }
+  }
+  return best;
+}
+
+export type JungmanRankEvent = { at: string; code: string; name: string; rank: number };
+
+/** 순위가 올라간 순간들 — 최신순 최대 limit개. */
+export function buildJungmanRankEvents(snapshots: JungmanSnapshot[], limit = 6): JungmanRankEvent[] {
+  const events: JungmanRankEvent[] = [];
+  let previous = snapshots.length ? jungmanRankMap(snapshots[0]) : null;
+
+  for (let i = 1; i < snapshots.length && previous; i++) {
+    const current = jungmanRankMap(snapshots[i]);
+    for (const team of JUNGMAN_VOTING_TEAMS) {
+      const before = previous.get(team.code);
+      const now = current.get(team.code);
+      if (before === undefined || now === undefined || now >= before) continue;
+      events.push({ at: snapshots[i].at, code: team.code, name: team.name, rank: now });
+    }
+    previous = current;
+  }
+
+  return events.slice(-limit).reverse();
 }
 
 /** 지도 마커 13개 — 투표 12팀 + 수술대(4시드 고정) */
