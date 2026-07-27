@@ -144,7 +144,9 @@ export default function JungmanMap({
                 ? " jm-risk"
                 : "";
 
-          const rise = (marker.rankDelta || 0) > 0;
+          // 마감 뒤 순위 변동은 멈춘 값이다 — 시세판 화살표와 함께 내린다
+          const rankDelta = closed ? null : marker.rankDelta;
+          const rise = (rankDelta || 0) > 0;
           const logo = jungmanLogoSrc(marker.code);
 
           return (
@@ -215,14 +217,14 @@ export default function JungmanMap({
                   </g>
                 ) : null}
 
-                {marker.rankDelta ? (
+                {rankDelta ? (
                   <text
-                    className={`jm-delta ${marker.rankDelta > 0 ? "jm-d-up" : "jm-d-down"}`}
+                    className={`jm-delta ${rankDelta > 0 ? "jm-d-up" : "jm-d-down"}`}
                     x={HALF + 2}
                     y={-HALF + 4}
                   >
-                    {marker.rankDelta > 0 ? "▲" : "▼"}
-                    {Math.abs(marker.rankDelta)}
+                    {rankDelta > 0 ? "▲" : "▼"}
+                    {Math.abs(rankDelta)}
                   </text>
                 ) : null}
               </g>

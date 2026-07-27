@@ -315,6 +315,24 @@ function HourDelta({ value }: { value: number | undefined }) {
   );
 }
 
+/**
+ * 1시간 전 대비 순위 변동. 0이거나 기준 기록이 없으면 아무것도 안 그린다 —
+ * 안 움직인 자리에 "0"을 찍으면 열 전체가 소음이 된다.
+ */
+function RankDelta({ value }: { value: number | null }) {
+  if (!value) return null;
+  return (
+    <span
+      className={`text-[0.5625rem] font-black leading-none tabular-nums ${
+        value > 0 ? "text-[#8fd18f]" : "text-[#e0705f]"
+      }`}
+    >
+      {value > 0 ? "▲" : "▼"}
+      {Math.abs(value)}
+    </span>
+  );
+}
+
 function cutlineOf(rank: number | null) {
   if (rank === JUNGMAN_SEED_CUT) {
     return { label: "시드 확보선", tone: "border-[#d4a94a]/45", chip: "border-[#d4a94a]/50 text-[#d4a94a]" };
@@ -368,8 +386,10 @@ function TickerRow({
             : "border-transparent bg-[rgba(10,15,28,0.55)] hover:border-[rgba(155,185,240,0.22)]"
       }`}
     >
+      {/* 변동 화살표는 순위 아래에 쌓는다 — 옆에 붙이면 좁은 폭(1280)에서 팀명을 그만큼 더 자른다.
+          오른쪽 값 열이 이미 두 줄이라 세로로는 공짜다 */}
       <span
-        className={`text-center text-base font-black tabular-nums ${
+        className={`flex flex-col items-center leading-tight text-base font-black tabular-nums ${
           standing.badge === "seed"
             ? "text-[#d4a94a]"
             : standing.badge === "wildcard"
@@ -378,6 +398,7 @@ function TickerRow({
         }`}
       >
         {standing.rank}
+        {closed ? null : <RankDelta value={standing.rankDelta} />}
       </span>
 
       <TeamLogo src={logo} team={standing.team} size={24} />
@@ -394,7 +415,12 @@ function TickerRow({
             와카
           </span>
         ) : null}
-        {standing.contested ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#9fb6e0]" title="경합" /> : null}
+        {/* 점 + title 툴팁은 화면에서 읽히지 않는다 — 시드·와카와 같은 글자 칩으로 */}
+        {standing.contested ? (
+          <span className="shrink-0 rounded bg-[#9fb6e0]/15 px-1 py-px text-[0.625rem] font-black text-[#9fb6e0]">
+            접전
+          </span>
+        ) : null}
       </span>
 
       {closed ? null : (
@@ -617,6 +643,8 @@ export function JungmanDashboard({
 
   const leaderVotes = standings[0]?.votes || 0;
   const tight = leaderVotes * JUNGMAN_CONTEST_RATIO;
+  // 뜻풀이는 배지가 실제로 떠 있을 때만 — 아무도 접전이 아닌 화면에 설명만 남으면 군더더기다
+  const anyContested = standings.some((standing) => standing.contested);
   const detail = standings.find((standing) => standing.team.code === selected) ?? standings[0];
   const detailGap = detail ? cutlineGap(standings, detail) : null;
 
@@ -696,20 +724,34 @@ export function JungmanDashboard({
                   />
                 )}
               </div>
-              {/* 마감 후에는 오른쪽 열이 통째로 비어 있다 — 그 열을 가리키는 라벨도 같이 내린다 */}
-              {closed ? null : (
-                <p className="mt-1.5 text-right text-[0.625rem] font-bold text-[#7a8299]">득표 · 1시간 변화</p>
-              )}
+              {/* 왼쪽은 접전 배지 뜻풀이(배지가 하나라도 떠 있을 때만),
+                  오른쪽은 값 열 라벨 — 마감 후에는 그 열이 통째로 비므로 같이 내린다 */}
+              {anyContested || !closed ? (
+                <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-2 text-[0.625rem] font-bold text-[#7a8299]">
+                  <span>{anyContested ? "접전 = 위아래와 표차 근소" : ""}</span>
+                  {closed ? null : <span>득표 · 1시간 변화</span>}
+                </div>
+              ) : null}
             </div>
 
             <ol className="flex flex-col gap-1">
-              {listed.map((standing) => {
+              {listed.map((standing, index) => {
                 // 급상승순에서는 줄 순서가 순위와 다르다 — 컷라인 구분선을 그리면 거짓말이 된다
                 const cutline = sort === "rank" ? cutlineOf(standing.rank) : null;
+                // 아래 행과 접전이면 그 사이 여백에 표차를 겹쳐 그린다 (마감 후엔 멈춘 값이라 뺀다)
+                const below = sort === "rank" && !closed ? listed[index + 1] : undefined;
+                const pairGap = below ? (standing.votes || 0) - (below.votes || 0) : null;
+                const contestGap = pairGap !== null && tight > 0 && pairGap <= tight ? pairGap : null;
                 return (
                   <li
                     key={standing.team.code}
-                    className={cutline ? `relative border-b-2 border-dashed pb-3.5 ${cutline.tone}` : undefined}
+                    className={
+                      cutline
+                        ? `relative border-b-2 border-dashed pb-3.5 ${cutline.tone}`
+                        : contestGap === null
+                          ? undefined
+                          : "relative pb-3.5"
+                    }
                   >
                     <TickerRow
                       standing={standing}
@@ -728,6 +770,19 @@ export function JungmanDashboard({
                         {cutline.label}
                       </span>
                     ) : null}
+                    {/* 같은 자리에 겹치면 컷라인 라벨이 가운데를 갖는다 — 표차는 오른쪽 끝으로 비킨다.
+                        컷라인에 걸친 접전이면 경고색, 아니면 중립색 */}
+                    {contestGap === null ? null : (
+                      <span
+                        className={`absolute bottom-[-0.5rem] whitespace-nowrap rounded-full border bg-[#0d1322] px-1.5 py-0.5 text-[0.5625rem] font-black tabular-nums ${
+                          cutline
+                            ? "right-0 border-[#e0705f]/50 text-[#e0705f]"
+                            : "left-1/2 -translate-x-1/2 border-[rgba(155,185,240,0.28)] text-[#9fb6e0]"
+                        }`}
+                      >
+                        {contestGap === 0 ? "동률" : `${formatVotes(contestGap)}표 차`}
+                      </span>
+                    )}
                   </li>
                 );
               })}

@@ -1016,6 +1016,55 @@ test("public routes carry their own description and canonical", () => {
   }
 });
 
+test("jungman rank arrows run on the hour baseline and the map reads the same value", () => {
+  const { buildJungmanStandings, buildJungmanMarkers, buildJungmanHourDeltas, jungmanHourBaseline } = loadJungmanLib();
+  const at = (minutesAgo) => new Date(Date.UTC(2026, 6, 27, 12, 0) - minutesAgo * 60_000).toISOString();
+  // 케이대가 90분 전엔 꼴찌(50표), 1시간 기준점에도 꼴찌, 3분 전에 이미 1위로 올라섰다
+  const snapshots = [
+    { round: 1, at: at(90), votes: headlineBase },
+    { round: 2, at: at(65), votes: headlineBase },
+    { round: 3, at: at(3), votes: { ...headlineBase, KU: 2000 } },
+    { round: 4, at: at(0), votes: { ...headlineBase, KU: 2050 } },
+  ];
+
+  // 기준은 직전 차수(3분 전)가 아니라 1시간 전 — 3분 기준이면 0이라 화살표가 사라진다
+  const standings = buildJungmanStandings(snapshots);
+  const ku = standings.find((standing) => standing.team.code === "KU");
+  assert.equal(ku.rank, 1);
+  assert.equal(ku.rankDelta, 11, "12위 → 1위는 ▲11이어야 한다");
+  // 옆칸 1시간 증가량과 같은 스냅샷을 봐야 두 숫자가 어긋나지 않는다
+  assert.equal(jungmanHourBaseline(snapshots).round, 2);
+  assert.equal(buildJungmanHourDeltas(snapshots).KU, 2000);
+
+  // 지도 마커도 리스트와 같은 값 — 표시 소스가 하나여야 두 화면이 다른 숫자를 말하지 않는다
+  const marker = buildJungmanMarkers(standings).find((entry) => entry.code === "KU");
+  assert.equal(marker.rankDelta, ku.rankDelta);
+
+  // 1시간 전 기록이 없으면 비교하지 않는다 (증가량과 같은 규칙)
+  assert.equal(jungmanHourBaseline([snapshots[3]]), null);
+  assert.equal(buildJungmanStandings([snapshots[3]])[0].rankDelta, null);
+  assert.deepEqual(buildJungmanHourDeltas([snapshots[3]]), {});
+
+  // 마감 뒤에는 멈춘 화살표를 지도에서도 내린다
+  assert.match(readProjectFile("components/jungman/JungmanMap.tsx"), /const rankDelta = closed \? null : marker\.rankDelta;/);
+});
+
+test("jungman board spells out the contested state instead of a bare dot", () => {
+  const client = readProjectFile("app/jungman/JungmanClient.tsx");
+
+  // 파란 점 + title 툴팁은 화면에서 읽히지 않는다 — 시드·와카와 같은 글자 칩이어야 한다
+  assert.doesNotMatch(client, /title="경합"/);
+  assert.match(client, /standing\.contested \?[\s\S]{0,240}>\s*접전\s*<\/span>/);
+  // 무슨 뜻인지 화면에 한 줄 설명이 있어야 한다 (배지가 떠 있을 때)
+  assert.match(client, /접전 = /);
+
+  // 접전 쌍 표차는 행 사이 여백에 겹쳐 그린다 — 컷라인 라벨과 같은 기법, 새 행을 만들지 않는다
+  assert.match(client, /absolute bottom-\[-0\.5rem\][\s\S]{0,700}표 차/);
+  // 멈춘 숫자(표차·순위 화살표)는 마감 후 내린다
+  assert.match(client, /sort === "rank" && !closed \? listed\[index \+ 1\] : undefined/);
+  assert.match(client, /\{closed \? null : <RankDelta value=\{standing\.rankDelta\} \/>\}/);
+});
+
 test("jungman headlines drop stale rank swaps", () => {
   const { buildJungmanHeadlines } = loadJungmanLib();
   const at = (minutesAgo) => new Date(Date.now() - minutesAgo * 60_000).toISOString();

@@ -127,9 +127,9 @@ export type JungmanStanding = {
   team: JungmanTeam;
   rank: number | null;
   votes: number | null;
-  /** 직전 차수 대비 순위 변동 (양수 = 상승) */
+  /** 1시간 전 대비 순위 변동 (양수 = 상승). 기준 시점은 buildJungmanHourDeltas와 같다 */
   rankDelta: number | null;
-  /** 직전 차수 대비 표 증가 */
+  /** 직전 차수 대비 표 증가 — 리빌 롤업 시작값용 */
   voteDelta: number | null;
   badge: JungmanBadge;
   contested: boolean;
@@ -147,7 +147,7 @@ export type JungmanMarker = {
   pinY: number;
   rank: number | null;
   votes: number | null;
-  /** 직전 차수 대비 순위 변동 (양수 = 상승) */
+  /** 1시간 전 대비 순위 변동 (양수 = 상승) — 시세판과 같은 값 */
   rankDelta: number | null;
   /** 인접 순위와 표차가 근소 */
   contested: boolean;
@@ -431,6 +431,23 @@ export function jungmanEmphasis(rank: number): JungmanEmphasis {
   return "back";
 }
 
+/**
+ * "1시간 전" 비교 기준 스냅샷 — 그만큼 오래된 기록이 없으면 null(= 비교하지 않는다).
+ *
+ * 순위 변동 화살표와 1시간 증가량이 서로 다른 시점을 보면 화면의 두 숫자가 어긋난다.
+ * 기준 선택은 반드시 여기 한 곳에서만 한다.
+ */
+export function jungmanHourBaseline(
+  snapshots: JungmanSnapshot[],
+  windowMs = HOUR_MS
+): JungmanSnapshot | null {
+  const latest = snapshots.length ? snapshots[snapshots.length - 1] : null;
+  if (!latest) return null;
+
+  const cutoff = Date.parse(latest.at) - windowMs;
+  return snapshots.filter((snapshot) => Date.parse(snapshot.at) <= cutoff).pop() ?? null;
+}
+
 export function buildJungmanStandings(snapshots: JungmanSnapshot[]): JungmanStanding[] {
   const latest = snapshots.length ? snapshots[snapshots.length - 1] : null;
 
@@ -448,18 +465,21 @@ export function buildJungmanStandings(snapshots: JungmanSnapshot[]): JungmanStan
 
   const previous = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
   const currentRanks = jungmanRankMap(latest);
-  const previousRanks = previous ? jungmanRankMap(previous) : null;
+  // 순위 변동은 1시간 기준이다. 수집이 3분 간격이라 직전 차수 대비로는 거의 늘 0이고,
+  // 어쩌다 뜨는 화살표가 옆칸의 1시간 증가량과 다른 구간을 말하게 된다.
+  const baseline = jungmanHourBaseline(snapshots);
+  const baselineRanks = baseline ? jungmanRankMap(baseline) : null;
 
   const standings: JungmanStanding[] = JUNGMAN_VOTING_TEAMS.map((team): JungmanStanding => {
     const votes = latest.votes[team.code] || 0;
     const rank = currentRanks.get(team.code) || JUNGMAN_VOTING_TEAMS.length;
-    const previousRank = previousRanks?.get(team.code) ?? null;
+    const baselineRank = baselineRanks?.get(team.code) ?? null;
 
     return {
       team,
       rank,
       votes,
-      rankDelta: previousRank === null ? null : previousRank - rank,
+      rankDelta: baselineRank === null ? null : baselineRank - rank,
       voteDelta: previous ? votes - (previous.votes[team.code] || 0) : null,
       badge: rank <= JUNGMAN_SEED_CUT ? "seed" : rank > JUNGMAN_WILDCARD_CUT ? "wildcard" : null,
       contested: false,
@@ -527,8 +547,7 @@ export function buildJungmanHeadlines(
     return [`최종 결과 — 1위 ${ordered[0].name}`];
   }
 
-  const cutoff = Date.parse(latest.at) - HOUR_MS;
-  const baseline = snapshots.filter((snapshot) => Date.parse(snapshot.at) <= cutoff).pop() ?? snapshots[0];
+  const baseline = jungmanHourBaseline(snapshots) ?? snapshots[0];
   const baselineRanks = baseline === latest ? null : jungmanRankMap(baseline);
 
   const lines: string[] = [];
@@ -744,14 +763,10 @@ export function jungmanDayBoundaries(points: JungmanSeriesPoint[]): { index: num
 
 /** 팀별 1시간 전 대비 증가분. 1시간 전 스냅샷이 없으면 빈 객체(= 화면엔 "—"). */
 export function buildJungmanHourDeltas(snapshots: JungmanSnapshot[], windowMs = HOUR_MS): Record<string, number> {
-  const latest = snapshots.length ? snapshots[snapshots.length - 1] : null;
-  if (!latest) return {};
-
-  const cutoff = Date.parse(latest.at) - windowMs;
-  // 1시간 이전 중 가장 최근 스냅샷. 그만큼 오래된 기록이 없으면 비교하지 않는다.
-  const baseline = snapshots.filter((snapshot) => Date.parse(snapshot.at) <= cutoff).pop();
+  const baseline = jungmanHourBaseline(snapshots, windowMs);
   if (!baseline) return {};
 
+  const latest = snapshots[snapshots.length - 1];
   return Object.fromEntries(
     JUNGMAN_VOTING_TEAMS.map((team) => [
       team.code,
