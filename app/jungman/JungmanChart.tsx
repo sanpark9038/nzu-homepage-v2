@@ -204,6 +204,56 @@ export function JungmanChart({
   );
 }
 
+/**
+ * 12팀 범례 — 선 끝 약칭만으로는 상위 5팀 말고는 누가 누군지 알 수 없다.
+ * 칩 클릭이 곧 팀 선택(재클릭 해제)이라 강조 규칙은 차트와 같은 FOCUS를 쓴다.
+ */
+function TeamLegend({
+  points,
+  selected,
+  onSelect,
+}: {
+  points: JungmanSeriesPoint[];
+  selected: string | null;
+  onSelect: (code: string) => void;
+}) {
+  const last = points[points.length - 1];
+  const ranks = jungmanRankMap(last ?? { votes: {} });
+  const ranked = JUNGMAN_VOTING_TEAMS.slice().sort(
+    (a, b) => (ranks.get(a.code) || 0) - (ranks.get(b.code) || 0)
+  );
+  const leadCodes = new Set(selected ? [selected] : ranked.slice(0, FOCUS).map((team) => team.code));
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-x-1 gap-y-1.5 border-t border-[rgba(155,185,240,0.1)] pt-3">
+      {ranked.map((team) => {
+        const lead = leadCodes.has(team.code);
+        return (
+          <button
+            key={team.code}
+            type="button"
+            aria-pressed={selected === team.code}
+            onClick={() => onSelect(team.code)}
+            className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-bold transition-colors ${
+              selected === team.code
+                ? "border-[#d4a94a] bg-[rgba(212,169,74,0.14)] text-[#e8ebf2]"
+                : lead
+                  ? "border-[rgba(155,185,240,0.2)] bg-[rgba(10,15,28,0.6)] text-[#e8ebf2] hover:border-[rgba(155,185,240,0.45)]"
+                  : "border-transparent bg-[rgba(10,15,28,0.4)] text-[#7a8299] hover:text-[#e8ebf2]"
+            }`}
+          >
+            <span
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ backgroundColor: teamAccent(team), opacity: lead ? 1 : 0.45 }}
+            />
+            {team.name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function Segmented<T extends string>({
   options,
   value,
@@ -243,6 +293,7 @@ function Segmented<T extends string>({
 export function JungmanChartPanel({
   series,
   selected,
+  onSelectTeam,
   mode,
   onModeChange,
   range,
@@ -250,6 +301,7 @@ export function JungmanChartPanel({
 }: {
   series: JungmanSeries[];
   selected: string | null;
+  onSelectTeam: (code: string) => void;
   mode: ChartMode;
   onModeChange: (next: ChartMode) => void;
   range: JungmanRangeKey;
@@ -293,6 +345,7 @@ export function JungmanChartPanel({
       <div className="mt-3">
         <JungmanChart points={active.points} mode={mode} selected={selected} />
       </div>
+      <TeamLegend points={active.points} selected={selected} onSelect={onSelectTeam} />
     </>
   );
 }

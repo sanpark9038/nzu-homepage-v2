@@ -130,10 +130,15 @@ function elapsedLabel(ms: number) {
   return minutes < 60 ? `${minutes}분 전 갱신` : `${Math.floor(minutes / 60)}시간 전 갱신`;
 }
 
-function LivePill({ latestAt }: { latestAt: string }) {
+/**
+ * 상단 갱신 상태. 차수는 3분 간격 수집에서는 의미가 없어 쓰지 않는다 —
+ * LIVE면 초 단위 경과, 아니면 마지막 집계 시각(한국시간)만 알린다.
+ */
+function UpdateStatus({ isLive, latestAt }: { isLive: boolean; latestAt: string }) {
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!isLive) return;
     const tick = () => setNow(Date.now());
     const first = window.setTimeout(tick, 0);
     const timer = window.setInterval(tick, 1000);
@@ -141,10 +146,21 @@ function LivePill({ latestAt }: { latestAt: string }) {
       window.clearTimeout(first);
       window.clearInterval(timer);
     };
-  }, []);
+  }, [isLive]);
+
+  if (!isLive) {
+    return (
+      <div className="flex shrink-0 items-center gap-2 rounded-full border border-[rgba(155,185,240,0.14)] bg-[rgba(10,15,28,0.6)] px-3.5 py-1.5">
+        <span className="h-2 w-2 shrink-0 rounded-full bg-[#7a8299]" />
+        <span className="whitespace-nowrap font-mono text-sm font-black tabular-nums text-[#e8ebf2]">
+          {jungmanSeoulTime(latestAt)} <span className="font-sans text-xs font-bold text-[#7a8299]">기준</span>
+        </span>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex items-center gap-2.5 rounded-full border border-[#e0705f]/45 bg-[rgba(224,112,95,0.08)] px-3.5 py-1.5">
+    <div className="flex shrink-0 items-center gap-2.5 rounded-full border border-[#e0705f]/45 bg-[rgba(224,112,95,0.08)] px-3.5 py-1.5">
       <span className="relative flex h-2 w-2 shrink-0">
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#e0705f] opacity-60 motion-reduce:hidden" />
         <span className="relative inline-flex h-2 w-2 rounded-full bg-[#e0705f]" />
@@ -175,9 +191,8 @@ export function JungmanCountdown({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <CountdownPill label="투표 마감까지" targetIso={voteCloseAt} closedLabel="투표 마감" />
-      {live ? (
-        <LivePill latestAt={latestAt} />
-      ) : autoCollect ? (
+      {/* LIVE 표시는 상단 갱신 상태(UpdateStatus)가 맡는다 — 여기서 또 그리면 같은 말이 두 번 나온다 */}
+      {live ? null : autoCollect ? (
         // 자동 수집 중이면 "발표 시각"이란 게 없다 — 잠깐 갱신이 끊겼을 뿐이니 대기로만 알린다.
         <Pill label="자동 집계" value={latestAt ? "갱신 대기 중" : "첫 집계 대기"} tone="idle" />
       ) : nextRevealAt ? (
@@ -459,7 +474,6 @@ export function JungmanDashboard({
   map: ReactNode;
 }) {
   const [progress, setProgress] = useState(1);
-  const [isFreshRound, setIsFreshRound] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [mode, setMode] = useState<"votes" | "rank">("votes");
@@ -481,7 +495,6 @@ export function JungmanDashboard({
     }
 
     if (seen >= round) return;
-    setIsFreshRound(true);
     pokeMap("data-reveal", "1");
     if (prefersReducedMotion()) return;
 
@@ -518,6 +531,9 @@ export function JungmanDashboard({
     return () => element.removeEventListener("click", onClick);
   }, [teams]);
 
+  // 시세판 행·범례 칩·지도 마커가 모두 같은 토글을 쓴다 — 다시 누르면 선택 해제
+  const selectTeam = (code: string) => setSelected((current) => (current === code ? null : code));
+
   const leaderVotes = standings[0]?.votes || 0;
   const tight = leaderVotes * JUNGMAN_CONTEST_RATIO;
   const detail = standings.find((standing) => standing.team.code === selected) ?? standings[0];
@@ -535,21 +551,10 @@ export function JungmanDashboard({
       <header className={`${PANEL} flex flex-wrap items-center gap-3 px-4 py-3`}>
         <div className="shrink-0">
           <p className="text-[0.625rem] font-black uppercase tracking-[0.2em] text-[#d4a94a]">중만컵 인기투표</p>
-          <h1 className="text-xl font-black tracking-tight">
-            투표 현황
-            <span
-              className={`ml-2 rounded-full px-2.5 py-0.5 align-middle text-[0.6875rem] font-black tracking-[0.08em] ${
-                isLive
-                  ? "border border-[#e0705f]/60 text-[#e0705f]"
-                  : isFreshRound
-                    ? "bg-[#d4a94a] text-[#0b0f1a]"
-                    : "border border-[#d4a94a]/50 text-[#d4a94a]"
-              }`}
-            >
-              {isLive ? "실시간 집계" : `${round}차 개표`}
-            </span>
-          </h1>
+          <h1 className="text-xl font-black tracking-tight">투표 현황</h1>
         </div>
+
+        <UpdateStatus isLive={isLive} latestAt={revealedAt} />
 
         {headlines.length ? <JungmanTicker headlines={headlines} /> : <div className="flex-1" />}
 
@@ -592,9 +597,7 @@ export function JungmanDashboard({
                       shown={shownVotes(standing)}
                       hourDelta={hourDeltas[standing.team.code]}
                       selected={selected === standing.team.code}
-                      onSelect={() =>
-                        setSelected((current) => (current === standing.team.code ? null : standing.team.code))
-                      }
+                      onSelect={() => selectTeam(standing.team.code)}
                       onHover={setHovered}
                     />
                     {cutline ? (
@@ -623,6 +626,7 @@ export function JungmanDashboard({
           <JungmanChartPanel
             series={series}
             selected={selected}
+            onSelectTeam={selectTeam}
             mode={mode}
             onModeChange={setMode}
             range={range}

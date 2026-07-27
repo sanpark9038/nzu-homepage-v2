@@ -143,7 +143,11 @@ test("jungman live mode has a server-computed window and a viewer-driven poller"
   assert.match(client, /if \(inFlight \|\| document\.hidden\) return;/);
   assert.match(client, /fetch\("\/api\/jungman\/collect"/);
   assert.match(client, /router\.refresh\(\)/);
-  assert.match(client, /실시간 집계/);
+  // 상단은 차수가 아니라 갱신 상태 — LIVE면 초 단위 경과, 아니면 마지막 집계 시각
+  assert.match(client, /LIVE<\/span>/);
+  assert.match(client, /elapsedLabel\(now - Date\.parse\(latestAt\)\)/);
+  assert.match(client, /\{jungmanSeoulTime\(latestAt\)\}/);
+  assert.doesNotMatch(client, /차 개표/);
   assert.match(client, /motion-reduce:hidden/);
 
   assert.match(page, /config\.autoCollect \? <JungmanAutoCollect \/> : null/);
