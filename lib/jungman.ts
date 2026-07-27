@@ -502,6 +502,9 @@ function withParticle(word: string, jong: string, plain: string): string {
  * 수집이 3분 간격이라 인접 두 기록 사이에는 사건이 거의 없어 티커가 한 문장으로 굳는다.
  * 사건(교체·컷라인)이 없어도 경합·격차·상승 같은 상시 소재로 채워 3문장 이상을 만든다.
  */
+/** 티커에 올릴 순위 교체 사건의 나이 상한 — 이보다 오래되면 '지금 벌어지는 일'이 아니다 */
+const HEADLINE_EVENT_MAX_AGE_MS = 40 * 60 * 1000;
+
 export function buildJungmanHeadlines(
   snapshots: JungmanSnapshot[],
   voteCloseAt: string | null = null,
@@ -533,8 +536,11 @@ export function buildJungmanHeadlines(
     if (line && !lines.includes(line)) lines.push(line);
   };
 
-  // 1) 순위 교체 — 타임라인의 최근 2건. 시각을 붙여 언제 일어난 일인지 남긴다.
+  // 1) 순위 교체 — 최근 2건. 다만 오래된 사건은 뺀다.
+  // 나이 제한이 없으면 순위가 한동안 안 바뀔 때 어제 일을 현재형으로 계속 방송한다.
   for (const event of buildJungmanRankEvents(snapshots, 2)) {
+    // 기준은 벽시계가 아니라 최신 집계 시점 — 화면 전체가 그 시점을 말하고 있다
+    if (Date.parse(latest.at) - Date.parse(event.at) > HEADLINE_EVENT_MAX_AGE_MS) continue;
     push(`${jungmanSeoulTime(event.at)} ${withParticle(event.name, "이", "가")} ${event.rank}위로 올라섰습니다`);
   }
 

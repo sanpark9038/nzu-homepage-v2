@@ -1015,3 +1015,24 @@ test("public routes carry their own description and canonical", () => {
     assert.ok(source.includes(`url: "${href}"`), `${file} must set og:url to ${href}`);
   }
 });
+
+test("jungman headlines drop stale rank swaps", () => {
+  const { buildJungmanHeadlines } = loadJungmanLib();
+  const at = (minutesAgo) => new Date(Date.now() - minutesAgo * 60_000).toISOString();
+  // 두 시점: 예전엔 DM이 1위, 지금은 KMS가 1위 — 교체 사건이 만들어진다
+  const snap = (round, minutesAgo, votes) => ({ round, at: at(minutesAgo), votes });
+  // 최신 집계 시점 기준으로 오래된 교체 (마지막 스냅샷보다 4시간 앞)
+  // 교체는 5시간 전에 일어났고 그 뒤로 순위 변화 없이 최신 집계까지 왔다
+  const old = [snap(1, 305, { DM: 100, KMS: 50 }), snap(2, 300, { DM: 100, KMS: 200 }), snap(3, 10, { DM: 100, KMS: 200 })];
+  const fresh = [snap(1, 20, { DM: 100, KMS: 50 }), snap(2, 10, { DM: 100, KMS: 200 })];
+
+  // 오래된 교체는 티커에 남지 않는다 — 어제 일을 현재형으로 방송하면 안 된다
+  assert.ok(
+    !buildJungmanHeadlines(old).some((line) => /위로 올라섰습니다/.test(line)),
+    "5시간 전 순위 교체가 티커에 남았다"
+  );
+  assert.ok(
+    buildJungmanHeadlines(fresh).some((line) => /위로 올라섰습니다/.test(line)),
+    "방금 일어난 순위 교체가 티커에서 빠졌다"
+  );
+});
