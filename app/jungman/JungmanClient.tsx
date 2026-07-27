@@ -59,11 +59,13 @@ function formatRemaining(targetIso: string, now: number) {
 }
 
 /** 상단 바 한 칸 — 세로로 쌓지 않고 라벨·값을 한 줄로 눕힌다 */
-type PillTone = "idle" | "gold" | "soon" | "urgent";
+type PillTone = "idle" | "gold" | "final" | "soon" | "urgent";
 
 const PILL_TONE: Record<PillTone, { box: string; label: string; value: string }> = {
   idle: { box: "border-[rgba(155,185,240,0.14)] bg-[rgba(10,15,28,0.6)]", label: "text-[#7a8299]", value: "text-[#e8ebf2]" },
   gold: { box: "border-[rgba(155,185,240,0.14)] bg-[rgba(10,15,28,0.6)]", label: "text-[#d4a94a]", value: "text-[#e8ebf2]" },
+  // 마감 후 확정 표시 — 갱신 상태 알약 자리를 골드로 굳힌다
+  final: { box: "border-[#d4a94a]/50 bg-[rgba(212,169,74,0.10)]", label: "text-[#d4a94a]", value: "text-[#f7e3b5]" },
   // 마감이 다가오면 같은 알약의 색과 라벨만 바뀐다 — 배너를 새로 띄우지 않는다
   soon: { box: "border-[#d4a94a]/50 bg-[rgba(212,169,74,0.10)]", label: "text-[#d4a94a]", value: "text-[#f7e3b5]" },
   urgent: { box: "border-[#e0705f]/60 bg-[rgba(224,112,95,0.12)]", label: "text-[#e0705f]", value: "text-[#ffd9d2]" },
@@ -329,6 +331,7 @@ function TickerRow({
   logo,
   shown,
   hourDelta,
+  showDelta,
   selected,
   onSelect,
   onHover,
@@ -337,6 +340,8 @@ function TickerRow({
   logo: string | null;
   shown: number;
   hourDelta: number | undefined;
+  /** 마감 후에는 멈춘 증가량이 현재 증감처럼 읽힌다 — 열을 통째로 뺀다 */
+  showDelta: boolean;
   selected: boolean;
   onSelect: () => void;
   onHover: (code: string | null) => void;
@@ -391,7 +396,7 @@ function TickerRow({
 
       <span className="flex flex-col items-end leading-tight">
         <span className="text-sm font-black tabular-nums text-[#e8ebf2]">{formatVotes(shown)}</span>
-        <HourDelta value={hourDelta} />
+        {showDelta ? <HourDelta value={hourDelta} /> : null}
       </span>
     </button>
   );
@@ -498,6 +503,7 @@ export function JungmanDashboard({
   voteCloseAt,
   nextRevealAt,
   autoCollect = false,
+  closed = false,
   map,
 }: {
   standings: JungmanStanding[];
@@ -516,6 +522,8 @@ export function JungmanDashboard({
   voteCloseAt: string;
   nextRevealAt: string | null;
   autoCollect?: boolean;
+  /** 투표 마감 — 서버 판정. 진행 중 신호(LIVE·경과·1시간 증가)를 전부 내린다 */
+  closed?: boolean;
   /** 지도는 서버 컴포넌트 — children으로 받아 88KB SVG를 클라이언트 번들에 넣지 않는다 */
   map: ReactNode;
 }) {
@@ -615,7 +623,11 @@ export function JungmanDashboard({
         </div>
 
         <div className="flex shrink-0 flex-col items-start gap-1">
-          <UpdateStatus isLive={isLive} latestAt={revealedAt} />
+          {closed ? (
+            <Pill label="최종 결과" value={`${jungmanSeoulTime(revealedAt)} 기준`} tone="final" />
+          ) : (
+            <UpdateStatus isLive={isLive} latestAt={revealedAt} />
+          )}
           {/* 갱신이 멈춘 것처럼 보이는 순간을 위해 집계 주기를 밝힌다 — 주기는 수집 상수에서 온다 */}
           {autoCollect ? (
             <span className="pl-1 text-[0.625rem] font-bold text-[#7a8299]">
@@ -649,17 +661,22 @@ export function JungmanDashboard({
             <div className="px-1 pb-2">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-black tracking-tight text-[#e8ebf2]">득표 순위</h2>
-                <Segmented
-                  label="시세판 정렬"
-                  value={sort}
-                  onChange={setSort}
-                  options={[
-                    { key: "rank" as SortKey, label: "순위순" },
-                    { key: "surge" as SortKey, label: "급상승순" },
-                  ]}
-                />
+                {/* 급상승순은 멈춘 1시간 증가량으로 줄을 세운다 — 마감 후에는 정렬 자체를 내린다 */}
+                {closed ? null : (
+                  <Segmented
+                    label="시세판 정렬"
+                    value={sort}
+                    onChange={setSort}
+                    options={[
+                      { key: "rank" as SortKey, label: "순위순" },
+                      { key: "surge" as SortKey, label: "급상승순" },
+                    ]}
+                  />
+                )}
               </div>
-              <p className="mt-1.5 text-right text-[0.625rem] font-bold text-[#7a8299]">득표 · 1시간 변화</p>
+              <p className="mt-1.5 text-right text-[0.625rem] font-bold text-[#7a8299]">
+                {closed ? "최종 득표" : "득표 · 1시간 변화"}
+              </p>
             </div>
 
             <ol className="flex flex-col gap-1">
@@ -676,6 +693,7 @@ export function JungmanDashboard({
                       logo={logos[standing.team.code] ?? null}
                       shown={shownVotes(standing)}
                       hourDelta={hourDeltas[standing.team.code]}
+                      showDelta={!closed}
                       selected={selected === standing.team.code}
                       onSelect={() => selectTeam(standing.team.code)}
                       onHover={setHovered}
@@ -734,7 +752,9 @@ export function JungmanDashboard({
                   <span className="ml-1 text-base font-bold text-[#7a8299]">표</span>
                 </p>
                 <div className="mt-2 divide-y divide-[rgba(155,185,240,0.1)]">
-                  <StatRow label="1시간 변화" value={<HourDelta value={hourDeltas[detail.team.code]} />} />
+                  {closed ? null : (
+                    <StatRow label="1시간 변화" value={<HourDelta value={hourDeltas[detail.team.code]} />} />
+                  )}
                   <StatRow label="최고 순위" value={`${bestRanks[detail.team.code] ?? detail.rank}위`} />
                   {detailGap ? <StatRow label={detailGap.label} value={detailGap.text} /> : null}
                 </div>

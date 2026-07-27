@@ -8,6 +8,16 @@ export const revalidate = 60;
 export const metadata = {
   title: "HOSAGA",
   description: "대회 홈 화면과 주요 진입 경로를 가장 빠르게 연결하는 메인 페이지",
+  // canonical·og:url은 페이지마다 자기 주소로 붙인다 — 루트 레이아웃에 두면 하위 페이지까지 "/"로 상속된다
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "호사가 (HOSAGA) — 스타크래프트 대학대전",
+    description: "숲 스타크래프트 대학대전 호사가(HOSAGA) 공식 홈페이지",
+    url: "/",
+    siteName: "호사가 HOSAGA",
+    type: "website",
+    locale: "ko_KR",
+  },
 };
 
 export default async function HomePage() {

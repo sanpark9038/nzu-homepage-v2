@@ -517,6 +517,11 @@ export function buildJungmanHeadlines(
   const votesOf = (team: JungmanTeam) => latest.votes[team.code] || 0;
   const leaderVotes = votesOf(ordered[0]);
 
+  // 마감 뒤에는 진행 중을 암시하는 문장이 한 줄도 나오면 안 된다 — 확정 결과 한 문장으로 고정한다
+  if (voteCloseAt && isJungmanClosed(voteCloseAt, now)) {
+    return [`최종 결과 — 1위 ${ordered[0].name} ${formatVotes(leaderVotes)}표`];
+  }
+
   const cutoff = Date.parse(latest.at) - HOUR_MS;
   const baseline = snapshots.filter((snapshot) => Date.parse(snapshot.at) <= cutoff).pop() ?? snapshots[0];
   const baselineRanks = baseline === latest ? null : jungmanRankMap(baseline);
@@ -822,6 +827,12 @@ export function buildJungmanState(
     isLive: isJungmanLive(latest),
     degraded,
   };
+}
+
+/** 투표 마감 여부. 서버에서 1회 판정한다 — 클라이언트 시계로 화면이 흔들리면 안 된다. */
+export function isJungmanClosed(voteCloseAt: string, now = Date.now()): boolean {
+  const at = Date.parse(voteCloseAt);
+  return Number.isFinite(at) && now >= at;
 }
 
 export function isJungmanLive(latest: JungmanSnapshot | null, now = Date.now()): boolean {

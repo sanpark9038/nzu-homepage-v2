@@ -9,6 +9,7 @@ import {
   buildJungmanRankEvents,
   buildJungmanSeries,
   getJungmanState,
+  isJungmanClosed,
   JUNGMAN_SEED_TEAM_CODE,
   JUNGMAN_TEAMS,
   JUNGMAN_VOTE_METHOD_LABEL,
@@ -25,6 +26,15 @@ export const revalidate = 60;
 export const metadata: Metadata = {
   title: "중만컵 투표 현황",
   description: "중만컵 인기투표 차수별 개표 현황 — 연고지 지도, 득표 순위, 추이",
+  alternates: { canonical: "/jungman" },
+  openGraph: {
+    title: "중만컵 투표 현황 | 호사가 HOSAGA",
+    description: "중만컵 인기투표 개표 현황 — 연고지 지도, 득표 순위, 추이",
+    url: "/jungman",
+    siteName: "호사가 HOSAGA",
+    type: "website",
+    locale: "ko_KR",
+  },
 };
 
 const PANEL =
@@ -34,8 +44,12 @@ export default async function JungmanPage() {
   const { config, snapshots, latest, standings, isLive: inLiveWindow, degraded } = await getJungmanState();
   const markers = buildJungmanMarkers(standings);
   const seedTeam = JUNGMAN_TEAMS.find((team) => team.code === JUNGMAN_SEED_TEAM_CODE);
+  // 마감 판정도 서버에서 한 번만 — 클라이언트 시계로 종료 화면이 흔들리면 안 된다
+  const closed = isJungmanClosed(config.voteCloseAt);
   // LIVE 판정은 여기 한 곳에서만 — 카운트다운과 보드 배지가 서로 다른 조건을 쓰면 배지가 어긋난다
-  const isLive = inLiveWindow && latest !== null;
+  const isLive = inLiveWindow && latest !== null && !closed;
+  // 마감 뒤에는 수집기도 스스로 멈춘다 — "자동 집계" 안내가 남아 있으면 거짓말이 된다
+  const autoCollect = config.autoCollect && !closed;
   const headlines = buildJungmanHeadlines(snapshots, config.voteCloseAt);
   // 로고 파일 존재 확인은 fs — 서버에서 끝내고 보드(클라이언트)에는 경로만 내려준다
   const logos = Object.fromEntries(
@@ -50,7 +64,8 @@ export default async function JungmanPage() {
   return (
     <div className="min-h-screen bg-[#0b0f1a] text-[#e8ebf2]">
       <main className="mx-auto w-full max-w-[1600px] px-3 py-5 md:px-5">
-        {autoRefresh ? <JungmanAutoRefresh /> : null}
+        {/* 마감 뒤에는 받아올 새 데이터가 없다 — 자동 갱신을 멈춘다 */}
+        {closed ? null : autoRefresh ? <JungmanAutoRefresh /> : null}
 
         {latest ? (
           <JungmanDashboard
@@ -67,7 +82,8 @@ export default async function JungmanPage() {
             seedTeamName={seedTeam?.name ?? null}
             voteCloseAt={config.voteCloseAt}
             nextRevealAt={config.nextRevealAt}
-            autoCollect={config.autoCollect}
+            autoCollect={autoCollect}
+            closed={closed}
             // #jm-map은 선택·hover ↔ 마커 강조 연동의 앵커 — 대시보드가 data-active/data-reveal을 세팅한다
             map={
               <div id="jm-map">
@@ -103,7 +119,7 @@ export default async function JungmanPage() {
                     nextRevealAt={config.nextRevealAt}
                     isLive={isLive}
                     latestAt={null}
-                    autoCollect={config.autoCollect}
+                    autoCollect={autoCollect}
                   />
                 </div>
               )}

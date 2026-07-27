@@ -222,7 +222,8 @@ test("jungman live mode has a server-computed window and a viewer-driven poller"
 
   // 자동 갱신을 autoCollect 하나에 매달면 읽기 실패(=기본값 false) 순간 회복 수단까지 사라진다
   assert.match(page, /const autoRefresh = config\.autoCollect \|\| snapshots\.length > 0 \|\| degraded;/);
-  assert.match(page, /\{autoRefresh \? <JungmanAutoRefresh \/> : null\}/);
+  // 마감 뒤에는 자동 갱신을 끈다 — 끝난 데이터를 90초마다 다시 받아올 이유가 없다
+  assert.match(page, /\{closed \? null : autoRefresh \? <JungmanAutoRefresh \/> : null\}/);
   assert.match(page, /isLive=\{isLive\}/);
 });
 
@@ -774,4 +775,164 @@ test("jungman team short labels follow the project metadata", () => {
       `${team.name} 표기가 메타데이터(${documented})와 다르다`
     );
   }
+});
+
+test("jungman freezes into a final result once the vote closes", () => {
+  const { isJungmanClosed, buildJungmanHeadlines } = loadJungmanLib();
+  const page = readProjectFile("app/jungman/page.tsx");
+  const client = readProjectFile("app/jungman/JungmanClient.tsx");
+
+  const closeAt = "2026-07-30T15:00:00.000Z";
+  assert.equal(isJungmanClosed(closeAt, Date.parse(closeAt) - 1000), false);
+  assert.equal(isJungmanClosed(closeAt, Date.parse(closeAt)), true);
+  // 설정이 깨져 마감 시각을 못 읽으면 진행 중으로 남는다 — 멀쩡한 투표를 종료로 덮으면 안 된다
+  assert.equal(isJungmanClosed("not-a-date", Date.now()), false);
+
+  // 티커는 확정 한 문장으로 고정 — 진행 중을 암시하는 문장이 하나도 섞이면 안 된다
+  const lines = buildJungmanHeadlines(
+    [headlineSnapshot(1, headlineBase), headlineSnapshot(2, { ...headlineBase, C9: 850 })],
+    closeAt,
+    Date.parse(closeAt) + 60_000
+  );
+  assert.deepEqual(lines, ["최종 결과 — 1위 DM 1,000표"]);
+  // 마감 전에는 한 글자도 달라지지 않는다
+  assert.ok(
+    buildJungmanHeadlines([headlineSnapshot(1, headlineBase)], closeAt, Date.parse(closeAt) - 60_000).length >= 3
+  );
+
+  // 판정은 서버에서 1회 — 클라이언트 시계로 종료 화면이 흔들리면 안 된다
+  assert.match(page, /const closed = isJungmanClosed\(config\.voteCloseAt\);/);
+  assert.match(page, /const isLive = inLiveWindow && latest !== null && !closed;/);
+  assert.match(page, /const autoCollect = config\.autoCollect && !closed;/);
+  assert.match(page, /closed=\{closed\}/);
+
+  // 멈춘 1시간 증가량이 현재 증감처럼 읽히면 안 된다 — 시세판 열과 레일 항목을 내린다
+  assert.match(client, /showDelta \? <HourDelta value=\{hourDelta\} \/> : null/);
+  assert.match(client, /showDelta=\{!closed\}/);
+  assert.match(client, /closed \? null : \(\s*<StatRow label="1시간 변화"/);
+  // 갱신 상태 알약은 골드 "최종 결과"로 굳는다 (LIVE·경과 표시 대신)
+  assert.match(client, /<Pill label="최종 결과" value=\{`\$\{jungmanSeoulTime\(revealedAt\)\} 기준`\} tone="final" \/>/);
+});
+
+/** 수집 라우트를 실제로 실행한다. next/* 와 관리자 인증·수집기는 스텁으로 대신 답한다. */
+function loadCollectRoute({ admin = false } = {}) {
+  const forces = [];
+  const route = loadModule("app/api/jungman/collect/route.ts", (id) => {
+    if (id === "next/cache") return { revalidatePath: () => {} };
+    if (id === "next/headers") {
+      return { cookies: async () => ({ get: () => (admin ? { value: "admin-token" } : undefined) }) };
+    }
+    if (id === "next/server") {
+      return { NextResponse: { json: (body, init) => ({ status: (init && init.status) || 200, body }) } };
+    }
+    if (id === "@/lib/admin-auth") {
+      return {
+        ADMIN_SESSION_COOKIE: "nzu_admin",
+        isValidAdminSession: (value) => value === "admin-token",
+      };
+    }
+    return {
+      collectJungmanSnapshot: async (force) => {
+        forces.push(force);
+        return { ok: true, round: 1, votes: {}, carried: [] };
+      },
+    };
+  });
+
+  return { route, forces };
+}
+
+const collectRequest = (headers = {}, body = {}) =>
+  new Request("https://www.star-hosaga.com/api/jungman/collect", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+
+test("jungman collect endpoint honours an optional shared secret", async () => {
+  const original = process.env.JUNGMAN_COLLECT_SECRET;
+  try {
+    // 시크릿 미설정 = 지금 그대로 공개. 배포가 크론 헤더 설정보다 먼저 나가도 수집이 끊기면 안 된다.
+    delete process.env.JUNGMAN_COLLECT_SECRET;
+    const open = loadCollectRoute();
+    assert.equal((await open.route.POST(collectRequest())).status, 200);
+    assert.equal(open.forces.length, 1);
+
+    process.env.JUNGMAN_COLLECT_SECRET = "s3cret";
+
+    // 헤더 없음·틀린 헤더는 401이고 DB 근처도 못 간다
+    for (const headers of [{}, { "x-jungman-secret": "wrong" }]) {
+      const blocked = loadCollectRoute();
+      const response = await blocked.route.POST(collectRequest(headers));
+      assert.equal(response.status, 401);
+      assert.deepEqual(response.body, { ok: false, skipped: "unauthorized" });
+      assert.equal(blocked.forces.length, 0, "unauthorized must not reach the collector");
+    }
+
+    const allowed = loadCollectRoute();
+    assert.equal((await allowed.route.POST(collectRequest({ "x-jungman-secret": "s3cret" }))).status, 200);
+    assert.equal(allowed.forces.length, 1);
+
+    // 관리자 [지금 수집]은 시크릿 헤더 없이도 통과하고 force도 쓴다
+    const asAdmin = loadCollectRoute({ admin: true });
+    assert.equal((await asAdmin.route.POST(collectRequest({}, { force: true }))).status, 200);
+    assert.deepEqual(asAdmin.forces, [true]);
+
+    // force는 관리자 쿠키가 있을 때만 — 시크릿만 아는 크론은 쿨다운을 못 뚫는다
+    const cron = loadCollectRoute();
+    await cron.route.POST(collectRequest({ "x-jungman-secret": "s3cret" }, { force: true }));
+    assert.deepEqual(cron.forces, [false]);
+  } finally {
+    if (original === undefined) delete process.env.JUNGMAN_COLLECT_SECRET;
+    else process.env.JUNGMAN_COLLECT_SECRET = original;
+  }
+});
+
+test("jungman collect endpoint throttles repeat calls inside one instance", async () => {
+  const original = process.env.JUNGMAN_COLLECT_SECRET;
+  try {
+    delete process.env.JUNGMAN_COLLECT_SECRET;
+    const run = loadCollectRoute();
+
+    assert.equal((await run.route.POST(collectRequest())).status, 200);
+    const second = await run.route.POST(collectRequest());
+    assert.deepEqual(second.body, { ok: false, skipped: "throttled" });
+    assert.equal(run.forces.length, 1, "throttled call must not reach the collector");
+
+    // 관리자 force는 예외 — [지금 수집]이 20초 벽에 막히면 손 쓸 수단이 사라진다
+    const adminRun = loadCollectRoute({ admin: true });
+    await adminRun.route.POST(collectRequest({}, { force: true }));
+    await adminRun.route.POST(collectRequest({}, { force: true }));
+    assert.deepEqual(adminRun.forces, [true, true]);
+  } finally {
+    if (original === undefined) delete process.env.JUNGMAN_COLLECT_SECRET;
+    else process.env.JUNGMAN_COLLECT_SECRET = original;
+  }
+});
+
+test("public pages expose robots, a sitemap and a canonical base", () => {
+  const robots = readProjectFile("app/robots.ts");
+  const sitemap = readProjectFile("app/sitemap.ts");
+  const layout = readProjectFile("app/layout.tsx");
+
+  assert.match(robots, /disallow: \["\/admin", "\/api"\]/);
+  assert.match(robots, /sitemap: `\$\{SITE_URL\}\/sitemap\.xml`/);
+
+  // 사이트맵 원본은 내비게이션 하나 — 메뉴가 늘면 사이트맵도 같이 는다
+  assert.match(sitemap, /visibleNavbarLinks/);
+  assert.match(sitemap, /\.filter\(\(link\) => !link\.href\.startsWith\("\/overlay"\)\)/);
+  // 동적 상세를 수천 개 흘리지 않는다
+  assert.doesNotMatch(sitemap, /\/player\/\$\{/);
+
+  assert.match(layout, /metadataBase: new URL\(SITE_URL\)/);
+  assert.match(layout, /robots: \{ index: true, follow: true \}/);
+  assert.match(layout, /siteName: "호사가 HOSAGA"/);
+  // og:url도 canonical과 같은 함정 — 루트에 박으면 하위 페이지 카드가 전부 홈을 가리킨다
+  assert.doesNotMatch(layout, /url: "\/"/);
+  // 빈 검증 코드는 없느니만 못하다
+  assert.doesNotMatch(layout, /YOUR_NAVER_CODE/);
+  // canonical은 페이지별 자기 주소 — 루트에 두면 하위 페이지까지 "/"로 상속된다
+  assert.doesNotMatch(layout, /alternates:/);
+  assert.match(readProjectFile("app/page.tsx"), /alternates: \{ canonical: "\/" \}/);
+  assert.match(readProjectFile("app/jungman/page.tsx"), /alternates: \{ canonical: "\/jungman" \}/);
 });

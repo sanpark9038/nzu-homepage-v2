@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
+import { SITE_URL } from "@/lib/site-url";
+
 export const metadata: Metadata = {
+  // 상대 경로 메타(og:url·canonical)의 기준. 없으면 절대 URL이 아예 안 나간다.
+  metadataBase: new URL(SITE_URL),
+  robots: { index: true, follow: true },
   title: {
     default: "호사가 (HOSAGA) — 스타크래프트 대학대전",
     template: "%s | 호사가 HOSAGA",
@@ -12,6 +17,8 @@ export const metadata: Metadata = {
   openGraph: {
     title: "호사가 (HOSAGA) — 스타크래프트 대학대전",
     description: "숲 스타크래프트 대학대전 호사가(HOSAGA) 공식 홈페이지",
+    siteName: "호사가 HOSAGA",
+    // og:url도 canonical과 같다 — 루트에 박으면 하위 페이지 카드가 전부 홈을 가리킨다. 페이지마다 붙인다.
     type: "website",
     locale: "ko_KR",
   },
@@ -32,9 +39,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning>
-      <head>
-        <meta name="naver-site-verification" content="YOUR_NAVER_CODE" />
-      </head>
       <body className="min-h-screen antialiased bg-background text-foreground transition-colors duration-300">
         <ThemeProvider>
           <div className="flex h-screen bg-background text-foreground transition-colors duration-300 overflow-hidden">
