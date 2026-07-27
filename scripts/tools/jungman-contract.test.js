@@ -563,3 +563,20 @@ test("jungman is reachable from public and admin navigation", () => {
   assert.match(readProjectFile("components/Navbar.tsx"), /"\/jungman":/);
   assert.match(readProjectFile("components/admin/AdminNav.tsx"), /href: "\/admin\/jungman"/);
 });
+
+test("jungman team short labels follow the project metadata", () => {
+  const { JUNGMAN_TEAMS, teamShort } = loadJungmanLib();
+  // 표기는 임의로 정하지 않는다 — data/metadata/projects/*/players.*.json의 team_name_en이 원본이다
+  const META = { KMS: "calm", HKA: "black", C9: "c9", DM: "dm", WFU: "wfu", JSA: "jsa",
+    BGM: "bgm", HM: "hm", SSG: "ssg", NCS: "ncs", MBU: "mbu", KU: "ku", SSU: "ssu" };
+
+  for (const team of JUNGMAN_TEAMS) {
+    const file = `data/metadata/projects/${META[team.code]}/players.${META[team.code]}.v1.json`;
+    const documented = JSON.parse(readProjectFile(file)).team_name_en;
+    assert.equal(
+      teamShort(team).toUpperCase(),
+      String(documented).toUpperCase(),
+      `${team.name} 표기가 메타데이터(${documented})와 다르다`
+    );
+  }
+});

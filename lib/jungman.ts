@@ -67,7 +67,7 @@ export const JUNGMAN_TEAMS: JungmanTeam[] = [
   { code: "WFU", name: "와플대", color: "#ece0cc", dark: false, x: 305.1, y: 225.4, pinX: 316.1, pinY: 237.4, aliases: ["와플대", "와플", "WFU"] },
   { code: "JSA", name: "JSA", color: "#e8801a", dark: true, x: 399.3, y: 233.5, pinX: 427.7, pinY: 260, aliases: ["JSA", "제이에스에이"] },
   { code: "BGM", name: "BGM", color: "#f2a98f", dark: false, x: 493.3, y: 222.4, pinX: 464.9, pinY: 237.4, aliases: ["BGM", "비지엠"] },
-  { code: "HKA", name: "흑카데미", color: "#0f0f0f", accent: "#e2532b", dark: true, x: 416.3, y: 320.4, pinX: 446.3, pinY: 293.9, aliases: ["흑카데미", "블랙아카데미", "블아", "B.A", "BA", "BLACK"] },
+  { code: "HKA", name: "흑카데미", short: "B.A", color: "#0f0f0f", accent: "#e2532b", dark: true, x: 416.3, y: 320.4, pinX: 446.3, pinY: 293.9, aliases: ["흑카데미", "블랙아카데미", "블아", "B.A", "BA", "BLACK"] },
   { code: "HM", name: "HM", color: "#f2f2f2", dark: false, x: 513.5, y: 350.4, pinX: 483.5, pinY: 350.4, aliases: ["HM", "에이치엠"] },
   { code: "SSG", name: "신세계", color: "#e0574a", dark: true, x: 427.7, y: 440.9, pinX: 427.7, pinY: 440.9, aliases: ["신세계", "SSG"] },
   { code: "NCS", name: "뉴캣슬", color: "#7b6fd0", dark: true, x: 725.3, y: 124.3, pinX: 725.3, pinY: 124.3, aliases: ["뉴캣슬", "뉴캐슬", "NCS", "N.C.S"] },
