@@ -43,8 +43,6 @@ const MAP_STYLE = `
   .jm-tick{fill:none;stroke:rgba(212,169,74,.34);stroke-width:1.6;}
   .jm-region{fill:#7a8299;opacity:.42;font-size:15px;letter-spacing:.16em;text-anchor:middle;}
 
-  .jm-pin{fill:var(--a);opacity:.85;}
-  .jm-lead{stroke:var(--a);stroke-width:1;stroke-opacity:.34;stroke-dasharray:3 3;}
   .jm-m{transition:transform .18s ease;cursor:default;}
   .jm-m:hover{transform:scale(1.07);}
   .jm-m .jm-card{fill:var(--c);stroke:rgba(226,236,255,.30);stroke-width:1.5;
@@ -127,28 +125,6 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
         <g dangerouslySetInnerHTML={{ __html: JUNGMAN_MAP_BASE }} />
 
         {markers.map((marker) => {
-          const style = { "--c": marker.color, "--a": marker.accent } as CSSProperties;
-          const distance = Math.hypot(marker.x - marker.pinX, marker.y - marker.pinY);
-          const k = distance > 24 ? (distance - 22) / distance : 0;
-
-          return (
-            <g key={`pin-${marker.code}`}>
-              {k ? (
-                <line
-                  className="jm-lead"
-                  x1={marker.pinX + (marker.x - marker.pinX) * (1 - k)}
-                  y1={marker.pinY + (marker.y - marker.pinY) * (1 - k)}
-                  x2={marker.pinX}
-                  y2={marker.pinY}
-                  style={style}
-                />
-              ) : null}
-              <circle className="jm-pin" cx={marker.pinX} cy={marker.pinY} r={2.4} style={style} />
-            </g>
-          );
-        })}
-
-        {markers.map((marker) => {
           const sub = subLabel(marker);
           const width = Math.max(58, Math.round(Math.max(textWidth(marker.name, 13), textWidth(sub, 11)) + 18));
           const tone = marker.seed
@@ -172,6 +148,7 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
                 style={
                   {
                     "--c": marker.color,
+                    "--a": marker.accent,
                     "--g": `${glowRadius(marker.voteShare)}px`,
                     "--d": `${((marker.rank || 1) - 1) * 45}ms`,
                   } as CSSProperties
