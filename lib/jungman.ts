@@ -487,10 +487,17 @@ function withParticle(word: string, jong: string, plain: string): string {
 }
 
 /**
- * 최신 2개 스냅샷을 비교해 "지금 무슨 일이 벌어졌는지"를 문장으로. 중요도순 최대 3개.
- * 사건이 하나도 없으면 선두 유지 문장 1개를 돌려준다 — 티커가 비지 않게.
+ * 티커용 문장 묶음 — 중요도순 최대 5개.
+ *
+ * 비교 기준은 직전 스냅샷이 아니라 "1시간 전"(없으면 가장 오래된 것)이다.
+ * 수집이 3분 간격이라 인접 두 기록 사이에는 사건이 거의 없어 티커가 한 문장으로 굳는다.
+ * 사건(교체·컷라인)이 없어도 경합·격차·상승 같은 상시 소재로 채워 3문장 이상을 만든다.
  */
-export function buildJungmanHeadlines(snapshots: JungmanSnapshot[]): string[] {
+export function buildJungmanHeadlines(
+  snapshots: JungmanSnapshot[],
+  voteCloseAt: string | null = null,
+  now = Date.now()
+): string[] {
   const latest = snapshots.length ? snapshots[snapshots.length - 1] : null;
   if (!latest) return [];
 
@@ -501,87 +508,115 @@ export function buildJungmanHeadlines(snapshots: JungmanSnapshot[]): string[] {
   const votesOf = (team: JungmanTeam) => latest.votes[team.code] || 0;
   const leaderVotes = votesOf(ordered[0]);
 
-  const previous = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
-  const previousRanks = previous ? jungmanRankMap(previous) : null;
+  const cutoff = Date.parse(latest.at) - HOUR_MS;
+  const baseline = snapshots.filter((snapshot) => Date.parse(snapshot.at) <= cutoff).pop() ?? snapshots[0];
+  const baselineRanks = baseline === latest ? null : jungmanRankMap(baseline);
 
-  const swaps: string[] = [];
-  const cutlines: string[] = [];
-  const close: string[] = [];
-  const surge: string[] = [];
+  const lines: string[] = [];
+  const push = (line: string | null) => {
+    if (line && !lines.includes(line)) lines.push(line);
+  };
 
-  if (previous && previousRanks) {
-    for (const team of ordered) {
-      if (swaps.length >= 2) break;
-      const rank = ranks.get(team.code) || 0;
-      const before = previousRanks.get(team.code) || 0;
-      if (before <= rank) continue;
-      const passed = ordered.find(
-        (other) => other.code !== team.code && previousRanks.get(other.code) === rank
-      );
-      if (!passed || (ranks.get(passed.code) || 0) <= rank) continue;
-
-      swaps.push(
-        `${withParticle(team.name, "이", "가")} ${withParticle(passed.name, "을", "를")} 제치고 ${rank}위로 올라섰습니다`
-      );
-    }
-
-    for (const team of ordered) {
-      const rank = ranks.get(team.code) || 0;
-      const before = previousRanks.get(team.code) || 0;
-      const line =
-        before > JUNGMAN_SEED_CUT && rank <= JUNGMAN_SEED_CUT
-          ? "시드권에 진입했습니다"
-          : before <= JUNGMAN_SEED_CUT && rank > JUNGMAN_SEED_CUT
-            ? "시드권에서 밀려났습니다"
-            : before > JUNGMAN_WILDCARD_CUT && rank <= JUNGMAN_WILDCARD_CUT
-              ? "와일드카드권에서 벗어났습니다"
-              : before <= JUNGMAN_WILDCARD_CUT && rank > JUNGMAN_WILDCARD_CUT
-                ? "와일드카드권으로 밀렸습니다"
-                : null;
-      if (!line) continue;
-
-      cutlines.push(`${withParticle(team.name, "이", "가")} ${line}`);
-    }
-
-    let best: JungmanTeam | null = null;
-    let bestGain = 0;
-    for (const team of ordered) {
-      const gain = votesOf(team) - (previous.votes[team.code] || 0);
-      if (gain > bestGain) {
-        bestGain = gain;
-        best = team;
-      }
-    }
-    if (best) {
-      surge.push(
-        `이번 집계에서 ${withParticle(best.name, "이", "가")} +${formatVotes(bestGain)}표로 가장 많이 늘었습니다`
-      );
-    }
+  // 1) 순위 교체 — 타임라인의 최근 2건. 시각을 붙여 언제 일어난 일인지 남긴다.
+  for (const event of buildJungmanRankEvents(snapshots, 2)) {
+    push(`${jungmanSeoulTime(event.at)} ${withParticle(event.name, "이", "가")} ${event.rank}위로 올라섰습니다`);
   }
 
-  // 초박빙 — 인접 순위 표차가 1위 표수의 3% 이내. 가장 높은 순위 한 건만.
+  // 2) 컷라인 통과 — 시드권·와일드카드권 경계를 넘나든 팀
+  let crossings = 0;
+  for (const team of ordered) {
+    if (!baselineRanks || crossings >= 2) break;
+    const rank = ranks.get(team.code) || 0;
+    const before = baselineRanks.get(team.code) || 0;
+    const line =
+      before > JUNGMAN_SEED_CUT && rank <= JUNGMAN_SEED_CUT
+        ? "시드권에 진입했습니다"
+        : before <= JUNGMAN_SEED_CUT && rank > JUNGMAN_SEED_CUT
+          ? "시드권에서 밀려났습니다"
+          : before > JUNGMAN_WILDCARD_CUT && rank <= JUNGMAN_WILDCARD_CUT
+            ? "와일드카드권에서 벗어났습니다"
+            : before <= JUNGMAN_WILDCARD_CUT && rank > JUNGMAN_WILDCARD_CUT
+              ? "와일드카드권으로 밀렸습니다"
+              : null;
+    if (!line) continue;
+
+    crossings++;
+    push(`${withParticle(team.name, "이", "가")} ${line}`);
+  }
+
+  // 3) 마감 임박 — 6시간 안쪽일 때만. 스스로 사라지는 소재라 상시 소재보다 앞에 둔다.
+  const remaining = voteCloseAt ? Date.parse(voteCloseAt) - now : NaN;
+  if (Number.isFinite(remaining) && remaining > 0 && remaining <= 6 * HOUR_MS) {
+    const hours = Math.floor(remaining / HOUR_MS);
+    const minutes = Math.max(1, Math.floor((remaining % HOUR_MS) / 60_000));
+    push(`투표 마감까지 ${hours ? `${hours}시간 ` : ""}${minutes}분 남았습니다`);
+  }
+
+  /** i번째와 i+1번째 순위의 표차 한 줄 */
+  const gapLine = (i: number): string | null => {
+    if (leaderVotes <= 0 || i < 0 || i + 1 >= ordered.length) return null;
+    const gap = votesOf(ordered[i]) - votesOf(ordered[i + 1]);
+    const upper = withParticle(ordered[i].name, "과", "와");
+    const lower = withParticle(ordered[i + 1].name, "이", "가");
+    return gap === 0
+      ? `${i + 1}위 ${upper} ${i + 2}위 ${lower} 동률입니다`
+      : `${i + 1}위 ${upper} ${i + 2}위 ${lower} ${formatVotes(gap)}표 차입니다`;
+  };
+
+  // 4) 초박빙 — 인접 표차가 1위 표수의 3% 이내인 가장 높은 자리 한 건
   const threshold = leaderVotes * JUNGMAN_CONTEST_RATIO;
+  let tight = -1;
   if (threshold > 0) {
-    for (let i = 0; i < ordered.length - 1 && !close.length; i++) {
-      const gap = votesOf(ordered[i]) - votesOf(ordered[i + 1]);
-      if (gap > threshold) continue;
+    for (let i = 0; i < ordered.length - 1 && tight < 0; i++) {
+      if (votesOf(ordered[i]) - votesOf(ordered[i + 1]) <= threshold) tight = i;
+    }
+    if (tight >= 0) push(gapLine(tight));
+  }
 
-      const upper = withParticle(ordered[i].name, "과", "와");
-      const lower = withParticle(ordered[i + 1].name, "이", "가");
-      close.push(
-        gap === 0
-          ? `${i + 1}위 ${upper} ${i + 2}위 ${lower} 동률입니다`
-          : `${i + 1}위 ${upper} ${i + 2}위 ${lower} ${formatVotes(gap)}표 차입니다`
-      );
+  // 5~6) 컷라인 경합 — 3위/4위, 10위/11위. 사건이 없는 날의 주력 소재다.
+  push(gapLine(JUNGMAN_SEED_CUT - 1));
+  push(gapLine(JUNGMAN_WILDCARD_CUT - 1));
+
+  // 7) 최다 상승 — 1시간 전 기록이 있으면 그 구간, 없으면 누적 전체
+  const hourDeltas = buildJungmanHourDeltas(snapshots);
+  const hourly = Object.keys(hourDeltas).length > 0;
+  let riser: JungmanTeam | null = null;
+  let bestGain = 0;
+  for (const team of ordered) {
+    const gain = hourly
+      ? hourDeltas[team.code] || 0
+      : votesOf(team) - (baseline.votes[team.code] || 0);
+    if (gain > bestGain) {
+      bestGain = gain;
+      riser = team;
+    }
+  }
+  if (riser) {
+    push(
+      `${hourly ? "최근 1시간" : "지금까지"} ${withParticle(riser.name, "이", "가")} +${formatVotes(bestGain)}표로 가장 많이 늘었습니다`
+    );
+  }
+
+  // 8) 만 단위 이정표 — 기준 시점에는 못 미쳤고 지금 넘긴 경우만
+  const sum = (votes: Record<string, number>) =>
+    JUNGMAN_VOTING_TEAMS.reduce((total, team) => total + (votes[team.code] || 0), 0);
+  const milestone = Math.floor(sum(latest.votes) / 10_000) * 10_000;
+  if (milestone > 0 && sum(baseline.votes) < milestone) {
+    push(`총 투표수 ${milestone / 10_000}만 표를 넘었습니다`);
+  }
+
+  // 9) 선두 격차 — 늘 참인 마지막 채움. 초박빙이 이미 1·2위를 다뤘으면 생략한다.
+  if (tight !== 0 && ordered.length > 1) {
+    const gap = leaderVotes - votesOf(ordered[1]);
+    if (gap > 0) {
+      push(`1위 ${withParticle(ordered[0].name, "이", "가")} 2위와 ${formatVotes(gap)}표 차로 앞서 있습니다`);
     }
   }
 
-  const headlines = [...swaps, ...cutlines, ...close, ...surge].slice(0, 3);
-  if (headlines.length) return headlines;
-
-  return [
-    `1위 ${withParticle(ordered[0].name, "이", "가")} ${formatVotes(leaderVotes)}표로 선두를 지키고 있습니다`,
-  ];
+  if (!lines.length) {
+    return [`1위 ${withParticle(ordered[0].name, "이", "가")} ${formatVotes(leaderVotes)}표로 선두를 지키고 있습니다`];
+  }
+  return lines.slice(0, 5);
 }
 
 // ── 추이 차트용 시리즈 ────────────────────────────────────────────────

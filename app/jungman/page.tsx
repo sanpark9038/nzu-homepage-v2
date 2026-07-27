@@ -36,7 +36,7 @@ export default async function JungmanPage() {
   const seedTeam = JUNGMAN_TEAMS.find((team) => team.code === JUNGMAN_SEED_TEAM_CODE);
   // LIVE 판정은 여기 한 곳에서만 — 카운트다운과 보드 배지가 서로 다른 조건을 쓰면 배지가 어긋난다
   const isLive = inLiveWindow && latest !== null;
-  const headlines = buildJungmanHeadlines(snapshots);
+  const headlines = buildJungmanHeadlines(snapshots, config.voteCloseAt);
   // 로고 파일 존재 확인은 fs — 서버에서 끝내고 보드(클라이언트)에는 경로만 내려준다
   const logos = Object.fromEntries(
     JUNGMAN_VOTING_TEAMS.map((team) => [team.code, jungmanLogoSrc(team.code)])

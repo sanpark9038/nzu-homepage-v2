@@ -222,12 +222,22 @@ function JungmanTicker({ headlines }: { headlines: string[] }) {
     >
       <span className="h-2 w-2 shrink-0 rounded-full bg-[#d4a94a]" />
       <p
-        className={`min-w-0 truncate text-sm font-bold text-[#e8ebf2] transition-opacity duration-200 motion-reduce:transition-none ${
+        className={`min-w-0 flex-1 truncate text-sm font-bold text-[#e8ebf2] transition-opacity duration-200 motion-reduce:transition-none ${
           visible ? "opacity-100" : "opacity-0"
         }`}
       >
         {headlines[index] ?? headlines[0]}
       </p>
+      {headlines.length >= 3 ? (
+        <span aria-hidden className="flex shrink-0 items-center gap-1">
+          {headlines.map((headline, i) => (
+            <span
+              key={headline}
+              className={`h-1 w-1 rounded-full bg-[#d4a94a] ${i === index ? "opacity-100" : "opacity-25"}`}
+            />
+          ))}
+        </span>
+      ) : null}
     </div>
   );
 }
