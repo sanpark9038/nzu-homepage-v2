@@ -10,6 +10,7 @@ import {
   JUNGMAN_VOTING_TEAMS,
   JUNGMAN_WILDCARD_CUT,
   teamAccent,
+  teamShort,
   type JungmanEmphasis,
   type JungmanRangeKey,
   type JungmanSeries,
@@ -264,7 +265,7 @@ export function JungmanChart({
           fontWeight="800"
           fill={teamAccent(label.team)}
         >
-          {label.team.code}
+          {teamShort(label.team)}
         </text>
       ))}
     </svg>

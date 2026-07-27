@@ -45,6 +45,8 @@ export type JungmanTeam = {
   color: string;
   /** 그래프·득표 바처럼 다크 배경 위에 그릴 때 쓰는 색. 브랜드색이 어두우면 로고에서 뽑아 따로 준다 */
   accent?: string;
+  /** 화면에 찍는 약칭. 코드는 DB 매핑 키라 못 바꾸므로 표기만 따로 둔다 */
+  short?: string;
   /** 카드 배경이 어두워 약칭을 밝은색으로 써야 하는 팀 */
   dark: boolean;
   /** 지도 카드 좌표(배치 보정 반영) */
@@ -60,7 +62,7 @@ export type JungmanTeam = {
 // 좌표는 scratchpad/build-map.mjs 투영(1060x520, 인천~잠실 크롭) + 손 보정값 산출물.
 export const JUNGMAN_TEAMS: JungmanTeam[] = [
   { code: "DM", name: "DM", color: "#2f3f6e", accent: "#7c8fd6", dark: false, x: 301.3, y: 56.5, pinX: 301.3, pinY: 56.5, aliases: ["DM", "디엠"] },
-  { code: "KMS", name: "캄몬스타즈", color: "#2f6fd0", dark: false, x: 210.9, y: 238.1, pinX: 219.4, pinY: 226.1, aliases: ["캄몬스타즈", "캄몬", "츠캄몬스타즈", "츠캄", "CALM", "TSUCALM"] },
+  { code: "KMS", name: "캄몬스타즈", short: "CALM", color: "#2f6fd0", dark: false, x: 210.9, y: 238.1, pinX: 219.4, pinY: 226.1, aliases: ["캄몬스타즈", "캄몬", "츠캄몬스타즈", "츠캄", "CALM", "TSUCALM"] },
   { code: "C9", name: "씨나인", color: "#f4a9c4", dark: false, x: 278.9, y: 373, pinX: 278.9, pinY: 373, aliases: ["씨나인", "시나인", "C9"] },
   { code: "WFU", name: "와플대", color: "#ece0cc", dark: false, x: 305.1, y: 225.4, pinX: 316.1, pinY: 237.4, aliases: ["와플대", "와플", "WFU"] },
   { code: "JSA", name: "JSA", color: "#e8801a", dark: true, x: 399.3, y: 233.5, pinX: 427.7, pinY: 260, aliases: ["JSA", "제이에스에이"] },
@@ -73,6 +75,11 @@ export const JUNGMAN_TEAMS: JungmanTeam[] = [
   { code: "SSU", name: "수술대", color: "#cfe3f5", dark: true, x: 860, y: 294.6, pinX: 874, pinY: 282.6, aliases: ["수술대", "SSU"] },
   { code: "KU", name: "케이대", color: "#2a2f3a", accent: "#b8c4d6", dark: false, x: 943.8, y: 282.6, pinX: 929.8, pinY: 282.6, aliases: ["케이대", "KU", "K.U"] },
 ];
+
+/** 화면 표기용 약칭 — 없으면 코드를 그대로 쓴다 */
+export function teamShort(team: JungmanTeam): string {
+  return team.short || team.code;
+}
 
 /** 다크 배경 위에 그릴 색 — 브랜드색이 어두운 팀은 로고에서 뽑은 accent를 쓴다 */
 export function teamAccent(team: JungmanTeam): string {

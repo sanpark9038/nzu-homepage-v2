@@ -222,7 +222,7 @@ function JungmanTicker({ headlines }: { headlines: string[] }) {
     >
       <span className="h-2 w-2 shrink-0 rounded-full bg-[#d4a94a]" />
       <p
-        className={`min-w-0 flex-1 truncate text-sm font-bold text-[#e8ebf2] transition-opacity duration-200 motion-reduce:transition-none ${
+        className={`min-w-0 flex-1 truncate text-base font-black tracking-tight text-[#f2f5fb] sm:text-lg transition-opacity duration-200 motion-reduce:transition-none ${
           visible ? "opacity-100" : "opacity-0"
         }`}
       >
