@@ -59,19 +59,37 @@ function formatRemaining(targetIso: string, now: number) {
 }
 
 /** 상단 바 한 칸 — 세로로 쌓지 않고 라벨·값을 한 줄로 눕힌다 */
-function Pill({ label, value, tone }: { label: string; value: ReactNode; tone?: "idle" }) {
+type PillTone = "idle" | "gold" | "soon" | "urgent";
+
+const PILL_TONE: Record<PillTone, { box: string; label: string; value: string }> = {
+  idle: { box: "border-[rgba(155,185,240,0.14)] bg-[rgba(10,15,28,0.6)]", label: "text-[#7a8299]", value: "text-[#e8ebf2]" },
+  gold: { box: "border-[rgba(155,185,240,0.14)] bg-[rgba(10,15,28,0.6)]", label: "text-[#d4a94a]", value: "text-[#e8ebf2]" },
+  // 마감이 다가오면 같은 알약의 색과 라벨만 바뀐다 — 배너를 새로 띄우지 않는다
+  soon: { box: "border-[#d4a94a]/50 bg-[rgba(212,169,74,0.10)]", label: "text-[#d4a94a]", value: "text-[#f7e3b5]" },
+  urgent: { box: "border-[#e0705f]/60 bg-[rgba(224,112,95,0.12)]", label: "text-[#e0705f]", value: "text-[#ffd9d2]" },
+};
+
+function Pill({ label, value, tone = "gold" }: { label: string; value: ReactNode; tone?: PillTone }) {
+  const style = PILL_TONE[tone];
   return (
-    <div className="flex items-center gap-2.5 rounded-full border border-[rgba(155,185,240,0.14)] bg-[rgba(10,15,28,0.6)] px-3.5 py-1.5">
-      <span
-        className={`whitespace-nowrap text-[0.625rem] font-black uppercase tracking-[0.16em] ${
-          tone === "idle" ? "text-[#7a8299]" : "text-[#d4a94a]"
-        }`}
-      >
+    <div className={`flex items-center gap-2.5 rounded-full border px-3.5 py-1.5 ${style.box}`}>
+      <span className={`whitespace-nowrap text-[0.625rem] font-black uppercase tracking-[0.16em] ${style.label}`}>
         {label}
       </span>
-      <span className="whitespace-nowrap font-mono text-sm font-black tabular-nums text-[#e8ebf2]">{value}</span>
+      <span className={`whitespace-nowrap font-mono text-sm font-black tabular-nums ${style.value}`}>{value}</span>
     </div>
   );
+}
+
+/** 마감까지 남은 시간에 따라 같은 알약의 톤·라벨만 갈아끼운다 */
+const SOON_MS = 6 * 60 * 60 * 1000;
+const URGENT_MS = 60 * 60 * 1000;
+
+function closingTone(msLeft: number): { tone: PillTone; label: string } {
+  if (msLeft <= 0) return { tone: "idle", label: "투표 종료" };
+  if (msLeft <= URGENT_MS) return { tone: "urgent", label: "마감 임박" };
+  if (msLeft <= SOON_MS) return { tone: "soon", label: "마감 임박" };
+  return { tone: "gold", label: "투표 마감까지" };
 }
 
 function CountdownPill({ label, targetIso, closedLabel }: { label: string; targetIso: string; closedLabel: string }) {
@@ -89,7 +107,14 @@ function CountdownPill({ label, targetIso, closedLabel }: { label: string; targe
   }, []);
 
   const remaining = now === null ? null : formatRemaining(targetIso, now);
-  return <Pill label={label} value={now === null ? "--:--:--" : remaining || closedLabel} />;
+  const closing = now === null ? null : closingTone(Date.parse(targetIso) - now);
+  return (
+    <Pill
+      label={closing?.label ?? label}
+      value={now === null ? "--:--:--" : remaining || closedLabel}
+      tone={closing?.tone ?? "gold"}
+    />
+  );
 }
 
 /**
@@ -198,10 +223,17 @@ function JungmanTicker({ headlines }: { headlines: string[] }) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    if (headlines.length < 2 || prefersReducedMotion()) return;
+    if (headlines.length < 2) return;
+    // 동작 줄이기 설정이라도 문장은 넘어가야 한다 — 그때는 페이드만 건너뛴다.
+    // (여기서 통째로 멈추면 티커가 정지 화면이 된다)
+    const reduced = prefersReducedMotion();
 
     let fade = 0;
     const timer = window.setInterval(() => {
+      if (reduced) {
+        setIndex((current) => (current + 1) % headlines.length);
+        return;
+      }
       setVisible(false);
       fade = window.setTimeout(() => {
         setIndex((current) => (current + 1) % headlines.length);
@@ -218,7 +250,8 @@ function JungmanTicker({ headlines }: { headlines: string[] }) {
   return (
     <div
       aria-live="polite"
-      className="flex min-w-0 flex-1 basis-full items-center gap-2.5 rounded-full border border-[#d4a94a]/25 bg-[rgba(212,169,74,0.06)] px-4 py-2 sm:basis-[16rem]"
+      onClick={() => setIndex((current) => (current + 1) % Math.max(1, headlines.length))}
+      className="flex min-w-0 flex-1 basis-full cursor-pointer items-center gap-2.5 rounded-full border border-[#d4a94a]/25 bg-[rgba(212,169,74,0.06)] px-4 py-2 sm:basis-[16rem]"
     >
       <span className="h-2 w-2 shrink-0 rounded-full bg-[#d4a94a]" />
       <p
