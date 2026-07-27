@@ -1000,7 +1000,11 @@ function loadCollectRoute({ admin = false } = {}) {
       return { cookies: async () => ({ get: () => (admin ? { value: "admin-token" } : undefined) }) };
     }
     if (id === "next/server") {
-      return { NextResponse: { json: (body, init) => ({ status: (init && init.status) || 200, body }) } };
+      return {
+        NextResponse: { json: (body, init) => ({ status: (init && init.status) || 200, body }) },
+        // 응답 후 캐시 워밍용 — 테스트에서는 실행하지 않는다(진짜 fetch가 나가면 안 된다)
+        after: () => {},
+      };
     }
     if (id === "@/lib/admin-auth") {
       return {

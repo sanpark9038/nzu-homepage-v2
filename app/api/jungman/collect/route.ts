@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import { collectJungmanSnapshot } from "@/lib/jungman-collector";
@@ -41,7 +41,21 @@ export async function POST(req: Request) {
     lastHandledAt = now;
 
     const result = await collectJungmanSnapshot(force);
-    if (result.ok) revalidatePath("/jungman");
+    if (result.ok) {
+      revalidatePath("/jungman");
+      // 퍼지 뒤 첫 방문자는 재생성(콜드 스타트 ~2초)을 통째로 기다린다 — 응답을 보낸 뒤
+      // 여기서 한 번 데워 그 비용을 크론이 대신 낸다. 실패해도 다음 방문자가 기다릴 뿐 수집과 무관.
+      const origin = new URL(req.url).origin;
+      after(async () => {
+        try {
+          // 무효화가 전 리전에 퍼지기 전에 데우면 옛 캐시를 맞고 헛돈다 — 전파(~300ms)를 기다린다
+          await new Promise((resolve) => setTimeout(resolve, 1_000));
+          await fetch(`${origin}/jungman`, { cache: "no-store", signal: AbortSignal.timeout(15_000) });
+        } catch {
+          // 워밍은 최선 노력 — 뷰어 90초 자동 갱신이 어차피 곧 다시 데운다
+        }
+      });
+    }
 
     return NextResponse.json(result);
   } catch (error) {
