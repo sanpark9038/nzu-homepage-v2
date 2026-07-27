@@ -15,7 +15,11 @@ import {
   type JungmanConfig,
   type JungmanSnapshot,
 } from "@/lib/jungman";
-import { collectJungmanSnapshot, fetchJungmanComments } from "@/lib/jungman-collector";
+import {
+  collectJungmanSnapshot,
+  fetchJungmanComments,
+  writeJungmanSnapshots,
+} from "@/lib/jungman-collector";
 import {
   readSettingAdmin as readSetting,
   writeSettingAdmin as writeSetting,
@@ -154,7 +158,7 @@ export async function POST(req: Request) {
         { round: nextRound, at: new Date().toISOString(), votes: normalized.votes },
       ];
 
-      await writeSetting(JUNGMAN_SNAPSHOTS_KEY, JSON.stringify(next));
+      await writeJungmanSnapshots(next);
       return respondWith({ config, snapshots: next }, `${nextRound}차 개표를 저장했습니다.`);
     }
 
@@ -272,7 +276,7 @@ export async function POST(req: Request) {
       }
 
       const next = snapshots.slice(0, -1);
-      await writeSetting(JUNGMAN_SNAPSHOTS_KEY, JSON.stringify(next));
+      await writeJungmanSnapshots(next);
       return respondWith({ config, snapshots: next }, `${snapshots[snapshots.length - 1].round}차 개표를 삭제했습니다.`);
     }
 

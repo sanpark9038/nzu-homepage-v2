@@ -9,24 +9,58 @@ function readProjectFile(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), "utf8");
 }
 
-/** lib/jungman.ts를 그대로 트랜스파일해 실제 로직을 돌린다. site-settings(service role)만 스텁으로 막는다. */
-function loadJungmanLib() {
-  const compiled = ts.transpileModule(readProjectFile("lib/jungman.ts"), {
+/** 프로젝트 파일을 그대로 트랜스파일해 실제 로직을 돌린다. import는 resolve 스텁이 대신 답한다. */
+function loadModule(relativePath, resolve = () => ({})) {
+  const compiled = ts.transpileModule(readProjectFile(relativePath), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const mod = { exports: {} };
-  new Function("module", "exports", "require", compiled)(mod, mod.exports, () => ({}));
+  new Function("module", "exports", "require", compiled)(mod, mod.exports, resolve);
   return mod.exports;
 }
 
+/** lib/jungman.ts — site-settings(service role)만 스텁으로 막는다. */
+function loadJungmanLib() {
+  return loadModule("lib/jungman.ts");
+}
+
+/** 수집기 + KV 스텁. 어떤 키를 어떤 순서로 읽고 썼는지 기록한다. */
+function loadJungmanCollector(store) {
+  const reads = [];
+  const writes = [];
+  const collector = loadModule("lib/jungman-collector.ts", (id) =>
+    id === "@/lib/jungman"
+      ? loadJungmanLib()
+      : {
+          readSettingAdmin: async (key) => {
+            reads.push(key);
+            return store[key] ?? null;
+          },
+          writeSettingAdmin: async (key, value) => {
+            writes.push([key, value]);
+          },
+        }
+  );
+
+  return { collector, reads, writes };
+}
+
+/** 수집기(async)를 실제로 돌려보는 테스트가 있어 프라미스도 받는다 — 비동기 결과는 맨 뒤에 찍힌다. */
 function test(name, fn) {
-  try {
-    fn();
-    console.log(`ok - ${name}`);
-  } catch (error) {
+  const fail = (error) => {
     console.error(`not ok - ${name}`);
     console.error(error);
     process.exitCode = 1;
+  };
+
+  try {
+    const result = fn();
+    if (result && typeof result.then === "function") {
+      return result.then(() => console.log(`ok - ${name}`), fail);
+    }
+    console.log(`ok - ${name}`);
+  } catch (error) {
+    fail(error);
   }
 }
 
@@ -139,9 +173,8 @@ test("jungman live mode has a server-computed window and a viewer-driven poller"
   assert.match(lib, /JUNGMAN_COLLECT_INTERVAL_MS = \d+ \* 60 \* 1000/);
   assert.match(lib, /isLive: isJungmanLive\(latest\)/);
 
-  // 백그라운드 탭은 수집을 돌리지 않고, 중복 요청은 in-flight로 막는다
-  assert.match(client, /if \(inFlight \|\| document\.hidden\) return;/);
-  assert.match(client, /fetch\("\/api\/jungman\/collect"/);
+  // 백그라운드 탭은 갱신하지 않는다
+  assert.match(client, /if \(document\.hidden\) return;/);
   assert.match(client, /router\.refresh\(\)/);
   // 상단은 차수가 아니라 갱신 상태 — LIVE면 초 단위 경과, 아니면 마지막 집계 시각
   assert.match(client, /LIVE<\/span>/);
@@ -149,9 +182,80 @@ test("jungman live mode has a server-computed window and a viewer-driven poller"
   assert.match(client, /\{jungmanSeoulTime\(latestAt\)\}/);
   assert.doesNotMatch(client, /차 개표/);
   assert.match(client, /motion-reduce:hidden/);
+  // 집계 주기 안내는 상수에서 만든다 — 하드코딩하면 상수가 바뀔 때 거짓말이 된다
+  assert.match(client, /\{jungmanIntervalLabel\(\)\}마다 자동 집계/);
+  assert.doesNotMatch(client, /3분마다 자동 집계/);
+  assert.match(lib, /export function jungmanIntervalLabel/);
 
-  assert.match(page, /config\.autoCollect \? <JungmanAutoCollect \/> : null/);
+  assert.match(page, /config\.autoCollect \? <JungmanAutoRefresh \/> : null/);
   assert.match(page, /isLive=\{isLive\}/);
+});
+
+test("jungman viewers refresh the page instead of driving collection", () => {
+  const client = readProjectFile("app/jungman/JungmanClient.tsx");
+
+  // 뷰어 폴링이 수집을 때리면 쿨다운으로 스킵되는 호출마다 86KB 스냅샷을 읽는다 —
+  // 동시 시청자 수만큼 전송량이 곱해진다. 수집은 서버 크론 몫이다.
+  assert.doesNotMatch(client, /fetch\(\s*"\/api\/jungman\/collect/);
+  assert.doesNotMatch(client, /method: "POST"/);
+  assert.match(client, /export function JungmanAutoRefresh/);
+
+  // 엔드포인트 자체는 남아야 한다 — 크론과 관리자 [지금 수집]이 쓴다
+  assert.ok(
+    fs.existsSync(path.join(ROOT, "app/api/jungman/collect/route.ts")),
+    "collect endpoint should stay for cron and admin"
+  );
+  assert.match(readProjectFile("app/admin/jungman/JungmanAdmin.tsx"), /"collect-now"/);
+});
+
+test("jungman cooldown reads a light key before the 86KB snapshot array", async () => {
+  const collector = readProjectFile("lib/jungman-collector.ts");
+  const adminRoute = readProjectFile("app/api/admin/jungman/route.ts");
+
+  assert.match(readProjectFile("lib/jungman.ts"), /JUNGMAN_LATEST_KEY = "jungman_latest"/);
+
+  // 500개 스냅샷 = 수십 KB. 쿨다운으로 스킵될 호출이 이걸 읽으면 시청자 수만큼 전송량이 곱해진다.
+  const snapshots = Array.from({ length: 500 }, (_, i) => ({
+    round: i + 1,
+    at: new Date(Date.now() - 30_000 - (499 - i) * 3 * 60_000).toISOString(),
+    votes: { DM: 100 + i, KU: 50 + i },
+  }));
+  const store = {
+    jungman_config: JSON.stringify({ soopId: "x", titleNo: 1, autoCollect: true, mapping: { 1: "DM" } }),
+    jungman_snapshots: JSON.stringify(snapshots),
+    jungman_latest: JSON.stringify({ at: snapshots[499].at, round: 500 }),
+  };
+
+  // 쿨다운이면 가벼운 키만 읽고 끝난다 — 스냅샷 배열은 건드리지 않는다
+  const cooled = loadJungmanCollector(store);
+  assert.deepEqual(await cooled.collector.collectJungmanSnapshot(false), { ok: false, skipped: "cooldown" });
+  assert.ok(!cooled.reads.includes("jungman_snapshots"), `snapshot array was read: ${cooled.reads}`);
+  assert.deepEqual(cooled.reads, ["jungman_config", "jungman_latest"]);
+
+  // 가벼운 키가 없거나 깨졌으면 배열로 되돌아가 같은 판정을 낸다 (하위호환)
+  for (const broken of [undefined, "{not json"]) {
+    const fallback = loadJungmanCollector({ ...store, jungman_latest: broken });
+    assert.deepEqual(await fallback.collector.collectJungmanSnapshot(false), { ok: false, skipped: "cooldown" });
+    assert.ok(fallback.reads.includes("jungman_snapshots"), "fallback should read the array");
+  }
+
+  // 배열을 쓰는 통로가 하나여야 요약 키가 어긋나지 않는다 — 관리자 수동 저장·삭제도 여기를 지난다
+  const writer = loadJungmanCollector({});
+  await writer.collector.writeJungmanSnapshots(snapshots);
+  assert.deepEqual(
+    writer.writes.map(([key]) => key),
+    ["jungman_snapshots", "jungman_latest"]
+  );
+  assert.deepEqual(JSON.parse(writer.writes[1][1]), { at: snapshots[499].at, round: 500 });
+  assert.ok(writer.writes[1][1].length < 200, "the light key must stay tiny");
+
+  assert.equal(
+    (collector.match(/writeSettingAdmin\(JUNGMAN_SNAPSHOTS_KEY/g) || []).length,
+    1,
+    "only writeJungmanSnapshots should write the snapshot array"
+  );
+  assert.doesNotMatch(adminRoute, /writeSetting\(JUNGMAN_SNAPSHOTS_KEY/);
+  assert.equal((adminRoute.match(/writeJungmanSnapshots\(/g) || []).length, 2);
 });
 
 test("jungman admin exposes the comment mapping actions", () => {

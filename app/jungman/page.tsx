@@ -17,9 +17,10 @@ import {
 } from "@/lib/jungman";
 import { jungmanLogoSrc } from "@/lib/jungman-logos";
 
-import { JungmanAutoCollect, JungmanCountdown, JungmanDashboard } from "./JungmanClient";
+import { JungmanAutoRefresh, JungmanCountdown, JungmanDashboard } from "./JungmanClient";
 
-export const revalidate = 30;
+// 수집이 3분 주기라 그보다 자주 재생성해봐야 같은 데이터를 다시 읽을 뿐이다
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "중만컵 투표 현황",
@@ -46,7 +47,7 @@ export default async function JungmanPage() {
   return (
     <div className="min-h-screen bg-[#0b0f1a] text-[#e8ebf2]">
       <main className="mx-auto w-full max-w-[1600px] px-3 py-5 md:px-5">
-        {config.autoCollect ? <JungmanAutoCollect /> : null}
+        {config.autoCollect ? <JungmanAutoRefresh /> : null}
 
         {latest ? (
           <JungmanDashboard

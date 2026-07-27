@@ -7,8 +7,10 @@ import {
   JUNGMAN_COLLECT_INTERVAL_MS,
   JUNGMAN_CONFIG_KEY,
   JUNGMAN_HEARTBEAT_KEY,
+  JUNGMAN_LATEST_KEY,
   JUNGMAN_SNAPSHOTS_KEY,
   parseJungmanConfig,
+  parseJungmanLatest,
   parseJungmanSnapshots,
   type JungmanComment,
   type JungmanSnapshot,
@@ -133,6 +135,24 @@ export type JungmanCollectResult =
   | { ok: true; round: number; votes: Record<string, number> }
   | { ok: false; skipped: string; reason?: string };
 
+/**
+ * 스냅샷 배열을 쓰는 유일한 통로. 요약 키를 같이 갱신해야 쿨다운 판정이 배열과 어긋나지 않는다 —
+ * 관리자 수동 저장·삭제도 반드시 여기를 지나야 한다.
+ */
+export async function writeJungmanSnapshots(snapshots: JungmanSnapshot[]): Promise<void> {
+  const latest = snapshots[snapshots.length - 1] || null;
+
+  await writeSettingAdmin(JUNGMAN_SNAPSHOTS_KEY, JSON.stringify(snapshots));
+  await writeSettingAdmin(
+    JUNGMAN_LATEST_KEY,
+    latest ? JSON.stringify({ at: latest.at, round: latest.round }) : ""
+  );
+}
+
+function onCooldown(mark: { at: string } | null) {
+  return mark !== null && Date.now() - Date.parse(mark.at) < JUNGMAN_COLLECT_INTERVAL_MS;
+}
+
 function totalVotes(votes: Record<string, number>) {
   return Object.values(votes).reduce((sum, value) => sum + value, 0);
 }
@@ -169,12 +189,16 @@ async function runCollect(force: boolean): Promise<JungmanCollectResult> {
     return { ok: false, skipped: "disabled" };
   }
 
+  // 쿨다운은 가벼운 키로 먼저 본다 — 스킵될 호출이 86KB 스냅샷 배열을 읽으면 전송량만 태운다.
+  if (!force && onCooldown(parseJungmanLatest(await readSettingAdmin(JUNGMAN_LATEST_KEY)))) {
+    return { ok: false, skipped: "cooldown" };
+  }
+
   const snapshots = parseJungmanSnapshots(await readSettingAdmin(JUNGMAN_SNAPSHOTS_KEY));
   const latest = snapshots[snapshots.length - 1] || null;
 
-  if (!force && latest && Date.now() - Date.parse(latest.at) < JUNGMAN_COLLECT_INTERVAL_MS) {
-    return { ok: false, skipped: "cooldown" };
-  }
+  // 가벼운 키가 없거나 깨졌을 때의 폴백 — 판정 기준은 스냅샷 배열이 원본이다.
+  if (!force && onCooldown(latest)) return { ok: false, skipped: "cooldown" };
 
   const fetched = await fetchJungmanComments(
     config.soopId,
@@ -198,10 +222,9 @@ async function runCollect(force: boolean): Promise<JungmanCollectResult> {
   }
 
   const round = (latest?.round || 0) + 1;
-  const next: JungmanSnapshot[] = [...snapshots, { round, at: new Date().toISOString(), votes }].slice(
-    -MAX_SNAPSHOTS
-  );
+  const at = new Date().toISOString();
+  const next: JungmanSnapshot[] = [...snapshots, { round, at, votes }].slice(-MAX_SNAPSHOTS);
 
-  await writeSettingAdmin(JUNGMAN_SNAPSHOTS_KEY, JSON.stringify(next));
+  await writeJungmanSnapshots(next);
   return { ok: true, round, votes };
 }

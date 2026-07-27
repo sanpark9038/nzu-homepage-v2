@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import {
   formatVotes,
+  jungmanIntervalLabel,
   jungmanSeoulTime,
   JUNGMAN_CONTEST_RATIO,
   JUNGMAN_SEED_CUT,
@@ -16,11 +17,14 @@ import {
   type JungmanStanding,
 } from "@/lib/jungman";
 
-import { JungmanChartPanel } from "./JungmanChart";
+import { JungmanChartPanel, Segmented } from "./JungmanChart";
+
+/** 시세판 정렬 — 순위순 기본, 급상승순은 1시간 증가량 내림차순 */
+type SortKey = "rank" | "surge";
 
 const LAST_SEEN_ROUND_KEY = "jungman:last-seen-round";
 const ROLLUP_MS = 800;
-const COLLECT_POLL_MS = 60_000;
+const REFRESH_POLL_MS = 60_000;
 const TICKER_MS = 5_000;
 const TICKER_FADE_MS = 240;
 
@@ -86,38 +90,22 @@ function CountdownPill({ label, targetIso, closedLabel }: { label: string; targe
   return <Pill label={label} value={now === null ? "--:--:--" : remaining || closedLabel} />;
 }
 
-/** 별도 cron 없이 /jungman을 보고 있는 사람이 수집을 돌린다. 서버가 쿨다운으로 막으니 폭주는 무해. */
-export function JungmanAutoCollect() {
+/**
+ * 뷰어는 수집을 돌리지 않는다 — 수집은 서버 크론이 3분마다 한다.
+ * 뷰어가 /api/jungman/collect를 때리면 쿨다운으로 스킵되는 호출마다 86KB 스냅샷을 읽어
+ * 동시 시청자 수만큼 전송량이 곱해진다. 여기서는 최신 서버 렌더만 받아온다.
+ */
+export function JungmanAutoRefresh() {
   const router = useRouter();
 
   useEffect(() => {
-    let stopped = false;
-    let inFlight = false;
+    const timer = window.setInterval(() => {
+      // 숨겨진 탭은 갱신하지 않는다 — 보이지 않는 화면을 위해 서버를 부를 이유가 없다
+      if (document.hidden) return;
+      router.refresh();
+    }, REFRESH_POLL_MS);
 
-    const run = async () => {
-      if (inFlight || document.hidden) return;
-      inFlight = true;
-      try {
-        const res = await fetch("/api/jungman/collect", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
-        });
-        const json = await res.json();
-        if (!stopped && json?.ok) router.refresh();
-      } catch {
-        // 수집 실패는 조용히 넘긴다 — 다음 주기에 다시 시도한다
-      } finally {
-        inFlight = false;
-      }
-    };
-
-    void run();
-    const timer = window.setInterval(run, COLLECT_POLL_MS);
-    return () => {
-      stopped = true;
-      window.clearInterval(timer);
-    };
+    return () => window.clearInterval(timer);
   }, [router]);
 
   return null;
@@ -267,13 +255,15 @@ function TeamLogo({ src, team, size }: { src: string | null; team: JungmanStandi
   );
 }
 
-/** 1시간 변화 — 누적 득표라 증가만 나온다. 0이거나 기준 스냅샷이 없으면 회색 대시. */
+/**
+ * 1시간 변화 — 누적 득표라 증가만 나온다. 0이거나 기준 스냅샷이 없으면 회색 대시.
+ * 숫자만 있으면 "39"가 득표인지 증가분인지 안 읽힌다 — 화살표로 변화량임을 못박는다.
+ */
 function HourDelta({ value }: { value: number | undefined }) {
   if (!value) return <span className="text-[0.6875rem] font-bold text-[#7a8299]">—</span>;
   return (
     <span className={`text-[0.6875rem] font-black tabular-nums ${value > 0 ? "text-[#8fd18f]" : "text-[#e0705f]"}`}>
-      {value > 0 ? "+" : ""}
-      {formatVotes(value)}
+      {value > 0 ? "▲" : "▼"} {formatVotes(Math.abs(value))}
     </span>
   );
 }
@@ -417,6 +407,8 @@ function ContestRow({
   if (!upper || !lower) return null;
   const gap = (upper.votes || 0) - (lower.votes || 0);
   const close = gap <= tight;
+  // 경합 임계(1위 득표의 3%)를 최대폭으로 잡는다 — 바가 꽉 차면 안전, 짧을수록 아슬아슬.
+  const fill = tight > 0 ? Math.min(1, gap / tight) : 1;
 
   return (
     <div
@@ -433,6 +425,15 @@ function ContestRow({
       <p className={`mt-0.5 text-sm font-black tabular-nums ${close ? "text-[#e0705f]" : "text-[#8fd18f]"}`}>
         {gap === 0 ? "동률" : `${formatVotes(gap)}표 차`}
       </p>
+      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[rgba(155,185,240,0.14)]">
+        <div
+          className={`h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none ${
+            close ? "bg-[#e0705f]" : "bg-[#8fd18f]"
+          }`}
+          // 0%면 바가 아예 사라져 동률인지 미표기인지 구분이 안 된다 — 최소 심지를 남긴다
+          style={{ width: `${Math.max(3, fill * 100)}%` }}
+        />
+      </div>
     </div>
   );
 }
@@ -478,6 +479,19 @@ export function JungmanDashboard({
   const [hovered, setHovered] = useState<string | null>(null);
   const [mode, setMode] = useState<"votes" | "rank">("votes");
   const [range, setRange] = useState<JungmanRangeKey>("all");
+  const [sort, setSort] = useState<SortKey>("rank");
+
+  // 급상승순 — 1시간 증가량 내림차순. 동률이면 순위순으로 되돌아간다(자리가 흔들리지 않게).
+  const listed = useMemo(() => {
+    if (sort === "rank") return standings;
+    return standings
+      .slice()
+      .sort(
+        (a, b) =>
+          (hourDeltas[b.team.code] || 0) - (hourDeltas[a.team.code] || 0) ||
+          (a.rank || 0) - (b.rank || 0)
+      );
+  }, [standings, sort, hourDeltas]);
 
   const teams = useMemo(
     () => new Map(standings.map((standing) => [standing.team.code, standing.team])),
@@ -554,7 +568,15 @@ export function JungmanDashboard({
           <h1 className="text-xl font-black tracking-tight">투표 현황</h1>
         </div>
 
-        <UpdateStatus isLive={isLive} latestAt={revealedAt} />
+        <div className="flex shrink-0 flex-col items-start gap-1">
+          <UpdateStatus isLive={isLive} latestAt={revealedAt} />
+          {/* 갱신이 멈춘 것처럼 보이는 순간을 위해 집계 주기를 밝힌다 — 주기는 수집 상수에서 온다 */}
+          {autoCollect ? (
+            <span className="pl-1 text-[0.625rem] font-bold text-[#7a8299]">
+              {jungmanIntervalLabel()}마다 자동 집계
+            </span>
+          ) : null}
+        </div>
 
         {headlines.length ? <JungmanTicker headlines={headlines} /> : <div className="flex-1" />}
 
@@ -578,14 +600,26 @@ export function JungmanDashboard({
         {/* 좌측 팀 시세판 */}
         <aside className="lg:col-start-1 lg:row-start-1 xl:col-start-1 xl:row-start-1 xl:row-span-3">
           <div className={`${PANEL} p-3 xl:sticky xl:top-4`}>
-            <div className="flex items-baseline justify-between gap-2 px-1 pb-2">
-              <h2 className="text-sm font-black tracking-tight text-[#e8ebf2]">득표 순위</h2>
-              <span className="text-[0.625rem] font-bold text-[#7a8299]">득표 · 1시간</span>
+            <div className="px-1 pb-2">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-black tracking-tight text-[#e8ebf2]">득표 순위</h2>
+                <Segmented
+                  label="시세판 정렬"
+                  value={sort}
+                  onChange={setSort}
+                  options={[
+                    { key: "rank" as SortKey, label: "순위순" },
+                    { key: "surge" as SortKey, label: "급상승순" },
+                  ]}
+                />
+              </div>
+              <p className="mt-1.5 text-right text-[0.625rem] font-bold text-[#7a8299]">득표 · 1시간 변화</p>
             </div>
 
             <ol className="flex flex-col gap-1">
-              {standings.map((standing) => {
-                const cutline = cutlineOf(standing.rank);
+              {listed.map((standing) => {
+                // 급상승순에서는 줄 순서가 순위와 다르다 — 컷라인 구분선을 그리면 거짓말이 된다
+                const cutline = sort === "rank" ? cutlineOf(standing.rank) : null;
                 return (
                   <li
                     key={standing.team.code}

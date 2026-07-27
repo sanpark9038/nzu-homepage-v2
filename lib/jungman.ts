@@ -4,6 +4,11 @@ export const JUNGMAN_CONFIG_KEY = "jungman_config";
 export const JUNGMAN_SNAPSHOTS_KEY = "jungman_snapshots";
 /** 마지막 수집 호출 흔적 — 크론·뷰어 폴링이 실제로 도는지 확인용 */
 export const JUNGMAN_HEARTBEAT_KEY = "jungman_heartbeat";
+/**
+ * 최신 스냅샷 요약 {at, round}만 담는 가벼운 키(수백 바이트).
+ * 쿨다운으로 스킵될 호출이 86KB짜리 스냅샷 배열을 통째로 읽지 않게 하려고 따로 둔다.
+ */
+export const JUNGMAN_LATEST_KEY = "jungman_latest";
 
 // 수술대는 투표 대상이 아니다 — 4시드 자동 확보. 득표 집계·순위·그래프에서 통째로 빠진다.
 export const JUNGMAN_SEED_TEAM_CODE = "SSU";
@@ -19,8 +24,14 @@ export const JUNGMAN_CONTEST_RATIO = 0.03;
 
 /** 최신 스냅샷이 이 시간 이내면 실시간 집계(LIVE)로 본다 */
 export const JUNGMAN_LIVE_WINDOW_MS = 10 * 60 * 1000;
-/** 자동 수집 최소 간격 — 뷰어가 아무리 많아도 이보다 자주는 기록하지 않는다 */
+/** 자동 수집 최소 간격 — 크론이 아무리 자주 불러도 이보다 자주는 기록하지 않는다 */
 export const JUNGMAN_COLLECT_INTERVAL_MS = 3 * 60 * 1000;
+
+/** "3분"·"1시간" — 수집 주기 안내 문구용. 상수가 바뀌면 화면 문구도 따라 바뀐다. */
+export function jungmanIntervalLabel(ms: number = JUNGMAN_COLLECT_INTERVAL_MS): string {
+  const minutes = Math.max(1, Math.round(ms / 60_000));
+  return minutes >= 60 ? `${Math.round(minutes / 60)}시간` : `${minutes}분`;
+}
 
 export type JungmanTeam = {
   code: string;
@@ -356,6 +367,28 @@ export function parseJungmanSnapshots(raw: string | null): JungmanSnapshot[] {
 
   snapshots.sort((a, b) => a.round - b.round);
   return snapshots;
+}
+
+/**
+ * 가벼운 최신 표식 파서. 깨졌거나 없으면 null — 호출자는 스냅샷 배열로 되돌아간다(하위호환).
+ */
+export function parseJungmanLatest(raw: string | null): { at: string; round: number } | null {
+  if (!raw) return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+
+  const record = parsed as Record<string, unknown>;
+  const at = toIsoOrNull(record.at);
+  const round = Math.floor(Number(record.round));
+  if (!at || !Number.isFinite(round) || round <= 0) return null;
+
+  return { at, round };
 }
 
 /** 한 시점의 순위표. 스냅샷이든 버킷 시리즈 한 점이든 votes만 있으면 된다. */

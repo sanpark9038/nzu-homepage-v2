@@ -324,7 +324,8 @@ function TeamLegend({
   );
 }
 
-function Segmented<T extends string>({
+/** 차트 컨트롤과 시세판 정렬 토글이 같은 세그먼트 컨트롤을 쓴다 */
+export function Segmented<T extends string>({
   options,
   value,
   onChange,
