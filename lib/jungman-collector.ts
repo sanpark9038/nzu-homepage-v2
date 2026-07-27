@@ -128,6 +128,8 @@ export function buildVotesFromComments(
 
 /** KV 한 칸에 다 들어가므로 무한히 쌓을 수 없다. round 번호는 계속 증가하고 앞에서 잘라낸다. */
 const MAX_SNAPSHOTS = 500;
+/** 마감 직후 늦게 반영되는 추천을 놓치지 않도록 이만큼만 더 수집한다 */
+const COLLECT_GRACE_MS = 10 * 60 * 1000;
 /** 직전 합계 대비 이 비율 미만으로 급락하면 수집 사고로 보고 기록하지 않는다 */
 const ANOMALY_FLOOR_RATIO = 0.7;
 
@@ -187,6 +189,12 @@ async function runCollect(force: boolean): Promise<JungmanCollectResult> {
   const config = parseJungmanConfig(await readSettingAdmin(JUNGMAN_CONFIG_KEY));
   if (!config.autoCollect || !config.titleNo || !Object.keys(config.mapping).length) {
     return { ok: false, skipped: "disabled" };
+  }
+
+  // 마감이 지나면 스스로 멈춘다. 크론을 해제하는 걸 잊어도 요금이 새지 않게 하는 최후 방어선 —
+  // 이 게이트가 없으면 대회가 끝난 뒤에도 3분마다 숲 API와 DB를 영원히 두드린다.
+  if (Date.now() > Date.parse(config.voteCloseAt) + COLLECT_GRACE_MS) {
+    return { ok: false, skipped: "vote_closed" };
   }
 
   // 쿨다운은 가벼운 키로 먼저 본다 — 스킵될 호출이 86KB 스냅샷 배열을 읽으면 전송량만 태운다.

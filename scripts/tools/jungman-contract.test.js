@@ -164,6 +164,15 @@ test("jungman collect path guards writes with cooldown and anomaly checks", () =
   assert.match(route, /revalidatePath\("\/jungman"\)/);
 });
 
+test("jungman collection stops itself after the vote closes", () => {
+  const collector = readProjectFile("lib/jungman-collector.ts");
+
+  // 크론 해제를 잊어도 대회가 끝나면 스스로 멈춰야 한다 — 안 그러면 3분마다 영원히 돈다
+  assert.match(collector, /COLLECT_GRACE_MS/);
+  assert.match(collector, /Date\.now\(\) > Date\.parse\(config\.voteCloseAt\) \+ COLLECT_GRACE_MS/);
+  assert.ok(collector.includes('skipped: "vote_closed"'), "collector should skip once the vote is closed");
+});
+
 test("jungman live mode has a server-computed window and a viewer-driven poller", () => {
   const lib = readProjectFile("lib/jungman.ts");
   const client = readProjectFile("app/jungman/JungmanClient.tsx");
