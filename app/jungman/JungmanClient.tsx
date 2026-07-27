@@ -331,7 +331,7 @@ function TickerRow({
   logo,
   shown,
   hourDelta,
-  showDelta,
+  closed,
   selected,
   onSelect,
   onHover,
@@ -340,8 +340,11 @@ function TickerRow({
   logo: string | null;
   shown: number;
   hourDelta: number | undefined;
-  /** 마감 후에는 멈춘 증가량이 현재 증감처럼 읽힌다 — 열을 통째로 뺀다 */
-  showDelta: boolean;
+  /**
+   * 마감 후에는 오른쪽 열을 통째로 뺀다 — 멈춘 증가량이 현재 증감처럼 읽히고,
+   * 득표수는 마지막 몇 분이 집계에 안 잡혀 확정치가 아니다. 순위만 남긴다.
+   */
+  closed: boolean;
   selected: boolean;
   onSelect: () => void;
   onHover: (code: string | null) => void;
@@ -394,10 +397,12 @@ function TickerRow({
         {standing.contested ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#9fb6e0]" title="경합" /> : null}
       </span>
 
-      <span className="flex flex-col items-end leading-tight">
-        <span className="text-sm font-black tabular-nums text-[#e8ebf2]">{formatVotes(shown)}</span>
-        {showDelta ? <HourDelta value={hourDelta} /> : null}
-      </span>
+      {closed ? null : (
+        <span className="flex flex-col items-end leading-tight">
+          <span className="text-sm font-black tabular-nums text-[#e8ebf2]">{formatVotes(shown)}</span>
+          <HourDelta value={hourDelta} />
+        </span>
+      )}
     </button>
   );
 }
@@ -448,11 +453,14 @@ function ContestRow({
   upper,
   lower,
   tight,
+  closed,
 }: {
   label: string;
   upper: JungmanStanding | undefined;
   lower: JungmanStanding | undefined;
   tight: number;
+  /** 마감 후에는 표차 문구와 격차 바를 뺀다 — 누가 어느 자리에 걸렸는지만 남긴다 */
+  closed: boolean;
 }) {
   if (!upper || !lower) return null;
   const gap = (upper.votes || 0) - (lower.votes || 0);
@@ -472,18 +480,22 @@ function ContestRow({
       <p className="mt-1 truncate text-sm font-bold text-[#e8ebf2]">
         {upper.rank}위 {upper.team.name} <span className="text-[#7a8299]">vs</span> {lower.rank}위 {lower.team.name}
       </p>
-      <p className={`mt-0.5 text-sm font-black tabular-nums ${close ? "text-[#e0705f]" : "text-[#8fd18f]"}`}>
-        {gap === 0 ? "동률" : `${formatVotes(gap)}표 차`}
-      </p>
-      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[rgba(155,185,240,0.14)]">
-        <div
-          className={`h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none ${
-            close ? "bg-[#e0705f]" : "bg-[#8fd18f]"
-          }`}
-          // 0%면 바가 아예 사라져 동률인지 미표기인지 구분이 안 된다 — 최소 심지를 남긴다
-          style={{ width: `${Math.max(3, fill * 100)}%` }}
-        />
-      </div>
+      {closed ? null : (
+        <>
+          <p className={`mt-0.5 text-sm font-black tabular-nums ${close ? "text-[#e0705f]" : "text-[#8fd18f]"}`}>
+            {gap === 0 ? "동률" : `${formatVotes(gap)}표 차`}
+          </p>
+          <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[rgba(155,185,240,0.14)]">
+            <div
+              className={`h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none ${
+                close ? "bg-[#e0705f]" : "bg-[#8fd18f]"
+              }`}
+              // 0%면 바가 아예 사라져 동률인지 미표기인지 구분이 안 된다 — 최소 심지를 남긴다
+              style={{ width: `${Math.max(3, fill * 100)}%` }}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -530,7 +542,8 @@ export function JungmanDashboard({
   const [progress, setProgress] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
-  const [mode, setMode] = useState<"votes" | "rank">("votes");
+  // 마감 후 득표수 축은 곧 표수 노출이다 — 순위 모드로 시작하고 토글도 내린다(JungmanChartPanel)
+  const [mode, setMode] = useState<"votes" | "rank">(closed ? "rank" : "votes");
   // 초반에는 1시간 봉이 한 점뿐이라 "전체"로 시작하면 빈 차트가 보인다 — 점이 있는 구간부터.
   const [range, setRange] = useState<JungmanRangeKey>(() => defaultJungmanRange(series));
   const [sort, setSort] = useState<SortKey>("rank");
@@ -645,6 +658,15 @@ export function JungmanDashboard({
           latestAt={revealedAt}
           autoCollect={autoCollect}
         />
+
+        {/* 마감 순간 공지가 비공개로 바뀌면 마지막 몇 분의 추천이 우리 집계에 안 잡힌다 —
+            순위는 보여주되 수치는 공지에 맡긴다고 한 줄로 밝힌다 */}
+        {closed ? (
+          <p className="flex basis-full items-center gap-2 pl-1 text-xs font-bold text-[#7a8299]">
+            <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#d4a94a]" />
+            집계 값은 참고용입니다. 최종 결과는 정중만님 공지를 확인해 주세요.
+          </p>
+        ) : null}
       </header>
 
       {/* 기본 트랙은 반드시 minmax(0,1fr) — grid-cols-1은 `1fr`(=minmax(auto,1fr))이라 지도 SVG의
@@ -674,9 +696,10 @@ export function JungmanDashboard({
                   />
                 )}
               </div>
-              <p className="mt-1.5 text-right text-[0.625rem] font-bold text-[#7a8299]">
-                {closed ? "최종 득표" : "득표 · 1시간 변화"}
-              </p>
+              {/* 마감 후에는 오른쪽 열이 통째로 비어 있다 — 그 열을 가리키는 라벨도 같이 내린다 */}
+              {closed ? null : (
+                <p className="mt-1.5 text-right text-[0.625rem] font-bold text-[#7a8299]">득표 · 1시간 변화</p>
+              )}
             </div>
 
             <ol className="flex flex-col gap-1">
@@ -693,7 +716,7 @@ export function JungmanDashboard({
                       logo={logos[standing.team.code] ?? null}
                       shown={shownVotes(standing)}
                       hourDelta={hourDeltas[standing.team.code]}
-                      showDelta={!closed}
+                      closed={closed}
                       selected={selected === standing.team.code}
                       onSelect={() => selectTeam(standing.team.code)}
                       onHover={setHovered}
@@ -729,6 +752,7 @@ export function JungmanDashboard({
             onModeChange={setMode}
             range={range}
             onRangeChange={setRange}
+            closed={closed}
           />
         </section>
 
@@ -747,16 +771,19 @@ export function JungmanDashboard({
                     </p>
                   </div>
                 </div>
-                <p className="mt-3 font-mono text-3xl font-black tabular-nums text-[#e8ebf2]">
-                  {formatVotes(detail.votes || 0)}
-                  <span className="ml-1 text-base font-bold text-[#7a8299]">표</span>
-                </p>
+                {closed ? null : (
+                  <p className="mt-3 font-mono text-3xl font-black tabular-nums text-[#e8ebf2]">
+                    {formatVotes(detail.votes || 0)}
+                    <span className="ml-1 text-base font-bold text-[#7a8299]">표</span>
+                  </p>
+                )}
                 <div className="mt-2 divide-y divide-[rgba(155,185,240,0.1)]">
                   {closed ? null : (
                     <StatRow label="1시간 변화" value={<HourDelta value={hourDeltas[detail.team.code]} />} />
                   )}
                   <StatRow label="최고 순위" value={`${bestRanks[detail.team.code] ?? detail.rank}위`} />
-                  {detailGap ? <StatRow label={detailGap.label} value={detailGap.text} /> : null}
+                  {/* 표차도 곧 표수다 — 마감 후에는 뺀다 */}
+                  {detailGap && !closed ? <StatRow label={detailGap.label} value={detailGap.text} /> : null}
                 </div>
               </RailCard>
             ) : null}
@@ -768,12 +795,14 @@ export function JungmanDashboard({
                   upper={standings.find((standing) => standing.rank === JUNGMAN_SEED_CUT)}
                   lower={standings.find((standing) => standing.rank === JUNGMAN_SEED_CUT + 1)}
                   tight={tight}
+                  closed={closed}
                 />
                 <ContestRow
                   label="와일드카드 경합"
                   upper={standings.find((standing) => standing.rank === JUNGMAN_WILDCARD_CUT)}
                   lower={standings.find((standing) => standing.rank === JUNGMAN_WILDCARD_CUT + 1)}
                   tight={tight}
+                  closed={closed}
                 />
               </div>
             </RailCard>

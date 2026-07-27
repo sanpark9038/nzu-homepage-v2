@@ -517,9 +517,11 @@ export function buildJungmanHeadlines(
   const votesOf = (team: JungmanTeam) => latest.votes[team.code] || 0;
   const leaderVotes = votesOf(ordered[0]);
 
-  // 마감 뒤에는 진행 중을 암시하는 문장이 한 줄도 나오면 안 된다 — 확정 결과 한 문장으로 고정한다
+  // 마감 뒤에는 진행 중을 암시하는 문장이 한 줄도 나오면 안 된다 — 확정 결과 한 문장으로 고정한다.
+  // 표수는 붙이지 않는다: 마감 순간 공지가 비공개로 바뀌면 마지막 몇 분의 추천이 집계에 안 잡혀
+  // 우리 숫자가 확정치가 아니다. 순위만 말하고 수치는 공지에 맡긴다.
   if (voteCloseAt && isJungmanClosed(voteCloseAt, now)) {
-    return [`최종 결과 — 1위 ${ordered[0].name} ${formatVotes(leaderVotes)}표`];
+    return [`최종 결과 — 1위 ${ordered[0].name}`];
   }
 
   const cutoff = Date.parse(latest.at) - HOUR_MS;

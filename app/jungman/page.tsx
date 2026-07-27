@@ -87,7 +87,7 @@ export default async function JungmanPage() {
             // #jm-map은 선택·hover ↔ 마커 강조 연동의 앵커 — 대시보드가 data-active/data-reveal을 세팅한다
             map={
               <div id="jm-map">
-                <JungmanMap markers={markers} />
+                <JungmanMap markers={markers} closed={closed} />
               </div>
             }
           />

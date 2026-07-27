@@ -22,10 +22,11 @@ function textWidth(value: string, fontSize: number) {
   );
 }
 
-function subLabel(marker: JungmanMarker) {
+/** 마감 뒤에는 득표수를 숨긴다 — 마지막 몇 분이 집계에 안 잡힐 수 있어 확정 수치가 아니다 */
+function subLabel(marker: JungmanMarker, closed: boolean) {
   if (marker.seed) return "4시드 확보";
   if (marker.rank === null || marker.votes === null) return "개표 대기";
-  return `${marker.rank}위 · ${formatVotes(marker.votes)}표`;
+  return closed ? `${marker.rank}위` : `${marker.rank}위 · ${formatVotes(marker.votes)}표`;
 }
 
 // 득표 비례 카드 글로우 — 개표 전(share null)은 균일.
@@ -92,7 +93,14 @@ const MAP_STYLE = `
   }
 `;
 
-export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
+export default function JungmanMap({
+  markers,
+  closed = false,
+}: {
+  markers: JungmanMarker[];
+  /** 투표 마감 — 칩에서 득표수를 뺀다(순위는 그대로) */
+  closed?: boolean;
+}) {
   // 활성 팀 규칙은 속성값끼리 짝지을 수 없어 팀 수만큼 찍는다 (코드는 A-Z0-9뿐).
   const activeRules = markers
     .map(
@@ -126,7 +134,7 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
         <g dangerouslySetInnerHTML={{ __html: JUNGMAN_MAP_BASE }} />
 
         {markers.map((marker) => {
-          const sub = subLabel(marker);
+          const sub = subLabel(marker, closed);
           const width = Math.max(58, Math.round(Math.max(textWidth(marker.name, 13), textWidth(sub, 11)) + 18));
           const tone = marker.seed
             ? " jm-seed"
@@ -188,8 +196,12 @@ export default function JungmanMap({ markers }: { markers: JungmanMarker[] }) {
                   ) : (
                     <>
                       <tspan className="jm-rank">{marker.rank}위</tspan>
-                      <tspan className="jm-dot"> · </tspan>
-                      <tspan className="jm-votes">{formatVotes(marker.votes)}표</tspan>
+                      {closed ? null : (
+                        <>
+                          <tspan className="jm-dot"> · </tspan>
+                          <tspan className="jm-votes">{formatVotes(marker.votes)}표</tspan>
+                        </>
+                      )}
                     </>
                   )}
                 </text>

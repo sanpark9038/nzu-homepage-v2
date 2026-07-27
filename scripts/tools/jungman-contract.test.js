@@ -794,7 +794,8 @@ test("jungman freezes into a final result once the vote closes", () => {
     closeAt,
     Date.parse(closeAt) + 60_000
   );
-  assert.deepEqual(lines, ["최종 결과 — 1위 DM 1,000표"]);
+  // 표수는 붙이지 않는다 — 마감 순간 공지가 닫혀 마지막 몇 분이 집계에 안 잡힐 수 있다
+  assert.deepEqual(lines, ["최종 결과 — 1위 DM"]);
   // 마감 전에는 한 글자도 달라지지 않는다
   assert.ok(
     buildJungmanHeadlines([headlineSnapshot(1, headlineBase)], closeAt, Date.parse(closeAt) - 60_000).length >= 3
@@ -807,11 +808,56 @@ test("jungman freezes into a final result once the vote closes", () => {
   assert.match(page, /closed=\{closed\}/);
 
   // 멈춘 1시간 증가량이 현재 증감처럼 읽히면 안 된다 — 시세판 열과 레일 항목을 내린다
-  assert.match(client, /showDelta \? <HourDelta value=\{hourDelta\} \/> : null/);
-  assert.match(client, /showDelta=\{!closed\}/);
+  assert.match(client, /closed=\{closed\}/);
   assert.match(client, /closed \? null : \(\s*<StatRow label="1시간 변화"/);
   // 갱신 상태 알약은 골드 "최종 결과"로 굳는다 (LIVE·경과 표시 대신)
   assert.match(client, /<Pill label="최종 결과" value=\{`\$\{jungmanSeoulTime\(revealedAt\)\} 기준`\} tone="final" \/>/);
+});
+
+test("jungman hides vote counts after the close and points at the official notice", () => {
+  const client = readProjectFile("app/jungman/JungmanClient.tsx");
+  const chart = readProjectFile("app/jungman/JungmanChart.tsx");
+  const map = readProjectFile("components/jungman/JungmanMap.tsx");
+  const page = readProjectFile("app/jungman/page.tsx");
+
+  // 마감 순간 숲 공지가 비공개로 바뀌면 마지막 몇 분의 추천이 집계에 안 잡힌다.
+  // 순위는 확정으로 보여주되 표수는 한 군데도 남기지 않는다 — 틀린 숫자가 공식 수치처럼 읽힌다.
+  // 컴포넌트 하나만 잘라낸다 — 구조분해 파라미터의 "}: {"도 열 0에서 끝나므로 뒤에 개행을 요구한다
+  const bodyOf = (name) => client.match(new RegExp(`function ${name}\\([\\s\\S]*?\\n\\}\\r?\\n`))[0];
+  const hiddenBehindClosed = (body, needle) => {
+    const guard = body.indexOf("closed ? null");
+    assert.ok(guard >= 0 && guard < body.indexOf(needle), `${needle}가 마감 가드 밖에 있다`);
+  };
+
+  // 시세판 행 — 득표수와 1시간 변화가 든 오른쪽 열을 통째로 뺀다
+  hiddenBehindClosed(bodyOf("TickerRow"), "formatVotes(shown)");
+  assert.match(client, /closed=\{closed\}/);
+  // 빈 열을 가리키는 헤더 라벨도 같이 내린다
+  assert.ok(!client.includes("최종 득표"), "빈 열을 가리키는 라벨이 남아 있다");
+  // 컷라인 상황판 — "n표 차" 문구와 격차 바
+  hiddenBehindClosed(bodyOf("ContestRow"), "표 차");
+  // 우측 레일 — 큰 득표수와 "4위와 격차" 같은 표차 항목
+  assert.match(client, /\{closed \? null : \(\s*<p className="mt-3 font-mono text-3xl/);
+  assert.match(client, /\{detailGap && !closed \?/);
+
+  // 차트 — 득표수 축이 곧 표수 노출이다. 순위 모드로 시작하고 토글은 내린다(구간 토글은 유지)
+  assert.match(client, /useState<"votes" \| "rank">\(closed \? "rank" : "votes"\)/);
+  assert.match(chart, /\{closed \? null : \(\s*<Segmented\s*label="표시 모드"/);
+  assert.match(chart, /label="구간"/);
+
+  // 지도 칩 — "n위 · 1,234표"에서 표수만 뺀다
+  assert.match(map, /closed \? `\$\{marker\.rank\}위`/);
+  assert.match(page, /<JungmanMap markers=\{markers\} closed=\{closed\} \/>/);
+
+  // 숫자를 감춘 만큼 어디서 확인해야 하는지 한 줄로 알린다
+  assert.ok(
+    client.includes("집계 값은 참고용입니다. 최종 결과는 정중만님 공지를 확인해 주세요."),
+    "마감 화면에 공지 안내 문구가 있어야 한다"
+  );
+
+  // 마감 전 화면은 그대로 — 득표수·1시간 변화·득표수 토글이 살아 있어야 한다
+  assert.match(client, /<HourDelta value=\{hourDelta\} \/>/);
+  assert.match(chart, /\{ key: "votes", label: "득표수" \}/);
 });
 
 /** 수집 라우트를 실제로 실행한다. next/* 와 관리자 인증·수집기는 스텁으로 대신 답한다. */

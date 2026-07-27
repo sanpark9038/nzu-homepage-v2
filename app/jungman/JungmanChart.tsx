@@ -370,6 +370,7 @@ export function JungmanChartPanel({
   onModeChange,
   range,
   onRangeChange,
+  closed = false,
 }: {
   series: JungmanSeries[];
   selected: string | null;
@@ -378,6 +379,8 @@ export function JungmanChartPanel({
   onModeChange: (next: ChartMode) => void;
   range: JungmanRangeKey;
   onRangeChange: (next: JungmanRangeKey) => void;
+  /** 투표 마감 — 득표수 축이 곧 표수 노출이다. 순위 모드로 고정하고 토글을 내린다 */
+  closed?: boolean;
 }) {
   const active = series.find((entry) => entry.key === range) ?? series[series.length - 1];
 
@@ -393,15 +396,17 @@ export function JungmanChartPanel({
           ) : null}
         </h2>
         <div className="flex flex-wrap items-center gap-2">
-          <Segmented
-            label="표시 모드"
-            value={mode}
-            onChange={onModeChange}
-            options={[
-              { key: "votes", label: "득표수" },
-              { key: "rank", label: "순위" },
-            ]}
-          />
+          {closed ? null : (
+            <Segmented
+              label="표시 모드"
+              value={mode}
+              onChange={onModeChange}
+              options={[
+                { key: "votes", label: "득표수" },
+                { key: "rank", label: "순위" },
+              ]}
+            />
+          )}
           <Segmented
             label="구간"
             value={active.key}
