@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   // 상대 경로 메타(og:url·canonical)의 기준. 없으면 절대 URL이 아예 안 나간다.
   metadataBase: new URL(SITE_URL),
   robots: { index: true, follow: true },
+  // Search Console 소유권 확인 — 확인 완료 후에도 지우면 소유권이 풀린다
+  verification: { google: "aajslo6phUS5PFhAHZBbo4FY56qLaWCMgCckDMmyxUc" },
   title: {
     default: "호사가 (HOSAGA) — 스타크래프트 대학대전",
     template: "%s | 호사가 HOSAGA",
