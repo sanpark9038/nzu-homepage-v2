@@ -24,8 +24,14 @@ export const JUNGMAN_CONTEST_RATIO = 0.03;
 
 /** 최신 스냅샷이 이 시간 이내면 실시간 집계(LIVE)로 본다 */
 export const JUNGMAN_LIVE_WINDOW_MS = 10 * 60 * 1000;
-/** 자동 수집 최소 간격 — 크론이 아무리 자주 불러도 이보다 자주는 기록하지 않는다 */
+/** 크론이 부르는 주기 — 화면 안내 문구의 근거이기도 하다 */
 export const JUNGMAN_COLLECT_INTERVAL_MS = 3 * 60 * 1000;
+/**
+ * 기록 최소 간격. 크론 주기보다 짧아야 한다.
+ * 스냅샷 시각은 수집이 끝난 뒤에 찍히므로 매 회차가 처리 시간만큼 뒤로 밀리는데,
+ * 쿨다운이 크론 주기와 같으면 그 몇 초 때문에 한 번 걸러져 실제 간격이 3분/6분으로 널뛴다.
+ */
+export const JUNGMAN_COLLECT_COOLDOWN_MS = 150 * 1000;
 
 /** "3분"·"1시간" — 수집 주기 안내 문구용. 상수가 바뀌면 화면 문구도 따라 바뀐다. */
 export function jungmanIntervalLabel(ms: number = JUNGMAN_COLLECT_INTERVAL_MS): string {

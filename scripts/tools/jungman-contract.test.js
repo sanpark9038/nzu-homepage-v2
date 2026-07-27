@@ -151,7 +151,7 @@ test("jungman collect path guards writes with cooldown and anomaly checks", () =
   for (const skip of ["disabled", "cooldown", "no_match", "anomaly", "unchanged"]) {
     assert.ok(collector.includes(`skipped: "${skip}"`), `collector should be able to skip with ${skip}`);
   }
-  assert.match(collector, /JUNGMAN_COLLECT_INTERVAL_MS/);
+  assert.match(collector, /JUNGMAN_COLLECT_COOLDOWN_MS/);
   assert.match(collector, /ANOMALY_FLOOR_RATIO/);
   // KV 한 칸에 들어가야 하므로 스냅샷은 잘라낸다
   assert.match(collector, /MAX_SNAPSHOTS = \d+/);
@@ -180,6 +180,8 @@ test("jungman live mode has a server-computed window and a viewer-driven poller"
 
   assert.match(lib, /JUNGMAN_LIVE_WINDOW_MS = \d+ \* 60 \* 1000/);
   assert.match(lib, /JUNGMAN_COLLECT_INTERVAL_MS = \d+ \* 60 \* 1000/);
+  // 쿨다운은 크론 주기보다 짧아야 매 회차가 통과한다
+  assert.match(lib, /JUNGMAN_COLLECT_COOLDOWN_MS = \d+ \* 1000/);
   assert.match(lib, /isLive: isJungmanLive\(latest\)/);
 
   // 백그라운드 탭은 갱신하지 않는다

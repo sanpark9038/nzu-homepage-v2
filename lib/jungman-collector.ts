@@ -4,7 +4,7 @@
  */
 
 import {
-  JUNGMAN_COLLECT_INTERVAL_MS,
+  JUNGMAN_COLLECT_COOLDOWN_MS,
   JUNGMAN_CONFIG_KEY,
   JUNGMAN_HEARTBEAT_KEY,
   JUNGMAN_LATEST_KEY,
@@ -152,7 +152,7 @@ export async function writeJungmanSnapshots(snapshots: JungmanSnapshot[]): Promi
 }
 
 function onCooldown(mark: { at: string } | null) {
-  return mark !== null && Date.now() - Date.parse(mark.at) < JUNGMAN_COLLECT_INTERVAL_MS;
+  return mark !== null && Date.now() - Date.parse(mark.at) < JUNGMAN_COLLECT_COOLDOWN_MS;
 }
 
 function totalVotes(votes: Record<string, number>) {
