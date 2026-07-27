@@ -14,6 +14,20 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 export const runtime = "nodejs";
 export const revalidate = 30;
 
+export const metadata = {
+  title: "스타 대학대전 게시판",
+  description:
+    "대학대전 공지와 정보·일정, 경기 영상과 사진이 올라오는 게시판입니다. 글을 쓰고 댓글로 이야기를 나눌 수 있습니다.",
+  keywords: ["스타 대학대전 게시판", "스타호사가", "호사가", "스타펨코", "스타 대학리그"],
+  alternates: { canonical: "/board" },
+  openGraph: {
+    title: "스타 대학대전 게시판",
+    description: "대학대전 공지와 정보·일정, 경기 영상과 사진이 올라오는 게시판",
+    url: "/board",
+    type: "website",
+  },
+};
+
 export function formatBoardListDate(value: string | null) {
   if (!value) return "-";
 

@@ -6,13 +6,15 @@ import { getActiveHeroMedia, getHeroTitle, sanitizeHeroMediaType } from "@/lib/h
 export const revalidate = 60;
 
 export const metadata = {
-  title: "HOSAGA",
-  description: "대회 홈 화면과 주요 진입 경로를 가장 빠르게 연결하는 메인 페이지",
+  // 홈만 template을 끈다 — "HOSAGA | 호사가 HOSAGA"처럼 브랜드가 두 번 붙는 걸 막는다
+  title: { absolute: "스타호사가 (HOSAGA) — 스타크래프트 대학대전" },
+  description:
+    "스타호사가는 숲 스타크래프트 대학대전을 기록하는 팬 사이트입니다. 티어표와 선수 전적, 경기 일정과 승부예측을 한곳에서 볼 수 있습니다.",
   // canonical·og:url은 페이지마다 자기 주소로 붙인다 — 루트 레이아웃에 두면 하위 페이지까지 "/"로 상속된다
   alternates: { canonical: "/" },
   openGraph: {
-    title: "호사가 (HOSAGA) — 스타크래프트 대학대전",
-    description: "숲 스타크래프트 대학대전 호사가(HOSAGA) 공식 홈페이지",
+    title: "스타호사가 (HOSAGA) — 스타크래프트 대학대전",
+    description: "숲 스타크래프트 대학대전 기록 사이트. 티어표, 선수 전적, 경기 일정, 승부예측",
     url: "/",
     siteName: "호사가 HOSAGA",
     type: "website",

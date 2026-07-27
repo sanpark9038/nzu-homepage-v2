@@ -6,6 +6,20 @@ import { loadPredictionState } from "@/lib/prediction-store";
 
 export const revalidate = 60;
 
+export const metadata = {
+  title: "스타 대학대전 승부예측",
+  description:
+    "대학대전 경기별 승자를 미리 골라 투표하고, 결과가 공개되면 내 예측이 맞았는지 적중률로 확인할 수 있습니다.",
+  keywords: ["스타 대학대전 승부예측", "스타 대학리그 예측", "스타호사가", "호사가"],
+  alternates: { canonical: "/prediction" },
+  openGraph: {
+    title: "스타 대학대전 승부예측",
+    description: "경기별 승자를 예측하고 결과 공개 후 적중 여부를 확인",
+    url: "/prediction",
+    type: "website",
+  },
+};
+
 export default async function PredictionPage() {
   const allPlayers = await playerService.getCachedPlayersList();
   const [state, tournamentTeams] = await Promise.all([

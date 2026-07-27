@@ -4,8 +4,17 @@ import { listScheduleInfoPosts } from "@/lib/board";
 export const revalidate = 300;
 
 export const metadata = {
-  title: "HOSAGA - 일정",
-  description: "호사가 HOSAGA 대회와 방송 정보/일정 안내",
+  title: "스타 대학대전 경기 일정",
+  description:
+    "숲 스타크래프트 대학대전의 경기와 방송 일정을 달력으로 봅니다. 날짜별로 어떤 대학이 언제 붙는지 확인할 수 있습니다.",
+  keywords: ["스타 대학대전 일정", "스타 대학리그 일정", "숲 스타크래프트 대학대전", "스타호사가"],
+  alternates: { canonical: "/schedule" },
+  openGraph: {
+    title: "스타 대학대전 경기 일정",
+    description: "숲 스타크래프트 대학대전의 경기와 방송 일정을 달력으로 확인",
+    url: "/schedule",
+    type: "website",
+  },
 };
 
 function toKstDateKey(date: Date) {

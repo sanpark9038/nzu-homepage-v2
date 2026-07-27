@@ -6,8 +6,17 @@ import { getUniversityOptionsFromDB } from "@/lib/university-metadata";
 export const revalidate = 300;
 
 export const metadata = {
-  title: "HOSAGA - 엔트리",
-  description: "대학별 선수 구성을 비교하고 엔트리를 정리하는 페이지",
+  title: "스타 대학대전 엔트리",
+  description:
+    "대학별 선수 구성을 나란히 놓고 비교합니다. 종족과 티어를 보며 누구를 어디에 넣을지 엔트리를 빠르게 정리할 수 있습니다.",
+  keywords: ["스타 대학대전 엔트리", "스타 대학리그", "숲 스타크래프트 대학대전", "스타호사가"],
+  alternates: { canonical: "/entry" },
+  openGraph: {
+    title: "스타 대학대전 엔트리",
+    description: "대학별 선수 구성을 비교하며 엔트리와 대진을 정리",
+    url: "/entry",
+    type: "website",
+  },
 };
 
 export default async function EntryPage() {

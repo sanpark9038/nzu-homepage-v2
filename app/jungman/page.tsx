@@ -25,7 +25,8 @@ export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "중만컵 투표 현황",
-  description: "중만컵 인기투표 차수별 개표 현황 — 연고지 지도, 득표 순위, 추이",
+  description:
+    "중만컵 인기투표 개표 현황을 차수별로 봅니다. 연고지 지도로 표가 어디서 나왔는지, 득표 순위와 시간별 추이가 어떻게 움직이는지 확인할 수 있습니다.",
   alternates: { canonical: "/jungman" },
   openGraph: {
     title: "중만컵 투표 현황 | 호사가 HOSAGA",

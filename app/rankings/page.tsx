@@ -9,8 +9,17 @@ import path from "node:path";
 export const revalidate = 300;
 
 export const metadata = {
-  title: "HOSAGA - 순위",
-  description: "호사가 HOSAGA 대회 팀 및 선수 순위",
+  title: "스타 대학대전 팀·선수 순위",
+  description:
+    "대학대전 팀 순위와 선수 개인 순위를 승패 기록으로 정리했습니다. 어느 대학이 앞서고 누가 많이 이겼는지 볼 수 있습니다.",
+  keywords: ["스타 대학대전 순위", "스타 대학리그 순위", "스타호사가", "호사가"],
+  alternates: { canonical: "/rankings" },
+  openGraph: {
+    title: "스타 대학대전 팀·선수 순위",
+    description: "대학대전 팀 순위와 선수 개인 순위를 승패 기록으로 정리",
+    url: "/rankings",
+    type: "website",
+  },
 };
 
 const STANDINGS_PATH = path.join(

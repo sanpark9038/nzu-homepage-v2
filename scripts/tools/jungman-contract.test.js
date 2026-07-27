@@ -982,3 +982,36 @@ test("public pages expose robots, a sitemap and a canonical base", () => {
   assert.match(readProjectFile("app/page.tsx"), /alternates: \{ canonical: "\/" \}/);
   assert.match(readProjectFile("app/jungman/page.tsx"), /alternates: \{ canonical: "\/jungman" \}/);
 });
+
+test("public routes carry their own description and canonical", () => {
+  const firstDescription = (source) => {
+    const match = source.match(/description:\s*"([^"]+)"/);
+    return match ? match[1] : null;
+  };
+
+  const homeDescription = firstDescription(readProjectFile("app/page.tsx"));
+  assert.ok(homeDescription, "app/page.tsx must declare a description");
+
+  // 목록은 하드코딩하지 않는다 — 내비게이션이 원본이라 메뉴가 늘면 이 검사도 같이 는다
+  const routes = (readProjectFile("lib/navigation-config.ts").match(/href: "[^"]+"/g) || [])
+    .map((entry) => entry.slice('href: "'.length, -1))
+    .filter((href) => href !== "/" && !href.startsWith("/overlay"));
+  assert.ok(routes.length >= 8, `expected the public nav to expose at least 8 routes, got ${routes.length}`);
+
+  const owners = new Map();
+  for (const href of routes) {
+    const file = `app${href}/page.tsx`;
+    const source = readProjectFile(file);
+    const description = firstDescription(source);
+
+    // 자기 설명이 없으면 홈 설명을 그대로 물려받는다 — 구글이 /tier와 /player를 구분하지 못한다
+    assert.ok(description, `${file} must declare its own description`);
+    assert.notEqual(description, homeDescription, `${file} must not reuse the home description`);
+    assert.ok(!owners.has(description), `${file} duplicates the description of ${owners.get(description)}`);
+    owners.set(description, file);
+
+    // canonical·og:url은 페이지마다 자기 주소
+    assert.ok(source.includes(`canonical: "${href}"`), `${file} must set canonical to ${href}`);
+    assert.ok(source.includes(`url: "${href}"`), `${file} must set og:url to ${href}`);
+  }
+});

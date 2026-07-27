@@ -9,13 +9,16 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   robots: { index: true, follow: true },
   // Search Console 소유권 확인 — 확인 완료 후에도 지우면 소유권이 풀린다
-  verification: { google: "aajslo6phUS5PFhAHZBbo4FY56qLaWCMgCckDMmyxUc" },
+  verification: {
+    google: "aajslo6phUS5PFhAHZBbo4FY56qLaWCMgCckDMmyxUc",
+    other: { "naver-site-verification": "72475a5d49fc7ff656bab4dc200e3ac62ef21ef1" },
+  },
   title: {
     default: "호사가 (HOSAGA) — 스타크래프트 대학대전",
     template: "%s | 호사가 HOSAGA",
   },
   description: "숲 스타크래프트 대학대전 호사가(HOSAGA) 공식 홈페이지. 선수 프로필, 티어표, 전적 조회를 제공합니다.",
-  keywords: ["호사가", "HOSAGA", "스타크래프트", "대학대전", "SC2", "StarCraft", "호사가홈페이지"],
+  keywords: ["스타호사가", "호사가", "HOSAGA", "스타크래프트", "대학대전", "SC2", "StarCraft", "호사가홈페이지"],
   openGraph: {
     title: "호사가 (HOSAGA) — 스타크래프트 대학대전",
     description: "숲 스타크래프트 대학대전 호사가(HOSAGA) 공식 홈페이지",
