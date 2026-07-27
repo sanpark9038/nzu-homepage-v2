@@ -1,14 +1,11 @@
 name: Jungman Collect
 
-# 중만컵 득표 수집 백업. 평소 수집은 /jungman을 보고 있는 사람이 굴리고(뷰어 구동),
-# 아무도 안 볼 때(새벽 등) 그래프에 구멍이 나지 않도록 이 워크플로가 대신 찌른다.
-# 서버 쪽 3분 쿨다운이 있어 자주 불러도 기록은 3분에 한 번을 넘지 않는다.
-# 투표 기간(7/27~7/30)에만 켜두고 끝나면 Actions 화면에서 disable 할 것.
+# 중만컵 득표 수집의 마지막 수단. 정기 수집은 Supabase Cron(3분)이 맡고,
+# 그것도 뷰어 폴링도 죽었을 때 손으로 돌린다. 서버 쿨다운이 있어 자주 불러도 안전하다.
+# 정기 실행이 필요해지면 아래에 schedule 트리거를 더하고 repo variable JUNGMAN_COLLECT_URL을 채운다.
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/10 * * * *"
 
 concurrency:
   group: jungman-collect

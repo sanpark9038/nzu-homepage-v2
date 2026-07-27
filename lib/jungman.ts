@@ -2,6 +2,8 @@ import { getSetting } from "@/lib/site-settings";
 
 export const JUNGMAN_CONFIG_KEY = "jungman_config";
 export const JUNGMAN_SNAPSHOTS_KEY = "jungman_snapshots";
+/** 마지막 수집 호출 흔적 — 크론·뷰어 폴링이 실제로 도는지 확인용 */
+export const JUNGMAN_HEARTBEAT_KEY = "jungman_heartbeat";
 
 // 수술대는 투표 대상이 아니다 — 4시드 자동 확보. 득표 집계·순위·그래프에서 통째로 빠진다.
 export const JUNGMAN_SEED_TEAM_CODE = "SSU";

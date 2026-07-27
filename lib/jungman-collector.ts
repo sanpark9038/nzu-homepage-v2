@@ -6,6 +6,7 @@
 import {
   JUNGMAN_COLLECT_INTERVAL_MS,
   JUNGMAN_CONFIG_KEY,
+  JUNGMAN_HEARTBEAT_KEY,
   JUNGMAN_SNAPSHOTS_KEY,
   parseJungmanConfig,
   parseJungmanSnapshots,
@@ -148,6 +149,21 @@ function sameVotes(a: Record<string, number>, b: Record<string, number>) {
  * 인증이 없는 대신 config 게이트 + 쿨다운 + 이상치 가드로 쓰기를 묶는다.
  */
 export async function collectJungmanSnapshot(force = false): Promise<JungmanCollectResult> {
+  const result = await runCollect(force);
+  // 심박 — 수집이 실제로 불렸는지 남긴다. 크론이 도는지 확인할 유일한 흔적이라
+  // 기록에 실패해도 수집 결과를 뒤엎지 않는다.
+  try {
+    await writeSettingAdmin(
+      JUNGMAN_HEARTBEAT_KEY,
+      JSON.stringify({ at: new Date().toISOString(), result: result.ok ? `round ${result.round}` : result.skipped })
+    );
+  } catch {
+    // 무시
+  }
+  return result;
+}
+
+async function runCollect(force: boolean): Promise<JungmanCollectResult> {
   const config = parseJungmanConfig(await readSettingAdmin(JUNGMAN_CONFIG_KEY));
   if (!config.autoCollect || !config.titleNo || !Object.keys(config.mapping).length) {
     return { ok: false, skipped: "disabled" };
