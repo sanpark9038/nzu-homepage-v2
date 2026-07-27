@@ -66,6 +66,48 @@ const soopRow = (commentNo, likes) => ({
   tag_index: -1,
 });
 
+/** 신형 API 한 줄 — 같은 값을 camelCase로 준다 (실측: 같은 글에서 12건 전부 일치) */
+const modernRow = (commentNo, likes) => ({
+  pCommentNo: commentNo,
+  likeCnt: likes,
+  userId: "u",
+  userNick: "n",
+  comment: "신청합니다",
+  tagIndex: -1,
+  cCommentCnt: 0,
+  isBestTop: false,
+});
+
+/**
+ * 호스트별로 다른 응답(또는 실패)을 준다. 신형은 meta가 평평(lastPage),
+ * 구형은 한 겹 더 감싸여 있다(meta.meta.last_page).
+ */
+function stubSoopHosts({ modern, legacy }) {
+  const original = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    const href = String(url);
+    const isModern = href.includes("api-channel.sooplive.com");
+    calls.push({ href, headers: (init && init.headers) || {} });
+    const rows = isModern ? modern : legacy;
+    if (rows instanceof Error) throw rows;
+    if (rows === null) return { ok: false, status: 500, json: async () => ({}) };
+    return {
+      ok: true,
+      json: async () =>
+        isModern
+          ? { meta: { total: rows.length, perPage: 30, lastPage: 1, currentPage: 1 }, data: rows }
+          : { meta: { meta: { last_page: 1 } }, data: rows },
+    };
+  };
+  return {
+    calls,
+    restore: () => {
+      globalThis.fetch = original;
+    },
+  };
+}
+
 /**
  * 수집기(async)를 실제로 돌려보는 테스트가 있어 선언 순서대로 한 줄로 세워 돌린다.
  * 겹쳐 돌면 전역 fetch 스텁을 서로 갈아끼워 엉뚱한 응답을 본다.
@@ -164,6 +206,93 @@ test("jungman collector sends a browser User-Agent", () => {
   assert.match(collector, /if \(requiredCommentNos\?\.length && !pending\.size\) break;/);
   // 실패는 예외가 아니라 결과값으로 — 수집 실패가 페이지를 깨뜨리면 안 된다
   assert.match(collector, /\{ ok: false; reason: string \}/);
+});
+
+test("jungman collector reads the modern comment API and falls back to the legacy one", async () => {
+  const source = readProjectFile("lib/jungman-collector.ts");
+
+  // 신형이 기본, 구형은 폴백 — 두 주소가 다 살아 있어야 한다
+  assert.match(source, /COMMENT_API = "https:\/\/api-channel\.sooplive\.com\/v1\.1\/channel"/);
+  assert.match(source, /LEGACY_COMMENT_API = "https:\/\/chapi\.sooplive\.co\.kr\/api"/);
+  // 신형 meta는 평평(lastPage), 구형은 한 겹 더(meta.meta.last_page) — 둘 다 읽어야 순회가 멈출 곳을 안다
+  assert.match(source, /meta\?\.lastPage \?\? nested\?\.last_page/);
+  // 대댓글 판별은 양쪽 다 tagIndex — 신형의 cCommentCnt는 "달린 대댓글 수"라 여기 못 쓴다
+  assert.match(source, /Number\(row\.tagIndex \?\? row\.tag_index \?\? -1\) >= 0/);
+
+  const at = new Date(Date.now() - 10 * 60_000).toISOString();
+  const config = {
+    soopId: "ititit",
+    titleNo: 202619457,
+    autoCollect: true,
+    voteCloseAt: "2099-01-01T00:00:00+09:00",
+    mapping: { 1: "DM", 2: "KU" },
+  };
+  const storeOf = () => ({
+    jungman_config: JSON.stringify(config),
+    jungman_snapshots: JSON.stringify([{ round: 7, at, votes: { DM: 100, KU: 200 } }]),
+    jungman_latest: JSON.stringify({ at, round: 7 }),
+  });
+
+  // ① 신형이 기본 경로 — 구형은 부르지도 않는다. 폴백이 안 돌았으니 source도 안 남는다.
+  let stub = stubSoopHosts({ modern: [modernRow(1, 150), modernRow(2, 250)], legacy: [] });
+  let modernComments;
+  try {
+    const run = loadJungmanCollector(storeOf());
+    modernComments = await run.collector.fetchJungmanComments("ititit", 202619457);
+    const result = await run.collector.collectJungmanSnapshot(false);
+    assert.deepEqual(result, { ok: true, round: 8, votes: { DM: 150, KU: 250 }, carried: [] });
+    assert.ok(
+      stub.calls.every((call) => call.href.includes("api-channel.sooplive.com")),
+      `legacy API was called: ${stub.calls.map((call) => call.href)}`
+    );
+    // 신형에도 UA를 붙인다 — 막힐 이유를 만들지 않는다
+    for (const call of stub.calls) assert.match(String(call.headers["User-Agent"]), /^Mozilla\/5\.0/);
+  } finally {
+    stub.restore();
+  }
+
+  // ② 신형이 죽으면 구형이 같은 결과를 낸다 + 폴백 사실이 심박에 남는다
+  for (const broken of [new Error("boom"), null, []]) {
+    stub = stubSoopHosts({ modern: broken, legacy: [soopRow(1, 150), soopRow(2, 250)] });
+    try {
+      const run = loadJungmanCollector(storeOf());
+      // ③ 두 응답 형식이 같은 모양으로 정규화된다
+      const legacyComments = await run.collector.fetchJungmanComments("ititit", 202619457);
+      assert.deepEqual(legacyComments.comments, modernComments.comments);
+      assert.equal(modernComments.source, "modern");
+      assert.equal(legacyComments.source, "legacy");
+
+      const result = await run.collector.collectJungmanSnapshot(false);
+      assert.deepEqual(result, {
+        ok: true,
+        round: 8,
+        votes: { DM: 150, KU: 250 },
+        carried: [],
+        source: "legacy",
+      });
+      assert.ok(
+        stub.calls.some((call) => call.href.includes("chapi.sooplive.co.kr")),
+        "fallback should hit the legacy API"
+      );
+
+      const heartbeat = JSON.parse(run.writes.find(([key]) => key === "jungman_heartbeat")[1]);
+      assert.equal(heartbeat.source, "legacy", "폴백이 심박에 안 남았다");
+    } finally {
+      stub.restore();
+    }
+  }
+
+  // 둘 다 죽으면 예외가 아니라 실패값 — 수집 실패가 페이지를 깨뜨리면 안 된다
+  stub = stubSoopHosts({ modern: new Error("boom"), legacy: new Error("boom") });
+  try {
+    const run = loadJungmanCollector(storeOf());
+    const result = await run.collector.collectJungmanSnapshot(false);
+    assert.equal(result.ok, false);
+    assert.equal(result.skipped, "fetch_failed");
+    assert.ok(!run.writes.some(([key]) => key === "jungman_snapshots"), "fetch_failed must not write");
+  } finally {
+    stub.restore();
+  }
 });
 
 test("jungman collect path guards writes with cooldown and anomaly checks", () => {

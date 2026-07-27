@@ -17,15 +17,25 @@ import {
 } from "@/lib/jungman";
 import { readSettingAdmin, writeSettingAdmin } from "@/lib/site-settings-admin";
 
-const COMMENT_API = "https://chapi.sooplive.co.kr/api";
+/** 신형(기본) — 인증 없이 열린다. meta는 평평하고 필드는 camelCase다. */
+const COMMENT_API = "https://api-channel.sooplive.com/v1.1/channel";
+/** 구형(폴백) — 신형이 죽거나 빈손일 때만 부른다. meta가 한 겹 더 감싸여 있고 필드는 snake_case다. */
+const LEGACY_COMMENT_API = "https://chapi.sooplive.co.kr/api";
+
+type CommentSource = "modern" | "legacy";
+
+const pageUrl = (source: CommentSource, soopId: string, titleNo: number, page: number) =>
+  source === "modern"
+    ? `${COMMENT_API}/${encodeURIComponent(soopId)}/post/${titleNo}/comment?page=${page}`
+    : `${LEGACY_COMMENT_API}/${encodeURIComponent(soopId)}/title/${titleNo}/comment?page=${page}`;
 
 // UA가 없으면 404 HTML이 온다. 브라우저 문자열 필수.
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
 const FETCH_TIMEOUT_MS = 8000;
-// per_page는 서버가 30으로 고정한다(요청값 무시) — 댓글 1200개까지가 상한.
-// 순회는 이미 API가 알려준 last_page에서 멈추므로 이 값은 폭주 방지용 천장일 뿐이다.
+// 페이지당 30개는 양쪽 API 모두 서버 고정이다 — 신형에 perPage=100을 줘도 meta.perPage는 30으로 답한다.
+// 순회는 이미 API가 알려준 마지막 페이지에서 멈추므로 이 값은 폭주 방지용 천장일 뿐이다.
 // 낮추면 글이 이 페이지 수를 넘겼을 때 뒷쪽 신청 댓글을 영영 못 찾는다 — 줄이지 말 것.
 const MAX_PAGES = 40;
 
@@ -33,33 +43,46 @@ const MAX_PAGES = 40;
 export type { JungmanComment };
 
 export type JungmanFetchResult =
-  | { ok: true; comments: JungmanComment[] }
+  | { ok: true; comments: JungmanComment[]; source: CommentSource }
   | { ok: false; reason: string };
 
+/**
+ * 신형·구형 한 줄을 같은 JungmanComment로 정규화한다.
+ * 같은 글에서 두 API의 댓글번호·아이디·추천수·태그가 전부 일치하는 걸 확인했다 —
+ * 이름만 camelCase/snake_case로 다르므로 키 두 쌍을 같이 읽는다.
+ */
 function toComment(entry: unknown): JungmanComment | null {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
   const row = entry as Record<string, unknown>;
 
-  const commentNo = Math.floor(Number(row.p_comment_no));
+  const commentNo = Math.floor(Number(row.pCommentNo ?? row.p_comment_no));
   if (!Number.isFinite(commentNo) || commentNo <= 0) return null;
 
   // 대댓글은 원 댓글을 태그한다 — 추천수 주인이 아니라서 버린다.
-  if (Number(row.tag_index ?? -1) >= 0) return null;
+  // (신형의 cCommentCnt는 "달린 대댓글 수"라 판별에 쓸 수 없다. 판별은 양쪽 다 tagIndex다.)
+  if (Number(row.tagIndex ?? row.tag_index ?? -1) >= 0) return null;
 
-  const likes = Math.floor(Number(row.like_cnt));
+  const likes = Math.floor(Number(row.likeCnt ?? row.like_cnt));
   if (!Number.isFinite(likes) || likes < 0) return null;
 
   return {
     commentNo,
-    userId: String(row.user_id || ""),
-    nick: String(row.user_nick || ""),
+    userId: String(row.userId ?? row.user_id ?? ""),
+    nick: String(row.userNick ?? row.user_nick ?? ""),
     text: String(row.comment || ""),
     likes,
   };
 }
 
-async function fetchPage(soopId: string, titleNo: number, page: number) {
-  const res = await fetch(`${COMMENT_API}/${encodeURIComponent(soopId)}/title/${titleNo}/comment?page=${page}`, {
+/** 신형은 meta.lastPage, 구형은 meta.meta.last_page — 둘 다 본다. */
+function lastPageOf(json: Record<string, unknown>): number {
+  const meta = json.meta as Record<string, unknown> | undefined;
+  const nested = meta?.meta as Record<string, unknown> | undefined;
+  return Math.floor(Number(meta?.lastPage ?? nested?.last_page));
+}
+
+async function fetchPage(source: CommentSource, soopId: string, titleNo: number, page: number) {
+  const res = await fetch(pageUrl(source, soopId, titleNo, page), {
     cache: "no-store",
     headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -70,31 +93,25 @@ async function fetchPage(soopId: string, titleNo: number, page: number) {
 }
 
 /**
- * 전 페이지 순회. 실패해도 예외를 던지지 않는다 — 수집 실패가 페이지를 깨뜨리면 안 된다.
+ * 한 소스의 전 페이지 순회. 실패해도 예외를 던지지 않는다 — 수집 실패가 페이지를 깨뜨리면 안 된다.
  * requiredCommentNos를 주면 그 댓글을 다 찾는 즉시 멈춘다. 3분마다 도는 수집이
  * 팬 댓글 수백 개까지 끝까지 읽을 이유가 없다(관리자 매핑 화면은 안 넘겨서 전부 받는다).
  */
-export async function fetchJungmanComments(
+async function fetchFrom(
+  source: CommentSource,
   soopId: string,
   titleNo: number,
   requiredCommentNos?: number[]
 ): Promise<JungmanFetchResult> {
-  if (!soopId.trim() || !Number.isFinite(titleNo) || titleNo <= 0) {
-    return { ok: false, reason: "invalid_target" };
-  }
-
   const byNo = new Map<number, JungmanComment>();
   const pending = new Set(requiredCommentNos || []);
 
   try {
     let lastPage = 1;
     for (let page = 1; page <= Math.min(lastPage, MAX_PAGES); page++) {
-      const json = await fetchPage(soopId, titleNo, page);
+      const json = await fetchPage(source, soopId, titleNo, page);
 
-      const meta = (json.meta as Record<string, unknown> | undefined)?.meta as
-        | Record<string, unknown>
-        | undefined;
-      const reported = Math.floor(Number(meta?.last_page));
+      const reported = lastPageOf(json);
       if (Number.isFinite(reported) && reported > lastPage) lastPage = reported;
 
       const rows = Array.isArray(json.data) ? json.data : [];
@@ -112,7 +129,30 @@ export async function fetchJungmanComments(
     return { ok: false, reason: error instanceof Error ? error.message : "fetch_failed" };
   }
 
-  return { ok: true, comments: [...byNo.values()] };
+  return { ok: true, comments: [...byNo.values()], source };
+}
+
+/**
+ * 신형이 기본, 실패(오류·파싱 실패·0건)하면 구형으로 자동 폴백한다.
+ * 정상 운영에서는 폴백이 안 돌아 요청 수가 그대로다 — 신형이 빈손일 때만 한 번 더 나간다.
+ */
+export async function fetchJungmanComments(
+  soopId: string,
+  titleNo: number,
+  requiredCommentNos?: number[]
+): Promise<JungmanFetchResult> {
+  if (!soopId.trim() || !Number.isFinite(titleNo) || titleNo <= 0) {
+    return { ok: false, reason: "invalid_target" };
+  }
+
+  const modern = await fetchFrom("modern", soopId, titleNo, requiredCommentNos);
+  if (modern.ok && modern.comments.length) return modern;
+
+  const legacy = await fetchFrom("legacy", soopId, titleNo, requiredCommentNos);
+  if (legacy.ok && legacy.comments.length) return legacy;
+
+  // 둘 다 빈손이면 신형 결과를 그대로 돌려준다(0건은 상위에서 no_match로 걸린다).
+  return modern.ok ? modern : legacy;
 }
 
 /** mapping: 댓글번호 → 팀코드. 매핑에 없는 댓글은 무시한다. */
@@ -143,7 +183,8 @@ const COLLECT_GRACE_MS = 10 * 60 * 1000;
 const ANOMALY_FLOOR_RATIO = 0.7;
 
 export type JungmanCollectResult =
-  | { ok: true; round: number; votes: Record<string, number>; carried: string[] }
+  // source는 구형 폴백이 돌았을 때만 붙는다 — 붙어 있으면 신형이 죽었다는 신호다.
+  | { ok: true; round: number; votes: Record<string, number>; carried: string[]; source?: "legacy" }
   | { ok: false; skipped: string; reason?: string };
 
 /**
@@ -182,7 +223,7 @@ function sameVotes(a: Record<string, number>, b: Record<string, number>) {
 /** 심박에 남길 최근 호출 수 — 회차가 건너뛰었을 때 원인을 되짚을 유일한 단서다 */
 const HEARTBEAT_HISTORY = 20;
 
-type HeartbeatEntry = { at: string; result: string; carried?: string[] };
+type HeartbeatEntry = { at: string; result: string; carried?: string[]; source?: "legacy" };
 
 function nextHeartbeat(previous: string | null, result: JungmanCollectResult) {
   const entry: HeartbeatEntry = {
@@ -190,6 +231,8 @@ function nextHeartbeat(previous: string | null, result: JungmanCollectResult) {
     result: result.ok ? `round ${result.round}` : result.skipped,
     // 직전 값을 이어받은 팀이 있으면 남긴다 — 관리자가 "왜 이 팀만 안 움직이나"를 알 수 있어야 한다
     ...(result.ok && result.carried.length ? { carried: result.carried } : {}),
+    // 구형 폴백이 돌았으면 남긴다 — 신형이 언제부터 죽었는지 되짚을 유일한 흔적이다
+    ...(result.ok && result.source ? { source: result.source } : {}),
   };
 
   let history: HeartbeatEntry[] = [];
@@ -293,5 +336,5 @@ async function runCollect(force: boolean): Promise<JungmanCollectResult> {
   const next: JungmanSnapshot[] = [...snapshots, { round, at, votes }].slice(-MAX_SNAPSHOTS);
 
   await writeJungmanSnapshots(next);
-  return { ok: true, round, votes, carried };
+  return { ok: true, round, votes, carried, ...(fetched.source === "legacy" ? { source: "legacy" as const } : {}) };
 }
