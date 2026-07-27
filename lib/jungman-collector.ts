@@ -25,6 +25,8 @@ const USER_AGENT =
 
 const FETCH_TIMEOUT_MS = 8000;
 // per_page는 서버가 30으로 고정한다(요청값 무시) — 댓글 1200개까지가 상한.
+// 순회는 이미 API가 알려준 last_page에서 멈추므로 이 값은 폭주 방지용 천장일 뿐이다.
+// 낮추면 글이 이 페이지 수를 넘겼을 때 뒷쪽 신청 댓글을 영영 못 찾는다 — 줄이지 말 것.
 const MAX_PAGES = 40;
 
 // 타입 본체는 lib/jungman.ts에 둔다 — 관리자 클라이언트가 이 파일(service role)을 끌어오면 안 되므로.
@@ -126,15 +128,22 @@ export function buildVotesFromComments(
   return votes;
 }
 
-/** KV 한 칸에 다 들어가므로 무한히 쌓을 수 없다. round 번호는 계속 증가하고 앞에서 잘라낸다. */
-const MAX_SNAPSHOTS = 500;
+/**
+ * KV 한 칸에 다 들어가므로 무한히 쌓을 수 없다. round 번호는 계속 증가하고 앞에서 잘라낸다.
+ *
+ * 투표 기간 78시간(7/27 18:00 ~ 7/30 24:00) × 3분 간격 = 시간당 20회 × 78 = 1560회.
+ * 여유를 더해 1700. 대회 전체가 한 배열에 남아야 "최고 순위"와 전체 추이 그래프가 거짓말을 안 한다.
+ * (500이면 25시간 만에 상한에 걸려 1일차가 조용히 잘려나간다.)
+ * 스냅샷 1개 ≈ 170바이트 → 1700개 ≈ 280KB. 단일 text 값으로 충분하다.
+ */
+const MAX_SNAPSHOTS = 1700;
 /** 마감 직후 늦게 반영되는 추천을 놓치지 않도록 이만큼만 더 수집한다 */
 const COLLECT_GRACE_MS = 10 * 60 * 1000;
 /** 직전 합계 대비 이 비율 미만으로 급락하면 수집 사고로 보고 기록하지 않는다 */
 const ANOMALY_FLOOR_RATIO = 0.7;
 
 export type JungmanCollectResult =
-  | { ok: true; round: number; votes: Record<string, number> }
+  | { ok: true; round: number; votes: Record<string, number>; carried: string[] }
   | { ok: false; skipped: string; reason?: string };
 
 /**
@@ -177,7 +186,12 @@ export async function collectJungmanSnapshot(force = false): Promise<JungmanColl
   try {
     await writeSettingAdmin(
       JUNGMAN_HEARTBEAT_KEY,
-      JSON.stringify({ at: new Date().toISOString(), result: result.ok ? `round ${result.round}` : result.skipped })
+      JSON.stringify({
+        at: new Date().toISOString(),
+        result: result.ok ? `round ${result.round}` : result.skipped,
+        // 직전 값을 이어받은 팀이 있으면 남긴다 — 관리자가 "왜 이 팀만 안 움직이나"를 알 수 있어야 한다
+        ...(result.ok && result.carried.length ? { carried: result.carried } : {}),
+      })
     );
   } catch {
     // 무시
@@ -198,12 +212,17 @@ async function runCollect(force: boolean): Promise<JungmanCollectResult> {
   }
 
   // 쿨다운은 가벼운 키로 먼저 본다 — 스킵될 호출이 86KB 스냅샷 배열을 읽으면 전송량만 태운다.
-  if (!force && onCooldown(parseJungmanLatest(await readSettingAdmin(JUNGMAN_LATEST_KEY)))) {
-    return { ok: false, skipped: "cooldown" };
-  }
+  // 이 값은 이력 소실 가드와 경합 가드의 기준으로도 쓰인다(읽기는 한 번뿐).
+  const summary = parseJungmanLatest(await readSettingAdmin(JUNGMAN_LATEST_KEY));
+  if (!force && onCooldown(summary)) return { ok: false, skipped: "cooldown" };
 
   const snapshots = parseJungmanSnapshots(await readSettingAdmin(JUNGMAN_SNAPSHOTS_KEY));
   const latest = snapshots[snapshots.length - 1] || null;
+
+  // 요약 키에 기록이 남아 있는데 배열이 비었다 = 스냅샷 JSON이 깨졌거나 지워졌다.
+  // 여기서 그냥 쓰면 round 1짜리 새 배열이 이력 전체를 덮는다. force로도 못 뚫는다 —
+  // 수집 한 회차를 거르는 것보다 며칠치 이력을 날리는 쪽이 훨씬 위험하다.
+  if (summary && !snapshots.length) return { ok: false, skipped: "history_lost" };
 
   // 가벼운 키가 없거나 깨졌을 때의 폴백 — 판정 기준은 스냅샷 배열이 원본이다.
   if (!force && onCooldown(latest)) return { ok: false, skipped: "cooldown" };
@@ -219,6 +238,18 @@ async function runCollect(force: boolean): Promise<JungmanCollectResult> {
   // 매핑된 댓글이 하나도 안 잡혔다 = 글이 지워졌거나 매핑이 낡았다. 기존 기록을 덮지 않는다.
   if (!Object.keys(votes).length) return { ok: false, skipped: "no_match" };
 
+  // 매핑된 댓글 일부만 못 찾은 경우(댓글 삭제·숨김) 그 팀만 직전 값을 이어받는다.
+  // 안 그러면 그 팀은 0표로 추락하고, 비중이 큰 팀이면 합계가 급락해 이상치 가드가
+  // 매 회차 걸린다 — 비교 기준이 갱신되지 않으니 수집이 영구 정지한다.
+  const carried: string[] = [];
+  if (latest) {
+    for (const code of new Set(Object.values(config.mapping))) {
+      if (votes[code] !== undefined || latest.votes[code] === undefined) continue;
+      votes[code] = latest.votes[code];
+      carried.push(code);
+    }
+  }
+
   if (latest) {
     // 급락 가드는 관리자 force로 뚫는다 — 안 그러면 직전 수치가 한 번 부풀려진 순간
     // (수기 샘플 등) 자동 수집이 영원히 막히고 스스로 회복할 길이 없다.
@@ -229,10 +260,16 @@ async function runCollect(force: boolean): Promise<JungmanCollectResult> {
     if (sameVotes(latest.votes, votes)) return { ok: false, skipped: "unchanged" };
   }
 
+  // 읽기~쓰기 사이에 잠금이 없다 — 크론과 관리자 [지금 수집]이 겹치면 한쪽 회차가 통째로 사라진다.
+  // 쓰기 직전에 요약 키를 다시 읽어 그사이 누가 기록했으면 물러난다. 다음 회차가 3분 뒤에 온다.
+  // 낙관적 확인이라 확인~쓰기 사이의 아주 좁은 창은 남는다 — 완전한 잠금이 필요해지면 DB 조건부 갱신으로.
+  const recheck = parseJungmanLatest(await readSettingAdmin(JUNGMAN_LATEST_KEY));
+  if ((recheck?.round ?? null) !== (summary?.round ?? null)) return { ok: false, skipped: "raced" };
+
   const round = (latest?.round || 0) + 1;
   const at = new Date().toISOString();
   const next: JungmanSnapshot[] = [...snapshots, { round, at, votes }].slice(-MAX_SNAPSHOTS);
 
   await writeJungmanSnapshots(next);
-  return { ok: true, round, votes };
+  return { ok: true, round, votes, carried };
 }

@@ -19,9 +19,9 @@ function loadModule(relativePath, resolve = () => ({})) {
   return mod.exports;
 }
 
-/** lib/jungman.ts — site-settings(service role)만 스텁으로 막는다. */
-function loadJungmanLib() {
-  return loadModule("lib/jungman.ts");
+/** lib/jungman.ts — site-settings(공개 읽기)만 스텁으로 막는다. */
+function loadJungmanLib(getSetting) {
+  return loadModule("lib/jungman.ts", () => (getSetting ? { getSetting } : {}));
 }
 
 /** 수집기 + KV 스텁. 어떤 키를 어떤 순서로 읽고 썼는지 기록한다. */
@@ -45,23 +45,45 @@ function loadJungmanCollector(store) {
   return { collector, reads, writes };
 }
 
-/** 수집기(async)를 실제로 돌려보는 테스트가 있어 프라미스도 받는다 — 비동기 결과는 맨 뒤에 찍힌다. */
-function test(name, fn) {
-  const fail = (error) => {
-    console.error(`not ok - ${name}`);
-    console.error(error);
-    process.exitCode = 1;
+/** 숲 댓글 API 한 페이지 응답을 흉내낸다. 되돌리는 함수를 반환한다. */
+function stubSoopComments(rows) {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({ meta: { meta: { last_page: 1 } }, data: rows }),
+  });
+  return () => {
+    globalThis.fetch = original;
   };
+}
 
-  try {
-    const result = fn();
-    if (result && typeof result.then === "function") {
-      return result.then(() => console.log(`ok - ${name}`), fail);
+const soopRow = (commentNo, likes) => ({
+  p_comment_no: commentNo,
+  like_cnt: likes,
+  user_id: "u",
+  user_nick: "n",
+  comment: "신청합니다",
+  tag_index: -1,
+});
+
+/**
+ * 수집기(async)를 실제로 돌려보는 테스트가 있어 선언 순서대로 한 줄로 세워 돌린다.
+ * 겹쳐 돌면 전역 fetch 스텁을 서로 갈아끼워 엉뚱한 응답을 본다.
+ */
+let queue = Promise.resolve();
+
+function test(name, fn) {
+  queue = queue.then(async () => {
+    try {
+      await fn();
+      console.log(`ok - ${name}`);
+    } catch (error) {
+      console.error(`not ok - ${name}`);
+      console.error(error);
+      process.exitCode = 1;
     }
-    console.log(`ok - ${name}`);
-  } catch (error) {
-    fail(error);
-  }
+  });
+  return queue;
 }
 
 test("public jungman route revalidates and ships a loading boundary", () => {
@@ -198,7 +220,9 @@ test("jungman live mode has a server-computed window and a viewer-driven poller"
   assert.doesNotMatch(client, /3분마다 자동 집계/);
   assert.match(lib, /export function jungmanIntervalLabel/);
 
-  assert.match(page, /config\.autoCollect \? <JungmanAutoRefresh \/> : null/);
+  // 자동 갱신을 autoCollect 하나에 매달면 읽기 실패(=기본값 false) 순간 회복 수단까지 사라진다
+  assert.match(page, /const autoRefresh = config\.autoCollect \|\| snapshots\.length > 0 \|\| degraded;/);
+  assert.match(page, /\{autoRefresh \? <JungmanAutoRefresh \/> : null\}/);
   assert.match(page, /isLive=\{isLive\}/);
 });
 
@@ -562,6 +586,177 @@ test("jungman is reachable from public and admin navigation", () => {
   assert.match(readProjectFile("lib/navigation-config.ts"), /href: "\/jungman", label: "중만컵"/);
   assert.match(readProjectFile("components/Navbar.tsx"), /"\/jungman":/);
   assert.match(readProjectFile("components/admin/AdminNav.tsx"), /href: "\/admin\/jungman"/);
+});
+
+test("jungman tells a failed read apart from an empty board", async () => {
+  const settings = readProjectFile("lib/site-settings.ts");
+
+  // 테이블이 아직 없는 건(PGRST205) 배포 순서 문제라 조용히 넘긴다. 그 외 실패는 던져야 한다 —
+  // 삼키면 호출부가 "값 없음"으로 읽고 빈 화면을 정상 상태로 캐시한다.
+  assert.match(settings, /if \(error\.code === "PGRST205"\) return fallback;/);
+  assert.match(settings, /throw new Error\(`site_settings read failed/);
+
+  const failing = loadJungmanLib(async () => {
+    throw new Error("boom");
+  });
+  const broken = await failing.getJungmanState();
+  assert.equal(broken.degraded, true);
+  assert.equal(broken.latest, null);
+  // 상태 자체는 렌더 가능한 모양이어야 한다 — 지도·순위표가 터지면 안 된다
+  assert.equal(broken.standings.length, 12);
+
+  // 정상 읽기는 degraded가 아니다
+  const snapshot = { round: 7, at: new Date().toISOString(), votes: { DM: 10 } };
+  const healthy = loadJungmanLib(async (key) =>
+    key === "jungman_snapshots" ? JSON.stringify([snapshot]) : null
+  );
+  const fine = await healthy.getJungmanState();
+  assert.equal(fine.degraded, false);
+  assert.equal(fine.latest.round, 7);
+
+  // 화면: 빈 상태가 아니라 실패를 말하고, 못 믿을 config로 카운트다운을 그리지 않는다
+  const page = readProjectFile("app/jungman/page.tsx");
+  assert.match(page, /집계 데이터를 불러오지 못했습니다/);
+  assert.match(page, /곧 다시 시도합니다/);
+  assert.match(page, /degraded \? null : \(/);
+});
+
+test("jungman keeps every round of the vote window in one array", () => {
+  const collector = readProjectFile("lib/jungman-collector.ts");
+  const lib = loadJungmanLib();
+
+  const max = Number(collector.match(/MAX_SNAPSHOTS = (\d+)/)[1]);
+  // 투표 78시간 전체가 남아야 "최고 순위"와 전체 추이가 거짓말을 안 한다.
+  // 500이면 25시간(3분 × 500)에 물려 1일차가 조용히 잘려나간다.
+  const windowMs = 78 * 60 * 60 * 1000;
+  assert.ok(
+    max * lib.JUNGMAN_COLLECT_INTERVAL_MS >= windowMs,
+    `MAX_SNAPSHOTS ${max} covers only ${(max * lib.JUNGMAN_COLLECT_INTERVAL_MS) / 3600000}h`
+  );
+  // 순회 상한은 API가 알려준 last_page에서 이미 멈춘다 — 낮추면 뒷쪽 신청 댓글을 못 찾는다
+  assert.match(collector, /줄이지 말 것/);
+});
+
+test("jungman carries a vanished comment forward instead of dropping the team to zero", async () => {
+  const at = new Date(Date.now() - 10 * 60_000).toISOString();
+  const config = {
+    soopId: "x",
+    titleNo: 1,
+    autoCollect: true,
+    voteCloseAt: "2099-01-01T00:00:00+09:00",
+    mapping: { 1: "DM", 2: "KU" },
+  };
+  const storeWith = (votes) => ({
+    jungman_config: JSON.stringify(config),
+    jungman_snapshots: JSON.stringify([{ round: 42, at, votes }]),
+    jungman_latest: JSON.stringify({ at, round: 42 }),
+  });
+
+  // 2번 댓글(KU)이 사라졌다 — KU는 직전 값을 그대로 이어받는다
+  let restore = stubSoopComments([soopRow(1, 1100)]);
+  try {
+    const run = loadJungmanCollector(storeWith({ DM: 1000, KU: 900 }));
+    const result = await run.collector.collectJungmanSnapshot(false);
+    assert.deepEqual(result, { ok: true, round: 43, votes: { DM: 1100, KU: 900 }, carried: ["KU"] });
+
+    // 이어받은 사실은 심박에 남아야 관리자가 원인을 안다
+    const heartbeat = JSON.parse(run.writes.find(([key]) => key === "jungman_heartbeat")[1]);
+    assert.deepEqual(heartbeat.carried, ["KU"]);
+  } finally {
+    restore();
+  }
+
+  // 비중이 큰 팀(KU 9000)이 사라져도 이상치 가드에 걸려 영구 정지하면 안 된다
+  restore = stubSoopComments([soopRow(1, 110)]);
+  try {
+    const run = loadJungmanCollector(storeWith({ DM: 100, KU: 9000 }));
+    const result = await run.collector.collectJungmanSnapshot(false);
+    assert.equal(result.ok, true, `expected a write, got ${JSON.stringify(result)}`);
+    assert.deepEqual(result.votes, { DM: 110, KU: 9000 });
+  } finally {
+    restore();
+  }
+
+  // 전부 사라졌으면 기존대로 기록 거부 — 이어받기가 no_match를 뚫으면 안 된다
+  restore = stubSoopComments([]);
+  try {
+    const run = loadJungmanCollector(storeWith({ DM: 1000, KU: 900 }));
+    assert.deepEqual(await run.collector.collectJungmanSnapshot(false), { ok: false, skipped: "no_match" });
+    assert.ok(!run.writes.some(([key]) => key === "jungman_snapshots"), "no_match must not write");
+  } finally {
+    restore();
+  }
+});
+
+test("jungman refuses to overwrite history it could not read", async () => {
+  const at = new Date(Date.now() - 10 * 60_000).toISOString();
+  // 요약 키에는 173차가 남아 있는데 배열 JSON이 깨졌다 — 여기서 쓰면 round 1이 이력 전체를 덮는다
+  const store = {
+    jungman_config: JSON.stringify({
+      soopId: "x",
+      titleNo: 1,
+      autoCollect: true,
+      voteCloseAt: "2099-01-01T00:00:00+09:00",
+      mapping: { 1: "DM" },
+    }),
+    jungman_snapshots: "{깨진 JSON",
+    jungman_latest: JSON.stringify({ at, round: 173 }),
+  };
+
+  const restore = stubSoopComments([soopRow(1, 1)]);
+  try {
+    // 관리자 force도 이 가드는 못 뚫는다 — 한 회차를 거르는 게 며칠치 이력보다 싸다
+    for (const force of [false, true]) {
+      const run = loadJungmanCollector(store);
+      assert.deepEqual(await run.collector.collectJungmanSnapshot(force), {
+        ok: false,
+        skipped: "history_lost",
+      });
+      assert.ok(!run.writes.some(([key]) => key === "jungman_snapshots"), `force=${force} must not write`);
+    }
+  } finally {
+    restore();
+  }
+
+  // 정상적으로 비어 있는 상태(요약 키 없음)는 막지 않는다 — 첫 수집이 돌아야 한다
+  const first = loadJungmanCollector({ ...store, jungman_snapshots: "[]", jungman_latest: undefined });
+  const restoreFirst = stubSoopComments([soopRow(1, 5)]);
+  try {
+    const result = await first.collector.collectJungmanSnapshot(false);
+    assert.deepEqual(result, { ok: true, round: 1, votes: { DM: 5 }, carried: [] });
+  } finally {
+    restoreFirst();
+  }
+});
+
+test("jungman drops a round rather than losing one to a concurrent write", async () => {
+  const at = new Date(Date.now() - 10 * 60_000).toISOString();
+  let latestReads = 0;
+  const store = {
+    jungman_config: JSON.stringify({
+      soopId: "x",
+      titleNo: 1,
+      autoCollect: true,
+      voteCloseAt: "2099-01-01T00:00:00+09:00",
+      mapping: { 1: "DM" },
+    }),
+    jungman_snapshots: JSON.stringify([{ round: 500, at, votes: { DM: 1000 } }]),
+    // 쓰기 직전 재확인 때는 다른 수집기가 이미 501차를 기록한 상태
+    get jungman_latest() {
+      latestReads += 1;
+      return JSON.stringify({ at, round: latestReads === 1 ? 500 : 501 });
+    },
+  };
+
+  const restore = stubSoopComments([soopRow(1, 1100)]);
+  try {
+    const run = loadJungmanCollector(store);
+    assert.deepEqual(await run.collector.collectJungmanSnapshot(false), { ok: false, skipped: "raced" });
+    assert.ok(!run.writes.some(([key]) => key === "jungman_snapshots"), "raced must not write");
+    assert.ok(latestReads >= 2, "the collector must re-read the summary key before writing");
+  } finally {
+    restore();
+  }
 });
 
 test("jungman team short labels follow the project metadata", () => {

@@ -31,7 +31,7 @@ const PANEL =
   "rounded-[1.4rem] border border-[rgba(155,185,240,0.14)] bg-[linear-gradient(180deg,#101728,#0c1220)] shadow-[0_24px_60px_rgba(0,0,0,0.55)]";
 
 export default async function JungmanPage() {
-  const { config, snapshots, latest, standings, isLive: inLiveWindow } = await getJungmanState();
+  const { config, snapshots, latest, standings, isLive: inLiveWindow, degraded } = await getJungmanState();
   const markers = buildJungmanMarkers(standings);
   const seedTeam = JUNGMAN_TEAMS.find((team) => team.code === JUNGMAN_SEED_TEAM_CODE);
   // LIVE 판정은 여기 한 곳에서만 — 카운트다운과 보드 배지가 서로 다른 조건을 쓰면 배지가 어긋난다
@@ -43,11 +43,14 @@ export default async function JungmanPage() {
   );
   // 구간 버킷(1시간·6시간·전체)은 서버에서 끝낸다 — 클라이언트는 전환만 한다
   const series = buildJungmanSeries(snapshots);
+  // 자동 갱신은 autoCollect 하나에 매달면 안 된다 — 읽기가 실패한 순간 config가 기본값(false)이 되어
+  // 스스로 회복할 유일한 수단까지 같이 사라진다. 회복이 필요한 상황이면 무조건 띄운다.
+  const autoRefresh = config.autoCollect || snapshots.length > 0 || degraded;
 
   return (
     <div className="min-h-screen bg-[#0b0f1a] text-[#e8ebf2]">
       <main className="mx-auto w-full max-w-[1600px] px-3 py-5 md:px-5">
-        {config.autoCollect ? <JungmanAutoRefresh /> : null}
+        {autoRefresh ? <JungmanAutoRefresh /> : null}
 
         {latest ? (
           <JungmanDashboard
@@ -78,20 +81,32 @@ export default async function JungmanPage() {
               <p className="text-[0.6875rem] font-bold uppercase tracking-[0.22em] text-[#d4a94a]">
                 중만컵 · 인기투표 개표 현황
               </p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight">첫 개표 발표를 기다리고 있습니다</h1>
+              {/* 읽기 실패를 "아직 개표 전"으로 보여주면 집계가 사라진 것처럼 읽힌다 — 상태를 그대로 말한다 */}
+              <h1 className="mt-2 text-3xl font-black tracking-tight">
+                {degraded ? "집계 데이터를 불러오지 못했습니다" : "첫 개표 발표를 기다리고 있습니다"}
+              </h1>
               <p className="mt-3 text-sm leading-relaxed text-[#7a8299]">
-                13개 대학 중 투표 대상은 <b className="font-bold text-[#e8ebf2]">12팀</b>, 수술대는 4시드를 확보해
-                투표에서 빠집니다. 상위 3팀 시드 · 하위 2팀 와일드카드전.
+                {degraded ? (
+                  "곧 다시 시도합니다. 투표 기록은 그대로 있으며, 연결이 회복되면 이 화면이 자동으로 갱신됩니다."
+                ) : (
+                  <>
+                    13개 대학 중 투표 대상은 <b className="font-bold text-[#e8ebf2]">12팀</b>, 수술대는 4시드를 확보해
+                    투표에서 빠집니다. 상위 3팀 시드 · 하위 2팀 와일드카드전.
+                  </>
+                )}
               </p>
-              <div className="mt-5">
-                <JungmanCountdown
-                  voteCloseAt={config.voteCloseAt}
-                  nextRevealAt={config.nextRevealAt}
-                  isLive={isLive}
-                  latestAt={null}
-                  autoCollect={config.autoCollect}
-                />
-              </div>
+              {/* degraded면 config가 기본값이라 마감 시각·다음 개표를 믿을 수 없다 — 카운트다운을 숨긴다 */}
+              {degraded ? null : (
+                <div className="mt-5">
+                  <JungmanCountdown
+                    voteCloseAt={config.voteCloseAt}
+                    nextRevealAt={config.nextRevealAt}
+                    isLive={isLive}
+                    latestAt={null}
+                    autoCollect={config.autoCollect}
+                  />
+                </div>
+              )}
               <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <div className="rounded-2xl border border-[rgba(155,185,240,0.14)] bg-[rgba(10,15,28,0.6)] px-5 py-4">
                   <dt className="text-[0.6875rem] font-bold uppercase tracking-[0.22em] text-[#d4a94a]">투표 기간</dt>

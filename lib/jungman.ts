@@ -165,6 +165,8 @@ export type JungmanState = {
   standings: JungmanStanding[];
   /** 최신 스냅샷이 LIVE 윈도 이내 — 서버에서 1회 계산한다 */
   isLive: boolean;
+  /** KV 읽기가 실패해 기본값으로 내려온 상태. "아직 개표 전"과 반드시 구분해야 한다. */
+  degraded: boolean;
 };
 
 export const JUNGMAN_DEFAULT_CONFIG: JungmanConfig = {
@@ -805,7 +807,11 @@ export function buildJungmanMarkers(standings: JungmanStanding[]): JungmanMarker
   });
 }
 
-export function buildJungmanState(config: JungmanConfig, snapshots: JungmanSnapshot[]): JungmanState {
+export function buildJungmanState(
+  config: JungmanConfig,
+  snapshots: JungmanSnapshot[],
+  degraded = false
+): JungmanState {
   const latest = snapshots.length ? snapshots[snapshots.length - 1] : null;
 
   return {
@@ -814,6 +820,7 @@ export function buildJungmanState(config: JungmanConfig, snapshots: JungmanSnaps
     latest,
     standings: buildJungmanStandings(snapshots),
     isLive: isJungmanLive(latest),
+    degraded,
   };
 }
 
@@ -824,12 +831,19 @@ export function isJungmanLive(latest: JungmanSnapshot | null, now = Date.now()):
 }
 
 export async function getJungmanState(): Promise<JungmanState> {
-  const [configRaw, snapshotsRaw] = await Promise.all([
-    getSetting(JUNGMAN_CONFIG_KEY, null),
-    getSetting(JUNGMAN_SNAPSHOTS_KEY, null),
-  ]);
+  try {
+    const [configRaw, snapshotsRaw] = await Promise.all([
+      getSetting(JUNGMAN_CONFIG_KEY, null),
+      getSetting(JUNGMAN_SNAPSHOTS_KEY, null),
+    ]);
 
-  return buildJungmanState(parseJungmanConfig(configRaw), parseJungmanSnapshots(snapshotsRaw));
+    return buildJungmanState(parseJungmanConfig(configRaw), parseJungmanSnapshots(snapshotsRaw));
+  } catch (error) {
+    // 읽기 한 번 실패로 "첫 개표 대기" 빈 화면을 60초 캐시하면 안 된다.
+    // degraded를 실어 내려 화면이 안내를 띄우고 자동 갱신으로 스스로 회복하게 한다.
+    console.error("failed to load jungman state", error);
+    return buildJungmanState(JUNGMAN_DEFAULT_CONFIG, [], true);
+  }
 }
 
 export function formatVotes(value: number): string {

@@ -58,6 +58,8 @@ const COLLECT_SKIP_LABEL: Record<string, string> = {
   no_match: "매핑된 댓글을 하나도 찾지 못했습니다",
   anomaly: "득표가 비정상적으로 급락했습니다",
   unchanged: "직전과 득표가 같습니다",
+  history_lost: "스냅샷 이력을 읽지 못했습니다. 덮어쓰지 않고 멈췄습니다 — jungman_snapshots를 확인해주세요",
+  raced: "다른 수집이 방금 기록해 이번 회차는 건너뜁니다",
 };
 
 /** https://www.sooplive.com/station/{soopId}/post/{titleNo} */
@@ -262,7 +264,11 @@ export async function POST(req: Request) {
       return respondWith(
         { config, snapshots },
         result.ok
-          ? `${result.round}차로 기록했습니다.`
+          ? `${result.round}차로 기록했습니다.${
+              result.carried.length
+                ? ` (댓글을 못 찾아 직전 값을 이어받음: ${result.carried.join(", ")})`
+                : ""
+            }`
           : `기록하지 않았습니다 — ${COLLECT_SKIP_LABEL[result.skipped] || result.skipped}${
               result.reason ? ` (${result.reason})` : ""
             }`
