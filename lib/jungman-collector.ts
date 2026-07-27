@@ -179,19 +179,41 @@ function sameVotes(a: Record<string, number>, b: Record<string, number>) {
  * 수집 1회. 공개 엔드포인트와 관리자 [지금 수집]이 공유한다.
  * 인증이 없는 대신 config 게이트 + 쿨다운 + 이상치 가드로 쓰기를 묶는다.
  */
+/** 심박에 남길 최근 호출 수 — 회차가 건너뛰었을 때 원인을 되짚을 유일한 단서다 */
+const HEARTBEAT_HISTORY = 20;
+
+type HeartbeatEntry = { at: string; result: string; carried?: string[] };
+
+function nextHeartbeat(previous: string | null, result: JungmanCollectResult) {
+  const entry: HeartbeatEntry = {
+    at: new Date().toISOString(),
+    result: result.ok ? `round ${result.round}` : result.skipped,
+    // 직전 값을 이어받은 팀이 있으면 남긴다 — 관리자가 "왜 이 팀만 안 움직이나"를 알 수 있어야 한다
+    ...(result.ok && result.carried.length ? { carried: result.carried } : {}),
+  };
+
+  let history: HeartbeatEntry[] = [];
+  try {
+    const parsed = previous ? JSON.parse(previous) : null;
+    if (parsed && Array.isArray(parsed.history)) history = parsed.history.slice(-HEARTBEAT_HISTORY + 1);
+    // 이력이 없던 옛 형식({at,result})도 첫 항목으로 살린다
+    else if (parsed?.at) history = [{ at: parsed.at, result: String(parsed.result || "") }];
+  } catch {
+    // 깨진 심박은 버린다 — 진단용이라 유실돼도 수집에 영향이 없다
+  }
+
+  return { ...entry, history: [...history, entry] };
+}
+
 export async function collectJungmanSnapshot(force = false): Promise<JungmanCollectResult> {
+  const previousHeartbeat = await readSettingAdmin(JUNGMAN_HEARTBEAT_KEY).catch(() => null);
   const result = await runCollect(force);
   // 심박 — 수집이 실제로 불렸는지 남긴다. 크론이 도는지 확인할 유일한 흔적이라
   // 기록에 실패해도 수집 결과를 뒤엎지 않는다.
   try {
     await writeSettingAdmin(
       JUNGMAN_HEARTBEAT_KEY,
-      JSON.stringify({
-        at: new Date().toISOString(),
-        result: result.ok ? `round ${result.round}` : result.skipped,
-        // 직전 값을 이어받은 팀이 있으면 남긴다 — 관리자가 "왜 이 팀만 안 움직이나"를 알 수 있어야 한다
-        ...(result.ok && result.carried.length ? { carried: result.carried } : {}),
-      })
+      JSON.stringify(nextHeartbeat(previousHeartbeat, result))
     );
   } catch {
     // 무시

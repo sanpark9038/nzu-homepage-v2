@@ -266,7 +266,9 @@ test("jungman cooldown reads a light key before the 86KB snapshot array", async 
   const cooled = loadJungmanCollector(store);
   assert.deepEqual(await cooled.collector.collectJungmanSnapshot(false), { ok: false, skipped: "cooldown" });
   assert.ok(!cooled.reads.includes("jungman_snapshots"), `snapshot array was read: ${cooled.reads}`);
-  assert.deepEqual(cooled.reads, ["jungman_config", "jungman_latest"]);
+  // 심박(진단 이력)은 가볍고, 핵심은 86KB 스냅샷 배열을 읽지 않는 것이다
+  assert.deepEqual(cooled.reads, ["jungman_heartbeat", "jungman_config", "jungman_latest"]);
+  assert.ok(!cooled.reads.includes("jungman_snapshots"), "쿨다운 경로가 스냅샷 배열을 읽었다");
 
   // 가벼운 키가 없거나 깨졌으면 배열로 되돌아가 같은 판정을 낸다 (하위호환)
   for (const broken of [undefined, "{not json"]) {
