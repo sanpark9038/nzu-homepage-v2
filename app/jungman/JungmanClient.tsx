@@ -25,7 +25,8 @@ type SortKey = "rank" | "surge";
 
 const LAST_SEEN_ROUND_KEY = "jungman:last-seen-round";
 const ROLLUP_MS = 800;
-const REFRESH_POLL_MS = 60_000;
+// 수집이 3분 주기라 60초 갱신은 3번 중 2번이 같은 데이터를 다시 받는다.
+const REFRESH_POLL_MS = 90_000;
 const TICKER_MS = 5_000;
 const TICKER_FADE_MS = 240;
 
