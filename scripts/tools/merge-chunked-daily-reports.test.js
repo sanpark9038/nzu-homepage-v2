@@ -78,8 +78,12 @@ runTest("zero_players_detail is carried through the merge onto the team row", ()
 //     책갈피 증분이 먹고 있는지 보는 유일한 지표라, 청크 병합에서 유실되면 아침 검증이 눈을 잃는다.
 runTest("full_scans is carried through the merge onto the team row", () => {
   const snapshots = [
-    chunk("chunkA", { teams: [{ team: "Alpha", team_code: "ALP", players: 5, full_scans: 2 }] }),
-    chunk("chunkB", { teams: [{ team: "Bravo", team_code: "BRV", players: 3, full_scans: 0 }] }),
+    chunk("chunkA", {
+      teams: [{ team: "Alpha", team_code: "ALP", players: 5, full_scans: 2, rotation_verified: 1 }],
+    }),
+    chunk("chunkB", {
+      teams: [{ team: "Bravo", team_code: "BRV", players: 3, full_scans: 0, rotation_verified: 0 }],
+    }),
   ];
 
   const { mergedTeams } = buildMergedReports(snapshots, {
@@ -89,6 +93,9 @@ runTest("full_scans is carried through the merge onto the team row", () => {
 
   assert.equal(mergedTeams.find((t) => t.team_code === "ALP").full_scans, 2);
   assert.equal(mergedTeams.find((t) => t.team_code === "BRV").full_scans, 0);
+  // R3 순환 정독 수도 청크 병합에서 유실되면 안 된다(full_scans와 별개 지표).
+  assert.equal(mergedTeams.find((t) => t.team_code === "ALP").rotation_verified, 1);
+  assert.equal(mergedTeams.find((t) => t.team_code === "BRV").rotation_verified, 0);
 });
 
 // 2a. dedupeAlerts collapses alerts that share (severity, team_code, rule, message).

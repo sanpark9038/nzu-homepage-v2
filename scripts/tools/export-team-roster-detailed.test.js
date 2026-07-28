@@ -13,7 +13,11 @@ const {
   shouldUseNoCacheForFetch,
   shouldSkipByPriorityWindow,
   shouldReuseInactiveExistingJson,
+  shouldRotationFullVerify,
+  shouldReuseExistingJson,
+  ROTATION_BUCKETS,
 } = require("./export-team-roster-detailed");
+const { loadProjectPlayerMetadata } = require("./lib/project-player-metadata");
 
 function runTest(name, fn) {
   try {
@@ -201,4 +205,74 @@ runTest("external-opponent name decisions never exclude roster players (entity_i
 
 runTest("shouldUseNoCacheForFetch honors an explicit force flag", () => {
   assert.equal(shouldUseNoCacheForFetch({ forceNoCache: true }), true);
+});
+
+// R3 보험(순환 전체 정독). 상태 파일 없이 결정적으로 골라야 하므로, 같은 날은 항상 같은 집합이
+// 나와야 한다(재실행·청크 분할에도 흔들리지 않는다).
+runTest("rotation full-verify picks the same players for the same day, different for another day", () => {
+  const players = Array.from({ length: 100 }, (_, i) => ({ entity_id: `eloboard:female:${i}` }));
+  const pick = (date) => players.filter((p) => shouldRotationFullVerify(p, date)).map((p) => p.entity_id);
+
+  assert.deepEqual(pick("2026-07-01"), pick("2026-07-01"), "같은 날짜는 같은 집합");
+  assert.notDeepEqual(pick("2026-07-01"), pick("2026-07-02"), "다음 날은 다른 버킷");
+  // entity_id 없는 선수(비식별)는 순환 대상이 아니다 — 어떤 날에도 뽑히면 안 된다.
+  assert.equal(shouldRotationFullVerify({ entity_id: "" }, "2026-07-01"), false);
+  assert.equal(shouldRotationFullVerify({ entity_id: "eloboard:female:1" }, "not-a-date"), false);
+});
+
+// 핵심 증명: 34일 연속이면 전원이 정확히 1회씩 정독된다("한 달에 전원 1회"). epoch-day가
+// 단조증가라 버킷이 정확히 한 바퀴 돈다.
+runTest("34 consecutive days cover every roster player exactly once", () => {
+  const roster = loadProjectPlayerMetadata()
+    .map((p) => String(p.entity_id || ""))
+    .filter(Boolean);
+  const unique = [...new Set(roster)];
+  const ids = unique.length
+    ? unique
+    : Array.from({ length: 337 }, (_, i) => `eloboard:${i % 2 ? "male" : "female"}:${1000 + i}`);
+  const players = ids.map((entity_id) => ({ entity_id }));
+
+  const counts = new Map();
+  const dailySizes = [];
+  const start = Date.UTC(2026, 6, 1);
+  for (let day = 0; day < ROTATION_BUCKETS; day += 1) {
+    const date = new Date(start + day * 86400000).toISOString().slice(0, 10);
+    const picked = players.filter((p) => shouldRotationFullVerify(p, date));
+    dailySizes.push(picked.length);
+    for (const p of picked) counts.set(p.entity_id, (counts.get(p.entity_id) || 0) + 1);
+  }
+
+  assert.equal(counts.size, players.length, "34일이면 전원이 최소 1회 정독된다");
+  assert.ok([...counts.values()].every((n) => n === 1), "각 선수는 정확히 1회(버킷당 정확히 1일)");
+  const total = dailySizes.reduce((a, b) => a + b, 0);
+  assert.equal(total, players.length);
+  // 하루 부하: 337명이면 평균 ~10명. 상한은 해시 분포에 브리틀하지 않게 넉넉히 잡는다.
+  assert.ok(Math.max(...dailySizes) <= 25, `하루 최대 ${Math.max(...dailySizes)}명은 너무 많다`);
+  console.log(
+    `  rotation coverage: total=${players.length} covered=${counts.size} ` +
+      `avg/day=${(total / ROTATION_BUCKETS).toFixed(1)} max/day=${Math.max(...dailySizes)}`
+  );
+});
+
+// 보험이 스킵으로 무력화되면 의미가 없다: 우선순위 창에 걸려 오늘 건너뛸 선수라도
+// 순환 차례가 오면 반드시 다시 읽어야 한다.
+runTest("rotation full-verify overrides the reuse/skip path", () => {
+  const filePath = writeTempJson("__test__rotation_override.json");
+  try {
+    const today = "2026-04-09T00:00:00.000Z";
+    const yesterday = new Date("2026-04-08T12:00:00.000Z");
+    fs.utimesSync(filePath, yesterday, yesterday);
+    const player = { name: "가", last_checked_at: "2026-04-08", check_interval_days: 3 };
+    assert.equal(shouldSkipByPriorityWindow(player, today, filePath), true, "평소엔 우선순위 창으로 스킵");
+
+    assert.equal(shouldReuseExistingJson(true, true, true), false, "순환 대상은 재사용되지 않는다");
+    assert.equal(shouldReuseExistingJson(false, true, true), true, "평소엔 기존 json 재사용");
+  } finally {
+    fs.rmSync(filePath, { force: true });
+  }
+});
+
+runTest("rotation full-verify forces the no-cache full read", () => {
+  assert.equal(shouldUseNoCacheForFetch({ rotationVerify: true }), true);
+  assert.equal(shouldUseNoCacheForFetch({}), false);
 });

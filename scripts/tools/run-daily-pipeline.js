@@ -481,6 +481,17 @@ function summarizeTeamFromReport(team, report) {
   ).length;
   // 책갈피 증분이 실제로 먹고 있는지 보는 눈. 오늘 수집한 선수 중 처음부터 다 훑은 수다.
   // 배포 직후엔 앵커가 없어 높지만(1회 비용), 며칠 안에 소수로 수렴해야 정상이다.
+  // R3 순환 전체 정독의 결과. full_scans(선수 json의 scan_strategy)와는 다른 지표다 —
+  // 이쪽은 "오늘 보험 차례가 돌아와 실제로 다 읽힌 선수 수"다.
+  const rotationVerified = actionable.filter(
+    (row) => row.rotation_full_verify === true && isFetchObserved(row.fetch_status)
+  ).length;
+  // 회귀 가드가 잡은 선수 = 다시 읽은 total이 기존보다 적다(조용한 삭제·정정 의심).
+  // FETCH_OK_STATES에 들어 있어 지금까지 아침 보고에 한 줄도 안 올라오던 상태다.
+  const verifyMismatchPlayers = actionable
+    .filter((row) => String(row.fetch_status) === "used_existing_json_regression_guard")
+    .map((row) => String(row.player || ""))
+    .filter(Boolean);
   let fullScans = 0;
   let totalMatches = 0;
   let totalWins = 0;
@@ -532,6 +543,9 @@ function summarizeTeamFromReport(team, report) {
     fetched_players: fetchedPlayers,
     reused_players: reusedPlayers,
     full_scans: fullScans,
+    rotation_verified: rotationVerified,
+    verify_mismatch_players: verifyMismatchPlayers.length,
+    verify_mismatch_player_names: verifyMismatchPlayers.join(", "),
     fetch_fail: failures.filter((f) => !isFetchObserved(f.fetch_status)).length,
     csv_fail: failures.filter((f) => !["ok", "used_existing_csv"].includes(String(f.csv_status || ""))).length,
     total_matches: totalMatches,
@@ -948,6 +962,19 @@ function buildAlerts(
           `opponent_identity_decisions에서 canonical_candidate로 정정, 동명이인이면 무시`,
       });
     }
+    // 전체 정독(순환 검증) 결과가 기존 기록보다 적으면 조용한 삭제·정정 신호다. 회귀 가드가
+    // 파일을 지키고 있으므로 데이터 손실은 없지만, 사람이 엘로보드를 봐야 한다.
+    const verifyMismatch = Number(row.verify_mismatch_players || 0);
+    if (verifyMismatch > 0) {
+      alerts.push({
+        // medium 고정 의도: 서빙 동기화를 막지 않는다(blocking = critical/high). 보고에만 올린다.
+        severity: rules.rotation_verify_mismatch_severity || "medium",
+        team: row.team,
+        team_code: row.team_code,
+        rule: "rotation_verify_mismatch",
+        message: `rotation_verify_mismatch=${verifyMismatch} (${row.verify_mismatch_player_names || "-"}) — 다시 읽은 경기 수가 기존 기록보다 적다(조용한 삭제 의심). 기존 파일은 보존됐다.`,
+      });
+    }
     const rosterChanged = typeof row.delta_players === "number" && row.delta_players !== 0;
     if (typeof row.delta_total_matches === "number") {
       if (row.delta_total_matches < 0 && !rosterChanged && !rosterTransition) {
@@ -1158,6 +1185,9 @@ async function main() {
       fetched_players: r.fetched_players,
       reused_players: r.reused_players,
       full_scans: r.full_scans,
+      rotation_verified: r.rotation_verified,
+      verify_mismatch_players: r.verify_mismatch_players,
+      verify_mismatch_player_names: r.verify_mismatch_player_names,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,
@@ -1267,6 +1297,8 @@ async function main() {
       fetched_players: r.fetched_players ?? 0,
       reused_players: r.reused_players ?? 0,
       full_scans: r.full_scans ?? 0,
+      rotation_verified: r.rotation_verified ?? 0,
+      verify_mismatch_players: r.verify_mismatch_players ?? 0,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,

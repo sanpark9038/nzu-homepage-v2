@@ -335,12 +335,46 @@ function filterPlayersByEntityIds(roster, entityIdsValue) {
   });
 }
 
+// R3 순환 전체 정독: 상태 파일 없이 결정적으로 고른다. entity_id 안정 해시로 34개 버킷에
+// 나누고, 그날의 버킷 하나만 전체 정독한다. 337명 기준 하루 ~10명, 34일이면 전원 1회.
+const ROTATION_BUCKETS = 34;
+
+function rotationBucketForEntityId(entityId, buckets = ROTATION_BUCKETS) {
+  const key = String(entityId || "");
+  if (!key) return -1;
+  // FNV-1a 32bit — 짧고 배포 간 안정적이다(상태 파일 없이 결정적이려면 해시가 고정이어야 한다).
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < key.length; i += 1) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0) % buckets;
+}
+
+// dateStr은 호출부의 --to(서울 기준 오늘)다. dayOfYear가 아니라 epoch-day를 쓰는 이유:
+// dayOfYear는 연말에 365%34로 끊겨 특정 버킷이 두 번 연속 돌거나 건너뛴다. epoch-day는
+// 단조증가라 34일 연속이면 34개 버킷을 정확히 한 번씩 덮는다.
+function shouldRotationFullVerify(player, dateStr, buckets = ROTATION_BUCKETS) {
+  const bucket = rotationBucketForEntityId(player && player.entity_id ? player.entity_id : "", buckets);
+  if (bucket < 0) return false;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateStr || "").trim());
+  if (!m) return false;
+  const epochDay = Math.floor(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) / 86400000);
+  if (!Number.isFinite(epochDay)) return false;
+  return ((epochDay % buckets) + buckets) % buckets === bucket;
+}
+
+// 순환 정독은 그날의 재사용·스킵보다 우선한다 — 보험이 스킵으로 무력화되면 의미가 없다.
+function shouldReuseExistingJson(rotationVerify, useExisting, jsonExists) {
+  return Boolean(useExisting && !rotationVerify && jsonExists);
+}
+
 // 매일 확인하는 선수도 책갈피 증분으로 읽는다. 예전에는 check_interval_days<=1이면 무조건
 // --no-cache로 전체 재수집했는데, 그 플래그는 책갈피 저장까지 막아(saveCache no-op) 해당
 // 선수들의 책갈피가 몇 달째 얼어 있었다. 이제 전체 재수집은 "수상할 때"(0건 재시도·복구·감사)와
-// 명시적 --force-no-cache에서만 일어난다.
+// 명시적 --force-no-cache, 그리고 R3 순환 전체 정독에서만 일어난다.
 function shouldUseNoCacheForFetch(options) {
-  return Boolean(options && options.forceNoCache);
+  return Boolean(options && (options.forceNoCache || options.rotationVerify));
 }
 
 async function main() {
@@ -387,7 +421,7 @@ async function main() {
     team_name: teamName,
     source_roster: rosterPath,
     total_players: players.length,
-    options: { limit, concurrency, from, to, useExisting, inactiveSkipDays, entityIds: [...parseEntityIdFilter(entityIdsArg)], forceNoCache },
+    options: { limit, concurrency, from, to, useExisting, inactiveSkipDays, entityIds: [...parseEntityIdFilter(entityIdsArg)], forceNoCache, rotationBuckets: ROTATION_BUCKETS },
     results: [],
   };
   appendExportProgress(reportPath, "team_export_start", {
@@ -409,6 +443,9 @@ async function main() {
       csv_status: "skipped",
       error: null,
     };
+    // R3 보험: 오늘 이 선수 차례면 재사용·스킵을 무시하고 전체 정독한다(조용한 삭제·정정 탐지).
+    const rotationVerify = shouldRotationFullVerify(p, to);
+    if (rotationVerify) result.rotation_full_verify = true;
 
     const excludedReason = exclusionReason(p, exclusions);
     if (excludedReason) {
@@ -444,7 +481,7 @@ async function main() {
       const hasPriorityWindow = Number(p && p.check_interval_days ? p.check_interval_days : 0) > 0;
       if (forceRefresh) {
         result.fetch_status = "forced_recollect_after_resume";
-      } else if (useExisting && fs.existsSync(jsonPath)) {
+      } else if (shouldReuseExistingJson(rotationVerify, useExisting, fs.existsSync(jsonPath))) {
         if (shouldSkipByPriorityWindow(p, to, jsonPath)) {
           shouldFetch = false;
           result.fetch_status = "used_existing_json_priority_window";
@@ -463,12 +500,13 @@ async function main() {
 
       if (shouldFetch) {
         const existingPeriodTotal = fs.existsSync(jsonPath) ? readPeriodTotal(jsonPath) : null;
-        const noCacheFirst = shouldUseNoCacheForFetch({ forceNoCache });
+        const noCacheFirst = shouldUseNoCacheForFetch({ forceNoCache, rotationVerify });
         const reportFlags = noCacheFirst ? ["--no-cache", "--concurrency", concurrency] : ["--concurrency", concurrency];
         appendExportProgress(reportPath, "player_report_start", {
           player: playerName,
           wr_id: p.wr_id,
           no_cache: noCacheFirst,
+          rotation_full_verify: rotationVerify,
         });
         let raw = runNode(REPORT_SCRIPT, directReportArgs(teamName, playerName, p, reportFlags), {
           timeoutMs: 240000,
@@ -629,4 +667,8 @@ module.exports = {
   shouldReuseInactiveExistingJson,
   filterPlayersByEntityIds,
   shouldUseNoCacheForFetch,
+  rotationBucketForEntityId,
+  shouldRotationFullVerify,
+  shouldReuseExistingJson,
+  ROTATION_BUCKETS,
 };

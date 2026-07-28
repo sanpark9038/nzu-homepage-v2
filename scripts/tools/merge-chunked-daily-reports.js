@@ -248,6 +248,8 @@ function main() {
       fetched_players: r.fetched_players ?? 0,
       reused_players: r.reused_players ?? 0,
       full_scans: r.full_scans ?? 0,
+      rotation_verified: r.rotation_verified ?? 0,
+      verify_mismatch_players: r.verify_mismatch_players ?? 0,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,

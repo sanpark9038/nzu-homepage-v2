@@ -713,3 +713,141 @@ runTest("summarizeTeamFromReport counts full_scan only among players actually co
   assert.equal(row.fetched_players, 2);
   assert.equal(row.reused_players, 1);
 });
+
+// rotation_verified는 full_scans와 다른 지표다. full_scans는 "책갈피 없이 처음부터 훑은 수",
+// rotation_verified는 "R3 보험 차례가 와서 강제로 전체 정독한 수"다. 섞이면 둘 다 못 읽는다.
+runTest("summarizeTeamFromReport counts rotation_verified separately from full_scans", () => {
+  const dir = makeTempReportsDir();
+  const write = (name, scanStrategy) => {
+    const p = path.join(dir, name);
+    fs.writeFileSync(
+      p,
+      JSON.stringify({ players: [{ period_total: 5, period_wins: 3, period_losses: 2, scan_strategy: scanStrategy }] }),
+      "utf8"
+    );
+    return p;
+  };
+  const report = {
+    results: [
+      // 순환 정독 대상이고 실제로 읽혔다 → rotation_verified + full_scans 둘 다
+      {
+        player: "a",
+        fetch_status: "ok",
+        csv_status: "ok",
+        rotation_full_verify: true,
+        json_path: write("a.json", "full_scan"),
+      },
+      // 순환과 무관한 full_scan → full_scans만
+      { player: "b", fetch_status: "ok", csv_status: "ok", json_path: write("b.json", "full_scan") },
+      // 순환 대상이지만 읽기 실패 → 정독됐다고 셀 수 없다
+      {
+        player: "c",
+        fetch_status: "failed",
+        csv_status: "ok",
+        rotation_full_verify: true,
+        json_path: write("c.json", "full_scan"),
+      },
+    ],
+  };
+
+  const row = summarizeTeamFromReport({ univ: "팀", code: "tm" }, report);
+  assert.equal(row.rotation_verified, 1);
+  assert.equal(row.full_scans, 2);
+});
+
+// 회귀 가드(다시 읽은 total이 기존보다 적다)는 FETCH_OK_STATES라 지금껏 아침 보고에 안 떴다.
+// 조용한 삭제·정정의 유일한 신호이므로 팀 행에 수와 이름으로 올라와야 한다.
+runTest("summarizeTeamFromReport surfaces regression-guard players as verify mismatches", () => {
+  const dir = makeTempReportsDir();
+  const write = (name) => {
+    const p = path.join(dir, name);
+    fs.writeFileSync(p, JSON.stringify({ players: [{ period_total: 5 }] }), "utf8");
+    return p;
+  };
+  const report = {
+    results: [
+      {
+        player: "김설",
+        fetch_status: "used_existing_json_regression_guard",
+        csv_status: "used_existing_csv",
+        rotation_full_verify: true,
+        json_path: write("kim.json"),
+      },
+      { player: "b", fetch_status: "ok", csv_status: "ok", json_path: write("b.json") },
+      // 제외된 선수는 판정 대상이 아니다.
+      { player: "c", excluded: true, fetch_status: "used_existing_json_regression_guard", csv_status: "excluded" },
+    ],
+  };
+
+  const row = summarizeTeamFromReport({ univ: "팀", code: "tm" }, report);
+  assert.equal(row.verify_mismatch_players, 1);
+  assert.equal(row.verify_mismatch_player_names, "김설");
+  // 회귀 가드는 실패가 아니다 — 기존 파일을 지킨 정상 동작이므로 fetch_fail로 세면 안 된다.
+  assert.equal(row.fetch_fail, 0);
+});
+
+runTest("buildAlerts reports rotation verify mismatches without blocking the sync", () => {
+  const actual = buildAlerts(
+    [
+      {
+        team: "신세계",
+        team_code: "ssg",
+        zero_players: "",
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: 0,
+        delta_players: 0,
+        verify_mismatch_players: 1,
+        verify_mismatch_player_names: "김설",
+      },
+    ],
+    {
+      rules: {
+        zero_record_players_severity: "high",
+        negative_delta_matches_severity: "critical",
+        roster_size_changed_severity: "medium",
+        roster_size_changed_team_allowlist: [],
+        no_new_matches_enabled: false,
+      },
+    },
+    null,
+    []
+  );
+
+  const hit = actual.find((row) => row.rule === "rotation_verify_mismatch");
+  assert.ok(hit, "전체 정독 결과가 기존보다 적으면 경보로 떠야 한다");
+  assert.equal(hit.team_code, "ssg");
+  // 서빙 동기화를 막지 않는다(blocking = critical/high).
+  assert.equal(hit.severity, "medium");
+  assert.match(hit.message, /김설/);
+});
+
+runTest("buildAlerts stays quiet when no verify mismatch happened", () => {
+  const actual = buildAlerts(
+    [
+      {
+        team: "신세계",
+        team_code: "ssg",
+        zero_players: "",
+        fetch_fail: 0,
+        csv_fail: 0,
+        delta_total_matches: 0,
+        delta_players: 0,
+        verify_mismatch_players: 0,
+      },
+    ],
+    {
+      rules: {
+        zero_record_players_severity: "high",
+        negative_delta_matches_severity: "critical",
+        roster_size_changed_severity: "medium",
+        roster_size_changed_team_allowlist: [],
+        no_new_matches_enabled: false,
+      },
+    },
+    null,
+    []
+  );
+
+  assert.equal(actual.filter((row) => row.rule === "rotation_verify_mismatch").length, 0);
+});
