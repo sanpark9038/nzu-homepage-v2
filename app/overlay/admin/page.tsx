@@ -37,9 +37,21 @@ export default async function OverlayAdminPage() {
   }
 
   return (
-    <OverlayAdminClient
-      overlayKey={session.providerUserId}
-      displayName={session.displayName}
-    />
+    <>
+      {/* 도구는 hover·드래그 의존이라 터치에서 조작 불가 — 모바일은 안내만 (A안) */}
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center lg:hidden">
+        <h1 className="text-lg font-black text-white/90">방송 스코어보드</h1>
+        <p className="max-w-md text-sm leading-relaxed text-white/55">
+          스코어보드 관리 도구는 PC 화면 전용입니다.<br />
+          PC 브라우저로 접속해 주세요.
+        </p>
+      </div>
+      <div className="hidden lg:block">
+        <OverlayAdminClient
+          overlayKey={session.providerUserId}
+          displayName={session.displayName}
+        />
+      </div>
+    </>
   );
 }
