@@ -3,6 +3,7 @@ import { playerService } from "@/lib/player-service";
 import { buildTournamentPredictionMatches } from "@/lib/tournament-prediction";
 import { buildTournamentHomeTeamsFromStore } from "@/lib/tournament-home";
 import { loadPredictionState } from "@/lib/prediction-store";
+import { getBetPools } from "@/lib/prediction-bets";
 
 export const revalidate = 60;
 
@@ -22,11 +23,12 @@ export const metadata = {
 
 export default async function PredictionPage() {
   const allPlayers = await playerService.getCachedPlayersList();
-  const [state, tournamentTeams] = await Promise.all([
+  const [state, tournamentTeams, betPools] = await Promise.all([
     loadPredictionState({
       includeVoteTotals: true,
     }),
     buildTournamentHomeTeamsFromStore(allPlayers),
+    getBetPools().catch(() => []),
   ]);
   const matches = buildTournamentPredictionMatches(allPlayers, state, { tournamentTeams });
 
@@ -43,7 +45,7 @@ export default async function PredictionPage() {
           </p>
         </section>
 
-        <TournamentPredictionClient initialMatches={matches} />
+        <TournamentPredictionClient initialMatches={matches} initialBetPools={betPools} />
       </main>
     </div>
   );

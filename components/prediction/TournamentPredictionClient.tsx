@@ -60,6 +60,163 @@ type PredictionSession = {
   avatarUrl?: string | null;
 };
 
+type BetPool = {
+  matchId: string;
+  teamCode: string;
+  totalStake: number;
+  betCount: number;
+};
+
+type MyBet = {
+  matchId: string;
+  teamCode: string;
+  stake: number;
+  status: "placed" | "won" | "lost" | "refunded";
+  payout: number | null;
+};
+
+/** matchId → teamCode → 누적 스테이크 */
+type BetPoolMap = Record<string, Record<string, number>>;
+
+const BET_CHIPS = [100, 500, 1000];
+
+function buildBetPoolMap(pools: BetPool[] | undefined | null): BetPoolMap {
+  if (!Array.isArray(pools)) return {};
+  return pools.reduce<BetPoolMap>((acc, row) => {
+    const matchId = String(row.matchId || "");
+    const teamCode = String(row.teamCode || "");
+    if (!matchId || !teamCode) return acc;
+    const teams = acc[matchId] || {};
+    teams[teamCode] = (teams[teamCode] || 0) + Number(row.totalStake || 0);
+    acc[matchId] = teams;
+    return acc;
+  }, {});
+}
+
+function formatPoints(value: number) {
+  return Number(value || 0).toLocaleString("ko-KR");
+}
+
+/** 파리뮤추얼 예상 배당 = 총풀 / 해당 팀풀. 팀풀이 0이면 계산 불가. */
+function formatOdds(totalPool: number, teamPool: number) {
+  if (!teamPool) return "-";
+  return (totalPool / teamPool).toFixed(1);
+}
+
+function mapBetError(code: string) {
+  if (code === "points_insufficient") return "포인트가 부족합니다.";
+  if (code === "bet_exists") return "이미 이 경기에 베팅했습니다.";
+  if (code === "bet_invalid_stake") return "베팅 금액을 다시 확인해주세요.";
+  if (code === "bet_invalid_team") return "먼저 승리할 팀을 선택해주세요.";
+  return "베팅에 실패했습니다.";
+}
+
+function BetSection({
+  match,
+  pool,
+  myBet,
+  myBalance,
+  myTeamCode,
+  session,
+  stake,
+  busy,
+  error,
+  onSelectStake,
+  onPlaceBet,
+}: {
+  match: PredictionMatch;
+  pool: Record<string, number>;
+  myBet: MyBet | null;
+  myBalance: number;
+  myTeamCode: string;
+  session: PredictionSession | null;
+  stake: number;
+  busy: boolean;
+  error: string;
+  onSelectStake: (value: number) => void;
+  onPlaceBet: () => void;
+}) {
+  const votingOpen = isVotingOpen(match);
+  const teamAStake = pool[match.teamA.teamCode] || 0;
+  const teamBStake = pool[match.teamB.teamCode] || 0;
+  const totalPool = teamAStake + teamBStake;
+  if (!votingOpen && !myBet && totalPool === 0) return null;
+
+  const myBetTeamName =
+    myBet && myBet.teamCode === match.teamB.teamCode ? match.teamB.teamName : match.teamA.teamName;
+
+  return (
+    <div className="border-t border-white/8 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-medium">
+        <span className="ui-label uppercase text-white/38">Point Pool</span>
+        <span className="text-white/62">
+          {match.teamA.teamName} {formatPoints(teamAStake)}P · 배당 {formatOdds(totalPool, teamAStake)}
+        </span>
+        <span className="text-white/20">/</span>
+        <span className="text-white/62">
+          {match.teamB.teamName} {formatPoints(teamBStake)}P · 배당 {formatOdds(totalPool, teamBStake)}
+        </span>
+      </div>
+
+      {!session ? (
+        <p className="mt-2 text-center text-xs font-medium text-white/45">
+          포인트 베팅은 로그인 후 이용할 수 있습니다.{" "}
+          <a href="/points" className="font-semibold text-nzu-green hover:underline">
+            내 포인트
+          </a>
+        </p>
+      ) : myBet ? (
+        <p className="mt-2 text-center text-xs font-semibold text-cyan-100">
+          내 베팅: {formatPoints(myBet.stake)}P · {myBetTeamName}
+          {myBet.status === "won" ? ` · 적중 +${formatPoints(myBet.payout || 0)}P` : ""}
+          {myBet.status === "lost" ? " · 미적중" : ""}
+          {myBet.status === "refunded" ? " · 환불 완료" : ""}
+        </p>
+      ) : votingOpen ? (
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
+          <span className="mr-1 text-xs font-medium text-white/45">
+            내 포인트 <strong className="text-nzu-green">{formatPoints(myBalance)}P</strong>
+          </span>
+          {BET_CHIPS.map((chip) => (
+            <button
+              key={chip}
+              type="button"
+              onClick={() => onSelectStake(chip)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-bold transition",
+                stake === chip
+                  ? "border-nzu-green/60 bg-nzu-green/15 text-nzu-green"
+                  : "border-white/12 bg-white/[0.045] text-white/62 hover:border-nzu-green/30 hover:text-white"
+              )}
+            >
+              {chip}
+            </button>
+          ))}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onPlaceBet}
+            className="rounded-lg bg-nzu-green px-3.5 py-1.5 text-xs font-bold text-black transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
+          >
+            베팅
+          </button>
+          <a href="/points" className="ml-1 text-xs font-semibold text-white/45 hover:text-nzu-green">
+            내 포인트
+          </a>
+        </div>
+      ) : null}
+
+      {session && votingOpen && !myBet && !myTeamCode ? (
+        <p className="mt-1.5 text-center text-xs font-medium text-white/38">
+          먼저 승리할 팀을 선택하면 포인트를 걸 수 있습니다.
+        </p>
+      ) : null}
+
+      {error ? <p className="mt-1.5 text-center text-xs font-semibold text-red-200">{error}</p> : null}
+    </div>
+  );
+}
+
 function formatRemaining(lockAt: string, nowMs: number) {
   const diff = new Date(lockAt).getTime() - nowMs;
   if (diff <= 0) return "마감";
@@ -239,10 +396,12 @@ export function TournamentPredictionClient({
   initialMatches,
   initialMyVotes = {},
   initialSession = null,
+  initialBetPools = [],
 }: {
   initialMatches: PredictionMatch[];
   initialMyVotes?: MyVoteState;
   initialSession?: PredictionSession | null;
+  initialBetPools?: BetPool[];
 }) {
   const [matches, setMatches] = useState(initialMatches);
   const [session, setSession] = useState<PredictionSession | null>(initialSession);
@@ -250,6 +409,11 @@ export function TournamentPredictionClient({
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [myVotes, setMyVotes] = useState<MyVoteState>(initialMyVotes);
   const [message, setMessage] = useState("");
+  const [betPools, setBetPools] = useState<BetPoolMap>(() => buildBetPoolMap(initialBetPools));
+  const [myBets, setMyBets] = useState<Record<string, MyBet>>({});
+  const [myBalance, setMyBalance] = useState(0);
+  const [betStakes, setBetStakes] = useState<Record<string, number>>({});
+  const [betErrors, setBetErrors] = useState<Record<string, string>>({});
   const [pendingVote, setPendingVote] = useState<{ match: PredictionMatch; team: MatchTeam } | null>(null);
   const [expandedEntryMatchIds, setExpandedEntryMatchIds] = useState<Set<string>>(() => new Set());
   const confirmVoteButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -288,9 +452,15 @@ export function TournamentPredictionClient({
       const json = (await res.json().catch(() => ({}))) as {
         myVotes?: MyVoteState;
         session?: PredictionSession | null;
+        betPools?: BetPool[];
+        myBets?: Record<string, MyBet>;
+        myBalance?: number;
       };
       if (json.myVotes && typeof json.myVotes === "object") setMyVotes(json.myVotes);
       if ("session" in json) setSession(json.session || null);
+      if (Array.isArray(json.betPools)) setBetPools(buildBetPoolMap(json.betPools));
+      if (json.myBets && typeof json.myBets === "object") setMyBets(json.myBets);
+      if (typeof json.myBalance === "number") setMyBalance(json.myBalance);
     };
 
     void refreshViewerState();
@@ -326,6 +496,66 @@ export function TournamentPredictionClient({
       }
       return next;
     });
+  }
+
+  function applyBetPayload(json: {
+    betPools?: BetPool[];
+    myBets?: Record<string, MyBet>;
+    myBalance?: number;
+  }) {
+    if (Array.isArray(json.betPools)) setBetPools(buildBetPoolMap(json.betPools));
+    if (json.myBets && typeof json.myBets === "object") setMyBets(json.myBets);
+    if (typeof json.myBalance === "number") setMyBalance(json.myBalance);
+  }
+
+  /** 베팅은 투표와 같은 문(POST /api/prediction)으로 나간다 — 이미 고른 팀에 스테이크만 얹는 것. */
+  async function submitBet(matchId: string) {
+    const target = matchMap.get(matchId);
+    if (!target || !isVotingOpen(target) || !session) return;
+
+    const teamCode = myVotes[matchId]?.teamCode || "";
+    if (!teamCode) {
+      setBetErrors((prev) => ({ ...prev, [matchId]: mapBetError("bet_invalid_team") }));
+      return;
+    }
+
+    setBusyKey(`${matchId}:bet`);
+    setBetErrors((prev) => ({ ...prev, [matchId]: "" }));
+
+    try {
+      const res = await fetch("/api/prediction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          match_id: matchId,
+          picked_team_code: teamCode,
+          stake: betStakes[matchId] || BET_CHIPS[0],
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        matches?: PredictionMatch[];
+        myVotes?: MyVoteState;
+        betPools?: BetPool[];
+        myBets?: Record<string, MyBet>;
+        myBalance?: number;
+        betError?: string;
+        message?: string;
+      };
+
+      if (!res.ok || json.ok === false) throw new Error(json.message || "bet_failed");
+      if (Array.isArray(json.matches)) setMatches(json.matches);
+      if (json.myVotes && typeof json.myVotes === "object") setMyVotes(json.myVotes);
+      applyBetPayload(json);
+      if (json.betError) setBetErrors((prev) => ({ ...prev, [matchId]: mapBetError(json.betError || "") }));
+    } catch (error) {
+      setBetErrors((prev) => ({
+        ...prev,
+        [matchId]: mapBetError(error instanceof Error ? error.message : ""),
+      }));
+    } finally {
+      setBusyKey(null);
+    }
   }
 
   async function submitVote(matchId: string, teamCode: string) {
@@ -390,6 +620,9 @@ export function TournamentPredictionClient({
         matches?: PredictionMatch[];
         myVotes?: MyVoteState;
         session?: PredictionSession | null;
+        betPools?: BetPool[];
+        myBets?: Record<string, MyBet>;
+        myBalance?: number;
         message?: string;
       };
 
@@ -399,6 +632,7 @@ export function TournamentPredictionClient({
       if (Array.isArray(json.matches)) setMatches(json.matches);
       if (json.myVotes && typeof json.myVotes === "object") setMyVotes(json.myVotes);
       if ("session" in json) setSession(json.session || null);
+      applyBetPayload(json);
     } catch (error) {
       setMatches(previousMatches);
       setMyVotes(previousMyVotes);
@@ -504,6 +738,20 @@ export function TournamentPredictionClient({
                   onPick={() => requestVoteConfirmation(match, match.teamB)}
                 />
               </div>
+
+              <BetSection
+                match={match}
+                pool={betPools[match.id] || {}}
+                myBet={myBets[match.id] || null}
+                myBalance={myBalance}
+                myTeamCode={myVote.teamCode || ""}
+                session={session}
+                stake={betStakes[match.id] || BET_CHIPS[0]}
+                busy={busyKey !== null}
+                error={betErrors[match.id] || ""}
+                onSelectStake={(value) => setBetStakes((prev) => ({ ...prev, [match.id]: value }))}
+                onPlaceBet={() => void submitBet(match.id)}
+              />
 
               {isResultPublished(match) ? (
                 <div

@@ -320,6 +320,50 @@ export type Database = {
         }
         Relationships: []
       }
+      prediction_bets: {
+        Row: {
+          id: string
+          voter_id: string
+          match_id: string
+          team_code: string
+          stake: number
+          status: string
+          payout: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          voter_id: string
+          match_id: string
+          team_code: string
+          stake: number
+          status?: string
+          payout?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          voter_id?: string
+          match_id?: string
+          team_code?: string
+          stake?: number
+          status?: string
+          payout?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediction_bets_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prediction_votes: {
         Row: {
           change_count: number
@@ -667,11 +711,69 @@ export type Database = {
         }
         Relationships: []
       }
+      user_point_balances: {
+        Row: {
+          voter_id: string
+          display_name: string
+          balance: number
+          updated_at: string
+        }
+        Insert: {
+          voter_id: string
+          display_name?: string
+          balance?: number
+          updated_at?: string
+        }
+        Update: {
+          voter_id?: string
+          display_name?: string
+          balance?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_point_ledger: {
+        Row: {
+          id: string
+          voter_id: string
+          amount: number
+          reason: string
+          ref_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          voter_id: string
+          amount: number
+          reason: string
+          ref_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          voter_id?: string
+          amount?: number
+          reason?: string
+          ref_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      apply_user_point_change: {
+        Args: {
+          p_voter_id: string
+          p_display_name: string
+          p_amount: number
+          p_reason: string
+          p_ref_id: string
+        }
+        Returns: number
+      }
       increment_board_post_view: {
         Args: {
           post_id: string
@@ -696,6 +798,17 @@ export type Database = {
           picked_team_code: string | null
           picked_player_id: string | null
           vote_count: number
+        }[]
+      }
+      prediction_bet_pools: {
+        Args: {
+          match_ids: string[] | null
+        }
+        Returns: {
+          match_id: string
+          team_code: string
+          total_stake: number
+          bet_count: number
         }[]
       }
     }

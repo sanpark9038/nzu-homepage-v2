@@ -8,6 +8,11 @@ import {
   loadPredictionState,
   savePredictionMatches,
 } from "@/lib/prediction-store";
+import {
+  readMatchResultSnapshot,
+  refundBetsForMatch,
+  settleNewlyPublishedMatches,
+} from "@/lib/prediction-bets";
 
 export const runtime = "nodejs";
 const FORCE_DELETE_CONFIRMATION = "투표 포함 삭제";
@@ -39,7 +44,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, message: "matches must be an array" }, { status: 400 });
     }
 
+    // 저장은 전체 배열 upsert라 "새로 공개된 결과"는 저장 전후 비교로만 알 수 있다
+    const resultsBefore = await readMatchResultSnapshot();
     await savePredictionMatches(matches);
+    await settleNewlyPublishedMatches(resultsBefore, await readMatchResultSnapshot());
     revalidatePredictionPublicViews();
     const state = await loadPredictionState();
     return NextResponse.json({ ok: true, matches: state.matches, votes: state.votes, source: state.source });
@@ -80,6 +88,8 @@ export async function DELETE(req: Request) {
           { status: 400 }
         );
       }
+      // 삭제 전에 환불한다 — 경기가 지워지면 FK cascade로 베팅 행도 같이 사라진다
+      await refundBetsForMatch(matchId);
       await deletePredictionMatchWithVotes(matchId);
     } else {
       await deletePredictionMatch(matchId);
