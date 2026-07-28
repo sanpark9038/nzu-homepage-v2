@@ -7,7 +7,9 @@ const {
   applyFailureStageToMessage,
   buildAffiliationConfidenceLookup,
   buildCollectionSourceHealthSummary,
-  buildRosterReviewSummaryLines,
+  buildDailyReportMessage,
+  buildFailureMessage,
+  buildJudgmentItems,
   comparePlayerChanges,
   describeFailureStage,
   describeAlertTone,
@@ -678,45 +680,100 @@ runTest("buildDiscordSummaryCheck suppresses joiners already reviewed as externa
   );
 });
 
-runTest("report-only roster review summary uses Korean review labels and keeps match collection separate", () => {
-  const lines = buildRosterReviewSummaryLines({
-    reportOnly: true,
-    tierChanges: [
-      { player_name: "알파", team_name: "yb", old_tier: "5", new_tier: "4" },
-      { player_name: "브라보", team_name: "fa", old_tier: "7", new_tier: "6" },
-      { player_name: "찰리", team_name: "ku", old_tier: "3", new_tier: "2" },
-      { player_name: "델타", team_name: "hm", old_tier: "8", new_tier: "7" },
-    ],
-    affiliationChanges: [
-      { player_name: "저라뎃", old_team: "yb", new_team: "무소속", change_confidence: "confirmed" },
-      { player_name: "우리밍", old_team: "yb", new_team: "무소속", change_confidence: "confirmed" },
-      { player_name: "하랑", old_team: "yb", new_team: "무소속", change_confidence: "confirmed" },
-      { player_name: "하루묭", old_team: "yb", new_team: "무소속", change_confidence: "confirmed" },
-      { player_name: "선수A", old_team: "ku", new_team: "fa", change_confidence: "confirmed" },
-      { player_name: "선수B", old_team: "hm", new_team: "fa", change_confidence: "confirmed" },
-    ],
-    joiners: [
-      { player_name: "오뀨", team_name: "무소속" },
-      { player_name: "다예", team_name: "무소속" },
-    ],
-    removals: [],
-    newMatches: 34,
-    deltaComparable: true,
+// §6: 조용한 날에도 보내긴 보낸다. 다만 한 줄이어야 한다.
+runTest("판단할 것이 없는 날은 한 줄만 보낸다", () => {
+  const message = buildDailyReportMessage({
+    dateLabel: "2026-07-28",
+    judgmentItems: [],
+    runUrl: "https://github.com/nzu/actions/runs/1",
   });
-  const message = lines.join("\n");
 
-  assert.match(message, /대표님 검토 필요: 12건/);
-  assert.match(message, /아래 항목은 선수 기준데이터에 자동 반영되지 않았습니다\./);
-  assert.match(message, /대표님 확인 후 반영 여부를 결정해주세요\./);
-  assert.match(message, /전적데이터 수집과 신규 전적 반영은 이 검토 상태와 별도로 계속 진행됩니다\./);
-  assert.match(message, /관리자 검토: \/admin\/roster\/ops-review/);
-  assert.match(message, /티어변동감지 4건/);
-  assert.match(message, /소속변동감지 6건/);
-  assert.match(message, /신규후보 2건/);
-  assert.match(message, /신규 전적: 34건/);
-  assert.doesNotMatch(message, /소속 변동/);
-  assert.doesNotMatch(message, /신규 합류/);
-  assert.doesNotMatch(message, /Fallback affiliation changes/);
+  assert.equal(message.includes("\n"), false);
+  assert.match(message, /파이프라인 정상 \(2026-07-28\)/);
+  assert.match(message, /판단할 것 없음/);
+  assert.match(message, /<https:\/\/github\.com\/nzu\/actions\/runs\/1>/);
+});
+
+// §6의 핵심: 매일 뜨는 medium 항목이 사라져야 중요한 게 눈에 띈다.
+runTest("판단 항목은 규칙/등급으로 추려지고 매일 뜨는 medium 항목은 빠진다", () => {
+  const judgmentItems = buildJudgmentItems({
+    alertsDoc: {
+      alerts: [
+        { rule: "zero_record_players", severity: "high", team: "ku", message: "근거 없는 0건 3명" },
+        { rule: "rotation_verify_mismatch", severity: "medium", team: "hm", message: "순환 검증 불일치" },
+        { rule: "roster_size_changed", severity: "medium", team: "bgm", message: "로스터 인원 변동" },
+      ],
+    },
+    overrideWatch: {
+      newMismatches: [{ name: "알파", reason: "not_on_eloboard", fields: [] }],
+      totalMismatches: 2,
+      releases: [],
+    },
+    rosterReview: { reportOnly: false, total: 0 },
+    syncWarning: "",
+  });
+
+  const message = buildDailyReportMessage({
+    dateLabel: "2026-07-28",
+    judgmentItems,
+    runUrl: "https://github.com/nzu/actions/runs/2",
+  });
+
+  assert.match(message, /임시 교정 확인 필요 \(신규 1건 \/ 전체 2건\)/);
+  assert.match(message, /근거 없는 0건 \(1건\)/);
+  assert.match(message, /순환 검증 mismatch \(1건\)/);
+  assert.doesNotMatch(message, /roster_size_changed/);
+  assert.doesNotMatch(message, /로스터 인원 변동/);
+  assert.match(message, /판단할 것 3건/);
+  assert.match(message, /상세: <https:\/\/github\.com\/nzu\/actions\/runs\/2>/);
+});
+
+// 간소화는 성공 보고에만 적용된다. 실패 보고 상세는 그대로여야 한다.
+runTest("실패 보고는 실패 단계·로그 tail·blocking alerts 상세를 유지한다", () => {
+  const reportsDir = path.join(process.cwd(), "tmp", "reports");
+  const reportPath = path.join(reportsDir, "manual_refresh_latest.json");
+  const prior = fs.existsSync(reportPath) ? fs.readFileSync(reportPath, "utf8") : null;
+  const report = {
+    generated_at: "2026-07-28T00:10:00+09:00",
+    error: "collect_chunked exited with code 1",
+    failure_step: { name: "collect_chunked", stderr_tail: ["ETIMEDOUT eloboard.co.kr"] },
+  };
+
+  fs.mkdirSync(reportsDir, { recursive: true });
+  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), "utf8");
+
+  try {
+    const message = applyFailureStageToMessage(
+      buildFailureMessage({
+        snapshot: null,
+        runUrl: "https://github.com/nzu/actions/runs/3",
+        alertsDoc: {
+          counts: { critical: 1, high: 1, medium: 0, low: 0, total: 2 },
+          alerts: [
+            { severity: "critical", team: "ku", rule: "zero_record_players", message: "수집 0건" },
+            { severity: "high", team: "hm", rule: "rotation_verify_mismatch", message: "검증 불일치" },
+          ],
+        },
+        opsPipelineReport: null,
+      }),
+      report,
+      null
+    );
+
+    assert.match(message, /실패 \(2026-07-28\)/);
+    assert.match(message, /수집 단계에서 오류가 발생했습니다\./);
+    assert.match(message, /실패 단계: collect_chunked/);
+    assert.match(message, /오류 요약: collect_chunked exited with code 1/);
+    assert.match(message, /마지막 로그: ETIMEDOUT eloboard\.co\.kr/);
+    assert.match(message, /Blocking alerts: 2건 \(critical 1, high 1\)/);
+    assert.match(message, /- \[critical\] ku \/ zero_record_players \/ 수집 0건/);
+  } finally {
+    if (prior === null) {
+      fs.unlinkSync(reportPath);
+    } else {
+      fs.writeFileSync(reportPath, prior, "utf8");
+    }
+  }
 });
 
 runTest("resolveLatestReportFile prefers merged daily snapshot over newer chunk snapshot", () => {
