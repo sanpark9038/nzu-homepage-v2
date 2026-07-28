@@ -224,7 +224,7 @@ export function BoardPostComposer() {
         <input
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
+          className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-base font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05] md:text-sm"
           placeholder="제목을 입력해 주세요"
           maxLength={120}
         />
@@ -251,7 +251,7 @@ export function BoardPostComposer() {
             <div
               id="board-content-guide"
               data-content-guide="true"
-              className="absolute inset-0 z-10 cursor-text rounded-[1.2rem] border border-rose-400/20 bg-rose-500/6 px-4 py-3 text-sm font-medium leading-7 text-white/70"
+              className="absolute inset-0 z-10 cursor-text overflow-y-auto rounded-[1.2rem] border border-rose-400/20 bg-rose-500/6 px-4 py-3 text-xs font-medium leading-5 text-white/70 md:text-sm md:leading-7"
               onPointerDown={focusContentFromGuide}
             >
               <div className="max-w-3xl">
@@ -277,7 +277,7 @@ export function BoardPostComposer() {
               setContent(event.target.value);
             }}
             aria-describedby={shouldShowGuide ? "board-content-guide" : undefined}
-            className="min-h-[320px] w-full rounded-[1.2rem] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium leading-7 text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
+            className="min-h-[320px] w-full rounded-[1.2rem] border border-white/10 bg-white/[0.03] px-4 py-3 text-base font-medium leading-7 text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05] md:text-sm"
             placeholder={shouldShowGuide ? "" : "내용을 입력해 주세요"}
             maxLength={4000}
           />
@@ -323,7 +323,7 @@ export function BoardPostComposer() {
               setImageUrl(event.target.value);
               setImageUploadState(initialImageUploadState);
             }}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-base font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05] md:text-sm"
             placeholder="이미지 URL 또는 직접 업로드"
           />
           {imageUploadState.message ? (
@@ -346,7 +346,7 @@ export function BoardPostComposer() {
           <input
             value={videoUrl}
             onChange={(event) => setVideoUrl(event.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-base font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05] md:text-sm"
             placeholder="YouTube 또는 SOOP URL"
           />
         </label>

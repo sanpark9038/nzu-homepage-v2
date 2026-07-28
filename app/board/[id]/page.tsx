@@ -108,7 +108,7 @@ export default async function BoardDetailPage({
                   <span>{formatDetailDate(post.created_at)}</span>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
                 {canEdit ? (
                   <Link
                     href={`/board/${post.id}/edit`}
@@ -146,7 +146,7 @@ export default async function BoardDetailPage({
 
         <article className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(13,21,23,0.98),rgba(8,13,14,0.96))] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
           <div
-            className="max-w-none space-y-4 text-base font-medium leading-8 text-white/84 [&_a]:font-bold [&_blockquote]:my-0 [&_code]:font-semibold [&_ol]:my-0 [&_p]:my-0 [&_strong]:text-white [&_ul]:my-0"
+            className="max-w-none space-y-4 break-words text-base font-medium leading-8 text-white/84 [&_a]:font-bold [&_blockquote]:my-0 [&_code]:font-semibold [&_ol]:my-0 [&_p]:my-0 [&_strong]:text-white [&_ul]:my-0"
             dangerouslySetInnerHTML={{ __html: renderedContent }}
           />
 

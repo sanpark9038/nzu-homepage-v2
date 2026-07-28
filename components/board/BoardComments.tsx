@@ -173,7 +173,7 @@ export function BoardComments({
                   )
                 ) : null}
               </div>
-              <p className="mt-3 whitespace-pre-wrap text-[15px] font-medium leading-7 text-white/84">{comment.content}</p>
+              <p className="mt-3 whitespace-pre-wrap break-words text-[15px] font-medium leading-7 text-white/84">{comment.content}</p>
             </div>
           ))
         ) : (
@@ -192,7 +192,7 @@ export function BoardComments({
               maxLength={300}
               rows={3}
               disabled={isSubmitting}
-              className="w-full resize-none rounded-xl border border-white/16 bg-black/28 px-4 py-3 text-[15px] font-medium leading-7 text-white outline-none transition placeholder:text-white/36 focus:border-nzu-green/60 focus:bg-black/36 disabled:opacity-60"
+              className="w-full resize-none rounded-xl border border-white/16 bg-black/28 px-4 py-3 text-base font-medium leading-7 text-white outline-none transition placeholder:text-white/36 focus:border-nzu-green/60 focus:bg-black/36 disabled:opacity-60 md:text-[15px]"
               placeholder="댓글을 입력하세요."
             />
             <div className="flex flex-wrap items-center justify-between gap-3">

@@ -181,7 +181,7 @@ export function BoardPostEditForm({ post }: BoardPostEditFormProps) {
         <input
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
+          className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-base font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05] md:text-sm"
           placeholder="제목을 입력해 주세요"
           maxLength={120}
         />
@@ -198,7 +198,7 @@ export function BoardPostEditForm({ post }: BoardPostEditFormProps) {
             void uploadImageFile(imageFile);
           }}
           onChange={(event) => setContent(event.target.value)}
-          className="min-h-[320px] w-full rounded-[1.2rem] border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium leading-7 text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
+          className="min-h-[320px] w-full rounded-[1.2rem] border border-white/10 bg-white/[0.03] px-4 py-3 text-base font-medium leading-7 text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05] md:text-sm"
           placeholder="내용을 입력해 주세요"
           maxLength={4000}
         />
@@ -243,7 +243,7 @@ export function BoardPostEditForm({ post }: BoardPostEditFormProps) {
               setImageUrl(event.target.value);
               setImageUploadState(initialState);
             }}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-base font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05] md:text-sm"
             placeholder="이미지 URL 또는 직접 업로드"
           />
           {imageUploadState.message ? (
@@ -266,7 +266,7 @@ export function BoardPostEditForm({ post }: BoardPostEditFormProps) {
           <input
             value={videoUrl}
             onChange={(event) => setVideoUrl(event.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05]"
+            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-base font-medium text-white outline-none transition focus:border-nzu-green/60 focus:bg-white/[0.05] md:text-sm"
             placeholder="YouTube 또는 SOOP URL"
           />
         </label>
