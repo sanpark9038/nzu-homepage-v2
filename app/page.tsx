@@ -68,7 +68,7 @@ export default async function HomePage() {
 
           <div className="relative mx-auto flex h-full w-full max-w-6xl items-end px-4 pb-10 pt-8 md:px-8 md:pb-14 lg:px-6 lg:pb-16 xl:px-0">
             <div className="max-w-5xl">
-              <h1 className="relative -left-[2rem] top-3 text-[2.55rem] font-black leading-[0.92] tracking-[-0.07em] text-white drop-shadow-[0_18px_44px_rgba(0,0,0,0.34)] md:-left-[9.5rem] md:top-5 md:text-[4.9rem] lg:-left-[20rem] lg:top-7 lg:text-[6.4rem]">
+              <h1 className="relative top-3 text-[2.55rem] font-black leading-[0.92] tracking-[-0.07em] text-white drop-shadow-[0_18px_44px_rgba(0,0,0,0.34)] md:-left-[9.5rem] md:top-5 md:text-[4.9rem] lg:-left-[20rem] lg:top-7 lg:text-[6.4rem]">
                 {heroTitleLines.map((line, index) => (
                   <span key={`${index}-${line}`} className="block overflow-hidden">
                     <span
@@ -81,7 +81,7 @@ export default async function HomePage() {
                 ))}
               </h1>
 
-              <div className="relative -left-[2rem] top-3 mt-8 flex flex-col gap-3 sm:flex-row md:-left-[9.5rem] md:top-5 lg:-left-[20rem] lg:top-7">
+              <div className="relative top-3 mt-8 flex flex-col gap-3 sm:flex-row md:-left-[9.5rem] md:top-5 lg:-left-[20rem] lg:top-7">
                 <Link
                   href="/prediction"
                   className="inline-flex min-h-12 items-center justify-center rounded-full bg-nzu-green px-6 text-sm font-black tracking-tight text-black transition-transform duration-200 hover:-translate-y-0.5"

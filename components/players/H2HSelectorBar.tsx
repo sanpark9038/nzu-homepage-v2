@@ -219,7 +219,7 @@ export function H2HSelectorBar() {
            </div>
            
            {/* Center Title */}
-           <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
+           <div className="hidden md:block absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
              <span className="text-[18px] font-[1000] text-foreground uppercase tracking-[0.2em] italic drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
                퀵 매칭
              </span>
@@ -240,7 +240,7 @@ export function H2HSelectorBar() {
               <div 
                 key={mIdx} 
                 className={cn(
-                  "flex items-center justify-center gap-4 relative p-0.5 rounded-[1.75rem] transition-all group/match",
+                  "flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 relative p-0.5 rounded-[1.75rem] transition-all group/match",
                   isActive ? "ring-2 ring-nzu-green/20 bg-white/[0.02]" : "opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0",
                   isLoading[mIdx] && "opacity-40 pointer-events-none animate-pulse"
                 )}
@@ -250,7 +250,7 @@ export function H2HSelectorBar() {
                 {matchups.length > 1 && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); removeMatch(mIdx); }}
-                    className="absolute -top-1.5 -right-1.5 p-1.5 bg-card border border-white/10 text-white/20 hover:text-red-400 hover:border-red-500/40 rounded-full shadow-lg opacity-0 group-hover/match:opacity-100 transition-all z-30"
+                    className="absolute -top-1.5 -right-1.5 p-1.5 bg-card border border-white/10 text-white/20 hover:text-red-400 hover:border-red-500/40 rounded-full shadow-lg opacity-100 md:opacity-0 md:group-hover/match:opacity-100 transition-all z-30"
                   >
                     <X size={12} strokeWidth={3} />
                   </button>
@@ -258,7 +258,7 @@ export function H2HSelectorBar() {
 
                 {/* Player 1 Card (Tightened) */}
                 <div className={cn(
-                  "w-[220px] flex flex-col justify-center px-4 rounded-[1.75rem] border transition-all h-[72px] bg-black/50 relative overflow-hidden group/p1",
+                  "w-full md:w-[220px] flex flex-col justify-center px-4 rounded-[1.75rem] border transition-all h-[72px] bg-black/50 relative overflow-hidden group/p1",
                   match.p1 ? "border-nzu-green/40 shadow-[inset_0_0_25px_rgba(0,255,163,0.1)]" : "border-dashed border-white/5 opacity-50"
                 )}>
                   {match.p1 ? (
@@ -268,7 +268,7 @@ export function H2HSelectorBar() {
                          <RaceLetterBadge race={match.p1.race} size="sm" />
                          <button 
                             onClick={(e) => { e.stopPropagation(); removePlayer(mIdx, 'p1'); }} 
-                            className="ml-2 p-1 bg-white/5 border border-white/5 hover:border-red-500/35 text-white/20 hover:text-red-400 rounded-lg transition-all opacity-0 group-hover/p1:opacity-100"
+                            className="ml-2 p-1 bg-white/5 border border-white/5 hover:border-red-500/35 text-white/20 hover:text-red-400 rounded-lg transition-all opacity-100 md:opacity-0 md:group-hover/p1:opacity-100"
                          >
                             <X size={10} strokeWidth={3} />
                          </button>
@@ -280,7 +280,7 @@ export function H2HSelectorBar() {
                 </div>
 
                 {/* Center Core (Tighter Vertical Spacing) */}
-                <div className="flex flex-col items-center justify-center min-w-[125px] relative pt-3 pb-1">
+                <div className="flex flex-col items-center justify-center w-full md:w-auto min-w-0 md:min-w-[125px] relative pt-3 pb-1">
                    <button 
                       onClick={(e) => { e.stopPropagation(); swapMatch(mIdx); }}
                       className="absolute -top-3.5 left-1/2 -translate-x-1/2 p-2 rounded-xl bg-card border border-white/20 hover:border-nzu-green/50 hover:text-nzu-green transition-all shadow-xl active:scale-75 z-20"
@@ -313,7 +313,7 @@ export function H2HSelectorBar() {
 
                 {/* Player 2 Card (Tightened) */}
                 <div className={cn(
-                  "w-[220px] flex flex-col justify-center px-4 rounded-[1.75rem] border transition-all h-[72px] bg-black/50 relative overflow-hidden items-center group/p2",
+                  "w-full md:w-[220px] flex flex-col justify-center px-4 rounded-[1.75rem] border transition-all h-[72px] bg-black/50 relative overflow-hidden items-center group/p2",
                   match.p2 ? "border-red-500/40 shadow-[inset_0_0_25px_rgba(239,68,68,0.1)]" : "border-dashed border-white/5 opacity-50"
                 )}>
                   {match.p2 ? (
@@ -321,7 +321,7 @@ export function H2HSelectorBar() {
                       <div className="relative flex items-center scale-110">
                          <button 
                             onClick={(e) => { e.stopPropagation(); removePlayer(mIdx, 'p2'); }} 
-                            className="mr-2 p-1 bg-white/5 border border-white/5 hover:border-red-500/35 text-white/20 hover:text-red-400 rounded-lg transition-all opacity-0 group-hover/p2:opacity-100"
+                            className="mr-2 p-1 bg-white/5 border border-white/5 hover:border-red-500/35 text-white/20 hover:text-red-400 rounded-lg transition-all opacity-100 md:opacity-0 md:group-hover/p2:opacity-100"
                          >
                             <X size={10} strokeWidth={3} />
                          </button>

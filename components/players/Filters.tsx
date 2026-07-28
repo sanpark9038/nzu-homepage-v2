@@ -189,11 +189,11 @@ export function UnivFilter({ options, queryString = "" }: { options?: University
   })();
 
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-3 md:gap-x-4 md:gap-y-4 rounded-3xl border border-white/10 bg-white/[0.03] p-3 md:p-4 backdrop-blur-sm">
       <button
         onClick={() => handleUniv("ALL")}
         className={cn(
-          "whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-semibold transition-colors",
+          "whitespace-nowrap rounded-2xl border border-transparent px-4 py-2 md:px-8 md:py-4 text-sm font-semibold transition-colors",
           currentUniv === "ALL" ? "bg-white text-black" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
         )}
       >
@@ -209,7 +209,7 @@ export function UnivFilter({ options, queryString = "" }: { options?: University
             key={option.code}
             onClick={() => handleUniv(option.code)}
             className={cn(
-              "group relative whitespace-nowrap rounded-2xl border border-transparent px-8 py-4 text-sm font-semibold transition-colors",
+              "group relative whitespace-nowrap rounded-2xl border border-transparent px-4 py-2 md:px-8 md:py-4 text-sm font-semibold transition-colors",
               isActive
                 ? "border-white/20 bg-gradient-to-br from-nzu-green/80 to-nzu-green text-black"
                 : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white"
@@ -261,8 +261,8 @@ export function RaceToggle({ queryString = "" }: TierFilterControlProps = {}) {
   };
 
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-3 backdrop-blur-sm">
-      <span className="mb-0.5 text-sm font-semibold uppercase tracking-widest text-white/55">종족 구분</span>
+    <div className="flex shrink-0 items-center gap-2 md:gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 md:px-6 md:py-3 backdrop-blur-sm">
+      <span className="mb-0.5 text-xs md:text-sm font-semibold uppercase tracking-widest text-white/55">종족 구분</span>
       <button
         onClick={handleToggle}
         className={cn("relative inline-flex h-7 w-14 items-center rounded-full shadow-inner transition-all duration-300 focus:outline-none", isToggled ? "bg-nzu-green" : "bg-white/10")}
@@ -296,10 +296,10 @@ export function LiveToggle({ queryString = "" }: TierFilterControlProps = {}) {
   };
 
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-red-500/20 bg-red-500/[0.05] px-6 py-3 backdrop-blur-sm">
+    <div className="flex shrink-0 items-center gap-2 md:gap-4 rounded-2xl border border-red-500/20 bg-red-500/[0.05] px-3 py-2 md:px-6 md:py-3 backdrop-blur-sm">
       <div className="flex items-center gap-2">
         <div className={cn("h-2 w-2 rounded-full", isToggled ? "animate-pulse bg-red-500" : "bg-white/20")} />
-        <span className={cn("mb-0.5 text-sm font-semibold uppercase tracking-widest transition-colors", isToggled ? "text-red-500" : "text-white/55")}>방송중</span>
+        <span className={cn("mb-0.5 text-xs md:text-sm font-semibold uppercase tracking-widest transition-colors", isToggled ? "text-red-500" : "text-white/55")}>방송중</span>
       </div>
       <button
         onClick={handleToggle}

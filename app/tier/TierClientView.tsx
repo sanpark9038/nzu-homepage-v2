@@ -174,7 +174,7 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
                 <div className="w-full max-w-md md:w-64">
                   <PlayerSearch playerNames={playerNames} queryString={activeQueryString} />
                 </div>
-                <div className="hide-scrollbar flex w-full shrink-0 items-center justify-end gap-4 overflow-x-auto md:w-auto">
+                <div className="flex w-full shrink-0 items-center justify-end gap-2 overflow-x-auto md:w-auto md:gap-4">
                   <LiveToggle queryString={activeQueryString} />
                   <RaceToggle queryString={activeQueryString} />
                 </div>
@@ -208,6 +208,19 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
             ) : isTeamCompactView ? (
               <TeamTierCompactGrid players={compactTeamPlayers} selectedUniversity={selectedUniversity} />
             ) : (
+              <>
+              <div className="-mx-4 mb-8 flex gap-2 overflow-x-auto px-4 pb-2 lg:hidden">
+                {tiers.map((tierItem) => (
+                  <a
+                    key={tierItem.id}
+                    href={`#tier-${tierItem.id}`}
+                    className="shrink-0 rounded-full border border-nzu-green/30 bg-nzu-green/[0.08] px-3 py-1.5 text-[13px] font-bold tracking-tight text-nzu-green/95"
+                  >
+                    {tierItem.name}
+                  </a>
+                ))}
+              </div>
+
               <div className="space-y-16">
                 {godPlayers.length > 0 && (
                   <div id="tier-god">
@@ -268,6 +281,7 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
                   </div>
                 )}
               </div>
+              </>
             )}
           </div>
 
@@ -303,7 +317,7 @@ export function TierClientView({ queryString, universityOptions }: TierClientVie
       </main>
 
       <footer className="relative z-10 border-t border-white/5 py-12">
-        <div className="mx-auto flex max-w-[1800px] flex-col items-center justify-between gap-6 px-16 md:flex-row">
+        <div className="mx-auto flex max-w-[1800px] flex-col items-center justify-between gap-6 px-4 md:flex-row md:px-16">
           <Link
             href="/admin"
             aria-label="Admin"
