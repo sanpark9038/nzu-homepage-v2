@@ -4,8 +4,11 @@ import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import { getJungmanState } from "@/lib/jungman";
+import { JUNGMAN_STANDINGS_KEY } from "@/lib/jungman-standings";
+import { readSettingAdmin } from "@/lib/site-settings-admin";
 import LogoutButton from "../ops/LogoutButton";
 import JungmanAdmin from "./JungmanAdmin";
+import JungmanStandingsAdmin from "./JungmanStandingsAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +21,8 @@ export default async function AdminJungmanPage() {
   }
 
   const { config, snapshots } = await getJungmanState();
+  // 순위 데이터를 못 읽어도 개표 관리는 열려야 한다 — 진짜 원인은 저장 시도에서 그대로 뜬다
+  const standings = await readSettingAdmin(JUNGMAN_STANDINGS_KEY).catch(() => "");
 
   return (
     <main className="min-h-screen bg-background p-6 text-foreground md:p-10">
@@ -35,6 +40,7 @@ export default async function AdminJungmanPage() {
         </div>
 
         <JungmanAdmin initialConfig={config} initialSnapshots={snapshots} />
+        <JungmanStandingsAdmin initialValue={standings ?? ""} />
       </div>
     </main>
   );

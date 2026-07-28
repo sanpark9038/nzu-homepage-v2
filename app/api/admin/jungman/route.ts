@@ -16,6 +16,11 @@ import {
   type JungmanSnapshot,
 } from "@/lib/jungman";
 import {
+  buildJungmanGroupTables,
+  JUNGMAN_STANDINGS_KEY,
+  parseJungmanStandings,
+} from "@/lib/jungman-standings";
+import {
   collectJungmanSnapshot,
   fetchJungmanComments,
   writeJungmanSnapshots,
@@ -144,6 +149,7 @@ export async function POST(req: Request) {
       postUrl?: string;
       mapping?: unknown;
       autoCollect?: boolean;
+      standings?: string;
     };
     const action = String(body.action || "").trim();
 
@@ -273,6 +279,35 @@ export async function POST(req: Request) {
               result.reason ? ` (${result.reason})` : ""
             }`
       );
+    }
+
+    if (action === "save-standings") {
+      const raw = String(body.standings ?? "").trim();
+      // 빈 값은 "발표 전으로 되돌리기" — 정상 입력이라 검사하지 않는다
+      if (raw) {
+        try {
+          JSON.parse(raw);
+        } catch (error) {
+          return NextResponse.json(
+            { ok: false, message: `JSON 형식이 올바르지 않습니다 — ${(error as Error).message}` },
+            { status: 400 }
+          );
+        }
+      }
+
+      await writeSetting(JUNGMAN_STANDINGS_KEY, raw);
+      revalidatePath("/jungman/standings");
+
+      // 저장은 됐는데 화면이 비면 원인을 여기서 바로 알려준다 (announced=false / 스키마 불일치)
+      const parsed = parseJungmanStandings(raw);
+      const summary = parsed
+        ? `${parsed.groups.length}개조 · ${buildJungmanGroupTables(parsed).reduce(
+            (sum, table) => sum + table.rows.length,
+            0
+          )}팀 · 경기 ${parsed.matches.length}건이 반영됩니다.`
+        : "공개 화면은 '조 편성 발표 전'으로 남습니다 (announced가 true인지, groups가 비어 있지 않은지 확인해주세요).";
+
+      return NextResponse.json({ ok: true, message: `조별 순위 데이터를 저장했습니다. ${summary}` });
     }
 
     if (action === "delete-last-snapshot") {
