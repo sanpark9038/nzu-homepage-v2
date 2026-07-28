@@ -32,13 +32,13 @@ export default async function PredictionPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <main className="mx-auto flex w-full max-w-[1500px] flex-col px-4 py-8 lg:px-8">
-        <section className="hosaga-card mb-4 px-5 py-4">
-          <div className="ui-label uppercase text-nzu-green">
+      <main className="mx-auto flex w-full max-w-[1500px] flex-col px-4 py-4 md:py-8 lg:px-8">
+        <section className="hosaga-card mb-3 px-4 py-3 md:mb-4 md:px-5 md:py-4">
+          <div className="ui-label hidden uppercase text-nzu-green md:block">
             Match Voting
           </div>
-          <h1 className="mt-2 text-2xl font-bold text-white md:text-3xl">승부예측</h1>
-          <p className="mt-1.5 text-sm font-medium text-white/55">
+          <h1 className="text-xl font-bold text-white md:mt-2 md:text-3xl">승부예측</h1>
+          <p className="mt-1.5 hidden text-sm font-medium text-white/55 md:block">
             로그인 후 경기별 승자를 예측하고, 결과 공개 후 내 예측 적중 여부를 확인할 수 있습니다.
           </p>
         </section>
