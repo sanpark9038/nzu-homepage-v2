@@ -32,9 +32,9 @@ export default async function BoardPostEditPage({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-8 md:px-8">
-        <section className="hosaga-card p-5">
-          <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-white/38">
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-4 md:gap-5 md:px-8 md:py-8">
+        <section className="hosaga-card px-4 py-3 md:p-5">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-white/38 md:text-sm">
             <Link href="/board" className="transition hover:text-white">
               게시판
             </Link>
@@ -43,8 +43,8 @@ export default async function BoardPostEditPage({ params }: { params: Promise<{ 
               전체글
             </Link>
           </div>
-          <div className="mt-4 border-t border-white/6 pt-4">
-            <h1 className="text-3xl font-bold tracking-tight text-white">글 수정</h1>
+          <div className="mt-3 border-t border-white/6 pt-3 md:mt-4 md:pt-4">
+            <h1 className="text-xl font-bold tracking-tight text-white md:text-3xl">글 수정</h1>
           </div>
         </section>
 

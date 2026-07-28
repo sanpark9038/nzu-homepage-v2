@@ -761,13 +761,13 @@ export default function MatchPageClient({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <main className="mx-auto max-w-[1520px] px-6 py-6 animate-in fade-in duration-700">
-        <header className="mb-4 ml-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <main className="mx-auto max-w-[1520px] px-4 py-3 animate-in fade-in duration-700 md:px-6 md:py-6">
+        <header className="mb-3 ml-2 flex flex-col gap-2 md:mb-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-1 md:justify-start">
-            <h1 className="text-[2.25rem] font-bold tracking-tighter italic text-white">
+            <h1 className="text-2xl font-bold tracking-tighter italic text-white md:text-[2.25rem]">
               매치 <span className="text-nzu-green drop-shadow-[0_0_15px_#00ffa344]">편성</span>
             </h1>
-            <p className="text-[14px] font-semibold text-white/45">
+            <p className="hidden text-[14px] font-semibold text-white/45 md:block">
               빠르게 매치를 배치하고 팀밸런스를 확인합니다.
             </p>
           </div>

@@ -221,9 +221,9 @@ export function PlayerPageView({
 
   return (
     <main className="min-h-[calc(100vh-4rem)] bg-background px-4 py-4 text-foreground md:px-8 xl:px-10">
-      <div className="mx-auto flex max-w-[96rem] flex-col items-center pt-4 md:pt-5">
-        <section className="w-full max-w-6xl overflow-hidden rounded-2xl border border-white/8 bg-card px-5 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.28)] md:overflow-visible md:px-7 md:py-5 xl:max-w-[84rem] xl:px-8">
-          <div className="mb-4">
+      <div className="mx-auto flex max-w-[96rem] flex-col items-center pt-2 md:pt-5">
+        <section className="w-full max-w-6xl overflow-hidden rounded-2xl border border-white/8 bg-card px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.28)] md:overflow-visible md:px-7 md:py-5 xl:max-w-[84rem] xl:px-8">
+          <div className="mb-3 md:mb-4">
             <Link href="/tier" prefetch={false} className="inline-flex items-center gap-2 text-[0.78rem] font-medium text-white/40 transition-colors hover:text-nzu-green">
               <span aria-hidden>←</span>
               <span>티어표로 돌아가기</span>
@@ -231,10 +231,10 @@ export function PlayerPageView({
           </div>
 
           <div className="text-center">
-            <h1 className="text-[1.9rem] font-bold tracking-tight text-white md:text-[2.4rem] xl:text-[2.7rem]">
+            <h1 className="text-2xl font-bold tracking-tight text-white md:text-[2.4rem] xl:text-[2.7rem]">
               선수 <span className="text-nzu-green">검색</span>
             </h1>
-            <p className="mx-auto mt-2 max-w-2xl text-sm font-medium text-white/50 md:text-[0.95rem]">
+            <p className="mx-auto mt-2 hidden max-w-2xl text-sm font-medium text-white/50 md:block md:text-[0.95rem]">
               선수 이름으로 검색하면 통산 기록과 최근 흐름, 종족전 요약, 주요 맵 지표를 한 번에 확인할 수 있습니다.
             </p>
           </div>

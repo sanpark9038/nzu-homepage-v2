@@ -27,11 +27,11 @@ export default async function EntryPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <main className="mx-auto w-full max-w-[1800px] px-4 py-5 lg:px-8">
-        <section className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="ui-label uppercase text-nzu-green">Entry Tool</span>
-          <h1 className="text-2xl font-bold tracking-tight text-white">엔트리</h1>
-          <p className="text-xs font-medium text-white/45">
+      <main className="mx-auto w-full max-w-[1800px] px-4 py-3 md:py-5 lg:px-8">
+        <section className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 md:mb-4">
+          <span className="ui-label hidden uppercase text-nzu-green md:block">Entry Tool</span>
+          <h1 className="text-xl font-bold tracking-tight text-white md:text-2xl">엔트리</h1>
+          <p className="hidden text-xs font-medium text-white/45 md:block">
             대학별 선수 구성을 비교하고 대진을 빠르게 정리
           </p>
         </section>

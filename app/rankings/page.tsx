@@ -117,9 +117,9 @@ export default async function RankingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="mx-auto w-full max-w-5xl px-4 py-12">
-        <header className="mb-10 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
+      <main className="mx-auto w-full max-w-5xl px-4 py-5 md:py-12">
+        <header className="mb-5 text-center md:mb-10">
+          <h1 className="text-2xl font-bold tracking-tight text-white md:text-4xl">
             팀 및 선수 순위
           </h1>
         </header>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import JungmanMap from "@/components/jungman/JungmanMap";
+import JungmanSubNav from "@/components/jungman/JungmanSubNav";
 import {
   buildJungmanBestRanks,
   buildJungmanHeadlines,
@@ -64,7 +65,10 @@ export default async function JungmanPage() {
 
   return (
     <div className="min-h-screen bg-[#0b0f1a] text-[#e8ebf2]">
-      <main className="mx-auto w-full max-w-[1600px] px-3 py-5 md:px-5">
+      <main className="mx-auto w-full max-w-[1600px] px-3 py-3 md:px-5 md:py-5">
+        {/* 개표 전/후 두 갈래가 헤더를 각각 갖고 있다 — 탭은 갈래 위 한 곳에만 둔다 */}
+        <JungmanSubNav activeHref="/jungman" />
+
         {/* 마감 뒤에는 받아올 새 데이터가 없다 — 자동 갱신을 멈춘다 */}
         {closed ? null : autoRefresh ? <JungmanAutoRefresh /> : null}
 
@@ -95,15 +99,15 @@ export default async function JungmanPage() {
           />
         ) : (
           <div className="mx-auto flex max-w-3xl flex-col gap-4">
-            <section className={`${PANEL} p-6`}>
-              <p className="text-[0.6875rem] font-bold uppercase tracking-[0.22em] text-[#d4a94a]">
+            <section className={`${PANEL} px-4 py-4 md:p-6`}>
+              <p className="text-[0.625rem] font-bold uppercase tracking-[0.22em] text-[#d4a94a] md:text-[0.6875rem]">
                 중만컵 · 인기투표 개표 현황
               </p>
               {/* 읽기 실패를 "아직 개표 전"으로 보여주면 집계가 사라진 것처럼 읽힌다 — 상태를 그대로 말한다 */}
-              <h1 className="mt-2 text-3xl font-black tracking-tight">
+              <h1 className="mt-2 text-xl font-black tracking-tight md:text-3xl">
                 {degraded ? "집계 데이터를 불러오지 못했습니다" : "첫 개표 발표를 기다리고 있습니다"}
               </h1>
-              <p className="mt-3 text-sm leading-relaxed text-[#7a8299]">
+              <p className="mt-2 text-xs leading-relaxed text-[#7a8299] md:mt-3 md:text-sm">
                 {degraded ? (
                   "곧 다시 시도합니다. 투표 기록은 그대로 있으며, 연결이 회복되면 이 화면이 자동으로 갱신됩니다."
                 ) : (
