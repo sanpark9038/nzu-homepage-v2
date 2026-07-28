@@ -87,8 +87,33 @@ function boardFilterHref(filter: BoardListFilter) {
 
 function boardFilterTabClassName(active: boolean) {
   return active
-    ? "rounded-lg bg-nzu-green/10 px-3 py-2 text-nzu-green transition hover:bg-nzu-green/15"
-    : "rounded-lg bg-white/[0.03] px-3 py-2 text-white/42 transition hover:bg-white/[0.06] hover:text-white/72";
+    ? "rounded-lg bg-nzu-green/10 px-3 py-1.5 text-nzu-green transition hover:bg-nzu-green/15 md:py-2"
+    : "rounded-lg bg-white/[0.03] px-3 py-1.5 text-white/42 transition hover:bg-white/[0.06] hover:text-white/72 md:py-2";
+}
+
+// 테이블(데스크톱)과 리스트(모바일)가 같은 재료를 쓰도록 행 가공은 여기 한 곳에서만 한다.
+function boardRowParts(post: BoardPostWithCommentCount) {
+  const { hasImage, hasVideo } = hasBoardMedia(post);
+  const categoryLabel = getBoardCategoryLabel(post.category);
+  const categoryTone = getBoardCategoryTone(post.category);
+  const scheduleBadge = formatBoardScheduleBadge(post);
+  const dateLabel = formatBoardListDate(post.created_at);
+  const titleWeight = post.category === "notice" || post.category === "schedule" ? "font-bold" : "font-semibold";
+  return { hasImage, hasVideo, categoryLabel, categoryTone, scheduleBadge, dateLabel, titleWeight };
+}
+
+function renderBoardEmptyState(searchQuery: string) {
+  return searchQuery ? (
+    <>
+      <div className="text-2xl font-bold tracking-tight text-white">검색 결과가 없습니다</div>
+      <p className="mt-3 text-sm font-medium text-white/55">다른 검색어로 다시 시도해 보세요.</p>
+    </>
+  ) : (
+    <>
+      <div className="text-2xl font-bold tracking-tight text-white">첫 글을 남겨 주세요</div>
+      <p className="mt-3 text-sm font-medium text-white/55">짧은 소식이나 의견부터 편하게 시작해도 좋습니다.</p>
+    </>
+  );
 }
 
 type BoardPageContentProps = {
@@ -121,8 +146,15 @@ export function BoardPageContent({
   const hasNext = board.hasMore ?? false;
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-8 md:px-8">
-        <section className="hosaga-card p-5">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-4 md:gap-5 md:px-8 md:py-8">
+        <div className="flex items-center justify-between gap-3 md:hidden">
+          <div className="text-xl font-bold tracking-tight text-white">전체글</div>
+          {renderWriteAction(
+            "inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-lg bg-nzu-green px-3.5 text-sm font-bold text-black transition"
+          )}
+        </div>
+
+        <section className="hidden hosaga-card p-5 md:block">
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
               <div className="ui-label uppercase text-nzu-green">Board</div>
@@ -184,8 +216,8 @@ export function BoardPageContent({
                 지난일정
               </Link>
             </div>
-            <form action="/board" method="get" className="flex items-center gap-2">
-              <div className="relative">
+            <form action="/board" method="get" className="flex w-full items-center gap-2 md:w-auto">
+              <div className="relative flex-1 md:flex-none">
                 <Search
                   size={14}
                   className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/36"
@@ -196,7 +228,7 @@ export function BoardPageContent({
                   defaultValue={searchQuery}
                   maxLength={50}
                   placeholder="제목 검색"
-                  className="h-9 w-36 rounded-lg border border-white/10 bg-white/[0.03] pl-8 pr-3 text-sm font-medium text-white outline-none transition placeholder:text-white/36 focus:border-nzu-green/50 md:w-52"
+                  className="h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] pl-8 pr-3 text-base font-medium text-white outline-none transition placeholder:text-white/36 focus:border-nzu-green/50 md:w-52 md:text-sm"
                 />
               </div>
               <button
@@ -219,7 +251,54 @@ export function BoardPageContent({
             </div>
           ) : null}
 
-          <div className="overflow-x-auto">
+          <ul className="md:hidden">
+            {board.posts.length ? (
+              board.posts.map((post) => {
+                const { hasImage, hasVideo, categoryLabel, categoryTone, scheduleBadge, dateLabel, titleWeight } =
+                  boardRowParts(post);
+
+                return (
+                  <li key={post.id} className={boardRowClassName(post)}>
+                    <Link
+                      href={`/board/${post.id}`}
+                      prefetch={false}
+                      className="flex min-h-[44px] flex-col justify-center gap-1 px-3 py-2.5"
+                    >
+                      <div className="flex items-start gap-1.5">
+                        {categoryLabel ? (
+                          <span className={`shrink-0 text-xs font-semibold leading-5 ${categoryTone}`}>{categoryLabel}</span>
+                        ) : null}
+                        {scheduleBadge ? (
+                          <span className="inline-flex h-5 shrink-0 items-center justify-center rounded border border-sky-300/28 bg-sky-300/12 px-1.5 text-[11px] font-semibold leading-none tabular-nums text-sky-100">
+                            {scheduleBadge}
+                          </span>
+                        ) : null}
+                        <span className={`line-clamp-2 min-w-0 flex-1 text-sm leading-5 tracking-tight text-white ${titleWeight}`}>
+                          {post.title}
+                          {post.comment_count > 0 ? (
+                            <span className="ml-1 text-xs font-semibold text-nzu-green">[{post.comment_count}]</span>
+                          ) : null}
+                        </span>
+                        {hasImage ? <ImageIcon size={13} className="mt-0.5 shrink-0 text-white/45" /> : null}
+                        {hasVideo ? <PlayCircle size={13} className="mt-0.5 shrink-0 text-white/45" /> : null}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-white/40">
+                        <span className="tabular-nums">{dateLabel}</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="truncate">{post.author_name}</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="shrink-0 tabular-nums">조회 {post.view_count ?? 0}</span>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })
+            ) : (
+              <li className="border-b border-white/6 px-4 py-16 text-center">{renderBoardEmptyState(searchQuery)}</li>
+            )}
+          </ul>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-white/6 bg-white/[0.02] text-left text-xs font-medium tracking-[0.12em] text-white/40">
@@ -233,10 +312,8 @@ export function BoardPageContent({
               <tbody>
                 {board.posts.length ? (
                   board.posts.map((post) => {
-                    const { hasImage, hasVideo } = hasBoardMedia(post);
-                    const categoryLabel = getBoardCategoryLabel(post.category);
-                    const categoryTone = getBoardCategoryTone(post.category);
-                    const scheduleBadge = formatBoardScheduleBadge(post);
+                    const { hasImage, hasVideo, categoryLabel, categoryTone, scheduleBadge, dateLabel, titleWeight } =
+                      boardRowParts(post);
 
                     return (
                       <tr key={post.id} className={boardRowClassName(post)}>
@@ -247,9 +324,7 @@ export function BoardPageContent({
                           <Link
                             href={`/board/${post.id}`}
                             prefetch={false}
-                            className={`inline-flex max-w-full items-center gap-2 tracking-tight text-white transition hover:text-nzu-green ${
-                              post.category === "notice" || post.category === "schedule" ? "font-bold" : "font-semibold"
-                            }`}
+                            className={`inline-flex max-w-full items-center gap-2 tracking-tight text-white transition hover:text-nzu-green ${titleWeight}`}
                           >
                             {scheduleBadge ? (
                               <span className="inline-flex h-6 w-[6.9rem] shrink-0 items-center justify-center rounded-md border border-sky-300/28 bg-sky-300/12 px-2.5 text-xs font-semibold leading-none tabular-nums text-sky-100">
@@ -265,7 +340,7 @@ export function BoardPageContent({
                           </Link>
                         </td>
                         <td className="hidden px-4 py-3 text-sm font-semibold text-white/68 md:table-cell">{post.author_name}</td>
-                        <td className="px-4 py-3 text-sm tabular-nums text-white/54">{formatBoardListDate(post.created_at)}</td>
+                        <td className="px-4 py-3 text-sm tabular-nums text-white/54">{dateLabel}</td>
                         <td className="hidden px-4 py-3 text-right text-sm tabular-nums text-white/46 md:table-cell">
                           {post.view_count ?? 0}
                         </td>
@@ -275,21 +350,7 @@ export function BoardPageContent({
                 ) : (
                   <tr>
                     <td colSpan={5} className="px-4 py-16 text-center md:px-5">
-                      {searchQuery ? (
-                        <>
-                          <div className="text-2xl font-bold tracking-tight text-white">검색 결과가 없습니다</div>
-                          <p className="mt-3 text-sm font-medium text-white/55">
-                            다른 검색어로 다시 시도해 보세요.
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <div className="text-2xl font-bold tracking-tight text-white">첫 글을 남겨 주세요</div>
-                          <p className="mt-3 text-sm font-medium text-white/55">
-                            짧은 소식이나 의견부터 편하게 시작해도 좋습니다.
-                          </p>
-                        </>
-                      )}
+                      {renderBoardEmptyState(searchQuery)}
                     </td>
                   </tr>
                 )}
@@ -342,7 +403,7 @@ export function BoardPageContent({
               );
             })()}
             {renderWriteAction(
-              "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-5 text-sm font-semibold text-white/80 transition hover:border-nzu-green/40 hover:text-nzu-green"
+              "hidden min-h-11 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.04] px-5 text-sm font-semibold text-white/80 transition hover:border-nzu-green/40 hover:text-nzu-green md:inline-flex"
             )}
           </div>
         </section>
