@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Grid, LockKeyhole, LogOut, User } from "lucide-react";
+import { LockKeyhole, LogOut, Menu, User, X } from "lucide-react";
 
 import { visibleNavbarLinks } from "@/lib/navigation-config";
 import type { PublicAuthSession } from "@/lib/public-auth";
@@ -41,9 +41,31 @@ function normalizeNavbarPathname(value: string | null | undefined) {
 
 const OVERLAY_VIEWER_ROUTES = ["/overlay/scoreboard", "/overlay/entry"];
 
+function LiveBadge({ isActive }: { isActive: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-1.5 py-px text-[0.625rem] font-bold uppercase tracking-[0.16em]",
+        isActive
+          ? "border-red-400/50 bg-red-500/18 text-red-200"
+          : "border-red-400/28 bg-red-500/10 text-red-300"
+      )}
+    >
+      LIVE
+    </span>
+  );
+}
+
 export default function Navbar() {
   const pathname = usePathname();
   const [session, setSession] = useState<NavbarSession | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // 라우트 이동(링크 클릭·뒤로가기) 시 모바일 메뉴 닫기.
+  // 세션 effect보다 위에 둘 것 — 계약 테스트 정규식이 두 effect에 걸쳐 매칭된다.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
@@ -104,18 +126,7 @@ export default function Navbar() {
                   style={isActive ? { boxShadow: `0 0 16px ${accent.glowRgba}` } : undefined}
                 >
                   {item.label}
-                  {showLiveBadge ? (
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-full border px-1.5 py-px text-[0.625rem] font-bold uppercase tracking-[0.16em]",
-                        isActive
-                          ? "border-red-400/50 bg-red-500/18 text-red-200"
-                          : "border-red-400/28 bg-red-500/10 text-red-300"
-                      )}
-                    >
-                      LIVE
-                    </span>
-                  ) : null}
+                  {showLiveBadge ? <LiveBadge isActive={isActive} /> : null}
                 </Link>
               );
             })}
@@ -160,13 +171,46 @@ export default function Navbar() {
           </Link>
           <button
             type="button"
-            aria-label="메뉴 열기"
-            className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full transition-colors hover:bg-white/7 hover:text-foreground"
+            aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+            className="inline-flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full transition-colors hover:bg-white/7 hover:text-foreground lg:hidden"
           >
-            <Grid size={20} aria-hidden="true" />
+            {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
           </button>
         </div>
       </div>
+
+      {/* ── 모바일 드롭다운 ── */}
+      {menuOpen ? (
+        <nav className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-white/8 bg-background/95 backdrop-blur-2xl lg:hidden">
+          <div className="flex flex-col gap-0.5 px-4 py-3">
+            {visibleNavbarLinks.map((item) => {
+              const isActive = resolvedPathname === item.href;
+              const showLiveBadge = item.href === "/tier";
+              const accent = NAV_ACCENT[item.href] ?? DEFAULT_ACCENT;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch={false}
+                  onClick={() => setMenuOpen(false)}
+                  className={cn(
+                    "inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-4 py-2 text-[0.875rem] font-semibold tracking-tight transition-colors duration-200",
+                    isActive
+                      ? [accent.activeBg, accent.accentText]
+                      : ["text-foreground/52", accent.hoverBg, accent.hoverText],
+                  )}
+                >
+                  {item.label}
+                  {showLiveBadge ? <LiveBadge isActive={isActive} /> : null}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
     </header>
   );
 }
