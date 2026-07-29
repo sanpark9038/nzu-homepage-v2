@@ -90,7 +90,7 @@ export default async function GroupPickResultsPage() {
         <header>
           <h1 className="text-2xl font-bold">중만컵 조편성 예측 결과</h1>
           <p className="mt-1 text-sm text-slate-500">
-            유효 제출 {valid.length}명 (고유 닉네임) / 전체 {all.length}건
+            유효 제출 {valid.length}명 (고유 숲 아이디) / 전체 {all.length}건
           </p>
         </header>
 

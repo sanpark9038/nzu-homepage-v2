@@ -17,7 +17,8 @@ export default function GroupPickPage() {
 
   const taken = new Set(GROUPS.flatMap((g) => picks[g]).filter(Boolean));
   const filled = GROUPS.every((g) => picks[g][0] && picks[g][1]);
-  const canSubmit = filled && name.trim().length >= 1 && name.trim().length <= 12 && !sending;
+  // 숲 아이디 형식 — 분리 배포된 제출 앱·API와 같은 규칙
+  const canSubmit = filled && /^[a-z0-9_-]{3,20}$/.test(name.trim().toLowerCase()) && !sending;
 
   function setSlot(group: GroupKey, slot: 0 | 1, code: string) {
     setPicks((prev) => {
@@ -37,7 +38,7 @@ export default function GroupPickPage() {
       const res = await fetch("/api/grouppick", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), groups, hp }),
+        body: JSON.stringify({ name: name.trim().toLowerCase(), groups, hp }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -75,7 +76,7 @@ export default function GroupPickPage() {
             ))}
           </div>
           <p className="mt-6 text-xs text-slate-400">
-            같은 닉네임으로 다시 제출하면 마지막 예측만 집계됩니다.
+            같은 아이디로 다시 제출하면 마지막 예측만 집계됩니다.
           </p>
         </div>
       </main>
@@ -129,14 +130,17 @@ export default function GroupPickPage() {
 
         <div className="mt-6">
           <label htmlFor="grouppick-name" className="text-sm font-semibold">
-            닉네임
+            숲(SOOP) 아이디
           </label>
+          <p className="mt-1 text-xs text-slate-400">
+            닉네임이 아니라 로그인용 아이디를 적어 주세요. 아이디는 중복이 없어서 당첨 확인에 씁니다.
+          </p>
           <input
             id="grouppick-name"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            maxLength={12}
-            placeholder="1~12자"
+            maxLength={20}
+            placeholder="숲 로그인 아이디 (영문·숫자)"
             className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 text-sm focus:border-[#2563EB] focus:outline-none"
           />
         </div>
@@ -164,7 +168,7 @@ export default function GroupPickPage() {
           {sending ? "제출 중…" : filled ? "예측 제출" : "8팀을 모두 배치해 주세요"}
         </button>
         <p className="mt-3 pb-10 text-xs text-slate-400">
-          같은 닉네임으로 다시 제출하면 마지막 예측만 집계됩니다.
+          같은 아이디로 다시 제출하면 마지막 예측만 집계됩니다.
         </p>
       </div>
     </main>

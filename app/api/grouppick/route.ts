@@ -25,8 +25,10 @@ export async function POST(request: Request) {
   // honeypot — 사람은 절대 채우지 않는 필드
   if (typeof payload.hp === "string" && payload.hp.trim()) return bad();
 
-  const name = typeof payload.name === "string" ? payload.name.trim() : "";
-  if (name.length < 1 || name.length > 12) return bad();
+  // 숲(SOOP) 아이디 — 닉네임 변형("산박~"/"산박")으로 동일인 구분이 안 되는 문제를 피하려고
+  // 유일한 로그인 아이디를 받는다. 분리 배포된 제출 앱(jungmancup-pick)과 같은 규칙.
+  const name = typeof payload.name === "string" ? payload.name.trim().toLowerCase() : "";
+  if (!/^[a-z0-9_-]{3,20}$/.test(name)) return bad();
 
   const groups = payload.groups as Record<string, unknown> | null | undefined;
   if (!groups || typeof groups !== "object") return bad();
