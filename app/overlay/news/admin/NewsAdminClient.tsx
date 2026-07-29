@@ -8,6 +8,7 @@ import {
   normalizeNewsState,
   type NewsState,
   type NewsTable,
+  type NewsWidgetLayout,
 } from "@/components/starnews/news-types";
 
 type PlayerRow = {
@@ -21,6 +22,51 @@ type PlayerRow = {
 const input =
   "w-full rounded-lg border border-white/12 bg-white/5 px-3 py-2 text-sm outline-none placeholder:text-white/20 focus:border-white/30";
 const label = "mb-1 block text-xs font-bold text-white/45";
+
+// scale(배율)은 저장은 1.0 기준, 입력은 % 기준으로 보여준다.
+const toPct = (scale: number) => Math.round(scale * 100);
+const fromPct = (v: string) => Math.round((Number(v) || 0)) / 100;
+
+// 배너·로워서드·자료 카드 공용 위치·크기 입력 (전면 화면은 항상 전체라 미사용)
+function LayoutFields({
+  layout,
+  onChange,
+}: {
+  layout: NewsWidgetLayout;
+  onChange: (l: NewsWidgetLayout) => void;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      <div>
+        <span className={label}>X (px)</span>
+        <input
+          type="number"
+          className={input}
+          value={layout.x}
+          onChange={(e) => onChange({ ...layout, x: Number(e.target.value) || 0 })}
+        />
+      </div>
+      <div>
+        <span className={label}>Y (px)</span>
+        <input
+          type="number"
+          className={input}
+          value={layout.y}
+          onChange={(e) => onChange({ ...layout, y: Number(e.target.value) || 0 })}
+        />
+      </div>
+      <div>
+        <span className={label}>크기 (%)</span>
+        <input
+          type="number"
+          className={input}
+          value={toPct(layout.scale)}
+          onChange={(e) => onChange({ ...layout, scale: fromPct(e.target.value) })}
+        />
+      </div>
+    </div>
+  );
+}
 
 function Section({
   title,
@@ -257,12 +303,13 @@ export default function NewsAdminClient({ jungmanPreset }: { jungmanPreset: News
             <input className={input} value={news.ticker.label} onChange={(e) => patch("ticker", { label: e.target.value })} />
           </div>
           <div>
-            <span className={label}>속도 (px/초)</span>
+            <span className={label}>문구 표시 시간 (초)</span>
             <input
               type="number"
+              min={2}
               className={input}
-              value={news.ticker.pxPerSec}
-              onChange={(e) => patch("ticker", { pxPerSec: Number(e.target.value) || 0 })}
+              value={news.ticker.secPerItem}
+              onChange={(e) => patch("ticker", { secPerItem: Math.max(2, Number(e.target.value) || 2) })}
             />
           </div>
         </div>
@@ -273,6 +320,26 @@ export default function NewsAdminClient({ jungmanPreset }: { jungmanPreset: News
             value={news.ticker.items.join("\n")}
             onChange={(e) => patch("ticker", { items: e.target.value.split("\n").filter((s) => s.trim()) })}
           />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <span className={label}>하단 여백 (px)</span>
+            <input
+              type="number"
+              className={input}
+              value={news.ticker.y}
+              onChange={(e) => patch("ticker", { y: Number(e.target.value) || 0 })}
+            />
+          </div>
+          <div>
+            <span className={label}>크기 (%)</span>
+            <input
+              type="number"
+              className={input}
+              value={toPct(news.ticker.scale)}
+              onChange={(e) => patch("ticker", { scale: fromPct(e.target.value) })}
+            />
+          </div>
         </div>
       </Section>
 
@@ -289,6 +356,7 @@ export default function NewsAdminClient({ jungmanPreset }: { jungmanPreset: News
           <span className={label}>보조 문구</span>
           <input className={input} value={news.banner.subline} onChange={(e) => patch("banner", { subline: e.target.value })} />
         </div>
+        <LayoutFields layout={news.banner.layout} onChange={(layout) => patch("banner", { layout })} />
       </Section>
 
       <Section title="로워서드" visible={news.lowerThird.visible} onToggle={(v) => patch("lowerThird", { visible: v })}>
@@ -335,6 +403,7 @@ export default function NewsAdminClient({ jungmanPreset }: { jungmanPreset: News
             <input className={input} value={news.lowerThird.note} onChange={(e) => patch("lowerThird", { note: e.target.value })} />
           </div>
         </div>
+        <LayoutFields layout={news.lowerThird.layout} onChange={(layout) => patch("lowerThird", { layout })} />
       </Section>
 
       <Section title="자료 카드" visible={news.card.visible} onToggle={(v) => patch("card", { visible: v })}>
@@ -343,6 +412,7 @@ export default function NewsAdminClient({ jungmanPreset }: { jungmanPreset: News
           onChange={(table) => patch("card", { table })}
           preset={jungmanPreset}
         />
+        <LayoutFields layout={news.card.layout} onChange={(layout) => patch("card", { layout })} />
       </Section>
 
       <Section title="전면 화면" visible={news.fullscreen.visible} onToggle={(v) => patch("fullscreen", { visible: v })}>

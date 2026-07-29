@@ -1,133 +1,85 @@
 "use client";
 
-// STARNEWS 위젯 — "Editorial Luxury, 화이트 방송판" 디자인.
-// 밝은 유리판을 알루미늄 트레이에 얹은 느낌: 반투명 화이트 코어 + 이중 베젤 + 헤어라인.
-// blur/backdrop-filter는 OBS 브라우저 소스에서 프레임 드랍의 주범이라 일절 쓰지 않는다.
-// 유리 질감은 헤어라인 + 이너 하이라이트 + 넓고 부드러운 그림자만으로 만든다.
-import { useLayoutEffect, useRef, useState } from "react";
-import type { NewsBanner, NewsLowerThird, NewsTable, NewsTicker } from "./news-types";
+// STARNEWS 위젯 — 한국 방송사(YTN풍) 자막 스타일.
+// 직각 블록 + 솔리드 컬러 + 두꺼운 고딕. 화이트 자막바 / 다크 티커 바.
+// blur·backdrop-filter는 OBS 브라우저 소스에서 프레임 드랍의 주범이라 일절 쓰지 않는다.
+// 상시 애니메이션도 등장 1회 rise와 티커 문구 교체뿐 (마퀴 폐지).
+import { useEffect, useState } from "react";
+import type { NewsBanner, NewsCard, NewsLowerThird, NewsTable, NewsTicker, NewsWidgetLayout } from "./news-types";
 
 const C = {
-  core: "rgba(252,253,255,0.96)",
-  coreEdge: "1px solid rgba(16,42,90,0.10)",
-  coreInner: "inset 0 1px 0 #FFFFFF",
-  coreShadow: "0 24px 64px rgba(10,30,70,0.28)",
-  coreSheen: "linear-gradient(rgba(255,255,255,0.9), rgba(244,247,252,0.0) 40%)",
-  shell: "rgba(255,255,255,0.42)",
-  shellEdge: "1px solid rgba(255,255,255,0.55)",
-  ink: "#10243E",
-  muted: "rgba(16,36,62,0.58)",
-  accent: "#2563EB",
-  rule: "1px solid rgba(16,42,90,0.10)",
+  ink: "#0A0E1A",
+  blue: "#2563EB",
+  blueDeep: "#1E3A8A",
+  blueText: "#1D4ED8",
+  tagBand: "linear-gradient(135deg, #2563EB, #1E3A8A)",
+  panel: "#FFFFFF",
+  tickerBg: "rgba(16,19,26,0.86)",
+  rule: "1px solid rgba(10,20,50,0.10)",
+  head: "#64748B",
+  note: "#4A5568",
+  shadow: "0 8px 24px rgba(0,0,0,0.25)",
+  divider: "rgba(255,255,255,0.25)", // 티커 내부 세로 구분선 1px
 };
 
-const SERIF = "var(--font-news-serif), 'Batang', serif";
+// 방송 자막체 — 굵은 디스플레이 고딕
+const DISPLAY = "var(--font-news-display), 'Malgun Gothic', sans-serif";
+// 본문·표·라벨
 const SANS = "var(--font-news-sans), 'Malgun Gothic', sans-serif";
 
-// 헤드라인·이름·타이틀
-const serifStyle = (size: number, weight: 700 | 900 = 900): React.CSSProperties => ({
-  fontFamily: SERIF,
+const display = (size: number): React.CSSProperties => ({
+  fontFamily: DISPLAY,
   fontSize: `${size}px`,
-  fontWeight: weight,
+  fontWeight: 400, // Black Han Sans는 400 하나뿐 — 자체가 블랙 웨이트
   letterSpacing: "-0.01em",
-  lineHeight: 1.14,
+  lineHeight: 1.15,
 });
 
-// 라벨·표 데이터
-const sansStyle = (size: number, weight: 400 | 500 | 700 = 400): React.CSSProperties => ({
+const sans = (size: number, weight: 400 | 500 | 700 | 900 = 400): React.CSSProperties => ({
   fontFamily: SANS,
   fontSize: `${size}px`,
   fontWeight: weight,
   lineHeight: 1.3,
 });
 
-// 등장 모션 — transform/opacity만. 마퀴 외 상시 애니메이션은 없다.
-const RISE_KEYFRAMES =
-  "@keyframes newsRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}";
+const KEYFRAMES =
+  "@keyframes newsRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}" +
+  "@keyframes newsSwap{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}";
 
-// 각 위젯의 최상위 배치 래퍼. 마운트 시 1회 상승 페이드.
-function Stage({ children, style }: { children: React.ReactNode; style: React.CSSProperties }) {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        animation: "newsRise 700ms cubic-bezier(0.32,0.72,0,1) both",
-        ...style,
-      }}
-    >
-      <style>{RISE_KEYFRAMES}</style>
-      {children}
-    </div>
-  );
-}
+const RISE = "newsRise 700ms cubic-bezier(0.32,0.72,0,1) both";
 
-// 이중 베젤 — 외피(트레이) 안에 코어(유리판)를 6px 여백으로 앉힌다.
-function Bezel({ children, radius = 24, style, coreStyle }: {
+// 배치 래퍼. 바깥 div가 좌표·배율을 잡고(앵커=좌상단), 안쪽 div가 등장 모션을 갖는다.
+// transform을 나눠 갖지 않으면 scale과 rise가 서로를 덮어쓴다.
+function Stage({ children, style, innerStyle }: {
   children: React.ReactNode;
-  radius?: number;
-  style?: React.CSSProperties;
-  coreStyle?: React.CSSProperties;
+  style: React.CSSProperties;
+  innerStyle?: React.CSSProperties;
 }) {
   return (
-    <div
-      style={{
-        boxSizing: "border-box",
-        background: C.shell,
-        border: C.shellEdge,
-        borderRadius: radius,
-        padding: 6,
-        boxShadow: C.coreShadow,
-        ...style,
-      }}
-    >
-      <div
-        style={{
-          boxSizing: "border-box",
-          height: "100%",
-          background: C.core,
-          backgroundImage: C.coreSheen,
-          border: C.coreEdge,
-          borderRadius: radius >= 999 ? 999 : radius - 6,
-          boxShadow: C.coreInner,
-          color: C.ink,
-          ...coreStyle,
-        }}
-      >
-        {children}
-      </div>
+    <div style={{ position: "absolute", ...style }}>
+      <style>{KEYFRAMES}</style>
+      <div style={{ animation: RISE, ...innerStyle }}>{children}</div>
     </div>
   );
 }
 
-// 아이브로우 필 — 솔리드(블루 배경/흰 글자) 또는 아웃라인(블루 테두리/블루 글자)
-function Eyebrow({ children, solid = true }: { children: React.ReactNode; solid?: boolean }) {
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        borderRadius: 999,
-        padding: "5px 14px",
-        background: solid ? C.accent : "transparent",
-        border: solid ? "1px solid transparent" : `1px solid ${C.accent}`,
-        color: solid ? "#FFFFFF" : C.accent,
-        ...sansStyle(11, 500),
-        letterSpacing: "0.22em",
-        textTransform: "uppercase",
-        lineHeight: 1.4,
-      }}
-    >
-      {children}
-    </span>
-  );
+// 관리자에서 조정한 x/y/배율 → 절대 배치 스타일
+function place(layout: NewsWidgetLayout): React.CSSProperties {
+  return {
+    left: layout.x,
+    top: layout.y,
+    transform: `scale(${layout.scale})`,
+    transformOrigin: "left top",
+  };
 }
 
 // ── 표 ─────────────────────────────────────────────────────
 // 자료 카드와 전면 화면이 같은 렌더러를 쓴다. 차이는 크기뿐.
-// 행 구분은 셀마다 borderBottom 헤어라인 (grid gap 트릭 아님 — 밝은 판에선 선이 그대로 보여야 한다).
+// 제목·부제는 각 패널의 헤더 밴드가 그리므로 여기선 격자만 그린다.
 
 const TABLE_SIZE = {
-  card: { title: 28, titleWeight: 700 as const, subtitle: 12, head: 12, cell: 17, padX: 12, padY: 9 },
-  full: { title: 60, titleWeight: 900 as const, subtitle: 18, head: 18, cell: 28, padX: 20, padY: 18 },
+  card: { head: 12, cell: 17, padX: 12, padY: 9 },
+  full: { head: 17, cell: 27, padX: 20, padY: 16 },
 };
 
 export function NewsTableView({ table, size }: { table: NewsTable; size: "card" | "full" }) {
@@ -136,55 +88,53 @@ export function NewsTableView({ table, size }: { table: NewsTable; size: "card" 
   // 첫 열(이름·순위 등)이 가장 길다 — 나머지는 균등
   const gridCols = colCount === 1 ? "1fr" : `1.6fr ${Array(colCount - 1).fill("1fr").join(" ")}`;
   const highlight = new Set(table.highlightRows);
+  const lastRow = table.rows.length - 1;
 
   const cell = (i: number, hot: boolean, head: boolean, last: boolean): React.CSSProperties => ({
     padding: `${S.padY}px ${S.padX}px`,
     ...(head
-      ? { ...sansStyle(S.head, 500), letterSpacing: "0.12em", textTransform: "uppercase" as const }
-      : sansStyle(S.cell, hot ? 700 : 400)),
-    color: head ? C.muted : hot ? C.accent : C.ink,
+      ? { ...sans(S.head, 500), letterSpacing: "0.12em", textTransform: "uppercase" as const }
+      : sans(S.cell, hot ? 700 : 400)),
+    color: head ? C.head : hot ? C.blueText : C.ink,
     textAlign: i === 0 ? "left" : "center",
     borderBottom: last ? undefined : C.rule,
-    // 강조 행은 셀 전체에 옅은 블루 배경 — 양끝 셀만 라운드 처리해 행 하나로 보이게 한다
     background: hot ? "rgba(37,99,235,0.10)" : undefined,
-    borderTopLeftRadius: hot && i === 0 ? 10 : undefined,
-    borderBottomLeftRadius: hot && i === 0 ? 10 : undefined,
-    borderTopRightRadius: hot && i === colCount - 1 ? 10 : undefined,
-    borderBottomRightRadius: hot && i === colCount - 1 ? 10 : undefined,
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
   });
 
-  const lastRow = table.rows.length - 1;
+  if (table.rows.length === 0) return null;
 
   return (
-    <div>
-      {table.title && (
-        <div style={{ marginBottom: size === "full" ? 28 : 14 }}>
-          <div style={{ ...serifStyle(S.title, S.titleWeight), color: C.ink }}>{table.title}</div>
-          {table.subtitle && (
-            <div style={{ ...sansStyle(S.subtitle), color: C.muted, marginTop: 6 }}>{table.subtitle}</div>
-          )}
-          <div style={{ width: 48, height: 3, borderRadius: 999, background: C.accent, marginTop: size === "full" ? 18 : 12 }} />
-        </div>
+    <div style={{ display: "grid", gridTemplateColumns: gridCols }}>
+      {table.columns.length > 0 &&
+        Array.from({ length: colCount }, (_, i) => (
+          <div key={`h${i}`} style={cell(i, false, true, false)}>
+            {table.columns[i] ?? ""}
+          </div>
+        ))}
+      {table.rows.map((row, r) =>
+        Array.from({ length: colCount }, (_, i) => (
+          <div key={`${r}-${i}`} style={cell(i, highlight.has(r), false, r === lastRow)}>
+            {row[i] ?? ""}
+          </div>
+        ))
       )}
+    </div>
+  );
+}
 
-      {table.rows.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: gridCols }}>
-          {table.columns.length > 0 &&
-            Array.from({ length: colCount }, (_, i) => (
-              <div key={`h${i}`} style={cell(i, false, true, false)}>
-                {table.columns[i] ?? ""}
-              </div>
-            ))}
-          {table.rows.map((row, r) =>
-            Array.from({ length: colCount }, (_, i) => (
-              <div key={`${r}-${i}`} style={cell(i, highlight.has(r), false, r === lastRow)}>
-                {row[i] ?? ""}
-              </div>
-            ))
-          )}
+// 카드·전면이 공유하는 헤더 밴드 (블루 그라디언트)
+function HeaderBand({ table, size }: { table: NewsTable; size: "card" | "full" }) {
+  const full = size === "full";
+  if (!table.title && !table.subtitle) return null;
+  return (
+    <div style={{ background: C.tagBand, padding: full ? "24px 48px" : "14px 20px" }}>
+      {table.title && <div style={{ ...display(full ? 48 : 26), color: "#FFFFFF" }}>{table.title}</div>}
+      {table.subtitle && (
+        <div style={{ ...sans(full ? 16 : 12), color: "rgba(255,255,255,0.75)", marginTop: full ? 8 : 4 }}>
+          {table.subtitle}
         </div>
       )}
     </div>
@@ -192,88 +142,129 @@ export function NewsTableView({ table, size }: { table: NewsTable; size: "card" 
 }
 
 // ── 티커 ───────────────────────────────────────────────────
-// 하단 플로팅 아일랜드 — 풀폭 바가 아니라 라운드 필.
+// 화면 최하단 다크 바. 문구는 흐르지 않고 N초마다 교체된다.
 
-const TICKER_H = 60;
+const TICKER_H = 56;
 
 export function Ticker({ ticker }: { ticker: NewsTicker }) {
-  const copyRef = useRef<HTMLSpanElement>(null);
-  const [duration, setDuration] = useState(0);
-  const text = ticker.items.filter(Boolean).join("   ·   ");
+  const items = ticker.items.filter(Boolean);
+  const [idx, setIdx] = useState(0);
+  const [clock, setClock] = useState(""); // 서버 렌더와 어긋나면 hydration mismatch — 마운트 후에만 채운다
 
-  // 한 벌의 실제 폭을 재서 "px/초" 속도를 초 단위 duration으로 환산.
-  // 문구나 속도가 바뀌면 다시 잰다.
-  useLayoutEffect(() => {
-    const w = copyRef.current?.offsetWidth ?? 0;
-    setDuration(w > 0 ? w / Math.max(ticker.pxPerSec, 1) : 0);
-  }, [text, ticker.pxPerSec]);
+  useEffect(() => {
+    const tick = () => {
+      const d = new Date();
+      setClock(`${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`);
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-  const copy: React.CSSProperties = { ...sansStyle(22), color: C.ink, paddingRight: 64, whiteSpace: "nowrap" };
+  useEffect(() => {
+    if (items.length < 2) {
+      setIdx(0);
+      return;
+    }
+    const timer = setInterval(
+      () => setIdx(i => (i + 1) % items.length),
+      Math.max(ticker.secPerItem, 2) * 1000
+    );
+    return () => clearInterval(timer);
+  }, [items.length, ticker.secPerItem]);
+
+  const divider = <div style={{ width: 1, alignSelf: "stretch", background: C.divider, flexShrink: 0 }} />;
 
   return (
-    <Stage style={{ left: 96, right: 96, bottom: 54, height: TICKER_H }}>
-      <Bezel
-        radius={999}
-        style={{ height: "100%" }}
-        coreStyle={{ display: "flex", alignItems: "center", overflow: "hidden", padding: "0 22px 0 6px" }}
-      >
-        {/* 고정 라벨 */}
+    <Stage
+      style={{
+        left: 96,
+        width: 1728,
+        bottom: ticker.y,
+        transform: `scale(${ticker.scale})`,
+        transformOrigin: "left bottom",
+      }}
+      innerStyle={{
+        display: "flex",
+        alignItems: "center",
+        height: TICKER_H,
+        background: C.tickerBg,
+        boxShadow: C.shadow,
+        overflow: "hidden",
+      }}
+    >
+      {/* 시각 */}
+      <div style={{ ...sans(24, 700), color: "#FFFFFF", padding: "0 20px", flexShrink: 0, minWidth: 96, textAlign: "center" }}>
+        {clock}
+      </div>
+      {divider}
+
+      {/* 분류 태그 */}
+      {ticker.label && (
         <div
           style={{
+            ...display(24),
+            color: "#FFFFFF",
+            background: C.blue,
+            height: "100%",
+            padding: "0 18px",
             display: "flex",
             alignItems: "center",
-            gap: 9,
             flexShrink: 0,
-            background: C.accent,
-            borderRadius: 999,
-            height: 36,
-            padding: "0 18px",
-            color: "#FFFFFF",
           }}
         >
-          <span style={{ width: 6, height: 6, borderRadius: 999, background: "#FFFFFF", display: "block" }} />
-          <span style={{ ...sansStyle(11, 700), letterSpacing: "0.22em", textTransform: "uppercase" }}>LIVE</span>
-          <span style={{ ...sansStyle(16, 700), letterSpacing: "0.02em" }}>{ticker.label}</span>
+          {ticker.label}
         </div>
+      )}
 
-        {/* 마퀴 — 콘텐츠 2벌을 이어 붙이고 -50%까지 밀면 이음매 없이 순환 */}
-        <div style={{ flex: 1, overflow: "hidden", margin: "0 20px", display: "flex", alignItems: "center" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              whiteSpace: "nowrap",
-              animation: duration > 0 ? `newsMarquee ${duration}s linear infinite` : undefined,
-            }}
-          >
-            <span ref={copyRef} style={copy}>{text}</span>
-            <span style={copy}>{text}</span>
-          </div>
+      {/* 문구 — secPerItem마다 교체. key가 바뀌면서 새 요소가 아래에서 올라온다 */}
+      <div style={{ flex: 1, minWidth: 0, padding: "0 22px", overflow: "hidden" }}>
+        <div
+          key={idx}
+          style={{
+            ...sans(26, 700),
+            color: "#FFFFFF",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            animation: items.length > 1 ? "newsSwap 350ms cubic-bezier(0.32,0.72,0,1) both" : undefined,
+          }}
+        >
+          {items[idx % Math.max(items.length, 1)] ?? ""}
         </div>
+      </div>
 
-        {/* 방송사 워드마크 */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0, gap: 2 }}>
-          <span style={{ ...serifStyle(15, 900), color: C.ink, lineHeight: 1 }}>SCNN</span>
-          <span style={{ ...sansStyle(9, 500), color: C.muted, letterSpacing: "0.22em", lineHeight: 1 }}>NEWS 24</span>
-        </div>
-      </Bezel>
+      {/* 방송사 워드마크 */}
+      {divider}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, padding: "0 20px", flexShrink: 0 }}>
+        <span style={{ ...display(20), color: "#FFFFFF", lineHeight: 1 }}>SCNN</span>
+        <span style={{ ...sans(10, 500), color: "rgba(255,255,255,0.55)", letterSpacing: "0.2em", lineHeight: 1 }}>NEWS 24</span>
+      </div>
     </Stage>
   );
 }
 
-// ── 속보 배너 ──────────────────────────────────────────────
+// ── 메인 자막바 ────────────────────────────────────────────
+// [블루 태그 블록 + 흰 바탕 검정 헤드라인]. 위에 얇은 딥블루 보조 스트립.
 
 export function Banner({ banner }: { banner: NewsBanner }) {
   return (
-    <Stage style={{ left: 96, top: 54, maxWidth: 1150 }}>
-      {banner.tag && <div style={{ marginBottom: 10 }}><Eyebrow>{banner.tag}</Eyebrow></div>}
-      <Bezel coreStyle={{ padding: "26px 34px 28px" }}>
-        <div style={{ ...serifStyle(64, 900), color: C.ink }}>{banner.headline}</div>
-        {banner.subline && (
-          <div style={{ ...sansStyle(22), color: C.muted, marginTop: 18, borderTop: C.rule, paddingTop: 16 }}>
-            {banner.subline}
+    <Stage style={place(banner.layout)} innerStyle={{ boxShadow: C.shadow }}>
+      {banner.subline && (
+        <div style={{ display: "inline-block", background: C.blueDeep, color: "#FFFFFF", ...sans(22, 500), padding: "6px 16px" }}>
+          {banner.subline}
+        </div>
+      )}
+      <div style={{ display: "flex", alignItems: "stretch" }}>
+        {banner.tag && (
+          <div style={{ ...display(36), color: "#FFFFFF", background: C.tagBand, padding: "0 26px", display: "flex", alignItems: "center", flexShrink: 0 }}>
+            {banner.tag}
           </div>
         )}
-      </Bezel>
+        <div style={{ ...display(54), color: C.ink, background: C.panel, padding: "12px 34px", whiteSpace: "nowrap" }}>
+          {banner.headline}
+        </div>
+      </div>
     </Stage>
   );
 }
@@ -282,43 +273,48 @@ export function Banner({ banner }: { banner: NewsBanner }) {
 
 export function LowerThird({ lower }: { lower: NewsLowerThird }) {
   return (
-    <Stage style={{ left: 96, bottom: 54 + TICKER_H + 16 }}>
-      <Bezel coreStyle={{ padding: "20px 32px 22px", minWidth: 420, display: "flex", gap: 20 }}>
-        {/* 블루 세로 캡슐 — 텍스트 높이만큼 */}
-        <div style={{ width: 4, borderRadius: 999, background: C.accent, flexShrink: 0 }} />
-        <div>
-          {lower.tag && <div style={{ marginBottom: 8 }}><Eyebrow solid={false}>{lower.tag}</Eyebrow></div>}
-          {lower.name && <div style={{ ...serifStyle(52, 900), color: C.ink }}>{lower.name}</div>}
-          {lower.affiliation && <div style={{ ...sansStyle(20, 700), color: C.ink, marginTop: 8 }}>{lower.affiliation}</div>}
-          {lower.note && <div style={{ ...sansStyle(17), color: C.muted, marginTop: 6 }}>{lower.note}</div>}
-        </div>
-      </Bezel>
+    <Stage style={place(lower.layout)} innerStyle={{ display: "flex", background: C.panel, boxShadow: C.shadow, minWidth: 380 }}>
+      <div style={{ width: 6, background: C.blue, flexShrink: 0 }} />
+      <div style={{ padding: "18px 30px" }}>
+        {lower.tag && (
+          <div style={{ display: "inline-block", background: C.blue, color: "#FFFFFF", ...display(18), padding: "3px 12px", marginBottom: 10 }}>
+            {lower.tag}
+          </div>
+        )}
+        {lower.name && <div style={{ ...display(46), color: C.ink }}>{lower.name}</div>}
+        {lower.affiliation && <div style={{ ...sans(21, 700), color: C.blueText, marginTop: 8 }}>{lower.affiliation}</div>}
+        {lower.note && <div style={{ ...sans(17), color: C.note, marginTop: 6 }}>{lower.note}</div>}
+      </div>
     </Stage>
   );
 }
 
 // ── 자료 카드 / 전면 화면 ──────────────────────────────────
 
-export function Card({ table }: { table: NewsTable }) {
+export function Card({ card }: { card: NewsCard }) {
   return (
-    <Stage style={{ right: 96, top: 200, width: 480 }}>
-      <Bezel coreStyle={{ padding: "22px 24px 24px" }}>
-        <NewsTableView table={table} size="card" />
-      </Bezel>
+    <Stage
+      style={place(card.layout)}
+      innerStyle={{ width: 480, background: C.panel, borderRadius: 4, boxShadow: C.shadow, overflow: "hidden" }}
+    >
+      <HeaderBand table={card.table} size="card" />
+      <div style={{ padding: "8px 20px 16px" }}>
+        <NewsTableView table={card.table} size="card" />
+      </div>
     </Stage>
   );
 }
 
 export function Fullscreen({ table }: { table: NewsTable }) {
   return (
-    <Stage style={{ left: 96, right: 96, top: 54, bottom: 54 }}>
-      <Bezel
-        style={{ height: "100%" }}
-        coreStyle={{ padding: "48px 64px", overflow: "hidden" }}
-      >
-        <div style={{ marginBottom: 26 }}><Eyebrow>SCNN NEWS</Eyebrow></div>
+    <Stage
+      style={{ left: 96, right: 96, top: 54, bottom: 54 }}
+      innerStyle={{ height: "100%", background: C.panel, borderRadius: 4, boxShadow: C.shadow, overflow: "hidden" }}
+    >
+      <HeaderBand table={table} size="full" />
+      <div style={{ padding: "32px 48px" }}>
         <NewsTableView table={table} size="full" />
-      </Bezel>
+      </div>
     </Stage>
   );
 }

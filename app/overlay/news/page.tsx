@@ -23,31 +23,26 @@ function NewsInner() {
   const full = news.fullscreen.visible;
 
   return (
-    <>
-      <style>{`@keyframes newsMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }`}</style>
+    <div style={{
+      position: "fixed", inset: 0,
+      width: "1920px", height: "1080px",
+      background: "transparent",
+      pointerEvents: "none",
+      overflow: "hidden",
+    }}>
+      {full && <Fullscreen table={news.fullscreen.table} />}
 
-      <div style={{
-        position: "fixed", inset: 0,
-        width: "1920px", height: "1080px",
-        background: "transparent",
-        pointerEvents: "none",
-        overflow: "hidden",
-        color: "#EAEAEA",
-      }}>
-        {full && <Fullscreen table={news.fullscreen.table} />}
+      {!full && news.banner.visible && <Banner banner={news.banner} />}
+      {!full && news.lowerThird.visible && <LowerThird lower={news.lowerThird} />}
+      {!full && news.card.visible && <Card card={news.card} />}
 
-        {!full && news.banner.visible && <Banner banner={news.banner} />}
-        {!full && news.lowerThird.visible && <LowerThird lower={news.lowerThird} />}
-        {!full && news.card.visible && <Card table={news.card.table} />}
-
-        {/* 티커는 전면 화면 위에 — 속보 흐름은 전면 자료 중에도 끊기지 않아야 함 */}
-        {news.ticker.visible && (
-          <div style={{ position: "absolute", inset: 0, zIndex: 10 }}>
-            <Ticker ticker={news.ticker} />
-          </div>
-        )}
-      </div>
-    </>
+      {/* 티커는 전면 화면 위에 — 속보 흐름은 전면 자료 중에도 끊기지 않아야 함 */}
+      {news.ticker.visible && (
+        <div style={{ position: "absolute", inset: 0, zIndex: 10 }}>
+          <Ticker ticker={news.ticker} />
+        </div>
+      )}
+    </div>
   );
 }
 
