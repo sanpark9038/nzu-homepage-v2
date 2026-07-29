@@ -26,7 +26,12 @@ const label = "mb-1 block text-xs font-bold text-white/45";
 // scale(배율)은 저장은 1.0 기준, 입력은 % 기준으로 보여준다.
 const toPct = (scale: number) => Math.round(scale * 100);
 
-// 조절값 공용 슬라이더 — 라벨(좌)/현재값(우) 한 줄 + 풀폭 range
+// 조절값 공용 슬라이더 — 라벨(좌) / 미세조정 스테퍼(우) 한 줄 + 풀폭 range.
+// 슬라이더는 거친 이동(step), 스테퍼는 1단위(px·%·초) 미세 이동. 값 칸에서 ↑↓로도 1단위 이동한다
+// (키를 누르고 있으면 OS 키 반복이 걸려 연속 이동 — 버튼 길게 누르기 대용).
+const nudgeBtn =
+  "h-6 w-6 shrink-0 rounded border border-white/12 bg-white/[0.06] text-xs font-bold leading-none text-white/70 hover:bg-white/15";
+
 function Slider({
   label: text,
   value,
@@ -44,14 +49,55 @@ function Slider({
   unit: string;
   onChange: (v: number) => void;
 }) {
+  // 타이핑 중에는 빈 칸·중간 입력을 허용해야 해서 문자열 초안을 따로 들고 있는다.
+  // 슬라이더 등 바깥에서 값이 바뀌면 렌더 중에 초안을 맞춘다(effect+setState는 cascading render).
+  const [draft, setDraft] = useState(String(value));
+  const [synced, setSynced] = useState(value);
+  if (synced !== value) {
+    setSynced(value);
+    setDraft(String(value));
+  }
+
+  const clamp = (v: number) => Math.min(max, Math.max(min, Math.round(v)));
+  const nudge = (dir: number) => onChange(clamp(value + dir));
+
   return (
     <div>
-      <div className="flex items-baseline justify-between">
-        <span className={label}>{text}</span>
-        <span className="mb-1 text-xs font-bold tabular-nums text-white/70">
-          {value}
-          {unit}
-        </span>
+      <div className="mb-1 flex items-center justify-between gap-1">
+        <span className="truncate text-xs font-bold text-white/45">{text}</span>
+        <div className="flex shrink-0 items-center gap-1">
+          <button type="button" className={nudgeBtn} onClick={() => nudge(-1)} aria-label={`${text} 1 감소`}>
+            −
+          </button>
+          <input
+            type="text"
+            inputMode="numeric"
+            className="h-6 w-12 rounded border border-white/12 bg-white/5 px-1 text-center text-xs font-bold tabular-nums text-white/80 outline-none focus:border-white/30"
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              // 범위 안에서만 즉시 반영. 타이핑 중간값("1"→"150")을 잘라버리면 커서가 튄다 — 클램프는 blur에서.
+              const n = Number(e.target.value);
+              if (e.target.value.trim() !== "" && Number.isFinite(n) && n >= min && n <= max) onChange(Math.round(n));
+            }}
+            onBlur={() => {
+              const n = Number(draft);
+              const next = draft.trim() !== "" && Number.isFinite(n) ? clamp(n) : value;
+              if (next !== value) onChange(next);
+              setDraft(String(next));
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                e.preventDefault();
+                nudge(e.key === "ArrowUp" ? 1 : -1);
+              }
+            }}
+          />
+          <span className="text-xs text-white/35">{unit}</span>
+          <button type="button" className={nudgeBtn} onClick={() => nudge(1)} aria-label={`${text} 1 증가`}>
+            +
+          </button>
+        </div>
       </div>
       <input
         type="range"
@@ -406,13 +452,14 @@ export default function NewsAdminClient({ jungmanPreset }: { jungmanPreset: News
             </div>
           </Section>
 
-          <Section title="속보 배너" visible={news.banner.visible} onToggle={(v) => patch("banner", { visible: v })}>
+          {/* 스키마 필드명은 banner 그대로 — 저장 데이터 호환. 표시 이름만 "메인 자막". */}
+          <Section title="메인 자막" visible={news.banner.visible} onToggle={(v) => patch("banner", { visible: v })}>
             <div>
               <span className={label}>태그</span>
               <input className={input} value={news.banner.tag} onChange={(e) => patch("banner", { tag: e.target.value })} />
             </div>
             <div>
-              <span className={label}>헤드라인</span>
+              <span className={label}>헤드라인 (바 폭 고정 · 길면 글씨가 자동으로 줄어듭니다 · &quot;...&quot;는 ⋯로 송출)</span>
               <input className={input} value={news.banner.headline} onChange={(e) => patch("banner", { headline: e.target.value })} />
             </div>
             <div>

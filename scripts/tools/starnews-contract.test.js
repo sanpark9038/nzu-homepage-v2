@@ -121,6 +121,46 @@ test("live index route is public, cached, and derived from jungman state", () =>
   assert.doesNotMatch(widgets, /\/api\/overlay\/news\/live/);
 });
 
+test("main banner shares the ticker bar width and shrinks long headlines instead of clipping", () => {
+  const widgets = readProjectFile("components/starnews/news-widgets.tsx");
+  // 티커와 같은 고정 폭 — 문구 길이에 따라 흰 바가 늘었다 줄었다 하면 안 된다
+  assert.match(widgets, /STAGE_W = 1728/);
+  const banner = widgets.slice(widgets.indexOf("export function Banner"), widgets.indexOf("export function LowerThird"));
+  assert.match(banner, /width: STAGE_W/);
+  // 말줄임(…)으로 자르면 방송 사고 — 글씨 크기를 줄여서 맞춘다
+  assert.match(banner, /FitText/);
+  assert.doesNotMatch(banner, /textOverflow/);
+  // 웹폰트가 늦게 붙으면 첫 측정이 틀린다 — 로드 완료 후 재측정 필수
+  const fit = widgets.slice(widgets.indexOf("function FitText"), widgets.indexOf("// ── 표"));
+  assert.match(fit, /document\.fonts/);
+  assert.match(fit, /scrollWidth/);
+});
+
+test("ellipses render as broadcast mid dots in the banner and top box", () => {
+  const widgets = readProjectFile("components/starnews/news-widgets.tsx");
+  assert.match(widgets, /const midDots = \(text: string\) => text\.replace\(.+"⋯"\)/);
+  const banner = widgets.slice(widgets.indexOf("export function Banner"), widgets.indexOf("export function LowerThird"));
+  assert.match(banner, /midDots\(banner\.headline\)/);
+  const topBox = widgets.slice(widgets.indexOf("export function TopBox"), widgets.indexOf("export function Reporter"));
+  assert.match(topBox, /midDots\(line\)/);
+  // 티커 문구는 기존 "…" 표기 관례를 유지한다
+  const ticker = widgets.slice(widgets.indexOf("export function Ticker"), widgets.indexOf("// ── 메인 자막바"));
+  assert.doesNotMatch(ticker, /midDots/);
+});
+
+test("layout controls allow 1-unit numeric nudging, not sliders alone", () => {
+  const admin = readProjectFile("app/overlay/news/admin/NewsAdminClient.tsx");
+  // 공용 Slider 한 곳에 스테퍼가 붙어야 전 위젯(티커 y 포함)에 적용된다
+  const slider = admin.slice(admin.indexOf("function Slider"), admin.indexOf("function LayoutFields"));
+  assert.match(slider, /nudge\(-1\)/);
+  assert.match(slider, /nudge\(1\)/);
+  assert.match(slider, /inputMode="numeric"/);
+  assert.match(slider, /ArrowUp/);
+  // 배너 섹션 표시 이름은 "메인 자막" (스키마 필드명 banner는 유지)
+  assert.match(admin, /title="메인 자막"/);
+  assert.match(admin, /patch\("banner"/);
+});
+
 test("news admin builds OBS URLs from viewToken, not soop id", () => {
   const source = readProjectFile("app/overlay/news/admin/NewsAdminClient.tsx");
   assert.match(source, /encodeURIComponent\(viewToken\)/);

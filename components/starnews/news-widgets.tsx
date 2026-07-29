@@ -4,7 +4,7 @@
 // 직각 블록 + 솔리드 컬러 + 두꺼운 고딕. 화이트 자막바 / 다크 티커 바.
 // blur·backdrop-filter는 OBS 브라우저 소스에서 프레임 드랍의 주범이라 일절 쓰지 않는다.
 // 상시 애니메이션도 등장 1회 rise와 티커 문구 교체뿐 (마퀴 폐지).
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type {
   NewsBanner,
   NewsCard,
@@ -82,6 +82,45 @@ function place(layout: NewsWidgetLayout): React.CSSProperties {
     transform: `scale(${layout.scale})`,
     transformOrigin: "left top",
   };
+}
+
+// 하단 자막 공통 무대 폭 — 티커와 메인 자막이 같은 좌우 라인을 쓴다(방송사 자막 기본).
+const STAGE_LEFT = 96;
+const STAGE_W = 1728;
+
+// "..."·"…" → 방송 자막 관례대로 가운데 높이 점 3개. 저장 데이터는 원문 그대로 두고 렌더에서만 바꾼다.
+const midDots = (text: string) => text.replace(/\.\.\.|…/g, "⋯");
+
+// 고정 폭 바 안에서 한 줄로 맞추는 텍스트. 넘치면 말줄임 대신 글씨를 줄인다.
+// 부모가 display:flex여야 한다(자기 clientWidth = 쓸 수 있는 폭).
+function FitText({ text, size, min }: { text: string; size: number; min: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.fontSize = `${size}px`;
+      const avail = el.clientWidth;
+      if (!avail || el.scrollWidth <= avail) return;
+      let next = Math.max(min, Math.floor((size * avail) / el.scrollWidth));
+      el.style.fontSize = `${next}px`;
+      // 비례 축소는 커닝 탓에 1~2px 모자랄 수 있다 — 남으면 1px씩 더 줄인다
+      for (let i = 0; i < 8 && next > min && el.scrollWidth > avail; i += 1) {
+        next -= 1;
+        el.style.fontSize = `${next}px`;
+      }
+    };
+    fit();
+    // 웹폰트가 늦게 붙으면 폭이 확 달라진다 — 로드 완료 후 재측정. 방송 중 잘림은 사고다.
+    document.fonts?.ready.then(fit).catch(() => {});
+  }, [text, size, min]);
+
+  return (
+    <div ref={ref} style={{ ...display(size), flex: 1, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" }}>
+      {text}
+    </div>
+  );
 }
 
 // ── 표 ─────────────────────────────────────────────────────
@@ -236,8 +275,8 @@ export function Ticker({ ticker }: { ticker: NewsTicker }) {
   return (
     <Stage
       style={{
-        left: 96,
-        width: 1728,
+        left: STAGE_LEFT,
+        width: STAGE_W,
         bottom: ticker.y,
         transform: `scale(${ticker.scale})`,
         transformOrigin: "left bottom",
@@ -306,24 +345,40 @@ export function Ticker({ ticker }: { ticker: NewsTicker }) {
 }
 
 // ── 메인 자막바 ────────────────────────────────────────────
-// [블루 태그 블록 + 흰 바탕 검정 헤드라인]. 위에 얇은 딥블루 보조 스트립.
+// [블루 태그 블록 + 흰 바 전체 폭]. 위에 얇은 딥블루 보조 스트립.
+// 흰 바는 티커와 같은 고정 폭(STAGE_W)이라 문구 길이에 따라 늘었다 줄었다 하지 않는다.
+// 기본 layout.x가 96(=STAGE_LEFT)이라 티커와 좌우 라인이 맞고, 관리자 x/y 오프셋은 그대로 먹는다.
+
+const BANNER_SIZE = 54;
+const BANNER_MIN_SIZE = 26;
 
 export function Banner({ banner }: { banner: NewsBanner }) {
   return (
-    <Stage style={place(banner.layout)} innerStyle={{ boxShadow: C.shadow }}>
+    // 그림자는 자막 행에만 — 고정 폭 래퍼에 걸면 보조 문구 오른쪽 빈 영역에도 그림자가 뜬다
+    <Stage style={place(banner.layout)} innerStyle={{ width: STAGE_W }}>
       {banner.subline && (
         <div style={{ display: "inline-block", background: C.blueDeep, color: "#FFFFFF", ...sans(22, 500), padding: "6px 16px" }}>
-          {banner.subline}
+          {midDots(banner.subline)}
         </div>
       )}
-      <div style={{ display: "flex", alignItems: "stretch" }}>
+      <div style={{ display: "flex", alignItems: "stretch", boxShadow: C.shadow }}>
         {banner.tag && (
           <div style={{ ...display(36), color: "#FFFFFF", background: C.tagBand, padding: "0 26px", display: "flex", alignItems: "center", flexShrink: 0 }}>
             {banner.tag}
           </div>
         )}
-        <div style={{ ...display(54), color: C.ink, background: C.panel, padding: "12px 34px", whiteSpace: "nowrap" }}>
-          {banner.headline}
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            color: C.ink,
+            background: C.panel,
+            padding: "12px 34px",
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <FitText text={midDots(banner.headline)} size={BANNER_SIZE} min={BANNER_MIN_SIZE} />
         </div>
       </div>
     </Stage>
@@ -368,7 +423,7 @@ export function TopBox({ box }: { box: NewsTopBox }) {
         <div style={{ background: C.panel, padding: "12px 18px" }}>
           {lines.map((line, i) => (
             <div key={i} style={{ ...sans(23, 700), color: C.ink, marginTop: i === 0 ? 0 : 6 }}>
-              {line}
+              {midDots(line)}
             </div>
           ))}
         </div>
