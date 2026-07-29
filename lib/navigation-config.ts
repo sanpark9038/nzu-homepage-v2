@@ -35,7 +35,7 @@ export const hiddenNavbarLinks: NavbarLinkItem[] = [
  * 전역 헤더(내비·상단 버튼)를 걷어내는 라우트.
  * 방송 오버레이와 외부 사이트 iframe 임베드는 화면 자체가 결과물이라 사이트 크롬이 끼면 안 된다.
  */
-const CHROMELESS_ROUTES = ["/overlay/scoreboard", "/overlay/entry", "/jungman/embed"];
+const CHROMELESS_ROUTES = ["/overlay/scoreboard", "/overlay/entry", "/overlay/news", "/jungman/embed"];
 
 export function isChromelessRoute(pathname: string | null | undefined) {
   return CHROMELESS_ROUTES.some((route) => pathname?.startsWith(route));
