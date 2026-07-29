@@ -333,7 +333,7 @@ export function Ticker({ ticker }: { ticker: NewsTicker }) {
       {/* 방송사 워드마크 */}
       {divider}
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, padding: "0 20px", flexShrink: 0 }}>
-        <span style={{ ...display(20), color: "#FFFFFF", lineHeight: 1 }}>SCNN</span>
+        <span style={{ ...display(20), color: "#FFFFFF", lineHeight: 1 }}>SSNEWS</span>
         <span style={{ ...sans(10, 500), color: "rgba(255,255,255,0.55)", letterSpacing: "0.2em", lineHeight: 1 }}>NEWS 24</span>
       </div>
     </Stage>
