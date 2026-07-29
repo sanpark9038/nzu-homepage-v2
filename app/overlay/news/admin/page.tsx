@@ -64,5 +64,19 @@ export default async function NewsAdminPage() {
 
   const jungmanPreset = await loadJungmanPreset();
 
-  return <NewsAdminClient jungmanPreset={jungmanPreset} />;
+  return (
+    <>
+      {/* 슬라이더·표 편집 위주라 좁은 화면에선 조작이 안 됨 — 모바일은 안내만 (A안) */}
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center lg:hidden">
+        <h1 className="text-lg font-black text-white/90">방송 뉴스 오버레이</h1>
+        <p className="max-w-md text-sm leading-relaxed text-white/55">
+          뉴스 오버레이 관리 도구는 PC 화면 전용입니다.<br />
+          PC 브라우저로 접속해 주세요.
+        </p>
+      </div>
+      <div className="hidden lg:block">
+        <NewsAdminClient jungmanPreset={jungmanPreset} />
+      </div>
+    </>
+  );
 }

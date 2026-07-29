@@ -25,7 +25,46 @@ const label = "mb-1 block text-xs font-bold text-white/45";
 
 // scale(배율)은 저장은 1.0 기준, 입력은 % 기준으로 보여준다.
 const toPct = (scale: number) => Math.round(scale * 100);
-const fromPct = (v: string) => Math.round((Number(v) || 0)) / 100;
+
+// 조절값 공용 슬라이더 — 라벨(좌)/현재값(우) 한 줄 + 풀폭 range
+function Slider({
+  label: text,
+  value,
+  min,
+  max,
+  step,
+  unit,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <span className={label}>{text}</span>
+        <span className="mb-1 text-xs font-bold tabular-nums text-white/70">
+          {value}
+          {unit}
+        </span>
+      </div>
+      <input
+        type="range"
+        className="h-1 w-full accent-blue-500"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+      />
+    </div>
+  );
+}
 
 // 배너·로워서드·자료 카드 공용 위치·크기 입력 (전면 화면은 항상 전체라 미사용)
 function LayoutFields({
@@ -36,34 +75,34 @@ function LayoutFields({
   onChange: (l: NewsWidgetLayout) => void;
 }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
-      <div>
-        <span className={label}>X (px)</span>
-        <input
-          type="number"
-          className={input}
-          value={layout.x}
-          onChange={(e) => onChange({ ...layout, x: Number(e.target.value) || 0 })}
-        />
-      </div>
-      <div>
-        <span className={label}>Y (px)</span>
-        <input
-          type="number"
-          className={input}
-          value={layout.y}
-          onChange={(e) => onChange({ ...layout, y: Number(e.target.value) || 0 })}
-        />
-      </div>
-      <div>
-        <span className={label}>크기 (%)</span>
-        <input
-          type="number"
-          className={input}
-          value={toPct(layout.scale)}
-          onChange={(e) => onChange({ ...layout, scale: fromPct(e.target.value) })}
-        />
-      </div>
+    <div className="grid grid-cols-3 gap-4">
+      <Slider
+        label="X"
+        unit="px"
+        value={layout.x}
+        min={0}
+        max={1920}
+        step={2}
+        onChange={(x) => onChange({ ...layout, x })}
+      />
+      <Slider
+        label="Y"
+        unit="px"
+        value={layout.y}
+        min={0}
+        max={1080}
+        step={2}
+        onChange={(y) => onChange({ ...layout, y })}
+      />
+      <Slider
+        label="크기"
+        unit="%"
+        value={toPct(layout.scale)}
+        min={30}
+        max={200}
+        step={5}
+        onChange={(pct) => onChange({ ...layout, scale: pct / 100 })}
+      />
     </div>
   );
 }
@@ -270,7 +309,7 @@ export default function NewsAdminClient({ jungmanPreset }: { jungmanPreset: News
     : [];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-6">
+    <div className="mx-auto max-w-[1600px] space-y-4 p-6">
       <header className="flex items-center justify-between">
         <h1 className="text-lg font-black text-white/90">방송 뉴스 오버레이</h1>
         <span className="text-xs text-white/40">
@@ -296,132 +335,138 @@ export default function NewsAdminClient({ jungmanPreset }: { jungmanPreset: News
         <p className="mt-2 text-xs text-white/40">브라우저 소스 1920×1080, 배경 투명으로 추가하세요.</p>
       </div>
 
-      <Section title="티커" visible={news.ticker.visible} onToggle={(v) => patch("ticker", { visible: v })}>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <span className={label}>라벨</span>
-            <input className={input} value={news.ticker.label} onChange={(e) => patch("ticker", { label: e.target.value })} />
-          </div>
-          <div>
-            <span className={label}>문구 표시 시간 (초)</span>
-            <input
-              type="number"
-              min={2}
-              className={input}
-              value={news.ticker.secPerItem}
-              onChange={(e) => patch("ticker", { secPerItem: Math.max(2, Number(e.target.value) || 2) })}
-            />
-          </div>
-        </div>
-        <div>
-          <span className={label}>문구 (한 줄에 하나)</span>
-          <textarea
-            className={`${input} h-28`}
-            value={news.ticker.items.join("\n")}
-            onChange={(e) => patch("ticker", { items: e.target.value.split("\n").filter((s) => s.trim()) })}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <span className={label}>하단 여백 (px)</span>
-            <input
-              type="number"
-              className={input}
-              value={news.ticker.y}
-              onChange={(e) => patch("ticker", { y: Number(e.target.value) || 0 })}
-            />
-          </div>
-          <div>
-            <span className={label}>크기 (%)</span>
-            <input
-              type="number"
-              className={input}
-              value={toPct(news.ticker.scale)}
-              onChange={(e) => patch("ticker", { scale: fromPct(e.target.value) })}
-            />
-          </div>
-        </div>
-      </Section>
-
-      <Section title="속보 배너" visible={news.banner.visible} onToggle={(v) => patch("banner", { visible: v })}>
-        <div>
-          <span className={label}>태그</span>
-          <input className={input} value={news.banner.tag} onChange={(e) => patch("banner", { tag: e.target.value })} />
-        </div>
-        <div>
-          <span className={label}>헤드라인</span>
-          <input className={input} value={news.banner.headline} onChange={(e) => patch("banner", { headline: e.target.value })} />
-        </div>
-        <div>
-          <span className={label}>보조 문구</span>
-          <input className={input} value={news.banner.subline} onChange={(e) => patch("banner", { subline: e.target.value })} />
-        </div>
-        <LayoutFields layout={news.banner.layout} onChange={(layout) => patch("banner", { layout })} />
-      </Section>
-
-      <Section title="로워서드" visible={news.lowerThird.visible} onToggle={(v) => patch("lowerThird", { visible: v })}>
-        <div>
-          <span className={label}>선수 검색 (이름·닉네임)</span>
-          <input className={input} value={playerQuery} onChange={(e) => setPlayerQuery(e.target.value)} placeholder="이름 일부 입력" />
-          {matches.length > 0 && (
-            <div className="mt-1 overflow-hidden rounded-lg border border-white/10">
-              {matches.map((p) => (
-                <button
-                  key={`${p.name}-${p.nickname ?? ""}`}
-                  onClick={() => {
-                    patch("lowerThird", {
-                      name: p.name,
-                      affiliation: p.university ?? "",
-                      note: [p.tier, p.race].filter(Boolean).join(" · "),
-                    });
-                    setPlayerQuery("");
-                  }}
-                  className="block w-full px-3 py-2 text-left text-xs text-white/70 hover:bg-white/10"
-                >
-                  {p.name}
-                  {p.nickname ? ` (${p.nickname})` : ""} — {p.university ?? "무소속"} · {p.tier ?? "-"} · {p.race}
-                </button>
-              ))}
+      {/* 위젯 편집은 2컬럼 — 좌: 하단 자막 계열 / 우: 표 편집기(높은 섹션) */}
+      <div className="grid grid-cols-2 items-start gap-4">
+        <div className="space-y-4">
+          <Section title="티커" visible={news.ticker.visible} onToggle={(v) => patch("ticker", { visible: v })}>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className={label}>라벨</span>
+                <input className={input} value={news.ticker.label} onChange={(e) => patch("ticker", { label: e.target.value })} />
+              </div>
+              <Slider
+                label="문구 표시 시간"
+                unit="초"
+                value={news.ticker.secPerItem}
+                min={2}
+                max={30}
+                step={1}
+                onChange={(secPerItem) => patch("ticker", { secPerItem })}
+              />
             </div>
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <span className={label}>태그</span>
-            <input className={input} value={news.lowerThird.tag} onChange={(e) => patch("lowerThird", { tag: e.target.value })} />
-          </div>
-          <div>
-            <span className={label}>이름</span>
-            <input className={input} value={news.lowerThird.name} onChange={(e) => patch("lowerThird", { name: e.target.value })} />
-          </div>
-          <div>
-            <span className={label}>소속</span>
-            <input className={input} value={news.lowerThird.affiliation} onChange={(e) => patch("lowerThird", { affiliation: e.target.value })} />
-          </div>
-          <div>
-            <span className={label}>설명</span>
-            <input className={input} value={news.lowerThird.note} onChange={(e) => patch("lowerThird", { note: e.target.value })} />
-          </div>
-        </div>
-        <LayoutFields layout={news.lowerThird.layout} onChange={(layout) => patch("lowerThird", { layout })} />
-      </Section>
+            <div>
+              <span className={label}>문구 (한 줄에 하나)</span>
+              <textarea
+                className={`${input} h-28`}
+                value={news.ticker.items.join("\n")}
+                onChange={(e) => patch("ticker", { items: e.target.value.split("\n").filter((s) => s.trim()) })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Slider
+                label="하단 여백"
+                unit="px"
+                value={news.ticker.y}
+                min={0}
+                max={400}
+                step={2}
+                onChange={(y) => patch("ticker", { y })}
+              />
+              <Slider
+                label="크기"
+                unit="%"
+                value={toPct(news.ticker.scale)}
+                min={30}
+                max={200}
+                step={5}
+                onChange={(pct) => patch("ticker", { scale: pct / 100 })}
+              />
+            </div>
+          </Section>
 
-      <Section title="자료 카드" visible={news.card.visible} onToggle={(v) => patch("card", { visible: v })}>
-        <TableEditor
-          table={news.card.table}
-          onChange={(table) => patch("card", { table })}
-          preset={jungmanPreset}
-        />
-        <LayoutFields layout={news.card.layout} onChange={(layout) => patch("card", { layout })} />
-      </Section>
+          <Section title="속보 배너" visible={news.banner.visible} onToggle={(v) => patch("banner", { visible: v })}>
+            <div>
+              <span className={label}>태그</span>
+              <input className={input} value={news.banner.tag} onChange={(e) => patch("banner", { tag: e.target.value })} />
+            </div>
+            <div>
+              <span className={label}>헤드라인</span>
+              <input className={input} value={news.banner.headline} onChange={(e) => patch("banner", { headline: e.target.value })} />
+            </div>
+            <div>
+              <span className={label}>보조 문구</span>
+              <input className={input} value={news.banner.subline} onChange={(e) => patch("banner", { subline: e.target.value })} />
+            </div>
+            <LayoutFields layout={news.banner.layout} onChange={(layout) => patch("banner", { layout })} />
+          </Section>
 
-      <Section title="전면 화면" visible={news.fullscreen.visible} onToggle={(v) => patch("fullscreen", { visible: v })}>
-        <TableEditor
-          table={news.fullscreen.table}
-          onChange={(table) => patch("fullscreen", { table })}
-          preset={jungmanPreset}
-        />
-      </Section>
+          <Section title="로워서드" visible={news.lowerThird.visible} onToggle={(v) => patch("lowerThird", { visible: v })}>
+            <div>
+              <span className={label}>선수 검색 (이름·닉네임)</span>
+              <input className={input} value={playerQuery} onChange={(e) => setPlayerQuery(e.target.value)} placeholder="이름 일부 입력" />
+              {matches.length > 0 && (
+                <div className="mt-1 overflow-hidden rounded-lg border border-white/10">
+                  {matches.map((p) => (
+                    <button
+                      key={`${p.name}-${p.nickname ?? ""}`}
+                      onClick={() => {
+                        patch("lowerThird", {
+                          name: p.name,
+                          affiliation: p.university ?? "",
+                          note: [p.tier, p.race].filter(Boolean).join(" · "),
+                        });
+                        setPlayerQuery("");
+                      }}
+                      className="block w-full px-3 py-2 text-left text-xs text-white/70 hover:bg-white/10"
+                    >
+                      {p.name}
+                      {p.nickname ? ` (${p.nickname})` : ""} — {p.university ?? "무소속"} · {p.tier ?? "-"} · {p.race}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className={label}>태그</span>
+                <input className={input} value={news.lowerThird.tag} onChange={(e) => patch("lowerThird", { tag: e.target.value })} />
+              </div>
+              <div>
+                <span className={label}>이름</span>
+                <input className={input} value={news.lowerThird.name} onChange={(e) => patch("lowerThird", { name: e.target.value })} />
+              </div>
+              <div>
+                <span className={label}>소속</span>
+                <input className={input} value={news.lowerThird.affiliation} onChange={(e) => patch("lowerThird", { affiliation: e.target.value })} />
+              </div>
+              <div>
+                <span className={label}>설명</span>
+                <input className={input} value={news.lowerThird.note} onChange={(e) => patch("lowerThird", { note: e.target.value })} />
+              </div>
+            </div>
+            <LayoutFields layout={news.lowerThird.layout} onChange={(layout) => patch("lowerThird", { layout })} />
+          </Section>
+        </div>
+
+        <div className="space-y-4">
+          <Section title="자료 카드" visible={news.card.visible} onToggle={(v) => patch("card", { visible: v })}>
+            <TableEditor
+              table={news.card.table}
+              onChange={(table) => patch("card", { table })}
+              preset={jungmanPreset}
+            />
+            <LayoutFields layout={news.card.layout} onChange={(layout) => patch("card", { layout })} />
+          </Section>
+
+          <Section title="전면 화면" visible={news.fullscreen.visible} onToggle={(v) => patch("fullscreen", { visible: v })}>
+            <TableEditor
+              table={news.fullscreen.table}
+              onChange={(table) => patch("fullscreen", { table })}
+              preset={jungmanPreset}
+            />
+          </Section>
+        </div>
+      </div>
     </div>
   );
 }
