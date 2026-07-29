@@ -31,6 +31,16 @@ export const hiddenNavbarLinks: NavbarLinkItem[] = [
   { type: "link", href: "/rankings", label: "팀 및 선수 순위" },
 ];
 
+/**
+ * 전역 헤더(내비·상단 버튼)를 걷어내는 라우트.
+ * 방송 오버레이와 외부 사이트 iframe 임베드는 화면 자체가 결과물이라 사이트 크롬이 끼면 안 된다.
+ */
+const CHROMELESS_ROUTES = ["/overlay/scoreboard", "/overlay/entry", "/jungman/embed"];
+
+export function isChromelessRoute(pathname: string | null | undefined) {
+  return CHROMELESS_ROUTES.some((route) => pathname?.startsWith(route));
+}
+
 export const hiddenNavbarUtilities: NavbarUtilityItem[] = [
   { type: "utility", key: "search", label: "통합검색" },
   { type: "utility", key: "messages", label: "메시지 알림" },

@@ -1220,3 +1220,51 @@ test("jungman headlines drop stale rank swaps", () => {
     "방금 일어난 순위 교체가 티커에서 빠졌다"
   );
 });
+
+test("jungman embed renders chromeless, stays unindexed and allows cross-site framing", () => {
+  const embed = readProjectFile("app/jungman/embed/page.tsx");
+
+  // ① 전역 헤더·떠 있는 버튼을 걷어낸다 — 남의 사이트 iframe 안에 우리 네비가 들어가면 안 된다
+  const { isChromelessRoute } = loadModule("lib/navigation-config.ts");
+  assert.equal(isChromelessRoute("/jungman/embed"), true);
+  // 원본 /jungman은 그대로 사이트 크롬을 쓴다
+  assert.equal(isChromelessRoute("/jungman"), false);
+  assert.match(readProjectFile("components/Navbar.tsx"), /if \(isChromelessRoute\(pathname\)\) return null;/);
+  assert.match(readProjectFile("components/ScrollToTop.tsx"), /if \(isChromelessRoute\(pathname\)\) return null;/);
+
+  // ② 내용이 /jungman과 같다 — 색인은 원본 하나로 몰아준다
+  assert.match(embed, /robots: \{ index: false, follow: false \}/);
+  assert.doesNotMatch(embed, /alternates:/);
+
+  // ③ 사이트맵에는 실리지 않는다 (원본은 내비게이션 하나라 임베드가 들어올 자리가 없다)
+  const sitemap = loadModule("app/sitemap.ts", (id) =>
+    id === "@/lib/navigation-config" ? loadModule("lib/navigation-config.ts") : { SITE_URL: "https://example.test" }
+  ).default();
+  assert.ok(sitemap.length > 0, "sitemap should not be empty");
+  assert.ok(
+    !sitemap.some((entry) => entry.url.includes("/jungman/embed")),
+    "임베드 경로가 사이트맵에 실렸다"
+  );
+
+  // ④ 다른 도메인에서 iframe으로 부른다 — 이 경로에만 frame-ancestors를 연다
+  const nextConfig = readProjectFile("next.config.ts");
+  assert.match(nextConfig, /source: "\/jungman\/embed",\s*headers: \[[\s\S]{0,200}?frame-ancestors \*/);
+  assert.equal((nextConfig.match(/frame-ancestors/g) || []).length, 1, "다른 경로의 프레임 정책까지 건드렸다");
+
+  // 데이터 출처는 원본과 같은 하나 — 임베드가 따로 수집하거나 다른 주기로 돌면 순위가 갈라진다
+  assert.match(embed, /getJungmanState\(\)/);
+  assert.match(embed, /export const revalidate = 60/);
+  assert.match(embed, /\{closed \? null : autoRefresh \? <JungmanAutoRefresh \/> : null\}/);
+  // 시세판은 원본과 같은 컴포넌트를 쓴다 — 지도·차트·우측 레일은 들어가지 않는다
+  assert.match(embed, /<JungmanStandingsList/);
+  assert.doesNotMatch(embed, /JungmanMap|JungmanChart/);
+  // 부모가 높이를 맞출 수 있게 알려준다 (안 들어도 그만).
+  // 서버 컴포넌트의 인라인 <script>는 못 쓴다 — React가 초기 HTML에 안 내보내 실행되지 않는다
+  const height = readProjectFile("app/jungman/embed/EmbedHeight.tsx");
+  assert.match(height, /"use client"/);
+  assert.match(height, /postMessage\(\{ type: "jungman-embed-height", height \}, "\*"\)/);
+  assert.doesNotMatch(embed, /dangerouslySetInnerHTML/);
+  assert.match(embed, /<JungmanEmbedHeight targetId=\{EMBED_ROOT_ID\} \/>/);
+  // 원본으로 돌아가는 통로
+  assert.match(embed, /target="_blank"\s*rel="noopener"/);
+});

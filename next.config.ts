@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // 외부 사이트가 iframe으로 부르는 유일한 경로 — 여기만 연다
+        source: "/jungman/embed",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors *",
+          },
+        ],
+      },
+      {
         source: "/multiview",
         headers: [
           {

@@ -1,10 +1,13 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ChevronUp } from "lucide-react";
+import { isChromelessRoute } from "@/lib/navigation-config";
 import { cn } from "@/lib/utils";
 
 export function ScrollToTop() {
+  const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -32,6 +35,9 @@ export function ScrollToTop() {
       });
     }
   };
+
+  // 오버레이·임베드는 화면 자체가 결과물이다 — 떠 있는 버튼이 끼면 안 된다
+  if (isChromelessRoute(pathname)) return null;
 
   return (
     <button

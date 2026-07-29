@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LockKeyhole, LogOut, Menu, User, X } from "lucide-react";
 
-import { visibleNavbarLinks } from "@/lib/navigation-config";
+import { isChromelessRoute, visibleNavbarLinks } from "@/lib/navigation-config";
 import type { PublicAuthSession } from "@/lib/public-auth";
 import { cn } from "@/lib/utils";
 
@@ -38,8 +38,6 @@ function normalizeNavbarPathname(value: string | null | undefined) {
   if (pathname === "/index") return "/";
   return pathname;
 }
-
-const OVERLAY_VIEWER_ROUTES = ["/overlay/scoreboard", "/overlay/entry"];
 
 function LiveBadge({ isActive }: { isActive: boolean }) {
   return (
@@ -84,7 +82,7 @@ export default function Navbar() {
     };
   }, []);
 
-  if (OVERLAY_VIEWER_ROUTES.some((r) => pathname?.startsWith(r))) return null;
+  if (isChromelessRoute(pathname)) return null;
   const resolvedPathname = normalizeNavbarPathname(pathname);
   const isHome = resolvedPathname === "/";
 

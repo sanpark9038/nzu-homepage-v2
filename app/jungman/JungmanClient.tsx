@@ -190,6 +190,38 @@ function UpdateStatus({ isLive, latestAt }: { isLive: boolean; latestAt: string 
   );
 }
 
+/**
+ * 갱신 상태 한 칸 — 마감 전에는 LIVE·마지막 집계 시각, 마감 후에는 골드 "최종 결과"로 굳는다.
+ * 대시보드 헤더와 임베드 헤더가 같은 칸을 쓴다.
+ */
+export function JungmanStatus({
+  closed,
+  isLive,
+  revealedAt,
+  autoCollect,
+}: {
+  closed: boolean;
+  isLive: boolean;
+  revealedAt: string;
+  autoCollect: boolean;
+}) {
+  return (
+    <div className="flex shrink-0 flex-col items-start gap-1">
+      {closed ? (
+        <Pill label="최종 결과" value={`${jungmanSeoulTime(revealedAt)} 기준`} tone="final" />
+      ) : (
+        <UpdateStatus isLive={isLive} latestAt={revealedAt} />
+      )}
+      {/* 갱신이 멈춘 것처럼 보이는 순간을 위해 집계 주기를 밝힌다 — 주기는 수집 상수에서 온다 */}
+      {autoCollect ? (
+        <span className="pl-1 text-[0.625rem] font-bold text-[#7a8299]">
+          {jungmanIntervalLabel()}마다 자동 집계
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export function JungmanCountdown({
   voteCloseAt,
   nextRevealAt,
@@ -363,29 +395,22 @@ function TickerRow({
    * 득표수는 마지막 몇 분이 집계에 안 잡혀 확정치가 아니다. 순위만 남긴다.
    */
   closed: boolean;
-  selected: boolean;
-  onSelect: () => void;
-  onHover: (code: string | null) => void;
+  selected?: boolean;
+  /** 없으면 읽기 전용 행 — 임베드에는 선택할 지도가 없다 */
+  onSelect?: () => void;
+  onHover?: (code: string | null) => void;
 }) {
   const leading = standing.rank === 1;
+  const className = `grid w-full grid-cols-[1.5rem_1.5rem_minmax(0,1fr)_auto] items-center gap-x-2 rounded-xl border px-2.5 py-2 text-left transition-colors ${
+    selected
+      ? "border-[#d4a94a] bg-[rgba(212,169,74,0.14)]"
+      : leading
+        ? "border-transparent border-l-4 border-l-[#d4a94a] bg-[rgba(212,169,74,0.07)]"
+        : `border-transparent bg-[rgba(10,15,28,0.55)]${onSelect ? " hover:border-[rgba(155,185,240,0.22)]" : ""}`
+  }`;
 
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      onPointerEnter={() => onHover(standing.team.code)}
-      onPointerLeave={() => onHover(null)}
-      onFocus={() => onHover(standing.team.code)}
-      onBlur={() => onHover(null)}
-      className={`grid w-full grid-cols-[1.5rem_1.5rem_minmax(0,1fr)_auto] items-center gap-x-2 rounded-xl border px-2.5 py-2 text-left transition-colors ${
-        selected
-          ? "border-[#d4a94a] bg-[rgba(212,169,74,0.14)]"
-          : leading
-            ? "border-transparent border-l-4 border-l-[#d4a94a] bg-[rgba(212,169,74,0.07)]"
-            : "border-transparent bg-[rgba(10,15,28,0.55)] hover:border-[rgba(155,185,240,0.22)]"
-      }`}
-    >
+  const cells = (
+    <>
       {/* 변동 화살표는 순위 아래에 쌓는다 — 옆에 붙이면 좁은 폭(1280)에서 팀명을 그만큼 더 자른다.
           오른쪽 값 열이 이미 두 줄이라 세로로는 공짜다 */}
       <span
@@ -429,6 +454,23 @@ function TickerRow({
           <HourDelta value={hourDelta} />
         </span>
       )}
+    </>
+  );
+
+  if (!onSelect) return <div className={className}>{cells}</div>;
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      onPointerEnter={() => onHover?.(standing.team.code)}
+      onPointerLeave={() => onHover?.(null)}
+      onFocus={() => onHover?.(standing.team.code)}
+      onBlur={() => onHover?.(null)}
+      className={className}
+    >
+      {cells}
     </button>
   );
 }
@@ -526,6 +568,143 @@ function ContestRow({
   );
 }
 
+/**
+ * 득표 순위 시세판. 공개 대시보드(좌측 레일)와 외부 임베드(/jungman/embed)가 같은 마크업을 쓴다.
+ * 패널 껍데기는 부르는 쪽이 씌운다 — 대시보드는 sticky, 임베드는 아니다.
+ * 선택·hover·리빌 롤업은 지도가 있는 대시보드에서만 넘어온다. 없으면 읽기 전용 리스트가 된다.
+ */
+export function JungmanStandingsList({
+  standings,
+  logos = {},
+  hourDeltas,
+  closed = false,
+  seedTeamName = null,
+  selected = null,
+  onSelect,
+  onHover,
+  shownVotes,
+}: {
+  standings: JungmanStanding[];
+  logos?: Record<string, string | null>;
+  hourDeltas: Record<string, number>;
+  closed?: boolean;
+  seedTeamName?: string | null;
+  selected?: string | null;
+  onSelect?: (code: string) => void;
+  onHover?: (code: string | null) => void;
+  /** 리빌 롤업이 굴려 올리는 표시값. 없으면 실제 득표수 */
+  shownVotes?: (standing: JungmanStanding) => number;
+}) {
+  const [sort, setSort] = useState<SortKey>("rank");
+
+  // 급상승순 — 1시간 증가량 내림차순. 동률이면 순위순으로 되돌아간다(자리가 흔들리지 않게).
+  const listed = useMemo(() => {
+    if (sort === "rank") return standings;
+    return standings
+      .slice()
+      .sort(
+        (a, b) =>
+          (hourDeltas[b.team.code] || 0) - (hourDeltas[a.team.code] || 0) ||
+          (a.rank || 0) - (b.rank || 0)
+      );
+  }, [standings, sort, hourDeltas]);
+
+  const tight = (standings[0]?.votes || 0) * JUNGMAN_CONTEST_RATIO;
+  // 뜻풀이는 배지가 실제로 떠 있을 때만 — 아무도 접전이 아닌 화면에 설명만 남으면 군더더기다
+  const anyContested = standings.some((standing) => standing.contested);
+
+  return (
+    <>
+      <div className="px-1 pb-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-black tracking-tight text-[#e8ebf2]">득표 순위</h2>
+          {/* 급상승순은 멈춘 1시간 증가량으로 줄을 세운다 — 마감 후에는 정렬 자체를 내린다 */}
+          {closed ? null : (
+            <Segmented
+              label="시세판 정렬"
+              value={sort}
+              onChange={setSort}
+              options={[
+                { key: "rank" as SortKey, label: "순위순" },
+                { key: "surge" as SortKey, label: "급상승순" },
+              ]}
+            />
+          )}
+        </div>
+        {/* 왼쪽은 접전 배지 뜻풀이(배지가 하나라도 떠 있을 때만),
+            오른쪽은 값 열 라벨 — 마감 후에는 그 열이 통째로 비므로 같이 내린다 */}
+        {anyContested || !closed ? (
+          <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-2 text-[0.625rem] font-bold text-[#7a8299]">
+            <span>{anyContested ? "접전 = 위아래와 표차 근소" : ""}</span>
+            {closed ? null : <span>득표 · 1시간 변화</span>}
+          </div>
+        ) : null}
+      </div>
+
+      <ol className="flex flex-col gap-1">
+        {listed.map((standing, index) => {
+          // 급상승순에서는 줄 순서가 순위와 다르다 — 컷라인 구분선을 그리면 거짓말이 된다
+          const cutline = sort === "rank" ? cutlineOf(standing.rank) : null;
+          // 아래 행과 접전이면 그 사이 여백에 표차를 겹쳐 그린다 (마감 후엔 멈춘 값이라 뺀다)
+          const below = sort === "rank" && !closed ? listed[index + 1] : undefined;
+          const pairGap = below ? (standing.votes || 0) - (below.votes || 0) : null;
+          const contestGap = pairGap !== null && tight > 0 && pairGap <= tight ? pairGap : null;
+          return (
+            <li
+              key={standing.team.code}
+              className={
+                cutline
+                  ? `relative border-b-2 border-dashed pb-3.5 ${cutline.tone}`
+                  : contestGap === null
+                    ? undefined
+                    : "relative pb-3.5"
+              }
+            >
+              <TickerRow
+                standing={standing}
+                logo={logos[standing.team.code] ?? null}
+                shown={shownVotes ? shownVotes(standing) : standing.votes || 0}
+                hourDelta={hourDeltas[standing.team.code]}
+                closed={closed}
+                selected={selected === standing.team.code}
+                onSelect={onSelect ? () => onSelect(standing.team.code) : undefined}
+                onHover={onHover}
+              />
+              {cutline ? (
+                <span
+                  className={`absolute bottom-[-0.55rem] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border bg-[#0d1322] px-2 py-0.5 text-[0.625rem] font-black ${cutline.chip}`}
+                >
+                  {cutline.label}
+                </span>
+              ) : null}
+              {/* 같은 자리에 겹치면 컷라인 라벨이 가운데를 갖는다 — 표차는 오른쪽 끝으로 비킨다.
+                  컷라인에 걸친 접전이면 경고색, 아니면 중립색 */}
+              {contestGap === null ? null : (
+                <span
+                  className={`absolute bottom-[-0.5rem] whitespace-nowrap rounded-full border bg-[#0d1322] px-1.5 py-0.5 text-[0.5625rem] font-black tabular-nums ${
+                    cutline
+                      ? "right-0 border-[#e0705f]/50 text-[#e0705f]"
+                      : "left-1/2 -translate-x-1/2 border-[rgba(155,185,240,0.28)] text-[#9fb6e0]"
+                  }`}
+                >
+                  {contestGap === 0 ? "동률" : `${formatVotes(contestGap)}표 차`}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+
+      {seedTeamName ? (
+        <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-[#d4a94a]/45 bg-[rgba(212,169,74,0.08)] px-2.5 py-2">
+          <span className="truncate text-sm font-bold text-[#e8ebf2]">{seedTeamName}</span>
+          <span className="shrink-0 text-[0.625rem] font-black text-[#d4a94a]">4시드 확보</span>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export function JungmanDashboard({
   standings,
   round,
@@ -572,19 +751,6 @@ export function JungmanDashboard({
   const [mode, setMode] = useState<"votes" | "rank">(closed ? "rank" : "votes");
   // 초반에는 1시간 봉이 한 점뿐이라 "전체"로 시작하면 빈 차트가 보인다 — 점이 있는 구간부터.
   const [range, setRange] = useState<JungmanRangeKey>(() => defaultJungmanRange(series));
-  const [sort, setSort] = useState<SortKey>("rank");
-
-  // 급상승순 — 1시간 증가량 내림차순. 동률이면 순위순으로 되돌아간다(자리가 흔들리지 않게).
-  const listed = useMemo(() => {
-    if (sort === "rank") return standings;
-    return standings
-      .slice()
-      .sort(
-        (a, b) =>
-          (hourDeltas[b.team.code] || 0) - (hourDeltas[a.team.code] || 0) ||
-          (a.rank || 0) - (b.rank || 0)
-      );
-  }, [standings, sort, hourDeltas]);
 
   const teams = useMemo(
     () => new Map(standings.map((standing) => [standing.team.code, standing.team])),
@@ -643,8 +809,6 @@ export function JungmanDashboard({
 
   const leaderVotes = standings[0]?.votes || 0;
   const tight = leaderVotes * JUNGMAN_CONTEST_RATIO;
-  // 뜻풀이는 배지가 실제로 떠 있을 때만 — 아무도 접전이 아닌 화면에 설명만 남으면 군더더기다
-  const anyContested = standings.some((standing) => standing.contested);
   const detail = standings.find((standing) => standing.team.code === selected) ?? standings[0];
   const detailGap = detail ? cutlineGap(standings, detail) : null;
 
@@ -663,19 +827,7 @@ export function JungmanDashboard({
           <h1 className="text-xl font-black tracking-tight">투표 현황</h1>
         </div>
 
-        <div className="flex shrink-0 flex-col items-start gap-1">
-          {closed ? (
-            <Pill label="최종 결과" value={`${jungmanSeoulTime(revealedAt)} 기준`} tone="final" />
-          ) : (
-            <UpdateStatus isLive={isLive} latestAt={revealedAt} />
-          )}
-          {/* 갱신이 멈춘 것처럼 보이는 순간을 위해 집계 주기를 밝힌다 — 주기는 수집 상수에서 온다 */}
-          {autoCollect ? (
-            <span className="pl-1 text-[0.625rem] font-bold text-[#7a8299]">
-              {jungmanIntervalLabel()}마다 자동 집계
-            </span>
-          ) : null}
-        </div>
+        <JungmanStatus closed={closed} isLive={isLive} revealedAt={revealedAt} autoCollect={autoCollect} />
 
         {headlines.length ? <JungmanTicker headlines={headlines} /> : <div className="flex-1" />}
 
@@ -710,92 +862,17 @@ export function JungmanDashboard({
         {/* 좌측 팀 시세판 */}
         <aside className="lg:col-start-1 lg:row-start-2 xl:row-start-1 xl:row-span-3">
           <div className={`${PANEL} p-3 xl:sticky xl:top-4`}>
-            <div className="px-1 pb-2">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-sm font-black tracking-tight text-[#e8ebf2]">득표 순위</h2>
-                {/* 급상승순은 멈춘 1시간 증가량으로 줄을 세운다 — 마감 후에는 정렬 자체를 내린다 */}
-                {closed ? null : (
-                  <Segmented
-                    label="시세판 정렬"
-                    value={sort}
-                    onChange={setSort}
-                    options={[
-                      { key: "rank" as SortKey, label: "순위순" },
-                      { key: "surge" as SortKey, label: "급상승순" },
-                    ]}
-                  />
-                )}
-              </div>
-              {/* 왼쪽은 접전 배지 뜻풀이(배지가 하나라도 떠 있을 때만),
-                  오른쪽은 값 열 라벨 — 마감 후에는 그 열이 통째로 비므로 같이 내린다 */}
-              {anyContested || !closed ? (
-                <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-2 text-[0.625rem] font-bold text-[#7a8299]">
-                  <span>{anyContested ? "접전 = 위아래와 표차 근소" : ""}</span>
-                  {closed ? null : <span>득표 · 1시간 변화</span>}
-                </div>
-              ) : null}
-            </div>
-
-            <ol className="flex flex-col gap-1">
-              {listed.map((standing, index) => {
-                // 급상승순에서는 줄 순서가 순위와 다르다 — 컷라인 구분선을 그리면 거짓말이 된다
-                const cutline = sort === "rank" ? cutlineOf(standing.rank) : null;
-                // 아래 행과 접전이면 그 사이 여백에 표차를 겹쳐 그린다 (마감 후엔 멈춘 값이라 뺀다)
-                const below = sort === "rank" && !closed ? listed[index + 1] : undefined;
-                const pairGap = below ? (standing.votes || 0) - (below.votes || 0) : null;
-                const contestGap = pairGap !== null && tight > 0 && pairGap <= tight ? pairGap : null;
-                return (
-                  <li
-                    key={standing.team.code}
-                    className={
-                      cutline
-                        ? `relative border-b-2 border-dashed pb-3.5 ${cutline.tone}`
-                        : contestGap === null
-                          ? undefined
-                          : "relative pb-3.5"
-                    }
-                  >
-                    <TickerRow
-                      standing={standing}
-                      logo={logos[standing.team.code] ?? null}
-                      shown={shownVotes(standing)}
-                      hourDelta={hourDeltas[standing.team.code]}
-                      closed={closed}
-                      selected={selected === standing.team.code}
-                      onSelect={() => selectTeam(standing.team.code)}
-                      onHover={setHovered}
-                    />
-                    {cutline ? (
-                      <span
-                        className={`absolute bottom-[-0.55rem] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border bg-[#0d1322] px-2 py-0.5 text-[0.625rem] font-black ${cutline.chip}`}
-                      >
-                        {cutline.label}
-                      </span>
-                    ) : null}
-                    {/* 같은 자리에 겹치면 컷라인 라벨이 가운데를 갖는다 — 표차는 오른쪽 끝으로 비킨다.
-                        컷라인에 걸친 접전이면 경고색, 아니면 중립색 */}
-                    {contestGap === null ? null : (
-                      <span
-                        className={`absolute bottom-[-0.5rem] whitespace-nowrap rounded-full border bg-[#0d1322] px-1.5 py-0.5 text-[0.5625rem] font-black tabular-nums ${
-                          cutline
-                            ? "right-0 border-[#e0705f]/50 text-[#e0705f]"
-                            : "left-1/2 -translate-x-1/2 border-[rgba(155,185,240,0.28)] text-[#9fb6e0]"
-                        }`}
-                      >
-                        {contestGap === 0 ? "동률" : `${formatVotes(contestGap)}표 차`}
-                      </span>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-
-            {seedTeamName ? (
-              <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-[#d4a94a]/45 bg-[rgba(212,169,74,0.08)] px-2.5 py-2">
-                <span className="truncate text-sm font-bold text-[#e8ebf2]">{seedTeamName}</span>
-                <span className="shrink-0 text-[0.625rem] font-black text-[#d4a94a]">4시드 확보</span>
-              </div>
-            ) : null}
+            <JungmanStandingsList
+              standings={standings}
+              logos={logos}
+              hourDeltas={hourDeltas}
+              closed={closed}
+              seedTeamName={seedTeamName}
+              selected={selected}
+              onSelect={selectTeam}
+              onHover={setHovered}
+              shownVotes={shownVotes}
+            />
           </div>
         </aside>
 
