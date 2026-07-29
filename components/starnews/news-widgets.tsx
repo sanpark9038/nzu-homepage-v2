@@ -210,12 +210,9 @@ function useCycle(count: number, secPerItem: number) {
   return count > 0 ? idx % count : 0;
 }
 
-type LiveIndex = { totalVotes: number; hourDelta: number };
-
 export function Ticker({ ticker }: { ticker: NewsTicker }) {
   const items = ticker.items.filter(Boolean);
   const [clock, setClock] = useState(""); // 서버 렌더와 어긋나면 hydration mismatch — 마운트 후에만 채운다
-  const [live, setLive] = useState<LiveIndex | null>(null);
 
   useEffect(() => {
     const tick = () => {
@@ -227,40 +224,8 @@ export function Ticker({ ticker }: { ticker: NewsTicker }) {
     return () => clearInterval(timer);
   }, []);
 
-  // 중만컵 지수 — 60초 폴링. 개표 전(합계 0)이나 실패면 항목 자체를 띄우지 않는다.
-  useEffect(() => {
-    let alive = true;
-    const load = () =>
-      fetch("/api/overlay/news/live")
-        .then(r => r.json())
-        .then((d: LiveIndex) => {
-          if (alive && d && d.totalVotes > 0) setLive(d);
-        })
-        .catch(() => {});
-    load();
-    const timer = setInterval(load, 60_000);
-    return () => {
-      alive = false;
-      clearInterval(timer);
-    };
-  }, []);
-
-  // 우측 존 = 중만컵 지수(있을 때 맨 앞) + 관리자가 넣은 짧은 정보들
+  // 우측 존 = 관리자가 넣은 짧은 정보들 (온도 등)
   const rightItems: { id: string; node: React.ReactNode }[] = [];
-  if (live) {
-    rightItems.push({
-      id: `jungman:${live.totalVotes}:${live.hourDelta}`,
-      node: (
-        <>
-          <span style={{ color: "rgba(255,255,255,0.6)", marginRight: 8 }}>중만컵</span>
-          {live.totalVotes.toLocaleString("ko-KR")}
-          {live.hourDelta > 0 && (
-            <span style={{ color: C.up, marginLeft: 10 }}>▲{live.hourDelta.toLocaleString("ko-KR")}</span>
-          )}
-        </>
-      ),
-    });
-  }
   for (const item of ticker.rightItems.filter(Boolean)) rightItems.push({ id: item, node: item });
 
   const idx = useCycle(items.length, ticker.secPerItem);

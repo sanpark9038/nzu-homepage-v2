@@ -116,8 +116,9 @@ test("live index route is public, cached, and derived from jungman state", () =>
   // 방송 중 여러 화면이 붙어도 KV 읽기는 60초에 한 번
   assert.match(source, /60_000|60000/);
 
+  // 티커 표시는 제거됨(우측 존 폭에서 잘려 사용자 결정으로 철회) — 라우트만 전면 화면 등 다른 용도로 유지
   const widgets = readProjectFile("components/starnews/news-widgets.tsx");
-  assert.match(widgets, /\/api\/overlay\/news\/live/);
+  assert.doesNotMatch(widgets, /\/api\/overlay\/news\/live/);
 });
 
 test("news admin builds OBS URLs from viewToken, not soop id", () => {
