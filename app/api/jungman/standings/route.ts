@@ -109,6 +109,8 @@ export async function GET() {
       bestRanks: buildJungmanBestRanks(snapshots),
       rankEvents: buildJungmanRankEvents(snapshots),
     },
-    { headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" } }
+    // stale-while-revalidate를 두면 만료 후에도 최대 그 시간만큼 옛 응답이 나가 "N초 전"이 30초+로 밀린다.
+    // 유예 없이 10초 만료 — 숲 요청은 여전히 10초당 최대 1회로 보호된다.
+    { headers: { "Cache-Control": "public, s-maxage=10" } }
   );
 }
