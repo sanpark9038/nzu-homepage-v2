@@ -59,8 +59,6 @@ const MAP_STYLE = `
   .jm-rank{fill:#d4a94a;font-weight:700;}
   .jm-dot,.jm-votes{fill:#7a8299;}
   .jm-m.jm-top3 .jm-chip{stroke:#d4a94a;stroke-opacity:.95;stroke-width:1.2;}
-  .jm-m.jm-risk .jm-chip{stroke:#e0705f;stroke-opacity:.85;stroke-width:1.2;}
-  .jm-m.jm-risk .jm-rank{fill:#e0705f;}
   .jm-m.jm-seed .jm-chip{fill:rgba(10,15,28,.9);stroke:#d4a94a;stroke-opacity:1;stroke-width:1.2;}
   .jm-m.jm-seed .jm-name{font-weight:700;}
   .jm-seed-sub{fill:#d4a94a;font-weight:700;letter-spacing:.02em;}
@@ -70,8 +68,7 @@ const MAP_STYLE = `
   .jm-badge circle{fill:rgba(10,15,28,.92);stroke:rgba(155,185,240,.4);stroke-width:1;}
   .jm-badge text{fill:#9aa3b8;font-size:10.5px;font-weight:800;text-anchor:middle;dominant-baseline:central;}
   .jm-m.jm-top3 .jm-badge circle{fill:#d4a94a;stroke:#0b0f1a;stroke-width:1.5;}
-  .jm-m.jm-risk .jm-badge circle{fill:#e0705f;stroke:#0b0f1a;stroke-width:1.5;}
-  .jm-m.jm-top3 .jm-badge text,.jm-m.jm-risk .jm-badge text{fill:#0b0f1a;}
+  .jm-m.jm-top3 .jm-badge text{fill:#0b0f1a;}
   .jm-delta{font-size:9.5px;font-weight:800;text-anchor:start;dominant-baseline:central;
     paint-order:stroke;stroke:rgba(8,12,22,.85);stroke-width:2.4;stroke-linejoin:round;
     transform-box:fill-box;transform-origin:0 50%;}
@@ -134,7 +131,7 @@ export default function JungmanMap({
     <svg
       viewBox={`0 0 ${JUNGMAN_MAP_WIDTH} ${JUNGMAN_MAP_HEIGHT}`}
       role="img"
-      aria-label="중만컵 참가 13개 팀의 수도권 서부 연고지와 득표 현황 지도"
+      aria-label="중만컵 참가 12개 팀의 수도권 서부 연고지와 득표 현황 지도"
       className="block h-auto w-full rounded-lg"
     >
       <style>{`${MAP_STYLE}  ${activeRules}`}</style>
@@ -159,13 +156,7 @@ export default function JungmanMap({
           // 서브라벨이 칩 폭을 좌우한다 — 좁은 폭에서 그걸 접으면 팀명 폭(nameWidth)만 남는다
           const nameWidth = Math.max(58, Math.round(textWidth(marker.name, 13) + 18));
           const width = Math.max(nameWidth, Math.round(textWidth(sub, 11) + 18));
-          const tone = marker.seed
-            ? " jm-seed"
-            : marker.badge === "seed"
-              ? " jm-top3"
-              : marker.badge === "wildcard"
-                ? " jm-risk"
-                : "";
+          const tone = marker.seed ? " jm-seed" : marker.badge === "seed" ? " jm-top3" : "";
 
           // 마감 뒤 순위 변동은 멈춘 값이다 — 시세판 화살표와 함께 내린다
           const rankDelta = closed ? null : marker.rankDelta;

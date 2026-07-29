@@ -8,7 +8,6 @@ import {
   jungmanRankMap,
   JUNGMAN_SEED_CUT,
   JUNGMAN_VOTING_TEAMS,
-  JUNGMAN_WILDCARD_CUT,
   teamAccent,
   teamShort,
   type JungmanEmphasis,
@@ -36,11 +35,8 @@ const TIER_STYLE: Record<JungmanEmphasis, { width: number; opacity: number; dot:
 const LABEL_GAP = 12;
 const AXIS_LABELS = 7;
 
-/** 순위 모드 배경 컷라인 — 강조 이유를 눈으로 설명한다 */
-const CUT_LINES = [
-  { rank: JUNGMAN_SEED_CUT, label: "시드선", color: "#d4a94a" },
-  { rank: JUNGMAN_WILDCARD_CUT, label: "와카선", color: "#e0705f" },
-];
+/** 순위 모드 배경 컷라인 — 강조 이유를 눈으로 설명한다. 전원 본선이라 남은 경계는 시드선뿐이다 */
+const CUT_LINES = [{ rank: JUNGMAN_SEED_CUT, label: "시드선", color: "#d4a94a" }];
 
 type ChartMode = "votes" | "rank";
 
@@ -120,7 +116,7 @@ export function JungmanChart({
   if (axisIndexes[axisIndexes.length - 1] !== points.length - 1) axisIndexes.push(points.length - 1);
 
   const days = jungmanDayBoundaries(points);
-  // 컷라인은 순위 모드에서만 — 두 등수 사이(3.5·10.5)에 긋는다
+  // 컷라인은 순위 모드에서만 — 두 등수 사이(3.5)에 긋는다
   const cutLines = ranksPerPoint
     ? CUT_LINES.map((cut) => ({
         ...cut,
@@ -230,7 +226,7 @@ export function JungmanChart({
         );
       })}
 
-      {/* 컷라인 이름표는 12개 선 위에 얹힌다 — 바탕을 깔지 않으면 안 읽힌다 */}
+      {/* 컷라인 이름표는 팀 선들 위에 얹힌다 — 바탕을 깔지 않으면 안 읽힌다 */}
       {cutLines.map(({ y: lineY, color, label }) => (
         <g key={label}>
           <rect
@@ -273,7 +269,7 @@ export function JungmanChart({
 }
 
 /**
- * 12팀 범례 — 선 끝 약칭만으로는 라벨이 붙은 팀 말고는 누가 누군지 알 수 없다.
+ * 11팀 범례 — 선 끝 약칭만으로는 라벨이 붙은 팀 말고는 누가 누군지 알 수 없다.
  * 칩 클릭이 곧 팀 선택(재클릭 해제)이라 밝기는 차트와 같은 jungmanEmphasis를 쓴다.
  */
 function TeamLegend({

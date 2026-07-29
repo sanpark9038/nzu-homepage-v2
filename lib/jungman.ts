@@ -16,9 +16,8 @@ export const JUNGMAN_SEED_TEAM_CODE = "SSU";
 export const JUNGMAN_VOTE_PERIOD_LABEL = "7월 27일 18:00 ~ 7월 30일 24:00";
 export const JUNGMAN_VOTE_METHOD_LABEL = "숲(SOOP) 게시판 인기투표 댓글로 진행합니다.";
 
-// 상·하위 컷라인. 12팀 중 1~3위 시드, 11~12위 와일드카드전.
+// 유일한 컷라인. 12팀 전원 본선(4개조 × 3팀)이라 탈락은 없고, 걸린 건 1~3위 시드 세 자리뿐이다.
 export const JUNGMAN_SEED_CUT = 3;
-export const JUNGMAN_WILDCARD_CUT = 10;
 // 인접 순위와의 표차가 1위 표수의 이 비율 이내면 "경합"
 export const JUNGMAN_CONTEST_RATIO = 0.03;
 
@@ -85,7 +84,7 @@ export function teamAccent(team: JungmanTeam): string {
   return team.accent || team.color;
 }
 
-/** 투표 대상 12팀 (수술대 제외) */
+/** 투표 대상 11팀 (수술대 제외) */
 export const JUNGMAN_VOTING_TEAMS: JungmanTeam[] = JUNGMAN_TEAMS.filter(
   (team) => team.code !== JUNGMAN_SEED_TEAM_CODE
 );
@@ -120,7 +119,7 @@ export type JungmanSnapshot = {
   votes: Record<string, number>;
 };
 
-export type JungmanBadge = "seed" | "wildcard" | null;
+export type JungmanBadge = "seed" | null;
 
 export type JungmanStanding = {
   team: JungmanTeam;
@@ -418,15 +417,15 @@ export function jungmanRankMap(snapshot: { votes: Record<string, number> }): Map
 
 /**
  * 차트·범례 강조 3단계. 의미 있는 자리는 컷라인이지 득표 상위가 아니다 —
- * 5~9위는 어느 쪽 경계도 다투지 않으므로 배경으로 뺀다.
+ * 전원 본선 진출이라 5위 아래는 아무 경계도 다투지 않으므로 배경으로 뺀다.
  */
 export type JungmanEmphasis = "lead" | "edge" | "back";
 
 export function jungmanEmphasis(rank: number): JungmanEmphasis {
-  // 시드권(1~3위)과 와일드카드권(11~12위)
-  if (rank <= JUNGMAN_SEED_CUT || rank > JUNGMAN_WILDCARD_CUT) return "lead";
-  // 컷라인 바로 안쪽에서 다투는 4위·10위
-  if (rank === JUNGMAN_SEED_CUT + 1 || rank === JUNGMAN_WILDCARD_CUT) return "edge";
+  // 시드권(1~3위)
+  if (rank <= JUNGMAN_SEED_CUT) return "lead";
+  // 컷라인 바로 밖에서 시드를 노리는 4위
+  if (rank === JUNGMAN_SEED_CUT + 1) return "edge";
   return "back";
 }
 
@@ -480,7 +479,7 @@ export function buildJungmanStandings(snapshots: JungmanSnapshot[]): JungmanStan
       votes,
       rankDelta: baselineRank === null ? null : baselineRank - rank,
       voteDelta: previous ? votes - (previous.votes[team.code] || 0) : null,
-      badge: rank <= JUNGMAN_SEED_CUT ? "seed" : rank > JUNGMAN_WILDCARD_CUT ? "wildcard" : null,
+      badge: rank <= JUNGMAN_SEED_CUT ? "seed" : null,
       contested: false,
     };
   }).sort((a, b) => (a.rank || 0) - (b.rank || 0));
@@ -562,7 +561,7 @@ export function buildJungmanHeadlines(
     push(`${jungmanSeoulTime(event.at)} ${withParticle(event.name, "이", "가")} ${event.rank}위로 올라섰습니다`);
   }
 
-  // 2) 컷라인 통과 — 시드권·와일드카드권 경계를 넘나든 팀
+  // 2) 컷라인 통과 — 시드권 경계를 넘나든 팀
   let crossings = 0;
   for (const team of ordered) {
     if (!baselineRanks || crossings >= 2) break;
@@ -573,11 +572,7 @@ export function buildJungmanHeadlines(
         ? "시드권에 진입했습니다"
         : before <= JUNGMAN_SEED_CUT && rank > JUNGMAN_SEED_CUT
           ? "시드권에서 밀려났습니다"
-          : before > JUNGMAN_WILDCARD_CUT && rank <= JUNGMAN_WILDCARD_CUT
-            ? "와일드카드권에서 벗어났습니다"
-            : before <= JUNGMAN_WILDCARD_CUT && rank > JUNGMAN_WILDCARD_CUT
-              ? "와일드카드권으로 밀렸습니다"
-              : null;
+          : null;
     if (!line) continue;
 
     crossings++;
@@ -613,9 +608,10 @@ export function buildJungmanHeadlines(
     if (tight >= 0) push(gapLine(tight));
   }
 
-  // 5~6) 컷라인 경합 — 3위/4위, 10위/11위. 사건이 없는 날의 주력 소재다.
+  // 5~6) 시드 경합 — 컷라인(3위/4위)과 시드 안쪽 마지막 자리(2위/3위).
+  // 사건이 없는 날의 주력 소재다. 탈락이 없어진 뒤로 순위 경쟁은 이 두 줄이 전부다.
   push(gapLine(JUNGMAN_SEED_CUT - 1));
-  push(gapLine(JUNGMAN_WILDCARD_CUT - 1));
+  push(gapLine(JUNGMAN_SEED_CUT - 2));
 
   // 7) 최다 상승 — 1시간 전 기록이 있으면 그 구간, 없으면 누적 전체
   const hourDeltas = buildJungmanHourDeltas(snapshots);
@@ -806,7 +802,7 @@ export function buildJungmanRankEvents(snapshots: JungmanSnapshot[], limit = 6):
   return events.slice(-limit).reverse();
 }
 
-/** 지도 마커 13개 — 투표 12팀 + 수술대(4시드 고정) */
+/** 지도 마커 12개 — 투표 11팀 + 수술대(시드 고정) */
 export function buildJungmanMarkers(standings: JungmanStanding[]): JungmanMarker[] {
   const byCode = new Map(standings.map((standing) => [standing.team.code, standing]));
   const leaderVotes = Math.max(0, ...standings.map((standing) => standing.votes ?? 0));

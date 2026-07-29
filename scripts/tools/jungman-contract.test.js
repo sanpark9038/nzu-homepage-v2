@@ -552,11 +552,14 @@ test("jungman headlines narrate what actually changed since an hour ago", () => 
   assert.ok(swap.includes("JSA가 시드권에 진입했습니다"), swap.join(" / "));
   assert.ok(swap.includes("와플대가 시드권에서 밀려났습니다"), swap.join(" / "));
 
-  // 케이대(50, 11위 → 250, 8위)가 와일드카드권 탈출, 밀려난 쪽도 잡힌다
+  // 와일드카드전은 폐지됐다(12팀 전원 본선) — 하위권 이동은 컷라인 문구를 만들지 않는다.
+  // 케이대(50, 11위 → 250, 8위)는 순위 교체로만 잡히고, 밀려난 엠비대는 아무 말도 얻지 못한다.
   const escaped = buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, KU: 250 })]);
   assert.equal(escaped[0], "09:00 케이대가 8위로 올라섰습니다");
-  assert.ok(escaped.includes("케이대가 와일드카드권에서 벗어났습니다"), escaped.join(" / "));
-  assert.ok(escaped.includes("엠비대가 와일드카드권으로 밀렸습니다"), escaped.join(" / "));
+  assert.ok(!escaped.some((line) => /와일드카드|와카/.test(line)), escaped.join(" / "));
+  assert.ok(!escaped.some((line) => line.includes("엠비대가")), escaped.join(" / "));
+  // 시드권 문구는 시드선(3위)을 실제로 넘나든 팀에만 붙는다
+  assert.ok(!escaped.some((line) => line.includes("시드권")), escaped.join(" / "));
 
   // 초박빙 — 인접 표차가 1위 표수의 3%(=30표) 이내. 조사도 받침 따라 붙는다(DM=엠 → "과")
   const tight = buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, KMS: 999 })]);
@@ -580,9 +583,12 @@ test("jungman headlines keep the ticker moving when nothing happened", () => {
   // 표가 1표도 안 움직인 구간 — 사건은 0건인데도 경합·격차로 3문장이 찬다
   const idle = buildJungmanHeadlines([snapshot(1, base), snapshot(2, base)]);
   assert.ok(idle.length >= 3, `expected 3+ headlines, got ${idle.length}: ${idle.join(" / ")}`);
+  // 상시 소재는 시드 경쟁뿐이다 — 시드선(3위/4위)과 시드 안쪽 마지막 자리(2위/3위)
   assert.ok(idle.includes("3위 와플대와 4위 JSA가 200표 차입니다"), idle.join(" / "));
-  assert.ok(idle.includes("10위 엠비대와 11위 케이대가 50표 차입니다"), idle.join(" / "));
+  assert.ok(idle.includes("2위 캄몬스타즈와 3위 와플대가 100표 차입니다"), idle.join(" / "));
   assert.ok(idle.includes("1위 DM이 2위와 100표 차로 앞서 있습니다"), idle.join(" / "));
+  // 탈락이 없어졌으니 하위권 표차를 티커가 떠들면 안 된다
+  assert.ok(!idle.some((line) => /^1[01]위/.test(line)), idle.join(" / "));
 
   // 스냅샷 하나뿐이라 비교 대상이 없어도 상시 소재로 3문장
   assert.ok(buildJungmanHeadlines([snapshot(1, base)]).length >= 3);
@@ -672,29 +678,31 @@ test("jungman charts label the x axis in Asia/Seoul and mark day boundaries", ()
   assert.deepEqual({ code: events[0].code, rank: events[0].rank, at: events[0].at }, { code: "KU", rank: 1, at: after });
 });
 
-test("jungman charts emphasise the cutlines, not the vote leaders", () => {
+test("jungman charts emphasise the seed cutline, not the vote leaders", () => {
   const lib = loadJungmanLib();
-  const { jungmanEmphasis, JUNGMAN_SEED_CUT, JUNGMAN_WILDCARD_CUT, JUNGMAN_VOTING_TEAMS } = lib;
+  const { jungmanEmphasis, JUNGMAN_SEED_CUT, JUNGMAN_VOTING_TEAMS } = lib;
   const chart = readProjectFile("app/jungman/JungmanChart.tsx");
 
   const tiers = Array.from({ length: JUNGMAN_VOTING_TEAMS.length }, (_, i) => jungmanEmphasis(i + 1));
-  // 1~3위(시드) + 컷 밖(11위~)이 1군, 컷 바로 안쪽 4위·10위가 2군, 나머지는 배경
+  // 12팀 전원 본선이라 다투는 경계는 시드선 하나뿐 — 1~3위가 1군, 바로 밖 4위가 2군, 나머지는 배경
   assert.deepEqual(tiers, [
     "lead", "lead", "lead", "edge", "back", "back",
-    "back", "back", "back", "edge", "lead",
+    "back", "back", "back", "back", "back",
   ]);
   // 순위가 아니라 컷 상수를 기준으로 판정해야 한다 — 컷이 움직이면 강조도 따라 움직인다
   assert.equal(jungmanEmphasis(JUNGMAN_SEED_CUT), "lead");
   assert.equal(jungmanEmphasis(JUNGMAN_SEED_CUT + 1), "edge");
-  assert.equal(jungmanEmphasis(JUNGMAN_WILDCARD_CUT), "edge");
-  assert.equal(jungmanEmphasis(JUNGMAN_WILDCARD_CUT + 1), "lead");
+  // 꼴찌도 잃을 게 없다 — 하위권을 되살려 강조하던 규칙이 남아 있으면 안 된다
+  assert.equal(jungmanEmphasis(JUNGMAN_VOTING_TEAMS.length), "back");
 
   // 득표 상위 N개를 잘라 강조하던 규칙은 남아 있으면 안 된다
   assert.doesNotMatch(chart, /FOCUS/);
   // 차트·범례 둘 다 같은 규칙을 쓴다 (득표/순위 모드 공용)
   assert.ok((chart.match(/jungmanEmphasis\(/g) || []).length >= 2, "chart and legend should share the rule");
   assert.match(chart, /JUNGMAN_SEED_CUT/);
-  assert.match(chart, /JUNGMAN_WILDCARD_CUT/);
+  // 와일드카드전 폐지 — 차트에 와카선이 남아 있으면 안 된다
+  assert.doesNotMatch(chart, /JUNGMAN_WILDCARD_CUT/);
+  assert.doesNotMatch(chart, /와카/);
 });
 
 test("jungman dashboard keeps the map server-side and shares one selected team", () => {
@@ -711,7 +719,15 @@ test("jungman dashboard keeps the map server-side and shares one selected team",
   assert.match(client, /pokeMap\("data-active", hovered \|\| selected\)/);
   // 지도 마커 클릭도 선택 입력 (서버 SVG라 이벤트 위임)
   assert.match(client, /closest\?\.\("\[data-team\]"\)/);
-  assert.match(readProjectFile("components/jungman/JungmanMap.tsx"), /cursor:pointer/);
+  const map = readProjectFile("components/jungman/JungmanMap.tsx");
+  assert.match(map, /cursor:pointer/);
+
+  // 와일드카드전 폐지 — 12팀 전원 본선(4개조)이라 탈락·와카 표기가 어디에도 남으면 안 된다.
+  // 시드 표기는 그대로다: 걸린 건 1~3위 세 자리뿐이다.
+  for (const [name, source] of [["page", page], ["client", client], ["map", map]]) {
+    assert.doesNotMatch(source, /와일드카드|와카|"wildcard"|JUNGMAN_WILDCARD_CUT/, `${name}에 와일드카드가 남아 있다`);
+    assert.match(source, /seed|시드/, `${name}에서 시드 표기까지 사라졌다`);
+  }
 });
 
 test("jungman is reachable from public and admin navigation", () => {
@@ -1187,7 +1203,7 @@ test("jungman rank arrows run on the hour baseline and the map reads the same va
 test("jungman board spells out the contested state instead of a bare dot", () => {
   const client = readProjectFile("app/jungman/JungmanClient.tsx");
 
-  // 파란 점 + title 툴팁은 화면에서 읽히지 않는다 — 시드·와카와 같은 글자 칩이어야 한다
+  // 파란 점 + title 툴팁은 화면에서 읽히지 않는다 — 시드 배지와 같은 글자 칩이어야 한다
   assert.doesNotMatch(client, /title="경합"/);
   assert.match(client, /standing\.contested \?[\s\S]{0,240}>\s*접전\s*<\/span>/);
   // 무슨 뜻인지 화면에 한 줄 설명이 있어야 한다 (배지가 떠 있을 때)

@@ -113,7 +113,7 @@ export default async function JungmanPage() {
                 ) : (
                   <>
                     12개 대학 중 투표 대상은 <b className="font-bold text-[#e8ebf2]">11팀</b>, 수술대는 4시드를 확보해
-                    투표에서 빠집니다. 상위 3팀 시드 · 하위 2팀 와일드카드전.
+                    투표에서 빠집니다. 12팀 전원 본선 진출(4개조) · 상위 3팀이 시드를 가져갑니다.
                   </>
                 )}
               </p>

@@ -9,7 +9,6 @@ import {
   jungmanSeoulTime,
   JUNGMAN_CONTEST_RATIO,
   JUNGMAN_SEED_CUT,
-  JUNGMAN_WILDCARD_CUT,
   teamAccent,
   defaultJungmanRange,
   type JungmanRangeKey,
@@ -369,9 +368,6 @@ function cutlineOf(rank: number | null) {
   if (rank === JUNGMAN_SEED_CUT) {
     return { label: "시드 확보선", tone: "border-[#d4a94a]/45", chip: "border-[#d4a94a]/50 text-[#d4a94a]" };
   }
-  if (rank === JUNGMAN_WILDCARD_CUT) {
-    return { label: "와일드카드 위험선", tone: "border-[#e0705f]/45", chip: "border-[#e0705f]/50 text-[#e0705f]" };
-  }
   return null;
 }
 
@@ -415,11 +411,7 @@ function TickerRow({
           오른쪽 값 열이 이미 두 줄이라 세로로는 공짜다 */}
       <span
         className={`flex flex-col items-center leading-tight text-base font-black tabular-nums ${
-          standing.badge === "seed"
-            ? "text-[#d4a94a]"
-            : standing.badge === "wildcard"
-              ? "text-[#e0705f]"
-              : "text-[#e8ebf2]"
+          standing.badge === "seed" ? "text-[#d4a94a]" : "text-[#e8ebf2]"
         }`}
       >
         {standing.rank}
@@ -435,12 +427,7 @@ function TickerRow({
             시드
           </span>
         ) : null}
-        {standing.badge === "wildcard" ? (
-          <span className="shrink-0 rounded bg-[#e0705f]/15 px-1 py-px text-[0.625rem] font-black text-[#e0705f]">
-            와카
-          </span>
-        ) : null}
-        {/* 점 + title 툴팁은 화면에서 읽히지 않는다 — 시드·와카와 같은 글자 칩으로 */}
+        {/* 점 + title 툴팁은 화면에서 읽히지 않는다 — 시드 배지와 같은 글자 칩으로 */}
         {standing.contested ? (
           <span className="shrink-0 rounded bg-[#9fb6e0]/15 px-1 py-px text-[0.625rem] font-black text-[#9fb6e0]">
             접전
@@ -494,8 +481,8 @@ function StatRow({ label, value }: { label: string; value: ReactNode }) {
 }
 
 /**
- * 컷라인까지의 거리. 시드권이면 "쫓기는 표차", 밖이면 "따라잡아야 할 표차"다.
- * 방향을 섞으면 3위와 11위가 같은 문장으로 읽혀 거짓말이 된다.
+ * 시드선까지의 거리. 시드권이면 "쫓기는 표차", 밖이면 "따라잡아야 할 표차"다.
+ * 방향을 섞으면 3위와 4위가 같은 문장으로 읽혀 거짓말이 된다.
  */
 function cutlineGap(standings: JungmanStanding[], standing: JungmanStanding) {
   const at = (rank: number) => standings.find((entry) => entry.rank === rank);
@@ -508,12 +495,8 @@ function cutlineGap(standings: JungmanStanding[], standing: JungmanStanding) {
       ? { label: `${JUNGMAN_SEED_CUT + 1}위와 격차`, text: `${formatVotes(votes - (chaser.votes || 0))}표` }
       : null;
   }
-  if (rank <= JUNGMAN_WILDCARD_CUT) {
-    const seed = at(JUNGMAN_SEED_CUT);
-    return seed ? { label: `${JUNGMAN_SEED_CUT}위까지`, text: `${formatVotes((seed.votes || 0) - votes)}표` } : null;
-  }
-  const safe = at(JUNGMAN_WILDCARD_CUT);
-  return safe ? { label: `${JUNGMAN_WILDCARD_CUT}위까지`, text: `${formatVotes((safe.votes || 0) - votes)}표` } : null;
+  const seed = at(JUNGMAN_SEED_CUT);
+  return seed ? { label: `${JUNGMAN_SEED_CUT}위까지`, text: `${formatVotes((seed.votes || 0) - votes)}표` } : null;
 }
 
 function ContestRow({
@@ -901,7 +884,7 @@ export function JungmanDashboard({
                     <p className="truncate text-base font-black text-[#e8ebf2]">{detail.team.name}</p>
                     <p className="text-xs font-bold text-[#7a8299]">
                       현재 {detail.rank}위
-                      {detail.badge === "seed" ? " · 시드권" : detail.badge === "wildcard" ? " · 와일드카드권" : ""}
+                      {detail.badge === "seed" ? " · 시드권" : ""}
                     </p>
                   </div>
                 </div>
@@ -928,13 +911,6 @@ export function JungmanDashboard({
                   label="시드 경합"
                   upper={standings.find((standing) => standing.rank === JUNGMAN_SEED_CUT)}
                   lower={standings.find((standing) => standing.rank === JUNGMAN_SEED_CUT + 1)}
-                  tight={tight}
-                  closed={closed}
-                />
-                <ContestRow
-                  label="와일드카드 경합"
-                  upper={standings.find((standing) => standing.rank === JUNGMAN_WILDCARD_CUT)}
-                  lower={standings.find((standing) => standing.rank === JUNGMAN_WILDCARD_CUT + 1)}
                   tight={tight}
                   closed={closed}
                 />
