@@ -112,7 +112,7 @@ export default async function JungmanPage() {
                   "곧 다시 시도합니다. 투표 기록은 그대로 있으며, 연결이 회복되면 이 화면이 자동으로 갱신됩니다."
                 ) : (
                   <>
-                    13개 대학 중 투표 대상은 <b className="font-bold text-[#e8ebf2]">12팀</b>, 수술대는 4시드를 확보해
+                    12개 대학 중 투표 대상은 <b className="font-bold text-[#e8ebf2]">11팀</b>, 수술대는 4시드를 확보해
                     투표에서 빠집니다. 상위 3팀 시드 · 하위 2팀 와일드카드전.
                   </>
                 )}

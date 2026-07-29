@@ -286,7 +286,7 @@ export default function JungmanAdmin({
         <div className="space-y-2">
           <h2 className="text-xl font-black tracking-tight text-white">{nextRound}차 개표 입력 (수동 폴백)</h2>
           <p className="text-sm text-white/55">
-            12팀 누적 득표수를 입력합니다. 수술대는 4시드 확보로 투표에서 빠집니다. 발표 시각은 저장한 시각으로
+            11팀 누적 득표수를 입력합니다. 수술대는 4시드 확보로 투표에서 빠집니다. 발표 시각은 저장한 시각으로
             자동 기록됩니다.
           </p>
         </div>

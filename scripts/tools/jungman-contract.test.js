@@ -163,7 +163,7 @@ test("jungman excludes the auto-seeded team from vote tallies", () => {
   // 파서가 투표 대상 코드만 통과시켜야 SSU 표가 순위에 섞이지 않는다
   assert.match(lib, /VOTING_CODES = new Set\(JUNGMAN_VOTING_TEAMS\.map/);
   assert.match(lib, /if \(!VOTING_CODES\.has\(code\)\) continue;/);
-  // 순위·경합 계산도 12팀 기준
+  // 순위·경합 계산도 투표 대상 팀만 기준
   assert.match(lib, /[rR]ankMap[\s\S]*?JUNGMAN_VOTING_TEAMS\.slice\(\)\.sort/);
 });
 
@@ -175,13 +175,13 @@ test("jungman snapshot parser survives broken admin input", () => {
   assert.match(lib, /count < 0/);
 });
 
-test("jungman map renders all 13 markers from a single data source", () => {
+test("jungman map renders all 12 markers from a single data source", () => {
   const lib = readProjectFile("lib/jungman.ts");
   const map = readProjectFile("components/jungman/JungmanMap.tsx");
   const page = readProjectFile("app/jungman/page.tsx");
 
   const teamRows = lib.match(/\{ code: "[A-Z0-9]+", name:/g) || [];
-  assert.equal(teamRows.length, 13, "JUNGMAN_TEAMS should hold all 13 teams");
+  assert.equal(teamRows.length, 12, "JUNGMAN_TEAMS should hold all 12 teams");
 
   assert.match(lib, /export function buildJungmanMarkers[\s\S]*?JUNGMAN_TEAMS\.map/);
   assert.match(map, /markers\.map/);
@@ -472,7 +472,7 @@ test("jungman guesses a team per comment without overreaching", () => {
   assert.deepEqual(mappingOf(comment(5, "케이대랑 와플대 중에 누가 이기나요")), {});
 
   // 같은 팀 후보가 여럿이면 신청 문구가 있는 쪽. 추천수로 고르면 팬 댓글이 총장을 이긴다.
-  assert.deepEqual(mappingOf(comment(6, "씨나인 신청합니다", 3), comment(7, "씨나인 화이팅", 300)), { 6: "C9" });
+  assert.deepEqual(mappingOf(comment(6, "흑카데미 신청합니다", 3), comment(7, "흑카데미 화이팅", 300)), { 6: "HKA" });
   // 신청 문구가 둘 다 없으면 먼저 쓴 쪽
   assert.deepEqual(mappingOf(comment(9, "츠캄몬스타즈 화이팅", 50), comment(8, "캄몬 최고", 5)), { 8: "KMS" });
 
@@ -492,7 +492,7 @@ test("jungman folds the soop-id signal into the guess without dropping text matc
     likes: 0,
   });
   // 숲ID(소문자) → 팀코드
-  const identities = { kuboss: "KU", c9boss: "C9" };
+  const identities = { kuboss: "KU", hkaboss: "HKA" };
 
   // 팀명이 없어도 명부에 있는 숲ID면 잡힌다 — 이 신호의 핵심 이득
   const byId = suggestJungmanMapping([comment(1, "신청합니다", "KUBoss")], identities);
@@ -504,8 +504,8 @@ test("jungman folds the soop-id signal into the guess without dropping text matc
   assert.deepEqual(agreed.mapping, { 2: "KU" });
   assert.equal(agreed.guesses["2"].via, '숲ID 일치 · "케이대"');
 
-  // 소속과 다른 팀을 언급하면 미지정 — 씨나인 선수의 "케이대 화이팅"은 팬 댓글이다
-  assert.deepEqual(suggestJungmanMapping([comment(3, "케이대 화이팅", "c9boss")], identities).mapping, {});
+  // 소속과 다른 팀을 언급하면 미지정 — 흑카데미 선수의 "케이대 화이팅"은 팬 댓글이다
+  assert.deepEqual(suggestJungmanMapping([comment(3, "케이대 화이팅", "hkaboss")], identities).mapping, {});
 
   // 신청 문구가 ID 단독 신호를 이긴다
   assert.deepEqual(
@@ -521,7 +521,7 @@ test("jungman folds the soop-id signal into the guess without dropping text matc
 
   // 여러 팀을 언급했으면 소속(ID)으로도 귀속하지 않는다 — 케이대 선수의 관전평은 신청이 아니다
   assert.deepEqual(
-    suggestJungmanMapping([comment(10, "케이대랑 씨나인 붙는거 보고싶다", "kuboss")], identities).mapping,
+    suggestJungmanMapping([comment(10, "케이대랑 흑카데미 붙는거 보고싶다", "kuboss")], identities).mapping,
     {}
   );
 
@@ -531,11 +531,11 @@ test("jungman folds the soop-id signal into the guess without dropping text matc
   assert.deepEqual(legacy.guesses["9"], { code: "KU", via: "케이대" });
 });
 
-// 12팀 votes 레코드를 만든다 — 코드 순서는 lib의 JUNGMAN_VOTING_TEAMS와 같다
+// 11팀 votes 레코드를 만든다 — 코드 순서는 lib의 JUNGMAN_VOTING_TEAMS와 같다
 const headlineSnapshot = (round, votes) => ({ round, at: `2026-07-2${round}T00:00:00.000Z`, votes });
 // 인접 격차를 전부 경합 임계(1위의 3% = 30표)보다 크게 벌려 둔다 — 사건 없는 기준선
 const headlineBase = {
-  DM: 1000, KMS: 900, WFU: 800, C9: 700, JSA: 600, BGM: 500,
+  DM: 1000, KMS: 900, WFU: 800, JSA: 600, BGM: 500,
   HKA: 400, HM: 300, SSG: 200, NCS: 150, MBU: 100, KU: 50,
 };
 
@@ -546,17 +546,17 @@ test("jungman headlines narrate what actually changed since an hour ago", () => 
 
   assert.deepEqual(buildJungmanHeadlines([]), []);
 
-  // 씨나인(700→850)이 와플대(800)를 넘어 3위 — 교체(시각 포함) + 컷라인 양쪽이 잡힌다
-  const swap = buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, C9: 850 })]);
-  assert.equal(swap[0], "09:00 씨나인이 3위로 올라섰습니다");
-  assert.ok(swap.includes("씨나인이 시드권에 진입했습니다"), swap.join(" / "));
+  // JSA(600→850)가 와플대(800)를 넘어 3위 — 교체(시각 포함) + 컷라인 양쪽이 잡힌다
+  const swap = buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, JSA: 850 })]);
+  assert.equal(swap[0], "09:00 JSA가 3위로 올라섰습니다");
+  assert.ok(swap.includes("JSA가 시드권에 진입했습니다"), swap.join(" / "));
   assert.ok(swap.includes("와플대가 시드권에서 밀려났습니다"), swap.join(" / "));
 
-  // 케이대(50, 12위 → 250, 9위)가 와일드카드권 탈출, 밀려난 쪽도 잡힌다
+  // 케이대(50, 11위 → 250, 8위)가 와일드카드권 탈출, 밀려난 쪽도 잡힌다
   const escaped = buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, KU: 250 })]);
-  assert.equal(escaped[0], "09:00 케이대가 9위로 올라섰습니다");
+  assert.equal(escaped[0], "09:00 케이대가 8위로 올라섰습니다");
   assert.ok(escaped.includes("케이대가 와일드카드권에서 벗어났습니다"), escaped.join(" / "));
-  assert.ok(escaped.includes("뉴캣슬이 와일드카드권으로 밀렸습니다"), escaped.join(" / "));
+  assert.ok(escaped.includes("엠비대가 와일드카드권으로 밀렸습니다"), escaped.join(" / "));
 
   // 초박빙 — 인접 표차가 1위 표수의 3%(=30표) 이내. 조사도 받침 따라 붙는다(DM=엠 → "과")
   const tight = buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, KMS: 999 })]);
@@ -567,7 +567,7 @@ test("jungman headlines narrate what actually changed since an hour ago", () => 
 
   // 사건이 쏟아져도 5개까지
   assert.equal(
-    buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, C9: 850, KU: 250 })]).length,
+    buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, JSA: 850, KU: 250 })]).length,
     5
   );
 });
@@ -580,15 +580,15 @@ test("jungman headlines keep the ticker moving when nothing happened", () => {
   // 표가 1표도 안 움직인 구간 — 사건은 0건인데도 경합·격차로 3문장이 찬다
   const idle = buildJungmanHeadlines([snapshot(1, base), snapshot(2, base)]);
   assert.ok(idle.length >= 3, `expected 3+ headlines, got ${idle.length}: ${idle.join(" / ")}`);
-  assert.ok(idle.includes("3위 와플대와 4위 씨나인이 100표 차입니다"), idle.join(" / "));
-  assert.ok(idle.includes("10위 뉴캣슬과 11위 엠비대가 50표 차입니다"), idle.join(" / "));
+  assert.ok(idle.includes("3위 와플대와 4위 JSA가 200표 차입니다"), idle.join(" / "));
+  assert.ok(idle.includes("10위 엠비대와 11위 케이대가 50표 차입니다"), idle.join(" / "));
   assert.ok(idle.includes("1위 DM이 2위와 100표 차로 앞서 있습니다"), idle.join(" / "));
 
   // 스냅샷 하나뿐이라 비교 대상이 없어도 상시 소재로 3문장
   assert.ok(buildJungmanHeadlines([snapshot(1, base)]).length >= 3);
 
   // 만 단위 이정표는 기준 시점에 못 미쳤다가 넘긴 순간만
-  const crossed = buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, DM: 5300 })]);
+  const crossed = buildJungmanHeadlines([snapshot(1, base), snapshot(2, { ...base, DM: 6000 })]);
   assert.ok(crossed.includes("총 투표수 1만 표를 넘었습니다"), crossed.join(" / "));
 
   // 마감 6시간 안쪽이면 남은 시간, 밖이면 침묵
@@ -678,10 +678,10 @@ test("jungman charts emphasise the cutlines, not the vote leaders", () => {
   const chart = readProjectFile("app/jungman/JungmanChart.tsx");
 
   const tiers = Array.from({ length: JUNGMAN_VOTING_TEAMS.length }, (_, i) => jungmanEmphasis(i + 1));
-  // 1~3위(시드) + 11~12위(와카)가 1군, 컷 바로 안쪽 4위·10위가 2군, 나머지는 배경
+  // 1~3위(시드) + 컷 밖(11위~)이 1군, 컷 바로 안쪽 4위·10위가 2군, 나머지는 배경
   assert.deepEqual(tiers, [
     "lead", "lead", "lead", "edge", "back", "back",
-    "back", "back", "back", "edge", "lead", "lead",
+    "back", "back", "back", "edge", "lead",
   ]);
   // 순위가 아니라 컷 상수를 기준으로 판정해야 한다 — 컷이 움직이면 강조도 따라 움직인다
   assert.equal(jungmanEmphasis(JUNGMAN_SEED_CUT), "lead");
@@ -735,7 +735,7 @@ test("jungman tells a failed read apart from an empty board", async () => {
   assert.equal(broken.degraded, true);
   assert.equal(broken.latest, null);
   // 상태 자체는 렌더 가능한 모양이어야 한다 — 지도·순위표가 터지면 안 된다
-  assert.equal(broken.standings.length, 12);
+  assert.equal(broken.standings.length, 11);
 
   // 정상 읽기는 degraded가 아니다
   const snapshot = { round: 7, at: new Date().toISOString(), votes: { DM: 10 } };
@@ -894,7 +894,7 @@ test("jungman drops a round rather than losing one to a concurrent write", async
 test("jungman team short labels follow the project metadata", () => {
   const { JUNGMAN_TEAMS, teamShort } = loadJungmanLib();
   // 표기는 임의로 정하지 않는다 — data/metadata/projects/*/players.*.json의 team_name_en이 원본이다
-  const META = { KMS: "calm", HKA: "black", C9: "c9", DM: "dm", WFU: "wfu", JSA: "jsa",
+  const META = { KMS: "calm", HKA: "black", DM: "dm", WFU: "wfu", JSA: "jsa",
     BGM: "bgm", HM: "hm", SSG: "ssg", NCS: "ncs", MBU: "mbu", KU: "ku", SSU: "ssu" };
 
   for (const team of JUNGMAN_TEAMS) {
@@ -921,7 +921,7 @@ test("jungman freezes into a final result once the vote closes", () => {
 
   // 티커는 확정 한 문장으로 고정 — 진행 중을 암시하는 문장이 하나도 섞이면 안 된다
   const lines = buildJungmanHeadlines(
-    [headlineSnapshot(1, headlineBase), headlineSnapshot(2, { ...headlineBase, C9: 850 })],
+    [headlineSnapshot(1, headlineBase), headlineSnapshot(2, { ...headlineBase, JSA: 850 })],
     closeAt,
     Date.parse(closeAt) + 60_000
   );
@@ -1166,7 +1166,7 @@ test("jungman rank arrows run on the hour baseline and the map reads the same va
   const standings = buildJungmanStandings(snapshots);
   const ku = standings.find((standing) => standing.team.code === "KU");
   assert.equal(ku.rank, 1);
-  assert.equal(ku.rankDelta, 11, "12위 → 1위는 ▲11이어야 한다");
+  assert.equal(ku.rankDelta, 10, "11위 → 1위는 ▲10이어야 한다");
   // 옆칸 1시간 증가량과 같은 스냅샷을 봐야 두 숫자가 어긋나지 않는다
   assert.equal(jungmanHourBaseline(snapshots).round, 2);
   assert.equal(buildJungmanHourDeltas(snapshots).KU, 2000);

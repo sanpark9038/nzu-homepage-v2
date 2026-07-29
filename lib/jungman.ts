@@ -63,7 +63,6 @@ export type JungmanTeam = {
 export const JUNGMAN_TEAMS: JungmanTeam[] = [
   { code: "DM", name: "DM", color: "#2f3f6e", accent: "#7c8fd6", dark: false, x: 301.3, y: 56.5, pinX: 301.3, pinY: 56.5, aliases: ["DM", "디엠"] },
   { code: "KMS", name: "캄몬스타즈", short: "CALM", color: "#2f6fd0", dark: false, x: 210.9, y: 238.1, pinX: 219.4, pinY: 226.1, aliases: ["캄몬스타즈", "캄몬", "츠캄몬스타즈", "츠캄", "CALM", "TSUCALM"] },
-  { code: "C9", name: "씨나인", color: "#f4a9c4", dark: false, x: 278.9, y: 373, pinX: 278.9, pinY: 373, aliases: ["씨나인", "시나인", "C9"] },
   { code: "WFU", name: "와플대", color: "#ece0cc", dark: false, x: 305.1, y: 225.4, pinX: 316.1, pinY: 237.4, aliases: ["와플대", "와플", "WFU"] },
   { code: "JSA", name: "JSA", color: "#e8801a", dark: true, x: 399.3, y: 233.5, pinX: 427.7, pinY: 260, aliases: ["JSA", "제이에스에이"] },
   { code: "BGM", name: "BGM", color: "#f2a98f", dark: false, x: 493.3, y: 222.4, pinX: 464.9, pinY: 237.4, aliases: ["BGM", "비지엠"] },
