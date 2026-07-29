@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useOverlayLive } from "@/lib/use-overlay-live";
 import { normalizeNewsState } from "@/components/starnews/news-types";
-import { Banner, Card, Fullscreen, LowerThird, Ticker } from "@/components/starnews/news-widgets";
+import { Banner, Card, Fullscreen, LowerThird, Reporter, Ticker, TopBox } from "@/components/starnews/news-widgets";
 
 function NewsInner() {
   const searchParams = useSearchParams();
@@ -35,6 +35,8 @@ function NewsInner() {
       {!full && news.banner.visible && <Banner banner={news.banner} />}
       {!full && news.lowerThird.visible && <LowerThird lower={news.lowerThird} />}
       {!full && news.card.visible && <Card card={news.card} />}
+      {!full && news.topBox.enabled && <TopBox box={news.topBox} />}
+      {!full && news.reporter.enabled && <Reporter reporter={news.reporter} />}
 
       {/* 티커는 전면 화면 위에 — 속보 흐름은 전면 자료 중에도 끊기지 않아야 함 */}
       {news.ticker.visible && (

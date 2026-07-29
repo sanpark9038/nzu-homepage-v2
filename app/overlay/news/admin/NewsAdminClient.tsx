@@ -363,6 +363,28 @@ export default function NewsAdminClient({ jungmanPreset }: { jungmanPreset: News
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className={label}>우측 존 문구 (한 줄에 하나 · 온도·지수)</span>
+                <textarea
+                  className={`${input} h-28`}
+                  value={news.ticker.rightItems.join("\n")}
+                  onChange={(e) =>
+                    patch("ticker", { rightItems: e.target.value.split("\n").filter((s) => s.trim()) })
+                  }
+                />
+                <p className="mt-1 text-xs text-white/35">중만컵 지수는 자동으로 맨 앞에 끼워집니다 (개표 전이면 숨김).</p>
+              </div>
+              <Slider
+                label="우측 존 표시 시간"
+                unit="초"
+                value={news.ticker.rightSecPerItem}
+                min={2}
+                max={30}
+                step={1}
+                onChange={(rightSecPerItem) => patch("ticker", { rightSecPerItem })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <Slider
                 label="하단 여백"
                 unit="px"
@@ -445,6 +467,68 @@ export default function NewsAdminClient({ jungmanPreset }: { jungmanPreset: News
               </div>
             </div>
             <LayoutFields layout={news.lowerThird.layout} onChange={(layout) => patch("lowerThird", { layout })} />
+          </Section>
+
+          <Section
+            title="좌상단 요약"
+            visible={news.topBox.enabled}
+            onToggle={(v) => patch("topBox", { enabled: v })}
+          >
+            <div>
+              <span className={label}>태그 (컬러 바)</span>
+              <input
+                className={input}
+                value={news.topBox.tag}
+                onChange={(e) => patch("topBox", { tag: e.target.value })}
+                placeholder="중만컵 투표 D-DAY"
+              />
+            </div>
+            <div>
+              <span className={label}>요약 (한 줄에 하나, 최대 2줄)</span>
+              <textarea
+                className={`${input} h-20`}
+                value={news.topBox.lines.join("\n")}
+                onChange={(e) =>
+                  patch("topBox", { lines: e.target.value.split("\n").filter((s) => s.trim()).slice(0, 2) })
+                }
+              />
+            </div>
+            <LayoutFields layout={news.topBox.layout} onChange={(layout) => patch("topBox", { layout })} />
+          </Section>
+
+          <Section
+            title="기자 연결"
+            visible={news.reporter.enabled}
+            onToggle={(v) => patch("reporter", { enabled: v })}
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className={label}>이름</span>
+                <input
+                  className={input}
+                  value={news.reporter.name}
+                  onChange={(e) => patch("reporter", { name: e.target.value })}
+                />
+              </div>
+              <div>
+                <span className={label}>직함</span>
+                <input
+                  className={input}
+                  value={news.reporter.role}
+                  onChange={(e) => patch("reporter", { role: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <span className={label}>사진 URL (비우면 실루엣)</span>
+              <input
+                className={`${input} font-mono text-xs`}
+                value={news.reporter.imageUrl}
+                onChange={(e) => patch("reporter", { imageUrl: e.target.value })}
+                placeholder="https://..."
+              />
+            </div>
+            <LayoutFields layout={news.reporter.layout} onChange={(layout) => patch("reporter", { layout })} />
           </Section>
         </div>
 

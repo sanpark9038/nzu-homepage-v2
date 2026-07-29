@@ -5,7 +5,16 @@
 // blur·backdrop-filter는 OBS 브라우저 소스에서 프레임 드랍의 주범이라 일절 쓰지 않는다.
 // 상시 애니메이션도 등장 1회 rise와 티커 문구 교체뿐 (마퀴 폐지).
 import { useEffect, useState } from "react";
-import type { NewsBanner, NewsCard, NewsLowerThird, NewsTable, NewsTicker, NewsWidgetLayout } from "./news-types";
+import type {
+  NewsBanner,
+  NewsCard,
+  NewsLowerThird,
+  NewsReporter,
+  NewsTable,
+  NewsTicker,
+  NewsTopBox,
+  NewsWidgetLayout,
+} from "./news-types";
 
 const C = {
   ink: "#0A0E1A",
@@ -20,6 +29,7 @@ const C = {
   note: "#4A5568",
   shadow: "0 8px 24px rgba(0,0,0,0.25)",
   divider: "rgba(255,255,255,0.25)", // 티커 내부 세로 구분선 1px
+  up: "#EF4444", // 상승 ▲ — 주식 관례대로 빨강
 };
 
 // 방송 자막체 — 굵은 디스플레이 고딕
@@ -44,7 +54,8 @@ const sans = (size: number, weight: 400 | 500 | 700 | 900 = 400): React.CSSPrope
 
 const KEYFRAMES =
   "@keyframes newsRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}" +
-  "@keyframes newsSwap{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}";
+  "@keyframes newsRollIn{from{transform:translateY(100%)}to{transform:translateY(0)}}" +
+  "@keyframes newsRollOut{from{transform:translateY(0)}to{transform:translateY(-100%)}}";
 
 const RISE = "newsRise 700ms cubic-bezier(0.32,0.72,0,1) both";
 
@@ -145,11 +156,66 @@ function HeaderBand({ table, size }: { table: NewsTable; size: "card" | "full" }
 // 화면 최하단 다크 바. 문구는 흐르지 않고 N초마다 교체된다.
 
 const TICKER_H = 56;
+const ROLL = "420ms cubic-bezier(0.32,0.72,0,1) both";
+
+// 롤업 교체 — 새 문구가 아래에서 올라오고 이전 문구는 위로 밀려 나간다.
+// 나간 문구는 translateY(-100%)에 멈춘 채 overflow:hidden에 가려지므로 제거 타이머가 필요 없다.
+// id가 바뀔 때만 애니메이션이 돈다. 내용은 render(id)로 뽑으므로 이전 문구도 그릴 수 있다.
+function Roll({ id, height, align, render }: {
+  id: string;
+  height: number;
+  align: "flex-start" | "flex-end";
+  render: (id: string) => React.ReactNode;
+}) {
+  const [roll, setRoll] = useState({ cur: id, prev: null as string | null, gen: 0 });
+
+  useEffect(() => {
+    setRoll(s => (s.cur === id ? s : { cur: id, prev: s.cur, gen: s.gen + 1 }));
+  }, [id]);
+
+  const line: React.CSSProperties = {
+    position: "absolute",
+    inset: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: align,
+  };
+  const text: React.CSSProperties = { maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+
+  return (
+    <div style={{ position: "relative", width: "100%", height, overflow: "hidden" }}>
+      {roll.prev !== null && (
+        <div key={`p${roll.gen}`} style={{ ...line, animation: `newsRollOut ${ROLL}` }}>
+          <span style={text}>{render(roll.prev)}</span>
+        </div>
+      )}
+      <div key={`c${roll.gen}`} style={{ ...line, animation: roll.gen > 0 ? `newsRollIn ${ROLL}` : undefined }}>
+        <span style={text}>{render(roll.cur)}</span>
+      </div>
+    </div>
+  );
+}
+
+// 순환 인덱스 — count가 2 이상일 때만 secPerItem 간격으로 돈다
+function useCycle(count: number, secPerItem: number) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    if (count < 2) {
+      setIdx(0);
+      return;
+    }
+    const timer = setInterval(() => setIdx(i => (i + 1) % count), Math.max(secPerItem, 2) * 1000);
+    return () => clearInterval(timer);
+  }, [count, secPerItem]);
+  return count > 0 ? idx % count : 0;
+}
+
+type LiveIndex = { totalVotes: number; hourDelta: number };
 
 export function Ticker({ ticker }: { ticker: NewsTicker }) {
   const items = ticker.items.filter(Boolean);
-  const [idx, setIdx] = useState(0);
   const [clock, setClock] = useState(""); // 서버 렌더와 어긋나면 hydration mismatch — 마운트 후에만 채운다
+  const [live, setLive] = useState<LiveIndex | null>(null);
 
   useEffect(() => {
     const tick = () => {
@@ -161,17 +227,44 @@ export function Ticker({ ticker }: { ticker: NewsTicker }) {
     return () => clearInterval(timer);
   }, []);
 
+  // 중만컵 지수 — 60초 폴링. 개표 전(합계 0)이나 실패면 항목 자체를 띄우지 않는다.
   useEffect(() => {
-    if (items.length < 2) {
-      setIdx(0);
-      return;
-    }
-    const timer = setInterval(
-      () => setIdx(i => (i + 1) % items.length),
-      Math.max(ticker.secPerItem, 2) * 1000
-    );
-    return () => clearInterval(timer);
-  }, [items.length, ticker.secPerItem]);
+    let alive = true;
+    const load = () =>
+      fetch("/api/overlay/news/live")
+        .then(r => r.json())
+        .then((d: LiveIndex) => {
+          if (alive && d && d.totalVotes > 0) setLive(d);
+        })
+        .catch(() => {});
+    load();
+    const timer = setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  // 우측 존 = 중만컵 지수(있을 때 맨 앞) + 관리자가 넣은 짧은 정보들
+  const rightItems: { id: string; node: React.ReactNode }[] = [];
+  if (live) {
+    rightItems.push({
+      id: `jungman:${live.totalVotes}:${live.hourDelta}`,
+      node: (
+        <>
+          <span style={{ color: "rgba(255,255,255,0.6)", marginRight: 8 }}>중만컵</span>
+          {live.totalVotes.toLocaleString("ko-KR")}
+          {live.hourDelta > 0 && (
+            <span style={{ color: C.up, marginLeft: 10 }}>▲{live.hourDelta.toLocaleString("ko-KR")}</span>
+          )}
+        </>
+      ),
+    });
+  }
+  for (const item of ticker.rightItems.filter(Boolean)) rightItems.push({ id: item, node: item });
+
+  const idx = useCycle(items.length, ticker.secPerItem);
+  const rightIdx = useCycle(rightItems.length, ticker.rightSecPerItem);
 
   const divider = <div style={{ width: 1, alignSelf: "stretch", background: C.divider, flexShrink: 0 }} />;
 
@@ -217,22 +310,25 @@ export function Ticker({ ticker }: { ticker: NewsTicker }) {
         </div>
       )}
 
-      {/* 문구 — secPerItem마다 교체. key가 바뀌면서 새 요소가 아래에서 올라온다 */}
-      <div style={{ flex: 1, minWidth: 0, padding: "0 22px", overflow: "hidden" }}>
-        <div
-          key={idx}
-          style={{
-            ...sans(26, 700),
-            color: "#FFFFFF",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            animation: items.length > 1 ? "newsSwap 350ms cubic-bezier(0.32,0.72,0,1) both" : undefined,
-          }}
-        >
-          {items[idx % Math.max(items.length, 1)] ?? ""}
-        </div>
+      {/* 문구 — secPerItem마다 롤업 교체 */}
+      <div style={{ flex: 1, minWidth: 0, padding: "0 22px", ...sans(26, 700), color: "#FFFFFF" }}>
+        <Roll id={items[idx] ?? ""} height={34} align="flex-start" render={id => id} />
       </div>
+
+      {/* 우측 고정 존 — 온도·지수 등 짧은 정보가 따로 순환 */}
+      {rightItems.length > 0 && (
+        <>
+          {divider}
+          <div style={{ width: 240, flexShrink: 0, padding: "0 20px", ...sans(24, 700), color: "#FFFFFF" }}>
+            <Roll
+              id={rightItems[rightIdx].id}
+              height={32}
+              align="flex-end"
+              render={id => rightItems.find(item => item.id === id)?.node ?? null}
+            />
+          </div>
+        </>
+      )}
 
       {/* 방송사 워드마크 */}
       {divider}
@@ -284,6 +380,82 @@ export function LowerThird({ lower }: { lower: NewsLowerThird }) {
         {lower.name && <div style={{ ...display(46), color: C.ink }}>{lower.name}</div>}
         {lower.affiliation && <div style={{ ...sans(21, 700), color: C.blueText, marginTop: 8 }}>{lower.affiliation}</div>}
         {lower.note && <div style={{ ...sans(17), color: C.note, marginTop: 6 }}>{lower.note}</div>}
+      </div>
+    </Stage>
+  );
+}
+
+// ── 좌상단 요약 박스 ───────────────────────────────────────
+// 컬러 태그 바 + 흰 바탕 요약 줄(최대 2줄). 자료화면이 나가는 동안 주제를 고정 표시한다.
+
+const TOPBOX_W = 460;
+
+export function TopBox({ box }: { box: NewsTopBox }) {
+  const lines = box.lines.filter(Boolean).slice(0, 2);
+  if (!box.tag && lines.length === 0) return null;
+
+  return (
+    <Stage style={place(box.layout)} innerStyle={{ width: TOPBOX_W, boxShadow: C.shadow }}>
+      {box.tag && (
+        <div style={{ ...display(26), color: "#FFFFFF", background: C.tagBand, padding: "8px 18px" }}>{box.tag}</div>
+      )}
+      {lines.length > 0 && (
+        <div style={{ background: C.panel, padding: "12px 18px" }}>
+          {lines.map((line, i) => (
+            <div key={i} style={{ ...sans(23, 700), color: C.ink, marginTop: i === 0 ? 0 : 6 }}>
+              {line}
+            </div>
+          ))}
+        </div>
+      )}
+    </Stage>
+  );
+}
+
+// ── 기자 연결 카드 ─────────────────────────────────────────
+// 사진(3:4) + 하단 네이비 네임바(이름 크게 + 직함 작게). 소속 표기는 없다.
+
+const REPORTER_W = 260;
+
+// 사진 미지정용 회색 실루엣 — 외부 파일 없이 인라인 SVG로 그린다
+function Silhouette() {
+  return (
+    <svg viewBox="0 0 120 160" width="100%" height="100%" style={{ display: "block", background: "#D5D9E0" }}>
+      <circle cx="60" cy="58" r="27" fill="#9AA3B2" />
+      <path d="M14 160c0-27 21-46 46-46s46 19 46 46z" fill="#9AA3B2" />
+    </svg>
+  );
+}
+
+export function Reporter({ reporter }: { reporter: NewsReporter }) {
+  return (
+    <Stage
+      style={place(reporter.layout)}
+      innerStyle={{ width: REPORTER_W, background: C.panel, boxShadow: C.shadow, overflow: "hidden" }}
+    >
+      <div style={{ width: "100%", aspectRatio: "3 / 4", overflow: "hidden" }}>
+        {reporter.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={reporter.imageUrl}
+            alt=""
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        ) : (
+          <Silhouette />
+        )}
+      </div>
+      <div
+        style={{
+          background: C.blueDeep,
+          padding: "10px 16px",
+          display: "flex",
+          alignItems: "baseline",
+          gap: 8,
+        }}
+      >
+        <span style={{ ...display(32), color: "#FFFFFF" }}>{reporter.name}</span>
+        <span style={{ ...sans(16, 500), color: "rgba(255,255,255,0.72)" }}>{reporter.role}</span>
       </div>
     </Stage>
   );

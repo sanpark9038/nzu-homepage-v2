@@ -77,6 +77,49 @@ test("broadcast page reuses the existing overlay live subscription", () => {
   assert.match(source, /normalizeNewsState/);
 });
 
+test("new widgets ship schema defaults, renderers, and admin controls together", () => {
+  const types = readProjectFile("components/starnews/news-types.ts");
+  for (const field of ["topBox", "reporter", "rightItems", "rightSecPerItem"]) {
+    assert.ok(types.includes(field), `news-types must define ${field}`);
+  }
+  // 저장분에 없던 필드가 normalize에서 안 메워지면 송출이 undefined로 죽는다
+  const normalize = types.slice(types.indexOf("export function normalizeNewsState"));
+  assert.match(normalize, /topBox:/);
+  assert.match(normalize, /reporter:/);
+  // 요약 박스는 2줄이 상한 (넘치면 방송 화면이 밀린다)
+  assert.match(normalize, /slice\(0, 2\)/);
+
+  const widgets = readProjectFile("components/starnews/news-widgets.tsx");
+  assert.match(widgets, /export function TopBox/);
+  assert.match(widgets, /export function Reporter/);
+  // 티커 교체는 롤업 — blur 없이 transform만 쓴다
+  assert.match(widgets, /newsRollIn/);
+  assert.match(widgets, /newsRollOut/);
+
+  const page = readProjectFile("app/overlay/news/page.tsx");
+  assert.match(page, /news\.topBox\.enabled/);
+  assert.match(page, /news\.reporter\.enabled/);
+
+  const admin = readProjectFile("app/overlay/news/admin/NewsAdminClient.tsx");
+  for (const field of ["topBox", "reporter", "rightItems"]) {
+    assert.ok(admin.includes(field), `admin must edit ${field}`);
+  }
+});
+
+test("live index route is public, cached, and derived from jungman state", () => {
+  const source = readProjectFile("app/api/overlay/news/live/route.ts");
+  // 송출 화면(비로그인 OBS)이 읽어야 하므로 세션 게이트가 있으면 안 된다
+  assert.doesNotMatch(source, /parsePublicAuthSessionCookieValue/);
+  assert.match(source, /getJungmanState/);
+  assert.match(source, /totalVotes/);
+  assert.match(source, /hourDelta/);
+  // 방송 중 여러 화면이 붙어도 KV 읽기는 60초에 한 번
+  assert.match(source, /60_000|60000/);
+
+  const widgets = readProjectFile("components/starnews/news-widgets.tsx");
+  assert.match(widgets, /\/api\/overlay\/news\/live/);
+});
+
 test("news admin builds OBS URLs from viewToken, not soop id", () => {
   const source = readProjectFile("app/overlay/news/admin/NewsAdminClient.tsx");
   assert.match(source, /encodeURIComponent\(viewToken\)/);

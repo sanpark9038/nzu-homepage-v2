@@ -18,6 +18,9 @@ export type NewsTicker = {
   secPerItem: number; // 문구 하나가 떠 있는 시간(초) — 지나면 다음 문구로 교체
   y: number;          // 화면 하단에서의 여백(px)
   scale: number;      // 배율
+  // 우측 고정 존 — 온도·지수처럼 짧은 정보가 따로 순환한다 (좌측 문구와 독립)
+  rightItems: string[];
+  rightSecPerItem: number;
 };
 
 export type NewsBanner = {
@@ -34,6 +37,24 @@ export type NewsLowerThird = {
   name: string;         // 선수명
   affiliation: string;  // 소속(대학)
   note: string;         // 한 줄 설명 (티어·전적 등)
+  layout: NewsWidgetLayout;
+};
+
+// 좌상단 요약 박스 — 자료화면이 나가는 동안 "지금 무슨 뉴스인지"를 고정 표시한다.
+// 컬러 태그 바 + 흰 바탕 요약 줄(최대 2줄).
+export type NewsTopBox = {
+  enabled: boolean;
+  tag: string;
+  lines: string[]; // 최대 2줄 — 초과분은 렌더에서 잘린다
+  layout: NewsWidgetLayout;
+};
+
+// 기자 연결 카드 — 사진(3:4) + 하단 네이비 네임바. 소속 표기는 없다.
+export type NewsReporter = {
+  enabled: boolean;
+  name: string;
+  role: string;
+  imageUrl: string; // 비우면 회색 실루엣 placeholder
   layout: NewsWidgetLayout;
 };
 
@@ -54,6 +75,8 @@ export type NewsState = {
   ticker: NewsTicker;
   banner: NewsBanner;
   lowerThird: NewsLowerThird;
+  topBox: NewsTopBox;
+  reporter: NewsReporter;
   card: NewsCard;
   fullscreen: NewsFullscreen;
 };
@@ -69,9 +92,20 @@ export function defaultNewsTable(): NewsTable {
 // 관리자에서 X/Y/배율로 자유 조정 가능하므로 이 값들은 시작점일 뿐이다.
 export function defaultNewsState(): NewsState {
   return {
-    ticker: { visible: false, label: "속보", items: [], secPerItem: 8, y: 54, scale: 1 },
+    ticker: {
+      visible: false,
+      label: "속보",
+      items: [],
+      secPerItem: 8,
+      y: 54,
+      scale: 1,
+      rightItems: ["김포 29°", "부천 30°", "시흥 29°", "강남 30°", "종로 29°", "성동 30°"],
+      rightSecPerItem: 6,
+    },
     banner: { visible: false, tag: "속보", headline: "", subline: "", layout: { x: 96, y: 836, scale: 1 } },
     lowerThird: { visible: false, tag: "", name: "", affiliation: "", note: "", layout: { x: 96, y: 620, scale: 1 } },
+    topBox: { enabled: false, tag: "", lines: [], layout: { x: 96, y: 96, scale: 1 } },
+    reporter: { enabled: false, name: "이아이", role: "기자", imageUrl: "", layout: { x: 1524, y: 320, scale: 1 } },
     card: { visible: false, table: defaultNewsTable(), layout: { x: 1344, y: 200, scale: 1 } },
     fullscreen: { visible: false, table: defaultNewsTable() },
   };
@@ -92,6 +126,13 @@ export function normalizeNewsState(raw: unknown): NewsState {
     ticker: { ...d.ticker, ...r.ticker },
     banner: { ...d.banner, ...r.banner, layout: layoutOf(r.banner?.layout, d.banner.layout) },
     lowerThird: { ...d.lowerThird, ...r.lowerThird, layout: layoutOf(r.lowerThird?.layout, d.lowerThird.layout) },
+    topBox: {
+      ...d.topBox,
+      ...r.topBox,
+      lines: (r.topBox?.lines ?? d.topBox.lines).slice(0, 2),
+      layout: layoutOf(r.topBox?.layout, d.topBox.layout),
+    },
+    reporter: { ...d.reporter, ...r.reporter, layout: layoutOf(r.reporter?.layout, d.reporter.layout) },
     card: {
       visible: r.card?.visible ?? false,
       table: { ...defaultNewsTable(), ...r.card?.table },
