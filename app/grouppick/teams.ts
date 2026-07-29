@@ -21,19 +21,6 @@ export const TEAMS: Team[] = [
 export const GROUPS = ["A", "B", "C", "D"] as const;
 export type GroupKey = (typeof GROUPS)[number];
 
-// 각 조 1번 고정 시드. 인기투표 3위 접전이라 방송 전에 바뀔 수 있다 — 바뀌면 여기만 고친다.
-export const SEEDS: Record<GroupKey, string> = {
-  A: "KMS", // 인기투표 1위
-  B: "NCS", // 2위
-  C: "JSA", // 3위
-  D: "SSU", // 시드권
-};
-
-const SEED_CODES = new Set(Object.values(SEEDS));
-
-/** 시청자가 직접 배치하는 8팀 (조당 2슬롯 × 4조) */
-export const FREE_TEAMS = TEAMS.filter((team) => !SEED_CODES.has(team.code));
-
 const NAME_BY_CODE = new Map(TEAMS.map((team) => [team.code, team.name]));
 
 export function teamName(code: string): string {

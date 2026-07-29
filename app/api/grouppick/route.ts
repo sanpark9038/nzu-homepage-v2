@@ -2,7 +2,7 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
-import { GROUPS, SEEDS, isTeamCode, TEAMS } from "@/app/grouppick/teams";
+import { GROUPS, isTeamCode, TEAMS } from "@/app/grouppick/teams";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,7 +38,6 @@ export async function POST(request: Request) {
   for (const group of GROUPS) {
     const picks = groups[group];
     if (!Array.isArray(picks) || picks.length !== 3) return bad();
-    if (picks[0] !== SEEDS[group]) return bad();
     for (const code of picks) {
       if (typeof code !== "string" || !isTeamCode(code)) return bad();
       if (seen.has(code)) return bad();

@@ -40,10 +40,12 @@ test("grouppick API validates honeypot, teams, and a submission cap on the serve
   const source = readProjectFile("app/api/grouppick/route.ts");
   // 봇 미끼
   assert.match(source, /payload\.hp/);
-  // 팀·시드 검증
+  // 팀 검증 — 조당 3팀, 12팀이 정확히 한 번씩 (시드 고정은 폐지)
   assert.match(source, /isTeamCode/);
-  assert.match(source, /SEEDS\[group\]/);
+  assert.match(source, /picks\.length !== 3/);
+  assert.match(source, /seen\.has\(code\)/);
   assert.match(source, /seen\.size !== TEAMS\.length/);
+  assert.doesNotMatch(source, /SEEDS/);
   // 상한
   assert.match(source, /3000/);
   assert.match(source, /count: "exact", head: true/);

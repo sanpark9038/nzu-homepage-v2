@@ -3,15 +3,16 @@ import { parsePublicAuthSessionCookieValue, PUBLIC_AUTH_SESSION_COOKIE } from "@
 import { getOverlayAccessStatus } from "@/lib/overlay-access";
 import { AccessGate } from "@/app/overlay/admin/AccessGate";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
-import { FREE_TEAMS, GROUPS, teamName, type GroupKey } from "../teams";
+import { TEAMS, GROUPS, teamName, type GroupKey } from "../teams";
+import { WinnerChecker } from "./WinnerChecker";
 
 export const dynamic = "force-dynamic";
 
 type Submission = { name: string; groups: Record<string, string[]>; at?: string };
 
-/** 조합 동일성 판정 키 — 조별 자유 2팀을 정렬해 직렬화 (시드는 어차피 고정이라 뺀다) */
+/** 조합 동일성 판정 키 — 조별 3팀을 정렬해 직렬화 (조 안의 순서는 무의미) */
 function comboKey(groups: Record<string, string[]>) {
-  return GROUPS.map((g) => `${g}:${(groups[g] ?? []).slice(1).slice().sort().join(",")}`).join("|");
+  return GROUPS.map((g) => `${g}:${[...(groups[g] ?? [])].sort().join(",")}`).join("|");
 }
 
 export default async function GroupPickResultsPage() {
@@ -63,7 +64,7 @@ export default async function GroupPickResultsPage() {
 
   const combos = new Map<string, { count: number; groups: Record<string, string[]> }>();
   const matrix = new Map<string, Record<GroupKey, number>>();
-  for (const team of FREE_TEAMS) matrix.set(team.code, { A: 0, B: 0, C: 0, D: 0 });
+  for (const team of TEAMS) matrix.set(team.code, { A: 0, B: 0, C: 0, D: 0 });
 
   for (const { sub } of valid) {
     const key = comboKey(sub.groups);
@@ -72,7 +73,7 @@ export default async function GroupPickResultsPage() {
     else combos.set(key, { count: 1, groups: sub.groups });
 
     for (const group of GROUPS) {
-      for (const code of (sub.groups[group] ?? []).slice(1)) {
+      for (const code of sub.groups[group] ?? []) {
         const row = matrix.get(code);
         if (row) row[group] += 1;
       }
@@ -93,6 +94,14 @@ export default async function GroupPickResultsPage() {
             유효 제출 {valid.length}명 (고유 숲 아이디) / 전체 {all.length}건
           </p>
         </header>
+
+        <WinnerChecker
+          entries={valid.map(({ sub, at }) => ({
+            name: sub.name,
+            at: sub.at ?? at,
+            groups: sub.groups,
+          }))}
+        />
 
         <section>
           <h2 className="text-lg font-bold">최다 예측 조합 Top 10</h2>
@@ -127,7 +136,7 @@ export default async function GroupPickResultsPage() {
                 </tr>
               </thead>
               <tbody>
-                {FREE_TEAMS.map((team) => {
+                {TEAMS.map((team) => {
                   const row = matrix.get(team.code)!;
                   return (
                     <tr key={team.code} className="border-b border-slate-100">

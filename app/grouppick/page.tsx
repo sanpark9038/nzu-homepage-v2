@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { FREE_TEAMS, GROUPS, SEEDS, teamName, type GroupKey } from "./teams";
+import { GROUPS, TEAMS, teamName, type GroupKey } from "./teams";
 
-type Picks = Record<GroupKey, [string, string]>;
+type Picks = Record<GroupKey, [string, string, string]>;
 
-const EMPTY: Picks = { A: ["", ""], B: ["", ""], C: ["", ""], D: ["", ""] };
+const SLOTS = [0, 1, 2] as const;
+const EMPTY: Picks = { A: ["", "", ""], B: ["", "", ""], C: ["", "", ""], D: ["", "", ""] };
 
 export default function GroupPickPage() {
   const [picks, setPicks] = useState<Picks>(EMPTY);
@@ -16,13 +17,13 @@ export default function GroupPickPage() {
   const [done, setDone] = useState(false);
 
   const taken = new Set(GROUPS.flatMap((g) => picks[g]).filter(Boolean));
-  const filled = GROUPS.every((g) => picks[g][0] && picks[g][1]);
+  const filled = GROUPS.every((g) => picks[g].every(Boolean));
   // 숲 아이디 형식 — 분리 배포된 제출 앱·API와 같은 규칙
   const canSubmit = filled && /^[a-z0-9_-]{3,20}$/.test(name.trim().toLowerCase()) && !sending;
 
-  function setSlot(group: GroupKey, slot: 0 | 1, code: string) {
+  function setSlot(group: GroupKey, slot: (typeof SLOTS)[number], code: string) {
     setPicks((prev) => {
-      const next: Picks = { ...prev, [group]: [...prev[group]] as [string, string] };
+      const next: Picks = { ...prev, [group]: [...prev[group]] as [string, string, string] };
       next[group][slot] = code;
       return next;
     });
@@ -32,9 +33,7 @@ export default function GroupPickPage() {
     setSending(true);
     setError("");
     try {
-      const groups = Object.fromEntries(
-        GROUPS.map((g) => [g, [SEEDS[g], picks[g][0], picks[g][1]]])
-      );
+      const groups = Object.fromEntries(GROUPS.map((g) => [g, [...picks[g]]]));
       const res = await fetch("/api/grouppick", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -70,7 +69,7 @@ export default function GroupPickPage() {
               <div key={g} className="rounded-xl border border-slate-200 p-4">
                 <div className="text-sm font-bold text-[#2563EB]">{g}조</div>
                 <div className="mt-1 text-sm text-slate-700">
-                  {[SEEDS[g], picks[g][0], picks[g][1]].map(teamName).join(" · ")}
+                  {picks[g].map(teamName).join(" · ")}
                 </div>
               </div>
             ))}
@@ -88,7 +87,7 @@ export default function GroupPickPage() {
       <div className="mx-auto w-full max-w-md">
         <h1 className="text-2xl font-bold">중만컵 조편성 예측</h1>
         <p className="mt-1 text-sm text-slate-500">
-          12팀이 어느 조에 갈지 맞춰보세요. 각 조 1번은 시드로 고정입니다.
+          12팀을 4개 조에 3팀씩 배치해 주세요. 조 안의 순서는 상관없습니다.
         </p>
 
         <div className="mt-6 space-y-4">
@@ -96,24 +95,19 @@ export default function GroupPickPage() {
             <section key={group} className="rounded-2xl border border-slate-200 p-4">
               <h2 className="text-base font-bold text-[#2563EB]">{group}조</h2>
               <div className="mt-3 space-y-2">
-                <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-3 text-sm">
-                  <span className="w-5 shrink-0 font-bold text-slate-400">1</span>
-                  <span className="font-semibold">{teamName(SEEDS[group])}</span>
-                  <span className="ml-auto text-xs text-slate-400">시드 고정</span>
-                </div>
-                {([0, 1] as const).map((slot) => (
+                {SLOTS.map((slot) => (
                   <div key={slot} className="flex items-center gap-2">
                     <span className="w-5 shrink-0 text-center text-sm font-bold text-slate-400">
-                      {slot + 2}
+                      {slot + 1}
                     </span>
                     <select
-                      aria-label={`${group}조 ${slot + 2}번 팀`}
+                      aria-label={`${group}조 ${slot + 1}번 팀`}
                       value={picks[group][slot]}
                       onChange={(event) => setSlot(group, slot, event.target.value)}
                       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm focus:border-[#2563EB] focus:outline-none"
                     >
                       <option value="">팀 선택</option>
-                      {FREE_TEAMS.filter(
+                      {TEAMS.filter(
                         (team) => !taken.has(team.code) || team.code === picks[group][slot]
                       ).map((team) => (
                         <option key={team.code} value={team.code}>
@@ -165,7 +159,7 @@ export default function GroupPickPage() {
           disabled={!canSubmit}
           className="mt-4 w-full rounded-xl bg-[#2563EB] px-4 py-4 text-base font-bold text-white disabled:bg-slate-300"
         >
-          {sending ? "제출 중…" : filled ? "예측 제출" : "8팀을 모두 배치해 주세요"}
+          {sending ? "제출 중…" : filled ? "예측 제출" : "12팀을 모두 배치해 주세요"}
         </button>
         <p className="mt-3 pb-10 text-xs text-slate-400">
           같은 아이디로 다시 제출하면 마지막 예측만 집계됩니다.
