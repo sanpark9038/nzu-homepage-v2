@@ -286,7 +286,6 @@ export function Ticker({ ticker }: { ticker: NewsTicker }) {
         alignItems: "center",
         height: TICKER_H,
         background: C.tickerBg,
-        boxShadow: C.shadow,
         overflow: "hidden",
       }}
     >
@@ -361,7 +360,7 @@ export function Banner({ banner }: { banner: NewsBanner }) {
           {midDots(banner.subline)}
         </div>
       )}
-      <div style={{ display: "flex", alignItems: "stretch", boxShadow: C.shadow }}>
+      <div style={{ display: "flex", alignItems: "stretch" }}>
         {banner.tag && (
           <div style={{ ...display(36), color: "#FFFFFF", background: C.tagBand, padding: "0 26px", display: "flex", alignItems: "center", flexShrink: 0 }}>
             {banner.tag}
@@ -389,7 +388,7 @@ export function Banner({ banner }: { banner: NewsBanner }) {
 
 export function LowerThird({ lower }: { lower: NewsLowerThird }) {
   return (
-    <Stage style={place(lower.layout)} innerStyle={{ display: "flex", background: C.panel, boxShadow: C.shadow, minWidth: 380 }}>
+    <Stage style={place(lower.layout)} innerStyle={{ display: "flex", background: C.panel, minWidth: 380 }}>
       <div style={{ width: 6, background: C.blue, flexShrink: 0 }} />
       <div style={{ padding: "18px 30px" }}>
         {lower.tag && (
@@ -415,7 +414,7 @@ export function TopBox({ box }: { box: NewsTopBox }) {
   if (!box.tag && lines.length === 0) return null;
 
   return (
-    <Stage style={place(box.layout)} innerStyle={{ width: TOPBOX_W, boxShadow: C.shadow }}>
+    <Stage style={place(box.layout)} innerStyle={{ width: TOPBOX_W }}>
       {box.tag && (
         <div style={{ ...display(26), color: "#FFFFFF", background: C.tagBand, padding: "8px 18px" }}>{box.tag}</div>
       )}
@@ -451,7 +450,7 @@ export function Reporter({ reporter }: { reporter: NewsReporter }) {
   return (
     <Stage
       style={place(reporter.layout)}
-      innerStyle={{ width: REPORTER_W, background: C.panel, boxShadow: C.shadow, overflow: "hidden" }}
+      innerStyle={{ width: REPORTER_W, background: C.panel, overflow: "hidden" }}
     >
       <div style={{ width: "100%", aspectRatio: "3 / 4", overflow: "hidden" }}>
         {reporter.imageUrl ? (
@@ -487,7 +486,7 @@ export function Card({ card }: { card: NewsCard }) {
   return (
     <Stage
       style={place(card.layout)}
-      innerStyle={{ width: 480, background: C.panel, borderRadius: 4, boxShadow: C.shadow, overflow: "hidden" }}
+      innerStyle={{ width: 480, background: C.panel, borderRadius: 4, overflow: "hidden" }}
     >
       <HeaderBand table={card.table} size="card" />
       <div style={{ padding: "8px 20px 16px" }}>
@@ -501,7 +500,7 @@ export function Fullscreen({ table }: { table: NewsTable }) {
   return (
     <Stage
       style={{ left: 96, right: 96, top: 54, bottom: 54 }}
-      innerStyle={{ height: "100%", background: C.panel, borderRadius: 4, boxShadow: C.shadow, overflow: "hidden" }}
+      innerStyle={{ height: "100%", background: C.panel, borderRadius: 4, overflow: "hidden" }}
     >
       <HeaderBand table={table} size="full" />
       <div style={{ padding: "32px 48px" }}>
