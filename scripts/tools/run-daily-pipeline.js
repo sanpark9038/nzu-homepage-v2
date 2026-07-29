@@ -488,8 +488,15 @@ function summarizeTeamFromReport(team, report) {
   ).length;
   // 회귀 가드가 잡은 선수 = 다시 읽은 total이 기존보다 적다(조용한 삭제·정정 의심).
   // FETCH_OK_STATES에 들어 있어 지금까지 아침 보고에 한 줄도 안 올라오던 상태다.
+  // 단 "실제로 엘로보드를 읽은 경우"만 판정한다(0건 경보와 같은 관측 기반 원칙). 혼성 보드
+  // 선수는 수집이 꺼져 있어(mixed_collection_disabled) 정독해도 관측 없이 0건이 나오는데,
+  // 2026-07-28 첫 실전에서 그 0건이 전부 "감소"로 오인돼 11건이 오탐으로 떴다.
   const verifyMismatchPlayers = actionable
-    .filter((row) => String(row.fetch_status) === "used_existing_json_regression_guard")
+    .filter(
+      (row) =>
+        String(row.fetch_status) === "used_existing_json_regression_guard" &&
+        String(row.verify_scan_strategy) === "full_scan"
+    )
     .map((row) => String(row.player || ""))
     .filter(Boolean);
   let fullScans = 0;

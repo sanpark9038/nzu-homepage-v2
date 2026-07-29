@@ -771,6 +771,7 @@ runTest("summarizeTeamFromReport surfaces regression-guard players as verify mis
         fetch_status: "used_existing_json_regression_guard",
         csv_status: "used_existing_csv",
         rotation_full_verify: true,
+        verify_scan_strategy: "full_scan",
         json_path: write("kim.json"),
       },
       { player: "b", fetch_status: "ok", csv_status: "ok", json_path: write("b.json") },
@@ -784,6 +785,44 @@ runTest("summarizeTeamFromReport surfaces regression-guard players as verify mis
   assert.equal(row.verify_mismatch_player_names, "김설");
   // 회귀 가드는 실패가 아니다 — 기존 파일을 지킨 정상 동작이므로 fetch_fail로 세면 안 된다.
   assert.equal(row.fetch_fail, 0);
+});
+
+// 2026-07-28 첫 실전 오탐: 혼성 보드 선수는 수집이 꺼져 있어 정독해도 관측 없이 0건이 나오는데,
+// 그 0건이 "기존보다 적다"로 오인돼 mismatch 11건이 전부 오탐이었다. 실제로 읽은 경우만 판정한다.
+runTest("summarizeTeamFromReport ignores regression guards that observed nothing", () => {
+  const dir = makeTempReportsDir();
+  const write = (name) => {
+    const p = path.join(dir, name);
+    fs.writeFileSync(p, JSON.stringify({ players: [{ period_total: 13 }] }), "utf8");
+    return p;
+  };
+  const guard = (player, verifyScanStrategy) => ({
+    player,
+    fetch_status: "used_existing_json_regression_guard",
+    csv_status: "used_existing_csv",
+    rotation_full_verify: true,
+    verify_scan_strategy: verifyScanStrategy,
+    json_path: write(`${player}.json`),
+  });
+  const report = {
+    results: [
+      // ① 실제로 다 읽었는데 줄었다 → 조용한 삭제 의심, 판정 대상
+      guard("정독선수", "full_scan"),
+      // ② 수집이 꺼져 관측이 없다 → 판정 제외 (혁민 male:mix:1184 실측 사례)
+      guard("혼성선수", "mixed_collection_disabled"),
+      // 옛 산출물에는 이 필드가 없다 — 관측을 증명하지 못하므로 안전하게 제외
+      {
+        player: "구버전선수",
+        fetch_status: "used_existing_json_regression_guard",
+        csv_status: "used_existing_csv",
+        json_path: write("legacy.json"),
+      },
+    ],
+  };
+
+  const row = summarizeTeamFromReport({ univ: "팀", code: "tm" }, report);
+  assert.equal(row.verify_mismatch_players, 1);
+  assert.equal(row.verify_mismatch_player_names, "정독선수");
 });
 
 runTest("buildAlerts reports rotation verify mismatches without blocking the sync", () => {

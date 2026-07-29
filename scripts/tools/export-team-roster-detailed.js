@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
-const { defaultProfileUrlForPlayer } = require("./lib/eloboard-special-cases");
+const { defaultProfileUrlForPlayer, shouldUseMixEndpoint } = require("./lib/eloboard-special-cases");
 const { clearRemoteResumeMarker, loadMergedRosterAdminState } = require("./lib/roster-admin-store");
 const {
   loadOpponentIdentityDecisions,
@@ -187,6 +187,13 @@ function firstPeriodTotal(parsed) {
   return Number.isFinite(total) ? total : null;
 }
 
+// 회귀 가드는 파일을 다시 쓰지 않으므로, 이번에 읽어온 결과의 수집 방식은 결과행에만 남는다.
+// 디스크의 json을 읽으면 "지난번" 방식이 나와 판정이 어긋난다.
+function firstScanStrategy(parsed) {
+  if (!parsed || !Array.isArray(parsed.players) || parsed.players.length === 0) return "";
+  return String(parsed.players[0]?.scan_strategy || "");
+}
+
 function readPeriodTotal(filePath) {
   if (!fs.existsSync(filePath)) return null;
   try {
@@ -355,6 +362,9 @@ function rotationBucketForEntityId(entityId, buckets = ROTATION_BUCKETS) {
 // dayOfYear는 연말에 365%34로 끊겨 특정 버킷이 두 번 연속 돌거나 건너뛴다. epoch-day는
 // 단조증가라 34일 연속이면 34개 버킷을 정확히 한 번씩 덮는다.
 function shouldRotationFullVerify(player, dateStr, buckets = ROTATION_BUCKETS) {
+  // 혼성 보드 선수는 수집이 설계상 꺼져 있다(scan_strategy=mixed_collection_disabled).
+  // 정독해도 관측 없이 0건이 나와 검증이 성립하지 않으므로 순환 슬롯을 낭비하지 않는다.
+  if (shouldUseMixEndpoint(player)) return false;
   const bucket = rotationBucketForEntityId(player && player.entity_id ? player.entity_id : "", buckets);
   if (bucket < 0) return false;
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateStr || "").trim());
@@ -548,11 +558,14 @@ async function main() {
         ) {
           result.fetch_status = "used_existing_json_regression_guard";
           result.fetch_warning = `period_total_regressed:${existingPeriodTotal}->${nextPeriodTotal}`;
+          // 감소가 "실제 관측"인지 판정하려면 이번 읽기의 수집 방식이 필요하다(상위가 이걸로 거른다).
+          result.verify_scan_strategy = firstScanStrategy(parsed);
           appendExportProgress(reportPath, "player_report_regression_guard", {
             player: playerName,
             wr_id: p.wr_id,
             existing_period_total: existingPeriodTotal,
             next_period_total: nextPeriodTotal,
+            verify_scan_strategy: result.verify_scan_strategy,
           });
         } else {
           writeJson(jsonPath, parsed);

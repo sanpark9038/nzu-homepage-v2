@@ -18,6 +18,7 @@ const {
   ROTATION_BUCKETS,
 } = require("./export-team-roster-detailed");
 const { loadProjectPlayerMetadata } = require("./lib/project-player-metadata");
+const { shouldUseMixEndpoint } = require("./lib/eloboard-special-cases");
 
 function runTest(name, fn) {
   try {
@@ -222,15 +223,24 @@ runTest("rotation full-verify picks the same players for the same day, different
 
 // 핵심 증명: 34일 연속이면 전원이 정확히 1회씩 정독된다("한 달에 전원 1회"). epoch-day가
 // 단조증가라 버킷이 정확히 한 바퀴 돈다.
-runTest("34 consecutive days cover every roster player exactly once", () => {
-  const roster = loadProjectPlayerMetadata()
-    .map((p) => String(p.entity_id || ""))
-    .filter(Boolean);
-  const unique = [...new Set(roster)];
-  const ids = unique.length
-    ? unique
-    : Array.from({ length: 337 }, (_, i) => `eloboard:${i % 2 ? "male" : "female"}:${1000 + i}`);
-  const players = ids.map((entity_id) => ({ entity_id }));
+runTest("34 consecutive days cover every rotation-eligible roster player exactly once", () => {
+  // 선수 객체를 통째로 쓴다. entity_id만 뽑아 쓰면 혼성 보드 판정(profile_url·name 기반)이
+  // 죽어서, 실제로는 제외되는 선수를 테스트만 포함시키는 거짓 통과가 된다.
+  const seen = new Set();
+  const roster = loadProjectPlayerMetadata().filter((p) => {
+    const id = String(p.entity_id || "");
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+  const players = roster.length
+    ? roster
+    : Array.from({ length: 337 }, (_, i) => ({
+        entity_id: `eloboard:${i % 2 ? "male" : "female"}:${1000 + i}`,
+      }));
+  // 혼성 보드 선수는 수집이 꺼져 있어 정독이 성립하지 않는다 → 순환 대상이 아니다.
+  const eligible = players.filter((p) => !shouldUseMixEndpoint(p));
+  assert.ok(eligible.length, "순환 대상이 하나도 없으면 이 테스트는 아무것도 증명하지 못한다");
 
   const counts = new Map();
   const dailySizes = [];
@@ -242,16 +252,33 @@ runTest("34 consecutive days cover every roster player exactly once", () => {
     for (const p of picked) counts.set(p.entity_id, (counts.get(p.entity_id) || 0) + 1);
   }
 
-  assert.equal(counts.size, players.length, "34일이면 전원이 최소 1회 정독된다");
+  assert.equal(counts.size, eligible.length, "34일이면 순환 대상 전원이 최소 1회 정독된다");
   assert.ok([...counts.values()].every((n) => n === 1), "각 선수는 정확히 1회(버킷당 정확히 1일)");
   const total = dailySizes.reduce((a, b) => a + b, 0);
-  assert.equal(total, players.length);
+  assert.equal(total, eligible.length);
   // 하루 부하: 337명이면 평균 ~10명. 상한은 해시 분포에 브리틀하지 않게 넉넉히 잡는다.
   assert.ok(Math.max(...dailySizes) <= 25, `하루 최대 ${Math.max(...dailySizes)}명은 너무 많다`);
   console.log(
-    `  rotation coverage: total=${players.length} covered=${counts.size} ` +
+    `  rotation coverage: roster=${players.length} eligible=${eligible.length} covered=${counts.size} ` +
       `avg/day=${(total / ROTATION_BUCKETS).toFixed(1)} max/day=${Math.max(...dailySizes)}`
   );
+});
+
+// 혼성 보드 선수는 어떤 날에도 뽑히면 안 된다. 뽑히면 관측 없는 0건이 회귀 가드를 때려
+// mismatch 오탐으로 되돌아간다(2026-07-28 사고).
+runTest("rotation full-verify never picks mixed-board players", () => {
+  const mixPlayer = {
+    entity_id: "eloboard:male:mix:1184",
+    name: "혁민",
+    profile_url: "https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=1184",
+  };
+  assert.equal(shouldUseMixEndpoint(mixPlayer), true, "테스트 대상이 실제로 혼성 보드여야 한다");
+
+  const start = Date.UTC(2026, 6, 1);
+  for (let day = 0; day < ROTATION_BUCKETS; day += 1) {
+    const date = new Date(start + day * 86400000).toISOString().slice(0, 10);
+    assert.equal(shouldRotationFullVerify(mixPlayer, date), false, `${date}에 혼성 선수가 뽑혔다`);
+  }
 });
 
 // 보험이 스킵으로 무력화되면 의미가 없다: 우선순위 창에 걸려 오늘 건너뛸 선수라도
