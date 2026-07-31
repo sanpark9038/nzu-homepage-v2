@@ -10,6 +10,7 @@ const {
   buildDailyReportMessage,
   buildFailureMessage,
   buildJudgmentItems,
+  collectRebaselinedPlayers,
   comparePlayerChanges,
   describeFailureStage,
   describeAlertTone,
@@ -726,6 +727,38 @@ runTest("판단 항목은 규칙/등급으로 추려지고 매일 뜨는 medium 
   assert.doesNotMatch(message, /로스터 인원 변동/);
   assert.match(message, /판단할 것 3건/);
   assert.match(message, /상세: <https:\/\/github\.com\/nzu\/actions\/runs\/2>/);
+});
+
+// 운영자가 재수집을 요청했으면 그 결과를 본인이 봐야 한다. 경보가 아니라 확인줄이다.
+runTest("운영자 재수집으로 낮아진 값을 수락한 날은 재기준선 확인줄이 뜬다", () => {
+  const snapshot = {
+    teams: [
+      { team_code: "ku", rebaselined_players: [{ player: "정소이", from: 401, to: 398 }] },
+      { team_code: "hm" },
+    ],
+  };
+
+  const judgmentItems = buildJudgmentItems({
+    rebaselinedPlayers: collectRebaselinedPlayers(snapshot),
+    alertsDoc: { alerts: [] },
+    overrideWatch: { newMismatches: [], releases: [] },
+    rosterReview: { reportOnly: false, total: 0 },
+    syncWarning: "",
+  });
+
+  const message = buildDailyReportMessage({ dateLabel: "2026-07-31", judgmentItems });
+  assert.match(message, /■ 재기준선 완료 1건/);
+  assert.match(message, /- 정소이 401→398 — 운영자 재수집 요청에 따라 엘로보드 현재값을 새 기준으로 수락/);
+});
+
+// 재기준선이 없는 날은 아무 말도 하지 않는다(매일 뜨는 줄은 중요한 항목을 묻는다).
+runTest("재기준선이 없으면 확인줄도 없다", () => {
+  assert.deepEqual(collectRebaselinedPlayers({ teams: [{ team_code: "ku" }] }), []);
+  assert.deepEqual(collectRebaselinedPlayers(null), []);
+  assert.equal(
+    buildJudgmentItems({ rebaselinedPlayers: [], alertsDoc: { alerts: [] } }).length,
+    0
+  );
 });
 
 // 간소화는 성공 보고에만 적용된다. 실패 보고 상세는 그대로여야 한다.

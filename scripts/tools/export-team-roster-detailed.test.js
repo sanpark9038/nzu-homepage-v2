@@ -11,6 +11,7 @@ const {
   exclusionReason,
   directReportArgs,
   shouldUseNoCacheForFetch,
+  evaluateRegressionGuard,
   shouldSkipByPriorityWindow,
   shouldReuseInactiveExistingJson,
   shouldRotationFullVerify,
@@ -302,4 +303,44 @@ runTest("rotation full-verify overrides the reuse/skip path", () => {
 runTest("rotation full-verify forces the no-cache full read", () => {
   assert.equal(shouldUseNoCacheForFetch({ rotationVerify: true }), true);
   assert.equal(shouldUseNoCacheForFetch({}), false);
+});
+
+// 운영자 재수집은 재기준선이 목적이다. 증분(합집합)으로 읽으면 값이 줄어들 수 없어 목적이 깨진다.
+runTest("operator resume marker forces the no-cache full read", () => {
+  assert.equal(shouldUseNoCacheForFetch({ forceRefresh: true }), true);
+  assert.equal(shouldUseNoCacheForFetch({ forceRefresh: false }), false);
+});
+
+runTest("operator resume accepts a lower total as the new baseline", () => {
+  const guard = evaluateRegressionGuard({
+    existingPeriodTotal: 401,
+    nextPeriodTotal: 398,
+    forceRefresh: true,
+  });
+  assert.equal(guard.write, true, "낮아도 파일을 쓴다");
+  assert.deepEqual(guard.rebaselined, { from: 401, to: 398 });
+});
+
+runTest("operator resume without a drop records no rebaseline", () => {
+  assert.deepEqual(evaluateRegressionGuard({ existingPeriodTotal: 398, nextPeriodTotal: 401, forceRefresh: true }), {
+    write: true,
+    rebaselined: null,
+  });
+  assert.deepEqual(evaluateRegressionGuard({ existingPeriodTotal: 398, nextPeriodTotal: 398, forceRefresh: true }), {
+    write: true,
+    rebaselined: null,
+  });
+});
+
+// 일반 경로의 안전 의미론은 그대로다 — 마커를 건 선수만 예외다.
+runTest("regression guard still blocks a lower total without the resume marker", () => {
+  assert.deepEqual(evaluateRegressionGuard({ existingPeriodTotal: 401, nextPeriodTotal: 398 }), {
+    write: false,
+    rebaselined: null,
+  });
+  // 기존 파일이 없으면 비교 대상이 없으니 그냥 쓴다.
+  assert.deepEqual(evaluateRegressionGuard({ existingPeriodTotal: null, nextPeriodTotal: 0 }), {
+    write: true,
+    rebaselined: null,
+  });
 });

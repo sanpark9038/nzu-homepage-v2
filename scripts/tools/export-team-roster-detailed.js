@@ -383,8 +383,24 @@ function shouldReuseExistingJson(rotationVerify, useExisting, jsonExists) {
 // --no-cache로 전체 재수집했는데, 그 플래그는 책갈피 저장까지 막아(saveCache no-op) 해당
 // 선수들의 책갈피가 몇 달째 얼어 있었다. 이제 전체 재수집은 "수상할 때"(0건 재시도·복구·감사)와
 // 명시적 --force-no-cache, 그리고 R3 순환 전체 정독에서만 일어난다.
+// forceRefresh(운영자 재수집 마커)도 전체 정독이다. 증분 병합은 합집합이라 기존 값을 줄일 수
+// 없어서, 증분으로 읽으면 "엘로보드가 진짜 낮아진 경우"를 새 기준선으로 받을 방법이 없다.
 function shouldUseNoCacheForFetch(options) {
-  return Boolean(options && (options.forceNoCache || options.rotationVerify));
+  return Boolean(options && (options.forceNoCache || options.rotationVerify || options.forceRefresh));
+}
+
+// 회귀 가드는 오염 방어용이다. 다만 운영자가 재수집 마커를 건 선수는 "엘로보드 현재값을 새
+// 기준선으로 수락한다"는 명시적 요청이므로 낮아져도 쓴다(가드가 없으면 파일이 영구 고정된다).
+function evaluateRegressionGuard({ existingPeriodTotal, nextPeriodTotal, forceRefresh } = {}) {
+  const regressed =
+    Number.isFinite(existingPeriodTotal) &&
+    Number.isFinite(nextPeriodTotal) &&
+    nextPeriodTotal < existingPeriodTotal;
+  if (!regressed) return { write: true, rebaselined: null };
+  if (forceRefresh) {
+    return { write: true, rebaselined: { from: existingPeriodTotal, to: nextPeriodTotal } };
+  }
+  return { write: false, rebaselined: null };
 }
 
 async function main() {
@@ -510,7 +526,7 @@ async function main() {
 
       if (shouldFetch) {
         const existingPeriodTotal = fs.existsSync(jsonPath) ? readPeriodTotal(jsonPath) : null;
-        const noCacheFirst = shouldUseNoCacheForFetch({ forceNoCache, rotationVerify });
+        const noCacheFirst = shouldUseNoCacheForFetch({ forceNoCache, rotationVerify, forceRefresh });
         const reportFlags = noCacheFirst ? ["--no-cache", "--concurrency", concurrency] : ["--concurrency", concurrency];
         appendExportProgress(reportPath, "player_report_start", {
           player: playerName,
@@ -551,11 +567,8 @@ async function main() {
           });
         }
         const nextPeriodTotal = firstPeriodTotal(parsed);
-        if (
-          Number.isFinite(existingPeriodTotal) &&
-          Number.isFinite(nextPeriodTotal) &&
-          nextPeriodTotal < existingPeriodTotal
-        ) {
+        const guard = evaluateRegressionGuard({ existingPeriodTotal, nextPeriodTotal, forceRefresh });
+        if (!guard.write) {
           result.fetch_status = "used_existing_json_regression_guard";
           result.fetch_warning = `period_total_regressed:${existingPeriodTotal}->${nextPeriodTotal}`;
           // 감소가 "실제 관측"인지 판정하려면 이번 읽기의 수집 방식이 필요하다(상위가 이걸로 거른다).
@@ -570,6 +583,17 @@ async function main() {
         } else {
           writeJson(jsonPath, parsed);
           result.fetch_status = "ok";
+          if (guard.rebaselined) {
+            // 운영자가 요청한 재기준선이 실제로 일어난 날만 남긴다. 아침 보고가 이 필드로
+            // "당신 요청대로 낮은 값을 새 기준으로 받았다"를 한 줄 보고한다.
+            result.rebaselined = guard.rebaselined;
+            appendExportProgress(reportPath, "player_rebaselined", {
+              player: playerName,
+              wr_id: p.wr_id,
+              from: guard.rebaselined.from,
+              to: guard.rebaselined.to,
+            });
+          }
         }
         if (forceRefresh) {
           resumes = clearResumeMarker(p, resumes);
@@ -680,6 +704,7 @@ module.exports = {
   shouldReuseInactiveExistingJson,
   filterPlayersByEntityIds,
   shouldUseNoCacheForFetch,
+  evaluateRegressionGuard,
   rotationBucketForEntityId,
   shouldRotationFullVerify,
   shouldReuseExistingJson,

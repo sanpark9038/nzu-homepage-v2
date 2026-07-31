@@ -825,6 +825,34 @@ runTest("summarizeTeamFromReport ignores regression guards that observed nothing
   assert.equal(row.verify_mismatch_player_names, "정독선수");
 });
 
+// 운영자 재수집으로 낮은 값을 새 기준선으로 받은 선수는 경보가 아니라 확인줄이다.
+// 아침 보고가 읽을 수 있게 팀 행에 이름+from→to로 실려야 한다.
+runTest("summarizeTeamFromReport carries operator rebaselines onto the team row", () => {
+  const dir = makeTempReportsDir();
+  const write = (name) => {
+    const p = path.join(dir, name);
+    fs.writeFileSync(p, JSON.stringify({ players: [{ period_total: 398 }] }), "utf8");
+    return p;
+  };
+  const report = {
+    results: [
+      {
+        player: "정소이",
+        fetch_status: "ok",
+        csv_status: "ok",
+        rebaselined: { from: 401, to: 398 },
+        json_path: write("soi.json"),
+      },
+      { player: "b", fetch_status: "ok", csv_status: "ok", json_path: write("b.json") },
+    ],
+  };
+
+  const row = summarizeTeamFromReport({ univ: "팀", code: "tm" }, report);
+  assert.deepEqual(row.rebaselined_players, [{ player: "정소이", from: 401, to: 398 }]);
+  // 재기준선은 성공 경로다 — 실패로 세면 안 된다.
+  assert.equal(row.fetch_fail, 0);
+});
+
 runTest("buildAlerts reports rotation verify mismatches without blocking the sync", () => {
   const actual = buildAlerts(
     [

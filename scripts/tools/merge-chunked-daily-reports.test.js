@@ -74,6 +74,31 @@ runTest("zero_players_detail is carried through the merge onto the team row", ()
   assert.deepEqual(alp.zero_players_detail, detail, "zero_players_detail survives the merge");
 });
 
+// 1b-2. rebaselined_players(운영자 재수집으로 수락한 감소)도 병합에서 살아남아야 한다.
+//       아침 보고의 "재기준선 완료" 확인줄이 이 필드 하나에 달려 있다.
+runTest("rebaselined_players is carried through the merge onto the team row", () => {
+  const rebaselined = [{ player: "정소이", from: 401, to: 398 }];
+  const snapshots = [
+    chunk("chunkA", {
+      teams: [{ team: "Alpha", team_code: "ALP", players: 5, rebaselined_players: rebaselined }],
+    }),
+    chunk("chunkB", { teams: [{ team: "Bravo", team_code: "BRV", players: 3, rebaselined_players: [] }] }),
+  ];
+
+  const { mergedTeams, mergedSnapshot } = buildMergedReports(snapshots, {
+    tags: ["chunkA", "chunkB"],
+    outputDate: "2026-07-24",
+  });
+
+  const alp = mergedTeams.find((t) => t.team_code === "ALP");
+  assert.deepEqual(alp.rebaselined_players, rebaselined);
+  assert.deepEqual(
+    mergedSnapshot.teams.flatMap((t) => t.rebaselined_players || []),
+    rebaselined,
+    "병합 스냅샷에서도 그대로 읽힌다"
+  );
+});
+
 // 1c. full_scans(scan_strategy=full_scan 수)도 병합된 팀 행에 그대로 실려야 한다.
 //     책갈피 증분이 먹고 있는지 보는 유일한 지표라, 청크 병합에서 유실되면 아침 검증이 눈을 잃는다.
 runTest("full_scans is carried through the merge onto the team row", () => {

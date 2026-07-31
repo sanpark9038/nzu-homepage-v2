@@ -499,6 +499,15 @@ function summarizeTeamFromReport(team, report) {
     )
     .map((row) => String(row.player || ""))
     .filter(Boolean);
+  // 운영자 재수집 마커가 걸린 선수는 회귀 가드를 건너뛰고 낮은 값을 새 기준선으로 받는다.
+  // 자기 요청의 결과이므로 경보가 아니라 아침 보고의 확인줄로 올린다.
+  const rebaselinedPlayers = actionable
+    .filter((row) => row.rebaselined && Number.isFinite(Number(row.rebaselined.from)) && Number.isFinite(Number(row.rebaselined.to)))
+    .map((row) => ({
+      player: String(row.player || ""),
+      from: Number(row.rebaselined.from),
+      to: Number(row.rebaselined.to),
+    }));
   let fullScans = 0;
   let totalMatches = 0;
   let totalWins = 0;
@@ -553,6 +562,7 @@ function summarizeTeamFromReport(team, report) {
     rotation_verified: rotationVerified,
     verify_mismatch_players: verifyMismatchPlayers.length,
     verify_mismatch_player_names: verifyMismatchPlayers.join(", "),
+    rebaselined_players: rebaselinedPlayers,
     fetch_fail: failures.filter((f) => !isFetchObserved(f.fetch_status)).length,
     csv_fail: failures.filter((f) => !["ok", "used_existing_csv"].includes(String(f.csv_status || ""))).length,
     total_matches: totalMatches,
@@ -1195,6 +1205,7 @@ async function main() {
       rotation_verified: r.rotation_verified,
       verify_mismatch_players: r.verify_mismatch_players,
       verify_mismatch_player_names: r.verify_mismatch_player_names,
+      rebaselined_players: r.rebaselined_players,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,

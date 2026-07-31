@@ -636,6 +636,18 @@ function pushLimitedRows(lines, rows, formatter, limit = 5) {
   }
 }
 
+// 팀 요약(rebaselined_players)은 청크 병합에서도 팀 행에 그대로 실려 온다.
+function collectRebaselinedPlayers(snapshot) {
+  const teams = Array.isArray(snapshot && snapshot.teams) ? snapshot.teams : [];
+  return teams.flatMap((team) =>
+    (Array.isArray(team && team.rebaselined_players) ? team.rebaselined_players : []).map((row) => ({
+      player: String(row && row.player ? row.player : ""),
+      from: Number(row && row.from),
+      to: Number(row && row.to),
+    }))
+  );
+}
+
 function isRosterSyncReportOnly() {
   const syncReport = readJsonIfExists(path.join(REPORTS_DIR, "team_roster_sync_report.json"));
   return Boolean(syncReport && syncReport.report_only);
@@ -663,8 +675,29 @@ function limitedLines(rows, formatter) {
 }
 
 // 새로 수집하지 않는다. 이미 만들어진 산출물만 읽어 "사람이 볼 것"으로 추린다.
-function buildJudgmentItems({ alertsDoc, overrideWatch, rosterReview, syncWarning, collectionHealthSummary } = {}) {
+function buildJudgmentItems({
+  alertsDoc,
+  overrideWatch,
+  rosterReview,
+  syncWarning,
+  collectionHealthSummary,
+  rebaselinedPlayers,
+} = {}) {
   const items = [];
+
+  // 운영자가 재수집을 요청한 선수만 여기 뜬다. 경보가 아니라 "요청대로 처리됐다"는 확인줄이다.
+  const rebaselined = Array.isArray(rebaselinedPlayers) ? rebaselinedPlayers : [];
+  if (rebaselined.length) {
+    items.push({
+      label: `재기준선 완료 ${rebaselined.length}건`,
+      lines: limitedLines(
+        rebaselined,
+        (row) =>
+          `- ${row.player} ${row.from}→${row.to} — 운영자 재수집 요청에 따라 엘로보드 현재값을 새 기준으로 수락`
+      ),
+      count: rebaselined.length,
+    });
+  }
 
   // §4: 수집은 완주했는데 서빙 반영만 보류된 날은 사람이 봐야 한다.
   const warning = String(syncWarning || "").trim();
@@ -790,6 +823,7 @@ function buildReadableSuccessMessage({ snapshot, alertsDoc, runUrl, supabasePlay
     },
     syncWarning: workflowSyncWarning(),
     collectionHealthSummary: buildCollectionSourceHealthSummary(readJsonIfExists(COLLECTION_SOURCES_HEALTH_PATH)),
+    rebaselinedPlayers: collectRebaselinedPlayers(snapshot),
   });
   // 저장하지 않으면 같은 mismatch가 매일 다시 뜬다.
   overrideWatch.saveState();
@@ -875,6 +909,7 @@ module.exports = {
   buildDailyReportMessage,
   buildFailureMessage,
   buildJudgmentItems,
+  collectRebaselinedPlayers,
   describeFailureStage,
   buildReadableSuccessMessage,
   comparePlayerChanges,
