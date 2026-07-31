@@ -70,6 +70,8 @@ function PlayerSearchResultInner({
   type MatchFilter = "recent90" | "all";
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [matchFilter, setMatchFilter] = useState<MatchFilter>("recent90");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [excludeMini, setExcludeMini] = useState(false);
   const [filterPage, setFilterPage] = useState(1);
   const [filteredData, setFilteredData] = useState<MatchHistoryApiResponse | null>(null);
   const [isFilterLoading, setIsFilterLoading] = useState(defaultExpanded);
@@ -130,6 +132,8 @@ function PlayerSearchResultInner({
     } else if (matchFilter !== "all") {
       params.set("year", matchFilter);
     }
+    if (categoryFilter) params.set("category", categoryFilter);
+    if (excludeMini) params.set("excludeMini", "1");
 
     fetch(`/api/player/${encodeURIComponent(player.id)}/matches?${params}`)
       .then((res) => {
@@ -148,7 +152,7 @@ function PlayerSearchResultInner({
     return () => {
       cancelled = true;
     };
-  }, [player.id, isExpanded, matchFilter, filterPage]);
+  }, [player.id, isExpanded, matchFilter, categoryFilter, excludeMini, filterPage]);
 
   const normTier = normalizeTier(player.tier);
   const isElite = ["갓", "킹"].includes(normTier);
@@ -161,11 +165,19 @@ function PlayerSearchResultInner({
   } = detailSummary;
   const recentForm = recentSummary.form;
   const displayRaceSummaries = filteredData?.stats?.raceSummaries ?? raceSummaries;
-  const hasDisplayRaceData = displayRaceSummaries.some((item) => item.hasRecord);
-  const recentForm10 = recentLogs.slice(0, 10).map((log) => log.result);
+  // recentLogs는 최신순 → 렌더는 과거→최신이므로 뒤집는다
+  const recentLogs10 = recentLogs.slice(0, 10).reverse();
+  const recentForm10 = recentLogs10.map((log) => log.result);
   const form10Wins = recentForm10.filter((r) => r === "승").length;
   const form10Losses = recentForm10.length - form10Wins;
   const form10WinRate = recentForm10.length > 0 ? Math.round((form10Wins / recentForm10.length) * 100) : null;
+
+  const importantStats = filteredData?.importantStats;
+  const importantForm = importantStats?.form ?? [];
+  const importantFormWins = importantForm.filter((r) => r === "승").length;
+  const importantFormLosses = importantForm.length - importantFormWins;
+  const importantFormWinRate = importantForm.length > 0 ? Math.round((importantFormWins / importantForm.length) * 100) : null;
+  const importantTotal = importantStats ? importantStats.wins + importantStats.losses : 0;
   const channelUrl = resolveSoopChannelUrl(player);
   const liveWatchUrl = player.is_live ? resolveSoopWatchUrl(player) : null;
   const liveThumbnailUrl = normalizeSoopImageUrl(player.live_thumbnail_url) || "";
@@ -355,10 +367,10 @@ function PlayerSearchResultInner({
           <div className="pointer-events-none absolute -right-16 -top-16 h-[180px] w-[180px] rounded-full blur-[90px] opacity-20" style={{ backgroundColor: themeColor }} />
           <div className="relative space-y-6">
 
-            {/* ── 기간 필터 ── */}
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-white/30">분석 기간</span>
-              <div className="flex items-center gap-1">
+            {/* ── 분석 기간 필터 ── */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <span className="shrink-0 text-[11px] font-medium text-white/30">분석 기간</span>
+              <div className="flex flex-wrap items-center gap-1.5">
                 {(["recent90", "all"] as const).map((f) => (
                   <button
                     key={f}
@@ -370,7 +382,7 @@ function PlayerSearchResultInner({
                       setIsFilterLoading(true);
                     }}
                     className={cn(
-                      "rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
+                      "rounded-lg px-4 py-2 text-sm font-semibold transition-all",
                       matchFilter === f
                         ? "border border-nzu-green/35 bg-nzu-green/[0.12] text-nzu-green"
                         : "border border-white/8 bg-white/[0.02] text-white/40 hover:text-white/65 hover:border-white/14"
@@ -382,76 +394,121 @@ function PlayerSearchResultInner({
               </div>
             </div>
 
-            {/* ── 기간별 승/패/승률 ── */}
-            <Section title="승패 요약">
-              <PeriodStatCards
-                isLoading={isFilterLoading}
-                wins={filteredData?.stats.wins ?? recentSummary.wins}
-                losses={filteredData?.stats.losses ?? recentSummary.losses}
-                winRate={filteredData?.stats.winRate ?? recentSummary.winRate}
-              />
-            </Section>
-
-            {/* ── 종족별 승률 (필터 연동) ── */}
-            <Section title="종족별 승률">
-              <div className={cn("space-y-2 transition-opacity", isFilterLoading ? "opacity-40" : "opacity-100")}>
-                {(hasDisplayRaceData
-                  ? displayRaceSummaries
-                  : [
-                      { race: "T" as const, matches: 0, wins: 0, losses: 0, winRate: "0.0%", hasRecord: false },
-                      { race: "Z" as const, matches: 0, wins: 0, losses: 0, winRate: "0.0%", hasRecord: false },
-                      { race: "P" as const, matches: 0, wins: 0, losses: 0, winRate: "0.0%", hasRecord: false },
-                    ]).map((item) => (
-                  <RaceStatRow key={item.race} race={item.race} hasRecord={item.hasRecord} wins={item.wins} losses={item.losses} matches={item.matches} winRate={item.winRate} />
-                ))}
-              </div>
-            </Section>
-
-            {recentForm10.length > 0 ? (
-              <Section title="최근 10경기 흐름">
-                <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-4">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="mr-1 text-[11px] font-medium text-white/30">과거</span>
-                    {recentForm10.map((result, index) => {
-                      const opacity = 0.35 + (index / Math.max(recentForm10.length - 1, 1)) * 0.65;
-                      return (
-                        <span
-                          key={index}
-                          style={{ opacity }}
-                          className={cn(
-                            "inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm font-semibold",
-                            result === "승"
-                              ? "border border-nzu-green/25 bg-nzu-green/[0.12] text-nzu-green"
-                              : "border border-red-400/25 bg-red-400/[0.1] text-red-300"
-                          )}
-                        >
-                          {result}
-                        </span>
-                      );
-                    })}
-                    <span className="ml-1 text-[11px] font-medium text-white/30">최신</span>
-                    <div className="ml-auto flex items-center gap-3 pl-2">
-                      <span className="text-sm font-semibold text-white/70">
-                        {form10Wins}승 {form10Losses}패
-                      </span>
-                      {form10WinRate !== null ? (
-                        <span className={cn(
-                          "rounded-full border px-2.5 py-0.5 text-xs font-bold tabular-nums",
-                          form10WinRate >= 50
-                            ? "border-nzu-green/25 bg-nzu-green/[0.1] text-nzu-green"
-                            : "border-red-400/25 bg-red-400/[0.1] text-red-300"
-                        )}>
-                          {form10WinRate}%
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
+            {/* ── 전체 vs ⭐중요경기 좌우 대칭 비교 (승패 카드 + 종족별 승률) ── */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Section title="전체">
+                <PeriodStatCards
+                  isLoading={isFilterLoading}
+                  wins={filteredData?.stats.wins ?? recentSummary.wins}
+                  losses={filteredData?.stats.losses ?? recentSummary.losses}
+                  winRate={filteredData?.stats.winRate ?? recentSummary.winRate}
+                />
+                <RaceStatList summaries={displayRaceSummaries} isLoading={isFilterLoading} />
               </Section>
-            ) : null}
 
-            <Section title="경기 기록">
-              {matchFilter === "recent90" && !filteredData ? (
+              {/* 중요경기가 0경기여도 열은 남긴다 — 사라지면 왼쪽이 전체 폭으로 튄다 */}
+              <div className="md:border-l md:border-white/8 md:pl-6">
+                <Section
+                  titleClassName="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5"
+                  title={
+                    <>
+                      <span className="shrink-0">⭐ 중요경기</span>
+                      <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-semibold text-white/40 transition-colors hover:text-white/65">
+                        <input
+                          type="checkbox"
+                          checked={excludeMini}
+                          onChange={(e) => {
+                            setExcludeMini(e.target.checked);
+                            setFilterPage(1);
+                            setIsFilterLoading(true);
+                          }}
+                          className="h-3 w-3 accent-nzu-green"
+                        />
+                        미니대전 제외
+                      </label>
+                    </>
+                  }
+                >
+                  {importantStats && importantTotal > 0 ? (
+                    <>
+                      <PeriodStatCards
+                        isLoading={isFilterLoading}
+                        wins={importantStats.wins}
+                        losses={importantStats.losses}
+                        winRate={importantStats.winRate}
+                      />
+                      {/* 표본이 얇아도 승률·전적은 그대로 노출한다(사용자 결정). 신뢰도는 막대 투명도로만 알린다 */}
+                      <RaceStatList summaries={importantStats.raceSummaries} isLoading={isFilterLoading} dimThinBars />
+                    </>
+                  ) : (
+                    <CompactRow value={isFilterLoading ? "불러오는 중..." : "중요경기 기록이 없습니다"} />
+                  )}
+                </Section>
+              </div>
+            </div>
+
+            {/* 위 비교 그리드와 같은 열 경계 — 한쪽이 비어도 열은 유지한다 */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Section title="최근 10경기 흐름">
+                {recentForm10.length > 0 ? (
+                  <FormRow
+                    form={recentForm10}
+                    wins={form10Wins}
+                    losses={form10Losses}
+                    winRate={form10WinRate}
+                  />
+                ) : (
+                  <CompactRow value="최근 경기 기록이 없습니다" />
+                )}
+              </Section>
+
+              <div className="md:border-l md:border-white/8 md:pl-6">
+                <Section title="⭐ 최근 중요경기">
+                  {importantForm.length > 0 ? (
+                    <FormRow
+                      form={importantForm}
+                      wins={importantFormWins}
+                      losses={importantFormLosses}
+                      winRate={importantFormWinRate}
+                    />
+                  ) : (
+                    <CompactRow value={isFilterLoading ? "불러오는 중..." : "중요경기 기록이 없습니다"} />
+                  )}
+                </Section>
+              </div>
+            </div>
+
+            <Section
+              titleClassName="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5"
+              title={
+                <>
+                  <span className="shrink-0">경기 기록</span>
+                  <span className="flex flex-wrap items-center gap-1">
+                    {CATEGORY_FILTERS.map((c) => (
+                      <button
+                        key={c.value || "all"}
+                        type="button"
+                        onClick={() => {
+                          if (categoryFilter === c.value && filterPage === 1) return;
+                          setCategoryFilter(c.value);
+                          setFilterPage(1);
+                          setIsFilterLoading(true);
+                        }}
+                        className={cn(
+                          "rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all",
+                          categoryFilter === c.value
+                            ? "border border-nzu-green/35 bg-nzu-green/[0.12] text-nzu-green"
+                            : "border border-white/8 bg-white/[0.02] text-white/40 hover:text-white/65 hover:border-white/14"
+                        )}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </span>
+                </>
+              }
+            >
+              {matchFilter === "recent90" && !categoryFilter && !filteredData ? (
                 <div className="grid gap-1.5">
                   {recentLogs.length ? (
                     recentLogs.map((log) => <MatchLogRow key={log.id} log={log} />)
@@ -459,13 +516,10 @@ function PlayerSearchResultInner({
                     <CompactRow value="기록 없음" />
                   )}
                 </div>
-              ) : isFilterLoading ? (
-                <div className="flex items-center gap-2.5 rounded-xl border border-white/7 bg-white/[0.02] px-4 py-4">
-                  <div className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-white/10 border-t-nzu-green" />
-                  <span className="text-sm font-medium text-white/38">경기 기록을 불러오는 중...</span>
-                </div>
               ) : filteredData?.matches.length ? (
-                <div className="space-y-1.5">
+                /* 데이터가 로딩보다 우선한다 — 필터를 바꿔도 이전 목록을 흐리게 유지할 뿐 스피너로 갈아치우지 않는다.
+                   순서를 뒤집으면(로딩 우선) 칩을 누를 때마다 목록이 사라졌다 나타나며 깜빡인다. */
+                <div className={cn("space-y-1.5 transition-opacity", isFilterLoading ? "opacity-40" : "opacity-100")}>
                   <div className="grid gap-1.5">
                     {filteredData.matches.map((log) => (
                       <MatchLogRow key={log.id} log={log} />
@@ -495,8 +549,13 @@ function PlayerSearchResultInner({
                     </div>
                   ) : null}
                 </div>
+              ) : isFilterLoading ? (
+                <div className="flex items-center gap-2.5 rounded-xl border border-white/7 bg-white/[0.02] px-4 py-4">
+                  <div className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-white/10 border-t-nzu-green" />
+                  <span className="text-sm font-medium text-white/38">경기 기록을 불러오는 중...</span>
+                </div>
               ) : (
-                <CompactRow value="해당 기간의 기록이 없습니다" />
+                <CompactRow value="해당 조건의 기록이 없습니다" />
               )}
             </Section>
           </div>
@@ -581,6 +640,100 @@ function MetricCard({ tone, label, value }: { tone: "green" | "red"; label: stri
   );
 }
 
+const RACE_TONE: Record<Race, { border: string; bar: string; text: string }> = {
+  T: { border: "border-terran/20 bg-terran/[0.04]", bar: "bg-terran", text: "text-terran" },
+  Z: { border: "border-zerg/20 bg-zerg/[0.04]", bar: "bg-zerg", text: "text-zerg" },
+  P: { border: "border-protoss/20 bg-protoss/[0.04]", bar: "bg-protoss", text: "text-protoss" },
+};
+
+function FormRow({
+  form,
+  wins,
+  losses,
+  winRate,
+}: {
+  form: Array<"승" | "패">;
+  wins: number;
+  losses: number;
+  winRate: number | null;
+}) {
+  return (
+    <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-4">
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="mr-1 text-[11px] font-medium text-white/30">과거</span>
+        {form.map((result, index) => {
+          const opacity = 0.35 + (index / Math.max(form.length - 1, 1)) * 0.65;
+          return (
+            <span
+              key={index}
+              style={{ opacity }}
+              className={cn(
+                "inline-flex h-7 w-7 items-center justify-center rounded-lg text-sm font-semibold",
+                result === "승"
+                  ? "border border-nzu-green/25 bg-nzu-green/[0.12] text-nzu-green"
+                  : "border border-red-400/25 bg-red-400/[0.1] text-red-300"
+              )}
+            >
+              {result}
+            </span>
+          );
+        })}
+        <span className="ml-1 text-[11px] font-medium text-white/30">최신</span>
+        <div className="ml-auto flex items-center gap-3 pl-2">
+          <span className="text-sm font-semibold text-white/70">
+            {wins}승 {losses}패
+          </span>
+          {winRate !== null ? (
+            <span className={cn(
+              "rounded-full border px-2.5 py-0.5 text-xs font-bold tabular-nums",
+              winRate >= 50
+                ? "border-nzu-green/25 bg-nzu-green/[0.1] text-nzu-green"
+                : "border-red-400/25 bg-red-400/[0.1] text-red-300"
+            )}>
+              {winRate}%
+            </span>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const EMPTY_RACE_SUMMARIES: RaceSummary[] = [
+  { race: "T", matches: 0, wins: 0, losses: 0, winRate: "0.0%", hasRecord: false },
+  { race: "Z", matches: 0, wins: 0, losses: 0, winRate: "0.0%", hasRecord: false },
+  { race: "P", matches: 0, wins: 0, losses: 0, winRate: "0.0%", hasRecord: false },
+];
+
+function RaceStatList({
+  summaries,
+  isLoading,
+  dimThinBars = false,
+}: {
+  summaries: RaceSummary[];
+  isLoading: boolean;
+  dimThinBars?: boolean;
+}) {
+  const rows = summaries.some((item) => item.hasRecord) ? summaries : EMPTY_RACE_SUMMARIES;
+
+  return (
+    <div className={cn("space-y-2 transition-opacity", isLoading ? "opacity-40" : "opacity-100")}>
+      {rows.map((item) => (
+        <RaceStatRow
+          key={item.race}
+          race={item.race}
+          hasRecord={item.hasRecord}
+          wins={item.wins}
+          losses={item.losses}
+          matches={item.matches}
+          winRate={item.winRate}
+          dim={dimThinBars && item.matches < 5}
+        />
+      ))}
+    </div>
+  );
+}
+
 function RaceStatRow({
   race,
   hasRecord,
@@ -588,6 +741,7 @@ function RaceStatRow({
   wins,
   losses,
   matches,
+  dim = false,
 }: {
   race: Race;
   hasRecord: boolean;
@@ -595,14 +749,10 @@ function RaceStatRow({
   wins: number;
   losses: number;
   matches: number;
+  dim?: boolean;
 }) {
   const winRateNum = hasRecord ? parseFloat(winRate) || 0 : 0;
-  const toneStyle =
-    race === "T"
-      ? { border: "border-terran/20 bg-terran/[0.04]", bar: "bg-terran", text: "text-terran" }
-      : race === "Z"
-        ? { border: "border-zerg/20 bg-zerg/[0.04]", bar: "bg-zerg", text: "text-zerg" }
-        : { border: "border-protoss/20 bg-protoss/[0.04]", bar: "bg-protoss", text: "text-protoss" };
+  const toneStyle = RACE_TONE[race];
 
   return (
     <div className={cn("rounded-xl border px-4 py-3.5", toneStyle.border)}>
@@ -617,13 +767,29 @@ function RaceStatRow({
       </div>
       <div className="mt-2.5 h-1.5 w-full rounded-full bg-white/[0.06]">
         <div
-          className={cn("h-1.5 rounded-full transition-all duration-500", hasRecord ? toneStyle.bar : "bg-white/10")}
+          className={cn("h-1.5 rounded-full transition-all duration-500", hasRecord ? toneStyle.bar : "bg-white/10", dim && "opacity-40")}
           style={{ width: `${Math.min(winRateNum, 100)}%` }}
         />
       </div>
     </div>
   );
 }
+
+type MatchCategory = "mini" | "uni" | "tourney";
+
+const CATEGORY_LABELS: Record<MatchCategory, string> = {
+  mini: "미니대전",
+  uni: "대학대전",
+  tourney: "대회",
+};
+
+const CATEGORY_FILTERS: Array<{ value: string; label: string }> = [
+  { value: "", label: "전체 경기" },
+  { value: "important", label: "⭐ 중요 경기" },
+  { value: "mini", label: CATEGORY_LABELS.mini },
+  { value: "uni", label: CATEGORY_LABELS.uni },
+  { value: "tourney", label: CATEGORY_LABELS.tourney },
+];
 
 type MatchHistoryApiItem = {
   id: string;
@@ -632,6 +798,8 @@ type MatchHistoryApiItem = {
   opponentRace: Race;
   mapName: string;
   dateText: string;
+  note?: string | null;
+  category?: MatchCategory | null;
 };
 
 type MatchHistoryApiResponse = {
@@ -652,25 +820,56 @@ type MatchHistoryApiResponse = {
       hasRecord: boolean;
     }>;
   };
+  // 경기 종류 칩과 무관하게 항상 중요경기 전체 기준 (분석 기간에만 반응)
+  importantStats?: {
+    wins: number;
+    losses: number;
+    winRate: string;
+    raceSummaries: Array<{
+      race: Race;
+      wins: number;
+      losses: number;
+      matches: number;
+      winRate: string;
+      hasRecord: boolean;
+    }>;
+    form: Array<"승" | "패">; // 오래된 → 최신 순
+    formFromDateText: string | null;
+    formToDateText: string | null;
+  };
 };
 
 function MatchLogRow({ log }: { log: MatchHistoryApiItem }) {
   return (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,110px)_auto] items-center gap-3 rounded-xl border border-white/7 bg-white/[0.02] px-3 py-2.5 md:px-4">
+    <div className="flex items-center gap-2 rounded-xl border border-white/7 bg-white/[0.02] px-3 py-2 md:gap-2.5 md:px-4">
       <span
         className={cn(
-          "inline-flex h-7 w-12 shrink-0 items-center justify-center rounded-lg text-sm font-semibold",
+          "inline-flex h-7 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-semibold",
           log.result === "승" ? "border border-nzu-green/25 bg-nzu-green/[0.12] text-nzu-green" : "border border-red-400/25 bg-red-400/[0.1] text-red-300"
         )}
       >
         {log.result}
       </span>
-      <span className="flex min-w-0 items-center gap-2">
-        <span className="truncate text-sm font-semibold text-white">{log.opponentName}</span>
-        <RaceTag race={log.opponentRace} size="xs" />
-      </span>
-      <span className="truncate text-sm font-medium text-white/45">{log.mapName}</span>
-      <span className="whitespace-nowrap text-xs font-medium text-white/32 tabular-nums">{log.dateText}</span>
+      <RaceTag race={log.opponentRace} size="xs" />
+      <span className="max-w-[45%] shrink-0 truncate text-[0.95rem] font-semibold text-white">{log.opponentName}</span>
+      <span className="min-w-0 truncate text-sm font-medium text-white/45">{log.mapName}</span>
+      {/* 분류별 라벨을 달지 않는다 — 바로 옆 비고에 이미 분류 근거 단어가 들어 있다(실측 8,873건 전부).
+          별표는 "중요경기다"만 표시하고, 어떤 분류인지는 툴팁으로 남긴다. */}
+      {log.category ? (
+        <span
+          className="shrink-0 text-[11px] leading-none"
+          title={CATEGORY_LABELS[log.category]}
+          aria-label={CATEGORY_LABELS[log.category]}
+        >
+          ⭐
+        </span>
+      ) : null}
+      {log.note ? (
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-white/50" title={log.note}>
+          {log.note}
+        </span>
+      ) : null}
+      <span className="ml-auto shrink-0 whitespace-nowrap text-xs font-medium text-white/32 tabular-nums">{log.dateText}</span>
     </div>
   );
 }
