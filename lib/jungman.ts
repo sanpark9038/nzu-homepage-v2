@@ -499,6 +499,35 @@ export function buildJungmanStandings(snapshots: JungmanSnapshot[]): JungmanStan
   return standings;
 }
 
+/**
+ * 공지 확정 최종 득표 (2026-07-31 발표) — 팀코드 → 공식 득표수.
+ *
+ * 마감 순간 공지가 닫혀 우리 3분 수집은 마지막 몇 분을 놓친다. 결과 화면의 숫자는 이 표가 유일한 진실이다.
+ */
+export const JUNGMAN_FINAL_VOTES: Record<string, number> = {
+  KMS: 29431,
+  NCS: 20242,
+  KU: 11533,
+  JSA: 10554,
+  SSG: 5917,
+  HKA: 5760,
+  BGM: 5566,
+  MBU: 5334,
+  DM: 5330,
+  HM: 4729,
+  WFU: 2345,
+};
+
+/** 공식 총 투표수 — 표에서 더한다. 따로 적어두면 둘이 어긋난다. */
+export const JUNGMAN_FINAL_TOTAL = Object.values(JUNGMAN_FINAL_VOTES).reduce((total, votes) => total + votes, 0);
+
+/** 확정 결과 순위표. 순위·시드 배지는 평소 경로(buildJungmanStandings)가 그대로 매긴다. */
+export function buildJungmanFinalStandings(): JungmanStanding[] {
+  return buildJungmanStandings([
+    { round: 1, at: JUNGMAN_DEFAULT_CONFIG.voteCloseAt, votes: JUNGMAN_FINAL_VOTES },
+  ]);
+}
+
 // 조사 선택용 받침 판정. 영문·숫자는 한국어 읽기의 끝소리로 본다 (M=엠 받침O, A=에이 받침X).
 const JONGSEONG_LATIN = new Set(["L", "M", "N", "R", "0", "1", "3", "6", "7", "8"]);
 

@@ -161,13 +161,15 @@ export default function JungmanMap({
           // 마감 뒤 순위 변동은 멈춘 값이다 — 시세판 화살표와 함께 내린다
           const rankDelta = closed ? null : marker.rankDelta;
           const rise = (rankDelta || 0) > 0;
+          // 접전 깜빡임도 진행 중 신호다 — 확정 결과 위에서 깜빡이면 거짓말이 된다
+          const contested = !closed && marker.contested;
           const logo = jungmanLogoSrc(marker.code);
 
           return (
             <g key={marker.code} transform={`translate(${marker.x},${marker.y})`}>
               <g
                 className={`jm-m${tone}${marker.dark ? " jm-dark" : ""}${
-                  marker.contested ? " jm-contested" : ""
+                  contested ? " jm-contested" : ""
                 }${rise ? " jm-rise" : ""}`}
                 data-team={marker.code}
                 style={

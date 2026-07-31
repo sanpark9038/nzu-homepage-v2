@@ -386,7 +386,14 @@ test("jungman cooldown reads a light key before the 86KB snapshot array", async 
     votes: { DM: 100 + i, KU: 50 + i },
   }));
   const store = {
-    jungman_config: JSON.stringify({ soopId: "x", titleNo: 1, autoCollect: true, mapping: { 1: "DM" } }),
+    // voteCloseAt을 빼면 기본값(실제 대회 마감)이 들어와 대회가 끝난 뒤로는 이 테스트가 "vote_closed"로 죽는다
+    jungman_config: JSON.stringify({
+      soopId: "x",
+      titleNo: 1,
+      autoCollect: true,
+      voteCloseAt: "2099-01-01T00:00:00+09:00",
+      mapping: { 1: "DM" },
+    }),
     jungman_snapshots: JSON.stringify(snapshots),
     jungman_latest: JSON.stringify({ at: snapshots[499].at, round: 500 }),
   };
@@ -959,6 +966,30 @@ test("jungman freezes into a final result once the vote closes", () => {
   assert.match(client, /closed \? null : \(\s*<StatRow label="1시간 변화"/);
   // 갱신 상태 알약은 골드 "최종 결과"로 굳는다 (LIVE·경과 표시 대신)
   assert.match(client, /<Pill label="최종 결과" value=\{`\$\{jungmanSeoulTime\(revealedAt\)\} 기준`\} tone="final" \/>/);
+});
+
+test("jungman final result matches the official notice", () => {
+  const { JUNGMAN_FINAL_VOTES, JUNGMAN_FINAL_TOTAL, buildJungmanFinalStandings } = loadJungmanLib();
+
+  // 공지 확정치 — 오타 하나가 공식 결과로 나간다
+  assert.equal(JUNGMAN_FINAL_TOTAL, 106741);
+  assert.equal(Object.keys(JUNGMAN_FINAL_VOTES).length, 11, "투표 대상 11팀이 모두 있어야 한다");
+
+  const standings = buildJungmanFinalStandings();
+  assert.deepEqual(
+    standings.map((standing) => [standing.rank, standing.team.code, standing.votes]).slice(0, 4),
+    [
+      [1, "KMS", 29431],
+      [2, "NCS", 20242],
+      [3, "KU", 11533],
+      [4, "JSA", 10554],
+    ]
+  );
+  // 시드 배지는 1~3위에만 (수술대는 투표 밖에서 4시드)
+  assert.deepEqual(
+    standings.filter((standing) => standing.badge === "seed").map((standing) => standing.team.code),
+    ["KMS", "NCS", "KU"]
+  );
 });
 
 test("jungman hides vote counts after the close and points at the official notice", () => {

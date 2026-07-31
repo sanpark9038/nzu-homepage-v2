@@ -4,6 +4,7 @@ import JungmanMap from "@/components/jungman/JungmanMap";
 import JungmanSubNav from "@/components/jungman/JungmanSubNav";
 import {
   buildJungmanBestRanks,
+  buildJungmanFinalStandings,
   buildJungmanHeadlines,
   buildJungmanHourDeltas,
   buildJungmanMarkers,
@@ -15,23 +16,23 @@ import {
   JUNGMAN_TEAMS,
   JUNGMAN_VOTE_METHOD_LABEL,
   JUNGMAN_VOTE_PERIOD_LABEL,
-  JUNGMAN_VOTING_TEAMS,
 } from "@/lib/jungman";
 import { jungmanLogoSrc } from "@/lib/jungman-logos";
 
 import { JungmanAutoRefresh, JungmanCountdown, JungmanDashboard } from "./JungmanClient";
+import JungmanResults from "./JungmanResults";
 
 // 수집이 3분 주기라 그보다 자주 재생성해봐야 같은 데이터를 다시 읽을 뿐이다
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "중만컵 투표 현황",
+  title: "중만컵 투표 결과",
   description:
-    "중만컵 인기투표 개표 현황을 차수별로 봅니다. 연고지 지도로 표가 어디서 나왔는지, 득표 순위와 시간별 추이가 어떻게 움직이는지 확인할 수 있습니다.",
+    "중만컵 인기투표 최종 결과입니다. 1위 캄몬스타즈부터 11위까지 공식 득표수와 시드권, 연고지 지도를 확인할 수 있습니다.",
   alternates: { canonical: "/jungman" },
   openGraph: {
-    title: "중만컵 투표 현황 | 호사가 HOSAGA",
-    description: "중만컵 인기투표 개표 현황 — 연고지 지도, 득표 순위, 추이",
+    title: "중만컵 투표 결과 | 호사가 HOSAGA",
+    description: "중만컵 인기투표 최종 결과 — 공식 득표수, 시드권, 연고지 지도",
     url: "/jungman",
     siteName: "호사가 HOSAGA",
     type: "website",
@@ -43,22 +44,27 @@ const PANEL =
   "rounded-[1.4rem] border border-[rgba(155,185,240,0.14)] bg-[linear-gradient(180deg,#101728,#0c1220)] shadow-[0_24px_60px_rgba(0,0,0,0.55)]";
 
 export default async function JungmanPage() {
-  const { config, snapshots, latest, standings, isLive: inLiveWindow, degraded } = await getJungmanState();
-  const markers = buildJungmanMarkers(standings);
+  const { config, snapshots, latest, standings: live, isLive: inLiveWindow, degraded } = await getJungmanState();
   const seedTeam = JUNGMAN_TEAMS.find((team) => team.code === JUNGMAN_SEED_TEAM_CODE);
   // 마감 판정도 서버에서 한 번만 — 클라이언트 시계로 종료 화면이 흔들리면 안 된다
   const closed = isJungmanClosed(config.voteCloseAt);
+  // 마감 뒤에는 공지 확정치가 유일한 진실 — 우리 집계는 마감 직전 몇 분을 놓쳤다.
+  // 지도까지 같은 순위표를 읽어야 두 화면이 다른 등수를 말하지 않는다.
+  const standings = closed ? buildJungmanFinalStandings() : live;
+  const markers = buildJungmanMarkers(standings);
   // LIVE 판정은 여기 한 곳에서만 — 카운트다운과 보드 배지가 서로 다른 조건을 쓰면 배지가 어긋난다
   const isLive = inLiveWindow && latest !== null && !closed;
   // 마감 뒤에는 수집기도 스스로 멈춘다 — "자동 집계" 안내가 남아 있으면 거짓말이 된다
   const autoCollect = config.autoCollect && !closed;
-  const headlines = buildJungmanHeadlines(snapshots, config.voteCloseAt);
-  // 로고 파일 존재 확인은 fs — 서버에서 끝내고 보드(클라이언트)에는 경로만 내려준다
+  // 마감 뒤 화면은 대시보드를 안 그린다 — 티커·추이는 계산할 이유가 없다
+  const headlines = closed ? [] : buildJungmanHeadlines(snapshots, config.voteCloseAt);
+  // 로고 파일 존재 확인은 fs — 서버에서 끝내고 보드(클라이언트)에는 경로만 내려준다.
+  // 수술대 포함 전체 팀 — 결과 화면 시드 카드가 수술대 로고도 그린다(대시보드는 남는 키를 안 읽는다).
   const logos = Object.fromEntries(
-    JUNGMAN_VOTING_TEAMS.map((team) => [team.code, jungmanLogoSrc(team.code)])
+    JUNGMAN_TEAMS.map((team) => [team.code, jungmanLogoSrc(team.code)])
   );
   // 구간 버킷(1시간·6시간·전체)은 서버에서 끝낸다 — 클라이언트는 전환만 한다
-  const series = buildJungmanSeries(snapshots);
+  const series = closed ? [] : buildJungmanSeries(snapshots);
   // 자동 갱신은 autoCollect 하나에 매달면 안 된다 — 읽기가 실패한 순간 config가 기본값(false)이 되어
   // 스스로 회복할 유일한 수단까지 같이 사라진다. 회복이 필요한 상황이면 무조건 띄운다.
   const autoRefresh = config.autoCollect || snapshots.length > 0 || degraded;
@@ -72,7 +78,18 @@ export default async function JungmanPage() {
         {/* 마감 뒤에는 받아올 새 데이터가 없다 — 자동 갱신을 멈춘다 */}
         {closed ? null : autoRefresh ? <JungmanAutoRefresh /> : null}
 
-        {latest ? (
+        {/* 마감 뒤에는 공지로 확정된 결과 한 장으로 굳는다. voteCloseAt이 미래로 바뀌면 아래 갈래로 돌아온다. */}
+        {closed ? (
+          <JungmanResults
+            standings={standings}
+            logos={logos}
+            map={
+              <div id="jm-map" className="[container-type:inline-size]">
+                <JungmanMap markers={markers} closed={closed} />
+              </div>
+            }
+          />
+        ) : latest ? (
           <JungmanDashboard
             standings={standings}
             round={latest.round}
