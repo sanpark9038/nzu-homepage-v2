@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-08-01T05:59:20.014Z",
+  "updated_at": "2026-08-01T06:10:43.022Z",
   "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). players=선수(entity_id)당 한 줄(표시명·숲ID·수집제외·로컬 교정), 그 외 상대 신원 결정·상대 별명.",
   "players": {
     "eloboard:male:124": {
@@ -1984,6 +1984,39 @@
     },
     "eloboard:female:896": {
       "soop_user_id": "jiinii000"
+    },
+    "eloboard:female:707": {
+      "soop_user_id": "suji84"
+    },
+    "eloboard:female:29": {
+      "soop_user_id": "lemondrops"
+    },
+    "eloboard:female:518": {
+      "soop_user_id": "jinhi1004"
+    },
+    "eloboard:male:mix:1118": {
+      "soop_user_id": "roket0829"
+    },
+    "eloboard:male:129": {
+      "soop_user_id": "mwhdgus"
+    },
+    "eloboard:female:648": {
+      "soop_user_id": "qocnrhdwn1"
+    },
+    "eloboard:female:46": {
+      "soop_user_id": "soonhani"
+    },
+    "eloboard:female:606": {
+      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)"
+    },
+    "eloboard:male:mix:846": {
+      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)"
+    },
+    "eloboard:female:909": {
+      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)"
+    },
+    "eloboard:female:569": {
+      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)"
     }
   },
   "collection_exclusions_without_entity": [
