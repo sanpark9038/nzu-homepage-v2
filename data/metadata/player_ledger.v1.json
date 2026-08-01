@@ -1,19 +1,21 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-08-01T05:31:09.524Z",
+  "updated_at": "2026-08-01T05:59:20.014Z",
   "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). players=선수(entity_id)당 한 줄(표시명·숲ID·수집제외·로컬 교정), 그 외 상대 신원 결정·상대 별명.",
   "players": {
     "eloboard:male:124": {
       "display_name": "쿰신",
       "also_known_as": [
         "박재현"
-      ]
+      ],
+      "soop_user_id": "parkjaehyeon"
     },
     "eloboard:male:137": {
       "display_name": "미동미동",
       "also_known_as": [
         "박준영"
-      ]
+      ],
+      "soop_user_id": "qhkrwns12"
     },
     "eloboard:male:149": {
       "display_name": "구라미스",
@@ -76,7 +78,8 @@
         "manual_lock": true,
         "manual_mode": "temporary",
         "updated_at": "2026-03-26T08:56:39.839Z"
-      }
+      },
+      "soop_user_id": "cksgmldbs"
     },
     "eloboard:male:27": {
       "display_name": "얍삽e",
@@ -124,7 +127,8 @@
       "display_name": "샤이니",
       "also_known_as": [
         "김재현"
-      ]
+      ],
+      "soop_user_id": "onlysibar"
     },
     "eloboard:male:79": {
       "display_name": "이소룡",
@@ -1078,7 +1082,8 @@
       "also_known_as": [
         "오조은",
         "조은"
-      ]
+      ],
+      "soop_user_id": "zalalz"
     },
     "eloboard:female:328": {
       "also_known_as": [
@@ -1145,7 +1150,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "jyh8610"
     },
     "eloboard:male:15": {
       "correction": {
@@ -1154,7 +1160,8 @@
         "race": "Zerg",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "minchul"
     },
     "eloboard:female:1015": {
       "legacy_entity_ids": [
@@ -1188,7 +1195,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "parkle1006"
     },
     "eloboard:male:39": {
       "correction": {
@@ -1215,7 +1223,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "bye1013"
     },
     "eloboard:male:213": {
       "correction": {
@@ -1288,7 +1297,8 @@
         "race": "Zerg",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "tjdeosks"
     },
     "eloboard:male:29": {
       "correction": {
@@ -1325,7 +1335,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "bangsong12"
     },
     "eloboard:female:1029": {
       "correction": {
@@ -1363,7 +1374,8 @@
         "race": "Terran",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "jiwooris2"
     },
     "eloboard:female:1020": {
       "correction": {
@@ -1531,7 +1543,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "yyssaa33"
     },
     "eloboard:female:565": {
       "correction": {
@@ -1540,7 +1553,8 @@
         "race": "Terran",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "kwbm123081"
     },
     "eloboard:female:662": {
       "correction": {
@@ -1603,7 +1617,8 @@
         "race": "Zerg",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "lily0104"
     },
     "eloboard:female:297": {
       "correction": {
@@ -1664,7 +1679,8 @@
         "manual_lock": true,
         "manual_mode": "temporary",
         "updated_at": "2026-04-08T06:24:14.381Z"
-      }
+      },
+      "soop_user_id": "zealotmaru"
     },
     "eloboard:male:207": {
       "correction": {
@@ -1711,7 +1727,8 @@
         "manual_lock": true,
         "manual_mode": "temporary",
         "updated_at": "2026-04-08T06:24:40.411Z"
-      }
+      },
+      "soop_user_id": "ynblbee"
     },
     "eloboard:male:75": {
       "correction": {
@@ -1777,7 +1794,8 @@
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review.",
         "updated_at": "2026-04-17T00:00:00.000Z"
-      }
+      },
+      "soop_user_id": "nada11200"
     },
     "eloboard:male:mix:69": {
       "correction": {
@@ -1918,6 +1936,54 @@
     },
     "eloboard:female:1014": {
       "soop_user_id": "a4s5kzg7wmk"
+    },
+    "eloboard:female:506": {
+      "soop_user_id": "9rumee"
+    },
+    "eloboard:female:555": {
+      "soop_user_id": "eeceec"
+    },
+    "eloboard:female:660": {
+      "soop_user_id": "haru1207"
+    },
+    "eloboard:female:822": {
+      "soop_user_id": "chanmeyo"
+    },
+    "eloboard:female:136": {
+      "soop_user_id": "llqqqq"
+    },
+    "eloboard:male:76": {
+      "soop_user_id": "wjswpalssla1"
+    },
+    "eloboard:female:978": {
+      "soop_user_id": "eun0c0"
+    },
+    "eloboard:female:961": {
+      "soop_user_id": "jsg0301"
+    },
+    "eloboard:female:725": {
+      "soop_user_id": "bagguul"
+    },
+    "eloboard:female:780": {
+      "soop_user_id": "2ahgo1203"
+    },
+    "eloboard:female:973": {
+      "soop_user_id": "dlwldyal1004"
+    },
+    "eloboard:male:147": {
+      "soop_user_id": "byromantic"
+    },
+    "eloboard:female:361": {
+      "soop_user_id": "cyj982002"
+    },
+    "eloboard:female:1002": {
+      "soop_user_id": "goyo030"
+    },
+    "eloboard:female:937": {
+      "soop_user_id": "cheto1206"
+    },
+    "eloboard:female:896": {
+      "soop_user_id": "jiinii000"
     }
   },
   "collection_exclusions_without_entity": [
