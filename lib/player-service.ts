@@ -1,14 +1,15 @@
 
 import { unstable_cache } from "next/cache";
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 import { type Player } from "../types";
 import {
   applyPlayerServingMetadata,
-  applyPlayerServingMetadataToOne,
   getPlayerSearchAliases,
   isExactPlayerSearchMatch,
   normalizeSearchText,
 } from "./player-serving-metadata";
+import { applyHiddenUniversityFallback, type HiddenUniversityEntry } from "./university-config";
 import { applySoopLivePreviewToOne, applySoopLivePreviews } from "./player-live-overlay";
 import { loadPlayerHistoryArtifact } from "./player-history-artifacts";
 export type { Player };
@@ -85,12 +86,44 @@ type PlayerMatchHistoryMetadataRecord = MinimalH2HPlayerRow & {
   last_synced_at?: string | null;
 };
 
-function applyServingMetadataLayer(players: Player[]) {
-  return applyPlayerServingMetadata(players);
+const HIDDEN_UNIVERSITIES_TTL_MS = 5 * 60 * 1000;
+let cachedHiddenUniversities: { entries: HiddenUniversityEntry[]; expiresAt: number } | null = null;
+
+// university_metadata는 lib/database.types.ts에 없고, university-metadata.ts는 node:fs를 끌고 와
+// 클라이언트 번들(SidebarNav → playerService)을 깨뜨린다. 그래서 여기서 익명 클라이언트로 직접 읽는다.
+// 조회가 실패하면 빈 목록 = 규칙 미적용(기존 표시 유지)이라 안전하게 퇴화한다.
+async function getHiddenUniversities(): Promise<HiddenUniversityEntry[]> {
+  const now = Date.now();
+  if (cachedHiddenUniversities && now < cachedHiddenUniversities.expiresAt) {
+    return cachedHiddenUniversities.entries;
+  }
+
+  let entries: HiddenUniversityEntry[] = [];
+  try {
+    const db = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { data, error } = await db
+      .from("university_metadata")
+      .select("code, name, aliases")
+      .eq("hidden", true);
+    if (!error && Array.isArray(data)) entries = data as HiddenUniversityEntry[];
+  } catch {
+    entries = [];
+  }
+
+  cachedHiddenUniversities = { entries, expiresAt: now + HIDDEN_UNIVERSITIES_TTL_MS };
+  return entries;
 }
 
-function applyServingMetadataLayerToOne(player: Player) {
-  return applyPlayerServingMetadataToOne(player);
+async function applyServingMetadataLayer(players: Player[]) {
+  return applyHiddenUniversityFallback(applyPlayerServingMetadata(players), await getHiddenUniversities());
+}
+
+async function applyServingMetadataLayerToOne(player: Player) {
+  const [resolved] = await applyServingMetadataLayer([player]);
+  return resolved;
 }
 
 function applyLiveOverlayLayer(players: Player[]) {
@@ -101,12 +134,12 @@ function applyLiveOverlayLayerToOne(player: Player) {
   return applySoopLivePreviewToOne(player);
 }
 
-function applyPlayerServiceView(players: Player[]) {
-  return applyLiveOverlayLayer(applyServingMetadataLayer(players));
+async function applyPlayerServiceView(players: Player[]) {
+  return applyLiveOverlayLayer(await applyServingMetadataLayer(players));
 }
 
-function applyPlayerServiceViewToOne(player: Player) {
-  return applyLiveOverlayLayerToOne(applyServingMetadataLayerToOne(player));
+async function applyPlayerServiceViewToOne(player: Player) {
+  return applyLiveOverlayLayerToOne(await applyServingMetadataLayerToOne(player));
 }
 
 async function fetchPlayersForList() {
@@ -133,7 +166,7 @@ async function fetchLivePlayersForList() {
     .order("elo_point", { ascending: false });
 
   if (error) throw error;
-  const players = applyPlayerServiceView((data || []) as Player[]);
+  const players = await applyPlayerServiceView((data || []) as Player[]);
   return players.filter((player) => player.is_live === true);
 }
 

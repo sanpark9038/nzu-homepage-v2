@@ -88,6 +88,35 @@ export function normalizeUniversityKey(univ: string | null | undefined): Univers
   return null;
 }
 
+export type HiddenUniversityEntry = {
+  code?: string | null;
+  name?: string | null;
+  aliases?: string[] | null;
+};
+
+// 숨김 팀(해체 등)은 팀 탭에서만 사라질 뿐, 서빙 players.university에는 이름이 그대로 남는다.
+// 표시 단계에서 무소속(FA)으로 내려 죽은 팀 라벨이 선수 카드에 새어나오지 않게 한다.
+// 규칙이 "현재 소속 = 숨김 팀"에만 걸리므로, 이동이 승인돼 university가 새 팀으로 바뀌는
+// 순간 자동으로 벗어난다 — 승인된 진실이 항상 이긴다.
+export function applyHiddenUniversityFallback<T extends { university?: string | null }>(
+  players: T[],
+  hiddenUniversities: HiddenUniversityEntry[]
+): T[] {
+  // 서빙 university는 applyPlayerServingMetadata 이후 보통 코드("C9")지만,
+  // 별칭 표에 없는 팀은 원본 이름이 그대로 남으므로 코드·이름·별칭을 모두 받는다.
+  const hiddenKeys = new Set(
+    hiddenUniversities
+      .flatMap((entry) => [entry.code, entry.name, ...(entry.aliases ?? [])])
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+  );
+  if (hiddenKeys.size === 0) return players;
+
+  return players.map((player) =>
+    hiddenKeys.has(String(player.university || "").trim()) ? { ...player, university: "FA" } : player
+  );
+}
+
 export function getUniversityInfo(univ: string | null | undefined): UniversityInfo {
   const raw = String(univ || "").trim();
   const normalizedKey = normalizeUniversityKey(raw);

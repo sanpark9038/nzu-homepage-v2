@@ -64,6 +64,8 @@ const {
   isExactPlayerSearchMatch,
 } = require(path.join(ROOT, "lib", "player-serving-metadata.ts"));
 
+const { applyHiddenUniversityFallback } = require(path.join(ROOT, "lib", "university-config.ts"));
+
 runTest("display alias rewrites homepage name and preserves canonical nickname", () => {
   const actual = applyPlayerServingMetadataToOne({
     name: "박종승",
@@ -148,6 +150,41 @@ runTest("serving DB roster fields are not overwritten by stale local project met
   assert.equal(actual.university, "WFU");
   assert.equal(actual.tier, "8");
   assert.equal(actual.race, "Z");
+});
+
+runTest("hidden team affiliation is displayed as 무소속(FA) while visible teams stay untouched", () => {
+  const hidden = [{ code: "C9", name: "씨나인", aliases: ["C9", "씨나인"], hidden: true }];
+  const players = [
+    { name: "코드소속", university: "C9" },
+    { name: "이름소속", university: "씨나인" },
+    { name: "살아있는팀", university: "MBU" },
+    { name: "이미무소속", university: "FA" },
+    { name: "소속없음", university: null },
+  ];
+
+  const actual = applyHiddenUniversityFallback(players, hidden);
+
+  assert.deepEqual(
+    actual.map((player) => player.university),
+    ["FA", "FA", "MBU", "FA", null]
+  );
+  // 숨김 팀이 없으면 배열을 그대로 돌려준다(불필요한 복사 없음).
+  assert.equal(applyHiddenUniversityFallback(players, []), players);
+});
+
+runTest("player service routes every serving read through a cached hidden team fallback", () => {
+  const source = readProjectFile(path.join("lib", "player-service.ts"));
+
+  assert.match(
+    source,
+    /applyHiddenUniversityFallback\(applyPlayerServingMetadata\(players\), await getHiddenUniversities\(\)\)/,
+    "The hidden team rule must sit on the single serving metadata layer, not per call site"
+  );
+  assert.match(source, /let cachedHiddenUniversities/);
+  assert.match(source, /HIDDEN_UNIVERSITIES_TTL_MS/);
+  assert.match(source, /now < cachedHiddenUniversities\.expiresAt/);
+  // 클라이언트 번들(SidebarNav → playerService)에 node:fs가 섞이면 빌드가 깨진다.
+  assert.doesNotMatch(source, /from "\.\/university-metadata"/);
 });
 
 runTest("exact search matches serving name, canonical nickname, and configured aliases", () => {
