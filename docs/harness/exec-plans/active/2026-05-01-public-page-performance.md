@@ -2934,3 +2934,58 @@ Post-deploy measurement after PR #11:
     sandbox `EACCES` fetch/revalidation warnings for Supabase-backed public
     player cache and hero-media prerender attempts.
 - Push/deploy status: not pushed and not deployed.
+## 2026-08-01 Function Region Slice (icn1)
+
+### Finding
+
+Production measurement of `https://www.star-hosaga.com`:
+
+- `/player`: 0.077s, `X-Vercel-Cache: HIT`.
+- `/player?query=김지성`: 1.65s, `no-store`, always MISS.
+- `/api/player-detail-summary?id=...`: 1.28s MISS, then 0.046s HIT.
+- `/api/player/{id}/matches`: 1.52s MISS, then 0.041s HIT.
+
+CDN caching already works. The problem is the cost of a single MISS.
+
+Root cause is geographic, not algorithmic:
+
+- `X-Vercel-Id: icn1::iad1` — requests enter the Seoul edge but execute in
+  `iad1` (Washington DC). No `vercel.json` existed, so the project used the
+  default region.
+- `db.ttglvnnzssaaypmcrmdt.supabase.co` resolves to `2406:da12:b78:...`.
+  AWS `ip-ranges.json` maps `2406:da12::/36` to `ap-northeast-2` (Seoul).
+
+So each cold request crossed the Pacific repeatedly: user (KR) → edge (ICN) →
+function (IAD) → Supabase (Seoul) → function (IAD) → user (KR). One Supabase
+round trip is about 200ms, and `/api/player/[id]/matches` performs two Supabase
+reads plus an R2 artifact fetch (411KB for 김지성) sequentially.
+
+The previously recorded 1.70s cold cost for `/api/player/[id]/matches` is
+round-trip latency, not the in-memory aggregation of 2,869 history rows.
+
+### Change
+
+- Added `vercel.json` with `"regions": ["icn1"]`. No application code changed.
+- External dependencies are all domestic (Supabase Seoul, eloboard, SOOP, R2
+  Seoul PoP), so no request path is made slower by the move.
+- Pipeline/cron functions move to `icn1` as well and hit the same Seoul
+  database, so they get faster too.
+- Reverting is deleting the file.
+
+### Deferred
+
+- `/player?query=...` is `force-dynamic` + `noStore()` + `revalidate = 0`, so it
+  never enters the CDN. Search terms are long-tail, so caching value is low.
+  Re-measure after the region move before changing it.
+- Backlog item 4 (`matchHistoryItemsCache` module Map → `unstable_cache`) is on
+  hold. In-region cold cost should be small enough that the invalidation-tag
+  design costs more than it returns.
+
+### Verification Plan
+
+- Deploy, then re-measure the four routes above and confirm `X-Vercel-Id` shows
+  `icn1::icn1`.
+
+### Status
+
+- Committed locally. Not pushed, not deployed.
