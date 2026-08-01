@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-07-26T07:42:05.400Z",
+  "updated_at": "2026-08-01T05:31:09.524Z",
   "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). players=선수(entity_id)당 한 줄(표시명·숲ID·수집제외·로컬 교정), 그 외 상대 신원 결정·상대 별명.",
   "players": {
     "eloboard:male:124": {
@@ -1097,7 +1097,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Canonical successor mapping: use wr_id=1028 after race/profile transition; retire legacy wr_id=1026 from roster-change alerts."
-      }
+      },
+      "soop_user_id": "kjhanna824"
     },
     "eloboard:female:777": {
       "correction": {
@@ -1177,7 +1178,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "bumsoo552"
     },
     "eloboard:female:517": {
       "correction": {
@@ -1222,7 +1224,8 @@
         "race": "Zerg",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "djdbstn"
     },
     "eloboard:male:12": {
       "correction": {
@@ -1312,7 +1315,8 @@
         "race": "Zerg",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "simcheong23"
     },
     "eloboard:female:894": {
       "correction": {
@@ -1340,7 +1344,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "snfjdro369"
     },
     "eloboard:male:13": {
       "correction": {
@@ -1367,7 +1372,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "finepearls"
     },
     "eloboard:female:413": {
       "correction": {
@@ -1448,7 +1454,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "wlsdkd1"
     },
     "eloboard:female:930": {
       "correction": {
@@ -1484,7 +1491,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "mooaoom"
     },
     "eloboard:female:912": {
       "correction": {
@@ -1493,7 +1501,8 @@
         "race": "Protoss",
         "manual_lock": true,
         "note": "Confirmed FA tier from manual review."
-      }
+      },
+      "soop_user_id": "khl1589"
     },
     "eloboard:male:136": {
       "correction": {
@@ -1690,7 +1699,8 @@
         "manual_lock": true,
         "manual_mode": "temporary",
         "updated_at": "2026-04-08T06:24:32.804Z"
-      }
+      },
+      "soop_user_id": "della2440"
     },
     "eloboard:female:627": {
       "correction": {
@@ -1857,6 +1867,57 @@
         "note": "Canonical successor mapping: eloboard issues a new wr_id on race change. 1046 merges into 57; 57 is current (user-confirmed 2026-07-20).",
         "updated_at": "2026-07-20T15:28:56.852Z"
       }
+    },
+    "eloboard:male:203": {
+      "soop_user_id": "cksdnddldhkd"
+    },
+    "eloboard:male:74": {
+      "soop_user_id": "jh3697"
+    },
+    "eloboard:female:35": {
+      "soop_user_id": "rnaqpdrjf"
+    },
+    "eloboard:female:373": {
+      "soop_user_id": "djathekd"
+    },
+    "eloboard:female:976": {
+      "soop_user_id": "heyyo0123"
+    },
+    "eloboard:female:1032": {
+      "soop_user_id": "tjgus5570"
+    },
+    "eloboard:male:28": {
+      "soop_user_id": "scan1014"
+    },
+    "eloboard:male:18": {
+      "soop_user_id": "bwstar"
+    },
+    "eloboard:male:77": {
+      "soop_user_id": "tjdwnls123"
+    },
+    "eloboard:male:mix:304": {
+      "soop_user_id": "khc2566"
+    },
+    "eloboard:female:715": {
+      "soop_user_id": "lkim12"
+    },
+    "eloboard:female:690": {
+      "soop_user_id": "totlllsz"
+    },
+    "eloboard:female:759": {
+      "soop_user_id": "jjjjeong"
+    },
+    "eloboard:female:477": {
+      "soop_user_id": "s2appeal"
+    },
+    "eloboard:female:960": {
+      "soop_user_id": "wlswn6565"
+    },
+    "eloboard:female:424": {
+      "soop_user_id": "yeom1020"
+    },
+    "eloboard:female:1014": {
+      "soop_user_id": "a4s5kzg7wmk"
     }
   },
   "collection_exclusions_without_entity": [
