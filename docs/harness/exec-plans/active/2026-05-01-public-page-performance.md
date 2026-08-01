@@ -2989,3 +2989,31 @@ round-trip latency, not the in-memory aggregation of 2,869 history rows.
 ### Status
 
 - Committed locally. Not pushed, not deployed.
+
+### Verification Result (deployed `429953a`)
+
+`X-Vercel-Id` now reports `icn1::icn1`. Production re-measurement, using a
+cache-busting query param to force CDN MISS on the API routes:
+
+| Route | Before | After |
+| --- | --- | --- |
+| `/player` (HIT) | 0.077s | 0.047s |
+| `/player?query=...` | 1.65s | 0.40-0.80s |
+| `/api/player-detail-summary` MISS | 1.28s | 0.067-0.084s |
+| `/api/player/{id}/matches` MISS | 1.52s | 0.059-0.079s |
+
+- The two expanded-detail fetches are roughly 18-23x faster.
+- Verified on both 김지성 (2,869 matches) and 김윤중; results match.
+- Two remaining spikes (1.26s, 0.99s) occurred only on the first request per
+  player and dropped to 60-90ms immediately after. These are Lambda cold starts,
+  not region latency; the region change cannot reduce them further.
+
+### Follow-up Decisions
+
+- Backlog item 4 (`matchHistoryItemsCache` → `unstable_cache`) is now closed as
+  not worth doing. A CDN MISS costs 65ms; the cost that cache existed to avoid
+  is gone.
+- `/player?query=...` is now the slowest public path at 0.40-0.80s. It is
+  `force-dynamic` + `noStore()` + `revalidate = 0`, so it never enters the CDN
+  and fully re-renders about 37KB on every request. 0.4s is the floor for that
+  structure. Treat this as the next candidate slice if the operator wants more.
