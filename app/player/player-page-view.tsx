@@ -111,9 +111,6 @@ async function PlayerResultsSection({
           <PlayerSearchResult
             player={buildPlayerCardPayload(exactMatch)}
             raceSummaries={detailSummary.raceSummaries}
-            strongestMap={detailSummary.strongestMap}
-            weakestMap={detailSummary.weakestMap}
-            raceBestMaps={detailSummary.raceBestMaps}
             spawnPartner={detailSummary.spawnPartner}
             recentLogs={detailSummary.recentLogs}
             recentSummary={detailSummary.recentSummary}

@@ -1,17 +1,12 @@
 import { unstable_cache } from "next/cache";
 
 import {
-  buildMapSummaries,
-  buildRaceBestMaps,
   buildRaceSummaries,
   buildRecentLogs,
   buildRecentSummary,
   formatShortDate,
   buildSpawnPartner,
   getWinRate,
-  pickMapSummary,
-  type MapSummary,
-  type RaceMapSummary,
   type RaceSummary,
   type RecentLog,
   type RecentSummary,
@@ -23,9 +18,6 @@ export const PLAYER_DETAIL_RECENT_LOG_LIMIT = 25;
 
 export type PlayerDetailSummary = {
   raceSummaries: RaceSummary[];
-  strongestMap: MapSummary | null;
-  weakestMap: MapSummary | null;
-  raceBestMaps: RaceMapSummary[];
   spawnPartner: SpawnPartnerSummary;
   recentLogs: RecentLog[];
   recentSummary: RecentSummary;
@@ -34,9 +26,6 @@ export type PlayerDetailSummary = {
 export function getEmptyPlayerDetailSummary(): PlayerDetailSummary {
   return {
     raceSummaries: [],
-    strongestMap: null,
-    weakestMap: null,
-    raceBestMaps: [],
     spawnPartner: null,
     recentLogs: [],
     recentSummary: { winRate: getWinRate(0, 0), wins: 0, losses: 0, form: [] },
@@ -95,23 +84,6 @@ function buildPrecomputedRecentSummary(player: Pick<Player, "detailed_stats" | "
     wins,
     losses,
     form,
-  };
-}
-
-function buildMapSummaryFromProjection(value: unknown): MapSummary | null {
-  const row = asRecord(value);
-  if (!row) return null;
-  const mapName = String(row.map_name || row.mapName || "").trim();
-  const matches = toNonNegativeInteger(row.matches);
-  const wins = toNonNegativeInteger(row.wins);
-  const losses = toNonNegativeInteger(row.losses);
-  if (!mapName || matches === 0) return null;
-  return {
-    mapName,
-    matches,
-    wins,
-    losses,
-    winRate: getWinRate(wins, matches),
   };
 }
 
@@ -183,15 +155,6 @@ export function getPrecomputedFullPlayerDetailSummary(
         .map(buildRaceSummaryFromProjection)
         .filter((summary): summary is RaceSummary => Boolean(summary))
     : [];
-  const raceBestMaps = Array.isArray(projection.race_best_maps)
-    ? projection.race_best_maps.map((item) => {
-        const row = asRecord(item);
-        return {
-          race: normalizePrecomputedRace(row?.race),
-          bestMap: buildMapSummaryFromProjection(row?.best_map),
-        };
-      })
-    : [];
   const recentLogs = Array.isArray(projection.recent_logs)
     ? projection.recent_logs
         .map(buildRecentLogFromProjection)
@@ -201,9 +164,6 @@ export function getPrecomputedFullPlayerDetailSummary(
 
   return {
     raceSummaries,
-    strongestMap: buildMapSummaryFromProjection(projection.strongest_map),
-    weakestMap: buildMapSummaryFromProjection(projection.weakest_map),
-    raceBestMaps,
     spawnPartner: buildSpawnPartnerFromProjection(projection.spawn_partner),
     recentLogs,
     recentSummary: buildPrecomputedRecentSummary(player),
@@ -230,13 +190,9 @@ export async function buildPlayerDetailSummary(
 
   const matchLimit = Math.max((player.total_wins ?? 0) + (player.total_losses ?? 0), 20);
   const exactMatchMatches = await playerService.getPlayerMatches(player.id, matchLimit);
-  const mapSummaries = buildMapSummaries(exactMatchMatches, player.id);
 
   return {
     raceSummaries: buildRaceSummaries(exactMatchMatches, player.id),
-    strongestMap: pickMapSummary(mapSummaries, "desc", 5),
-    weakestMap: pickMapSummary(mapSummaries, "asc", 5),
-    raceBestMaps: buildRaceBestMaps(exactMatchMatches, player.id),
     spawnPartner: buildSpawnPartner(exactMatchMatches, player.id),
     recentLogs: buildRecentLogs(exactMatchMatches, player.id).slice(0, PLAYER_DETAIL_RECENT_LOG_LIMIT),
     recentSummary: buildRecentSummary(exactMatchMatches, player.id),

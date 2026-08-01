@@ -8,8 +8,6 @@ import { RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
 import type { PlayerDetailSummary } from "@/lib/player-detail-summary";
 import type { Player } from "@/lib/player-service";
 import type {
-  MapSummary,
-  RaceMapSummary,
   RaceSummary,
   RecentLog,
   RecentSummary,
@@ -23,9 +21,6 @@ import { cn, normalizeTier } from "@/lib/utils";
 type Props = {
   player: Player;
   raceSummaries: RaceSummary[];
-  strongestMap: MapSummary | null;
-  weakestMap: MapSummary | null;
-  raceBestMaps: RaceMapSummary[];
   spawnPartner: SpawnPartnerSummary;
   recentLogs: RecentLog[];
   recentSummary: RecentSummary;
@@ -56,9 +51,6 @@ export default function PlayerSearchResult({ defaultExpanded = false, ...props }
 function PlayerSearchResultInner({
   player,
   raceSummaries: initialRaceSummaries,
-  strongestMap: initialStrongestMap,
-  weakestMap: initialWeakestMap,
-  raceBestMaps: initialRaceBestMaps,
   spawnPartner: initialSpawnPartner,
   recentLogs: initialRecentLogs,
   recentSummary: initialRecentSummary,
@@ -78,9 +70,6 @@ function PlayerSearchResultInner({
   const [failedThumbnailSrc, setFailedThumbnailSrc] = useState<string | null>(null);
   const [detailSummary, setDetailSummary] = useState<PlayerDetailSummary>({
     raceSummaries: initialRaceSummaries,
-    strongestMap: initialStrongestMap,
-    weakestMap: initialWeakestMap,
-    raceBestMaps: initialRaceBestMaps,
     spawnPartner: initialSpawnPartner,
     recentLogs: initialRecentLogs,
     recentSummary: initialRecentSummary,
@@ -165,9 +154,8 @@ function PlayerSearchResultInner({
   } = detailSummary;
   const recentForm = recentSummary.form;
   const displayRaceSummaries = filteredData?.stats?.raceSummaries ?? raceSummaries;
-  // recentLogs는 최신순 → 렌더는 과거→최신이므로 뒤집는다
-  const recentLogs10 = recentLogs.slice(0, 10).reverse();
-  const recentForm10 = recentLogs10.map((log) => log.result);
+  // 분석 기간을 따르는 흐름 — 이미 과거→최신 순으로 온다(중요경기 열과 동일 계약)
+  const recentForm10 = filteredData?.stats.form ?? [];
   const form10Wins = recentForm10.filter((r) => r === "승").length;
   const form10Losses = recentForm10.length - form10Wins;
   const form10WinRate = recentForm10.length > 0 ? Math.round((form10Wins / recentForm10.length) * 100) : null;
@@ -458,7 +446,7 @@ function PlayerSearchResultInner({
                     winRate={form10WinRate}
                   />
                 ) : (
-                  <CompactRow value="최근 경기 기록이 없습니다" />
+                  <CompactRow value={isFilterLoading ? "불러오는 중..." : "최근 경기 기록이 없습니다"} />
                 )}
               </Section>
 
@@ -819,6 +807,9 @@ type MatchHistoryApiResponse = {
       winRate: string;
       hasRecord: boolean;
     }>;
+    form?: Array<"승" | "패">; // 오래된 → 최신 순
+    formFromDateText?: string | null;
+    formToDateText?: string | null;
   };
   // 경기 종류 칩과 무관하게 항상 중요경기 전체 기준 (분석 기간에만 반응)
   importantStats?: {

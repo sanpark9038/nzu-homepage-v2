@@ -57,6 +57,22 @@ function buildRaceSummaries(list: MatchItem[]) {
   });
 }
 
+/**
+ * 전체 전적·중요경기 전적이 같은 shape을 쓰도록 공유하는 최근 10경기 흐름.
+ * 입력은 최신순 → 앞에서 10개 취한 뒤 뒤집어 오래된→최신 순으로 내보낸다.
+ */
+function buildForm(list: MatchItem[]) {
+  const formItems = list.slice(0, 10).reverse();
+  const dateText = (item: MatchItem | undefined) =>
+    item ? formatShortDate(String(item.match_date || item.matchDate || "").slice(0, 10)) : null;
+
+  return {
+    form: formItems.map((item) => (isWin(item) ? ("승" as const) : ("패" as const))),
+    formFromDateText: dateText(formItems[0]),
+    formToDateText: dateText(formItems[formItems.length - 1]),
+  };
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -76,7 +92,8 @@ export async function GET(
     const items = await playerService.getPlayerMatchHistoryItems(id);
 
     // Apply filter
-    let filtered = items;
+    // 모듈 캐시가 들고 있는 배열을 아래 sort가 in-place로 뒤집지 않도록 복사본으로 시작한다.
+    let filtered = [...items];
 
     if (filterRecent90) {
       const cutoff = new Date();
@@ -112,10 +129,6 @@ export async function GET(
     // 중요경기 전적은 목록 필터(category)와 무관하게 항상 filtered 전체에서 뽑는다.
     const importantItems = filtered.filter((item) => isImportant(item, excludeMini));
     const importantWins = importantItems.filter(isWin).length;
-    // filtered는 최신순 → 앞에서 10개 취한 뒤 뒤집어 오래된→최신 순으로 내보낸다
-    const formItems = importantItems.slice(0, 10).reverse();
-    const formDateText = (item: MatchItem | undefined) =>
-      item ? formatShortDate(String(item.match_date || item.matchDate || "").slice(0, 10)) : null;
 
     // 대회 분류 필터는 통계 산출 이후에 — 위쪽 승패 요약·종족별 승률은 기간에만 반응하고,
     // 아래 경기 목록만 종류로 걸러진다. 전체 승률과 중요경기 승률을 대조할 수 있어야 하므로 덮어쓰지 않는다.
@@ -161,15 +174,14 @@ export async function GET(
           losses: statsLosses,
           winRate: statsWinRate,
           raceSummaries,
+          ...buildForm(filtered),
         },
         importantStats: {
           wins: importantWins,
           losses: importantItems.length - importantWins,
           winRate: winRateText(importantWins, importantItems.length),
           raceSummaries: buildRaceSummaries(importantItems),
-          form: formItems.map((item) => (isWin(item) ? ("승" as const) : ("패" as const))),
-          formFromDateText: formDateText(formItems[0]),
-          formToDateText: formDateText(formItems[formItems.length - 1]),
+          ...buildForm(importantItems),
         },
       },
       {
