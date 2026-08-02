@@ -20,7 +20,7 @@ import {
   type PackedMatchupPlayersPayload,
   type PackedMatchupPlayerSummary,
 } from '@/lib/matchup-helpers'
-import { getTierSortWeight } from '@/lib/tier-order'
+import { EXCLUDED_TIERS, getTierSortWeight } from '@/lib/tier-order'
 import { getUniversityLabel, UNIVERSITY_MAP } from '@/lib/university-config'
 import { cn, normalizeTier } from '@/lib/utils'
 import type { H2HStats } from '@/types'
@@ -49,7 +49,6 @@ type H2HLookupProps = {
   universityOptions?: UniversityOption[]
 }
 
-const EXCLUDED_TIERS = ['잭', '조커', '스페이드', '9', '미정']
 const EMPTY_PACKED_PLAYERS: PackedMatchupPlayerSummary[] = []
 
 function getMatchupStats(stats: H2HStats | null | undefined) {

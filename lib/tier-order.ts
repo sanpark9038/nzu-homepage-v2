@@ -22,3 +22,5 @@ const SHARED_TIER_ORDER: Record<string, number> = {
 export function getTierSortWeight(tier: string | null | undefined): number {
   return SHARED_TIER_ORDER[normalizeTier(tier)] ?? 50;
 }
+
+export const EXCLUDED_TIERS = ["잭", "조커", "스페이드", "9", "미정"];

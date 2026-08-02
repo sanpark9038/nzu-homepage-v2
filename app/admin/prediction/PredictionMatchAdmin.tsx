@@ -18,7 +18,8 @@ import type {
   PredictionEntryMatchupConfig,
   PredictionVoteRow,
 } from "@/lib/prediction-store";
-import { cn } from "@/lib/utils";
+import { EXCLUDED_TIERS } from "@/lib/tier-order";
+import { cn, normalizeTier } from "@/lib/utils";
 
 type PlayerOption = {
   id: string;
@@ -728,19 +729,33 @@ export function PredictionMatchAdmin({
 
   const setExistingTeam = (side: "a" | "b", teamCode: string) => {
     const team = teams.find((item) => item.teamCode === teamCode);
+    // 기존 팀 명단 자동 로드에서는 제외 티어(잭·조커·스페이드·9·미정)를 빼고 담는다.
+    // 수동 검색 추가(PlayerSearchInput)는 여전히 모든 티어를 허용한다.
+    const playerIds =
+      team?.players
+        .filter((player) => !EXCLUDED_TIERS.includes(normalizeTier(player.tier)))
+        .map((player) => player.id) || [];
     const patch =
       side === "a"
         ? {
             team_a_code: teamCode,
             team_a_name: team?.teamName || "",
-            team_a_player_ids: team?.players.map((player) => player.id) || [],
+            team_a_player_ids: playerIds,
           }
         : {
             team_b_code: teamCode,
             team_b_name: team?.teamName || "",
-            team_b_player_ids: team?.players.map((player) => player.id) || [],
+            team_b_player_ids: playerIds,
           };
     updateSelected(patch);
+  };
+
+  const clearTeam = (side: "a" | "b") => {
+    updateSelected(
+      side === "a"
+        ? { team_a_code: "", team_a_name: "", team_a_player_ids: [] }
+        : { team_b_code: "", team_b_name: "", team_b_player_ids: [] }
+    );
   };
 
   const updateMatchup = (
@@ -1119,6 +1134,13 @@ export function PredictionMatchAdmin({
               className="rounded-lg border border-nzu-green/30 bg-nzu-green/10 px-3 py-2 text-xs font-black text-nzu-green transition hover:bg-nzu-green/15"
             >
               선수 추가
+            </button>
+            <button
+              type="button"
+              onClick={() => clearTeam(side)}
+              className="rounded-lg border border-red-400/20 bg-red-500/10 px-3 py-2 text-xs font-black text-red-200 transition hover:bg-red-500/15"
+            >
+              명단 비우기
             </button>
             {selectedTeamMode === "existing" && code ? (
               <span className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black text-white/55">
