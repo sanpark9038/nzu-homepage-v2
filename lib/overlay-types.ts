@@ -195,6 +195,9 @@ export function defaultOverlaySet(title = "", isAce = false): OverlaySet {
   };
 }
 
+// 기본 맵풀 — 방송엔 앞 두 글자로 나간다(mapAbbr). 일괄입력의 맵 약칭 교정에도 이 목록을 쓴다.
+export const DEFAULT_MAPS = ["녹아웃", "라데온", "애티튜드", "오디세이", "백룸", "컬러리스 페이트", "아이올로스", "옥타곤"];
+
 export function defaultOverlayState(): OverlayState {
   return {
     mode: "team",
@@ -203,7 +206,7 @@ export function defaultOverlayState(): OverlayState {
     right: defaultOverlaySide("right"),
     sets: [],
     activeSetId: null,
-    maps: [],
+    maps: [...DEFAULT_MAPS],
     scoreboardLayout: { x: 0, y: 373, scale: 0.54, visible: true },
     entryLayout: { x: 330, y: 770, scale: 1, visible: true },
     favorites: [],

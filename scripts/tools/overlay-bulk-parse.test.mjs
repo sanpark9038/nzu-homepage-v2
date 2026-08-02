@@ -89,6 +89,40 @@ test("vs 양식: vs 없는 줄은 unrecognized로 보고", () => {
   assert.deepEqual(r.unrecognized, ["김기덕 이경민"]);
 });
 
+// ── vs 양식 + 맵 (종족 표기가 없는 스트리머 채팅) ────────────────────
+const MAPS = ["녹아웃", "라데온", "애티튜드", "오디세이", "백룸", "컬러리스 페이트", "아이올로스", "옥타곤"];
+
+test("vs 양식: 번호 붙은 채팅 통째 붙여넣기 → 선수/선수/맵, vs 없는 줄은 탈락", () => {
+  const r = parseBulk(
+    `1.비재희VS슈슈 에티
+2.삐약이VS라운 오디
+3.구키VS황단비 라데
+6.핀 녹
+--------
+9.에결`,
+    "", [], undefined, true, MAPS,
+  );
+  assert.deepEqual(full(r), [
+    "비재희[-] vs 슈슈[-] @에티 =-",
+    "삐약이[-] vs 라운[-] @오디세이 =-",
+    "구키[-] vs 황단비[-] @라데온 =-",
+  ]);
+  assert.deepEqual(r.unrecognized, ["6.핀 녹", "--------", "9.에결"]);
+});
+
+test("vs 양식: 맵목록에 없는 맵도 적힌 그대로 쓴다 / 오른쪽 1토큰이면 맵 없음", () => {
+  assert.deepEqual(full(parseBulk("영희 vs 철수 미지의맵", "", [], undefined, true, MAPS)), ["영희[-] vs 철수[-] @미지의맵 =-"]);
+  assert.deepEqual(full(parseBulk("영희 vs 철수", "", [], undefined, true, MAPS)), ["영희[-] vs 철수[-] @- =-"]);
+});
+
+test("vs 양식: 선수 앞 맵은 맵목록에 2글자 이상으로 맞을 때만 (두 어절 이름 보호)", () => {
+  assert.deepEqual(full(parseBulk("라데 영희 vs 철수", "", [], undefined, true, MAPS)), ["영희[-] vs 철수[-] @라데온 =-"]);
+  // "라"는 라데온의 앞글자지만 한 글자라 맵으로 안 뺏는다
+  assert.deepEqual(full(parseBulk("라 미 vs 철수", "", [], undefined, true, MAPS)), ["라 미[-] vs 철수[-] @- =-"]);
+  // 오른쪽은 한 글자여도 마지막 토큰이면 맵 — 정식 이름으로 교정
+  assert.deepEqual(full(parseBulk("영희 vs 슈슈 녹", "", [], undefined, true, MAPS)), ["영희[-] vs 슈슈[-] @녹아웃 =-"]);
+});
+
 // ── 프로리그 명단(채팅) 양식 — 이모지/vs 분기가 삼키면 안 됨 ────────
 test("프로리그 명단: 채팅 붙여넣기 → 좌팀/우팀/맵 열로 분해", () => {
   const r = parseBulk(

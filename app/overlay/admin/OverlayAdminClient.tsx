@@ -8,6 +8,7 @@ import {
 import { buildSoopPlayUrl, soopIdOfName } from "@/lib/soop";
 import {
   defaultOverlayState,
+  DEFAULT_MAPS,
   defaultOverlaySet,
   defaultOverlaySide,
   buildDefaultSets,
@@ -227,7 +228,8 @@ export default function OverlayAdminClient({
             entryLayout:      p.state.entryLayout      ?? d.entryLayout,
             favorites:        p.state.favorites        ?? [],
             sets:             p.state.sets             ?? [],
-            maps:             p.state.maps             ?? [],
+            // 맵목록이 비어 있으면 기본 맵풀을 채운다 → "전체 지우기"는 사실상 기본값 되돌리기가 됨
+            maps:             p.state.maps?.length ? p.state.maps : [...DEFAULT_MAPS],
             activeSetId:      p.state.activeSetId      ?? null,
             // 구버전 상태 호환: universityFormat이 없거나 옛 bo5 값이면 bo7로 보정
             universityFormat: p.state.universityFormat === "bo9" ? "bo9" : "bo7",
@@ -1017,12 +1019,12 @@ export default function OverlayAdminClient({
             <div className="px-4 py-3 border-b border-white/10 bg-white/[0.05] flex items-center gap-2">
               <span className="text-base font-bold text-white/85">맵목록</span>
               <span className="text-xs font-semibold text-white/35">{state.maps.length}개</span>
-              {state.maps.length > 0 && (
-                <button onClick={() => upd({ maps: [] })}
-                  className="ml-auto text-[11px] font-semibold text-white/30 hover:text-red-400 transition-colors">
-                  전체 지우기
-                </button>
-              )}
+              {/* 비우기가 아니라 되돌리기 — 빈 맵목록은 쓸 일이 없고, 개별 삭제는 칩의 X로 된다 */}
+              <button onClick={() => upd({ maps: [...DEFAULT_MAPS] })}
+                title={DEFAULT_MAPS.join(" · ")}
+                className="ml-auto text-[11px] font-semibold text-white/30 hover:text-sky-300 transition-colors">
+                기본값으로 되돌리기
+              </button>
             </div>
             <div className="p-3.5 space-y-2.5">
               <input
@@ -1435,6 +1437,13 @@ export default function OverlayAdminClient({
 }
 
 
+// 방송입장 — target="_blank"만 쓰면 탭으로 열린다. 창 크기를 같이 넘겨야 브라우저가 별도 창으로 띄운다.
+// (관리자 화면을 가리지 않아야 대진표를 보면서 방송을 확인할 수 있음)
+const openBroadcastWindow = (e: { preventDefault: () => void }, url: string) => {
+  e.preventDefault();
+  window.open(url, "_blank", "width=1280,height=760,noopener");
+};
+
 // ─── SetEditor (단순 대진표 + 일괄 입력) ───
 function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, soopUrlOf, matchFormat, defaultSlots, onPatch, onAddEntry, onRemoveEntry, onPatchEntry, onSetResult, onLoad, onReorder, onFillDown, onReplaceEntries }: {
   set: OverlaySet;
@@ -1517,23 +1526,22 @@ function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, soopUrlO
 
   // 붙여넣은 내용 실시간 인식 미리보기
   const preview = useMemo(
-    () => (bulkText.trim() ? parseBulk(bulkText, myName, playerNames, useUnivMatch ? universityOf : undefined, allowVsFormat) : null),
-    [bulkText, myName, playerNames, useUnivMatch, allowVsFormat, universityOf],
+    () => (bulkText.trim() ? parseBulk(bulkText, myName, playerNames, useUnivMatch ? universityOf : undefined, allowVsFormat, mapPool) : null),
+    [bulkText, myName, playerNames, useUnivMatch, allowVsFormat, universityOf, mapPool],
   );
   // vs 형식 + 좌우 교체 시 미리보기·적용에 쓰일 실제 행
   const previewRows = preview ? (preview.vsFormat && vsSwap ? preview.rows.map(swapRow) : preview.rows) : [];
   const previewWins = previewRows.filter(r => r.result).length; // 이모지 양식의 ✅ 승패 인식 건수
 
   const applyBulk = () => {
-    const parsed = parseBulk(bulkText, myName, playerNames, useUnivMatch ? universityOf : undefined, allowVsFormat);
+    const parsed = parseBulk(bulkText, myName, playerNames, useUnivMatch ? universityOf : undefined, allowVsFormat, mapPool);
     if (!parsed) { setNotice("선수 줄을 못 찾았어요. 최소 두 줄(양 팀)을 붙여넣어 주세요."); return; }
-    // "vs" 형식은 줄 수가 곧 경기 수 → 기존 대진표 칸 수는 유지하고 앞에서부터 채움 (줄이 더 많으면 칸을 늘림)
+    // 붙여넣은 줄이 모자라도 기존 대진표 칸 수는 유지하고 앞에서부터 채움 (줄이 더 많으면 칸을 늘림).
+    // 9판5선인데 8줄만 붙여넣어도 9번째 빈 행이 남아야 방송 대진표에 전체 판세가 보인다.
     // 좌우 교체(vsSwap)가 켜져 있으면 우리팀이 왼쪽(P1)에 오도록 뒤집어서 적용
     let rows = parsed.vsFormat && vsSwap ? parsed.rows.map(swapRow) : parsed.rows;
-    if (parsed.vsFormat) {
-      const slots = Math.max(rows.length, set.entries.length || defaultSlots);
-      rows = Array.from({ length: slots }, (_, i) => rows[i] ?? { leftPlayer: "", rightPlayer: "", map: "" });
-    }
+    const slots = Math.max(rows.length, set.entries.length || defaultSlots);
+    rows = Array.from({ length: slots }, (_, i) => rows[i] ?? { leftPlayer: "", rightPlayer: "", map: "" });
     onReplaceEntries(rows);
     setVsSwap(false);
     const warns: string[] = [];
@@ -1697,7 +1705,8 @@ function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, soopUrlO
                 {entry.leftPlayer && (() => {
                   const url = soopUrlOf(entry.leftPlayer);
                   return url ? (
-                    <a href={url} target="_blank" rel="noopener noreferrer" title={`${entry.leftPlayer} 방송 열기`}
+                    <a href={url} target="_blank" rel="noopener noreferrer" onClick={e => openBroadcastWindow(e, url)}
+                      title={`${entry.leftPlayer} 방송 열기 (새 창)`}
                       className="shrink-0 flex items-center h-6 px-2 mr-2 rounded-md bg-red-500/15 border border-red-500/30 text-red-400 text-[11px] font-black tracking-wide hover:bg-red-500/25 hover:text-red-300 transition-colors">
                       방송입장
                     </a>
@@ -1772,7 +1781,8 @@ function SetEditor({ set, leftPool, rightPool, mapPool, myName, raceOf, soopUrlO
                 {entry.rightPlayer && (() => {
                   const url = soopUrlOf(entry.rightPlayer);
                   return url ? (
-                    <a href={url} target="_blank" rel="noopener noreferrer" title={`${entry.rightPlayer} 방송 열기`}
+                    <a href={url} target="_blank" rel="noopener noreferrer" onClick={e => openBroadcastWindow(e, url)}
+                      title={`${entry.rightPlayer} 방송 열기 (새 창)`}
                       className="shrink-0 flex items-center h-6 px-2 ml-2 rounded-md bg-red-500/15 border border-red-500/30 text-red-400 text-[11px] font-black tracking-wide hover:bg-red-500/25 hover:text-red-300 transition-colors">
                       방송입장
                     </a>

@@ -88,6 +88,7 @@ export function parseBulk(
   playerNames: string[],
   universityOf?: (token: string) => string | null,
   allowVsFormat = false,
+  mapPool: string[] = [],
 ): {
   rows: ParsedRow[]; detectedP1: boolean; detectedMaps: boolean; mapsOnly: boolean; vsFormat?: boolean;
   unrecognized?: string[]; // vs 형식에서 경기로 인식하지 못하고 건너뛴 줄(원문) — UI에서 짚어주기 위함
@@ -101,14 +102,30 @@ export function parseBulk(
   };
   const rawLines = text.split(/\r?\n/);
 
+  // 맵목록 조회 — 채팅 약칭("녹")을 정식 이름("녹아웃")으로 교정한다.
+  // 목록에 없으면 적힌 그대로 쓴다(맵은 표기가 좀 달라도 방송에 지장 없음).
+  const normMap = (s: string) => s.toLowerCase().replace(/\s/g, "");
+  const pool = mapPool.filter(Boolean).map(m => ({ raw: m, n: normMap(m) }));
+  // minLen: 선수 앞에 온 토큰을 맵으로 볼 때는 2글자 이상만 인정한다.
+  // 한 글자까지 허용하면 "라 미"(두 어절 이름)의 "라"가 라데온으로 잡혀 이름을 뺏는다.
+  const canonMap = (t: string, minLen = 1): string | undefined => {
+    const n = normMap(t);
+    return n.length >= minLen ? pool.find(m => m.n.startsWith(n))?.raw : undefined;
+  };
+  // 어떤 양식으로 읽었든 맵 표기는 한 곳에서 통일
+  const canon = <T extends { rows: ParsedRow[] }>(res: T): T => ({
+    ...res,
+    rows: res.rows.map(r => (r.map ? { ...r, map: canonMap(r.map) ?? r.map } : r)),
+  });
+
   // 🆚가 있으면 이모지 양식 — 채팅 명단/vs 양식과 절대 헷갈리지 않으므로 먼저 처리하고 끝낸다
   const emoji = parseEmojiFormat(rawLines.filter(l => l.trim()));
   if (emoji) {
-    return {
+    return canon({
       rows: emoji.rows, detectedP1: true,
       detectedMaps: emoji.rows.some(r => r.map), mapsOnly: false,
       vsFormat: true, unrecognized: emoji.unrecognized,
-    };
+    });
   }
 
   // 채팅 줄(콜론 포함)이 하나라도 있으면 그 줄들만 후보로 — 안내문/잡줄 제거
@@ -121,10 +138,13 @@ export function parseBulk(
   const toks = lines.map(tokenize);
 
   // ── "N [맵] 좌선수[종족] vs 우선수[종족] [맵]" 형식 (한 줄 = 한 경기) ──
-  // vs가 들어간 줄이 하나라도 있으면 그 줄들만 경기로 파싱. 맨 앞 숫자(경기번호)는 무시.
+  // vs가 들어간 줄이 하나라도 있으면 그 줄들만 경기로 파싱. 맨 앞 경기번호("3." "3)" "3")는 버림.
   // 종족은 띄어쓰기("영희 P") / 붙여쓰기("영희P") 둘 다 인식.
-  // 맵은 줄 끝("... 숙자 T 실") 또는 선수 앞("실 영희P vs ...") 어느 쪽에 와도 인식.
-  // 단, 종족이 없으면 맵도 없는 것으로 본다 → 두 어절 이름을 맵으로 오인하지 않기 위함.
+  // 맵 규칙 (스트리머마다 표기가 제각각이라 규칙을 최소로 둔다):
+  //   - 오른쪽에 토큰이 2개 이상이면 마지막 토큰은 무조건 맵. 맵목록에 없어도 그대로 쓴다.
+  //     ("슈슈 에티" → 슈슈/에티. 맵을 이름에 붙여버리면 종족인식·방송링크까지 같이 깨진다)
+  //   - 왼쪽(선수 앞) 맵은 맵목록에 2글자 이상 맞거나 종족 표기가 있을 때만 인정
+  //     — 무조건 떼면 "라 미" 같은 두 어절 이름의 앞 글자를 뺏는다.
   if (allowVsFormat) {
     // "vs"를 구분자로 정규화 — 붙여쓰기·띄어쓰기·한글·종족글자·숫자 무엇이 붙어 있어도 독립 토큰이 되게 공백 삽입.
     // 단 하나의 예외: 양옆이 둘 다 영문 글자면 닉네임 내부(예: "SharpZvsBest")로 보고 건드리지 않는다.
@@ -134,7 +154,9 @@ export function parseBulk(
       const after  = s[off + m.length] ?? " ";
       return (/[A-Za-z]/.test(before) && /[A-Za-z]/.test(after)) ? m : ` ${m} `;
     });
-    const vsToks = lines.map(l => tokenize(padVs(l)));
+    // 경기번호가 이름에 붙어 오는 경우("1.비재희") — 토큰 필터로는 못 떼므로 줄 단위로 먼저 자른다
+    const stripLeadNum = (l: string) => l.replace(/^\s*\d+\s*[.)]\s*/, "");
+    const vsToks = lines.map(l => tokenize(padVs(stripLeadNum(l))));
     const RACE_RE   = /^[TPZ]$/i;
     const isVsTok   = (t: string) => /^vs\.?$/i.test(t);
     const isNumTok  = (t: string) => /^\d+$/.test(t);
@@ -168,13 +190,17 @@ export function parseBulk(
         const sp = splitAttachedRace(lt[lt.length - 1]);              // "영희P"
         if (sp) { leftRace = sp.race; lt[lt.length - 1] = sp.name; }
       }
-      let leftPlayer: string;
+      let leftPlayer = lt.join(" ").trim();
       let frontMap = "";
-      if (leftRace && lt.length >= 2) {                               // 종족이 있을 때만 앞 토큰을 맵으로
-        leftPlayer = lt[lt.length - 1];
-        frontMap   = lt.slice(0, -1).join(" ").trim();
-      } else {
-        leftPlayer = lt.join(" ").trim();
+      if (lt.length >= 2) {
+        const canonFront = canonMap(lt[0], 2);
+        if (canonFront) {                                             // "녹 영희 vs ..." — 맵목록에 있을 때만
+          frontMap   = canonFront;
+          leftPlayer = lt.slice(1).join(" ").trim();
+        } else if (leftRace) {                                        // "실 영희P vs ..." — 종족이 있으면 앞은 맵
+          frontMap   = lt.slice(0, -1).join(" ").trim();
+          leftPlayer = lt[lt.length - 1];
+        }
       }
 
       // 우측: [티어] 이름[종족] [맵...]
@@ -194,8 +220,11 @@ export function parseBulk(
             rightRace   = asRace(rt[rIdx]);
             rightPlayer = rt.slice(0, rIdx).join(" ").trim();
             backMap     = rt.slice(rIdx + 1).join(" ").trim();
+          } else if (rt.length >= 2) {
+            backMap     = rt[rt.length - 1];                          // "슈슈 에티" — 종족이 없어도 마지막은 맵
+            rightPlayer = rt.slice(0, -1).join(" ").trim();
           } else {
-            rightPlayer = rt.join(" ").trim();                        // 종족 없음 → 맵도 없음
+            rightPlayer = rt.join(" ").trim();
           }
         }
       }
@@ -206,7 +235,7 @@ export function parseBulk(
       vsRows.push({ leftPlayer, rightPlayer, map, leftRace, rightRace });
     }
     if (vsRows.length > 0) {
-      return { rows: vsRows, detectedP1: true, detectedMaps: sawMap, mapsOnly: false, vsFormat: true, unrecognized };
+      return canon({ rows: vsRows, detectedP1: true, detectedMaps: sawMap, mapsOnly: false, vsFormat: true, unrecognized });
     }
   }
 
@@ -245,10 +274,10 @@ export function parseBulk(
   // 한 줄만 있으면 = 맵 줄로 인식 (위너스 2세트: 맵만 붙여넣기) → 선수는 비우고 맵만 등록
   if (usable.length === 1) {
     const mapsOnly = toks[usable[0]];
-    return {
+    return canon({
       rows: mapsOnly.map(m => ({ leftPlayer: "", rightPlayer: "", map: m })),
       detectedP1: false, detectedMaps: true, mapsOnly: true,
-    };
+    });
   }
 
   // 맵 줄 먼저 식별 (후보 3줄 이상일 때): 가장 긴 줄 / 중복 토큰 있는 줄 / 이름일치 적은 줄,
@@ -300,5 +329,5 @@ export function parseBulk(
   for (let i = 0; i < n; i++) {
     rows.push({ leftPlayer: left[i] ?? "", rightPlayer: right[i] ?? "", map: mapsL[i] ?? "" });
   }
-  return { rows, detectedP1, detectedMaps: mapIdx >= 0, mapsOnly: false };
+  return canon({ rows, detectedP1, detectedMaps: mapIdx >= 0, mapsOnly: false });
 }
