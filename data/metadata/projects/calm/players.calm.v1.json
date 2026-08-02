@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-20T12:15:58.114Z",
+  "generated_at": "2026-08-02T00:25:44.560Z",
   "project": "calm",
   "team_name": "캄몬스타즈",
   "team_code": "calm",
@@ -13,7 +13,7 @@
     "츠캄",
     "츠캄몬스타즈"
   ],
-  "roster_count": 22,
+  "roster_count": 23,
   "roster": [
     {
       "team_name": "캄몬스타즈",
@@ -860,6 +860,40 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=1",
       "profile_kind": "default",
       "soop_user_id": "brainzerg7"
+    },
+    {
+      "team_name": "캄몬스타즈",
+      "team_code": "calm",
+      "entity_id": "eloboard:male:191",
+      "wr_id": 191,
+      "gender": "male",
+      "name": "장민철",
+      "display_name": "장민철",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=191",
+      "profile_kind": "default",
+      "tier": "잭",
+      "race": "Protoss",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:calm",
+        "team_code:calm",
+        "team_ko:캄몬스타즈",
+        "team_en:calm",
+        "gender:male",
+        "race:protoss",
+        "tier:jack"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "jack",
+      "soop_user_id": "jmc06170",
+      "last_checked_at": "2026-05-14T15:48:21.427Z",
+      "last_match_at": "2026-05-13T00:00:00.000Z",
+      "check_priority": "high",
+      "check_interval_days": 1,
+      "last_changed_at": "2026-05-15T14:28:38.735Z"
     }
   ],
   "source_file": "data/metadata/projects/calm/players.calm.v1.json",

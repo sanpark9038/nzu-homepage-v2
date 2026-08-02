@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-20T12:15:58.112Z",
+  "generated_at": "2026-08-02T00:25:44.558Z",
   "project": "bgm",
   "team_name": "BGM",
   "team_code": "bgm",
@@ -8,7 +8,7 @@
   "team_aliases": [
     "BGM"
   ],
-  "roster_count": 22,
+  "roster_count": 23,
   "roster": [
     {
       "team_name": "BGM",
@@ -717,6 +717,34 @@
       "last_changed_at": "2026-05-15T14:54:12.174Z",
       "soop_user_id": "nbomichae7",
       "generated_at": "2026-05-15T14:54:12.174Z"
+    },
+    {
+      "team_name": "BGM",
+      "team_code": "bgm",
+      "entity_id": "eloboard:female:1048",
+      "wr_id": 1048,
+      "gender": "female",
+      "name": "진서",
+      "display_name": "진서",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1048",
+      "profile_kind": "default",
+      "tier": "9",
+      "race": "Terran",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:bgm",
+        "team_code:bgm",
+        "team_ko:BGM",
+        "team_en:bgm",
+        "gender:female",
+        "race:terran",
+        "tier:9"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "9"
     }
   ],
   "source_file": "data/metadata/projects/bgm/players.bgm.v1.json",

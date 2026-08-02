@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-08-01T06:10:43.022Z",
+  "updated_at": "2026-08-02T00:26:32.863Z",
   "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). players=선수(entity_id)당 한 줄(표시명·숲ID·수집제외·로컬 교정), 그 외 상대 신원 결정·상대 별명.",
   "players": {
     "eloboard:male:124": {
@@ -2017,6 +2017,21 @@
     },
     "eloboard:female:569": {
       "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)"
+    },
+    "eloboard:female:1016": {
+      "soop_user_id": "haeun5513"
+    },
+    "eloboard:male:19": {
+      "soop_user_id": "rlekfu6"
+    },
+    "eloboard:female:400": {
+      "soop_user_id": "rhf104"
+    },
+    "eloboard:female:223": {
+      "soop_user_id": "byebye22"
+    },
+    "eloboard:female:566": {
+      "soop_user_id": "ys9024"
     }
   },
   "collection_exclusions_without_entity": [

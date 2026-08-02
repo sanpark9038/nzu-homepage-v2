@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-20T12:15:58.113Z",
+  "generated_at": "2026-08-02T00:25:44.559Z",
   "project": "black",
   "team_name": "흑카데미",
   "team_code": "black",
@@ -8,7 +8,7 @@
   "team_aliases": [
     "B.A"
   ],
-  "roster_count": 18,
+  "roster_count": 20,
   "roster": [
     {
       "team_name": "흑카데미",
@@ -638,6 +638,62 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=88",
       "profile_kind": "default",
       "soop_user_id": "firebathero"
+    },
+    {
+      "team_name": "흑카데미",
+      "team_code": "black",
+      "entity_id": "eloboard:male:28",
+      "wr_id": 28,
+      "gender": "male",
+      "name": "유승곤",
+      "display_name": "유승곤",
+      "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=28",
+      "profile_kind": "default",
+      "tier": "킹",
+      "race": "Terran",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:black",
+        "team_code:black",
+        "team_ko:흑카데미",
+        "team_en:b-a",
+        "gender:male",
+        "race:terran",
+        "tier:king"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "king"
+    },
+    {
+      "team_name": "흑카데미",
+      "team_code": "black",
+      "entity_id": "eloboard:female:1047",
+      "wr_id": 1047,
+      "gender": "female",
+      "name": "가영",
+      "display_name": "가영",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1047",
+      "profile_kind": "default",
+      "tier": "9",
+      "race": "Terran",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:black",
+        "team_code:black",
+        "team_ko:흑카데미",
+        "team_en:b-a",
+        "gender:female",
+        "race:terran",
+        "tier:9"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "9"
     }
   ],
   "source_file": "data/metadata/projects/black/players.black.v1.json",
