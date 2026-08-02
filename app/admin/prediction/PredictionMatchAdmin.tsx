@@ -136,7 +136,7 @@ function createEmptyMatch(type: MatchType, index: number): PredictionConfigMatch
   return {
     id,
     match_type: type,
-    team_mode: "direct",
+    team_mode: type === "team" ? "existing" : "direct",
     title: defaultMatchTitle(type),
     team_a_code: type === "team" ? `event-a-${id.slice(0, 8)}` : "",
     team_b_code: type === "team" ? `event-b-${id.slice(0, 8)}` : "",
@@ -1080,6 +1080,8 @@ export function PredictionMatchAdmin({
     const name = isA ? selectedMatch.team_a_name : selectedMatch.team_b_name;
     const playerIds = normalizePlayerSlots(isA ? selectedMatch.team_a_player_ids : selectedMatch.team_b_player_ids);
     const rows = playerIds.length > 0 ? playerIds : [""];
+    // 새 매치의 임시 코드(event-a-…)는 기존 팀 목록에 없다 — 그때는 "팀 선택" 상태로 보여준다.
+    const loadedTeamName = getTeamName(teams, code);
 
     return (
       <section className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
@@ -1088,7 +1090,7 @@ export function PredictionMatchAdmin({
           <label className="mb-3 block">
             <span className="mb-1 block text-center text-xs font-black text-white/55">기존 팀 선택</span>
             <select
-              value={code || ""}
+              value={loadedTeamName ? code || "" : ""}
               onChange={(event) => setExistingTeam(side, event.target.value)}
               className="h-12 w-full rounded-lg border border-white/10 bg-black/35 px-3 text-center text-base font-black text-white outline-none focus:border-nzu-green/45"
             >
@@ -1142,9 +1144,9 @@ export function PredictionMatchAdmin({
             >
               명단 비우기
             </button>
-            {selectedTeamMode === "existing" && code ? (
+            {selectedTeamMode === "existing" && loadedTeamName ? (
               <span className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black text-white/55">
-                {getTeamName(teams, code)} 명단을 불러왔습니다.
+                {loadedTeamName} 명단을 불러왔습니다.
               </span>
             ) : null}
           </div>
@@ -1354,7 +1356,7 @@ export function PredictionMatchAdmin({
                       onClick={() =>
                         updateSelected({
                           match_type: type,
-                          team_mode: "direct",
+                          team_mode: type === "team" ? "existing" : "direct",
                           title: selectedMatch.title || (type === "team" ? "새 팀전 예측" : "새 개인전 예측"),
                           entry_matchups: type === "team" ? selectedMatch.entry_matchups : [],
                         })
