@@ -568,6 +568,7 @@ export function PredictionMatchAdmin({
   const [selectedId, setSelectedId] = useState<string | null>(
     initialRows.find((match) => !isArchived(match))?.id || initialRows[0]?.id || null
   );
+  const [view, setView] = useState<"list" | "edit">("list");
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [showArchived, setShowArchived] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -618,6 +619,33 @@ export function PredictionMatchAdmin({
   );
   const getMatchVoteCount = (matchId?: string | null) =>
     votes.filter((vote) => vote.match_id === matchId).length;
+  const statusCounts = useMemo(() => {
+    const active = matches.filter((match) => !isArchived(match));
+    return {
+      open: active.filter((match) => match.status === "open").length,
+      closed: active.filter((match) => match.status === "closed" && !isResultPublished(match)).length,
+      draft: active.filter((match) => match.status === "draft").length,
+      result: active.filter((match) => isResultPublished(match)).length,
+    };
+  }, [matches]);
+
+  const openEdit = (matchId?: string | null) => {
+    setSelectedId(matchId || null);
+    setView("edit");
+  };
+
+  const backToList = () => {
+    // 목록으로 나가도 로컬 변경은 버리지 않는다. 저장 전이라는 사실만 알린다.
+    if (isDirty && !window.confirm("저장하지 않은 변경이 있습니다. 목록으로 돌아갈까요? (변경 내용은 그대로 유지됩니다)")) {
+      return;
+    }
+    setView("list");
+  };
+
+  const openVoterModal = () => {
+    setVoterPage(1);
+    setIsVoterModalOpen(true);
+  };
 
   // 로컬 변경은 모두 이 지점을 지난다. 여기서 dirty를 세우고, 서버 저장/재로드에서 내린다.
   const mutateMatches = (updater: (current: PredictionConfigMatch[]) => PredictionConfigMatch[]) => {
@@ -650,6 +678,7 @@ export function PredictionMatchAdmin({
       setSelectedId(nextMatch.id || null);
       return [...current, nextMatch];
     });
+    setView("edit");
   };
 
   const duplicateMatch = (match: PredictionConfigMatch) => {
@@ -668,6 +697,7 @@ export function PredictionMatchAdmin({
     );
     mutateMatches((current) => [...current, copy]);
     setSelectedId(id);
+    setView("edit");
   };
 
   const updatePlayerSlot = (side: "a" | "b", slotIndex: number, player: PlayerOption | null) => {
@@ -845,6 +875,7 @@ export function PredictionMatchAdmin({
       setMatches(nextMatches);
       if (Array.isArray(json.votes)) setVotes(json.votes);
       setSelectedId((current) => (current === match.id ? nextMatches[0]?.id || null : current));
+      if (match.id === selectedMatch?.id) setView("list");
       setStatus({ type: "success", message: "예측을 삭제했습니다." });
     } catch (err) {
       const message = err instanceof Error ? err.message : "예측 삭제에 실패했습니다.";
@@ -905,6 +936,7 @@ export function PredictionMatchAdmin({
       markSaved(nextMatches);
       if (Array.isArray(json.votes)) setVotes(json.votes);
       setSelectedId((current) => (current === match.id ? nextMatches[0]?.id || null : current));
+      if (match.id === selectedMatch?.id) setView("list");
       setStatus({ type: "success", message: "숨김 처리했습니다. 공개 승부예측에서 제외됩니다." });
     } catch (err) {
       const message = err instanceof Error ? err.message : "failed to archive prediction match";
@@ -958,6 +990,7 @@ export function PredictionMatchAdmin({
       setMatches(nextMatches);
       if (Array.isArray(json.votes)) setVotes(json.votes);
       setSelectedId((current) => (current === match.id ? nextMatches[0]?.id || null : current));
+      if (match.id === selectedMatch?.id) setView("list");
       setStatus({ type: "success", message: "예측과 연결된 투표를 완전히 삭제했습니다." });
     } catch (err) {
       const message = err instanceof Error ? err.message : "예측과 투표 삭제에 실패했습니다.";
@@ -1106,30 +1139,74 @@ export function PredictionMatchAdmin({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-xs font-black uppercase tracking-widest text-white/42">Prediction Board</div>
-          <h2 className="mt-1 text-xl font-black text-white">예측 목록과 편집</h2>
+      {view === "edit" && selectedMatch ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={backToList}
+              className="shrink-0 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-sm font-black text-white transition hover:border-white/20"
+            >
+              ← 목록
+            </button>
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-black text-white">{selectedMatch.title || "제목 없음"}</h2>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <TypeBadge type={selectedMatchType} />
+                <span className="rounded-full bg-white/[0.06] px-3 py-1 text-xs font-black text-white/65">
+                  {statusLabel(selectedMatch)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => duplicateMatch(selectedMatch)}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-sm font-black text-white transition hover:border-white/20"
+            >
+              <Copy size={16} />
+              복제
+            </button>
+            <button
+              type="button"
+              onClick={openVoterModal}
+              className="inline-flex items-center gap-2 rounded-lg border border-nzu-green/30 bg-nzu-green/10 px-3 py-2 text-sm font-black text-nzu-green transition hover:bg-nzu-green/15"
+            >
+              투표자 상세
+            </button>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => addMatch("team")}
-            className="inline-flex items-center gap-2 rounded-lg bg-nzu-green px-3 py-2 text-sm font-black text-black transition hover:brightness-110"
-          >
-            <Plus size={16} />
-            팀전 만들기
-          </button>
-          <button
-            type="button"
-            onClick={() => addMatch("individual")}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-sm font-black text-white transition hover:border-white/20"
-          >
-            <Plus size={16} />
-            개인전 만들기
-          </button>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-black uppercase tracking-widest text-white/42">Prediction Board</div>
+            <h2 className="mt-1 text-xl font-black text-white">예측 목록</h2>
+            <p className="mt-1 text-sm font-bold text-white/45">
+              투표 중 {statusCounts.open} · 마감 {statusCounts.closed} · 임시저장 {statusCounts.draft} · 결과 공개{" "}
+              {statusCounts.result}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => addMatch("team")}
+              className="inline-flex items-center gap-2 rounded-lg bg-nzu-green px-3 py-2 text-sm font-black text-black transition hover:brightness-110"
+            >
+              <Plus size={16} />
+              팀전 만들기
+            </button>
+            <button
+              type="button"
+              onClick={() => addMatch("individual")}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-sm font-black text-white transition hover:border-white/20"
+            >
+              <Plus size={16} />
+              개인전 만들기
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {status ? (
         <div
@@ -1149,7 +1226,8 @@ export function PredictionMatchAdmin({
         </div>
       ) : null}
 
-      <section className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.025]">
+      {view === "edit" && selectedMatch ? null : (
+        <section className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.025]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-3">
           <div className="flex flex-wrap gap-2">
             {[
@@ -1188,82 +1266,54 @@ export function PredictionMatchAdmin({
 
         <div className="divide-y divide-white/8">
           {visibleMatches.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm font-bold text-white/42">
-              표시할 예측이 없습니다.
+            <div className="px-4 py-8 text-center">
+              <p className="text-sm font-bold text-white/42">
+                {matches.length === 0 ? "아직 예측이 없습니다." : "표시할 예측이 없습니다."}
+              </p>
+              {matches.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => addMatch("team")}
+                  className="mt-4 rounded-lg bg-nzu-green px-4 py-2 text-sm font-black text-black"
+                >
+                  팀전 만들기
+                </button>
+              ) : null}
             </div>
           ) : (
-            visibleMatches.map((match) => {
-              const type = normalizeMatchType(match.match_type);
-              const isSelected = match.id === selectedMatch?.id;
-              return (
-                <div
-                  key={match.id}
-                  className={cn(
-                    "grid grid-cols-[92px_minmax(0,1fr)_112px_112px_220px] items-center gap-3 px-4 py-3 max-lg:grid-cols-1",
-                    isSelected ? "bg-nzu-green/7" : "hover:bg-white/[0.025]"
-                  )}
-                >
-                  <button type="button" onClick={() => setSelectedId(match.id || null)} className="justify-self-start">
-                    <TypeBadge type={type} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(match.id || null)}
-                    className="min-w-0 text-left"
-                  >
-                    <strong className="block truncate text-base font-black text-white">
-                      {match.title || "제목 없음"}
-                    </strong>
-                    <span className="mt-1 block truncate text-sm font-bold text-white/42">
-                      {match.team_a_name || match.team_a_code || "A"} vs {match.team_b_name || match.team_b_code || "B"}
-                    </span>
-                  </button>
-                  <span className="text-sm font-black text-white/70">{formatAdminDate(match.start_at)}</span>
-                  <span className="w-fit rounded-full bg-white/[0.06] px-3 py-1 text-xs font-black text-white/65">
-                    {statusLabel(match)}
+            visibleMatches.map((match) => (
+              <button
+                key={match.id}
+                type="button"
+                onClick={() => openEdit(match.id)}
+                className="grid w-full grid-cols-[92px_minmax(0,1fr)_112px_112px_96px] items-center gap-3 px-4 py-3 text-left transition hover:bg-white/[0.035] max-lg:grid-cols-1"
+              >
+                <span className="justify-self-start max-lg:justify-self-auto">
+                  <TypeBadge type={normalizeMatchType(match.match_type)} />
+                </span>
+                <span className="min-w-0">
+                  <strong className="block truncate text-base font-black text-white">
+                    {match.title || "제목 없음"}
+                  </strong>
+                  <span className="mt-1 block truncate text-sm font-bold text-white/42">
+                    {match.team_a_name || match.team_a_code || "A"} vs {match.team_b_name || match.team_b_code || "B"}
                   </span>
-                  <span className="flex flex-wrap justify-end gap-1 max-lg:justify-start">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(match.id || null)}
-                      className="rounded-lg bg-nzu-green px-2.5 py-1.5 text-xs font-black text-black"
-                    >
-                      수정
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => duplicateMatch(match)}
-                      className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs font-black text-white/72"
-                    >
-                      <Copy size={13} className="mr-1 inline-block" />
-                      복제
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isSaving}
-                      onClick={() => void handleDelete(match)}
-                      className="rounded-lg border border-red-300/20 bg-red-500/10 px-2.5 py-1.5 text-xs font-black text-red-100 disabled:opacity-45"
-                    >
-                      <Trash2 size={13} className="mr-1 inline-block" />
-                      삭제
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isSaving || readOnly}
-                      onClick={() => void handleArchive(match)}
-                      className="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-xs font-black text-white/72 disabled:opacity-45"
-                    >
-                      숨기기
-                    </button>
-                  </span>
-                </div>
-              );
-            })
+                </span>
+                <span className="text-sm font-black text-white/70">{formatAdminDate(match.start_at)}</span>
+                <span className="w-fit rounded-full bg-white/[0.06] px-3 py-1 text-xs font-black text-white/65">
+                  {statusLabel(match)}
+                </span>
+                <span className="text-sm font-black text-white/55 lg:text-right">
+                  {getMatchVoteCount(match.id).toLocaleString("ko-KR")}표
+                </span>
+              </button>
+            ))
           )}
         </div>
-      </section>
+        </section>
+      )}
 
-      {selectedMatch ? (
+      {view === "edit" && selectedMatch ? (
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="rounded-xl border border-white/10 bg-white/[0.035]">
             <div className="border-b border-white/10 p-4">
@@ -1535,10 +1585,7 @@ export function PredictionMatchAdmin({
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setVoterPage(1);
-                  setIsVoterModalOpen(true);
-                }}
+                onClick={openVoterModal}
                 className="mt-3 w-full rounded-lg border border-nzu-green/30 bg-nzu-green/10 px-3 py-2 text-sm font-black text-nzu-green transition hover:bg-nzu-green/15"
               >
                 투표자 상세 보기
@@ -1646,18 +1693,7 @@ export function PredictionMatchAdmin({
             </button>
           </aside>
         </section>
-      ) : (
-        <section className="rounded-xl border border-white/10 bg-white/[0.035] px-5 py-10 text-center">
-          <p className="text-sm font-bold text-white/50">아직 예측이 없습니다.</p>
-          <button
-            type="button"
-            onClick={() => addMatch("team")}
-            className="mt-4 rounded-lg bg-nzu-green px-4 py-2 text-sm font-black text-black"
-          >
-            팀전 만들기
-          </button>
-        </section>
-      )}
+      ) : null}
 
       {isVoterModalOpen && selectedMatch ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm">
