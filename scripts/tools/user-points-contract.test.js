@@ -32,7 +32,11 @@ test("point mutation RPC is one transaction, distinguishes duplicates, and is se
     /create or replace function public\.apply_user_point_change\(\s*p_voter_id text,\s*p_display_name text,\s*p_amount integer,\s*p_reason text,\s*p_ref_id text\s*\) returns integer/
   );
   assert.match(sql, /exception when unique_violation then\s*raise exception 'user_point_duplicate'/);
-  assert.match(sql, /insert into public\.user_point_balances[\s\S]*on conflict \(voter_id\) do update/);
+  // update-먼저 방식이어야 한다. upsert(on conflict)는 check(balance >= 0)가 병합 결과가 아니라
+  // 삽입 시도값에 먼저 걸려 음수 차감(베팅)이 잔액과 무관하게 실패한다 — 실제로 겪은 버그.
+  assert.match(sql, /update public\.user_point_balances\s*set balance = balance \+ p_amount/);
+  assert.match(sql, /if not found then[\s\S]*insert into public\.user_point_balances/);
+  assert.doesNotMatch(sql, /on conflict \(voter_id\) do update/);
   assert.match(sql, /revoke all on function public\.apply_user_point_change[\s\S]*from public;/);
   assert.match(sql, /grant execute on function public\.apply_user_point_change[\s\S]*to service_role;/);
   assert.doesNotMatch(sql, /security definer/i);

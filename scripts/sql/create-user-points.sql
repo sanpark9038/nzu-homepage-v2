@@ -50,16 +50,32 @@ begin
     raise exception 'user_point_duplicate';
   end;
 
-  insert into public.user_point_balances (voter_id, display_name, balance, updated_at)
-  values (p_voter_id, coalesce(p_display_name, ''), p_amount, timezone('utc', now()))
-  on conflict (voter_id) do update
-    set balance = user_point_balances.balance + excluded.balance,
+  -- update 먼저, 없으면 insert. upsert(on conflict)를 쓰면 check(balance >= 0)가
+  -- 병합 결과가 아니라 삽입 시도값(p_amount)에 먼저 걸려서 음수 차감이 무조건 실패한다.
+  update public.user_point_balances
+    set balance = balance + p_amount,
         display_name = case
-          when excluded.display_name <> '' then excluded.display_name
-          else user_point_balances.display_name
+          when coalesce(p_display_name, '') <> '' then p_display_name
+          else display_name
         end,
         updated_at = timezone('utc', now())
-  returning balance into v_balance;
+    where voter_id = p_voter_id
+    returning balance into v_balance;
+
+  if not found then
+    begin
+      insert into public.user_point_balances (voter_id, display_name, balance, updated_at)
+      values (p_voter_id, coalesce(p_display_name, ''), p_amount, timezone('utc', now()))
+      returning balance into v_balance;
+    exception when unique_violation then
+      -- 동시 최초 지급 경합 — 한쪽이 이미 행을 만들었으면 update로 재시도
+      update public.user_point_balances
+        set balance = balance + p_amount,
+            updated_at = timezone('utc', now())
+        where voter_id = p_voter_id
+        returning balance into v_balance;
+    end;
+  end if;
 
   return v_balance;
 end;
