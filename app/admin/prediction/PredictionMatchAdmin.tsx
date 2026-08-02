@@ -1546,7 +1546,13 @@ export function PredictionMatchAdmin({
             </div>
 
             <div className="mt-4 grid gap-2">
-              {isDirty ? (
+              {isSaving ? (
+                <p className="text-xs font-black text-white/55">저장 중…</p>
+              ) : status ? (
+                <p className={cn("text-xs font-black", status.type === "success" ? "text-nzu-green" : "text-red-300")}>
+                  {status.message}
+                </p>
+              ) : isDirty ? (
                 <p className="text-xs font-black text-amber-300">● 저장되지 않은 변경이 있습니다</p>
               ) : lastSavedAt ? (
                 <p className="text-xs font-black text-nzu-green">
