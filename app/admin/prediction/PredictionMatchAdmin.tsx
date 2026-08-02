@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, Copy, Download, EyeOff, Plus, Save, Search, Trash2, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
 import { TierBadge } from "@/components/ui/nzu-badges";
 import { getAdminWriteDisabledMessage } from "@/lib/admin-runtime";
@@ -235,6 +235,17 @@ function formatAdminDate(value: string | undefined | null) {
   return new Intl.DateTimeFormat("ko-KR", {
     month: "2-digit",
     day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Seoul",
+  }).format(date);
+}
+
+function formatSavedTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -560,6 +571,8 @@ export function PredictionMatchAdmin({
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [showArchived, setShowArchived] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [isVoterModalOpen, setIsVoterModalOpen] = useState(false);
   const [voterQuery, setVoterQuery] = useState("");
@@ -606,8 +619,20 @@ export function PredictionMatchAdmin({
   const getMatchVoteCount = (matchId?: string | null) =>
     votes.filter((vote) => vote.match_id === matchId).length;
 
+  // 로컬 변경은 모두 이 지점을 지난다. 여기서 dirty를 세우고, 서버 저장/재로드에서 내린다.
+  const mutateMatches = (updater: (current: PredictionConfigMatch[]) => PredictionConfigMatch[]) => {
+    setIsDirty(true);
+    setMatches(updater);
+  };
+
+  const markSaved = (nextMatches: PredictionConfigMatch[]) => {
+    setMatches(nextMatches);
+    setIsDirty(false);
+    setLastSavedAt(new Date().toISOString());
+  };
+
   const updateMatchById = (matchId: string, patch: Partial<PredictionConfigMatch>) => {
-    setMatches((current) =>
+    mutateMatches((current) =>
       current.map((match, index) =>
         match.id === matchId ? normalizeClientMatch({ ...match, ...patch }, index) : match
       )
@@ -620,7 +645,7 @@ export function PredictionMatchAdmin({
   };
 
   const addMatch = (type: MatchType) => {
-    setMatches((current) => {
+    mutateMatches((current) => {
       const nextMatch = createEmptyMatch(type, current.length);
       setSelectedId(nextMatch.id || null);
       return [...current, nextMatch];
@@ -641,7 +666,7 @@ export function PredictionMatchAdmin({
       },
       matches.length
     );
-    setMatches((current) => [...current, copy]);
+    mutateMatches((current) => [...current, copy]);
     setSelectedId(id);
   };
 
@@ -714,7 +739,13 @@ export function PredictionMatchAdmin({
     updateSelected({ entry_order_status: entryOrderStatus });
   };
 
-  const handleSave = async (statusOverride?: "draft" | "open" | "closed") => {
+  // 선택 매치에 적용할 패치를 인자로 받아 저장까지 한 번에 처리한다.
+  // (patch 후 handleSave를 따로 부르면 React state가 아직 옛 값이라 저장에 안 실린다)
+  const persistMatches = async (options: {
+    statusOverride?: "draft" | "open" | "closed";
+    selectedPatch?: Partial<PredictionConfigMatch>;
+    successMessage: string;
+  }) => {
     if (readOnly) {
       setStatus({ type: "error", message: getAdminWriteDisabledMessage("prediction admin") });
       return;
@@ -723,10 +754,12 @@ export function PredictionMatchAdmin({
     setStatus(null);
     try {
       const matchesToSave = matches.map((match, index) => {
+        const isSelected = match.id === selectedMatch?.id;
+        const base = isSelected && options.selectedPatch ? { ...match, ...options.selectedPatch } : match;
         const next = prepareMatchForSave(
           {
-            ...match,
-            status: match.id === selectedMatch?.id && statusOverride ? statusOverride : match.status,
+            ...base,
+            status: isSelected && options.statusOverride ? options.statusOverride : base.status,
           },
           index
         );
@@ -747,13 +780,13 @@ export function PredictionMatchAdmin({
       if (!res.ok || json.ok === false) {
         throw new Error(json.message || "예측 저장에 실패했습니다.");
       }
-      if (Array.isArray(json.matches)) {
-        const next = json.matches.map((match, index) => normalizeClientMatch(match, index));
-        setMatches(next);
-        setSelectedId(selectedMatch?.id || next[0]?.id || null);
-      }
+      const nextMatches = (Array.isArray(json.matches) ? json.matches : matchesToSave).map((match, index) =>
+        normalizeClientMatch(match, index)
+      );
+      markSaved(nextMatches);
+      setSelectedId(selectedMatch?.id || nextMatches[0]?.id || null);
       if (Array.isArray(json.votes)) setVotes(json.votes);
-      setStatus({ type: "success", message: "승부예측이 등록되었습니다. 공개 페이지에서 바로 확인할 수 있습니다." });
+      setStatus({ type: "success", message: options.successMessage });
     } catch (err) {
       const message = err instanceof Error ? err.message : "예측 저장에 실패했습니다.";
       setStatus({
@@ -767,6 +800,17 @@ export function PredictionMatchAdmin({
       setIsSaving(false);
     }
   };
+
+  const handleSave = (statusOverride?: "draft" | "open" | "closed") =>
+    persistMatches({
+      statusOverride,
+      successMessage:
+        statusOverride === "draft"
+          ? "임시저장 완료"
+          : statusOverride === "closed"
+            ? "마감 상태로 저장되었습니다."
+            : "승부예측이 등록되었습니다. 공개 페이지에서 바로 확인할 수 있습니다.",
+    });
 
   const handleDelete = async (match: PredictionConfigMatch) => {
     if (readOnly) {
@@ -858,7 +902,7 @@ export function PredictionMatchAdmin({
         : matchesToSave
             .filter((row) => row.id !== match.id)
             .map((row, index) => normalizeClientMatch(row, index));
-      setMatches(nextMatches);
+      markSaved(nextMatches);
       if (Array.isArray(json.votes)) setVotes(json.votes);
       setSelectedId((current) => (current === match.id ? nextMatches[0]?.id || null : current));
       setStatus({ type: "success", message: "숨김 처리했습니다. 공개 승부예측에서 제외됩니다." });
@@ -931,13 +975,31 @@ export function PredictionMatchAdmin({
     }
   };
 
-  const publishResult = (teamCode: string) => {
-    updateSelected({
-      status: "closed",
-      result_team_code: teamCode,
-      result_published_at: new Date().toISOString(),
+  const publishResult = (teamCode: string) =>
+    persistMatches({
+      selectedPatch: {
+        status: "closed",
+        result_team_code: teamCode,
+        result_published_at: new Date().toISOString(),
+      },
+      successMessage: "결과가 공개·저장되었습니다. 포인트 베팅 정산까지 완료됐습니다.",
     });
-  };
+
+  const unpublishResult = () =>
+    persistMatches({
+      selectedPatch: { result_team_code: null, result_published_at: null },
+      successMessage: "결과 공개가 취소·저장되었습니다. (이미 지급된 배당은 회수되지 않습니다)",
+    });
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
 
   const downloadVoterCsv = () => {
     const csv = buildPredictionVoterCsv(filteredVoterRows);
@@ -1484,6 +1546,13 @@ export function PredictionMatchAdmin({
             </div>
 
             <div className="mt-4 grid gap-2">
+              {isDirty ? (
+                <p className="text-xs font-black text-amber-300">● 저장되지 않은 변경이 있습니다</p>
+              ) : lastSavedAt ? (
+                <p className="text-xs font-black text-nzu-green">
+                  ✓ 모든 변경 저장됨 · {formatSavedTime(lastSavedAt)}
+                </p>
+              ) : null}
               <button
                 type="button"
                 disabled={isSaving || readOnly}
@@ -1517,24 +1586,24 @@ export function PredictionMatchAdmin({
               <div className="grid gap-2">
                 <button
                   type="button"
-                  disabled={readOnly}
-                  onClick={() => publishResult(selectedMatch.team_a_code || "")}
+                  disabled={isSaving || readOnly}
+                  onClick={() => void publishResult(selectedMatch.team_a_code || "")}
                   className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-black text-white disabled:opacity-45"
                 >
                   {selectedTeamAName} 승리 공개
                 </button>
                 <button
                   type="button"
-                  disabled={readOnly}
-                  onClick={() => publishResult(selectedMatch.team_b_code || "")}
+                  disabled={isSaving || readOnly}
+                  onClick={() => void publishResult(selectedMatch.team_b_code || "")}
                   className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm font-black text-white disabled:opacity-45"
                 >
                   {selectedTeamBName} 승리 공개
                 </button>
                 <button
                   type="button"
-                  disabled={readOnly}
-                  onClick={() => updateSelected({ result_team_code: null, result_published_at: null })}
+                  disabled={isSaving || readOnly}
+                  onClick={() => void unpublishResult()}
                   className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-xs font-black text-white/60 disabled:opacity-45"
                 >
                   결과 공개 취소
