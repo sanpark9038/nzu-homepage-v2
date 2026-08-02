@@ -1294,15 +1294,6 @@ export function PredictionMatchAdmin({
               <p className="text-sm font-bold text-white/42">
                 {matches.length === 0 ? "아직 예측이 없습니다." : "표시할 예측이 없습니다."}
               </p>
-              {matches.length === 0 ? (
-                <button
-                  type="button"
-                  onClick={() => addMatch("team")}
-                  className="mt-4 rounded-lg bg-nzu-green px-4 py-2 text-sm font-black text-black"
-                >
-                  팀전 만들기
-                </button>
-              ) : null}
             </div>
           ) : (
             visibleMatches.map((match) => (
