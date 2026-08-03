@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-08-02T00:26:32.863Z",
+  "updated_at": "2026-08-03T02:53:08.304Z",
   "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). players=선수(entity_id)당 한 줄(표시명·숲ID·수집제외·로컬 교정), 그 외 상대 신원 결정·상대 별명.",
   "players": {
     "eloboard:male:124": {
@@ -2191,10 +2191,13 @@
       },
       {
         "opponent_name": "다우미",
-        "decision": "external_opponent",
+        "decision": "canonical_candidate",
         "review_rank": 17,
         "match_rows": 343,
-        "latest_match_date": "2025-12-31"
+        "latest_match_date": "2025-12-31",
+        "target_entity_id": "eloboard:female:796",
+        "canonical_name": "다우미",
+        "review_note": "Operator confirmed (2026-08-03) 다우미 is our own FA player (eloboard:female:796, Protoss, joined roster 2026-08-02), not an external opponent. Same pattern as the 2026-07-20 batch (허로아 등): an external opponent later joined a team."
       },
       {
         "opponent_name": "전태양",
