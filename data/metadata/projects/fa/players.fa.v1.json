@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-08-02T00:25:44.561Z",
+  "generated_at": "2026-08-03T02:06:03.775Z",
   "project": "fa",
   "team_name": "무소속",
   "team_code": "fa",
@@ -2939,7 +2939,7 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=151",
       "profile_kind": "default",
       "tier": "미정",
-      "race": "Unknown",
+      "race": "Terran",
       "source": "manual_override",
       "missing_in_master": false,
       "meta_tags": [
@@ -2949,8 +2949,8 @@
         "team_ko:무소속",
         "team_en:fa",
         "gender:female",
-        "race:unknown",
-        "tier:unknown"
+        "tier:unknown",
+        "race:terran"
       ],
       "role_title": "",
       "role_priority": null,
@@ -2967,7 +2967,7 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=631",
       "profile_kind": "default",
       "tier": "미정",
-      "race": "Unknown",
+      "race": "Terran",
       "source": "manual_override",
       "missing_in_master": false,
       "meta_tags": [
@@ -2977,8 +2977,8 @@
         "team_ko:무소속",
         "team_en:fa",
         "gender:female",
-        "race:unknown",
-        "tier:unknown"
+        "tier:unknown",
+        "race:terran"
       ],
       "role_title": "",
       "role_priority": null,
@@ -2995,7 +2995,7 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=653",
       "profile_kind": "default",
       "tier": "미정",
-      "race": "Unknown",
+      "race": "Terran",
       "source": "manual_override",
       "missing_in_master": false,
       "meta_tags": [
@@ -3005,8 +3005,8 @@
         "team_ko:무소속",
         "team_en:fa",
         "gender:female",
-        "race:unknown",
-        "tier:unknown"
+        "tier:unknown",
+        "race:terran"
       ],
       "role_title": "",
       "role_priority": null,
@@ -3023,7 +3023,7 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=730",
       "profile_kind": "default",
       "tier": "미정",
-      "race": "Unknown",
+      "race": "Protoss",
       "source": "manual_override",
       "missing_in_master": false,
       "meta_tags": [
@@ -3033,8 +3033,8 @@
         "team_ko:무소속",
         "team_en:fa",
         "gender:female",
-        "race:unknown",
-        "tier:unknown"
+        "tier:unknown",
+        "race:protoss"
       ],
       "role_title": "",
       "role_priority": null,
@@ -3051,7 +3051,7 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=820",
       "profile_kind": "default",
       "tier": "미정",
-      "race": "Unknown",
+      "race": "Terran",
       "source": "manual_override",
       "missing_in_master": false,
       "meta_tags": [
@@ -3061,8 +3061,8 @@
         "team_ko:무소속",
         "team_en:fa",
         "gender:female",
-        "race:unknown",
-        "tier:unknown"
+        "tier:unknown",
+        "race:terran"
       ],
       "role_title": "",
       "role_priority": null,
@@ -3079,7 +3079,7 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=742",
       "profile_kind": "default",
       "tier": "미정",
-      "race": "Unknown",
+      "race": "Protoss",
       "source": "manual_override",
       "missing_in_master": false,
       "meta_tags": [
@@ -3089,8 +3089,8 @@
         "team_ko:무소속",
         "team_en:fa",
         "gender:female",
-        "race:unknown",
-        "tier:unknown"
+        "tier:unknown",
+        "race:protoss"
       ],
       "role_title": "",
       "role_priority": null,
@@ -3107,7 +3107,7 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=901",
       "profile_kind": "default",
       "tier": "미정",
-      "race": "Unknown",
+      "race": "Zerg",
       "source": "manual_override",
       "missing_in_master": false,
       "meta_tags": [
@@ -3117,8 +3117,8 @@
         "team_ko:무소속",
         "team_en:fa",
         "gender:female",
-        "race:unknown",
-        "tier:unknown"
+        "tier:unknown",
+        "race:zerg"
       ],
       "role_title": "",
       "role_priority": null,
@@ -3135,7 +3135,7 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=796",
       "profile_kind": "default",
       "tier": "미정",
-      "race": "Unknown",
+      "race": "Protoss",
       "source": "manual_override",
       "missing_in_master": false,
       "meta_tags": [
@@ -3145,8 +3145,8 @@
         "team_ko:무소속",
         "team_en:fa",
         "gender:female",
-        "race:unknown",
-        "tier:unknown"
+        "tier:unknown",
+        "race:protoss"
       ],
       "role_title": "",
       "role_priority": null,
@@ -3163,7 +3163,7 @@
       "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=646",
       "profile_kind": "default",
       "tier": "미정",
-      "race": "Unknown",
+      "race": "Terran",
       "source": "manual_override",
       "missing_in_master": false,
       "meta_tags": [
@@ -3173,8 +3173,8 @@
         "team_ko:무소속",
         "team_en:fa",
         "gender:female",
-        "race:unknown",
-        "tier:unknown"
+        "tier:unknown",
+        "race:terran"
       ],
       "role_title": "",
       "role_priority": null,
