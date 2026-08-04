@@ -144,7 +144,7 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
       </div>
       <p className="mt-2 text-sm text-white/55">
         점수만 채우면 됩니다. <b className="text-white/75">양쪽을 다 비우면</b> 아직 치르지 않은 경기(잔여)로 남습니다.
-        저장하면 /jungman/standings에 그대로 반영됩니다.
+        저장하면 /jungman에 그대로 반영됩니다.
       </p>
 
       {data.groups.length === 0 ? (

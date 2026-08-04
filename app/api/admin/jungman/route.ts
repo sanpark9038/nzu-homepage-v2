@@ -296,7 +296,7 @@ export async function POST(req: Request) {
       }
 
       await writeSetting(JUNGMAN_STANDINGS_KEY, raw);
-      revalidatePath("/jungman/standings");
+      revalidatePath("/jungman");
 
       // 저장은 됐는데 화면이 비면 원인을 여기서 바로 알려준다 (announced=false / 스키마 불일치)
       const parsed = parseJungmanStandings(raw);

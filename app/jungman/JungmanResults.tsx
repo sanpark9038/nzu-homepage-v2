@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 import {
   formatVotes,
   JUNGMAN_FINAL_TOTAL,
@@ -52,11 +50,9 @@ function TeamLogo({ src, team, size }: { src: string | null; team: JungmanStandi
 export default function JungmanResults({
   standings,
   logos,
-  map,
 }: {
   standings: JungmanStanding[];
   logos: Record<string, string | null>;
-  map: ReactNode;
 }) {
   const podium = standings.slice(0, JUNGMAN_SEED_CUT);
   const rest = standings.slice(JUNGMAN_SEED_CUT);
@@ -175,9 +171,6 @@ export default function JungmanResults({
           })}
         </ul>
       </section>
-
-      {/* container-type은 map 쪽 #jm-map 래퍼가 이미 갖고 있다 — 여기선 패널만 씌운다 */}
-      <section className={`${PANEL} p-3`}>{map}</section>
 
       <p className="px-1 text-[0.6875rem] text-[#7a8299]">정중만님 공지 발표 기준 공식 집계입니다.</p>
     </div>

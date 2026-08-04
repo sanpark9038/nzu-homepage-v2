@@ -145,7 +145,7 @@ test("공개 페이지와 관리자 저장이 같은 키를 쓴다", () => {
   const { JUNGMAN_STANDINGS_KEY } = loadModule("lib/jungman-standings.ts");
   assert.equal(JUNGMAN_STANDINGS_KEY, "jungman_standings");
 
-  const page = readProjectFile("app/jungman/standings/page.tsx");
+  const page = readProjectFile("app/jungman/page.tsx");
   assert.match(page, /export const revalidate = \d+/);
   assert.doesNotMatch(page, /"use client"/);
   assert.match(page, /getSetting\(JUNGMAN_STANDINGS_KEY\)/);
@@ -154,15 +154,14 @@ test("공개 페이지와 관리자 저장이 같은 키를 쓴다", () => {
   const route = readProjectFile("app/api/admin/jungman/route.ts");
   assert.ok(route.includes('"save-standings"'));
   assert.match(route, /writeSetting\(JUNGMAN_STANDINGS_KEY, raw\)/);
-  assert.match(route, /revalidatePath\("\/jungman\/standings"\)/);
+  assert.match(route, /revalidatePath\("\/jungman"\)/);
 
-  // 탭은 한 배열에서만 — 페이지마다 따로 적으면 갈라진다
-  const nav = readProjectFile("components/jungman/JungmanSubNav.tsx");
-  assert.match(nav, /href: "\/jungman", label: "투표"/);
-  assert.match(nav, /href: "\/jungman\/standings", label: "순위"/);
-  for (const file of ["app/jungman/page.tsx", "app/jungman/standings/page.tsx"]) {
-    assert.match(readProjectFile(file), /<JungmanSubNav activeHref=/, file);
-  }
+  // 순위표와 투표 결과가 한 페이지에 있어야 한다 — 탭으로 되돌아가면 이게 깨진다
+  const merged = readProjectFile("app/jungman/page.tsx");
+  assert.match(merged, /<JungmanGroupTables/);
+  assert.match(merged, /<details/);
+  // 옛 주소는 리다이렉트로만 살아 있다
+  assert.match(readProjectFile("app/jungman/standings/page.tsx"), /redirect\("\/jungman"\)/);
 });
 
 process.exitCode = failed ? 1 : 0;
