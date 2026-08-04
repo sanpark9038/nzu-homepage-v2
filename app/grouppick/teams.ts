@@ -21,6 +21,17 @@ export const TEAMS: Team[] = [
 export const GROUPS = ["A", "B", "C", "D"] as const;
 export type GroupKey = (typeof GROUPS)[number];
 
+/** 실제 조편성 결과(2026-08-03 추첨 확정). 채점 기준이다. */
+export const ANSWER: Record<GroupKey, string[]> = {
+  A: ["KMS", "HM", "MBU"],
+  B: ["NCS", "BGM", "JSA"],
+  C: ["KU", "WFU", "DM"],
+  D: ["SSU", "SSG", "HKA"],
+};
+
+/** 조 하나의 팀 3개를 순서 무관하게 비교하기 위한 키 */
+export const setKey = (codes: string[]) => [...codes].sort().join(",");
+
 const NAME_BY_CODE = new Map(TEAMS.map((team) => [team.code, team.name]));
 
 export function teamName(code: string): string {
