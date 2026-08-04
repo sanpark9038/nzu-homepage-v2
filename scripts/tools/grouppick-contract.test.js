@@ -28,33 +28,11 @@ function test(name, fn) {
   }
 }
 
-test("grouppick API is write-only (POST, no GET)", () => {
-  const source = readProjectFile("app/api/grouppick/route.ts");
-  assert.match(source, /export async function POST/);
-  assert.doesNotMatch(source, /export async function GET/);
-  assert.match(source, /runtime = "nodejs"/);
-  assert.match(source, /dynamic = "force-dynamic"/);
-});
-
-test("grouppick API validates honeypot, teams, and a submission cap on the server", () => {
-  const source = readProjectFile("app/api/grouppick/route.ts");
-  // 봇 미끼
-  assert.match(source, /payload\.hp/);
-  // 팀 검증 — 조당 3팀, 12팀이 정확히 한 번씩 (시드 고정은 폐지)
-  assert.match(source, /isTeamCode/);
-  assert.match(source, /picks\.length !== 3/);
-  assert.match(source, /seen\.has\(code\)/);
-  assert.match(source, /seen\.size !== TEAMS\.length/);
-  assert.doesNotMatch(source, /SEEDS/);
-  // 상한
-  assert.match(source, /3000/);
-  assert.match(source, /count: "exact", head: true/);
-  assert.match(source, /status: 429/);
-});
-
-test("grouppick submissions are stored under the grouppick: key prefix", () => {
-  const source = readProjectFile("app/api/grouppick/route.ts");
-  assert.match(source, /overlay_key: `grouppick:\$\{randomUUID\(\)\}`/);
+test("grouppick 접수는 마감됐다 — 접수 API도 제출 폼도 없다", () => {
+  assert.ok(!exists("app/api/grouppick/route.ts"), "접수 API가 되살아나면 마감이 풀린다");
+  const page = readProjectFile("app/grouppick/page.tsx");
+  assert.doesNotMatch(page, /fetch\(/);
+  assert.doesNotMatch(page, /<select/);
 });
 
 test("grouppick results page is behind the overlay access gate", () => {
