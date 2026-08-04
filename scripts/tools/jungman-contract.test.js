@@ -185,8 +185,10 @@ test("jungman map renders all 12 markers from a single data source", () => {
 
   assert.match(lib, /export function buildJungmanMarkers[\s\S]*?JUNGMAN_TEAMS\.map/);
   assert.match(map, /markers\.map/);
-  assert.match(page, /buildJungmanMarkers\(standings\)/);
-  assert.match(page, /<JungmanMap markers=\{markers\} \/>/);
+  // 투표가 끝나 득표는 공지 확정치(코드 상수)에서만 온다 — 지도도 같은 순위표를 읽어야 숫자가 갈라지지 않는다
+  assert.match(page, /const voteStandings = buildJungmanFinalStandings\(\);/);
+  assert.match(page, /buildJungmanMarkers\(voteStandings\)/);
+  assert.match(page, /<JungmanMap markers=\{markers\}/);
   // 지도 정적 레이어는 빌드 산출물 — 손편집 금지 표식이 남아 있어야 한다
   assert.match(readProjectFile("components/jungman/map-base.ts"), /손으로 고치지 말 것/);
 });
@@ -324,10 +326,11 @@ test("jungman collection stops itself after the vote closes", () => {
   assert.ok(collector.includes('skipped: "vote_closed"'), "collector should skip once the vote is closed");
 });
 
-test("jungman live mode has a server-computed window and a viewer-driven poller", () => {
+// 실시간 개표 화면은 /jungman/embed 하나만 남았다 — /jungman은 확정 결과만 그린다
+test("jungman embed live mode has a server-computed window and a viewer-driven poller", () => {
   const lib = readProjectFile("lib/jungman.ts");
   const client = readProjectFile("app/jungman/JungmanClient.tsx");
-  const page = readProjectFile("app/jungman/page.tsx");
+  const page = readProjectFile("app/jungman/embed/page.tsx");
 
   assert.match(lib, /JUNGMAN_LIVE_WINDOW_MS = \d+ \* 60 \* 1000/);
   assert.match(lib, /JUNGMAN_COLLECT_INTERVAL_MS = \d+ \* 60 \* 1000/);
@@ -712,22 +715,18 @@ test("jungman charts emphasise the seed cutline, not the vote leaders", () => {
   assert.doesNotMatch(chart, /와카/);
 });
 
-test("jungman dashboard keeps the map server-side and shares one selected team", () => {
+test("jungman keeps the map server-side and no longer mounts the live vote dashboard", () => {
   const page = readProjectFile("app/jungman/page.tsx");
   const client = readProjectFile("app/jungman/JungmanClient.tsx");
-
-  // 88KB 지도 SVG는 서버에서 그려 children으로 넘긴다 — 클라이언트가 import하면 번들로 넘어간다
-  assert.doesNotMatch(client, /JungmanMap/);
-  assert.match(page, /map=\{/);
-  // 버킷은 서버가 끝낸다
-  assert.match(page, /buildJungmanSeries\(snapshots\)/);
-
-  // hover는 일시 강조, 클릭 선택은 지속 강조 — hover가 끝나면 선택으로 돌아온다
-  assert.match(client, /pokeMap\("data-active", hovered \|\| selected\)/);
-  // 지도 마커 클릭도 선택 입력 (서버 SVG라 이벤트 위임)
-  assert.match(client, /closest\?\.\("\[data-team\]"\)/);
   const map = readProjectFile("components/jungman/JungmanMap.tsx");
-  assert.match(map, /cursor:pointer/);
+
+  // 88KB 지도 SVG는 서버 컴포넌트가 직접 그린다 — 클라이언트가 import하면 번들로 넘어간다
+  assert.doesNotMatch(client, /JungmanMap/);
+  assert.match(page, /<JungmanMap markers=\{markers\}/);
+
+  // 투표가 끝나 실시간 대시보드(선택 공유·차트·시계열)는 /jungman에서 통째로 내려갔다.
+  // 되살리면 조별 순위 페이지가 다시 끝난 개표 화면으로 되돌아간다.
+  assert.doesNotMatch(page, /JungmanDashboard|JungmanChart|buildJungmanSeries|snapshots/);
 
   // 와일드카드전 폐지 — 12팀 전원 본선(4개조)이라 탈락·와카 표기가 어디에도 남으면 안 된다.
   // 시드 표기는 그대로다: 걸린 건 1~3위 세 자리뿐이다.
@@ -738,7 +737,7 @@ test("jungman dashboard keeps the map server-side and shares one selected team",
 });
 
 test("jungman is reachable from public and admin navigation", () => {
-  assert.match(readProjectFile("lib/navigation-config.ts"), /href: "\/jungman", label: "중만컵"/);
+  assert.match(readProjectFile("lib/navigation-config.ts"), /href: "\/jungman", label: "K-중만컵"/);
   assert.match(readProjectFile("components/Navbar.tsx"), /"\/jungman":/);
   assert.match(readProjectFile("components/admin/AdminNav.tsx"), /href: "\/admin\/jungman"/);
 });
@@ -769,11 +768,12 @@ test("jungman tells a failed read apart from an empty board", async () => {
   assert.equal(fine.degraded, false);
   assert.equal(fine.latest.round, 7);
 
-  // 화면: 빈 상태가 아니라 실패를 말하고, 못 믿을 config로 카운트다운을 그리지 않는다
-  const page = readProjectFile("app/jungman/page.tsx");
-  assert.match(page, /집계 데이터를 불러오지 못했습니다/);
-  assert.match(page, /곧 다시 시도합니다/);
-  assert.match(page, /degraded \? null : \(/);
+  // 화면: 빈 상태가 아니라 실패를 말하고, 못 믿을 config로 카운트다운을 그리지 않는다.
+  // 이 화면은 실시간 개표가 남은 임베드뿐이다 — /jungman은 코드 상수만 그려 읽기 실패가 없다.
+  const embed = readProjectFile("app/jungman/embed/page.tsx");
+  assert.match(embed, /집계 데이터를 불러오지 못했습니다/);
+  assert.match(embed, /연결이 회복되면 자동으로 갱신됩니다/);
+  assert.match(embed, /degraded \? null : \(/);
 });
 
 test("jungman keeps every round of the vote window in one array", () => {
@@ -933,7 +933,8 @@ test("jungman team short labels follow the project metadata", () => {
 
 test("jungman freezes into a final result once the vote closes", () => {
   const { isJungmanClosed, buildJungmanHeadlines } = loadJungmanLib();
-  const page = readProjectFile("app/jungman/page.tsx");
+  // 마감 여부로 갈리는 화면은 임베드만 남았다
+  const embed = readProjectFile("app/jungman/embed/page.tsx");
   const client = readProjectFile("app/jungman/JungmanClient.tsx");
 
   const closeAt = "2026-07-30T15:00:00.000Z";
@@ -956,10 +957,16 @@ test("jungman freezes into a final result once the vote closes", () => {
   );
 
   // 판정은 서버에서 1회 — 클라이언트 시계로 종료 화면이 흔들리면 안 된다
-  assert.match(page, /const closed = isJungmanClosed\(config\.voteCloseAt\);/);
-  assert.match(page, /const isLive = inLiveWindow && latest !== null && !closed;/);
-  assert.match(page, /const autoCollect = config\.autoCollect && !closed;/);
-  assert.match(page, /closed=\{closed\}/);
+  assert.match(embed, /const closed = isJungmanClosed\(config\.voteCloseAt\);/);
+  assert.match(embed, /const isLive = inLiveWindow && latest !== null && !closed;/);
+  assert.match(embed, /const autoCollect = config\.autoCollect && !closed;/);
+  assert.match(embed, /closed=\{closed\}/);
+
+  // /jungman에는 마감 갈림길 자체가 없다 — 상태를 읽지 않고 확정 결과만 그린다.
+  // 여기에 getJungmanState가 다시 들어오면 끝난 투표 화면이 조별 순위 위로 되돌아온다.
+  const page = readProjectFile("app/jungman/page.tsx");
+  assert.doesNotMatch(page, /getJungmanState|isJungmanClosed|degraded/);
+  assert.match(page, /buildJungmanFinalStandings\(\)/);
 
   // 멈춘 1시간 증가량이 현재 증감처럼 읽히면 안 된다 — 시세판 열과 레일 항목을 내린다
   assert.match(client, /closed=\{closed\}/);
@@ -1025,7 +1032,8 @@ test("jungman hides vote counts after the close and points at the official notic
 
   // 지도 칩 — "n위 · 1,234표"에서 표수만 뺀다
   assert.match(map, /closed \? `\$\{marker\.rank\}위`/);
-  assert.match(page, /<JungmanMap markers=\{markers\} closed=\{closed\} \/>/);
+  // /jungman은 마감 상태로 굳었다 — 지도도 조건 없이 closed로 그린다
+  assert.match(page, /<JungmanMap markers=\{markers\} closed \/>/);
 
   // 숫자를 감춘 만큼 어디서 확인해야 하는지 한 줄로 알린다
   assert.ok(
