@@ -74,6 +74,18 @@ export const JUNGMAN_TEAMS: JungmanTeam[] = [
   { code: "KU", name: "케이대", color: "#2a2f3a", accent: "#b8c4d6", dark: false, x: 943.8, y: 282.6, pinX: 929.8, pinY: 282.6, aliases: ["케이대", "KU", "K.U"] },
 ];
 
+// 저장된 팀 이름은 자유 문자열이라 별칭으로도 찾는다. 호출마다 순회하지 않게 한 번만 만든다.
+const TEAM_BY_NAME = new Map<string, JungmanTeam>(
+  JUNGMAN_TEAMS.flatMap((team) =>
+    [team.name, ...team.aliases].map((key) => [key, team] as [string, JungmanTeam])
+  )
+);
+
+/** 팀 이름 또는 별칭으로 팀 찾기. 모르는 이름이면 undefined */
+export function jungmanTeamByName(name: string): JungmanTeam | undefined {
+  return TEAM_BY_NAME.get(name);
+}
+
 /** 화면 표기용 약칭 — 없으면 코드를 그대로 쓴다 */
 export function teamShort(team: JungmanTeam): string {
   return team.short || team.code;

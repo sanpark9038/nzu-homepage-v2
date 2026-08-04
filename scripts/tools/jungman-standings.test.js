@@ -10,16 +10,17 @@ function readProjectFile(relativePath) {
 }
 
 /** 프로젝트 TS를 그대로 트랜스파일해 실제 로직을 돌린다 (jungman-contract.test.js와 같은 방식). */
-function loadModule(relativePath) {
+function loadModule(relativePath, resolve = () => ({})) {
   const compiled = ts.transpileModule(readProjectFile(relativePath), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const mod = { exports: {} };
-  new Function("module", "exports", "require", compiled)(mod, mod.exports, () => ({}));
+  new Function("module", "exports", "require", compiled)(mod, mod.exports, resolve);
   return mod.exports;
 }
 
-const { parseJungmanStandings, buildJungmanGroupTables } = loadModule("lib/jungman-standings.ts");
+const { parseJungmanStandings, buildJungmanGroupTables, sortJungmanMatches } =
+  loadModule("lib/jungman-standings.ts");
 
 let failed = 0;
 function test(name, fn) {
@@ -389,6 +390,60 @@ test("날짜는 순위 계산에 아무 영향을 주지 않는다", () => {
     shape(parseJungmanStandings(JSON.stringify(body("2026-08-06")))),
     shape(parseJungmanStandings(JSON.stringify(body(null))))
   );
+});
+
+// ── 공개 화면 정렬·팀 조회 ───────────────────────────────────────────────
+const dated = (home, date) => ({ group: "A", home, away: "나", homeSets: 5, awaySets: 3, ...(date ? { date } : {}) });
+
+test("경기 결과는 최신 날짜가 위로 온다", () => {
+  const sorted = sortJungmanMatches([dated("가", "2026-08-06"), dated("다", "2026-08-13"), dated("라", "2026-08-07")]);
+  assert.deepEqual(sorted.map((m) => m.date), ["2026-08-13", "2026-08-07", "2026-08-06"]);
+});
+
+test("날짜 없는 경기는 맨 뒤로 가고 서로의 순서는 유지된다", () => {
+  const sorted = sortJungmanMatches([
+    dated("가"),
+    dated("나2", "2026-08-06"),
+    dated("다"),
+    dated("라", "2026-08-07"),
+    dated("마", "2026-08-06"),
+  ]);
+  assert.deepEqual(sorted.map((m) => m.home), ["라", "나2", "마", "가", "다"]);
+});
+
+test("정렬은 원본 배열을 건드리지 않는다", () => {
+  // 같은 배열을 순위 계산이 보고 있다 — 제자리 정렬이면 조용히 순서가 바뀐다
+  const original = [dated("가", "2026-08-06"), dated("다", "2026-08-13")];
+  const sorted = sortJungmanMatches(original);
+  assert.deepEqual(original.map((m) => m.home), ["가", "다"]);
+  assert.notEqual(sorted, original);
+  assert.deepEqual(sortJungmanMatches([]), []);
+});
+
+test("팀 이름과 별칭 양쪽으로 팀을 찾는다", () => {
+  const { jungmanTeamByName } = loadModule("lib/jungman.ts");
+  for (const [name, code] of [
+    ["캄몬스타즈", "KMS"],
+    ["CALM", "KMS"],
+    ["흑카데미", "HKA"],
+    ["B.A", "HKA"],
+    ["N.C.S", "NCS"],
+  ]) {
+    assert.equal(jungmanTeamByName(name)?.code, code, `name=${name}`);
+  }
+  assert.equal(jungmanTeamByName("없는팀"), undefined);
+  assert.equal(jungmanTeamByName(""), undefined);
+
+  // 순위표도 같은 함수로 로고를 찾는다 — 두 벌이 되면 한쪽만 고쳐진다
+  assert.match(readProjectFile("app/jungman/JungmanGroupTables.tsx"), /jungmanTeamByName\(row\.team\)/);
+});
+
+test("공개 페이지가 경기 결과를 최신순으로 그린다", () => {
+  const page = readProjectFile("app/jungman/page.tsx");
+  assert.match(page, /<JungmanMatchResults/);
+  assert.match(page, /sortJungmanMatches\(standings\?\.matches \?\? \[\]\)/);
+  // 세트 상세는 서버에서 그린다 — 공개 화면에 클라이언트 번들을 늘리지 않는다
+  assert.doesNotMatch(readProjectFile("app/jungman/JungmanMatchResults.tsx"), /"use client"/);
 });
 
 process.exitCode = failed ? 1 : 0;

@@ -7,10 +7,13 @@ import {
   buildJungmanGroupTables,
   JUNGMAN_STANDINGS_KEY,
   parseJungmanStandings,
+  sortJungmanMatches,
 } from "@/lib/jungman-standings";
+import { playerService } from "@/lib/player-service";
 import { getSetting } from "@/lib/site-settings";
 
 import JungmanGroupTables from "./JungmanGroupTables";
+import JungmanMatchResults from "./JungmanMatchResults";
 import JungmanResults from "./JungmanResults";
 
 export const revalidate = 60;
@@ -48,8 +51,14 @@ function daysToFinal() {
 
 export default async function JungmanPage() {
   // 읽기 실패는 getSetting이 던진다 — 빈 순위표를 정상 상태로 캐시하는 것보다 낫다
-  const standings = parseJungmanStandings(await getSetting(JUNGMAN_STANDINGS_KEY));
+  const [standingsRaw, players] = await Promise.all([
+    getSetting(JUNGMAN_STANDINGS_KEY),
+    // 선수 DB를 못 읽어도 경기 결과는 이름만으로 그려져야 한다 — 페이지 전체를 죽이지 않는다
+    playerService.getCachedPlayersList().catch(() => []),
+  ]);
+  const standings = parseJungmanStandings(standingsRaw);
   const tables = standings ? buildJungmanGroupTables(standings) : [];
+  const matches = sortJungmanMatches(standings?.matches ?? []);
 
   // 투표는 끝났다 — 득표는 공지 확정치(코드 상수)에서만 나오고, 지도도 같은 순위표를 읽는다
   const voteStandings = buildJungmanFinalStandings();
@@ -76,6 +85,9 @@ export default async function JungmanPage() {
         </section>
 
         <JungmanGroupTables tables={tables} />
+
+        {/* 경기가 없으면 섹션 자체를 그리지 않는다 — 조 편성만 있는 화면이 깨끗해야 한다 */}
+        {matches.length ? <JungmanMatchResults matches={matches} players={players} /> : null}
 
         <section className={`${PANEL} mt-3 px-4 py-4 md:mt-4 md:px-5 md:py-5`}>
           <div className="flex flex-wrap items-center gap-2">

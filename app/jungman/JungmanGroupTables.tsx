@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { JUNGMAN_TEAMS, jungmanLogoPath } from "@/lib/jungman";
+import { jungmanLogoPath, jungmanTeamByName } from "@/lib/jungman";
 import { type JungmanGroupTable } from "@/lib/jungman-standings";
 
 const PANEL =
@@ -11,14 +11,6 @@ const ADVANCING = 2;
 
 // 조마다 다른 색. 지도·조 편성 화면과 같은 순서를 쓴다.
 const GROUP_COLORS = ["#2BE39B", "#4A9EFF", "#C9A84C", "#E0574A"];
-
-// 저장된 팀 이름은 자유 문자열이라 별칭으로도 로고를 찾는다
-const CODE_BY_NAME = new Map<string, string>(
-  JUNGMAN_TEAMS.flatMap((team) => [
-    [team.name, team.code] as [string, string],
-    ...team.aliases.map((alias) => [alias, team.code] as [string, string]),
-  ])
-);
 
 const TH = "text-right text-[0.625rem] font-bold tracking-[0.06em] text-[#7a8299] md:text-[0.6875rem]";
 const NUM = "text-right font-black tabular-nums text-[#e8ebf2] text-sm md:text-lg";
@@ -51,7 +43,7 @@ function GroupCard({ table, color }: { table: JungmanGroupTable; color: string }
 
         {table.rows.map((row, index) => {
           const advancing = index < ADVANCING;
-          const code = CODE_BY_NAME.get(row.team);
+          const code = jungmanTeamByName(row.team)?.code;
           return (
             <div
               key={row.team}

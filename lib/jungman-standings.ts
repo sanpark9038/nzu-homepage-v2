@@ -157,6 +157,18 @@ export function parseJungmanStandings(raw: string | null | undefined): JungmanSt
   return { announced: true, groups, matches };
 }
 
+/**
+ * 최신 경기가 위. 날짜 없는 경기는 맨 뒤로.
+ * 안정 정렬(ES2019)이라 같은 날짜끼리·날짜 없는 것끼리는 입력 순서가 그대로 남는다.
+ */
+export function sortJungmanMatches(matches: JungmanStandingsMatch[]): JungmanStandingsMatch[] {
+  // 원본을 뒤집지 않는다 — 순위 계산이 같은 배열을 본다
+  return matches.slice().sort((a, b) => {
+    if (!a.date || !b.date) return a.date ? -1 : b.date ? 1 : 0;
+    return b.date.localeCompare(a.date);
+  });
+}
+
 function applyResult(row: JungmanStandingsRow, won: number, lost: number) {
   row.setsWon += won;
   row.setDiff += won - lost;
