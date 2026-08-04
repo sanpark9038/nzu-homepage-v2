@@ -65,7 +65,8 @@ export default function JungmanResults({
         <p className="text-[0.625rem] font-bold uppercase tracking-[0.22em] text-[#d4a94a] md:text-[0.6875rem]">
           K-중만컵 · 인기투표
         </p>
-        <h1 className="mt-2 text-xl font-black tracking-tight md:text-3xl">최종 결과</h1>
+        {/* 페이지 h1은 커버의 "K-중만컵" 하나뿐이다 — 여기는 접힘 안이라 h2로 내린다 */}
+        <h2 className="mt-2 text-xl font-black tracking-tight md:text-3xl">최종 결과</h2>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           <div className="rounded-2xl border border-[rgba(155,185,240,0.14)] bg-[rgba(10,15,28,0.6)] px-5 py-4">
             <dt className="text-[0.6875rem] font-bold uppercase tracking-[0.22em] text-[#d4a94a]">투표 기간</dt>

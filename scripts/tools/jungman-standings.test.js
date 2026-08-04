@@ -446,4 +446,27 @@ test("공개 페이지가 경기 결과를 최신순으로 그린다", () => {
   assert.doesNotMatch(readProjectFile("app/jungman/JungmanMatchResults.tsx"), /"use client"/);
 });
 
+test("커버가 대회 정보를 흡수하고 지도는 투표 결과 안으로 들어갔다", () => {
+  const page = readProjectFile("app/jungman/page.tsx");
+  assert.match(page, /<JungmanCover/);
+  // 대회 정보가 커버 밖에 다시 생기면 같은 사실이 두 곳에 남는다
+  assert.doesNotMatch(page, /대회 정보|총상금/);
+  // 지도는 투표 순위 칩을 그린다 — <details>(인기투표 최종 결과) 안이 제 자리다
+  assert.match(page, /<JungmanResults[\s\S]*?<JungmanMap markers=\{markers\} closed \/>[\s\S]*?<\/details>/);
+  assert.match(page, /id="jm-map"[^>]*\[container-type:inline-size\]/);
+
+  const cover = readProjectFile("app/jungman/JungmanCover.tsx");
+  assert.doesNotMatch(cover, /"use client"/);
+  // 커버 배경은 지형만 — JungmanMap은 투표 순위 칩을 그린다
+  assert.doesNotMatch(cover, /JungmanMap/);
+  assert.match(cover, /JUNGMAN_MAP_BASE/);
+  // 순위표가 화면 밖으로 밀리면 이 페이지의 목적이 사라진다
+  assert.doesNotMatch(cover, /100vh|100svh|h-screen|min-h-screen/);
+  // 지도 선을 뭉개서 금지된 것
+  assert.doesNotMatch(cover, /backdrop-blur|backdrop-filter/);
+  // D-day 계산은 한 곳에만 — 페이지에서 커버로 옮겼다
+  assert.match(cover, /daysToFinal/);
+  assert.doesNotMatch(page, /daysToFinal|FINAL_DATE/);
+});
+
 process.exitCode = failed ? 1 : 0;
