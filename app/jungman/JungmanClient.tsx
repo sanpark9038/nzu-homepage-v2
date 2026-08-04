@@ -806,7 +806,7 @@ export function JungmanDashboard({
     <>
       <header className={`${PANEL} flex flex-wrap items-center gap-3 px-4 py-3`}>
         <div className="shrink-0">
-          <p className="text-[0.625rem] font-black uppercase tracking-[0.2em] text-[#d4a94a]">중만컵 인기투표</p>
+          <p className="text-[0.625rem] font-black uppercase tracking-[0.2em] text-[#d4a94a]">K-중만컵 인기투표</p>
           <h1 className="text-xl font-black tracking-tight">투표 현황</h1>
         </div>
 

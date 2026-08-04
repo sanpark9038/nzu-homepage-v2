@@ -18,8 +18,8 @@ import { JungmanEmbedHeight } from "./EmbedHeight";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "중만컵 투표 현황 (임베드)",
-  description: "외부 사이트 iframe 삽입용 중만컵 인기투표 실시간 순위 화면.",
+  title: "K-중만컵 투표 현황 (임베드)",
+  description: "외부 사이트 iframe 삽입용 K-중만컵 인기투표 실시간 순위 화면.",
   // 내용이 /jungman과 같다 — 색인은 원본 하나로 몰아준다
   robots: { index: false, follow: false },
 };
@@ -48,7 +48,7 @@ export default async function JungmanEmbedPage() {
       <div className="mx-auto w-full max-w-[27rem]">
         <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <div className="shrink-0">
-            <p className="text-[0.625rem] font-black uppercase tracking-[0.2em] text-[#d4a94a]">중만컵 인기투표</p>
+            <p className="text-[0.625rem] font-black uppercase tracking-[0.2em] text-[#d4a94a]">K-중만컵 인기투표</p>
             <h1 className="text-base font-black tracking-tight">투표 현황</h1>
           </div>
           {latest ? (

@@ -26,13 +26,13 @@ import JungmanResults from "./JungmanResults";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "중만컵 투표 결과",
+  title: "K-중만컵 투표 결과",
   description:
-    "중만컵 인기투표 최종 결과입니다. 1위 캄몬스타즈부터 11위까지 공식 득표수와 시드권, 연고지 지도를 확인할 수 있습니다.",
+    "K-중만컵 인기투표 최종 결과입니다. 1위 캄몬스타즈부터 11위까지 공식 득표수와 시드권, 연고지 지도를 확인할 수 있습니다.",
   alternates: { canonical: "/jungman" },
   openGraph: {
-    title: "중만컵 투표 결과 | 호사가 HOSAGA",
-    description: "중만컵 인기투표 최종 결과 — 공식 득표수, 시드권, 연고지 지도",
+    title: "K-중만컵 투표 결과 | 호사가 HOSAGA",
+    description: "K-중만컵 인기투표 최종 결과 — 공식 득표수, 시드권, 연고지 지도",
     url: "/jungman",
     siteName: "호사가 HOSAGA",
     type: "website",
@@ -118,7 +118,7 @@ export default async function JungmanPage() {
           <div className="mx-auto flex max-w-3xl flex-col gap-4">
             <section className={`${PANEL} px-4 py-4 md:p-6`}>
               <p className="text-[0.625rem] font-bold uppercase tracking-[0.22em] text-[#d4a94a] md:text-[0.6875rem]">
-                중만컵 · 인기투표 개표 현황
+                K-중만컵 · 인기투표 개표 현황
               </p>
               {/* 읽기 실패를 "아직 개표 전"으로 보여주면 집계가 사라진 것처럼 읽힌다 — 상태를 그대로 말한다 */}
               <h1 className="mt-2 text-xl font-black tracking-tight md:text-3xl">

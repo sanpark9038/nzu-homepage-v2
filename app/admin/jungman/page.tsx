@@ -33,7 +33,7 @@ export default async function AdminJungmanPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-3xl font-black tracking-tight text-white">중만컵 개표 관리</h1>
+          <h1 className="text-3xl font-black tracking-tight text-white">K-중만컵 개표 관리</h1>
           <p className="text-sm text-white/55">
             차수별 득표수를 입력하면 공개 페이지(/jungman)의 지도 · 순위 보드 · 추이 그래프가 함께 갱신됩니다.
           </p>

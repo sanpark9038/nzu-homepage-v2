@@ -134,7 +134,7 @@ export async function GET() {
     const state = await loadState();
     return NextResponse.json({ ok: true, ...state });
   } catch (error) {
-    return errorResponse(error, "중만컵 현황을 불러오지 못했습니다.");
+    return errorResponse(error, "K-중만컵 현황을 불러오지 못했습니다.");
   }
 }
 
@@ -323,7 +323,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: false, message: "알 수 없는 요청입니다." }, { status: 400 });
   } catch (error) {
-    return errorResponse(error, "중만컵 현황 저장에 실패했습니다.");
+    return errorResponse(error, "K-중만컵 현황 저장에 실패했습니다.");
   }
 }
 

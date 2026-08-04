@@ -89,7 +89,8 @@ export default function JungmanAdmin({
   const [mapping, setMapping] = useState<Record<string, string>>(() => initialConfig.mapping);
   const [guesses, setGuesses] = useState<Guesses>({});
 
-  const nextRound = (snapshots[snapshots.length - 1]?.round || 0) + 1;
+  const last = snapshots[snapshots.length - 1] ?? null;
+  const nextRound = (last?.round || 0) + 1;
 
   async function send(payload: Record<string, unknown>) {
     setLoading(true);
@@ -364,16 +365,28 @@ export default function JungmanAdmin({
         </p>
       </section>
 
+      {/* 투표는 끝났다. 차수별 기록 1518건은 저장만 차지하고 아무도 안 본다 —
+          목록을 걷어내고 마지막 결과 한 줄만 남긴다. 되돌리기 버튼은 오입력 대비로 유지. */}
       <section className="rounded-[2rem] border border-white/10 bg-card p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-black tracking-tight text-white">개표 기록</h2>
-            <p className="text-sm text-white/55">오입력은 마지막 차수를 지우고 다시 저장하면 됩니다.</p>
+            <h2 className="text-xl font-black tracking-tight text-white">개표 결과</h2>
+            <p className="text-sm text-white/55">
+              {last
+                ? `${last.round}차 · ${new Date(last.at).toLocaleString("ko-KR")} 기준`
+                : "아직 저장된 개표 결과가 없습니다."}
+            </p>
           </div>
+          {last ? (
+            <span className="text-lg font-black text-white">합계 {formatVotes(snapshotTotal(last))}표</span>
+          ) : null}
+        </div>
+
+        {last ? (
           <button
             onClick={deleteLast}
-            disabled={loading || snapshots.length === 0}
-            className={`inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-black disabled:opacity-50 ${
+            disabled={loading}
+            className={`mt-4 inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-black disabled:opacity-50 ${
               pendingDelete
                 ? "border border-red-300/60 bg-red-500/20 text-red-100"
                 : "border border-red-400/30 bg-red-500/10 text-red-200"
@@ -381,30 +394,6 @@ export default function JungmanAdmin({
           >
             {pendingDelete ? "한 번 더 삭제" : "마지막 차수 삭제"}
           </button>
-        </div>
-
-        <ul className="mt-5 space-y-2">
-          {snapshots
-            .slice()
-            .reverse()
-            .map((snapshot) => (
-              <li
-                key={snapshot.round}
-                className="flex flex-wrap items-baseline justify-between gap-2 rounded-xl border border-white/10 bg-background/80 px-4 py-3"
-              >
-                <span className="text-sm font-black text-white">{snapshot.round}차</span>
-                <span className="text-sm font-bold text-white/60">
-                  {new Date(snapshot.at).toLocaleString("ko-KR")}
-                </span>
-                <span className="text-sm font-bold text-white/80">합계 {formatVotes(snapshotTotal(snapshot))}표</span>
-              </li>
-            ))}
-        </ul>
-
-        {snapshots.length === 0 ? (
-          <p className="mt-5 rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm font-bold text-white/45">
-            아직 저장된 개표 기록이 없습니다.
-          </p>
         ) : null}
       </section>
 

@@ -67,7 +67,7 @@ export default function JungmanResults({
     <div className="flex flex-col gap-3">
       <section className={`${PANEL} px-4 py-4 md:p-6`}>
         <p className="text-[0.625rem] font-bold uppercase tracking-[0.22em] text-[#d4a94a] md:text-[0.6875rem]">
-          중만컵 · 인기투표
+          K-중만컵 · 인기투표
         </p>
         <h1 className="mt-2 text-xl font-black tracking-tight md:text-3xl">최종 결과</h1>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">

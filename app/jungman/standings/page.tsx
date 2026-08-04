@@ -12,13 +12,13 @@ import { getSetting } from "@/lib/site-settings";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "중만컵 조별 순위",
+  title: "K-중만컵 조별 순위",
   description:
-    "중만컵 조별리그 순위표. 4개조 12팀의 승패 · 세트 득실 · 잔여 경기를 조별로 확인할 수 있습니다.",
+    "K-중만컵 조별리그 순위표. 4개조 12팀의 승패 · 세트 득실 · 잔여 경기를 조별로 확인할 수 있습니다.",
   alternates: { canonical: "/jungman/standings" },
   openGraph: {
-    title: "중만컵 조별 순위 | 호사가 HOSAGA",
-    description: "중만컵 조별리그 순위 — 승패, 세트 득실, 잔여 경기",
+    title: "K-중만컵 조별 순위 | 호사가 HOSAGA",
+    description: "K-중만컵 조별리그 순위 — 승패, 세트 득실, 잔여 경기",
     url: "/jungman/standings",
     siteName: "호사가 HOSAGA",
     type: "website",
@@ -80,7 +80,7 @@ export default async function JungmanStandingsPage() {
 
         <section className={`${PANEL} mb-3 px-4 py-3 md:mb-4 md:px-5 md:py-4`}>
           <p className="hidden text-[0.6875rem] font-bold uppercase tracking-[0.22em] text-[#d4a94a] md:block">
-            중만컵 · 조별리그
+            K-중만컵 · 조별리그
           </p>
           <h1 className="text-xl font-black tracking-tight md:mt-2 md:text-3xl">조별 순위</h1>
           <p className="mt-1.5 hidden text-sm text-[#7a8299] md:block">
