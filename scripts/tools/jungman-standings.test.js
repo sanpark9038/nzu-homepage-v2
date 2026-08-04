@@ -164,4 +164,231 @@ test("공개 페이지와 관리자 저장이 같은 키를 쓴다", () => {
   assert.match(readProjectFile("app/jungman/standings/page.tsx"), /redirect\("\/jungman"\)/);
 });
 
+// ── 세트별 입력 ───────────────────────────────────────────────────────────
+const set = (map, home, away, winner) => ({ map, home, away, winner: winner ?? null });
+const withSets = (sets, homeSets, awaySets) =>
+  parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "A", teams: ["가", "나", "다"] }],
+      matches: [{ group: "A", home: "가", away: "나", homeSets, awaySets, sets }],
+    })
+  );
+
+test("세트 승자 수가 점수가 된다 (저장된 점수는 무시)", () => {
+  const sets = [
+    set("라데온", "주하랑", "냥냥코기", "home"),
+    set("녹아웃", "먼진", "밤하밍", "home"),
+    set("애티튜드", "가1", "나1", "away"),
+    set("오디세이", "가2", "나2", "home"),
+    set("백룸", "가3", "나3", "away"),
+    set("아이올로스", "가4", "나4", "home"),
+    set("옥타곤", "가5", "나5", "away"),
+    set("녹아웃", "가6", "나6", "away"),
+    set("라데온", "가7", "나7", "home"),
+  ];
+  // 저장된 점수는 0:0(엉뚱한 값)이지만 세트가 이긴다
+  const data = withSets(sets, 0, 0);
+  assert.equal(data.matches.length, 1);
+  assert.equal(data.matches[0].homeSets, 5);
+  assert.equal(data.matches[0].awaySets, 4);
+  // 다음 단계(공개 화면)가 읽을 수 있게 세트도 실려 나간다
+  assert.equal(data.matches[0].sets.length, 9);
+  assert.deepEqual(data.matches[0].sets[0], {
+    map: "라데온",
+    home: "주하랑",
+    away: "냥냥코기",
+    winner: "home",
+  });
+  assert.deepEqual(
+    rowsOf(data, "A").map((row) => [row.team, row.wins, row.losses, row.setsWon, row.remaining]),
+    [
+      ["가", 1, 0, 5, 1],
+      ["다", 0, 0, 0, 2], // 세트득실 0이 나(-1)보다 위
+      ["나", 0, 1, 4, 1],
+    ]
+  );
+});
+
+test("승자 없는 세트는 어느 쪽에도 안 센다", () => {
+  const data = withSets(
+    [set("녹아웃", "가1", "나1", "home"), set("라데온", "가2", "나2", "home"), set("백룸", "가3", "나3", "away"), set("옥타곤", "가4", "나4")],
+    9,
+    9
+  );
+  assert.equal(data.matches[0].homeSets, 2);
+  assert.equal(data.matches[0].awaySets, 1);
+});
+
+test("세트 승자가 동점이면 진행 중 — 집계에서 빠지고 잔여로 남는다", () => {
+  const data = withSets(
+    [
+      set("녹아웃", "가1", "나1", "home"),
+      set("라데온", "가2", "나2", "away"),
+      set("백룸", "가3", "나3", "home"),
+      set("옥타곤", "가4", "나4", "away"),
+    ],
+    5,
+    0 // 저장된 점수로는 가의 승리처럼 보이지만 세트가 2:2라 미완료다
+  );
+  assert.equal(data.matches.length, 0);
+  assert.deepEqual(
+    rowsOf(data, "A").map((row) => [row.team, row.wins, row.losses, row.remaining]),
+    [
+      ["가", 0, 0, 2],
+      ["나", 0, 0, 2],
+      ["다", 0, 0, 2],
+    ]
+  );
+});
+
+test("세트가 없는 경기는 저장된 점수를 그대로 쓴다 (기존 데이터 보존)", () => {
+  const data = parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "A", teams: ["가", "나", "다"] }],
+      matches: [match("A", "가", "나", 5, 4), { group: "A", home: "나", away: "다", homeSets: 3, awaySets: 2, sets: [] }],
+    })
+  );
+  // sets가 빈 배열이면 없는 것과 같다 — 저장된 점수로 떨어진다
+  assert.deepEqual(
+    data.matches.map((m) => [m.home, m.away, m.homeSets, m.awaySets, m.sets]),
+    [
+      ["가", "나", 5, 4, undefined],
+      ["나", "다", 3, 2, undefined],
+    ]
+  );
+});
+
+test("깨진 세트만 버리고 나머지는 산다", () => {
+  // sets가 배열이 아니면 통째로 무시하고 저장된 점수로 떨어진다
+  const notArray = withSets({ map: "녹아웃" }, 2, 1);
+  assert.equal(notArray.matches[0].homeSets, 2);
+  assert.equal(notArray.matches[0].sets, undefined);
+
+  const data = withSets(
+    [
+      set("녹아웃", "가1", "나1", "home"),
+      null, // 객체가 아님 → 맵·선수·승자가 다 없어 버려진다
+      set("", "", "", "home"), // 이름 없이 승자만 — 치른 세트로 산다
+      set("백룸", "가3", "나3", "left"), // 엉뚱한 winner → 진행 중으로 떨어진다
+      { map: 7, home: ["가4"], away: null, winner: "away" }, // 이름은 다 버려지고 승자만 남는다
+      set("", "", "", null), // 전부 빈 줄 → 버려진다
+      set("옥타곤", "가5", "나5", "away"),
+      set("라데온", "가6", "나6", "home"),
+    ],
+    0,
+    0
+  );
+  assert.deepEqual(data.matches[0].sets, [
+    { map: "녹아웃", home: "가1", away: "나1", winner: "home" },
+    { map: "", home: "", away: "", winner: "home" },
+    { map: "백룸", home: "가3", away: "나3", winner: null },
+    { map: "", home: "", away: "", winner: "away" },
+    { map: "옥타곤", home: "가5", away: "나5", winner: "away" },
+    { map: "라데온", home: "가6", away: "나6", winner: "home" },
+  ]);
+  assert.equal(data.matches[0].homeSets, 3);
+  assert.equal(data.matches[0].awaySets, 2);
+});
+
+test("이름 없이 승자만 찍은 세트도 점수에 들어간다", () => {
+  // 관리자 화면에서 급할 때 쓰는 길 — 이름 적은 세트와 섞여도 승수가 빠지면 안 된다
+  const data = withSets(
+    [
+      set("라데온", "가1", "나1", "home"),
+      set("녹아웃", "가2", "나2", "home"),
+      set("", "", "", "home"),
+      set("", "", "", "home"),
+      set("", "", "", "home"),
+      set("", "", "", "away"),
+    ],
+    0,
+    0
+  );
+  assert.equal(data.matches[0].homeSets, 5);
+  assert.equal(data.matches[0].awaySets, 1);
+  assert.deepEqual(
+    rowsOf(data, "A").map((row) => [row.team, row.wins, row.losses]),
+    [
+      ["가", 1, 0],
+      ["다", 0, 0],
+      ["나", 0, 1],
+    ]
+  );
+});
+
+test("setScoreOf를 관리자 화면과 파서가 같이 쓴다", () => {
+  const { setScoreOf } = loadModule("lib/jungman-standings.ts");
+  assert.deepEqual(setScoreOf([]), { home: 0, away: 0 });
+  assert.deepEqual(setScoreOf([set("m", "a", "b", "home"), set("m", "a", "b")]), { home: 1, away: 0 });
+  // 관리자 화면이 같은 함수를 불러야 계산이 둘로 갈라지지 않는다
+  const admin = readProjectFile("app/admin/jungman/JungmanStandingsAdmin.tsx");
+  assert.match(admin, /import \{ setScoreOf.*\} from "@\/lib\/jungman-standings"/);
+  // JSON 왕복에서 세트가 증발하면 안 된다
+  assert.match(admin, /sets: parseSets\(m\?\.sets\)/);
+});
+
+// ── 경기 날짜 ────────────────────────────────────────────────────────────
+const withDate = (date) =>
+  parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "A", teams: ["가", "나", "다"] }],
+      matches: [{ group: "A", home: "가", away: "나", homeSets: 5, awaySets: 3, date }],
+    })
+  );
+
+test("YYYY-MM-DD 날짜는 그대로 실려 나간다", () => {
+  const data = withDate("2026-08-06");
+  assert.equal(data.matches[0].date, "2026-08-06");
+  // 세트와 함께 있어도 둘 다 산다 — 카드뉴스 덱이 둘 다 읽는다
+  const withBoth = parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "A", teams: ["가", "나", "다"] }],
+      matches: [
+        {
+          group: "A",
+          home: "가",
+          away: "나",
+          homeSets: 0,
+          awaySets: 0,
+          date: "2026-08-06",
+          sets: [set("라데온", "주하랑", "냥냥코기", "home")],
+        },
+      ],
+    })
+  );
+  assert.equal(withBoth.matches[0].date, "2026-08-06");
+  assert.equal(withBoth.matches[0].sets.length, 1);
+  assert.equal(withBoth.matches[0].homeSets, 1);
+});
+
+test("형식이 어긋난 날짜는 버리고 경기는 살린다", () => {
+  for (const bad of ["2026/08/06", "내일", "2026-8-6", "2026-08-06T09:00:00Z", 20260806, null, undefined, {}]) {
+    const data = withDate(bad);
+    assert.equal(data.matches.length, 1, `date=${JSON.stringify(bad)}`);
+    assert.equal(data.matches[0].date, undefined, `date=${JSON.stringify(bad)}`);
+    assert.equal(data.matches[0].homeSets, 5);
+  }
+});
+
+test("날짜는 순위 계산에 아무 영향을 주지 않는다", () => {
+  const body = (date) => ({
+    announced: true,
+    groups: [{ name: "A", teams: ["가", "나", "다"] }],
+    matches: [
+      { group: "A", home: "가", away: "나", homeSets: 5, awaySets: 3, ...(date ? { date } : {}) },
+      { group: "A", home: "나", away: "다", homeSets: 5, awaySets: 0, ...(date ? { date } : {}) },
+    ],
+  });
+  const shape = (data) =>
+    rowsOf(data, "A").map((row) => [row.team, row.wins, row.losses, row.setsWon, row.setDiff, row.remaining]);
+  assert.deepEqual(
+    shape(parseJungmanStandings(JSON.stringify(body("2026-08-06")))),
+    shape(parseJungmanStandings(JSON.stringify(body(null))))
+  );
+});
+
 process.exitCode = failed ? 1 : 0;

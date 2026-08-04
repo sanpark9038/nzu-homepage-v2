@@ -5,12 +5,26 @@
 
 export const JUNGMAN_STANDINGS_KEY = "jungman_standings";
 
+/** 한 세트. 종족은 저장하지 않는다 — 선수 이름에서 나중에 찾는다(raceOfName). */
+export type JungmanStandingsSet = {
+  map: string;
+  /** 홈팀 선수 이름 */
+  home: string;
+  /** 원정팀 선수 이름 */
+  away: string;
+  /** 아직 안 끝난 세트는 null */
+  winner: "home" | "away" | null;
+};
+
 export type JungmanStandingsMatch = {
   group: string;
   home: string;
   away: string;
   homeSets: number;
   awaySets: number;
+  sets?: JungmanStandingsSet[];
+  /** 경기일 YYYY-MM-DD (한국 날짜). 순위 계산에는 안 쓰고 나중에 최신순 정렬에만 쓴다. */
+  date?: string;
 };
 
 export type JungmanStandingsGroup = { name: string; teams: string[] };
@@ -40,6 +54,35 @@ function text(value: unknown): string {
 function count(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
+/**
+ * 세트 승자 수가 곧 경기 점수다. 관리자 화면과 파서가 같은 함수를 불러야 둘이 안 갈라진다.
+ * 승자가 null인 세트(진행 중)는 어느 쪽에도 안 센다.
+ */
+export function setScoreOf(sets: JungmanStandingsSet[]): { home: number; away: number } {
+  return {
+    home: sets.filter((s) => s.winner === "home").length,
+    away: sets.filter((s) => s.winner === "away").length,
+  };
+}
+
+/** 세트 배열을 방어적으로 읽는다. 살아남은 게 없으면 undefined — 빈 줄이 쌓이면 세트 수가 거짓이 된다. */
+function parseSets(value: unknown): JungmanStandingsSet[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const sets: JungmanStandingsSet[] = [];
+  for (const entry of value) {
+    const set = (entry || {}) as Record<string, unknown>;
+    const map = text(set.map);
+    const home = text(set.home);
+    const away = text(set.away);
+    const winner = set.winner === "home" || set.winner === "away" ? set.winner : null;
+    // 맵·선수·승자가 다 없는 빈 줄만 버린다. 승자가 찍혀 있으면 치른 세트다 —
+    // 관리자가 급할 때 이름 없이 승자만 찍으므로, 여기서 버리면 그 승수가 점수에서 빠진다.
+    if (!map && !home && !away && !winner) continue;
+    sets.push({ map, home, away, winner });
+  }
+  return sets.length ? sets : undefined;
 }
 
 /**
@@ -81,13 +124,34 @@ export function parseJungmanStandings(raw: string | null | undefined): JungmanSt
     const group = text(match.group);
     const home = text(match.home);
     const away = text(match.away);
-    const homeSets = count(match.homeSets);
-    const awaySets = count(match.awaySets);
     if (!group || !home || !away || home === away) continue;
-    if (homeSets === null || awaySets === null) continue;
+
+    // 세트가 있으면 저장된 점수는 무시한다 — 사람이 두 곳에 적으면 반드시 어긋난다
+    const sets = parseSets(match.sets);
+    let homeSets: number | null;
+    let awaySets: number | null;
+    if (sets) {
+      ({ home: homeSets, away: awaySets } = setScoreOf(sets));
+    } else {
+      homeSets = count(match.homeSets);
+      awaySets = count(match.awaySets);
+      if (homeSets === null || awaySets === null) continue;
+    }
+
+    // 형식이 어긋난 날짜는 없는 것으로 친다 — 정렬이 조용히 뒤엉키는 것보다 낫다
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(text(match.date)) ? text(match.date) : undefined;
+
     // 무승부가 없는 종목이다 — 세트가 같으면 아직 안 끝난 경기로 보고 집계에서 뺀다(0:0 예정 포함)
     if (homeSets === awaySets) continue;
-    matches.push({ group, home, away, homeSets, awaySets });
+    matches.push({
+      group,
+      home,
+      away,
+      homeSets,
+      awaySets,
+      ...(sets ? { sets } : {}),
+      ...(date ? { date } : {}),
+    });
   }
 
   return { announced: true, groups, matches };

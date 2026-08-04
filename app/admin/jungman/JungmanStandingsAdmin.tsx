@@ -1,18 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
+import { JUNGMAN_TEAMS } from "@/lib/jungman";
+import { setScoreOf, type JungmanStandingsMatch, type JungmanStandingsSet } from "@/lib/jungman-standings";
+import { raceOfName, type RaceLookupPlayer } from "@/lib/overlay-race";
+import { DEFAULT_MAPS } from "@/lib/overlay-types";
 
 /**
  * 조별 순위 입력.
  *
- * 3팀 조는 경기 조합이 3개로 정해져 있다. 그래서 JSON을 손으로 치는 대신
- * 조마다 경기 슬롯을 미리 깔아두고 점수만 채우게 한다.
+ * 3팀 조는 경기 조합이 3개로 정해져 있다. 조마다 경기 슬롯을 미리 깔아두고
+ * 세트 승자만 누르게 한다 — 점수를 넣는 길은 그것 하나뿐이다.
  * 원문 JSON 편집은 아래 토글로 그대로 남겨둔다 (스키마를 벗어나는 손질이 필요할 때가 있다).
  */
 
 type Group = { name: string; teams: string[] };
-type Match = { group: string; home: string; away: string; homeSets: number; awaySets: number };
+type MatchSet = JungmanStandingsSet;
+type Match = JungmanStandingsMatch;
 type Standings = { announced: boolean; groups: Group[]; matches: Match[] };
+type Player = RaceLookupPlayer & { university: string | null };
+
+const MAP_LIST_ID = "jungman-map-list";
+
+/** 팀 약칭 비교용 — `N.C.S`와 `NCS`가 같아야 한다 */
+const norm = (s: string) => s.toUpperCase().replace(/[^0-9A-Z가-힣]/g, "");
 
 // 2026 K-중만컵 확정 편성 (2026-08-03 조지명식)
 const PRESET_2026: Group[] = [
@@ -23,6 +36,18 @@ const PRESET_2026: Group[] = [
 ];
 
 const EMPTY: Standings = { announced: true, groups: [], matches: [] };
+
+/** JSON 왕복(직접 편집 토글)에서 세트가 증발하지 않게 그대로 통과시킨다. 엄격한 검사는 파서가 한다. */
+function parseSets(value: unknown): MatchSet[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const sets = value.map((s: Partial<MatchSet>) => ({
+    map: String(s?.map ?? ""),
+    home: String(s?.home ?? ""),
+    away: String(s?.away ?? ""),
+    winner: s?.winner === "home" ? ("home" as const) : s?.winner === "away" ? ("away" as const) : null,
+  }));
+  return sets.length ? sets : undefined;
+}
 
 function parse(raw: string): Standings {
   if (!raw.trim()) return EMPTY;
@@ -40,6 +65,8 @@ function parse(raw: string): Standings {
             away: String(m?.away ?? ""),
             homeSets: Number(m?.homeSets ?? 0),
             awaySets: Number(m?.awaySets ?? 0),
+            sets: parseSets(m?.sets),
+            date: typeof m?.date === "string" ? m.date : undefined,
           }))
         : [],
     };
@@ -58,45 +85,145 @@ function pairsOf(g: Group) {
 
 const keyOf = (group: string, home: string, away: string) => `${group}|${home}|${away}`;
 
+/** 홈/원정이 뒤집혀 저장돼 있어도 같은 경기로 본다 */
+const isPair = (m: Match, group: string, a: string, b: string) =>
+  m.group === group && ((m.home === a && m.away === b) || (m.home === b && m.away === a));
+
+/** 저장 방향이 화면과 반대일 때 세트도 같이 뒤집어야 왼쪽 칸이 계속 왼쪽 팀 선수다 */
+const flipSets = (sets?: MatchSet[]): MatchSet[] | undefined =>
+  sets?.map((s) => ({
+    map: s.map,
+    home: s.away,
+    away: s.home,
+    winner: s.winner === "home" ? "away" : s.winner === "away" ? "home" : null,
+  }));
+
+const EMPTY_SET: MatchSet = { map: "", home: "", away: "", winner: null };
+
+// 전 경기 9전 5선승
+const SETS_PER_MATCH = 9;
+
+/** 맵·선수·승자가 하나라도 있으면 실제로 쓰인 세트다. 저장 직전 걸러내기와 개수 세기에만 쓴다. */
+const isFilled = (s: MatchSet) => Boolean(s.map || s.home || s.away || s.winner);
+
+/**
+ * 이름이 선수 DB에 이어졌는지 보여준다 — 종족 글자가 뜨면 연결된 것.
+ * 선수 DB를 못 읽었으면 아무 판정도 하지 않는다(멀쩡한 이름에 경고가 붙으면 안 된다).
+ */
+function NameCheck({ players, name }: { players: Player[]; name: string }) {
+  const race = players.length && name.trim() ? raceOfName(players, name) : undefined;
+  if (race) return <RaceLetterBadge race={race} size="sm" />;
+  return (
+    <span className="w-6 shrink-0 text-center text-sm font-black text-amber-400">
+      {players.length && name.trim() ? <span title="명단에 없는 이름입니다">⚠</span> : null}
+    </span>
+  );
+}
+
 export default function JungmanStandingsAdmin({ initialValue }: { initialValue: string }) {
   const [data, setData] = useState<Standings>(() => parse(initialValue));
   const [raw, setRaw] = useState(initialValue);
   const [showRaw, setShowRaw] = useState(false);
+  // 경기당 세트가 9개까지 붙는다 — 기본은 접어둔다
+  const [openSets, setOpenSets] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // 대진별 점수를 빠르게 찾기 위한 색인. 홈/원정이 뒤집혀 저장돼 있어도 찾는다.
+  // 선수 DB — 이름 추천 목록과 종족 확인용. 못 읽으면 빈 배열로 남아 판정 자체를 안 한다.
+  const [playerDb, setPlayerDb] = useState<Player[]>([]);
+  useEffect(() => {
+    fetch("/api/players")
+      .then((r) => r.json())
+      .then((p) => {
+        if (p.ok)
+          setPlayerDb(
+            p.players.map((x: { name: string; nickname?: string | null; race: string; university?: string | null }) => ({
+              name: x.name,
+              nickname: x.nickname ?? null,
+              race: x.race,
+              university: x.university ?? null,
+            }))
+          );
+      })
+      .catch(() => {});
+  }, []);
+
+  // 팀 이름·약칭 → 그 팀 선수 이름 목록. DB의 university가 팀 약칭이라 aliases로 맞춘다.
+  const rosters = useMemo(() => {
+    const out = new Map<string, string[]>();
+    for (const team of JUNGMAN_TEAMS) {
+      const keys = [team.name, ...team.aliases].map(norm);
+      const roster = playerDb.filter((p) => p.university && keys.includes(norm(p.university))).map((p) => p.name);
+      for (const key of keys) out.set(key, roster);
+    }
+    return out;
+  }, [playerDb]);
+
+  // datalist는 팀마다 하나만 만든다 — 세트 줄마다 만들면 200개가 넘는다
+  const teamNames = useMemo(() => [...new Set(data.groups.flatMap((g) => g.teams))], [data.groups]);
+  const listIdOf = (team: string) => `jungman-roster-${teamNames.indexOf(team)}`;
+
+  // 대진별 점수·세트를 빠르게 찾기 위한 색인. 홈/원정이 뒤집혀 저장돼 있어도 찾는다.
   const scores = useMemo(() => {
-    const m = new Map<string, { home: number; away: number }>();
+    const m = new Map<string, { home: number; away: number; sets?: MatchSet[]; date?: string }>();
     data.matches.forEach((x) => {
-      m.set(keyOf(x.group, x.home, x.away), { home: x.homeSets, away: x.awaySets });
-      m.set(keyOf(x.group, x.away, x.home), { home: x.awaySets, away: x.homeSets });
+      // 채운 세트가 있으면 점수는 세트에서 계산한 값이 진짜다 (파서와 같은 함수)
+      const s = x.sets?.some(isFilled) ? setScoreOf(x.sets) : { home: x.homeSets, away: x.awaySets };
+      // 날짜는 방향과 무관하다 — 뒤집힌 색인에도 그대로 실어야 화면이 읽는다
+      m.set(keyOf(x.group, x.home, x.away), { ...s, sets: x.sets, date: x.date });
+      m.set(keyOf(x.group, x.away, x.home), { home: s.away, away: s.home, sets: flipSets(x.sets), date: x.date });
     });
     return m;
   }, [data.matches]);
 
-  function setScore(group: string, home: string, away: string, side: "home" | "away", value: string) {
-    const n = value === "" ? null : Math.max(0, Math.min(9, Number(value) || 0));
+  /** 세트 목록을 통째로 갈아끼운다. 점수는 늘 세트에서 다시 계산한다. */
+  function setSets(group: string, home: string, away: string, sets: MatchSet[]) {
     setData((prev) => {
-      const rest = prev.matches.filter(
-        (m) => !(m.group === group && ((m.home === home && m.away === away) || (m.home === away && m.away === home)))
-      );
-      const cur = scores.get(keyOf(group, home, away)) ?? { home: 0, away: 0 };
-      const next = { home: side === "home" ? n : cur.home, away: side === "away" ? n : cur.away };
-      // 양쪽이 다 비면 그 경기는 아예 지운다 = 아직 안 치른 경기
-      if (next.home === null && next.away === null) return { ...prev, matches: rest };
-      return {
-        ...prev,
-        matches: [
-          ...rest,
-          { group, home, away, homeSets: next.home ?? 0, awaySets: next.away ?? 0 },
-        ],
-      };
+      const prior = prev.matches.find((m) => isPair(m, group, home, away));
+      const rest = prev.matches.filter((m) => !isPair(m, group, home, away));
+      const score = setScoreOf(sets);
+      // 빈 줄만 남으면 sets를 떼고 계산된 점수만 남긴다 — 빈 줄 9개가 JSON에 들어가면 안 된다.
+      // 경기를 통째로 갈아끼우므로 기존 날짜는 손으로 챙겨 와야 한다.
+      const base: Match = { group, home, away, homeSets: score.home, awaySets: score.away, ...(prior?.date ? { date: prior.date } : {}) };
+      return { ...prev, matches: [...rest, sets.some(isFilled) ? { ...base, sets } : base] };
     });
   }
 
+  /** 날짜만 고친다 — 기존 경기를 그대로 두고 date만 얹어야 세트를 잃지 않는다 */
+  function setMatchDate(group: string, home: string, away: string, date: string) {
+    setData((prev) => {
+      const prior = prev.matches.find((m) => isPair(m, group, home, away));
+      const rest = prev.matches.filter((m) => !isPair(m, group, home, away));
+      // 저장 방향은 건드리지 않는다 — 뒤집혀 저장돼 있으면 그대로 둔다
+      const next: Match = { ...(prior ?? { group, home, away, homeSets: 0, awaySets: 0 }) };
+      if (date) next.date = date;
+      else delete next.date;
+      return { ...prev, matches: [...rest, next] };
+    });
+  }
+
+  /** 화면에 깔린 줄(빈 슬롯 포함)을 그대로 받아 한 칸만 고친다 */
+  function editSet(
+    group: string,
+    home: string,
+    away: string,
+    cur: MatchSet[],
+    index: number,
+    patch: Partial<MatchSet>
+  ) {
+    setSets(group, home, away, cur.map((s, i) => (i === index ? { ...s, ...patch } : s)));
+  }
+
   function toJSON(d: Standings) {
-    return JSON.stringify(d, null, 2);
+    // 저장 직전에 빈 줄을 턴다 — 화면에서 안 채운 슬롯이 JSON에 남으면 안 된다
+    const matches = d.matches
+      .map((m) => {
+        const sets = m.sets?.filter(isFilled);
+        return sets?.length ? { ...m, sets } : { ...m, sets: undefined };
+      })
+      // 세트도 점수도 없으면 통째로 뺀다 — 날짜만 찍고 만 경기가 JSON에 남으면 안 된다
+      .filter((m) => m.sets?.length || m.homeSets || m.awaySets);
+    return JSON.stringify({ ...d, matches }, null, 2);
   }
 
   async function save(payload: string) {
@@ -130,9 +257,10 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
   const played = data.matches.filter((m) => m.homeSets !== m.awaySets).length;
   const total = data.groups.reduce((a, g) => a + pairsOf(g).length, 0);
 
-  const NUM =
-    "h-11 w-14 rounded-lg border border-white/12 bg-background text-center text-lg font-black text-white " +
-    "focus:border-nzu-green focus:outline-none";
+  const NUM = "w-10 text-center text-2xl font-black tabular-nums text-white";
+  const TXT =
+    "h-10 w-28 rounded-lg border border-white/12 bg-background px-2 text-sm font-bold text-white " +
+    "placeholder:text-white/25 focus:border-nzu-green focus:outline-none";
 
   return (
     <section className="rounded-[2rem] border border-white/10 bg-card p-6">
@@ -143,8 +271,8 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
         </span>
       </div>
       <p className="mt-2 text-sm text-white/55">
-        점수만 채우면 됩니다. <b className="text-white/75">양쪽을 다 비우면</b> 아직 치르지 않은 경기(잔여)로 남습니다.
-        저장하면 /jungman에 그대로 반영됩니다.
+        세트마다 <b className="text-white/75">이긴 쪽을 누르면</b> 점수가 매겨집니다. 선수·맵은 몰라도 됩니다.
+        저장하면 /jungman에 반영됩니다.
       </p>
 
       {data.groups.length === 0 ? (
@@ -155,6 +283,22 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
           2026 K-중만컵 조 편성 채우기
         </button>
       ) : null}
+
+      {/* 맵 추천 목록. 목록에 없는 맵도 그냥 칠 수 있다 */}
+      <datalist id={MAP_LIST_ID}>
+        {DEFAULT_MAPS.map((m) => (
+          <option key={m} value={m} />
+        ))}
+      </datalist>
+
+      {/* 팀별 선수 추천 목록. 용병·신규가 있으니 목록 밖 이름도 그냥 칠 수 있다 */}
+      {teamNames.map((team) => (
+        <datalist key={team} id={listIdOf(team)}>
+          {(rosters.get(norm(team)) ?? []).map((n) => (
+            <option key={n} value={n} />
+          ))}
+        </datalist>
+      ))}
 
       <div className="mt-5 space-y-4">
         {data.groups.map((g) => (
@@ -167,44 +311,119 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
               {pairsOf(g).map(([home, away]) => {
                 const s = scores.get(keyOf(g.name, home, away));
                 const done = s && s.home !== s.away;
+                const mkey = keyOf(g.name, home, away);
+                const open = openSets[mkey] ?? false;
+                // 언제나 최소 9줄. 저장된 게 더 많으면(재경기 등) 그만큼 다 보여준다.
+                const stored = s?.sets ?? [];
+                const rows = Math.max(SETS_PER_MATCH, stored.length);
+                const sets = Array.from({ length: rows }, (_, i) => stored[i] ?? { ...EMPTY_SET });
+                const filled = sets.filter(isFilled).length;
                 return (
-                  <div key={`${home}-${away}`} className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`min-w-[7rem] text-right text-base font-black ${
-                        done && s.home > s.away ? "text-white" : "text-white/45"
-                      }`}
+                  <div key={`${home}-${away}`} className="rounded-xl border border-white/5 px-2 py-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`min-w-[7rem] text-right text-base font-black ${
+                          done && s.home > s.away ? "text-white" : "text-white/45"
+                        }`}
+                      >
+                        {home}
+                      </span>
+                      <span className={NUM} aria-label={`${home} 세트 수`}>
+                        {s?.home ?? 0}
+                      </span>
+                      <span className="text-white/30">:</span>
+                      <span className={NUM} aria-label={`${away} 세트 수`}>
+                        {s?.away ?? 0}
+                      </span>
+                      <span
+                        className={`min-w-[7rem] text-base font-black ${
+                          done && s.away > s.home ? "text-white" : "text-white/45"
+                        }`}
+                      >
+                        {away}
+                      </span>
+                      {(s?.home ?? 0) + (s?.away ?? 0) === 0 ? (
+                        <span className="text-xs font-bold text-white/35">미진행</span>
+                      ) : null}
+                      <input
+                        type="date"
+                        value={s?.date ?? ""}
+                        onChange={(e) => setMatchDate(g.name, home, away, e.target.value)}
+                        className="h-10 rounded-lg border border-white/12 bg-background px-2 text-sm font-bold text-white/70 focus:border-nzu-green focus:outline-none"
+                        aria-label={`${home} vs ${away} 경기 날짜`}
+                      />
+
+                    </div>
+
+                    <button
+                      onClick={() => setOpenSets((prev) => ({ ...prev, [mkey]: !open }))}
+                      className="mt-1 inline-flex min-h-9 items-center gap-1 text-xs font-black text-white/50 hover:text-white"
                     >
-                      {home}
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={9}
-                      inputMode="numeric"
-                      value={s?.home ?? ""}
-                      onChange={(e) => setScore(g.name, home, away, "home", e.target.value)}
-                      className={NUM}
-                      aria-label={`${home} 세트 수`}
-                    />
-                    <span className="text-white/30">:</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={9}
-                      inputMode="numeric"
-                      value={s?.away ?? ""}
-                      onChange={(e) => setScore(g.name, home, away, "away", e.target.value)}
-                      className={NUM}
-                      aria-label={`${away} 세트 수`}
-                    />
-                    <span
-                      className={`min-w-[7rem] text-base font-black ${
-                        done && s.away > s.home ? "text-white" : "text-white/45"
-                      }`}
-                    >
-                      {away}
-                    </span>
-                    {done ? null : <span className="text-xs font-bold text-white/35">미진행</span>}
+                      <span>{open ? "▾" : "▸"}</span>
+                      {`세트 ${filled}/${rows}`}
+                    </button>
+
+                    {open ? (
+                      <div className="mt-1 space-y-1 border-t border-white/5 pt-2">
+                        <div className="flex flex-wrap items-center gap-2 text-[0.7rem] font-black text-white/35">
+                          <span className="w-5" />
+                          <span className="w-28">{home}</span>
+                          <span className="w-6" />
+                          <span className="w-28">맵</span>
+                          <span className="w-28">{away}</span>
+                        </div>
+                        {sets.map((set, i) => (
+                          // 세트는 순서가 곧 신원이라 index를 key로 쓴다 (정렬 기능 없음)
+                          <div key={i} className="flex flex-wrap items-center gap-2">
+                            <span className="w-5 text-right text-xs font-bold text-white/30">{i + 1}</span>
+                            <input
+                              list={listIdOf(home)}
+                              value={set.home}
+                              onChange={(e) => editSet(g.name, home, away, sets, i, { home: e.target.value })}
+                              placeholder="선수"
+                              className={TXT}
+                              aria-label={`${i + 1}세트 ${home} 선수`}
+                            />
+                            <NameCheck players={playerDb} name={set.home} />
+                            <input
+                              list={MAP_LIST_ID}
+                              value={set.map}
+                              onChange={(e) => editSet(g.name, home, away, sets, i, { map: e.target.value })}
+                              placeholder="맵"
+                              className={TXT}
+                              aria-label={`${i + 1}세트 맵`}
+                            />
+                            <input
+                              list={listIdOf(away)}
+                              value={set.away}
+                              onChange={(e) => editSet(g.name, home, away, sets, i, { away: e.target.value })}
+                              placeholder="선수"
+                              className={TXT}
+                              aria-label={`${i + 1}세트 ${away} 선수`}
+                            />
+                            <NameCheck players={playerDb} name={set.away} />
+                            {(["home", "away"] as const).map((side) => (
+                              <button
+                                key={side}
+                                // 같은 버튼을 다시 누르면 해제 = 진행 중
+                                onClick={() =>
+                                  editSet(g.name, home, away, sets, i, {
+                                    winner: set.winner === side ? null : side,
+                                  })
+                                }
+                                className={`h-10 rounded-lg px-3 text-xs font-black ${
+                                  set.winner === side
+                                    ? "bg-nzu-green text-black"
+                                    : "border border-white/15 text-white/50"
+                                }`}
+                              >
+                                {side === "home" ? "좌승" : "우승"}
+                              </button>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
