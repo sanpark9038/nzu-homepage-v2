@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 --webpack",
+    "dev:kill": "powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort 3000 -State Listen -EA SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }; 'port 3000 free'\"",
     "prebuild": "node scripts/tools/sync-warehouse-aggregates.js --download-if-configured",
     "build": "next build",
     "start": "next start",

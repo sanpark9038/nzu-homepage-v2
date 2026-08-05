@@ -20,7 +20,7 @@ function buildCurrentPlayerPath(id: string) {
 export default async function PlayerProfileRedirectPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   noStore();
   const { id } = await params;
