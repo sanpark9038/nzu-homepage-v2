@@ -25,6 +25,8 @@ export type JungmanStandingsMatch = {
   sets?: JungmanStandingsSet[];
   /** 경기일 YYYY-MM-DD (한국 날짜). 순위 계산에는 안 쓰고 나중에 최신순 정렬에만 쓴다. */
   date?: string;
+  /** 세트 수가 갈렸으면 끝난 경기. 무승부가 없는 종목이라 동점 = 아직 안 끝남(0:0 예정 포함) */
+  decided: boolean;
 };
 
 export type JungmanStandingsGroup = { name: string; teams: string[] };
@@ -141,14 +143,15 @@ export function parseJungmanStandings(raw: string | null | undefined): JungmanSt
     // 형식이 어긋난 날짜는 없는 것으로 친다 — 정렬이 조용히 뒤엉키는 것보다 낫다
     const date = /^\d{4}-\d{2}-\d{2}$/.test(text(match.date)) ? text(match.date) : undefined;
 
-    // 무승부가 없는 종목이다 — 세트가 같으면 아직 안 끝난 경기로 보고 집계에서 뺀다(0:0 예정 포함)
-    if (homeSets === awaySets) continue;
+    // 안 끝난 경기도 그대로 내보낸다 — 예정 일정을 읽으려면 여기서 버리면 안 된다.
+    // 거르는 일은 쓰는 쪽(집계·결과 목록)이 decided로 한다.
     matches.push({
       group,
       home,
       away,
       homeSets,
       awaySets,
+      decided: homeSets !== awaySets,
       ...(sets ? { sets } : {}),
       ...(date ? { date } : {}),
     });
@@ -158,15 +161,24 @@ export function parseJungmanStandings(raw: string | null | undefined): JungmanSt
 }
 
 /**
- * 최신 경기가 위. 날짜 없는 경기는 맨 뒤로.
+ * 경기 결과 목록 — 끝난 경기만, 최신 경기가 위. 날짜 없는 경기는 맨 뒤로.
  * 안정 정렬(ES2019)이라 같은 날짜끼리·날짜 없는 것끼리는 입력 순서가 그대로 남는다.
  */
 export function sortJungmanMatches(matches: JungmanStandingsMatch[]): JungmanStandingsMatch[] {
   // 원본을 뒤집지 않는다 — 순위 계산이 같은 배열을 본다
-  return matches.slice().sort((a, b) => {
-    if (!a.date || !b.date) return a.date ? -1 : b.date ? 1 : 0;
-    return b.date.localeCompare(a.date);
-  });
+  return matches
+    .filter((match) => match.decided)
+    .sort((a, b) => {
+      if (!a.date || !b.date) return a.date ? -1 : b.date ? 1 : 0;
+      return b.date.localeCompare(a.date);
+    });
+}
+
+/** 아직 안 끝났고 날짜가 있는 경기를 가까운 날짜부터. 날짜 없는 예정 경기는 뺀다(언제인지 모르니 못 보여준다) */
+export function upcomingJungmanMatches(matches: JungmanStandingsMatch[]): JungmanStandingsMatch[] {
+  return matches
+    .filter((match) => !match.decided && match.date)
+    .sort((a, b) => (a.date as string).localeCompare(b.date as string));
 }
 
 function applyResult(row: JungmanStandingsRow, won: number, lost: number) {
@@ -245,6 +257,8 @@ export function buildJungmanGroupTables(standings: JungmanStandings): JungmanGro
 
     for (const match of standings.matches) {
       if (match.group !== group.name) continue;
+      // 안 끝난 경기(예정 포함)는 승패에도 잔여 감소에도 들어가면 안 된다
+      if (!match.decided) continue;
       const home = rows.get(match.home);
       const away = rows.get(match.away);
       // 조에 없는 팀명(오타)은 통째로 버린다 — 한쪽만 반영하면 승패 합이 어긋난다

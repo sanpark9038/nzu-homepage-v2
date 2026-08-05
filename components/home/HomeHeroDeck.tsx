@@ -25,6 +25,8 @@ import {
   JUNGMAN_FINAL_PLACE,
   JUNGMAN_FORMAT_LINE,
   JUNGMAN_GROUP_COLORS,
+  JUNGMAN_MATCH_TIME,
+  JUNGMAN_MILESTONES,
   JUNGMAN_PRIZE_DETAIL,
   JUNGMAN_PRIZE_TOTAL,
   JUNGMAN_TEAMS,
@@ -72,6 +74,39 @@ function useMedia(query: string): boolean {
     () => window.matchMedia(query).matches,
     () => false
   );
+}
+
+// 날짜 조각 조립 — /jungman의 일정·경기 결과와 같은 규칙. 언젠가 lib으로 합칠 자리다.
+const DECK_DATE = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
+  weekday: "short",
+});
+
+/** "2026-08-08" → "8/8(토)" */
+function formatDeckDate(date: string): string {
+  const parts = DECK_DATE.formatToParts(new Date(`${date}T00:00:00+09:00`));
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("month")}/${part("day")}(${part("weekday")})`;
+}
+
+/** 한국 날짜 기준 남은 날. 브라우저 시계가 어느 지역이든 같은 숫자가 나온다 */
+function daysToKST(date: string): number {
+  const todayKST = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return Math.round((Date.parse(date) - Date.parse(todayKST)) / 86_400_000);
+}
+
+/** 지난 날짜는 D-day를 안 그린다 — 결과가 안 들어온 경기에 거짓 숫자를 붙이지 않는다 */
+function ddayLabel(date: string): string {
+  const dday = daysToKST(date);
+  if (dday < 0) return "";
+  return dday === 0 ? "오늘" : dday === 1 ? "내일" : `D-${dday}`;
 }
 
 /**
@@ -158,17 +193,41 @@ const DECK_STYLE = `
 
   .hd-cap{margin-top:clamp(6px,1vh,10px);font-size:clamp(11px,1.05vw,15px);color:#9FBCAC;font-weight:700;}
 
-  /* 그랜드 파이널 블록 */
-  .hd-gf{margin-top:clamp(12px,2.2vh,24px);display:flex;align-items:center;gap:clamp(10px,1.1vw,18px);
-    padding:clamp(10px,1.5vh,18px) clamp(14px,1.3vw,24px);border-radius:18px;
+  /* 다가오는 경기 — 조 범례와 같은 감각. 배경은 불투명해야 지도 선이 글자를 뚫지 않는다 */
+  .hd-up{margin-top:clamp(8px,1.4vh,16px);display:flex;flex-direction:column;gap:clamp(5px,.7vh,9px);}
+  .hd-upt{font-size:clamp(10px,.85vw,12px);letter-spacing:.1em;font-weight:900;color:#7a8299;}
+  .hd-upr{display:flex;align-items:center;gap:clamp(7px,.8vw,13px);
+    padding:clamp(6px,.85vh,10px) clamp(11px,1vw,18px);border-radius:14px;
+    background:rgba(9,17,14,.9);border:1px solid rgba(255,255,255,.09);
+    box-shadow:0 12px 32px rgba(0,0,0,.4);}
+  .hd-upd{font-size:clamp(11px,1.05vw,16px);font-weight:900;color:#d4a94a;
+    font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:3.2em;}
+  .hd-upw{font-size:clamp(10.5px,.95vw,14px);font-weight:700;color:#9FBCAC;
+    font-variant-numeric:tabular-nums;flex:0 0 auto;}
+  .hd-upm{display:flex;align-items:center;gap:clamp(4px,.45vw,8px);min-width:0;}
+  .hd-uplogo{width:clamp(18px,1.6vw,26px);height:clamp(18px,1.6vw,26px);object-fit:contain;flex:0 0 auto;}
+  .hd-upn{font-size:clamp(11px,1vw,15px);font-weight:800;color:#fff;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hd-upvs{font-size:clamp(9px,.8vw,12px);font-weight:900;color:#7a8299;flex:0 0 auto;}
+
+  /* 라운드 일정 — 결승만 금색으로 남기고 8강·4강은 담백하게 */
+  .hd-ms{margin-top:clamp(10px,1.8vh,20px);display:flex;flex-direction:column;gap:clamp(6px,.9vh,11px);}
+  .hd-msr{display:flex;align-items:center;gap:clamp(8px,1vw,16px);
+    padding:clamp(6px,.9vh,11px) clamp(12px,1.2vw,22px);border-radius:14px;
+    background:rgba(9,17,14,.9);border:1px solid rgba(255,255,255,.09);}
+  .hd-msd{font-size:clamp(13px,1.3vw,20px);font-weight:900;line-height:1;color:#9FBCAC;
+    font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:3.6em;}
+  .hd-msl{font-size:clamp(13px,1.25vw,19px);font-weight:900;color:#fff;flex:0 0 auto;min-width:2.4em;}
+  .hd-msn{font-size:clamp(10.5px,1vw,15px);color:#9FBCAC;font-weight:600;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* 결승 — 예전 그랜드 파이널 블록의 금색 강조를 그대로 이어받는다 */
+  .hd-msr.is-final{padding:clamp(9px,1.4vh,17px) clamp(14px,1.3vw,24px);border-radius:18px;
     background:linear-gradient(120deg,rgba(201,168,76,.16),rgba(201,168,76,.04));
-    border:1px solid rgba(201,168,76,.42);box-shadow:0 16px 40px rgba(0,0,0,.42);}
-  .hd-gf-d{font-size:clamp(30px,3.6vw,58px);font-weight:900;line-height:1;color:#d4a94a;
-    font-variant-numeric:tabular-nums;}
-  .hd-gf-t{font-size:clamp(14px,1.35vw,21px);color:#fff;font-weight:900;}
-  .hd-gf-chip{font-size:clamp(9px,.8vw,11px);font-weight:900;letter-spacing:.1em;
+    border-color:rgba(201,168,76,.42);box-shadow:0 16px 40px rgba(0,0,0,.42);}
+  .hd-msr.is-final .hd-msd{font-size:clamp(26px,3.2vw,50px);color:#d4a94a;}
+  .hd-msr.is-final .hd-msl{font-size:clamp(14px,1.35vw,21px);}
+  .hd-gf-chip{font-size:clamp(9px,.8vw,11px);font-weight:900;letter-spacing:.1em;flex:0 0 auto;
     background:#d4a94a;color:#04120c;border-radius:999px;padding:.25em .7em;}
-  .hd-gf-p{font-size:clamp(11px,1.05vw,15px);color:#9FBCAC;font-weight:600;}
   .hd-note{margin-top:clamp(6px,1vh,10px);font-size:clamp(10.5px,.95vw,13px);color:#7a8299;}
 
   /* 마커는 지도를 다시 그리지 않고 켜지고 꺼지기만 한다 */
@@ -281,6 +340,8 @@ const DECK_STYLE = `
     .hd-stack{width:100%;}
     .hd-name,.hd-badge-c,.hd-badge-t{display:none;}
     .hd-prize{margin-left:0;}
+    /* 세로가 짧은 화면에서 라운드 일정 3줄은 커버를 넘긴다 — 결승 한 줄만 남긴다 */
+    .hd-msr:not(.is-final){display:none;}
     /* 3단이 성립 안 하는 폭이다 — 조별 순위만 남긴다 */
     .stand{width:100%;}
     .stpanel{display:none;}
@@ -310,9 +371,11 @@ const DECK_STYLE = `
     .tnum{font-size:12px;}
     .tlogo{width:17px;height:17px;}
   }
-  /* 100svh 안에 못 들어가는 화면에서는 곁가지 두 줄을 접는다 */
+  /* 커버 높이에 못 들어가는 화면에서는 곁가지를 접는다 */
   @media (max-width:639px),(max-height:620px){
     .hd-kicker,.hd-cap2{display:none;}
+    /* 다가오는 경기도 한 줄만 — 두 블록이 같이 늘어나면 커버가 잘린다 */
+    .hd-up .hd-upr:nth-of-type(2){display:none;}
   }
 
   @media (prefers-reduced-motion:reduce){
@@ -328,6 +391,7 @@ export default function HomeHeroDeck({
   groups = [],
   tables = [],
   matches = [],
+  upcoming = [],
   playerRanks = [],
 }: {
   titleLines: string[];
@@ -337,9 +401,10 @@ export default function HomeHeroDeck({
   tables?: JungmanGroupTable[];
   /** 최신순으로 이미 정렬된 경기. 비면 곁 패널 두 칸을 안 만든다 */
   matches?: JungmanStandingsMatch[];
+  /** 가까운 날짜부터 정렬된 예정 경기. 비면 커버의 "다가오는 경기" 블록을 안 만든다 */
+  upcoming?: JungmanStandingsMatch[];
   playerRanks?: JungmanPlayerRank[];
 }) {
-  const dday = jungmanDaysToFinal();
   const prize = splitPrizeDetail(JUNGMAN_PRIZE_DETAIL);
   // 경기가 0건이면 곁 패널은 빈 상자다 — 만들지 않고 표를 전체 폭으로 편다
   const hasMatches = matches.length > 0;
@@ -430,6 +495,41 @@ export default function HomeHeroDeck({
         }),
       })),
     [groups]
+  );
+
+  // 커버는 코앞의 두 경기만 말한다 — 전체 일정은 /jungman이 그린다
+  const nextMatches = useMemo(
+    () =>
+      upcoming.slice(0, 2).map((match, mi) => {
+        const home = jungmanTeamByName(match.home);
+        const away = jungmanTeamByName(match.away);
+        return {
+          key: `${match.date ?? ""}-${match.home}-${match.away}`,
+          // D-day는 맨 앞 경기에만 — 두 줄 다 붙이면 어느 쪽이 코앞인지 안 보인다
+          dday: mi === 0 && match.date ? ddayLabel(match.date) : "",
+          when: match.date ? `${formatDeckDate(match.date)} ${JUNGMAN_MATCH_TIME}` : JUNGMAN_MATCH_TIME,
+          home: match.home,
+          away: match.away,
+          homeSrc: home ? jungmanLogoPath(home.code) : null,
+          awaySrc: away ? jungmanLogoPath(away.code) : null,
+        };
+      }),
+    [upcoming]
+  );
+
+  // 지난 라운드는 뺀다. 결승 D-day만 lib 함수를 그대로 써서 /jungman 커버와 숫자를 맞춘다
+  const milestones = useMemo(
+    () =>
+      JUNGMAN_MILESTONES.map((milestone) => {
+        const offline = "offline" in milestone && milestone.offline;
+        return {
+          label: milestone.label,
+          note: offline ? JUNGMAN_FINAL_PLACE : milestone.note,
+          offline,
+          dday: offline ? jungmanDaysToFinal() : daysToKST(milestone.date),
+        };
+      }).filter((milestone) => milestone.dday >= 0),
+    []
   );
 
   const pin = (gi: number) => {
@@ -609,25 +709,55 @@ export default function HomeHeroDeck({
                       </div>
                     ) : null}
 
+                    {/* 예정 경기가 없으면 블록을 통째로 안 그린다 — 빈 상자를 자리만 잡아두지 않는다 */}
+                    {nextMatches.length ? (
+                      <div className="hd-up">
+                        <p className="hd-upt">다가오는 경기</p>
+                        {nextMatches.map((match) => (
+                          <div key={match.key} className="hd-upr">
+                            <span suppressHydrationWarning className="hd-upd">
+                              {match.dday}
+                            </span>
+                            <span className="hd-upw">{match.when}</span>
+                            {/* 좌우는 홈·원정 자리로 고정한다 */}
+                            <span className="hd-upm">
+                              {match.homeSrc ? (
+                                <Image src={match.homeSrc} alt="" width={26} height={26} className="hd-uplogo" />
+                              ) : null}
+                              <span className="hd-upn">{match.home}</span>
+                              <span className="hd-upvs">vs</span>
+                              <span className="hd-upn">{match.away}</span>
+                              {match.awaySrc ? (
+                                <Image src={match.awaySrc} alt="" width={26} height={26} className="hd-uplogo" />
+                              ) : null}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
                     <p className="hd-cap">{JUNGMAN_FORMAT_LINE}</p>
                     <p className="hd-cap hd-cap2">8강은 조 1위 ↔ 2위가 붙도록 추첨 후 싱글 토너먼트</p>
 
-                    {/* 결승이 지나면 D-day는 의미가 없다 — 그냥 안 그린다.
-                        날짜 계산은 서버 렌더 시각 기준이라 자정을 걸치면 하이드레이션 값이 다를 수 있다 */}
-                    <div className="hd-gf">
-                      {dday >= 0 ? (
-                        <span suppressHydrationWarning className="hd-gf-d">
-                          {dday > 0 ? `D-${dday}` : "D-DAY"}
-                        </span>
-                      ) : null}
-                      <div>
-                        <p className="flex items-center gap-2">
-                          <span className="hd-gf-t">그랜드 파이널</span>
-                          <span className="hd-gf-chip">오프라인</span>
-                        </p>
-                        <p className="hd-gf-p">{JUNGMAN_FINAL_PLACE}</p>
+                    {/* 지난 라운드가 없으면(대회 종료) 블록도 사라진다.
+                        날짜 계산은 렌더 시각 기준이라 자정을 걸치면 하이드레이션 값이 다를 수 있다 */}
+                    {milestones.length ? (
+                      <div className="hd-ms">
+                        {milestones.map((milestone) => (
+                          <div
+                            key={milestone.label}
+                            className={`hd-msr${milestone.offline ? " is-final" : ""}`}
+                          >
+                            <span suppressHydrationWarning className="hd-msd">
+                              {milestone.dday > 0 ? `D-${milestone.dday}` : "D-DAY"}
+                            </span>
+                            <span className="hd-msl">{milestone.label}</span>
+                            <span className="hd-msn">{milestone.note}</span>
+                            {milestone.offline ? <span className="hd-gf-chip">오프라인</span> : null}
+                          </div>
+                        ))}
                       </div>
-                    </div>
+                    ) : null}
 
                     <p className="hd-note">{JUNGMAN_FINAL_NOTE}</p>
                   </div>

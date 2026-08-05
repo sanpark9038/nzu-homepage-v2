@@ -78,6 +78,8 @@ test("덱 모드에서만 조별 순위를 읽고, 실패는 홈을 죽이지 �
   assert.match(page, /tables=\{groupTables\}/);
   assert.match(page, /matches=\{sortJungmanMatches\(jungmanStandings\?\.matches \?\? \[\]\)\}/);
   assert.match(page, /playerRanks=\{buildJungmanPlayerRanks\(jungmanStandings\?\.matches \?\? \[\]\)\}/);
+  // 예정 경기도 데이터로 넘긴다 — 커버가 "다가오는 경기"를 그린다
+  assert.match(page, /upcoming=\{upcomingJungmanMatches\(jungmanStandings\?\.matches \?\? \[\]\)\}/);
   // /jungman 순위표를 홈이 끌어다 쓰면 스크롤 페이지용 크기가 그대로 따라온다
   assert.doesNotMatch(page, /<JungmanGroupTables|jungman\/JungmanGroupTables/);
 });
@@ -130,6 +132,27 @@ test("커버 덱은 넘어가는 슬라이드 덱이고 지도 위에 blur를 �
   assert.match(deck, /\.standbody\.is-solo\{grid-template-columns:minmax\(0,1fr\)/);
   // 좁은 화면에서는 조별 순위만 남는다
   assert.match(deck, /\.stpanel\{display:none;\}/);
+});
+
+test("커버가 다가오는 경기와 라운드 일정을 그린다", () => {
+  const deck = readProjectFile("components/home/HomeHeroDeck.tsx");
+  // 예정 경기는 덱이 계산하지 않는다 — 데이터로 받는다
+  assert.match(deck, /upcoming\?: JungmanStandingsMatch\[\]/);
+  // 커버는 코앞 두 경기만 — 전체 일정은 /jungman이 그린다
+  assert.match(deck, /upcoming\.slice\(0, 2\)/);
+  // 예정 경기가 0건이면 블록을 통째로 안 그린다
+  assert.match(deck, /nextMatches\.length \?/);
+  // 라운드 일정 문구·날짜는 lib 상수에서만 온다
+  assert.match(deck, /JUNGMAN_MILESTONES/);
+  assert.match(deck, /JUNGMAN_MATCH_TIME/);
+  // 결승 D-day는 /jungman 커버와 같은 함수를 쓴다 — 두 화면 숫자가 갈라지면 안 된다
+  assert.match(deck, /offline \? jungmanDaysToFinal\(\) : daysToKST/);
+  // 지난 라운드는 안 그린다
+  assert.match(deck, /filter\(\(milestone\) => milestone\.dday >= 0\)/);
+  // 좁은 화면에서는 결승 한 줄만 남긴다
+  assert.match(deck, /\.hd-msr:not\(\.is-final\)\{display:none;\}/);
+  // 덱은 자기 높이를 만들지 않는다 — 높이는 app/page.tsx의 히어로 섹션이 정한다
+  assert.doesNotMatch(deck, /100vh|100svh|h-screen/);
 });
 
 test("커버 문구는 /jungman과 홈이 같은 상수를 쓴다", () => {

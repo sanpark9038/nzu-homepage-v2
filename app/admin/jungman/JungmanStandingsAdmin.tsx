@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
-import { JUNGMAN_TEAMS } from "@/lib/jungman";
+import { JUNGMAN_MATCH_TIME, JUNGMAN_TEAMS } from "@/lib/jungman";
 import { setScoreOf, type JungmanStandingsMatch, type JungmanStandingsSet } from "@/lib/jungman-standings";
 import { raceOfName, type RaceLookupPlayer } from "@/lib/overlay-race";
 import { DEFAULT_MAPS } from "@/lib/overlay-types";
@@ -18,7 +18,8 @@ import { DEFAULT_MAPS } from "@/lib/overlay-types";
 
 type Group = { name: string; teams: string[] };
 type MatchSet = JungmanStandingsSet;
-type Match = JungmanStandingsMatch;
+/** decided는 파서가 점수에서 계산하는 값이다 — 저장 JSON에 적으면 점수와 어긋날 수 있다 */
+type Match = Omit<JungmanStandingsMatch, "decided">;
 type Standings = { announced: boolean; groups: Group[]; matches: Match[] };
 type Player = RaceLookupPlayer & { university: string | null };
 
@@ -34,6 +35,37 @@ const PRESET_2026: Group[] = [
   { name: "C조", teams: ["케이대", "와플대", "DM"] },
   { name: "D조", teams: ["수술대", "신세계", "흑카데미"] },
 ];
+
+// 2026 K-중만컵 조별리그 공식 일정 (전 경기 19:00)
+const SCHEDULE_2026: { date: string; group: string; home: string; away: string }[] = [
+  { date: "2026-08-08", group: "A조", home: "캄몬스타즈", away: "엠비대" },
+  { date: "2026-08-09", group: "C조", home: "와플대", away: "DM" },
+  { date: "2026-08-13", group: "D조", home: "수술대", away: "신세계" },
+  { date: "2026-08-14", group: "B조", home: "뉴캣슬", away: "BGM" },
+  { date: "2026-08-15", group: "C조", home: "케이대", away: "와플대" },
+  { date: "2026-08-16", group: "A조", home: "캄몬스타즈", away: "HM" },
+  { date: "2026-08-20", group: "D조", home: "수술대", away: "흑카데미" },
+  { date: "2026-08-21", group: "B조", home: "뉴캣슬", away: "JSA" },
+  { date: "2026-08-22", group: "C조", home: "케이대", away: "DM" },
+  { date: "2026-08-23", group: "A조", home: "HM", away: "엠비대" },
+  { date: "2026-08-27", group: "D조", home: "신세계", away: "흑카데미" },
+  { date: "2026-08-28", group: "B조", home: "BGM", away: "JSA" },
+];
+
+// ko-KR 기본 조립은 "8월 8일 (토)"라 조각으로 다시 짠다
+const DATE_PARTS = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
+  weekday: "short",
+});
+
+/** "8/8(토)" — 정오 기준으로 읽어 시간대 때문에 하루 밀리는 일을 막는다 */
+function dayLabel(date: string) {
+  const parts = DATE_PARTS.formatToParts(new Date(`${date}T12:00:00+09:00`));
+  const of = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${of("month")}/${of("day")}(${of("weekday")})`;
+}
 
 const EMPTY: Standings = { announced: true, groups: [], matches: [] };
 
@@ -105,6 +137,12 @@ const SETS_PER_MATCH = 9;
 
 /** 맵·선수·승자가 하나라도 있으면 실제로 쓰인 세트다. 저장 직전 걸러내기와 개수 세기에만 쓴다. */
 const isFilled = (s: MatchSet) => Boolean(s.map || s.home || s.away || s.winner);
+
+/**
+ * 버릴 경기 = 날짜도 없고 · 채운 세트도 없고 · 점수도 0:0.
+ * 날짜만 찍은 예정 경기는 살아남아야 한다. 기준이 흩어지면 또 어긋나므로 이 한 곳만 본다.
+ */
+const isBlank = (m: Match) => !m.date && !m.sets?.some(isFilled) && !m.homeSets && !m.awaySets;
 
 /**
  * 이름이 선수 DB에 이어졌는지 보여준다 — 종족 글자가 뜨면 연결된 것.
@@ -185,7 +223,8 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
       // 빈 줄만 남으면 sets를 떼고 계산된 점수만 남긴다 — 빈 줄 9개가 JSON에 들어가면 안 된다.
       // 경기를 통째로 갈아끼우므로 기존 날짜는 손으로 챙겨 와야 한다.
       const base: Match = { group, home, away, homeSets: score.home, awaySets: score.away, ...(prior?.date ? { date: prior.date } : {}) };
-      return { ...prev, matches: [...rest, sets.some(isFilled) ? { ...base, sets } : base] };
+      const next: Match = sets.some(isFilled) ? { ...base, sets } : base;
+      return { ...prev, matches: isBlank(next) ? rest : [...rest, next] };
     });
   }
 
@@ -198,8 +237,23 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
       const next: Match = { ...(prior ?? { group, home, away, homeSets: 0, awaySets: 0 }) };
       if (date) next.date = date;
       else delete next.date;
-      return { ...prev, matches: [...rest, next] };
+      return { ...prev, matches: isBlank(next) ? rest : [...rest, next] };
     });
+  }
+
+  /** 공식 일정을 날짜 칸에만 얹는다. 이미 넣은 점수·세트는 건드리지 않는다. */
+  function fillSchedule() {
+    setData((prev) => {
+      const matches = prev.matches.slice();
+      for (const s of SCHEDULE_2026) {
+        // 홈/원정이 반대로 저장돼 있어도 같은 경기다 — 새로 만들면 입력한 결과가 유령이 된다
+        const at = matches.findIndex((m) => isPair(m, s.group, s.home, s.away));
+        if (at >= 0) matches[at] = { ...matches[at], date: s.date };
+        else matches.push({ group: s.group, home: s.home, away: s.away, homeSets: 0, awaySets: 0, date: s.date });
+      }
+      return { ...prev, matches };
+    });
+    setMessage(`${SCHEDULE_2026.length}경기 일정을 채웠습니다. 저장 버튼을 눌러야 반영됩니다.`);
   }
 
   /** 화면에 깔린 줄(빈 슬롯 포함)을 그대로 받아 한 칸만 고친다 */
@@ -221,8 +275,7 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
         const sets = m.sets?.filter(isFilled);
         return sets?.length ? { ...m, sets } : { ...m, sets: undefined };
       })
-      // 세트도 점수도 없으면 통째로 뺀다 — 날짜만 찍고 만 경기가 JSON에 남으면 안 된다
-      .filter((m) => m.sets?.length || m.homeSets || m.awaySets);
+      .filter((m) => !isBlank(m));
     return JSON.stringify({ ...d, matches }, null, 2);
   }
 
@@ -275,14 +328,22 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
         저장하면 /jungman에 반영됩니다.
       </p>
 
-      {data.groups.length === 0 ? (
+      <div className="mt-4 flex flex-wrap gap-3">
+        {data.groups.length === 0 ? (
+          <button
+            onClick={() => setData({ announced: true, groups: PRESET_2026, matches: [] })}
+            className="inline-flex min-h-11 items-center rounded-xl bg-nzu-green px-4 text-sm font-black text-black"
+          >
+            2026 K-중만컵 조 편성 채우기
+          </button>
+        ) : null}
         <button
-          onClick={() => setData({ announced: true, groups: PRESET_2026, matches: [] })}
-          className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-nzu-green px-4 text-sm font-black text-black"
+          onClick={fillSchedule}
+          className="inline-flex min-h-11 items-center rounded-xl border border-white/15 bg-background px-4 text-sm font-black text-white"
         >
-          2026 K-중만컵 조 편성 채우기
+          2026 조별리그 일정 채우기 ({SCHEDULE_2026.length}경기)
         </button>
-      ) : null}
+      </div>
 
       {/* 맵 추천 목록. 목록에 없는 맵도 그냥 칠 수 있다 */}
       <datalist id={MAP_LIST_ID}>
@@ -342,9 +403,13 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
                       >
                         {away}
                       </span>
-                      {(s?.home ?? 0) + (s?.away ?? 0) === 0 ? (
+                      {done ? null : s?.date ? (
+                        <span className="text-xs font-black text-nzu-green">
+                          예정 {dayLabel(s.date)} {JUNGMAN_MATCH_TIME}
+                        </span>
+                      ) : (
                         <span className="text-xs font-bold text-white/35">미진행</span>
-                      ) : null}
+                      )}
                       <input
                         type="date"
                         value={s?.date ?? ""}

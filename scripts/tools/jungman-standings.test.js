@@ -19,8 +19,13 @@ function loadModule(relativePath, resolve = () => ({})) {
   return mod.exports;
 }
 
-const { parseJungmanStandings, buildJungmanGroupTables, sortJungmanMatches, buildJungmanPlayerRanks } =
-  loadModule("lib/jungman-standings.ts");
+const {
+  parseJungmanStandings,
+  buildJungmanGroupTables,
+  sortJungmanMatches,
+  upcomingJungmanMatches,
+  buildJungmanPlayerRanks,
+} = loadModule("lib/jungman-standings.ts");
 
 let failed = 0;
 function test(name, fn) {
@@ -129,9 +134,19 @@ test("아직 안 치른 경기·오타는 집계에서 빠지고 잔여로 남�
     })
   );
 
-  // 파서는 구조만 본다(예정·무승부·자기자신·음수를 버려 3건 남음).
-  // 조 소속·오타 판정은 명부를 아는 표 계산에서 한다 — 아래 행이 그 결과다.
-  assert.equal(data.matches.length, 3);
+  // 파서는 구조만 본다 — 자기자신·음수만 버리고 5건이 남는다.
+  // 안 끝난 경기(예정·무승부)도 실려 나가되 decided:false를 달고 집계에서 빠진다.
+  assert.equal(data.matches.length, 5);
+  assert.deepEqual(
+    data.matches.map((m) => [m.home, m.away, m.decided]),
+    [
+      ["가", "나", false], // 0:0 예정
+      ["가", "다", false], // 무승부는 없는 종목 — 미완료
+      ["가", "없는팀", true],
+      ["가", "나", true], // B조
+      ["나", "다", true],
+    ]
+  );
   assert.deepEqual(
     rowsOf(data, "A").map((row) => [row.team, row.wins, row.losses, row.remaining]),
     [
@@ -232,7 +247,8 @@ test("세트 승자가 동점이면 진행 중 — 집계에서 빠지고 잔여
     5,
     0 // 저장된 점수로는 가의 승리처럼 보이지만 세트가 2:2라 미완료다
   );
-  assert.equal(data.matches.length, 0);
+  assert.equal(data.matches.length, 1);
+  assert.equal(data.matches[0].decided, false);
   assert.deepEqual(
     rowsOf(data, "A").map((row) => [row.team, row.wins, row.losses, row.remaining]),
     [
@@ -393,7 +409,16 @@ test("날짜는 순위 계산에 아무 영향을 주지 않는다", () => {
 });
 
 // ── 공개 화면 정렬·팀 조회 ───────────────────────────────────────────────
-const dated = (home, date) => ({ group: "A", home, away: "나", homeSets: 5, awaySets: 3, ...(date ? { date } : {}) });
+// decided는 파서가 다는 표식이다 — 손으로 만든 경기에도 실어야 결과 목록에 잡힌다
+const dated = (home, date, decided = true) => ({
+  group: "A",
+  home,
+  away: "나",
+  homeSets: 5,
+  awaySets: decided ? 3 : 5,
+  decided,
+  ...(date ? { date } : {}),
+});
 
 test("경기 결과는 최신 날짜가 위로 온다", () => {
   const sorted = sortJungmanMatches([dated("가", "2026-08-06"), dated("다", "2026-08-13"), dated("라", "2026-08-07")]);
@@ -420,6 +445,89 @@ test("정렬은 원본 배열을 건드리지 않는다", () => {
   assert.deepEqual(sortJungmanMatches([]), []);
 });
 
+// ── 예정 경기 (일정) ─────────────────────────────────────────────────────
+test("예정 경기(0:0 + 날짜)가 파서를 통과하고 decided:false를 단다", () => {
+  const data = parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "A", teams: ["가", "나", "다"] }],
+      matches: [
+        { group: "A", home: "가", away: "나", homeSets: 0, awaySets: 0, date: "2026-08-08" },
+        { group: "A", home: "나", away: "다", homeSets: 5, awaySets: 2, date: "2026-08-01" },
+      ],
+    })
+  );
+  assert.deepEqual(
+    data.matches.map((m) => [m.home, m.date, m.decided]),
+    [
+      ["가", "2026-08-08", false],
+      ["나", "2026-08-01", true],
+    ]
+  );
+});
+
+test("예정 경기는 순위표에 안 들어간다 (승·패·잔여 그대로)", () => {
+  const body = (schedule) => ({
+    announced: true,
+    groups: [{ name: "A", teams: ["가", "나", "다"] }],
+    matches: [
+      { group: "A", home: "나", away: "다", homeSets: 5, awaySets: 2 },
+      ...(schedule ? [{ group: "A", home: "가", away: "나", homeSets: 0, awaySets: 0, date: "2026-08-08" }] : []),
+    ],
+  });
+  const shape = (data) =>
+    rowsOf(data, "A").map((row) => [row.team, row.wins, row.losses, row.setsWon, row.setDiff, row.remaining]);
+
+  const withSchedule = parseJungmanStandings(JSON.stringify(body(true)));
+  assert.equal(withSchedule.matches.length, 2); // 일정은 데이터에 남아 있다
+  assert.deepEqual(shape(withSchedule), shape(parseJungmanStandings(JSON.stringify(body(false)))));
+  // 잔여가 예정 경기 때문에 깎이면 안 된다 — 나·다는 한 경기만 치렀다
+  assert.deepEqual(shape(withSchedule), [
+    ["나", 1, 0, 5, 3, 1],
+    ["가", 0, 0, 0, 0, 2],
+    ["다", 0, 1, 2, -3, 1],
+  ]);
+});
+
+test("예정 경기는 가까운 날짜가 먼저 온다", () => {
+  const upcoming = upcomingJungmanMatches([
+    dated("가", "2026-08-13", false),
+    dated("다", "2026-08-08", false),
+    dated("라", "2026-08-09", false),
+  ]);
+  assert.deepEqual(upcoming.map((m) => m.date), ["2026-08-08", "2026-08-09", "2026-08-13"]);
+});
+
+test("날짜 없는 예정 경기와 끝난 경기는 일정에서 빠진다", () => {
+  const upcoming = upcomingJungmanMatches([
+    dated("가", "2026-08-13", false),
+    dated("나2", null, false), // 언제인지 모른다
+    dated("다", "2026-08-07"), // 이미 끝났다
+    dated("라", null), // 끝났고 날짜도 없다
+  ]);
+  assert.deepEqual(upcoming.map((m) => m.home), ["가"]);
+  assert.deepEqual(upcomingJungmanMatches([]), []);
+});
+
+test("경기 결과 목록에는 끝난 경기만 나온다", () => {
+  const sorted = sortJungmanMatches([
+    dated("가", "2026-08-13", false), // 예정 — 결과를 오염시키면 안 된다
+    dated("다", "2026-08-08"),
+    dated("라", null, false),
+    dated("마", "2026-08-09"),
+  ]);
+  assert.deepEqual(sorted.map((m) => m.home), ["마", "다"]);
+});
+
+test("정렬·일정 추출이 원본 배열을 건드리지 않는다", () => {
+  const original = [dated("가", "2026-08-13", false), dated("다", "2026-08-08"), dated("라", "2026-08-09", false)];
+  const before = original.map((m) => m.home);
+  sortJungmanMatches(original);
+  upcomingJungmanMatches(original);
+  assert.deepEqual(original.map((m) => m.home), before);
+  assert.equal(original.length, 3);
+});
+
 test("팀 이름과 별칭 양쪽으로 팀을 찾는다", () => {
   const { jungmanTeamByName } = loadModule("lib/jungman.ts");
   for (const [name, code] of [
@@ -444,6 +552,19 @@ test("공개 페이지가 경기 결과를 최신순으로 그린다", () => {
   assert.match(page, /sortJungmanMatches\(standings\?\.matches \?\? \[\]\)/);
   // 세트 상세는 서버에서 그린다 — 공개 화면에 클라이언트 번들을 늘리지 않는다
   assert.doesNotMatch(readProjectFile("app/jungman/JungmanMatchResults.tsx"), /"use client"/);
+});
+
+test("공개 페이지가 예정 경기 일정을 그린다", () => {
+  const page = readProjectFile("app/jungman/page.tsx");
+  assert.match(page, /upcomingJungmanMatches\(standings\?\.matches \?\? \[\]\)/);
+  assert.match(page, /<JungmanSchedule/);
+  // 순위표 → 일정(예정) → 경기 결과(치른 것) 순 — 시간이 위에서 아래로 흐른다
+  assert.match(page, /<JungmanGroupTables[\s\S]*?<JungmanSchedule[\s\S]*?<JungmanMatchResults/);
+  // 일정도 서버에서 그린다 — 공개 화면에 클라이언트 번들을 늘리지 않는다
+  const schedule = readProjectFile("app/jungman/JungmanSchedule.tsx");
+  assert.doesNotMatch(schedule, /"use client"/);
+  // 시각은 lib 상수에서만 온다 — 두 벌로 적으면 조용히 어긋난다
+  assert.match(schedule, /JUNGMAN_MATCH_TIME/);
 });
 
 test("커버가 대회 정보를 흡수하고 지도는 투표 결과 안으로 들어갔다", () => {

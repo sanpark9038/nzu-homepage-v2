@@ -8,6 +8,7 @@ import {
   JUNGMAN_STANDINGS_KEY,
   parseJungmanStandings,
   sortJungmanMatches,
+  upcomingJungmanMatches,
 } from "@/lib/jungman-standings";
 import { playerService } from "@/lib/player-service";
 import { getSetting } from "@/lib/site-settings";
@@ -16,6 +17,7 @@ import JungmanCover from "./JungmanCover";
 import JungmanGroupTables from "./JungmanGroupTables";
 import JungmanMatchResults from "./JungmanMatchResults";
 import JungmanResults from "./JungmanResults";
+import JungmanSchedule from "./JungmanSchedule";
 
 export const revalidate = 60;
 
@@ -47,6 +49,7 @@ export default async function JungmanPage() {
   const standings = parseJungmanStandings(standingsRaw);
   const tables = standings ? buildJungmanGroupTables(standings) : [];
   const matches = sortJungmanMatches(standings?.matches ?? []);
+  const upcoming = upcomingJungmanMatches(standings?.matches ?? []);
 
   // 투표는 끝났다 — 득표는 공지 확정치(코드 상수)에서만 나오고, 지도도 같은 순위표를 읽는다
   const voteStandings = buildJungmanFinalStandings();
@@ -71,6 +74,9 @@ export default async function JungmanPage() {
         </p>
 
         <JungmanGroupTables tables={tables} />
+
+        {/* 아직 안 치른 경기가 위, 치른 경기가 아래 — 시간 순서가 자연스럽다 */}
+        {upcoming.length ? <JungmanSchedule matches={upcoming} /> : null}
 
         {/* 경기가 없으면 섹션 자체를 그리지 않는다 — 조 편성만 있는 화면이 깨끗해야 한다 */}
         {matches.length ? <JungmanMatchResults matches={matches} players={players} /> : null}

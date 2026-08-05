@@ -9,6 +9,7 @@ import {
   JUNGMAN_STANDINGS_KEY,
   parseJungmanStandings,
   sortJungmanMatches,
+  upcomingJungmanMatches,
   type JungmanStandings,
 } from "@/lib/jungman-standings";
 import { getSetting } from "@/lib/site-settings";
@@ -73,6 +74,7 @@ export default async function HomePage() {
               // tables가 비면 덱이 커버 한 장이 된다.
               tables={groupTables}
               matches={sortJungmanMatches(jungmanStandings?.matches ?? [])}
+              upcoming={upcomingJungmanMatches(jungmanStandings?.matches ?? [])}
               playerRanks={buildJungmanPlayerRanks(jungmanStandings?.matches ?? [])}
             />
           ) : (

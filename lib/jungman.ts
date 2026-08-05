@@ -21,6 +21,17 @@ export const JUNGMAN_PRIZE_TOTAL = "3,500만원";
 export const JUNGMAN_PRIZE_DETAIL = "우승 3,000만원 + 챔피언 벨트 · 준우승 500만원";
 export const JUNGMAN_FORMAT_LINE = "4개조 12팀 · 전 경기 9전 5선승 · 조 2위까지 8강";
 
+/** 전 경기 오후 7시 시작 (결승만 미정) */
+export const JUNGMAN_MATCH_TIME = "19:00";
+
+/** 토너먼트 라운드 일정. 대진은 조별리그가 끝나야 나오므로 날짜만 갖는다. */
+export const JUNGMAN_MILESTONES = [
+  { date: "2026-09-03", label: "8강", note: "9/3 · 9/4 · 9/5 · 9/6" },
+  { date: "2026-09-12", label: "4강", note: "9/12 · 9/13" },
+  // 결승 날짜는 커버·홈 덱이 쓰는 상수를 그대로 재사용한다 — 두 벌로 적으면 조용히 어긋난다
+  { date: JUNGMAN_FINAL_DATE, label: "결승", note: "상암 콜로세움", offline: true },
+] as const;
+
 /** 그랜드 파이널까지 남은 날. 서버 시각이 UTC라도 한국 날짜를 기준으로 센다. */
 export function jungmanDaysToFinal(): number {
   const todayKST = new Intl.DateTimeFormat("en-CA", {
