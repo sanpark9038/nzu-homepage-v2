@@ -326,49 +326,34 @@ test("jungman collection stops itself after the vote closes", () => {
   assert.ok(collector.includes('skipped: "vote_closed"'), "collector should skip once the vote is closed");
 });
 
-// 실시간 개표 화면은 /jungman/embed 하나만 남았다 — /jungman은 확정 결과만 그린다
-test("jungman embed live mode has a server-computed window and a viewer-driven poller", () => {
-  const lib = readProjectFile("lib/jungman.ts");
-  const client = readProjectFile("app/jungman/JungmanClient.tsx");
-  const page = readProjectFile("app/jungman/embed/page.tsx");
+// 실시간 개표 화면(임베드)은 미러 종료로 제거됐다 — /jungman은 확정 결과만 그린다
+test("jungman live vote screens are gone and must not come back", () => {
+  assert.ok(!fs.existsSync(path.join(ROOT, "app/jungman/embed")), "embed는 미러 종료로 제거됐다");
+  assert.ok(!fs.existsSync(path.join(ROOT, "app/jungman/JungmanClient.tsx")), "실시간 개표 대시보드는 제거됐다");
+  assert.ok(!fs.existsSync(path.join(ROOT, "app/jungman/JungmanChart.tsx")), "개표 시계열 차트는 제거됐다");
+  // 크롬 제거·iframe 개방도 같이 걷어냈다 — 남으면 죽은 경로에 정책만 남는다
+  assert.doesNotMatch(readProjectFile("lib/navigation-config.ts"), /jungman\/embed/);
+  assert.doesNotMatch(readProjectFile("next.config.ts"), /jungman\/embed|frame-ancestors/);
 
-  assert.match(lib, /JUNGMAN_LIVE_WINDOW_MS = \d+ \* 60 \* 1000/);
+  // 크롬 제거는 방송 오버레이 전용으로 남는다 — 배선 자체는 살아 있어야 한다
+  const { isChromelessRoute } = loadModule("lib/navigation-config.ts");
+  assert.equal(isChromelessRoute("/jungman/embed"), false);
+  assert.equal(isChromelessRoute("/jungman"), false);
+  assert.equal(isChromelessRoute("/overlay/news"), true);
+  assert.match(readProjectFile("components/Navbar.tsx"), /if \(isChromelessRoute\(pathname\)\) return null;/);
+  assert.match(readProjectFile("components/ScrollToTop.tsx"), /if \(isChromelessRoute\(pathname\)\) return null;/);
+});
+
+test("jungman collection cadence constants stay ordered for the cron", () => {
+  const lib = readProjectFile("lib/jungman.ts");
+
   assert.match(lib, /JUNGMAN_COLLECT_INTERVAL_MS = \d+ \* 60 \* 1000/);
   // 쿨다운은 크론 주기보다 짧아야 매 회차가 통과한다
   assert.match(lib, /JUNGMAN_COLLECT_COOLDOWN_MS = \d+ \* 1000/);
-  assert.match(lib, /isLive: isJungmanLive\(latest\)/);
+  const { JUNGMAN_COLLECT_INTERVAL_MS, JUNGMAN_COLLECT_COOLDOWN_MS } = loadJungmanLib();
+  assert.ok(JUNGMAN_COLLECT_COOLDOWN_MS < JUNGMAN_COLLECT_INTERVAL_MS, "쿨다운이 크론 주기보다 길다");
 
-  // 백그라운드 탭은 갱신하지 않는다
-  assert.match(client, /if \(document\.hidden\) return;/);
-  assert.match(client, /router\.refresh\(\)/);
-  // 상단은 차수가 아니라 갱신 상태 — LIVE면 초 단위 경과, 아니면 마지막 집계 시각
-  assert.match(client, /LIVE<\/span>/);
-  assert.match(client, /elapsedLabel\(now - Date\.parse\(latestAt\)\)/);
-  assert.match(client, /\{jungmanSeoulTime\(latestAt\)\}/);
-  assert.doesNotMatch(client, /차 개표/);
-  assert.match(client, /motion-reduce:hidden/);
-  // 집계 주기 안내는 상수에서 만든다 — 하드코딩하면 상수가 바뀔 때 거짓말이 된다
-  assert.match(client, /\{jungmanIntervalLabel\(\)\}마다 자동 집계/);
-  assert.doesNotMatch(client, /3분마다 자동 집계/);
-  assert.match(lib, /export function jungmanIntervalLabel/);
-
-  // 자동 갱신을 autoCollect 하나에 매달면 읽기 실패(=기본값 false) 순간 회복 수단까지 사라진다
-  assert.match(page, /const autoRefresh = config\.autoCollect \|\| snapshots\.length > 0 \|\| degraded;/);
-  // 마감 뒤에는 자동 갱신을 끈다 — 끝난 데이터를 90초마다 다시 받아올 이유가 없다
-  assert.match(page, /\{closed \? null : autoRefresh \? <JungmanAutoRefresh \/> : null\}/);
-  assert.match(page, /isLive=\{isLive\}/);
-});
-
-test("jungman viewers refresh the page instead of driving collection", () => {
-  const client = readProjectFile("app/jungman/JungmanClient.tsx");
-
-  // 뷰어 폴링이 수집을 때리면 쿨다운으로 스킵되는 호출마다 86KB 스냅샷을 읽는다 —
-  // 동시 시청자 수만큼 전송량이 곱해진다. 수집은 서버 크론 몫이다.
-  assert.doesNotMatch(client, /fetch\(\s*"\/api\/jungman\/collect/);
-  assert.doesNotMatch(client, /method: "POST"/);
-  assert.match(client, /export function JungmanAutoRefresh/);
-
-  // 엔드포인트 자체는 남아야 한다 — 크론과 관리자 [지금 수집]이 쓴다
+  // 수집 엔드포인트는 남아야 한다 — 크론과 관리자 [지금 수집]이 쓴다
   assert.ok(
     fs.existsSync(path.join(ROOT, "app/api/jungman/collect/route.ts")),
     "collect endpoint should stay for cron and admin"
@@ -652,9 +637,8 @@ test("jungman buckets a range by its closing value, never an average", () => {
   }
 });
 
-test("jungman charts label the x axis in Asia/Seoul and mark day boundaries", () => {
+test("jungman labels the x axis in Asia/Seoul and marks day boundaries", () => {
   const { jungmanAxisLabel, jungmanSeoulTime, jungmanDayBoundaries, buildJungmanRankEvents } = loadJungmanLib();
-  const chart = readProjectFile("app/jungman/JungmanChart.tsx");
 
   // 2026-07-27T14:30Z = 07-27 23:30 KST, +1시간이면 07-28 00:30 KST로 날짜가 넘어간다
   const before = "2026-07-27T14:30:00.000Z";
@@ -672,12 +656,6 @@ test("jungman charts label the x axis in Asia/Seoul and mark day boundaries", ()
   }));
   assert.deepEqual(jungmanDayBoundaries(points), [{ index: 2, day: 2 }]);
 
-  // 차트는 "n차"가 아니라 시간축을 쓴다 + 날짜 경계선을 그린다
-  assert.match(chart, /jungmanAxisLabel\(/);
-  assert.match(chart, /jungmanDayBoundaries\(/);
-  assert.match(chart, /일차/);
-  assert.doesNotMatch(chart, /snapshot\.round/);
-
   // 순위 상승 시점 타임라인 — 최신순
   const votes = (dm, ku) => ({ DM: dm, KU: ku });
   const events = buildJungmanRankEvents([
@@ -688,10 +666,9 @@ test("jungman charts label the x axis in Asia/Seoul and mark day boundaries", ()
   assert.deepEqual({ code: events[0].code, rank: events[0].rank, at: events[0].at }, { code: "KU", rank: 1, at: after });
 });
 
-test("jungman charts emphasise the seed cutline, not the vote leaders", () => {
+test("jungman emphasises the seed cutline, not the vote leaders", () => {
   const lib = loadJungmanLib();
   const { jungmanEmphasis, JUNGMAN_SEED_CUT, JUNGMAN_VOTING_TEAMS } = lib;
-  const chart = readProjectFile("app/jungman/JungmanChart.tsx");
 
   const tiers = Array.from({ length: JUNGMAN_VOTING_TEAMS.length }, (_, i) => jungmanEmphasis(i + 1));
   // 12팀 전원 본선이라 다투는 경계는 시드선 하나뿐 — 1~3위가 1군, 바로 밖 4위가 2군, 나머지는 배경
@@ -705,23 +682,15 @@ test("jungman charts emphasise the seed cutline, not the vote leaders", () => {
   // 꼴찌도 잃을 게 없다 — 하위권을 되살려 강조하던 규칙이 남아 있으면 안 된다
   assert.equal(jungmanEmphasis(JUNGMAN_VOTING_TEAMS.length), "back");
 
-  // 득표 상위 N개를 잘라 강조하던 규칙은 남아 있으면 안 된다
-  assert.doesNotMatch(chart, /FOCUS/);
-  // 차트·범례 둘 다 같은 규칙을 쓴다 (득표/순위 모드 공용)
-  assert.ok((chart.match(/jungmanEmphasis\(/g) || []).length >= 2, "chart and legend should share the rule");
-  assert.match(chart, /JUNGMAN_SEED_CUT/);
-  // 와일드카드전 폐지 — 차트에 와카선이 남아 있으면 안 된다
-  assert.doesNotMatch(chart, /JUNGMAN_WILDCARD_CUT/);
-  assert.doesNotMatch(chart, /와카/);
+  // 와일드카드전 폐지 — 컷 상수는 시드선 하나뿐이다
+  assert.doesNotMatch(readProjectFile("lib/jungman.ts"), /JUNGMAN_WILDCARD_CUT/);
 });
 
 test("jungman keeps the map server-side and no longer mounts the live vote dashboard", () => {
   const page = readProjectFile("app/jungman/page.tsx");
-  const client = readProjectFile("app/jungman/JungmanClient.tsx");
   const map = readProjectFile("components/jungman/JungmanMap.tsx");
 
   // 88KB 지도 SVG는 서버 컴포넌트가 직접 그린다 — 클라이언트가 import하면 번들로 넘어간다
-  assert.doesNotMatch(client, /JungmanMap/);
   assert.match(page, /<JungmanMap markers=\{markers\}/);
 
   // 투표가 끝나 실시간 대시보드(선택 공유·차트·시계열)는 /jungman에서 통째로 내려갔다.
@@ -730,7 +699,7 @@ test("jungman keeps the map server-side and no longer mounts the live vote dashb
 
   // 와일드카드전 폐지 — 12팀 전원 본선(4개조)이라 탈락·와카 표기가 어디에도 남으면 안 된다.
   // 시드 표기는 그대로다: 걸린 건 1~3위 세 자리뿐이다.
-  for (const [name, source] of [["page", page], ["client", client], ["map", map]]) {
+  for (const [name, source] of [["page", page], ["map", map]]) {
     assert.doesNotMatch(source, /와일드카드|와카|"wildcard"|JUNGMAN_WILDCARD_CUT/, `${name}에 와일드카드가 남아 있다`);
     assert.match(source, /seed|시드/, `${name}에서 시드 표기까지 사라졌다`);
   }
@@ -767,13 +736,6 @@ test("jungman tells a failed read apart from an empty board", async () => {
   const fine = await healthy.getJungmanState();
   assert.equal(fine.degraded, false);
   assert.equal(fine.latest.round, 7);
-
-  // 화면: 빈 상태가 아니라 실패를 말하고, 못 믿을 config로 카운트다운을 그리지 않는다.
-  // 이 화면은 실시간 개표가 남은 임베드뿐이다 — /jungman은 코드 상수만 그려 읽기 실패가 없다.
-  const embed = readProjectFile("app/jungman/embed/page.tsx");
-  assert.match(embed, /집계 데이터를 불러오지 못했습니다/);
-  assert.match(embed, /연결이 회복되면 자동으로 갱신됩니다/);
-  assert.match(embed, /degraded \? null : \(/);
 });
 
 test("jungman keeps every round of the vote window in one array", () => {
@@ -933,9 +895,6 @@ test("jungman team short labels follow the project metadata", () => {
 
 test("jungman freezes into a final result once the vote closes", () => {
   const { isJungmanClosed, buildJungmanHeadlines } = loadJungmanLib();
-  // 마감 여부로 갈리는 화면은 임베드만 남았다
-  const embed = readProjectFile("app/jungman/embed/page.tsx");
-  const client = readProjectFile("app/jungman/JungmanClient.tsx");
 
   const closeAt = "2026-07-30T15:00:00.000Z";
   assert.equal(isJungmanClosed(closeAt, Date.parse(closeAt) - 1000), false);
@@ -956,23 +915,11 @@ test("jungman freezes into a final result once the vote closes", () => {
     buildJungmanHeadlines([headlineSnapshot(1, headlineBase)], closeAt, Date.parse(closeAt) - 60_000).length >= 3
   );
 
-  // 판정은 서버에서 1회 — 클라이언트 시계로 종료 화면이 흔들리면 안 된다
-  assert.match(embed, /const closed = isJungmanClosed\(config\.voteCloseAt\);/);
-  assert.match(embed, /const isLive = inLiveWindow && latest !== null && !closed;/);
-  assert.match(embed, /const autoCollect = config\.autoCollect && !closed;/);
-  assert.match(embed, /closed=\{closed\}/);
-
   // /jungman에는 마감 갈림길 자체가 없다 — 상태를 읽지 않고 확정 결과만 그린다.
   // 여기에 getJungmanState가 다시 들어오면 끝난 투표 화면이 조별 순위 위로 되돌아온다.
   const page = readProjectFile("app/jungman/page.tsx");
   assert.doesNotMatch(page, /getJungmanState|isJungmanClosed|degraded/);
   assert.match(page, /buildJungmanFinalStandings\(\)/);
-
-  // 멈춘 1시간 증가량이 현재 증감처럼 읽히면 안 된다 — 시세판 열과 레일 항목을 내린다
-  assert.match(client, /closed=\{closed\}/);
-  assert.match(client, /closed \? null : \(\s*<StatRow label="1시간 변화"/);
-  // 갱신 상태 알약은 골드 "최종 결과"로 굳는다 (LIVE·경과 표시 대신)
-  assert.match(client, /<Pill label="최종 결과" value=\{`\$\{jungmanSeoulTime\(revealedAt\)\} 기준`\} tone="final" \/>/);
 });
 
 test("jungman final result matches the official notice", () => {
@@ -999,51 +946,16 @@ test("jungman final result matches the official notice", () => {
   );
 });
 
-test("jungman hides vote counts after the close and points at the official notice", () => {
-  const client = readProjectFile("app/jungman/JungmanClient.tsx");
-  const chart = readProjectFile("app/jungman/JungmanChart.tsx");
+test("jungman hides vote counts after the close", () => {
   const map = readProjectFile("components/jungman/JungmanMap.tsx");
   const page = readProjectFile("app/jungman/page.tsx");
 
   // 마감 순간 숲 공지가 비공개로 바뀌면 마지막 몇 분의 추천이 집계에 안 잡힌다.
   // 순위는 확정으로 보여주되 표수는 한 군데도 남기지 않는다 — 틀린 숫자가 공식 수치처럼 읽힌다.
-  // 컴포넌트 하나만 잘라낸다 — 구조분해 파라미터의 "}: {"도 열 0에서 끝나므로 뒤에 개행을 요구한다
-  const bodyOf = (name) => client.match(new RegExp(`function ${name}\\([\\s\\S]*?\\n\\}\\r?\\n`))[0];
-  const hiddenBehindClosed = (body, needle) => {
-    const guard = body.indexOf("closed ? null");
-    assert.ok(guard >= 0 && guard < body.indexOf(needle), `${needle}가 마감 가드 밖에 있다`);
-  };
-
-  // 시세판 행 — 득표수와 1시간 변화가 든 오른쪽 열을 통째로 뺀다
-  hiddenBehindClosed(bodyOf("TickerRow"), "formatVotes(shown)");
-  assert.match(client, /closed=\{closed\}/);
-  // 빈 열을 가리키는 헤더 라벨도 같이 내린다
-  assert.ok(!client.includes("최종 득표"), "빈 열을 가리키는 라벨이 남아 있다");
-  // 컷라인 상황판 — "n표 차" 문구와 격차 바
-  hiddenBehindClosed(bodyOf("ContestRow"), "표 차");
-  // 우측 레일 — 큰 득표수와 "4위와 격차" 같은 표차 항목
-  assert.match(client, /\{closed \? null : \(\s*<p className="mt-3 font-mono text-3xl/);
-  assert.match(client, /\{detailGap && !closed \?/);
-
-  // 차트 — 득표수 축이 곧 표수 노출이다. 순위 모드로 시작하고 토글은 내린다(구간 토글은 유지)
-  assert.match(client, /useState<"votes" \| "rank">\(closed \? "rank" : "votes"\)/);
-  assert.match(chart, /\{closed \? null : \(\s*<Segmented\s*label="표시 모드"/);
-  assert.match(chart, /label="구간"/);
-
   // 지도 칩 — "n위 · 1,234표"에서 표수만 뺀다
   assert.match(map, /closed \? `\$\{marker\.rank\}위`/);
   // /jungman은 마감 상태로 굳었다 — 지도도 조건 없이 closed로 그린다
   assert.match(page, /<JungmanMap markers=\{markers\} closed \/>/);
-
-  // 숫자를 감춘 만큼 어디서 확인해야 하는지 한 줄로 알린다
-  assert.ok(
-    client.includes("집계 값은 참고용입니다. 최종 결과는 정중만님 공지를 확인해 주세요."),
-    "마감 화면에 공지 안내 문구가 있어야 한다"
-  );
-
-  // 마감 전 화면은 그대로 — 득표수·1시간 변화·득표수 토글이 살아 있어야 한다
-  assert.match(client, /<HourDelta value=\{hourDelta\} \/>/);
-  assert.match(chart, /\{ key: "votes", label: "득표수" \}/);
 });
 
 /** 수집 라우트를 실제로 실행한다. next/* 와 관리자 인증·수집기는 스텁으로 대신 답한다. */
@@ -1239,22 +1151,6 @@ test("jungman rank arrows run on the hour baseline and the map reads the same va
   assert.match(readProjectFile("components/jungman/JungmanMap.tsx"), /const rankDelta = closed \? null : marker\.rankDelta;/);
 });
 
-test("jungman board spells out the contested state instead of a bare dot", () => {
-  const client = readProjectFile("app/jungman/JungmanClient.tsx");
-
-  // 파란 점 + title 툴팁은 화면에서 읽히지 않는다 — 시드 배지와 같은 글자 칩이어야 한다
-  assert.doesNotMatch(client, /title="경합"/);
-  assert.match(client, /standing\.contested \?[\s\S]{0,240}>\s*접전\s*<\/span>/);
-  // 무슨 뜻인지 화면에 한 줄 설명이 있어야 한다 (배지가 떠 있을 때)
-  assert.match(client, /접전 = /);
-
-  // 접전 쌍 표차는 행 사이 여백에 겹쳐 그린다 — 컷라인 라벨과 같은 기법, 새 행을 만들지 않는다
-  assert.match(client, /absolute bottom-\[-0\.5rem\][\s\S]{0,700}표 차/);
-  // 멈춘 숫자(표차·순위 화살표)는 마감 후 내린다
-  assert.match(client, /sort === "rank" && !closed \? listed\[index \+ 1\] : undefined/);
-  assert.match(client, /\{closed \? null : <RankDelta value=\{standing\.rankDelta\} \/>\}/);
-});
-
 test("jungman headlines drop stale rank swaps", () => {
   const { buildJungmanHeadlines } = loadJungmanLib();
   const at = (minutesAgo) => new Date(Date.now() - minutesAgo * 60_000).toISOString();
@@ -1276,50 +1172,3 @@ test("jungman headlines drop stale rank swaps", () => {
   );
 });
 
-test("jungman embed renders chromeless, stays unindexed and allows cross-site framing", () => {
-  const embed = readProjectFile("app/jungman/embed/page.tsx");
-
-  // ① 전역 헤더·떠 있는 버튼을 걷어낸다 — 남의 사이트 iframe 안에 우리 네비가 들어가면 안 된다
-  const { isChromelessRoute } = loadModule("lib/navigation-config.ts");
-  assert.equal(isChromelessRoute("/jungman/embed"), true);
-  // 원본 /jungman은 그대로 사이트 크롬을 쓴다
-  assert.equal(isChromelessRoute("/jungman"), false);
-  assert.match(readProjectFile("components/Navbar.tsx"), /if \(isChromelessRoute\(pathname\)\) return null;/);
-  assert.match(readProjectFile("components/ScrollToTop.tsx"), /if \(isChromelessRoute\(pathname\)\) return null;/);
-
-  // ② 내용이 /jungman과 같다 — 색인은 원본 하나로 몰아준다
-  assert.match(embed, /robots: \{ index: false, follow: false \}/);
-  assert.doesNotMatch(embed, /alternates:/);
-
-  // ③ 사이트맵에는 실리지 않는다 (원본은 내비게이션 하나라 임베드가 들어올 자리가 없다)
-  const sitemap = loadModule("app/sitemap.ts", (id) =>
-    id === "@/lib/navigation-config" ? loadModule("lib/navigation-config.ts") : { SITE_URL: "https://example.test" }
-  ).default();
-  assert.ok(sitemap.length > 0, "sitemap should not be empty");
-  assert.ok(
-    !sitemap.some((entry) => entry.url.includes("/jungman/embed")),
-    "임베드 경로가 사이트맵에 실렸다"
-  );
-
-  // ④ 다른 도메인에서 iframe으로 부른다 — 이 경로에만 frame-ancestors를 연다
-  const nextConfig = readProjectFile("next.config.ts");
-  assert.match(nextConfig, /source: "\/jungman\/embed",\s*headers: \[[\s\S]{0,200}?frame-ancestors \*/);
-  assert.equal((nextConfig.match(/frame-ancestors/g) || []).length, 1, "다른 경로의 프레임 정책까지 건드렸다");
-
-  // 데이터 출처는 원본과 같은 하나 — 임베드가 따로 수집하거나 다른 주기로 돌면 순위가 갈라진다
-  assert.match(embed, /getJungmanState\(\)/);
-  assert.match(embed, /export const revalidate = 60/);
-  assert.match(embed, /\{closed \? null : autoRefresh \? <JungmanAutoRefresh \/> : null\}/);
-  // 시세판은 원본과 같은 컴포넌트를 쓴다 — 지도·차트·우측 레일은 들어가지 않는다
-  assert.match(embed, /<JungmanStandingsList/);
-  assert.doesNotMatch(embed, /JungmanMap|JungmanChart/);
-  // 부모가 높이를 맞출 수 있게 알려준다 (안 들어도 그만).
-  // 서버 컴포넌트의 인라인 <script>는 못 쓴다 — React가 초기 HTML에 안 내보내 실행되지 않는다
-  const height = readProjectFile("app/jungman/embed/EmbedHeight.tsx");
-  assert.match(height, /"use client"/);
-  assert.match(height, /postMessage\(\{ type: "jungman-embed-height", height \}, "\*"\)/);
-  assert.doesNotMatch(embed, /dangerouslySetInnerHTML/);
-  assert.match(embed, /<JungmanEmbedHeight targetId=\{EMBED_ROOT_ID\} \/>/);
-  // 원본으로 돌아가는 통로
-  assert.match(embed, /target="_blank"\s*rel="noopener"/);
-});
