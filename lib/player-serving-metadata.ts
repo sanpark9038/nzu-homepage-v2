@@ -278,7 +278,9 @@ function loadManualRosterOverrides(): Map<string, RosterPlayerOverride> {
 
 // 숲 ID(soop_user_id)는 선수 대장이 유일한 출처다. entity_id로 묶으므로
 // 이름이 바뀌거나 팀을 옮겨도 채널이 어긋나지 않는다.
-function loadLedgerSoopIds(): Map<string, string> {
+// 키는 소문자 entity_id. 관리자 점검(ops-review)도 이 로더를 써야 한다 —
+// 로스터 파일만 보면 대장에만 있는 숲 ID가 "누락"으로 오보된다.
+export function loadLedgerSoopIds(): Map<string, string> {
   const soopIds = new Map<string, string>();
   if (typeof window !== "undefined") return soopIds;
 

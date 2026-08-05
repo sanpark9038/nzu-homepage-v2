@@ -7,6 +7,7 @@ import {
   type ManualOverrideRow,
 } from "@/lib/roster-admin-store";
 import { readRosterReviewDecisions, rosterReviewDecisionKey } from "@/lib/roster-review-decisions";
+import { loadLedgerSoopIds } from "@/lib/player-serving-metadata";
 
 const ROOT = process.cwd();
 const PROJECTS_DIR = path.join(ROOT, "data", "metadata", "projects");
@@ -499,10 +500,11 @@ function buildRosterChangeItems(
   return selectedRows
     .filter((row) => !isOperatorExcludedReviewItem(row) && !isAlreadyAppliedReviewItem(row, appliedState))
     .map((row) => {
-      // 숲 ID가 이미 등록돼 있으면(교정 기록 또는 로스터 베이스라인) 행에 표시해
+      // 숲 ID가 이미 등록돼 있으면(대장·교정 기록·로스터 베이스라인) 행에 표시해
       // 매번 다시 입력해야 하는 것처럼 보이지 않게 한다
       const entityId = trim(row.entity_id);
       const knownSoopId =
+        loadLedgerSoopIds().get(entityId.toLowerCase()) ||
         trim(appliedState?.overridesByEntityId.get(entityId)?.soop_user_id) ||
         trim(appliedState?.approvedByEntityId.get(entityId)?.soop_user_id);
       return knownSoopId ? { ...row, known_soop_id: knownSoopId } : row;
@@ -675,13 +677,45 @@ function buildExcludedPlayers(players: RosterOpsReviewPlayer[]): RosterOpsReview
   };
 }
 
+// "숲 ID 누락" 점검에서 빼야 할 선수: 운영자가 의도적으로 비워둔 선수
+// (대장 note에 기록 — 방송을 안 해서 ID가 없는 게 정상인 사람들)
+function loadIntentionalNoSoopEntityIds(): Set<string> {
+  const set = new Set<string>();
+  try {
+    const doc = JSON.parse(fs.readFileSync(LEDGER_PATH, "utf8")) as {
+      players?: Record<string, { soop_user_id?: string; note?: string }>;
+    };
+    for (const [entityId, row] of Object.entries(doc?.players || {})) {
+      const hasSoop = String(row?.soop_user_id || "").trim();
+      if (!hasSoop && String(row?.note || "").includes("의도적 비움")) {
+        set.add(entityId.trim().toLowerCase());
+      }
+    }
+  } catch {
+    // 대장을 못 읽으면 필터 없이 전체 표시(안전한 방향)
+  }
+  return set;
+}
+
 export async function buildRosterOpsReview(): Promise<RosterOpsReview> {
   const approvedPlayers = loadApprovedPlayers();
   const adminState = await loadMergedRosterAdminState();
   const appliedState = buildAppliedReviewState(approvedPlayers, adminState);
   const reports = await loadReviewReportDocs();
+  const ledgerSoopIds = loadLedgerSoopIds();
+  const intentionalNoSoop = loadIntentionalNoSoopEntityIds();
+  const excludedEntityIds = new Set(
+    loadCollectionExclusionsFromLedger()
+      .map((row) => trim(row.entity_id).toLowerCase())
+      .filter(Boolean)
+  );
   const missingSoopIds = approvedPlayers.filter((player) => {
     if (trim(player.soop_user_id)) return false;
+    const entityKey = trim(player.entity_id).toLowerCase();
+    if (ledgerSoopIds.has(entityKey)) return false;
+    if (intentionalNoSoop.has(entityKey)) return false;
+    // 수집제외 선수는 사이트에 안 보이므로 숲 ID 입력 대상이 아니다
+    if (excludedEntityIds.has(entityKey)) return false;
     const override = appliedState.overridesByEntityId.get(player.entity_id);
     if (trim(override?.soop_user_id)) return false;
     return true;
