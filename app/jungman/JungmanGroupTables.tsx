@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { jungmanLogoPath, jungmanTeamByName } from "@/lib/jungman";
+import { JUNGMAN_GROUP_COLORS, jungmanLogoPath, jungmanTeamByName } from "@/lib/jungman";
 import { type JungmanGroupTable } from "@/lib/jungman-standings";
 
 const PANEL =
@@ -9,8 +9,8 @@ const PANEL =
 // 조 2위까지 8강 진출 — 진출선을 어디에 그을지의 기준
 const ADVANCING = 2;
 
-// 조마다 다른 색. 지도·조 편성 화면과 같은 순서를 쓴다.
-const GROUP_COLORS = ["#2BE39B", "#4A9EFF", "#C9A84C", "#E0574A"];
+
+
 
 const TH = "text-right text-[0.625rem] font-bold tracking-[0.06em] text-[#7a8299] md:text-[0.6875rem]";
 const NUM = "text-right font-black tabular-nums text-[#e8ebf2] text-sm md:text-lg";
@@ -105,7 +105,7 @@ export default function JungmanGroupTables({ tables }: { tables: JungmanGroupTab
   return tables.length ? (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       {tables.map((table, i) => (
-        <GroupCard key={table.name} table={table} color={GROUP_COLORS[i % GROUP_COLORS.length]} />
+        <GroupCard key={table.name} table={table} color={JUNGMAN_GROUP_COLORS[i % JUNGMAN_GROUP_COLORS.length]} />
       ))}
     </div>
   ) : (

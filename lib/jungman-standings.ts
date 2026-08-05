@@ -187,6 +187,52 @@ function compareRows(a: JungmanStandingsRow, b: JungmanStandingsRow) {
   );
 }
 
+export type JungmanPlayerRank = {
+  name: string;
+  /** 소속 팀 이름 (그 선수가 뛴 경기의 자기 팀). 여러 팀이면 가장 많이 뛴 팀 */
+  team: string;
+  wins: number;
+  losses: number;
+};
+
+/** 다승 → 승률 → 이름 순. 이름이 빈 세트(승자만 찍은 것)는 세지 않는다. */
+export function buildJungmanPlayerRanks(matches: JungmanStandingsMatch[]): JungmanPlayerRank[] {
+  const players = new Map<string, { wins: number; losses: number; teams: Map<string, number> }>();
+
+  const add = (name: string, team: string, won: boolean) => {
+    // 관리자가 급할 때 이름 없이 승자만 찍는다 — 그 세트는 선수 전적이 될 수 없다
+    if (!name) return;
+    let player = players.get(name);
+    if (!player) players.set(name, (player = { wins: 0, losses: 0, teams: new Map() }));
+    if (won) player.wins += 1;
+    else player.losses += 1;
+    player.teams.set(team, (player.teams.get(team) ?? 0) + 1);
+  };
+
+  for (const match of matches) {
+    for (const set of match.sets ?? []) {
+      if (set.winner === null) continue;
+      add(set.home, match.home, set.winner === "home");
+      add(set.away, match.away, set.winner === "away");
+    }
+  }
+
+  return [...players]
+    .map(([name, player]) => ({
+      name,
+      // 동수면 먼저 나온 팀 — Map은 넣은 순서를 지킨다
+      team: [...player.teams].reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0],
+      wins: player.wins,
+      losses: player.losses,
+    }))
+    .sort(
+      (a, b) =>
+        b.wins - a.wins ||
+        b.wins / (b.wins + b.losses) - a.wins / (a.wins + a.losses) ||
+        a.name.localeCompare(b.name, "ko")
+    );
+}
+
 export function buildJungmanGroupTables(standings: JungmanStandings): JungmanGroupTable[] {
   return standings.groups.map((group) => {
     const rows = new Map<string, JungmanStandingsRow>(

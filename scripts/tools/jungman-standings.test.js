@@ -19,7 +19,7 @@ function loadModule(relativePath, resolve = () => ({})) {
   return mod.exports;
 }
 
-const { parseJungmanStandings, buildJungmanGroupTables, sortJungmanMatches } =
+const { parseJungmanStandings, buildJungmanGroupTables, sortJungmanMatches, buildJungmanPlayerRanks } =
   loadModule("lib/jungman-standings.ts");
 
 let failed = 0;
@@ -467,6 +467,96 @@ test("커버가 대회 정보를 흡수하고 지도는 투표 결과 안으로 
   // D-day 계산은 한 곳에만 — 페이지에서 커버로 옮겼다
   assert.match(cover, /daysToFinal/);
   assert.doesNotMatch(page, /daysToFinal|FINAL_DATE/);
+});
+
+// ── 개인 순위 (홈 덱 슬라이드 2) ─────────────────────────────────────────
+const sm = (home, away, sets) => ({ group: "A", home, away, homeSets: 0, awaySets: 0, sets });
+const shapeRanks = (ranks) => ranks.map((r) => [r.name, r.team, r.wins, r.losses]);
+
+test("세트 승자에서 선수 승패가 홈·원정 양쪽으로 집계된다", () => {
+  const ranks = buildJungmanPlayerRanks([
+    sm("가팀", "나팀", [set("맵1", "가1", "나1", "home"), set("맵2", "가1", "나2", "away")]),
+  ]);
+  // 나2(1승 승률1) > 가1(1승 승률.5) > 나1(0승)
+  assert.deepEqual(shapeRanks(ranks), [
+    ["나2", "나팀", 1, 0],
+    ["가1", "가팀", 1, 1],
+    ["나1", "나팀", 0, 1],
+  ]);
+  // 세트가 아예 없는 경기는 아무것도 만들지 않는다
+  assert.deepEqual(buildJungmanPlayerRanks([{ group: "A", home: "가팀", away: "나팀", homeSets: 2, awaySets: 0 }]), []);
+});
+
+test("승자가 null인 세트는 안 센다", () => {
+  assert.deepEqual(buildJungmanPlayerRanks([sm("가팀", "나팀", [set("맵1", "가1", "나1", null)])]), []);
+  const ranks = buildJungmanPlayerRanks([
+    sm("가팀", "나팀", [set("맵1", "가1", "나1", "home"), set("맵2", "가1", "나1", null)]),
+  ]);
+  assert.deepEqual(shapeRanks(ranks), [
+    ["가1", "가팀", 1, 0],
+    ["나1", "나팀", 0, 1],
+  ]);
+});
+
+test("이름이 빈 세트는 안 센다 (승자만 찍은 경우)", () => {
+  const ranks = buildJungmanPlayerRanks([
+    sm("가팀", "나팀", [
+      set("", "", "", "home"), // 승자만 — 양쪽 다 안 센다
+      set("맵1", "가1", "", "away"), // 원정 이름만 비었다 — 가1의 패만 센다
+      set("맵2", "가1", "나1", "home"),
+    ]),
+  ]);
+  assert.deepEqual(shapeRanks(ranks), [
+    ["가1", "가팀", 1, 1],
+    ["나1", "나팀", 0, 1],
+  ]);
+});
+
+test("다승 → 승률 → 이름 순으로 정렬된다", () => {
+  const ranks = buildJungmanPlayerRanks([
+    sm("가팀", "나팀", [
+      set("m", "다승자", "나1", "home"),
+      set("m", "다승자", "나1", "home"),
+      set("m", "다승자", "나1", "home"),
+      set("m", "덜깔끔", "나2", "home"),
+      set("m", "덜깔끔", "나2", "home"),
+      set("m", "덜깔끔", "나2", "home"),
+      set("m", "덜깔끔", "나2", "away"), // 3승 1패 — 다승자와 승수는 같고 승률이 낮다
+      set("m", "동률가", "나3", "home"),
+      set("m", "동률가", "나3", "away"),
+      set("m", "동률나", "나4", "home"),
+      set("m", "동률나", "나4", "away"),
+    ]),
+  ]);
+  // 승수 → 승률 → 이름. 1승 무리는 승률 .5 넷이 이름 순으로 서고 승률 .25가 뒤로 밀린다
+  assert.deepEqual(
+    ranks.map((r) => [r.name, r.wins, r.losses]),
+    [
+      ["다승자", 3, 0],
+      ["덜깔끔", 3, 1],
+      ["나3", 1, 1],
+      ["나4", 1, 1],
+      ["동률가", 1, 1],
+      ["동률나", 1, 1],
+      ["나2", 1, 3],
+      ["나1", 0, 3],
+    ]
+  );
+});
+
+test("소속은 그 선수가 가장 많이 뛴 팀", () => {
+  const ranks = buildJungmanPlayerRanks([
+    sm("다팀", "나팀", [set("m", "떠돌이", "나1", "home")]),
+    sm("가팀", "나팀", [set("m", "떠돌이", "나1", "home"), set("m", "떠돌이", "나1", "away")]),
+  ]);
+  assert.equal(ranks.find((r) => r.name === "떠돌이").team, "가팀");
+
+  // 동수면 먼저 나온 팀
+  const tied = buildJungmanPlayerRanks([
+    sm("다팀", "나팀", [set("m", "떠돌이", "나1", "home")]),
+    sm("가팀", "나팀", [set("m", "떠돌이", "나1", "home")]),
+  ]);
+  assert.equal(tied.find((r) => r.name === "떠돌이").team, "다팀");
 });
 
 process.exitCode = failed ? 1 : 0;

@@ -78,6 +78,9 @@ export type JungmanTeam = {
 };
 
 // 좌표는 scratchpad/build-map.mjs 투영(1060x520, 인천~잠실 크롭) + 손 보정값 산출물.
+/** 조마다 다른 색. 지도·조 편성·순위표·홈 덱이 같은 순서를 써야 같은 조가 같은 색이다. */
+export const JUNGMAN_GROUP_COLORS = ["#2BE39B", "#4A9EFF", "#C9A84C", "#E0574A"];
+
 export const JUNGMAN_TEAMS: JungmanTeam[] = [
   { code: "DM", name: "DM", color: "#2f3f6e", accent: "#7c8fd6", dark: false, x: 301.3, y: 56.5, pinX: 301.3, pinY: 56.5, aliases: ["DM", "디엠"] },
   { code: "KMS", name: "캄몬스타즈", short: "CALM", color: "#2f6fd0", dark: false, x: 210.9, y: 238.1, pinX: 219.4, pinY: 226.1, aliases: ["캄몬스타즈", "캄몬", "츠캄몬스타즈", "츠캄", "CALM", "TSUCALM"] },

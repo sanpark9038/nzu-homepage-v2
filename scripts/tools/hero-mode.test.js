@@ -50,7 +50,8 @@ test("셋 중 하나만 통과하고 나머지는 null(= 설정된 적 없음)",
 test("홈이 세 갈래를 다 갖는다", () => {
   const page = readProjectFile("app/page.tsx");
   assert.match(page, /import HomeHeroDeck from "@\/components\/home\/HomeHeroDeck"/);
-  assert.match(page, /<HomeHeroDeck titleLines=\{heroTitleLines\} \/>/);
+  assert.match(page, /<HomeHeroDeck\b/);
+  assert.match(page, /titleLines=\{heroTitleLines\}/);
   assert.match(page, /getHeroMode\(\)/);
   // 미디어 조회는 그대로 살아 있어야 한다
   assert.match(page, /getActiveHeroMedia\(/);
@@ -67,18 +68,68 @@ test("기존 이미지·영상 경로가 그대로 남아 있다", () => {
   assert.match(page, /@keyframes heroTitleLift/);
 });
 
-test("커버 덱은 서버 컴포넌트이고 지도 위에 blur를 쓰지 않는다", () => {
+test("덱 모드에서만 조별 순위를 읽고, 실패는 홈을 죽이지 않는다", () => {
+  const page = readProjectFile("app/page.tsx");
+  // 이미지·영상 모드가 쓸데없는 DB 질의를 하면 안 된다
+  assert.match(page, /heroMode === "deck" \? await loadJungmanStandings\(\) : null/);
+  // getSetting은 실패 시 throw한다 — 순위 한 칸 때문에 홈 전체가 죽으면 안 된다
+  assert.match(page, /async function loadJungmanStandings[\s\S]*?try \{[\s\S]*?\} catch/);
+  // 덱은 노드가 아니라 데이터를 받는다 — 자기 표를 자기 높이로 그려야 100svh 안에 들어간다
+  assert.match(page, /tables=\{groupTables\}/);
+  assert.match(page, /matches=\{sortJungmanMatches\(jungmanStandings\?\.matches \?\? \[\]\)\}/);
+  assert.match(page, /playerRanks=\{buildJungmanPlayerRanks\(jungmanStandings\?\.matches \?\? \[\]\)\}/);
+  // /jungman 순위표를 홈이 끌어다 쓰면 스크롤 페이지용 크기가 그대로 따라온다
+  assert.doesNotMatch(page, /<JungmanGroupTables|jungman\/JungmanGroupTables/);
+});
+
+test("커버 덱은 넘어가는 슬라이드 덱이고 지도 위에 blur를 쓰지 않는다", () => {
   const deck = readProjectFile("components/home/HomeHeroDeck.tsx");
-  assert.doesNotMatch(deck, /"use client"/);
+  // 전환·자동넘김을 다루므로 클라이언트 컴포넌트다
+  assert.match(deck, /^"use client";/);
   assert.doesNotMatch(deck, /backdrop-blur|backdrop-filter/);
-  // 관리자가 고치는 문구가 실제로 그려져야 한다
-  assert.match(deck, /titleLines\.map/);
-  assert.match(deck, /heroTitleLift/);
+
+  // 슬라이드마다 머무는 시간이 다르다 (커버 / 조별 순위)
+  assert.match(deck, /ms: 11500/);
+  assert.match(deck, /ms: 9500/);
+  // 진행바는 CSS 애니메이션이다 — width를 매 프레임 바꾸면 레이아웃이 다시 계산된다
+  assert.match(deck, /@keyframes hdBar\{from\{transform:scaleX\(0\)\}/);
+  assert.doesNotMatch(deck, /requestAnimationFrame/);
+  assert.match(deck, /onAnimationEnd=/);
+  // 한 번이라도 직접 넘기면 자동 넘김이 영구히 꺼진다
+  assert.match(deck, /setAuto\(false\)/);
+  // reduce 모드면 자동 넘김을 끄고 진행바를 감춘다
+  assert.match(deck, /prefers-reduced-motion: reduce/);
+  assert.match(deck, /prefers-reduced-motion:reduce/);
+  // 넘기는 수단 셋 — 키보드 · 스와이프 · 버튼
+  assert.match(deck, /ArrowLeft/);
+  assert.match(deck, /changedTouches/);
+  assert.match(deck, /aria-label="이전 슬라이드"/);
+  assert.match(deck, /aria-label="다음 슬라이드"/);
+  // 비활성 슬라이드는 읽히지도 탭되지도 않는다
+  assert.match(deck, /aria-hidden=\{i !== index\}/);
+  assert.match(deck, /inert=\{i !== index\}/);
+  // 지도는 한 장만 만들고 켜지는 조만 바꾼다
+  assert.match(deck, /CYCLE_MS = 2400/);
+  assert.match(deck, /JUNGMAN_TEAMS\.map/);
+  // 덱 커버에는 사이트 히어로 문구를 그리지 않는다 — 목업에 없는 요소이고,
+  // 넣었더니 커버 레이아웃이 아래로 밀려 목업과 다른 화면이 됐다.
+  // prop은 app/page.tsx와의 계약이라 시그니처만 남긴다(이미지·영상 모드에서는 그대로 쓴다).
+  assert.match(deck, /titleLines/);
+  assert.doesNotMatch(deck, /titleLines\.map/);
   // 대회 정보는 lib 상수에서만 온다 — 문구를 두 벌로 적으면 /jungman과 어긋난다
   assert.match(deck, /JUNGMAN_FORMAT_LINE/);
   assert.match(deck, /JUNGMAN_PRIZE_TOTAL/);
   assert.match(deck, /jungmanDaysToFinal/);
   assert.match(deck, /href="\/jungman"/);
+
+  // 순위 슬라이드 높이는 화면에서 계산한다. transform:scale()로 줄이면 레이아웃 높이가 안 줄어 A조가 잘린다
+  assert.match(deck, /--rowh:min\(calc\(55svh \/ 13\),58px\)/);
+  assert.doesNotMatch(deck, /transform:scale\(/);
+  // 경기가 0건이면 곁 패널을 만들지 않고 표가 전체 폭을 쓴다
+  assert.match(deck, /hasMatches = matches\.length > 0/);
+  assert.match(deck, /\.standbody\.is-solo\{grid-template-columns:minmax\(0,1fr\)/);
+  // 좁은 화면에서는 조별 순위만 남는다
+  assert.match(deck, /\.stpanel\{display:none;\}/);
 });
 
 test("커버 문구는 /jungman과 홈이 같은 상수를 쓴다", () => {

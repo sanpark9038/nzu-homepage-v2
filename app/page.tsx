@@ -3,6 +3,15 @@ import Image from "next/image";
 
 import HomeHeroDeck from "@/components/home/HomeHeroDeck";
 import { getActiveHeroMedia, getHeroMode, getHeroTitle, sanitizeHeroMediaType } from "@/lib/hero-media";
+import {
+  buildJungmanGroupTables,
+  buildJungmanPlayerRanks,
+  JUNGMAN_STANDINGS_KEY,
+  parseJungmanStandings,
+  sortJungmanMatches,
+  type JungmanStandings,
+} from "@/lib/jungman-standings";
+import { getSetting } from "@/lib/site-settings";
 
 export const revalidate = 60;
 
@@ -23,10 +32,26 @@ export const metadata = {
   },
 };
 
+/**
+ * 커버 덱의 조별 순위 슬라이드 재료. getSetting은 실패하면 던진다 —
+ * 순위 한 칸을 못 읽었다고 홈 전체가 죽으면 안 되므로 여기서 삼키고 커버 한 장으로 떨어뜨린다.
+ */
+async function loadJungmanStandings(): Promise<JungmanStandings | null> {
+  try {
+    return parseJungmanStandings(await getSetting(JUNGMAN_STANDINGS_KEY));
+  } catch (error) {
+    console.error("failed to load jungman standings for hero deck", error);
+    return null;
+  }
+}
+
 export default async function HomePage() {
   // 모드 키가 없으면(null) 인자 없이 부른다 — 지금까지의 홈과 완전히 같은 질의·같은 화면.
   const heroMode = await getHeroMode();
   const activeHeroMedia = heroMode === "deck" ? null : await getActiveHeroMedia(heroMode ?? undefined);
+  // 순위 질의는 덱 모드에서만 — 이미지·영상 모드의 홈은 예전 그대로 질의해야 한다
+  const jungmanStandings = heroMode === "deck" ? await loadJungmanStandings() : null;
+  const groupTables = jungmanStandings ? buildJungmanGroupTables(jungmanStandings) : [];
   const heroTitleLines = (await getHeroTitle())
     .split("\n")
     .map((line) => line.trim())
@@ -41,7 +66,15 @@ export default async function HomePage() {
       <main>
         <section className="relative isolate h-[100svh] min-h-[min(560px,100svh)] w-full overflow-hidden">
           {heroMode === "deck" ? (
-            <HomeHeroDeck titleLines={heroTitleLines} />
+            <HomeHeroDeck
+              titleLines={heroTitleLines}
+              groups={jungmanStandings?.groups ?? []}
+              // 덱이 자기 표를 직접 그린다 — /jungman 표는 스크롤 페이지용이라 고정 높이에 안 들어간다.
+              // tables가 비면 덱이 커버 한 장이 된다.
+              tables={groupTables}
+              matches={sortJungmanMatches(jungmanStandings?.matches ?? [])}
+              playerRanks={buildJungmanPlayerRanks(jungmanStandings?.matches ?? [])}
+            />
           ) : (
             <>
               {heroMediaUrl && heroMediaType === "video" ? (
