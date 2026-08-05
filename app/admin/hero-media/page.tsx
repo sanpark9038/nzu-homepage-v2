@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
-import { DEFAULT_HERO_TITLE } from "@/lib/hero-media";
+import { DEFAULT_HERO_TITLE, sanitizeHeroMode, type HeroMode } from "@/lib/hero-media";
 import LogoutButton from "../ops/LogoutButton";
 import HeroMediaAdmin from "./HeroMediaAdmin";
 
@@ -52,6 +52,28 @@ async function loadHeroTitle() {
   }
 }
 
+/** 아직 고른 적이 없으면 null — 화면은 "설정하지 않음"으로 그린다 */
+async function loadHeroMode(): Promise<HeroMode | null> {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "hero_mode")
+      .maybeSingle();
+
+    if (error) {
+      if (error.code !== "PGRST205") console.error("failed to load hero mode", error);
+      return null;
+    }
+
+    return sanitizeHeroMode(data?.value);
+  } catch (error) {
+    console.error("failed to initialize hero mode", error);
+    return null;
+  }
+}
+
 export default async function AdminHeroMediaPage() {
   const cookieStore = await cookies();
   const sessionValue = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
@@ -60,7 +82,11 @@ export default async function AdminHeroMediaPage() {
     redirect("/admin/login?next=/admin/hero-media");
   }
 
-  const [initialMedia, initialTitle] = await Promise.all([loadHeroMedia(), loadHeroTitle()]);
+  const [initialMedia, initialTitle, initialMode] = await Promise.all([
+    loadHeroMedia(),
+    loadHeroTitle(),
+    loadHeroMode(),
+  ]);
 
   return (
     <main className="min-h-screen bg-background p-6 text-foreground md:p-10">
@@ -77,7 +103,7 @@ export default async function AdminHeroMediaPage() {
           </p>
         </div>
 
-        <HeroMediaAdmin initialMedia={initialMedia} initialTitle={initialTitle} />
+        <HeroMediaAdmin initialMedia={initialMedia} initialTitle={initialTitle} initialMode={initialMode} />
       </div>
     </main>
   );

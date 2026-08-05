@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getAdminWriteDisabledMessage } from "@/lib/admin-runtime";
+import type { HeroMode } from "@/lib/hero-media";
 
 type HeroMediaEntry = {
   id: string;
@@ -14,13 +15,22 @@ type HeroMediaEntry = {
 
 const MAX_RECOMMENDED_VIDEO_SIZE_MB = 50;
 
+const HERO_MODE_OPTIONS: { value: HeroMode; label: string; hint: string }[] = [
+  { value: "image", label: "이미지", hint: "업로드한 이미지 중 켜둔 것" },
+  { value: "video", label: "영상", hint: "업로드한 영상 중 켜둔 것" },
+  { value: "deck", label: "커버 덱", hint: "K-중만컵 대회 정보" },
+];
+
 export default function HeroMediaAdmin({
   initialMedia,
   initialTitle,
+  initialMode = null,
   readOnly = false,
 }: {
   initialMedia: HeroMediaEntry[];
   initialTitle: string;
+  /** null = 아직 고른 적 없음. 임의로 하나를 고른 것처럼 보이면 안 된다 */
+  initialMode?: HeroMode | null;
   readOnly?: boolean;
 }) {
   const [media, setMedia] = useState<HeroMediaEntry[]>(initialMedia);
@@ -30,6 +40,7 @@ export default function HeroMediaAdmin({
   const [activateOnUpload, setActivateOnUpload] = useState(true);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [title, setTitle] = useState(initialTitle);
+  const [mode, setMode] = useState<HeroMode | null>(initialMode);
 
   useEffect(() => {
     setMedia(initialMedia);
@@ -38,6 +49,34 @@ export default function HeroMediaAdmin({
   useEffect(() => {
     setTitle(initialTitle);
   }, [initialTitle]);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
+  async function saveMode(next: HeroMode) {
+    if (readOnly) {
+      setMessage(getAdminWriteDisabledMessage("히어로 화면 변경"));
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/admin/hero-media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set-mode", mode: next }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "히어로 화면 변경에 실패했습니다.");
+      setMode(json.mode);
+      setMessage(`홈 첫 화면을 '${HERO_MODE_OPTIONS.find((option) => option.value === json.mode)?.label}'로 바꿨습니다.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "히어로 화면 변경에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function saveTitle() {
     if (readOnly) {
@@ -194,6 +233,46 @@ export default function HeroMediaAdmin({
 
   return (
     <div className="space-y-8">
+      <section className="rounded-[2rem] border border-white/10 bg-card p-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-black tracking-tight text-white">히어로 화면</h2>
+          <p className="text-sm text-white/55">
+            {mode === null
+              ? "설정하지 않음 — 지금은 켜둔 미디어를 그대로 씁니다. 하나를 고르면 바로 저장됩니다."
+              : "홈 첫 화면에 무엇을 띄울지 고릅니다. 고르면 바로 저장됩니다."}
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-2">
+          {HERO_MODE_OPTIONS.map((option) => (
+            <label
+              key={option.value}
+              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 ${
+                mode === option.value ? "border-nzu-green/60 bg-nzu-green/10" : "border-white/10 bg-background"
+              }`}
+            >
+              <input
+                type="radio"
+                name="hero-mode"
+                value={option.value}
+                checked={mode === option.value}
+                disabled={loading || readOnly}
+                onChange={() => saveMode(option.value)}
+                className="h-4 w-4"
+              />
+              <span className="text-sm font-black text-white">{option.label}</span>
+              <span className="text-sm text-white/50">{option.hint}</span>
+              {/* 없는 종류를 고르면 홈이 배경만 남고 텅 빈다 — 고르기 전에 알려준다 */}
+              {option.value !== "deck" && !media.some((item) => item.type === option.value) ? (
+                <span className="ml-auto shrink-0 text-xs font-bold text-[#d4a94a]">
+                  올린 {option.label}이 없습니다
+                </span>
+              ) : null}
+            </label>
+          ))}
+        </div>
+      </section>
+
       <section className="rounded-[2rem] border border-white/10 bg-card p-6">
         <div className="space-y-2">
           <h2 className="text-xl font-black tracking-tight text-white">히어로 문구</h2>

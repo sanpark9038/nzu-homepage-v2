@@ -4,19 +4,15 @@ import {
   JUNGMAN_MAP_HEIGHT,
   JUNGMAN_MAP_WIDTH,
 } from "@/components/jungman/map-base";
-
-const FINAL_DATE = "2026-09-19";
-
-/** 그랜드 파이널까지 남은 날. 서버 시각이 UTC라도 한국 날짜를 기준으로 센다. */
-function daysToFinal() {
-  const todayKST = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  return Math.round((Date.parse(FINAL_DATE) - Date.parse(todayKST)) / 86_400_000);
-}
+// 대회 정보와 D-day 계산은 lib/jungman.ts 한 곳에 산다 — 홈 커버 덱이 같은 값을 그린다
+import {
+  JUNGMAN_FINAL_NOTE,
+  JUNGMAN_FINAL_PLACE,
+  JUNGMAN_FORMAT_LINE,
+  JUNGMAN_PRIZE_DETAIL,
+  JUNGMAN_PRIZE_TOTAL,
+  jungmanDaysToFinal as daysToFinal,
+} from "@/lib/jungman";
 
 // 지형 레이어에 필요한 최소 규칙만. 투표 지도 컴포넌트의 <style>은 문서 전역이라 얻어걸리지만,
 // 그쪽이 접힘 안으로 옮겨간 뒤라 의존하면 조용히 깨진다 — 배경은 자기 몫만 들고 있는다.
@@ -74,17 +70,15 @@ export default function JungmanCover() {
           ) : null}
         </div>
 
-        <p className="mt-1.5 text-xs font-bold text-[#d4a94a] md:mt-2 md:text-sm">
-          4개조 12팀 · 전 경기 9전 5선승 · 조 2위까지 8강
-        </p>
+        <p className="mt-1.5 text-xs font-bold text-[#d4a94a] md:mt-2 md:text-sm">{JUNGMAN_FORMAT_LINE}</p>
 
         <dl className="mt-3 grid gap-2 text-sm md:mt-5 md:max-w-[34rem] md:grid-cols-2 md:gap-4">
           <div>
             <dt className="text-[0.625rem] font-bold uppercase tracking-[0.22em] text-[#7a8299]">총상금</dt>
             <dd className="mt-0.5 font-bold text-[#e8ebf2]">
-              3,500만원
+              {JUNGMAN_PRIZE_TOTAL}
               <span className="mt-0.5 block text-xs font-normal leading-relaxed text-[#7a8299]">
-                우승 3,000만원 + 챔피언 벨트 · 준우승 500만원
+                {JUNGMAN_PRIZE_DETAIL}
               </span>
             </dd>
           </div>
@@ -93,9 +87,9 @@ export default function JungmanCover() {
               그랜드 파이널
             </dt>
             <dd className="mt-0.5 font-bold text-[#e8ebf2]">
-              9/19(토) 상암 콜로세움
+              {JUNGMAN_FINAL_PLACE}
               <span className="mt-0.5 block text-xs font-normal leading-relaxed text-[#7a8299]">
-                월 · 화 · 수는 ASL 일정으로 미진행
+                {JUNGMAN_FINAL_NOTE}
               </span>
             </dd>
           </div>

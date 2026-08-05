@@ -8,6 +8,7 @@ import {
   extractHeroMediaObjectPath,
   HERO_MEDIA_BUCKET,
   inferHeroMediaTypeFromFilename,
+  sanitizeHeroMode,
 } from "@/lib/hero-media";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 
@@ -81,6 +82,35 @@ async function setTitle(rawTitle: string) {
   revalidatePath("/");
   revalidatePath("/admin/hero-media");
   return NextResponse.json({ ok: true, title: title || DEFAULT_HERO_TITLE });
+}
+
+// 홈 첫 화면 모드(이미지·영상·커버 덱). 키가 없으면 홈은 지금까지처럼 켜둔 미디어를 쓴다.
+async function setMode(rawMode: string) {
+  const mode = sanitizeHeroMode(rawMode);
+  if (!mode) {
+    return NextResponse.json(
+      { ok: false, message: "히어로 화면은 이미지·영상·커버 덱 중 하나여야 합니다." },
+      { status: 400 }
+    );
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase
+    .from("site_settings")
+    .upsert({ key: "hero_mode", value: mode, updated_at: new Date().toISOString() }, { onConflict: "key" });
+  if (error) {
+    if (error.code === "PGRST205") {
+      return NextResponse.json(
+        { ok: false, message: "site_settings 테이블이 없습니다. scripts/sql/create-site-settings.sql 을 Supabase에서 실행해주세요." },
+        { status: 400 }
+      );
+    }
+    throw error;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/hero-media");
+  return NextResponse.json({ ok: true, mode });
 }
 
 export async function GET() {
@@ -189,11 +219,16 @@ export async function POST(req: Request) {
       path?: string;
       activate?: boolean;
       title?: string;
+      mode?: string;
     };
     const action = String(body.action || "").trim();
 
     if (action === "set-title") {
       return await setTitle(String(body.title ?? ""));
+    }
+
+    if (action === "set-mode") {
+      return await setMode(String(body.mode ?? ""));
     }
 
     if (action === "sign-upload") {

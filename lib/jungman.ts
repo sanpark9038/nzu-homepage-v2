@@ -13,6 +13,25 @@ export const JUNGMAN_LATEST_KEY = "jungman_latest";
 // 수술대는 투표 대상이 아니다 — 4시드 자동 확보. 득표 집계·순위·그래프에서 통째로 빠진다.
 export const JUNGMAN_SEED_TEAM_CODE = "SSU";
 
+// 대회 소개 문구 — /jungman 커버와 홈 커버 덱이 같은 값을 그린다. 두 벌로 적으면 조용히 어긋난다.
+export const JUNGMAN_FINAL_DATE = "2026-09-19";
+export const JUNGMAN_FINAL_PLACE = "9/19(토) 상암 콜로세움";
+export const JUNGMAN_FINAL_NOTE = "월 · 화 · 수는 ASL 일정으로 미진행";
+export const JUNGMAN_PRIZE_TOTAL = "3,500만원";
+export const JUNGMAN_PRIZE_DETAIL = "우승 3,000만원 + 챔피언 벨트 · 준우승 500만원";
+export const JUNGMAN_FORMAT_LINE = "4개조 12팀 · 전 경기 9전 5선승 · 조 2위까지 8강";
+
+/** 그랜드 파이널까지 남은 날. 서버 시각이 UTC라도 한국 날짜를 기준으로 센다. */
+export function jungmanDaysToFinal(): number {
+  const todayKST = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return Math.round((Date.parse(JUNGMAN_FINAL_DATE) - Date.parse(todayKST)) / 86_400_000);
+}
+
 export const JUNGMAN_VOTE_PERIOD_LABEL = "7월 27일 18:00 ~ 7월 30일 24:00";
 export const JUNGMAN_VOTE_METHOD_LABEL = "숲(SOOP) 게시판 인기투표 댓글로 진행합니다.";
 
