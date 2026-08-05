@@ -9,8 +9,6 @@ export type TierFreeze = {
   snapshot: Record<string, string>; // player.id -> 동결 시점 tier 문자열(원본 그대로)
 };
 
-export type FrozenTierInfo = { tier: string; count: number };
-
 /** KV 원문 파싱. 깨진 값이면 조용히 null — 동결 하나 때문에 페이지가 죽으면 안 된다. */
 export function parseTierFreeze(raw: string | null | undefined): TierFreeze | null {
   if (!raw) return null;
@@ -55,22 +53,17 @@ export function buildTierFreezeValue(
   return JSON.stringify({ active: true, frozenAt, snapshot });
 }
 
-/** 동결 티어가 라이브와 다를 때만 정보를 준다(변동 없는 선수는 아무 표시도 안 한다). */
+/** 동결 티어가 라이브와 다를 때만 그 티어를 준다(변동 없는 선수는 null — 아무 표시도 안 한다). */
 export function frozenTierOf(
   freeze: TierFreeze | null,
   playerId: string,
   liveTier: string | null | undefined
-): FrozenTierInfo | null {
+): string | null {
   if (!freeze) return null;
 
   const frozen = freeze.snapshot[playerId];
   if (!frozen) return null;
   if (frozen.trim() === String(liveTier ?? "").trim()) return null;
 
-  let count = 0;
-  for (const tier of Object.values(freeze.snapshot)) {
-    if (tier === frozen) count += 1;
-  }
-
-  return { tier: frozen, count };
+  return frozen;
 }

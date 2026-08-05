@@ -59,7 +59,7 @@ test("동결 티어가 라이브와 다를 때만 정보가 나온다", () => {
   assert.equal(frozenTierOf(freeze, "zzz", "S"), null); // 스냅샷에 없음
   assert.equal(frozenTierOf(null, "a", "A"), null); // 미동결
 
-  // 승급자: 동결 티어 S, 같은 티어 인원 2명(a, b)
-  assert.deepEqual(frozenTierOf(freeze, "a", "SS"), { tier: "S", count: 2 });
-  assert.deepEqual(frozenTierOf(freeze, "c", "S"), { tier: "A", count: 1 });
+  // 승급자만 동결 시점 티어를 돌려준다
+  assert.equal(frozenTierOf(freeze, "a", "SS"), "S");
+  assert.equal(frozenTierOf(freeze, "c", "S"), "A");
 });
