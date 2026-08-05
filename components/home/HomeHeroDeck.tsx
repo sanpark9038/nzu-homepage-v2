@@ -283,8 +283,32 @@ const DECK_STYLE = `
     .hd-prize{margin-left:0;}
     /* 3단이 성립 안 하는 폭이다 — 조별 순위만 남긴다 */
     .stand{width:100%;}
-    .standbody{grid-template-columns:minmax(0,1fr);}
     .stpanel{display:none;}
+
+    /* 폰에서는 산수(--rowh)가 안 맞는다 — 머리글이 접히면 계산에 없던 높이가 생겨 표가 잘린다.
+       남은 높이를 4개조가 그냥 나눠 갖게 해서 어떤 기기에서도 넘치지 않게 한다.
+       그러려면 .stand → .standbody → .stwrap 로 높이가 끊기지 않고 내려가야 한다:
+       .standbody는 .stand(flex column)의 자식이라 flex로 늘리고,
+       .stwrap은 그 grid의 자식이라 flex가 안 먹으므로 height:100%로 받는다.
+       align-items:start를 stretch로 바꾸지 않으면 grid 행이 내용 높이로 쪼그라든다. */
+    .standbody{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);
+      flex:1 1 auto;min-height:0;align-items:stretch;margin-top:6px;}
+    .stwrap{height:100%;min-height:0;gap:6px;}
+    .gblock{flex:1 1 0;min-height:0;display:flex;flex-direction:column;}
+    .gbhead{flex:0 0 auto;min-height:0;padding-top:5px;padding-bottom:5px;}
+    .trow3{flex:1 1 0;min-height:0;}
+    /* 잔여 열을 접는다 — 폰 폭에서 5열은 팀 이름 자리를 뺏는다 */
+    .gbhead,.trow3{grid-template-columns:minmax(0,1fr) 2.4em 2.4em 3.4em;gap:8px;padding:0 11px;}
+    .gbcol.is-last,.tnum.is-last{display:none;}
+    /* "3팀 풀리그"가 세 줄로 접혀 머리글 높이를 밀어올렸다 */
+    .gbsub{display:none;}
+    /* 정렬 기준 한 줄이 두 줄로 접혀 표 자리를 먹는다 */
+    .stsort{display:none;}
+    .sth2{font-size:clamp(19px,5.2vw,26px);}
+    .gbname{font-size:15px;}
+    .tname{font-size:12px;}
+    .tnum{font-size:12px;}
+    .tlogo{width:17px;height:17px;}
   }
   /* 100svh 안에 못 들어가는 화면에서는 곁가지 두 줄을 접는다 */
   @media (max-width:639px),(max-height:620px){
@@ -634,7 +658,8 @@ export default function HomeHeroDeck({
                                 <span className="gbcol">승</span>
                                 <span className="gbcol">패</span>
                                 <span className="gbcol">세트 득실</span>
-                                <span className="gbcol">잔여</span>
+                                {/* 잔여는 좁은 화면에서 접는 열 — 목업도 폰에서 이 열을 뺀다 */}
+                                <span className="gbcol is-last">잔여</span>
                               </div>
                               {table.rows.map((row, ri) => {
                                 const team = jungmanTeamByName(row.team);
@@ -668,7 +693,7 @@ export default function HomeHeroDeck({
                                     >
                                       {row.setDiff > 0 ? `+${row.setDiff}` : row.setDiff}
                                     </span>
-                                    <span className={`tnum${row.remaining ? "" : " is-mut"}`}>
+                                    <span className={`tnum is-last${row.remaining ? "" : " is-mut"}`}>
                                       {row.remaining || "종료"}
                                     </span>
                                   </div>
