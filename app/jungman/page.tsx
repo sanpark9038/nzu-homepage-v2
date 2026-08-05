@@ -13,6 +13,7 @@ import {
 import { playerService } from "@/lib/player-service";
 import { getSetting } from "@/lib/site-settings";
 
+import JungmanCalendar from "./JungmanCalendar";
 import JungmanCover from "./JungmanCover";
 import JungmanGroupTables from "./JungmanGroupTables";
 import JungmanMatchResults from "./JungmanMatchResults";
@@ -75,8 +76,19 @@ export default async function JungmanPage() {
 
         <JungmanGroupTables tables={tables} />
 
-        {/* 아직 안 치른 경기가 위, 치른 경기가 아래 — 시간 순서가 자연스럽다 */}
-        {upcoming.length ? <JungmanSchedule matches={upcoming} /> : null}
+        {/* 아직 안 치른 경기가 위, 치른 경기가 아래 — 시간 순서가 자연스럽다.
+            넓은 화면은 달력(월·화·수가 비는 리듬이 보인다), 폰은 목록.
+            분기는 CSS로만 한다 — JS로 폭을 재면 하이드레이션이 흔들린다 */}
+        {standings?.matches.length ? (
+          <>
+            <div className="hidden md:block">
+              <JungmanCalendar matches={standings?.matches ?? []} />
+            </div>
+            <div className="md:hidden">
+              <JungmanSchedule matches={upcoming} />
+            </div>
+          </>
+        ) : null}
 
         {/* 경기가 없으면 섹션 자체를 그리지 않는다 — 조 편성만 있는 화면이 깨끗해야 한다 */}
         {matches.length ? <JungmanMatchResults matches={matches} players={players} /> : null}

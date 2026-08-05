@@ -32,6 +32,18 @@ export const JUNGMAN_MILESTONES = [
   { date: JUNGMAN_FINAL_DATE, label: "결승", note: "상암 콜로세움", offline: true },
 ] as const;
 
+/** 토너먼트 경기 일정. 대진은 조별리그가 끝나야 정해지므로 날짜와 이름만 갖는다. */
+export const JUNGMAN_TOURNAMENT: { date: string; label: string; round: "8강" | "4강" | "결승" }[] = [
+  { date: "2026-09-03", label: "8강 1경기", round: "8강" },
+  { date: "2026-09-04", label: "8강 2경기", round: "8강" },
+  { date: "2026-09-05", label: "8강 3경기", round: "8강" },
+  { date: "2026-09-06", label: "8강 4경기", round: "8강" },
+  { date: "2026-09-12", label: "4강 1경기", round: "4강" },
+  { date: "2026-09-13", label: "4강 2경기", round: "4강" },
+  // 결승 날짜는 커버·홈 덱이 쓰는 상수를 그대로 재사용한다 — 두 벌로 적으면 조용히 어긋난다
+  { date: JUNGMAN_FINAL_DATE, label: "결승", round: "결승" },
+];
+
 /** 그랜드 파이널까지 남은 날. 서버 시각이 UTC라도 한국 날짜를 기준으로 센다. */
 export function jungmanDaysToFinal(): number {
   const todayKST = new Intl.DateTimeFormat("en-CA", {

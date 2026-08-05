@@ -567,6 +567,54 @@ test("공개 페이지가 예정 경기 일정을 그린다", () => {
   assert.match(schedule, /JUNGMAN_MATCH_TIME/);
 });
 
+// ── 달력 (넓은 화면) ─────────────────────────────────────────────────────
+test("토너먼트 일정 7건 — 결승 날짜는 상수 한 벌에서만 온다", () => {
+  const { JUNGMAN_TOURNAMENT, JUNGMAN_FINAL_DATE } = loadModule("lib/jungman.ts");
+  assert.equal(JUNGMAN_TOURNAMENT.length, 7);
+  assert.deepEqual(
+    JUNGMAN_TOURNAMENT.map((round) => round.round),
+    ["8강", "8강", "8강", "8강", "4강", "4강", "결승"]
+  );
+  assert.equal(JUNGMAN_TOURNAMENT[6].date, JUNGMAN_FINAL_DATE);
+  // 형식이 어긋나면 달력이 조용히 그 칸을 잃는다
+  for (const round of JUNGMAN_TOURNAMENT) {
+    assert.match(round.date, /^\d{4}-\d{2}-\d{2}$/, `label=${round.label}`);
+    assert.ok(round.label, `date=${round.date}`);
+  }
+  // 결승 날짜를 여기에 또 적으면 커버와 조용히 어긋난다 — 상수를 그대로 재사용해야 한다
+  assert.match(readProjectFile("lib/jungman.ts"), /\{ date: JUNGMAN_FINAL_DATE, label: "결승"/);
+});
+
+test("넓은 화면은 달력, 폰은 목록 — 갈리는 곳은 CSS뿐이다", () => {
+  const page = readProjectFile("app/jungman/page.tsx");
+  assert.match(page, /className="hidden md:block"[\s\S]{0,120}<JungmanCalendar/);
+  assert.match(page, /className="md:hidden"[\s\S]{0,120}<JungmanSchedule/);
+  // JS로 폭을 재면 서버·브라우저가 서로 다른 화면을 그린다
+  assert.doesNotMatch(page, /matchMedia|innerWidth/);
+  // 달력은 지난 경기도 그린다 — 예정만 넘기면 8월의 리듬이 반쪽이 된다
+  assert.match(page, /<JungmanCalendar matches=\{standings\?\.matches \?\? \[\]\}/);
+});
+
+test("달력은 클라이언트지만 '오늘'은 마운트 뒤에 채운다", () => {
+  const source = readProjectFile("app/jungman/JungmanCalendar.tsx");
+  assert.match(source, /^"use client";/);
+
+  // 오늘은 서버 렌더에 없다 — 서버 스냅샷이 null이고 브라우저에서만 진짜 값이 온다.
+  // useState+useEffect로 흉내 내면 하이드레이션 불일치를 스스로 만든다(HomeHeroDeck과 같은 규칙).
+  assert.match(source, /\(\) => SEOUL_YMD\.format\(new Date\(\)\),\s*\(\) => null/);
+  assert.doesNotMatch(source, /useEffect\(/);
+  // 시계를 읽는 곳은 그 스냅샷 딱 한 곳뿐이다
+  assert.equal((source.match(/new Date\(\)|Date\.now\(\)/g) || []).length, 1);
+
+  // 격자는 한국 날짜로만 만든다 — 브라우저 시간대가 어디든 같은 칸이 나와야 한다
+  assert.match(source, /timeZone: "Asia\/Seoul"/);
+  assert.doesNotMatch(source, /getUTC|getMonth\(\)|getDate\(\)|getDay\(\)/);
+  // 시각·조 색·토너먼트 일정은 전부 lib 상수에서 온다
+  assert.match(source, /JUNGMAN_MATCH_TIME/);
+  assert.match(source, /JUNGMAN_GROUP_COLORS/);
+  assert.match(source, /JUNGMAN_TOURNAMENT/);
+});
+
 test("커버가 대회 정보를 흡수하고 지도는 투표 결과 안으로 들어갔다", () => {
   const page = readProjectFile("app/jungman/page.tsx");
   assert.match(page, /<JungmanCover/);
