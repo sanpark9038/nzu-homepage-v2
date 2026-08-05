@@ -941,5 +941,6 @@ export function formatVotes(value: number): string {
 
 /** 로고 파일명 규칙 — 팀 코드 소문자, 구두점 제거 (B.A → ba, N.C.S → ncs) */
 export function jungmanLogoPath(code: string): string {
-  return `/teams/${code.toLowerCase().replace(/[^a-z0-9]/g, "")}.png`;
+  // WebP — 13장 합쳐 895KB였던 PNG가 228KB가 된다. 홈 히어로에 12장이 한꺼번에 뜬다.
+  return `/teams/${code.toLowerCase().replace(/[^a-z0-9]/g, "")}.webp`;
 }
