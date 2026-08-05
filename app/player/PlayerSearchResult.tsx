@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
+import { getTierTone, RaceTag, TierBadge, type Race } from "@/components/ui/nzu-badges";
+import type { FrozenTierInfo } from "@/lib/tier-freeze";
 import type { PlayerDetailSummary } from "@/lib/player-detail-summary";
 import type { Player } from "@/lib/player-service";
 import type {
@@ -28,6 +29,7 @@ type Props = {
   detailSummaryLoaded?: boolean;
   detailSummaryEndpoint?: string;
   loadDetailSummaryOnMount?: boolean;
+  frozenTier?: FrozenTierInfo | null;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -58,6 +60,7 @@ function PlayerSearchResultInner({
   detailSummaryLoaded = false,
   detailSummaryEndpoint,
   loadDetailSummaryOnMount = false,
+  frozenTier = null,
 }: Props) {
   type MatchFilter = "recent90" | "all";
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -270,7 +273,20 @@ function PlayerSearchResultInner({
           <div className="grid flex-1 items-stretch gap-3 sm:grid-cols-2 md:grid-cols-4">
             <StatPanel label="학교">{universityLabel}</StatPanel>
             <StatPanel label="티어">
-              <TierBadge tier={player.tier || "미정"} size="md" />
+              {frozenTier ? (
+                <div className="flex flex-col items-start gap-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <TierBadge tier={frozenTier.tier} size="md" />
+                    <span className="text-[11px] font-medium text-white/45 tabular-nums">({frozenTier.count}명)</span>
+                  </div>
+                  <span className="inline-flex items-center rounded-full border border-sky-400/25 bg-sky-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-sky-300">
+                    ❄ 동결중
+                  </span>
+                  <span className="text-[11px] text-white/45">현재 티어: {getTierTone(player.tier).label}</span>
+                </div>
+              ) : (
+                <TierBadge tier={player.tier || "미정"} size="md" />
+              )}
             </StatPanel>
             <StatPanel label="종족">
               <RaceTag race={normalizeRaceValue(player.race)} size="md" />
@@ -348,6 +364,13 @@ function PlayerSearchResultInner({
           </div>
         </div>
       </div>
+
+      {/* 동결 안내는 grid 밖에 둔다 — 안에 넣으면 사진 열(row-span-2) 배치가 밀린다 */}
+      {frozenTier ? (
+        <p className="mt-3 text-[11px] text-white/40">
+          K-중만컵 기간에는 티어가 동결됩니다. 승급하더라도 여기에는 이전 티어가 표시되며, 라이브 티어표에는 승급된 티어가 적용됩니다.
+        </p>
+      ) : null}
 
       {/* ── 상세 리포트 (펼쳤을 때) ── */}
       {isExpanded ? (

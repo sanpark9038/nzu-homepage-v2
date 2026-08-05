@@ -10,6 +10,8 @@ import {
 import { buildPlayerHref } from "@/lib/player-route";
 import { isExactPlayerSearchMatch, playerService, type Player } from "@/lib/player-service";
 import { normalizeRaceValue } from "@/lib/player-matchup-summary";
+import { getSetting } from "@/lib/site-settings";
+import { frozenTierOf, parseTierFreeze, TIER_FREEZE_KEY, type FrozenTierInfo } from "@/lib/tier-freeze";
 import { getUniversityLabel } from "@/lib/university-config";
 import { getTierLabel } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -97,6 +99,16 @@ async function PlayerResultsSection({
     detailSummaryLoaded = true;
   }
 
+  // 동결 KV 하나 때문에 선수 페이지가 죽으면 안 된다 — 실패는 삼키고 미동결로 취급.
+  let frozenTier: FrozenTierInfo | null = null;
+  if (exactMatch) {
+    try {
+      frozenTier = frozenTierOf(parseTierFreeze(await getSetting(TIER_FREEZE_KEY)), exactMatch.id, exactMatch.tier);
+    } catch (error) {
+      console.error("failed to load tier freeze", error);
+    }
+  }
+
   return (
     <div className="mt-4 space-y-4">
       {exactMatch ? (
@@ -118,6 +130,7 @@ async function PlayerResultsSection({
             detailSummaryLoaded={detailSummaryLoaded}
             detailSummaryEndpoint={`/api/player-detail-summary?id=${encodeURIComponent(exactMatch.id)}`}
             loadDetailSummaryOnMount={!detailSummaryLoaded}
+            frozenTier={frozenTier}
           />
         </div>
       ) : null}
