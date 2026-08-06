@@ -3,6 +3,7 @@ const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env.local"), quiet: true });
 const { SOOP_BROAD_LIST_URL, DEFAULT_BROAD_LIST_PAGE_LIMIT, trim, fetchLiveRowsByIds } = require("./lib/soop-open-api");
 const { loadProjectPlayerMetadata, PROJECTS_DIR } = require("./lib/project-player-metadata");
+const { loadPlayerSoopIds } = require("./lib/player-ledger");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const OUTPUT_PATH = path.join(ROOT, "data", "metadata", "soop_live_snapshot.generated.v1.json");
@@ -26,12 +27,15 @@ function toNumber(value, fallback) {
 }
 
 function loadMetadataTargets() {
+  // 숲 ID의 최우선 출처는 선수 대장이다 — prod-sync·live-state sync와 같은 규칙.
+  // 로스터 파일만 읽으면 대장에만 있는 선수(팀 이동으로 행이 재생성된 선수 등)가 통째로 빠진다.
+  const ledgerSoopIds = loadPlayerSoopIds();
   return loadProjectPlayerMetadata()
     .map((row) => ({
       wr_id: Number(row && row.wr_id),
       name: trim((row && row.display_name) || (row && row.name)),
       gender: trim(row && row.gender).toLowerCase(),
-      soop_id: trim(row && row.soop_user_id),
+      soop_id: ledgerSoopIds.get(trim(row && row.entity_id).toLowerCase()) || trim(row && row.soop_user_id),
       entity_id: trim(row && row.entity_id),
       team_code: trim(row && row.team_code),
     }))
@@ -100,7 +104,11 @@ async function main() {
   console.log(`- output: ${OUTPUT_PATH}`);
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}
+
+module.exports = { loadMetadataTargets };
