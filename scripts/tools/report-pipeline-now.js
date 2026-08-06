@@ -91,12 +91,18 @@ function pendingDecisions(servingRows) {
   const items = [];
 
   // 1. 자동 판정이 결론을 못 내 사람 손이 필요한 건
+  // [4]와 같은 기준(2일)으로 신선도를 본다 — 낡은 파일의 숫자를 오늘의 미결로 세면 유령 건수가 뜬다.
   const syncReport = readJsonIfExists(path.join(ROOT, "tmp/reports/team_roster_sync_report.json"), null);
-  if (syncReport) {
+  const syncAge = syncReport ? daysAgo(syncReport.generated_at) : null;
+  if (syncReport && syncAge !== null && syncAge < 2) {
     const mismatches = syncReport.temporary_override_mismatches || [];
     const releases = syncReport.temporary_override_releases || [];
     if (mismatches.length) items.push(`확인 필요 ${mismatches.length}건 (교정과 엘로보드 불일치)`);
     if (releases.length) items.push(`해제 대기 ${releases.length}건 (교정이 관측과 일치)`);
+  } else if (syncReport) {
+    items.push(
+      `로스터 판정은 셈에서 뺐음 — 로컬 동기화 리포트가 낡음(${freshness(syncReport.generated_at)}). 밤 실행 결과를 볼 것`
+    );
   }
 
   // 2. 우리 선수가 "외부인" 이름 규칙에 걸려 수집에서 빠지는 건 (조용한 미수집의 원인)
