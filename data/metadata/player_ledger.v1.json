@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "updated_at": "2026-08-05T04:44:16.618Z",
+  "updated_at": "2026-08-06T10:53:02.001Z",
   "description": "선수 대장 — 예외/교정 단일 장부 (docs/PIPELINE_REDEFINITION.md §3·§5). players=선수(entity_id)당 한 줄(표시명·숲ID·수집제외·로컬 교정), 그 외 상대 신원 결정·상대 별명.",
   "players": {
     "eloboard:male:124": {
@@ -2035,6 +2035,36 @@
     },
     "eloboard:female:1048": {
       "soop_user_id": "janjanoo"
+    },
+    "eloboard:female:1047": {
+      "soop_user_id": "faker1004"
+    },
+    "eloboard:female:151": {
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+    },
+    "eloboard:female:730": {
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+    },
+    "eloboard:female:820": {
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+    },
+    "eloboard:female:901": {
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+    },
+    "eloboard:female:653": {
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+    },
+    "eloboard:female:742": {
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+    },
+    "eloboard:female:796": {
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+    },
+    "eloboard:female:631": {
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+    },
+    "eloboard:female:646": {
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
     }
   },
   "collection_exclusions_without_entity": [
