@@ -745,9 +745,12 @@ test("커버가 다가오는 경기를 데이터로 받아 그린다", () => {
   assert.match(cover, /\{next \? \(/);
   // 이 페이지에서 가장 자주 바뀌는 정보다 — 좁은 곁칸이 아니라 제목 아래 전체 폭을 쓴다
   assert.doesNotMatch(cover, /md:w-\[24rem\]/);
-  // 그 다음 두 경기는 가로로 나란히, 좁은 화면에서만 세로로 쌓인다
+  // 그 다음 두 경기는 오른쪽 좁은 칸에 위아래로 붙는다 — 좌우로 찢어놓으면 한 묶음으로 안 읽힌다
   assert.match(cover, /rest\.slice\(0, 2\)/);
-  assert.match(cover, /grid gap-1 sm:grid-cols-2/);
+  assert.match(cover, /md:grid-cols-5/);
+  assert.match(cover, /rest\.length \? "md:col-span-3" : "md:col-span-5"/);
+  assert.match(cover, /md:col-span-2/);
+  assert.match(cover, /divide-y/);
   // 시각·조 색·로고는 lib 상수와 공용 함수에서만 온다
   assert.match(cover, /JUNGMAN_MATCH_TIME/);
   assert.match(cover, /JUNGMAN_GROUP_COLORS/);
@@ -1211,6 +1214,41 @@ test("누른 순간이 보인다 — 움직임은 reduced-motion에서 꺼진다
   assert.match(source, /motion-reduce:active:scale-100/);
   // 눌리는 곳 두 군데(팀 행 · 경기 줄)가 같은 효과를 쓴다 — 두 벌로 적으면 어긋난다
   assert.equal((source.match(/\$\{PRESS\}/g) ?? []).length, 2);
+});
+
+// ── 커버 링크 · 날짜 칸 ──────────────────────────────────────────────────
+test("커버가 공식 방송국과 승부예측으로 나간다", () => {
+  const cover = readProjectFile("app/jungman/JungmanCover.tsx");
+  // 방송국은 새 탭 — 외부 링크에 opener를 넘기면 안 된다
+  assert.match(cover, /href="https:\/\/www\.sooplive\.com\/station\/ititit"/);
+  assert.match(cover, /target="_blank"/);
+  assert.match(cover, /rel="noopener/);
+  // 승부예측은 사이트 안 이동이다 — <a>로 나가면 페이지를 통째로 다시 받는다
+  assert.match(cover, /import Link from "next\/link"/);
+  assert.match(cover, /<Link\s+href="\/prediction"/);
+});
+
+test("커버의 다음 두 경기가 시각까지 그리고 그 칸은 안 잘린다", () => {
+  const cover = readProjectFile("app/jungman/JungmanCover.tsx");
+  // 시각은 lib 상수에서만 온다 — 두 벌로 적으면 조용히 어긋난다
+  assert.match(cover, /\$\{formatMatchDate\(match\.date\)\} \$\{JUNGMAN_MATCH_TIME\}/);
+  // 날짜+시각 칸은 줄지도 잘리지도 않는다 (잘릴 몫은 팀 이름이 진다)
+  // [^<]는 다른 태그로 넘어가지 않게 잡아둔다 — 엉뚱한 className을 물면 검사가 헛돈다
+  const cell = cover.match(/className="([^"]*)"[^<]{0,200}\{match\.date \? `\$\{formatMatchDate/);
+  assert.ok(cell, "커버의 날짜 칸을 못 찾았다");
+  assert.ok(/shrink-0/.test(cell[1]) && /whitespace-nowrap/.test(cell[1]), cell[1]);
+  assert.ok(/truncate/.test(cover.match(/<span className="([^"]*)">\s*\{match\.home\}/)[1]));
+});
+
+test("펼침 경기 줄의 날짜 칸도 안 잘린다", () => {
+  const source = readProjectFile("app/jungman/JungmanGroupTables.tsx");
+  const cell = source.match(/<span className="([^"]*)">\s*\{head\}/);
+  assert.ok(cell, "펼침의 날짜 칸을 못 찾았다");
+  assert.ok(/shrink-0/.test(cell[1]) && /whitespace-nowrap/.test(cell[1]), cell[1]);
+  assert.ok(!/truncate/.test(cell[1]), cell[1]);
+  // 넓은 화면에서는 시각까지 들어간다 — 첫 칸이 그만큼 넓어야 안 넘친다
+  assert.match(source, /md:grid-cols-\[4\.8rem_1fr_auto_1fr_2\.4rem\]/);
+  assert.match(source, /JUNGMAN_MATCH_TIME/);
 });
 
 process.exitCode = failed ? 1 : 0;

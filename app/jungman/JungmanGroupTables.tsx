@@ -80,8 +80,12 @@ function useTodayKST(): string | null {
 const TH = "text-right text-[0.625rem] font-bold tracking-[0.06em] text-[#7a8299] md:text-[0.6875rem]";
 const NUM = "text-right font-black tabular-nums text-[#e8ebf2] text-sm md:text-lg";
 const SUB = "px-1 pt-2 text-[0.625rem] font-black tracking-[0.06em] text-[#7a8299]";
-/** 경기 한 줄: 날짜 · 홈 · 가운데(점수/vs) · 원정 · 꼬리(승패/D-day) */
-const LINE = "grid grid-cols-[3.6rem_1fr_auto_1fr_2.4rem] items-center gap-1 py-1 md:gap-2";
+/**
+ * 경기 한 줄: 날짜 · 홈 · 가운데(점수/vs) · 원정 · 꼬리(승패/D-day).
+ * 첫 칸은 넓은 화면에서 시각까지 받는다 — "8/8(토) 19:00"이 통째로 들어갈 만큼 넓어야 안 잘린다.
+ */
+const LINE =
+  "grid grid-cols-[3.6rem_1fr_auto_1fr_2.4rem] items-center gap-1 py-1 md:grid-cols-[4.8rem_1fr_auto_1fr_2.4rem] md:gap-2";
 
 /** 못 찾는 팀 이름(오타·외부팀)은 로고 없이 이름만 */
 function TeamSide({ name, align, bold }: { name: string; align: "left" | "right"; bold: boolean }) {
@@ -172,7 +176,8 @@ function MatchLine({
 
   const line = (
     <>
-      <span className="truncate text-[0.625rem] font-bold tabular-nums text-[#7a8299]">
+      {/* 날짜·시각은 안 잘린다 — 잘릴 몫은 옆의 팀 이름이 진다 */}
+      <span className="shrink-0 whitespace-nowrap text-[0.625rem] font-bold tabular-nums text-[#7a8299]">
         {head}
         {!match.decided && match.date ? (
           <span className="hidden md:inline"> {JUNGMAN_MATCH_TIME}</span>

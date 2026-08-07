@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 // 대회 정보와 D-day 계산은 lib/jungman.ts 한 곳에 산다 — 홈 커버 덱이 같은 값을 그린다
 import {
@@ -44,7 +45,7 @@ function ddayLabel(date: string, todayKST: string): string | null {
 }
 
 /** 못 찾는 팀 이름(오타·외부팀)은 로고 없이 이름만 */
-function TeamSide({ name, align }: { name: string; align: "left" | "right" }) {
+function TeamSide({ name, logoFirst }: { name: string; logoFirst: boolean }) {
   const code = jungmanTeamByName(name)?.code;
   const logo = code ? (
     <Image
@@ -52,14 +53,14 @@ function TeamSide({ name, align }: { name: string; align: "left" | "right" }) {
       alt=""
       width={56}
       height={56}
-      className="h-9 w-9 shrink-0 object-contain md:h-14 md:w-14"
+      className="h-9 w-9 shrink-0 object-contain md:h-12 md:w-12"
     />
   ) : null;
   const label = <span className="truncate text-base font-black text-[#e8ebf2] md:text-2xl">{name}</span>;
 
   return (
-    <span className={`flex min-w-0 items-center gap-2 ${align === "right" ? "justify-end" : ""}`}>
-      {align === "right" ? (
+    <span className="flex min-w-0 items-center gap-2">
+      {logoFirst ? (
         <>
           {logo}
           {label}
@@ -105,6 +106,17 @@ export default function JungmanCover({ upcoming = [] }: { upcoming?: JungmanStan
                 {dday > 0 ? `D-${dday}` : "D-DAY"}
               </span>
             ) : null}
+            {/* 이 대회를 어디서 보는지 — 커버 밖으로 밀어내면 찾을 곳이 없다. 폰에서는 제목 아래로 내려간다 */}
+            <a
+              href="https://www.sooplive.com/station/ititit"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[#7a8299] px-3 text-[0.6875rem] font-bold text-[#e8ebf2] transition-colors hover:border-[#d4a94a] hover:text-[#d4a94a] md:text-xs"
+            >
+              <span aria-hidden>▶</span>
+              공식 방송국
+              <span aria-hidden>↗</span>
+            </a>
           </div>
 
           <p className="mt-1.5 text-xs font-bold text-[#d4a94a] md:mt-2 md:text-sm">{JUNGMAN_FORMAT_LINE}</p>
@@ -112,15 +124,18 @@ export default function JungmanCover({ upcoming = [] }: { upcoming?: JungmanStan
           <p className="mt-1 text-[0.6875rem] text-[#7a8299] md:text-xs">{JUNGMAN_BRACKET_NOTE}</p>
         </div>
 
-        {/* 다가오는 경기 — 가장 가까운 하나를 패널 폭 전체로, 그 뒤 둘은 가로로 나란히 */}
+        {/* 다가오는 경기 — 왼쪽 큰 카드(코앞 경기)와 오른쪽 좁은 칸(그 뒤 둘)이 한 줄에 선다 */}
         {next ? (
-          <div className="min-w-0">
+          <div className="grid min-w-0 gap-2 md:grid-cols-5 md:gap-3">
             <div
-              className="rounded-[1rem] border bg-[rgba(11,15,26,0.55)] px-3 py-3 md:px-5 md:py-4"
+              className={`min-w-0 rounded-[1rem] border bg-[rgba(11,15,26,0.55)] px-3 py-3 md:px-5 md:py-4 ${
+                rest.length ? "md:col-span-3" : "md:col-span-5"
+              }`}
               style={{ borderColor: nextColor }}
             >
-              <p className="flex flex-wrap items-center gap-2 text-[0.6875rem] font-bold md:text-xs">
-                <span className="font-bold uppercase tracking-[0.22em] text-[#7a8299]">다음 경기</span>
+              {/* 제목·D-day·일시·조가 한 줄이다 — 뱃지가 따로 놀면 그만큼 세로를 먹는다 */}
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.6875rem] font-bold md:text-xs">
+                <span className="uppercase tracking-[0.22em] text-[#7a8299]">다음 경기</span>
                 {nextDday ? (
                   <span
                     className="rounded px-1.5 py-0.5 font-black"
@@ -129,34 +144,44 @@ export default function JungmanCover({ upcoming = [] }: { upcoming?: JungmanStan
                     {nextDday}
                   </span>
                 ) : null}
-              </p>
-              {/* 좌우는 홈·원정 자리로 고정한다 — 순서가 흔들리면 소속이 안 보인다 */}
-              <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2 md:mt-3 md:gap-5">
-                <TeamSide name={next.home} align="right" />
-                <span className="text-center text-[0.625rem] font-bold leading-tight md:text-xs">
-                  {next.date ? (
-                    <span className="block tabular-nums text-[#7a8299]">
-                      {formatMatchDate(next.date)} {JUNGMAN_MATCH_TIME}
-                    </span>
-                  ) : null}
-                  <span className="block font-black" style={{ color: nextColor }}>
+                <span className="tabular-nums text-[#7a8299]">
+                  {next.date ? `${formatMatchDate(next.date)} ${JUNGMAN_MATCH_TIME} · ` : null}
+                  <span className="font-black" style={{ color: nextColor }}>
                     {next.group}
                   </span>
                 </span>
-                <TeamSide name={next.away} align="left" />
+              </p>
+              {/* 좌우는 홈·원정 자리로 고정한다 — 순서가 흔들리면 소속이 안 보인다 */}
+              <div className="mt-2 flex flex-col gap-2 md:mt-2.5 md:flex-row md:items-center md:gap-4">
+                <div className="flex min-w-0 items-center gap-2 md:gap-4">
+                  <TeamSide name={next.home} logoFirst />
+                  <span className="shrink-0 text-[0.625rem] font-black text-[#7a8299] md:text-xs">vs</span>
+                  <TeamSide name={next.away} logoFirst={false} />
+                </div>
+                {/* 폰에서는 팀명 아래 줄로 내려간다 — 같은 줄에 두면 팀 이름이 밀린다 */}
+                <Link
+                  href="/prediction"
+                  className="inline-flex min-h-8 shrink-0 items-center gap-1 self-start rounded-full bg-nzu-green px-3 text-[0.6875rem] font-black text-black md:ml-auto md:text-xs"
+                >
+                  승부예측 <span aria-hidden>→</span>
+                </Link>
               </div>
             </div>
 
-            {/* 좁은 화면에서는 세로로 쌓인다 */}
+            {/* 그 뒤 둘은 붙여서 한 묶음으로 읽힌다 — 폰에서는 큰 카드 아래로 내려간다 */}
             {rest.length ? (
-              <ul className="mt-2 grid gap-1 sm:grid-cols-2 sm:gap-3">
+              <ul className="flex min-w-0 flex-col justify-center divide-y divide-[rgba(155,185,240,0.14)] rounded-[1rem] border border-[rgba(155,185,240,0.14)] bg-[rgba(11,15,26,0.55)] px-3 md:col-span-2">
                 {rest.slice(0, 2).map((match, index) => (
                   <li
                     key={`${match.date ?? ""}-${match.home}-${match.away}-${index}`}
-                    className="flex items-center gap-2 truncate px-1 text-[0.6875rem] text-[#7a8299] md:text-xs"
+                    className="flex min-w-0 items-center gap-2 py-1.5 text-[0.6875rem] text-[#7a8299] md:py-2 md:text-xs"
                   >
-                    <span className="tabular-nums" style={{ color: groupColor(match.group) }}>
-                      {match.date ? formatMatchDate(match.date) : match.group}
+                    {/* 날짜+시간은 절대 안 잘린다 — 잘릴 몫은 아래 팀 이름이 진다 */}
+                    <span
+                      className="shrink-0 whitespace-nowrap tabular-nums"
+                      style={{ color: groupColor(match.group) }}
+                    >
+                      {match.date ? `${formatMatchDate(match.date)} ${JUNGMAN_MATCH_TIME} ·` : match.group}
                     </span>
                     <span className="truncate font-bold text-[#e8ebf2]">
                       {match.home} vs {match.away}
