@@ -6,10 +6,12 @@ import { getActiveHeroMedia, getHeroMode, getHeroTitle, sanitizeHeroMediaType } 
 import {
   buildJungmanGroupTables,
   buildJungmanPlayerRanks,
+  buildJungmanScenarios,
   JUNGMAN_STANDINGS_KEY,
   parseJungmanStandings,
   sortJungmanMatches,
   upcomingJungmanMatches,
+  type JungmanScenario,
   type JungmanStandings,
 } from "@/lib/jungman-standings";
 import { getSetting } from "@/lib/site-settings";
@@ -53,6 +55,10 @@ export default async function HomePage() {
   // 순위 질의는 덱 모드에서만 — 이미지·영상 모드의 홈은 예전 그대로 질의해야 한다
   const jungmanStandings = heroMode === "deck" ? await loadJungmanStandings() : null;
   const groupTables = jungmanStandings ? buildJungmanGroupTables(jungmanStandings) : [];
+  // 진출/탈락 확정 여부 — 남은 경기를 전수 조사한다. standings가 덱 모드에서만 채워지므로 계산도 덱 모드에서만 돈다
+  const jungmanScenarios = jungmanStandings
+    ? buildJungmanScenarios(jungmanStandings)
+    : new Map<string, JungmanScenario[]>();
   const heroTitleLines = (await getHeroTitle())
     .split("\n")
     .map((line) => line.trim())
@@ -73,6 +79,7 @@ export default async function HomePage() {
               // 덱이 자기 표를 직접 그린다 — /jungman 표는 스크롤 페이지용이라 고정 높이에 안 들어간다.
               // tables가 비면 덱이 커버 한 장이 된다.
               tables={groupTables}
+              scenarios={jungmanScenarios}
               matches={sortJungmanMatches(jungmanStandings?.matches ?? [])}
               upcoming={upcomingJungmanMatches(jungmanStandings?.matches ?? [])}
               playerRanks={buildJungmanPlayerRanks(jungmanStandings?.matches ?? [])}

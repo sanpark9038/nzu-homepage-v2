@@ -33,6 +33,7 @@ import {
 import type {
   JungmanGroupTable,
   JungmanPlayerRank,
+  JungmanScenario,
   JungmanStandingsGroup,
   JungmanStandingsMatch,
 } from "@/lib/jungman-standings";
@@ -140,6 +141,20 @@ function splitPrizeDetail(detail: string): { win: string; winExtra: string; runn
   const head = parts.length > 1 ? parts.slice(0, -1).join(" · ") : detail;
   const [win, winExtra = ""] = head.split(/\s*\+\s*/);
   return { win, winExtra, runner };
+}
+
+/**
+ * 고른 팀의 곁 패널 맨 위 한 줄. 짧은 순서대로 먼저 걸린다.
+ * 문구는 /jungman의 JungmanGroupTables와 한 글자도 다르면 안 된다(두 화면이 갈라진다).
+ */
+function scenarioLine(s: JungmanScenario | undefined): string | null {
+  if (!s) return null;
+  if (s.clinched) return "8강 진출 확정";
+  if (s.eliminated) return "탈락 확정";
+  if (s.winClinches && s.lossEliminates) return "다음 경기에서 이기면 진출, 지면 탈락";
+  if (s.winClinches) return "다음 경기를 이기면 진출 확정";
+  if (s.lossEliminates) return "다음 경기를 지면 탈락";
+  return null;
 }
 
 const DECK_STYLE = `
@@ -319,6 +334,11 @@ const DECK_STYLE = `
   .tlogo{width:clamp(19px,1.7vw,28px);height:clamp(19px,1.7vw,28px);object-fit:contain;flex:0 0 auto;}
   .tname{font-size:clamp(12px,1.15vw,18px);font-weight:800;color:#fff;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* 진출/탈락 알약 — 확정된 것만. /jungman 표와 같은 색·크기다.
+     좁은 열이라 이름이 아니라 알약이 자리를 지킨다(이름은 ellipsis로 줄어든다) */
+  .tpill{flex:0 0 auto;border-radius:999px;padding:.1em .5em;font-size:.625rem;font-weight:900;line-height:1.6;}
+  .tpill.is-go{color:#2BE39B;background:rgba(43,227,155,.16);}
+  .tpill.is-out{color:#7a8299;background:rgba(122,130,153,.16);}
   .tnum{font-size:clamp(12px,1.1vw,17px);font-weight:800;color:#cfd6e6;text-align:right;
     font-variant-numeric:tabular-nums;}
   .tnum.is-up{color:#2BE39B;}
@@ -339,6 +359,9 @@ const DECK_STYLE = `
   .stpsub{padding:clamp(5px,.7vh,9px) clamp(11px,1vw,18px);border-top:1px solid rgba(255,255,255,.05);
     font-size:clamp(9px,.78vw,11.5px);font-weight:900;letter-spacing:.08em;color:#7a8299;}
   .stpht + .stpsub,.stpsub + .mrow{border-top:none;}
+  /* 경우의 수 한 줄 — 팀 이름 바로 아래, 경기 목록 위 */
+  .stpsc{padding:clamp(5px,.7vh,9px) clamp(11px,1vw,18px);background:rgba(155,185,240,.06);
+    font-size:clamp(10px,.88vw,13px);font-weight:900;color:#e8ebf2;}
 
   .mrow{display:flex;align-items:center;gap:clamp(6px,.7vw,12px);
     padding:clamp(6px,.9vh,11px) clamp(11px,1vw,18px);border-top:1px solid rgba(255,255,255,.05);}
@@ -406,6 +429,8 @@ const DECK_STYLE = `
     .sth2{font-size:clamp(19px,5.2vw,26px);}
     .gbname{font-size:15px;}
     .tname{font-size:12px;}
+    /* 곁 패널이 없는 폭이다 — 알약은 표 안이라 폰에서도 남긴다. 대신 더 작게 */
+    .tpill{font-size:.5625rem;padding:.1em .38em;}
     .tnum{font-size:12px;}
     .tlogo{width:17px;height:17px;}
   }
@@ -620,6 +645,7 @@ export default function HomeHeroDeck({
   // titleLines는 app/page.tsx와의 prop 계약이라 받기만 한다 — 커버 디자인에 없는 요소라 그리지 않는다
   groups = [],
   tables = [],
+  scenarios,
   // 고른 팀이 있으면 아래에서 걸러 쓴다 — 원본은 커버(다가오는 경기)가 그대로 쓴다
   matches: allMatches = [],
   upcoming: allUpcoming = [],
@@ -630,6 +656,8 @@ export default function HomeHeroDeck({
   groups?: JungmanStandingsGroup[];
   /** 조별 순위표. 비면 순위 슬라이드를 아예 만들지 않는다 */
   tables?: JungmanGroupTable[];
+  /** 조 이름 → 팀별 진출 경우의 수. 계산은 서버가 한다 */
+  scenarios?: Map<string, JungmanScenario[]>;
   /** 최신순으로 이미 정렬된 경기. 비면 곁 패널 두 칸을 안 만든다 */
   matches?: JungmanStandingsMatch[];
   /** 가까운 날짜부터 정렬된 예정 경기. 비면 커버의 "다가오는 경기" 블록을 안 만든다 */
@@ -665,6 +693,11 @@ export default function HomeHeroDeck({
 
   const activeTeam = teamHover ?? teamPin;
   const activeLogo = activeTeam ? jungmanTeamByName(activeTeam) : null;
+  // 조별로 나뉜 경우의 수를 팀 이름 하나로 찾게 편다 — 12팀뿐이라 memo를 걸 만한 값이 아니다
+  const scenarioOf = new Map<string, JungmanScenario>();
+  for (const list of scenarios?.values() ?? []) for (const s of list) scenarioOf.set(s.team, s);
+  // 고른 팀의 경우의 수 한 줄. 할 말이 없으면 null — 빈 줄은 안 그린다
+  const activeLine = activeTeam ? scenarioLine(scenarioOf.get(activeTeam)) : null;
   const ofTeam = (match: JungmanStandingsMatch) => match.home === activeTeam || match.away === activeTeam;
   // 팀을 고르면 곁 패널 두 칸이 그 팀만 본다. 안 골랐으면 전체 그대로다
   const matches = activeTeam ? allMatches.filter(ofTeam) : allMatches;
@@ -1050,6 +1083,9 @@ export default function HomeHeroDeck({
                               </div>
                               {table.rows.map((row, ri) => {
                                 const team = jungmanTeamByName(row.team);
+                                // 확정된 것만 알약이 된다 — 미확정에 뭘 붙이면 글자만 는다
+                                const s = scenarioOf.get(row.team);
+                                const pill = s?.clinched ? "진출" : s?.eliminated ? "탈락" : "";
                                 return (
                                   <button
                                     key={row.team}
@@ -1059,7 +1095,8 @@ export default function HomeHeroDeck({
                                       ri === 1 && ri < table.rows.length - 1 ? " is-cut" : ""
                                     }${activeTeam === row.team ? " is-pick" : ""}`}
                                     aria-pressed={teamPin === row.team}
-                                    aria-label={`${row.team} 경기 보기`}
+                                    // aria-label이 행 내용을 통째로 가린다 — 알약도 여기에 실어야 읽힌다
+                                    aria-label={`${row.team} 경기 보기${pill ? ` · ${pill} 확정` : ""}`}
                                     onClick={() => pickTeam(row.team)}
                                     // 호버 미리보기는 마우스가 있는 기기에서만 — 터치에서는 탭 한 번에 상태가 붙어 안 풀린다
                                     onMouseEnter={canHover ? () => setTeamHover(row.team) : undefined}
@@ -1077,6 +1114,11 @@ export default function HomeHeroDeck({
                                         />
                                       ) : null}
                                       <span className="tname">{row.team}</span>
+                                      {pill ? (
+                                        <span className={`tpill ${s?.clinched ? "is-go" : "is-out"}`}>
+                                          {pill}
+                                        </span>
+                                      ) : null}
                                     </span>
                                     <span className="tnum">{row.wins}</span>
                                     <span className="tnum">{row.losses}</span>
@@ -1113,6 +1155,8 @@ export default function HomeHeroDeck({
                             ) : null}
                             {activeTeam}
                           </p>
+                          {/* 경우의 수 한 줄 — 문구는 /jungman과 같다 */}
+                          {activeLine ? <p className="stpsc">{activeLine}</p> : null}
                           {/* 화면 높이를 넘기면 안 된다 — 위아래 각각 4경기까지만 */}
                           {hasMatches ? <p className="stpsub">경기 결과</p> : null}
                           {matches.slice(0, 4).map((match, mi) => (

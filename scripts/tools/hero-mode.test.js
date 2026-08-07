@@ -295,6 +295,47 @@ test("순위 슬라이드는 개인 순위 칸을 넓게 준다", () => {
   assert.match(deck, /grid-template-columns:minmax\(0,1fr\) 2\.8em 2\.8em 4em 4\.2em/);
 });
 
+test("순위 슬라이드가 진출 경우의 수를 함께 보여준다", () => {
+  const page = readProjectFile("app/page.tsx");
+  const deck = readProjectFile("components/home/HomeHeroDeck.tsx");
+  const groupTables = readProjectFile("app/jungman/JungmanGroupTables.tsx");
+
+  // 계산은 서버가 한다. jungmanStandings가 덱 모드에서만 채워지므로(위 테스트) 계산도 덱 모드에서만 돈다 —
+  // 이미지·영상 모드가 조당 최대 1,000가지 전수 조사를 돌면 안 된다
+  assert.match(page, /jungmanStandings\s*\?\s*buildJungmanScenarios\(jungmanStandings\)/);
+  assert.match(page, /scenarios=\{jungmanScenarios\}/);
+  assert.match(deck, /scenarios\?: Map<string, JungmanScenario\[\]>/);
+  // 덱은 계산하지 않는다 — 클라이언트에서 전수 조사를 다시 돌리면 안 된다
+  assert.doesNotMatch(deck, /buildJungmanScenarios/);
+
+  // 알약은 확정된 것만. 미확정에 뭘 붙이면 한 화면에 글자만 는다
+  assert.match(deck, /const pill = s\?\.clinched \? "진출" : s\?\.eliminated \? "탈락" : ""/);
+  // aria-label이 행 내용을 통째로 가린다 — 알약도 여기에 실려야 읽힌다
+  assert.match(deck, /aria-label=\{`\$\{row\.team\} 경기 보기\$\{pill \? ` · \$\{pill\} 확정` : ""\}`\}/);
+  // 곁 패널 한 줄은 할 말이 있을 때만
+  assert.match(deck, /\{activeLine \? <p className="stpsc">\{activeLine\}<\/p> : null\}/);
+  assert.match(deck, /const activeLine = activeTeam \? scenarioLine\(scenarioOf\.get\(activeTeam\)\) : null/);
+
+  // 문구는 /jungman과 한 글자도 달라선 안 된다 — 두 벌이 되면 조용히 어긋난다
+  for (const line of [
+    "8강 진출 확정",
+    "탈락 확정",
+    "다음 경기에서 이기면 진출, 지면 탈락",
+    "다음 경기를 이기면 진출 확정",
+    "다음 경기를 지면 탈락",
+  ]) {
+    assert.ok(deck.includes(line), `덱에 없음: ${line}`);
+    assert.ok(groupTables.includes(line), `/jungman에 없음: ${line}`);
+  }
+
+  // 폰에서는 곁 패널(.stpanel)이 없다 — 알약은 표 안이라 폰에서도 살아 있어야 한다
+  assert.doesNotMatch(deck, /\.tpill\{[^}]*display:none/);
+  assert.match(deck, /\.tpill\.is-go\{color:#2BE39B/);
+  assert.match(deck, /\.tpill\.is-out\{color:#7a8299/);
+  // 좁은 열이다 — 알약이 팀 이름을 밀어내면 안 된다
+  assert.match(deck, /\.tpill\{flex:0 0 auto/);
+});
+
 test("커버 문구는 /jungman과 홈이 같은 상수를 쓴다", () => {
   const lib = readProjectFile("lib/jungman.ts");
   assert.match(lib, /JUNGMAN_FINAL_DATE = "2026-09-19"/);
