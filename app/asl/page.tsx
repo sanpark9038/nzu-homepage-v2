@@ -15,8 +15,10 @@ import {
   ASL_ROUNDS,
   ASL_SEASON,
   ASL_SEEDS,
+  ASL_STATION_URL,
   ASL_VENUE_NOTE,
   aslDaysToOpening,
+  aslGroupByLabel,
   aslNextBroadcast,
   formatAslDate,
   type AslPlayer,
@@ -59,6 +61,8 @@ function PlayerLine({ player }: { player: AslPlayer }) {
 export default async function AslPage() {
   const dday = aslDaysToOpening();
   const next = aslNextBroadcast();
+  // "ASL A조"면 그 조의 4명을 커버에 같이 편다. 조지명식이면 조가 없어 null이다
+  const nextGroup = next ? aslGroupByLabel(next.label) : null;
   // 달력의 회색 줄일 뿐이다 — KV를 못 읽는다고 ASL 소개 페이지가 죽으면 안 된다
   const standings = parseJungmanStandings(
     await getSetting(JUNGMAN_STANDINGS_KEY).catch(() => null)
@@ -79,24 +83,63 @@ export default async function AslPage() {
         <section className={`${PANEL} mb-3 md:mb-4`}>
           <div className="flex flex-col gap-4 px-4 py-4 md:gap-5 md:px-6 md:py-6">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-black tracking-tight md:text-4xl">{ASL_SEASON}</h1>
-                {/* 개막이 지나면 뱃지는 의미가 없다 — 그냥 안 그린다 */}
-                {dday >= 0 ? (
-                  <span className="rounded bg-[#d4a94a]/15 px-2 py-0.5 text-[0.6875rem] font-black tabular-nums text-[#d4a94a]">
-                    {dday > 0 ? `D-${dday}` : "D-DAY"}
-                  </span>
-                ) : null}
+              {/* 왼쪽은 대회 이름, 오른쪽은 "지금 보러 가는" 링크 — 폰에서는 아래로 접힌다 */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-black tracking-tight md:text-4xl">{ASL_SEASON}</h1>
+                  {/* 개막이 지나면 뱃지는 의미가 없다 — 그냥 안 그린다 */}
+                  {dday >= 0 ? (
+                    <span className="rounded bg-[#fb923c]/15 px-2 py-0.5 text-[0.6875rem] font-black tabular-nums text-[#fb923c]">
+                      {dday > 0 ? `D-${dday}` : "D-DAY"}
+                    </span>
+                  ) : null}
+                </div>
+                <a
+                  href={ASL_STATION_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#fb923c]/40 px-3 py-1 text-[0.6875rem] font-bold text-[#fb923c] transition-colors hover:bg-[#fb923c]/10 md:text-xs"
+                >
+                  SOOP 공식 방송국 ↗
+                </a>
               </div>
 
-              <p className="mt-1.5 text-xs font-bold text-[#d4a94a] md:mt-2 md:text-sm">
+              <p className="mt-1.5 text-xs font-bold text-[#fb923c] md:mt-2 md:text-sm">
                 {formatAslDate(ASL_OPENING_DATE)} 개막 · {formatAslDate(ASL_FINAL_DATE)} 결승 · 저녁 7시
                 생방송
               </p>
               <p className="mt-1 text-[0.6875rem] text-[#7a8299] md:text-xs">{ASL_VENUE_NOTE}</p>
             </div>
 
-            <dl className="grid gap-2 text-sm md:grid-cols-2 md:gap-4">
+            {/* 이 페이지에서 가장 자주 바뀌는 정보다 — dl 한 칸에 접어 넣지 않고 카드로 세운다 */}
+            {next ? (
+              <div className="min-w-0 rounded-[1rem] border border-[#fb923c] bg-[rgba(11,15,26,0.55)] px-3 py-3 md:px-5 md:py-4">
+                {/* D-day 칩은 위 h1 옆에 이미 있다 — 여기서 또 그리지 않는다 */}
+                <p className={LABEL}>다음 방송</p>
+                <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 md:mt-1.5">
+                  <span className="text-base font-black tabular-nums text-[#e8ebf2] md:text-2xl">
+                    {formatAslDate(next.date)} {ASL_MATCH_TIME}
+                  </span>
+                  <span className="text-xs font-black text-[#fb923c] md:text-sm">{next.label}</span>
+                </p>
+                {nextGroup ? (
+                  <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 md:mt-3">
+                    {nextGroup.players.map((player) => (
+                      <PlayerLine key={player.name} player={player} />
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-[0.6875rem] text-[#7a8299] md:text-xs">
+                    24강을 통과한 12명과 시드 4명이 16강 조를 짠다
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-[#7a8299]">조지명식 이후 일정 미공개</p>
+            )}
+
+            {/* 총상금과 맵만 남는다 — 한 열이면 총상금 옆이 비지 않는다 */}
+            <dl className="grid gap-2 text-sm md:gap-4">
               <div>
                 <dt className={LABEL}>총상금</dt>
                 <dd className="mt-0.5 font-bold text-[#e8ebf2]">
@@ -106,23 +149,8 @@ export default async function AslPage() {
                   </span>
                 </dd>
               </div>
-              <div>
-                <dt className={LABEL}>다음 방송</dt>
-                <dd className="mt-0.5 font-bold text-[#e8ebf2]">
-                  {next ? (
-                    <>
-                      {formatAslDate(next.date)} {ASL_MATCH_TIME}
-                      <span className="mt-0.5 block text-xs font-normal leading-relaxed text-[#7a8299]">
-                        {next.label}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="font-normal text-[#7a8299]">조지명식 이후 일정 미공개</span>
-                  )}
-                </dd>
-              </div>
               {/* 맵은 한 줄짜리 정보다 — 섹션을 따로 세우면 자리만 먹는다. 커버가 같이 담는다 */}
-              <div className="md:col-span-2">
+              <div>
                 <dt className={LABEL}>맵</dt>
                 <dd className="mt-1.5 flex flex-wrap gap-1.5">
                   {ASL_MAPS.map((map) => (
@@ -132,7 +160,7 @@ export default async function AslPage() {
                     >
                       {map.name}
                       {map.fresh ? (
-                        <span className="rounded bg-[#d4a94a]/15 px-1 py-px text-[0.625rem] font-black text-[#d4a94a]">
+                        <span className="rounded bg-[#fb923c]/15 px-1 py-px text-[0.625rem] font-black text-[#fb923c]">
                           신규
                         </span>
                       ) : null}
@@ -180,7 +208,7 @@ export default async function AslPage() {
           <section className={`${PANEL} px-4 py-3 md:px-5 md:py-4`}>
             <p className="flex items-baseline justify-between gap-2">
               <span className={LABEL}>16강 시드 — 전 대회 4강</span>
-              <span className="text-[0.6875rem] font-bold text-[#d4a94a] md:text-xs">16강 직행</span>
+              <span className="text-[0.6875rem] font-bold text-[#fb923c] md:text-xs">16강 직행</span>
             </p>
             <ul className="mt-2 grid gap-1.5 sm:grid-cols-2 md:mt-3">
               {ASL_SEEDS.map((player) => (
@@ -193,7 +221,7 @@ export default async function AslPage() {
             <p className={LABEL}>조지명식</p>
             <p className="mt-2 text-base font-black text-[#e8ebf2] md:mt-3 md:text-lg">
               {formatAslDate(ASL_DRAW_DATE)} {ASL_MATCH_TIME}
-              <span className="ml-2 align-middle text-[0.6875rem] font-black text-[#d4a94a]">LIVE</span>
+              <span className="ml-2 align-middle text-[0.6875rem] font-black text-[#fb923c]">LIVE</span>
             </p>
             <p className="mt-1 text-[0.6875rem] text-[#7a8299] md:text-xs">
               24강을 통과한 12명과 시드 4명이 16강 조를 짠다
@@ -210,7 +238,7 @@ export default async function AslPage() {
                 key={round.round}
                 className="grid grid-cols-[3rem_1fr] items-baseline gap-2 md:grid-cols-[4rem_1fr]"
               >
-                <dt className="text-sm font-black text-[#d4a94a]">{round.round}</dt>
+                <dt className="text-sm font-black text-[#fb923c]">{round.round}</dt>
                 <dd className="text-[0.8125rem] font-bold leading-relaxed text-[#e8ebf2] md:text-sm">
                   {round.format}
                 </dd>

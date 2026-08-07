@@ -31,6 +31,8 @@ const {
   ASL_OPENING_DATE,
   ASL_ROUNDS,
   ASL_SEEDS,
+  ASL_STATION_URL,
+  aslGroupByLabel,
   aslNextBroadcast,
   aslScheduleDate,
   formatAslDate,
@@ -147,6 +149,43 @@ test("다음 방송은 ASL_SCHEDULE의 한 칸이거나 null이다", () => {
       JSON.stringify(next)
     );
   }
+});
+
+test("다음 방송 라벨로 조를 찾는다 — 조지명식은 조가 없어 null이다", () => {
+  const a = aslGroupByLabel("ASL A조");
+  assert.equal(a.name, "A조");
+  assert.equal(a.players.length, 4);
+  assert.equal(aslGroupByLabel("ASL 조지명식"), null);
+  assert.equal(aslGroupByLabel("없는조"), null);
+  // 커버가 aslNextBroadcast().label을 그대로 넘긴다 — 라벨 형식이 어긋나면 선수가 조용히 사라진다
+  for (const group of ASL_GROUPS) {
+    assert.equal(aslGroupByLabel(`ASL ${group.name}`), group, `group=${group.name}`);
+  }
+});
+
+test("커버는 SOOP 공식 방송국으로 새 탭 링크를 연다", () => {
+  assert.equal(ASL_STATION_URL, "https://www.sooplive.com/station/afstar1");
+  const page = readProjectFile("app/asl/page.tsx");
+  assert.match(page, /href=\{ASL_STATION_URL\}/);
+  // target="_blank"만 두고 rel을 빼면 새 탭이 window.opener로 이 페이지를 만질 수 있다
+  assert.match(page, /target="_blank"[\s\S]{0,60}rel="noopener noreferrer"/);
+  // URL은 lib 한 곳에만 — page.tsx에 또 적으면 조용히 어긋난다
+  assert.doesNotMatch(page, /sooplive\.com/);
+});
+
+test("/asl의 포인트색은 ASL 주황 — 금색은 K-중만컵 색이다", () => {
+  // #d4a94a(금색)는 K-중만컵 브랜드색이다. /asl에 섞이면 두 대회가 같은 색으로 보인다
+  assert.doesNotMatch(readProjectFile("app/asl/page.tsx"), /d4a94a/);
+  assert.match(readProjectFile("app/asl/page.tsx"), /#fb923c/);
+});
+
+test("다음 방송은 커버의 카드다 — dl 한 칸이 아니다", () => {
+  const page = readProjectFile("app/asl/page.tsx");
+  // 라벨 다음에 날짜+시각이 크게, 그 아래 해당 조 선수들이 온다
+  assert.match(page, /다음 방송[\s\S]{0,400}formatAslDate\(next\.date\)[\s\S]{0,200}ASL_MATCH_TIME/);
+  assert.match(page, /nextGroup[\s\S]{0,200}PlayerLine/);
+  // 일정이 끝나면 카드 대신 회색 한 줄
+  assert.match(page, /조지명식 이후 일정 미공개/);
 });
 
 test("/asl은 서버 컴포넌트고 달력 때문에 KV를 읽는다", () => {

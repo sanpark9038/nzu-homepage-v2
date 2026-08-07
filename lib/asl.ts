@@ -30,6 +30,9 @@ export const ASL_FINAL_DATE = "2026-10-17";
 export const ASL_MATCH_TIME = "19:00";
 export const ASL_VENUE_NOTE = "프릭업 스튜디오 오프라인 진행 · 9월 이후 일정은 공개되는 대로 갱신";
 
+/** SOOP 공식 방송국 — 생방송은 여기서 튼다 */
+export const ASL_STATION_URL = "https://www.sooplive.com/station/afstar1";
+
 export const ASL_PRIZE_MAIN = "우승 3,000만원";
 export const ASL_PRIZE_DETAIL = "준우승 1,000만원 · 3/4위 300만원";
 
@@ -165,4 +168,9 @@ export function aslDaysToOpening(): number {
 export function aslNextBroadcast(): { date: string; label: string } | null {
   const todayKST = SEOUL_YMD.format(new Date());
   return ASL_SCHEDULE.find((item) => item.date >= todayKST) ?? null;
+}
+
+/** ASL_SCHEDULE 라벨("ASL A조") → 24강 조. 조지명식처럼 조가 없는 라벨이면 null이다. */
+export function aslGroupByLabel(label: string): AslGroup | null {
+  return ASL_GROUPS.find((group) => `ASL ${group.name}` === label) ?? null;
 }
