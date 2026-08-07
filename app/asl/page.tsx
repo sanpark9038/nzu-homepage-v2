@@ -121,17 +121,7 @@ export default async function AslPage() {
                 <div className="md:grid md:grid-cols-[1fr_auto] md:items-start md:gap-6">
                   <div className="min-w-0">
                     {/* D-day 칩은 위 h1 옆에 이미 있다 — 여기서 또 그리지 않는다 */}
-                    <p className="flex items-baseline gap-2.5">
-                      <span className={LABEL}>다음 방송</span>
-                      {/* 보는 김에 찍고 가게 — 줄을 따로 세우지 않고 라벨 옆에 압축한다. 색은 네비의 승부예측 앰버 */}
-                      <Link
-                        href="/prediction"
-                        prefetch={false}
-                        className="text-[0.6875rem] font-bold text-amber-300 transition-colors hover:text-amber-200"
-                      >
-                        승부예측 참여 →
-                      </Link>
-                    </p>
+                    <p className={LABEL}>다음 방송</p>
                     <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 md:mt-1.5">
                       <span className="text-base font-black tabular-nums text-[#e8ebf2] md:text-2xl">
                         {formatAslDate(next.date)} {ASL_MATCH_TIME}
@@ -140,17 +130,28 @@ export default async function AslPage() {
                         {next.label}
                       </span>
                     </p>
-                    {nextGroup ? (
-                      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 md:mt-3">
-                        {nextGroup.players.map((player) => (
-                          <PlayerLine key={player.name} player={player} />
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-1 text-[0.6875rem] text-[#7a8299] md:text-xs">
-                        24강을 통과한 12명과 시드 4명이 16강 조를 짠다
-                      </p>
-                    )}
+                    {/* 선수 줄 오른쪽 끝에 승부예측 — /jungman 커버의 버튼과 같은 자리·같은 옷이다.
+                        폰에서는 명단 아래 줄로 내려간다 */}
+                    <div className="mt-2 flex flex-col gap-2 md:mt-3 md:flex-row md:items-center md:gap-4">
+                      {nextGroup ? (
+                        <ul className="flex min-w-0 flex-wrap gap-x-4 gap-y-1.5">
+                          {nextGroup.players.map((player) => (
+                            <PlayerLine key={player.name} player={player} />
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-[0.6875rem] text-[#7a8299] md:text-xs">
+                          24강을 통과한 12명과 시드 4명이 16강 조를 짠다
+                        </p>
+                      )}
+                      <Link
+                        href="/prediction"
+                        prefetch={false}
+                        className="inline-flex min-h-8 shrink-0 items-center gap-1 self-start rounded-full bg-nzu-green px-3 text-[0.6875rem] font-black text-black md:ml-auto md:self-center md:text-xs"
+                      >
+                        승부예측 <span aria-hidden>→</span>
+                      </Link>
+                    </div>
                   </div>
 
                   {/* 24강 방송일 때만. 조지명식은 경기가 아니라 방식 요약이 붙을 자리가 아니다 */}
