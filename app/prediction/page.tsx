@@ -4,6 +4,8 @@ import { buildTournamentPredictionMatches } from "@/lib/tournament-prediction";
 import { buildTournamentHomeTeamsFromStore } from "@/lib/tournament-home";
 import { loadPredictionState } from "@/lib/prediction-store";
 import { getBetPools } from "@/lib/prediction-bets";
+import { getSetting } from "@/lib/site-settings";
+import { frozenTierOf, parseTierFreeze, TIER_FREEZE_KEY } from "@/lib/tier-freeze";
 
 export const revalidate = 60;
 
@@ -22,7 +24,22 @@ export const metadata = {
 };
 
 export default async function PredictionPage() {
-  const allPlayers = await playerService.getCachedPlayersList();
+  const livePlayers = await playerService.getCachedPlayersList();
+
+  // 동결 KV 하나 때문에 승부예측 페이지가 죽으면 안 된다 — 실패는 삼키고 미동결로 취급.
+  let freeze = null;
+  try {
+    freeze = parseTierFreeze(await getSetting(TIER_FREEZE_KEY));
+  } catch (error) {
+    console.error("failed to load tier freeze", error);
+  }
+
+  // 대회 기간에는 동결 티어가 공식이다. 조립 전에 값을 바꿔두면 아래 뱃지까지 그대로 따라온다.
+  const allPlayers = livePlayers.map((player) => {
+    const frozen = frozenTierOf(freeze, player.id, player.tier);
+    return frozen ? { ...player, tier: frozen } : player;
+  });
+
   const [state, tournamentTeams, betPools] = await Promise.all([
     loadPredictionState({
       includeVoteTotals: true,

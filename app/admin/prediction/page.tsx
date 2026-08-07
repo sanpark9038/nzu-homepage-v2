@@ -5,6 +5,8 @@ import { playerService } from "@/lib/player-service";
 import { ADMIN_SESSION_COOKIE, isValidAdminSession } from "@/lib/admin-auth";
 import { buildPredictionUniversityTeams } from "@/lib/prediction-admin-teams";
 import { loadPredictionState } from "@/lib/prediction-store";
+import { getSetting } from "@/lib/site-settings";
+import { frozenTierOf, parseTierFreeze, TIER_FREEZE_KEY } from "@/lib/tier-freeze";
 import { PredictionMatchAdmin } from "./PredictionMatchAdmin";
 import LogoutButton from "../ops/LogoutButton";
 
@@ -19,7 +21,23 @@ export default async function AdminPredictionPage() {
     redirect("/admin/login?next=/admin/prediction");
   }
 
-  const players = await playerService.getCachedPlayersList();
+  const livePlayers = await playerService.getCachedPlayersList();
+
+  // 동결 KV 하나 때문에 관리 화면이 죽으면 안 된다 — 실패는 삼키고 미동결로 취급.
+  let freeze = null;
+  try {
+    freeze = parseTierFreeze(await getSetting(TIER_FREEZE_KEY));
+  } catch (error) {
+    console.error("failed to load tier freeze", error);
+  }
+
+  // 대회 기간에는 동결 티어가 공식이다. 여기서 값을 바꿔두면 뱃지·드롭다운은 물론
+  // 기존 팀 명단 자동 로드의 EXCLUDED_TIERS 판정도 동결 티어 기준이 된다 — 그게 맞다.
+  const players = livePlayers.map((player) => {
+    const frozen = frozenTierOf(freeze, player.id, player.tier);
+    return frozen ? { ...player, tier: frozen } : player;
+  });
+
   const teams = buildPredictionUniversityTeams(players);
   const predictionState = await loadPredictionState();
 
@@ -60,6 +78,11 @@ export default async function AdminPredictionPage() {
             <p className="mt-2 max-w-3xl text-sm font-bold text-white/48">
               팀전과 개인전 예측을 만들고, 임시저장, 투표 시작, 마감, 결과 공개 흐름을 관리합니다.
             </p>
+            {freeze ? (
+              <p className="mt-2 text-sm font-bold text-nzu-green">
+                ❄ 티어 동결 중 — 대회 기간에는 동결 티어로 표시됩니다
+              </p>
+            ) : null}
           </div>
           <LogoutButton />
         </header>

@@ -99,7 +99,8 @@ test("admin prediction hide action persists immediately instead of only changing
   assert.match(adminSource, /const handleArchive = async \(match: PredictionConfigMatch\) => \{/);
   assert.match(adminSource, /const archivedAt = new Date\(\)\.toISOString\(\);/);
   assert.match(adminSource, /body: JSON\.stringify\(\{ matches: matchesToSave \}\)/);
-  assert.match(adminSource, /onClick=\{\(\) => void handleArchive\(match\)\}/);
+  // 숨기기 버튼은 선택된 매치 상세 패널 안에 있다 — 옆의 handleDelete(selectedMatch)와 같은 대상
+  assert.match(adminSource, /onClick=\{\(\) => void handleArchive\(selectedMatch\)\}/);
   assert.doesNotMatch(
     adminSource,
     /onClick=\{\(\) => updateMatchById\(match\.id \|\| "", \{ status: "archived", archived_at: new Date\(\)\.toISOString\(\) \}\)\}/

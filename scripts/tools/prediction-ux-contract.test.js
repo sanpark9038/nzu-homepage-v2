@@ -95,3 +95,29 @@ test("prediction schema can persist the start-time TBD flag", () => {
   assert.match(types, /start_time_tbd: boolean/);
   assert.match(types, /start_time_tbd\?: boolean/);
 });
+
+test("prediction pages apply the frozen tier before assembling player data", () => {
+  const adminPage = readProjectFile("app/admin/prediction/page.tsx");
+  const publicPage = readProjectFile("app/prediction/page.tsx");
+
+  for (const source of [adminPage, publicPage]) {
+    // 동결은 서버에서만 읽는다. KV 실패가 페이지를 죽이면 안 되므로 try/catch로 미동결 fallback.
+    assert.match(source, /parseTierFreeze\(await getSetting\(TIER_FREEZE_KEY\)\)/);
+    assert.match(source, /try \{[\s\S]*?freeze = parseTierFreeze[\s\S]*?\} catch/);
+    assert.match(source, /frozenTierOf\(freeze, player\.id, player\.tier\)/);
+    assert.match(source, /return frozen \? \{ \.\.\.player, tier: frozen \} : player/);
+    assert.doesNotMatch(source, /"use client"/);
+  }
+
+  // 조립 함수에 들어가는 배열이 동결 적용본이어야 한다(라이브 배열을 그대로 넘기면 무효).
+  assert.match(adminPage, /buildPredictionUniversityTeams\(players\)/);
+  assert.match(adminPage, /const players = livePlayers\.map/);
+  assert.match(publicPage, /const allPlayers = livePlayers\.map/);
+  assert.match(publicPage, /buildTournamentPredictionMatches\(allPlayers, state/);
+  assert.match(publicPage, /buildTournamentHomeTeamsFromStore\(allPlayers\)/);
+
+  // 동결 중일 때만 관리자 상단에 한 줄 안내.
+  assert.match(adminPage, /\{freeze \? \(/);
+  assert.match(adminPage, /\uD2F0\uC5B4 \uB3D9\uACB0 \uC911 \u2014 \uB300\uD68C \uAE30\uAC04\uC5D0\uB294 \uB3D9\uACB0 \uD2F0\uC5B4\uB85C \uD45C\uC2DC\uB429\uB2C8\uB2E4/);
+  assert.doesNotMatch(publicPage, /\uB3D9\uACB0 \uC911/);
+});
