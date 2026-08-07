@@ -151,12 +151,12 @@ function TeamRow({ name, sets, lost }: { name: string; sets?: number; lost?: boo
           alt=""
           width={24}
           height={24}
-          className={`h-4 w-4 shrink-0 object-contain ${lost ? "opacity-50" : ""}`}
+          className={`h-5 w-5 shrink-0 object-contain ${lost ? "opacity-50" : ""}`}
         />
       ) : null}
-      <span className={`truncate text-[0.6875rem] font-bold ${tone}`}>{name}</span>
+      <span className={`truncate text-[0.8125rem] font-bold ${tone}`}>{name}</span>
       {sets === undefined ? null : (
-        <span className={`ml-auto shrink-0 text-[0.6875rem] font-black tabular-nums ${tone}`}>{sets}</span>
+        <span className={`ml-auto shrink-0 text-[0.8125rem] font-black tabular-nums ${tone}`}>{sets}</span>
       )}
     </span>
   );
@@ -171,7 +171,7 @@ function EventCard({ event }: { event: CalendarEvent }) {
       style={{ borderColor: event.color }}
     >
       {/* 라벨과 시각은 한 줄 — 줄을 나누면 카드 절반이 여백이 된다. 조 색은 라벨에만 */}
-      <p className="truncate text-[0.625rem] font-black" style={{ color: event.color }}>
+      <p className="truncate text-[0.75rem] font-black" style={{ color: event.color }}>
         {event.label}
         {!decided && event.time ? (
           <span className="font-bold tabular-nums text-[#7a8299]"> · {event.time}</span>
