@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import JungmanCalendar from "@/app/jungman/JungmanCalendar";
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
 import {
   ASL_DRAW_DATE,
@@ -20,6 +21,11 @@ import {
   formatAslDate,
   type AslPlayer,
 } from "@/lib/asl";
+import { JUNGMAN_STANDINGS_KEY, parseJungmanStandings } from "@/lib/jungman-standings";
+import { getSetting } from "@/lib/site-settings";
+
+// 달력이 K-중만컵 일정(KV)을 곁들인다 — 더 이상 완전 정적이 아니다
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "ASL 시즌22",
@@ -50,9 +56,13 @@ function PlayerLine({ player }: { player: AslPlayer }) {
   );
 }
 
-export default function AslPage() {
+export default async function AslPage() {
   const dday = aslDaysToOpening();
   const next = aslNextBroadcast();
+  // 달력의 회색 줄일 뿐이다 — KV를 못 읽는다고 ASL 소개 페이지가 죽으면 안 된다
+  const standings = parseJungmanStandings(
+    await getSetting(JUNGMAN_STANDINGS_KEY).catch(() => null)
+  );
 
   return (
     <div className="min-h-screen bg-[#0b0f1a] text-[#e8ebf2]">
@@ -107,8 +117,13 @@ export default function AslPage() {
           </div>
         </section>
 
+        {/* ── 일정 ── 넓은 화면만. 폰에서는 커버의 "다음 방송"이 그 역할을 한다 */}
+        <div className="hidden md:block">
+          <JungmanCalendar matches={standings?.matches ?? []} variant="asl" />
+        </div>
+
         {/* ── 24강 조 편성 ── */}
-        <p className="mb-2 px-1 text-xs font-bold text-[#e8ebf2] md:mb-2.5">
+        <p className="mb-2 mt-3 px-1 text-xs font-bold text-[#e8ebf2] md:mb-2.5 md:mt-4">
           24강 조 편성
           <span className="ml-2 hidden font-normal text-[#7a8299] md:inline">
             4인 1조 × 6개조 · 조별 2명이 16강에 오른다

@@ -149,15 +149,45 @@ test("다음 방송은 ASL_SCHEDULE의 한 칸이거나 null이다", () => {
   }
 });
 
-test("/asl은 DB를 안 읽는 정적 서버 컴포넌트다", () => {
+test("/asl은 서버 컴포넌트고 달력 때문에 KV를 읽는다", () => {
   const page = readProjectFile("app/asl/page.tsx");
   assert.doesNotMatch(page, /"use client"/);
-  // 정적 페이지에 revalidate·데이터 조회가 끼면 안 된다
-  assert.doesNotMatch(page, /export const revalidate/);
-  assert.doesNotMatch(page, /getSetting|playerService|supabase/);
+  // 달력이 K-중만컵 일정을 곁들이므로 더 이상 완전 정적이 아니다
+  assert.match(page, /export const revalidate = 60/);
+  assert.match(page, /getSetting\(JUNGMAN_STANDINGS_KEY\)\.catch\(\(\) => null\)/);
+  // 달력은 장식이다 — KV가 비거나 깨져도 빈 배열로 그려야지 페이지가 죽으면 안 된다
+  assert.match(page, /parseJungmanStandings\(/);
+  assert.match(page, /standings\?\.matches \?\? \[\]/);
   assert.match(page, /alternates: \{ canonical: "\/asl" \}/);
   // 종족 배지는 사이트 공용 컴포넌트를 쓴다 — 색을 두 벌로 두면 /jungman과 어긋난다
   assert.match(page, /RaceLetterBadge/);
+});
+
+test("/asl은 커버 바로 아래에 달력을 그린다 (넓은 화면만)", () => {
+  const page = readProjectFile("app/asl/page.tsx");
+  // 폰은 커버의 "다음 방송"이 대신한다 — 폰용 목록을 또 만들지 않는다
+  assert.match(page, /className="hidden md:block"[\s\S]{0,120}<JungmanCalendar[\s\S]{0,80}variant="asl"/);
+  // JS로 폭을 재면 서버·브라우저가 서로 다른 화면을 그린다
+  assert.doesNotMatch(page, /matchMedia|innerWidth/);
+  // 달력 → 24강 조 편성 → 16강 시드 순 (커버 다음이 일정이다)
+  assert.match(page, /<JungmanCalendar[\s\S]*?24강 조 편성[\s\S]*?16강 시드/);
+});
+
+test("달력은 variant로 주인공을 뒤집는다 — 기본값은 K-중만컵", () => {
+  const source = readProjectFile("app/jungman/JungmanCalendar.tsx");
+  assert.match(source, /variant\?: "jungman" \| "asl"/);
+  // 기본값이 "jungman"이라 /jungman 호출부는 variant를 안 넘겨도 그대로다
+  assert.match(source, /variant = "jungman"/);
+  assert.doesNotMatch(readProjectFile("app/jungman/page.tsx"), /variant=/);
+
+  // /asl에서는 ASL이 컬러 카드(주황), K-중만컵이 회색 quiet 한 줄이다
+  assert.match(source, /const ASL_ACCENT = "#fb923c"/);
+  assert.match(source, /color: ASL_ACCENT/);
+  assert.match(source, /label: `K-중만컵 \$\{event\.label\}`,\s*color: MUTED/);
+  // 월 탭은 ASL 일정으로 정한다 — 9월 이후가 미공개라 K-중만컵 9월분은 범위 밖이다
+  assert.match(source, /new Set\(ASL_SCHEDULE\.map\(\(item\) => item\.date\.slice\(0, 7\)\)\)/);
+  // 시각은 lib 상수에서만 온다 — "19:00"을 여기 또 적으면 조용히 어긋난다
+  assert.match(source, /ASL_MATCH_TIME/);
 });
 
 test("네비게이션에 ASL이 K-중만컵 다음, 스코어보드 앞에 있다", () => {

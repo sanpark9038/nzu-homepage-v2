@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
+import { ASL_MATCH_TIME } from "@/lib/asl";
 import {
   ASL_SCHEDULE,
   JUNGMAN_GROUP_COLORS,
@@ -19,6 +20,8 @@ const PANEL =
 /** 토너먼트 카드 색 — 대진 미정이라 조 색을 쓰면 거짓말이 된다 */
 const GOLD = "#d4a94a";
 const MUTED = "#7a8299";
+/** ASL 주황 — 네비게이션의 /asl accent와 같은 계열이다 */
+const ASL_ACCENT = "#fb923c";
 
 // 격자는 한국 날짜로만 만든다 — 브라우저 시간대가 어디든 같은 칸이 나와야 한다
 const SEOUL_YMD = new Intl.DateTimeFormat("en-CA", {
@@ -154,29 +157,64 @@ function EventCard({ event }: { event: CalendarEvent }) {
  * 월 달력. 목록으로는 안 보이는 것 — 월·화·수가 통째로 비는 리듬 — 을 보여주는 게 값어치다.
  * 조별리그 전체(끝난 것 + 예정)와 토너먼트 일정을 같은 격자에 올린다.
  * ASL은 그 리듬의 이유라 회색으로 곁들인다 — 우리 경기가 아니니 카드보다 흐려야 한다.
+ *
+ * variant="asl"이면 주인공이 뒤집힌다: /asl 페이지에서는 ASL이 컬러 카드고
+ * K-중만컵이 "이 날은 남의 경기가 있다"는 회색 설명으로 내려간다. 격자·오늘·지난 칸은 그대로 공유한다.
  */
-export default function JungmanCalendar({ matches }: { matches: JungmanStandingsMatch[] }) {
+export default function JungmanCalendar({
+  matches,
+  variant = "jungman",
+}: {
+  matches: JungmanStandingsMatch[];
+  variant?: "jungman" | "asl";
+}) {
+  const isAsl = variant === "asl";
+  // Tailwind는 소스에 적힌 클래스 문자열만 본다 — 변수로 조립하면 색이 통째로 빠진다
+  const accentBg = isAsl ? "bg-[#fb923c]" : "bg-[#d4a94a]";
+  const accentRing = isAsl ? "ring-[#fb923c]" : "ring-[#d4a94a]";
+
   const { events, months } = useMemo(() => {
     const group = buildGroupEvents(matches);
+    const tournament: CalendarEvent[] = JUNGMAN_TOURNAMENT.map((round) => ({
+      date: round.date,
+      label: round.label,
+      color: GOLD,
+      time: round.round === "결승" ? null : JUNGMAN_MATCH_TIME,
+    }));
+
+    if (variant === "asl") {
+      // 월 탭은 ASL 일정으로 정한다 — 9월 이후는 미공개라 K-중만컵 9월분은 자연히 범위 밖이다
+      const months = [...new Set(ASL_SCHEDULE.map((item) => item.date.slice(0, 7)))].sort();
+      const aslEvents: CalendarEvent[] = ASL_SCHEDULE.map((item) => ({
+        date: item.date,
+        label: item.label,
+        color: ASL_ACCENT,
+        time: ASL_MATCH_TIME,
+      }));
+      // 남의 대회는 라벨 한 줄로 줄인다 — 팀·로고·점수까지 얹으면 주인공이 안 보인다
+      const quiet: CalendarEvent[] = [...group, ...tournament]
+        .filter((event) => months.includes(event.date.slice(0, 7)))
+        .map((event) => ({
+          date: event.date,
+          label: `K-중만컵 ${event.label}`,
+          color: MUTED,
+          time: null,
+          quiet: true,
+        }));
+      return { events: [...aslEvents, ...quiet], months };
+    }
+
     // 조별리그가 하나도 없으면 그리지 않는다 — 토너먼트 라벨만 남은 달력은 빈 화면이다
     if (!group.length) return { events: [] as CalendarEvent[], months: [] as string[] };
 
-    const all: CalendarEvent[] = [
-      ...group,
-      ...JUNGMAN_TOURNAMENT.map((round) => ({
-        date: round.date,
-        label: round.label,
-        color: GOLD,
-        time: round.round === "결승" ? null : JUNGMAN_MATCH_TIME,
-      })),
-    ];
+    const all: CalendarEvent[] = [...group, ...tournament];
     // 월 탭은 우리 일정으로만 정한다 — ASL이 새 달을 만들면 K-중만컵이 하나도 없는 달이 탭에 뜬다
     const months = [...new Set(all.map((e) => e.date.slice(0, 7)))].sort();
     const asl: CalendarEvent[] = ASL_SCHEDULE.filter((item) => months.includes(item.date.slice(0, 7))).map(
       (item) => ({ date: item.date, label: item.label, color: MUTED, time: JUNGMAN_MATCH_TIME, quiet: true })
     );
     return { events: [...all, ...asl], months };
-  }, [matches]);
+  }, [matches, variant]);
 
   // 오늘 테두리와 지난 칸 흐리기는 하이드레이션 뒤에 생긴다
   const today = useTodayKST();
@@ -210,7 +248,7 @@ export default function JungmanCalendar({ matches }: { matches: JungmanStandings
   return (
     <div className="mt-3 md:mt-4">
       <div className="mb-2 flex items-center gap-3 px-1 md:mb-3">
-        <h2 className="text-base font-black tracking-tight md:text-xl">경기 일정</h2>
+        <h2 className="text-base font-black tracking-tight md:text-xl">{isAsl ? "일정" : "경기 일정"}</h2>
         <div className="flex gap-1.5">
           {months.map((key) => (
             <button
@@ -219,7 +257,7 @@ export default function JungmanCalendar({ matches }: { matches: JungmanStandings
               onClick={() => setPicked(key)}
               className={`rounded-full px-3 py-1 text-xs font-black transition ${
                 key === month
-                  ? "bg-[#d4a94a] text-[#0b0f1a]"
+                  ? `${accentBg} text-[#0b0f1a]`
                   : "border border-[rgba(155,185,240,0.14)] text-[#7a8299] hover:text-[#e8ebf2]"
               }`}
             >
@@ -227,6 +265,11 @@ export default function JungmanCalendar({ matches }: { matches: JungmanStandings
             </button>
           ))}
         </div>
+        {isAsl ? (
+          <span className="hidden text-xs text-[#7a8299] lg:inline">
+            회색은 K-중만컵 일정 · 9월 이후 ASL 일정은 공개되는 대로 갱신
+          </span>
+        ) : null}
       </div>
 
       <div className={`${PANEL} overflow-hidden p-2`}>
@@ -247,7 +290,7 @@ export default function JungmanCalendar({ matches }: { matches: JungmanStandings
                 key={date}
                 className={`min-h-[7.5rem] bg-[#0c1220] p-1.5 ${
                   today !== null && date < today ? "opacity-45" : ""
-                } ${date === today ? "ring-1 ring-inset ring-[#d4a94a]" : ""}`}
+                } ${date === today ? `ring-1 ring-inset ${accentRing}` : ""}`}
               >
                 <p className={`px-0.5 text-[0.6875rem] font-black tabular-nums ${weekdayTone(index % 7)}`}>
                   {Number(date.slice(-2))}
