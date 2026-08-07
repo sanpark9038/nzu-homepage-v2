@@ -30,12 +30,15 @@ import {
   jungmanLogoPath,
   jungmanTeamByName,
 } from "@/lib/jungman";
-import type {
-  JungmanGroupTable,
-  JungmanPlayerRank,
-  JungmanScenario,
-  JungmanStandingsGroup,
-  JungmanStandingsMatch,
+import {
+  jungmanScenarioBadge,
+  jungmanScenarioLine,
+  type JungmanGroupTable,
+  type JungmanPlayerRank,
+  type JungmanScenario,
+  type JungmanStandingsGroup,
+  type JungmanStandingsMatch,
+  type JungmanStandingsSet,
 } from "@/lib/jungman-standings";
 
 /** 중만컵 금색 — 조가 없는 팀(편성 발표 전)의 기본 마커 색 */
@@ -143,20 +146,6 @@ function splitPrizeDetail(detail: string): { win: string; winExtra: string; runn
   return { win, winExtra, runner };
 }
 
-/**
- * 고른 팀의 곁 패널 맨 위 한 줄. 짧은 순서대로 먼저 걸린다.
- * 문구는 /jungman의 JungmanGroupTables와 한 글자도 다르면 안 된다(두 화면이 갈라진다).
- */
-function scenarioLine(s: JungmanScenario | undefined): string | null {
-  if (!s) return null;
-  if (s.clinched) return "8강 진출 확정";
-  if (s.eliminated) return "탈락 확정";
-  if (s.winClinches && s.lossEliminates) return "다음 경기에서 이기면 진출, 지면 탈락";
-  if (s.winClinches) return "다음 경기를 이기면 진출 확정";
-  if (s.lossEliminates) return "다음 경기를 지면 탈락";
-  return null;
-}
-
 const DECK_STYLE = `
   .jm-land{fill:#18223a;stroke:rgba(155,185,240,.22);stroke-width:.7;stroke-linejoin:round;}
   .jm-land.jm-b{fill:#1e2a45;}
@@ -226,9 +215,11 @@ const DECK_STYLE = `
   .hd-cell{height:clamp(34px,4.6vh,52px);display:flex;flex-direction:column;align-items:center;
     justify-content:center;gap:2px;padding:0;border-radius:8px;border:1px solid transparent;
     background:transparent;font-size:clamp(13px,1.15vw,16px);font-weight:700;color:#7a8299;
-    font-variant-numeric:tabular-nums;transition:background .2s ease;}
+    font-variant-numeric:tabular-nums;transition:background .12s ease,transform .12s ease;}
   .hd-cell.has-m{color:#e8ebf2;font-weight:900;cursor:pointer;}
   .hd-cell.has-m:hover{background:rgba(255,255,255,.06);}
+  /* 눌린 순간을 알린다 — 가볍게. 선택 상태(is-pick)와 색이 겹쳐도 잠깐이라 헷갈리지 않는다 */
+  .hd-cell.has-m:active{background:rgba(255,255,255,.14);transform:scale(.985);}
   .hd-cell.is-past{opacity:.45;}
   .hd-cell.is-today{border-color:rgba(212,169,74,.7);}
   .hd-cell.is-pick{background:rgba(255,255,255,.1);}
@@ -295,30 +286,32 @@ const DECK_STYLE = `
   .stsort{font-size:clamp(11px,1.05vw,15px);color:#9FBCAC;font-weight:700;}
 
   .standbody{margin-top:clamp(8px,1.4vh,18px);display:grid;
-    grid-template-columns:minmax(0,.92fr) minmax(0,.86fr) minmax(0,.92fr);
+    /* 목업 v5는 1.14/.82/.78 — 표가 제일 넓었다. 한 번 .92까지 줄였더니 팀 이름이 잘려
+       그 비율로 되돌리고 오른쪽만 조금 넓혔다. 표는 이름이 안 잘리는 게 우선이다. */
+    grid-template-columns:minmax(0,1.12fr) minmax(0,.82fr) minmax(0,.84fr);
     gap:clamp(12px,1.6vw,30px);align-items:start;}
-  /* 곁 패널이 없으면 그 열도 없다 — 빈 패널 대신 표가 남은 폭을 가져간다 */
-  .standbody.is-duo{grid-template-columns:minmax(0,1fr) minmax(0,.92fr);}
-  .standbody.is-solo{grid-template-columns:minmax(0,1fr);}
 
   /* 13 = 4조 × (머리 .8 + 3행) 에 여백을 얹은 값. 이 나눗셈이 A조가 안 잘리는 근거다 */
   .stwrap{--rowh:min(calc(55svh / 13),58px);display:flex;flex-direction:column;gap:clamp(7px,1.1vh,15px);}
   .gblock{border-radius:14px;overflow:hidden;background:rgba(9,17,14,.93);
     border:1px solid rgba(255,255,255,.09);box-shadow:0 16px 40px rgba(0,0,0,.42);}
-  /* 표 열이 좁아졌다(1.14fr → .92fr) — 숫자 열을 깎아 팀 이름 자리를 지킨다 */
+  /* 숫자 열은 내용에 맞춘 최소 폭이다. 승·패는 한 자리 숫자와 머리글 한 글자,
+     잔여는 "종료"가 가장 길다 — v5의 3.2/3.2/4.4/4.8em은 그만큼 남아돌아 팀 이름 자리를 뺏었다.
+     ("세트 득실"은 머리글이 길어 4.4em 그대로 둔다 — 줄이면 두 줄로 접혀 --rowh 계산이 깨진다) */
   .gbhead,.trow3{display:grid;align-items:center;
-    grid-template-columns:minmax(0,1fr) 2.8em 2.8em 4em 4.2em;
+    grid-template-columns:minmax(0,1fr) 2.4em 2.4em 4.4em 3em;
     gap:clamp(6px,.7vw,14px);padding:0 clamp(12px,1.2vw,22px);}
   .gbhead{min-height:calc(var(--rowh) * .8);border-bottom:1px solid rgba(255,255,255,.09);
     background:linear-gradient(90deg,var(--c26),transparent 60%);}
-  .gbname{font-size:clamp(17px,1.8vw,31px);color:var(--c);line-height:1;font-weight:900;}
+  .gbname{font-size:clamp(18px,1.9vw,32px);color:var(--c);line-height:1;font-weight:900;}
   .gbsub{font-size:.4em;color:#7a8299;letter-spacing:.06em;font-weight:700;}
-  .gbcol{font-size:clamp(10px,.88vw,13.5px);font-weight:800;color:#7a8299;text-align:right;}
+  .gbcol{font-size:clamp(11px,.95vw,14.5px);font-weight:800;color:#7a8299;text-align:right;}
 
   /* 행은 버튼이다 — 누르면 곁 패널이 그 팀 전용으로 바뀐다. 표 모양은 그대로 두고 UA 기본값만 지운다 */
   .trow3{min-height:var(--rowh);position:relative;border-top:1px solid rgba(255,255,255,.05);
     width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
-    appearance:none;background:transparent;border-left:0;border-right:0;border-bottom:0;}
+    appearance:none;background:transparent;border-left:0;border-right:0;border-bottom:0;
+    transition:background .12s ease,transform .12s ease;}
   .gbhead + .trow3{border-top:none;}
   /* 8강 진출선 — 2위 아래 */
   .trow3.is-cut{border-bottom:2px dashed rgba(43,227,155,.45);}
@@ -328,26 +321,36 @@ const DECK_STYLE = `
   .trow3.is-pick{background:rgba(255,255,255,.06);}
   .trow3.is-pick::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
     border-radius:0;background:var(--c);}
+  /* 눌린 순간을 알린다 — is-pick 뒤에 둬야 고른 행에서도 배경이 바뀐다 */
+  .trow3:active{background:rgba(255,255,255,.12);transform:scale(.985);}
   .tteam{display:flex;align-items:center;gap:clamp(6px,.6vw,11px);min-width:0;}
-  .trank{font-size:clamp(11px,.95vw,14px);font-weight:900;color:#7a8299;
+  .trank{font-size:clamp(12px,1.05vw,15.5px);font-weight:900;color:#7a8299;
     font-variant-numeric:tabular-nums;min-width:1.1em;}
   .tlogo{width:clamp(19px,1.7vw,28px);height:clamp(19px,1.7vw,28px);object-fit:contain;flex:0 0 auto;}
-  .tname{font-size:clamp(12px,1.15vw,18px);font-weight:800;color:#fff;
+  .tname{font-size:clamp(13.5px,1.3vw,20px);font-weight:800;color:#fff;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  /* 진출/탈락 알약 — 확정된 것만. /jungman 표와 같은 색·크기다.
-     좁은 열이라 이름이 아니라 알약이 자리를 지킨다(이름은 ellipsis로 줄어든다) */
-  .tpill{flex:0 0 auto;border-radius:999px;padding:.1em .5em;font-size:.625rem;font-weight:900;line-height:1.6;}
+  /* 상태 알약 — 문구는 lib에서 온다. /jungman 표와 같은 색·크기다.
+     문구가 예전(두 글자)보다 길어져 글자·여백을 줄여 팀 이름 자리를 덜 뺏는다
+     (좁은 열이라 이름이 아니라 알약이 자리를 지킨다 — 이름은 ellipsis로 줄어든다) */
+  .tpill{flex:0 0 auto;white-space:nowrap;border-radius:999px;padding:.1em .38em;
+    font-size:.5625rem;font-weight:900;line-height:1.6;}
   .tpill.is-go{color:#2BE39B;background:rgba(43,227,155,.16);}
   .tpill.is-out{color:#7a8299;background:rgba(122,130,153,.16);}
-  .tnum{font-size:clamp(12px,1.1vw,17px);font-weight:800;color:#cfd6e6;text-align:right;
+  /* 확정도 탈락도 아닌 팀 — 금색은 눌러보라는 신호다 */
+  .tpill.is-open{color:#d4a94a;background:rgba(212,169,74,.14);}
+  .tnum{font-size:clamp(13.5px,1.25vw,19px);font-weight:800;color:#cfd6e6;text-align:right;
     font-variant-numeric:tabular-nums;}
   .tnum.is-up{color:#2BE39B;}
   .tnum.is-dn{color:#e0574a;}
   .tnum.is-mut{color:#7a8299;}
 
-  /* 곁 패널 — 경기 결과 · 개인 순위 */
-  .stpanel{border-radius:14px;overflow:hidden;background:rgba(9,17,14,.93);
-    border:1px solid rgba(255,255,255,.09);box-shadow:0 16px 40px rgba(0,0,0,.42);}
+  /* 곁 패널 — 경기 결과 · 개인 순위.
+     세트를 펼치면 길어진다 — 화면 높이를 넘기지 않게 그 패널만 안쪽에서 스크롤한다.
+     스크롤바는 지도 위에 흰 줄을 그으므로 감춘다(.hd-scroll과 같은 규칙). */
+  .stpanel{border-radius:14px;overflow:hidden auto;max-height:62svh;background:rgba(9,17,14,.93);
+    border:1px solid rgba(255,255,255,.09);box-shadow:0 16px 40px rgba(0,0,0,.42);
+    scrollbar-width:none;-ms-overflow-style:none;}
+  .stpanel::-webkit-scrollbar{width:0;height:0;}
   .stpht{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
     padding:clamp(9px,1.3vh,15px) clamp(11px,1vw,18px);
     font-size:clamp(12px,1.15vw,17px);color:#2BE39B;font-weight:800;letter-spacing:.06em;
@@ -366,29 +369,48 @@ const DECK_STYLE = `
   .mrow{display:flex;align-items:center;gap:clamp(6px,.7vw,12px);
     padding:clamp(6px,.9vh,11px) clamp(11px,1vw,18px);border-top:1px solid rgba(255,255,255,.05);}
   .stpht + .mrow{border-top:none;}
-  .mchip{font-size:clamp(9px,.78vw,11px);font-weight:900;border-radius:999px;padding:.22em .6em;flex:0 0 auto;}
+  .mchip{font-size:clamp(10px,.85vw,12px);font-weight:900;border-radius:999px;padding:.22em .6em;flex:0 0 auto;}
   .mchip.is-w{background:#2BE39B;color:#04120c;}
   .mchip.is-l{background:rgba(224,87,74,.9);color:#04120c;}
   /* 예정 경기의 D-day — 승패 색(초록·빨강)과 섞이면 안 된다 */
   .mchip.is-d{background:rgba(212,169,74,.18);color:#d4a94a;}
   .mvs{font-size:clamp(10px,.85vw,12px);font-weight:900;color:#7a8299;}
   .mlogo{width:clamp(20px,1.8vw,30px);height:clamp(20px,1.8vw,30px);object-fit:contain;flex:0 0 auto;}
-  .mtxt{font-size:clamp(10px,.9vw,13px);font-weight:800;color:#cfd6e6;
+  .mtxt{font-size:clamp(11.5px,1vw,14.5px);font-weight:800;color:#cfd6e6;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   /* 지금 보고 있는 팀 — 좌우 자리는 홈·원정 그대로 두고 이름만 굵게 */
   .mtxt.is-me{font-weight:900;color:#fff;}
   .is-lost{opacity:.42;filter:grayscale(.6);}
   .mscore{font-size:clamp(13px,1.2vw,19px);font-weight:900;color:#fff;
     font-variant-numeric:tabular-nums;letter-spacing:.04em;}
-  .mdate{margin-left:auto;font-size:clamp(9px,.78vw,11.5px);color:#7a8299;font-weight:700;flex:0 0 auto;}
+  .mdate{margin-left:auto;font-size:clamp(10px,.85vw,12.5px);color:#7a8299;font-weight:700;flex:0 0 auto;}
+  /* 세트가 있는 경기 줄은 버튼이다 — 줄 모양은 그대로 두고 UA 기본값만 지운다 */
+  button.mrow{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
+    appearance:none;background:transparent;border-left:0;border-right:0;border-bottom:0;
+    transition:background .12s ease,transform .12s ease;}
+  button.mrow:hover{background:rgba(255,255,255,.05);}
+  button.mrow:active{background:rgba(255,255,255,.12);transform:scale(.985);}
+
+  /* 세트별 대진 — 좌우는 홈·원정 자리로 고정하고 가운데에 맵 이름.
+     종족 배지는 없다(여기서 선수 DB를 안 읽는다) */
+  .srows{padding:clamp(3px,.5vh,6px) clamp(11px,1vw,18px) clamp(5px,.7vh,9px);
+    background:rgba(0,0,0,.28);}
+  .srow{display:grid;grid-template-columns:1.5em minmax(0,1fr) minmax(0,.92fr) minmax(0,1fr);
+    align-items:center;gap:clamp(4px,.5vw,9px);padding:clamp(1px,.2vh,3px) 0;
+    font-size:clamp(10px,.85vw,12.5px);}
+  .snum{font-weight:900;color:#7a8299;font-variant-numeric:tabular-nums;}
+  .sname,.smap{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sname{font-weight:800;color:#cfd6e6;}
+  .sname.is-win{font-weight:900;color:#fff;}
+  .smap{font-weight:700;color:#7a8299;}
 
   .prow{display:flex;align-items:center;gap:clamp(5px,.6vw,10px);
     padding:clamp(4px,.7vh,9px) clamp(11px,1vw,18px);border-top:1px solid rgba(255,255,255,.05);}
   .stpht + .prow{border-top:none;}
-  .prank{font-size:clamp(10px,.85vw,13px);font-weight:900;color:#7a8299;
+  .prank{font-size:clamp(11px,.92vw,14px);font-weight:900;color:#7a8299;
     font-variant-numeric:tabular-nums;min-width:1.4em;}
   .plogo{width:clamp(16px,1.4vw,23px);height:clamp(16px,1.4vw,23px);object-fit:contain;flex:0 0 auto;}
-  .pname{font-size:clamp(11px,1vw,15px);font-weight:800;color:#fff;flex:1;min-width:0;
+  .pname{font-size:clamp(12.5px,1.1vw,16.5px);font-weight:800;color:#fff;flex:1;min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .prec{font-size:clamp(9px,.82vw,12px);font-weight:700;color:#9FBCAC;
     font-variant-numeric:tabular-nums;flex:0 0 auto;}
@@ -406,6 +428,8 @@ const DECK_STYLE = `
     /* 3단이 성립 안 하는 폭이다 — 조별 순위만 남긴다 */
     .stand{width:100%;}
     .stpanel{display:none;}
+    /* 3열을 지키는 빈 자리표시자다 — 1열인 폰에서는 행 사이 간격만 먹는다 */
+    .stgap{display:none;}
 
     /* 폰에서는 산수(--rowh)가 안 맞는다 — 머리글이 접히면 계산에 없던 높이가 생겨 표가 잘린다.
        남은 높이를 4개조가 그냥 나눠 갖게 해서 어떤 기기에서도 넘치지 않게 한다.
@@ -429,8 +453,7 @@ const DECK_STYLE = `
     .sth2{font-size:clamp(19px,5.2vw,26px);}
     .gbname{font-size:15px;}
     .tname{font-size:12px;}
-    /* 곁 패널이 없는 폭이다 — 알약은 표 안이라 폰에서도 남긴다. 대신 더 작게 */
-    .tpill{font-size:.5625rem;padding:.1em .38em;}
+    /* 알약은 표 안이라 폰에서도 남긴다 — 크기는 이미 작아서 더 줄이지 않는다 */
     .tnum{font-size:12px;}
     .tlogo{width:17px;height:17px;}
   }
@@ -454,22 +477,41 @@ const DECK_STYLE = `
     .hd-bar{animation:none;}
     .hd-track{display:none;}
     .hd-m,.hd-slide,.hd-map{transition:none;}
+    /* 누른 표시는 남기되 움직임만 뺀다 — 배경 변화로 충분하다 */
+    .trow3:active,button.mrow:active,.hd-cell.has-m:active{transform:none;}
   }
 `;
+
+/** 세트 이름 색. 승자가 null(진행 중)이면 양쪽 다 보통이다 */
+function setTone(winner: JungmanStandingsSet["winner"], side: "home" | "away"): string {
+  return winner === null ? "" : winner === side ? " is-win" : " is-lost";
+}
 
 /**
  * 끝난 경기 한 줄. 전체 목록과 팀 패널이 같은 줄을 쓴다.
  * focus를 주면 그 팀 기준 승패 · 팀 이름 표시로 바뀐다(좌우는 홈·원정 자리로 고정).
+ * 세트가 저장된 경기만 눌러서 펼친다 — 없으면 예전 그대로 그냥 한 줄이다.
  */
-function MatchRow({ match, focus }: { match: JungmanStandingsMatch; focus?: string }) {
+function MatchRow({
+  match,
+  focus,
+  open,
+  onToggle,
+}: {
+  match: JungmanStandingsMatch;
+  focus?: string;
+  open?: boolean;
+  onToggle?: () => void;
+}) {
   const homeWon = match.homeSets > match.awaySets;
   const home = jungmanTeamByName(match.home);
   const away = jungmanTeamByName(match.away);
   // 칩은 보는 팀 기준. 고른 팀이 없으면 홈 기준이다
   const won = focus === match.away ? !homeWon : homeWon;
   const dim = (side: boolean) => (side ? "" : " is-lost");
-  return (
-    <div className="mrow">
+  const sets = match.sets ?? [];
+  const line = (
+    <>
       <span className={`mchip ${won ? "is-w" : "is-l"}`}>{won ? "승" : "패"}</span>
       {home ? (
         <Image
@@ -501,7 +543,33 @@ function MatchRow({ match, focus }: { match: JungmanStandingsMatch; focus?: stri
       {match.date ? (
         <span className="mdate">{focus ? formatDeckDate(match.date) : match.date.slice(5)}</span>
       ) : null}
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {sets.length && onToggle ? (
+        <button type="button" className="mrow" aria-expanded={open} onClick={onToggle}>
+          {line}
+        </button>
+      ) : (
+        <div className="mrow">{line}</div>
+      )}
+      {open ? (
+        <div className="srows">
+          {/* 자르지 마라 — 5개만 보여줬더니 5:3 경기가 5:0처럼 읽혔다.
+              세트 수와 점수는 반드시 맞아야 한다. 길어지면 곁 패널이 안쪽으로 스크롤한다 */}
+          {sets.map((set, si) => (
+            <div key={si} className="srow">
+              <span className="snum">{si + 1}</span>
+              <span className={`sname${setTone(set.winner, "home")}`}>{set.home}</span>
+              <span className="smap">{set.map}</span>
+              <span className={`sname${setTone(set.winner, "away")}`}>{set.away}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -687,6 +755,8 @@ export default function HomeHeroDeck({
   // 순위표에서 고른 팀 — 누르면 고정(teamPin), 마우스를 올리면 미리보기(teamHover)
   const [teamPin, setTeamPin] = useState<string | null>(null);
   const [teamHover, setTeamHover] = useState<string | null>(null);
+  // 세트를 펼친 경기 한 건. 키에 고른 팀을 섞어 두면 팀이 바뀔 때 저절로 닫힌다
+  const [openSet, setOpenSet] = useState<string | null>(null);
   const motionOff = useMedia("(prefers-reduced-motion: reduce)");
   // 터치 기기에서 mouseenter만 오고 mouseleave가 안 오면 자동 넘김이 영영 멈춘다 — 호버 있는 기기에서만 단다
   const canHover = useMedia("(hover: hover)");
@@ -697,20 +767,19 @@ export default function HomeHeroDeck({
   const scenarioOf = new Map<string, JungmanScenario>();
   for (const list of scenarios?.values() ?? []) for (const s of list) scenarioOf.set(s.team, s);
   // 고른 팀의 경우의 수 한 줄. 할 말이 없으면 null — 빈 줄은 안 그린다
-  const activeLine = activeTeam ? scenarioLine(scenarioOf.get(activeTeam)) : null;
+  const activeScenario = activeTeam ? scenarioOf.get(activeTeam) : undefined;
+  const activeLine = activeScenario ? jungmanScenarioLine(activeScenario) : null;
   const ofTeam = (match: JungmanStandingsMatch) => match.home === activeTeam || match.away === activeTeam;
   // 팀을 고르면 곁 패널 두 칸이 그 팀만 본다. 안 골랐으면 전체 그대로다
   const matches = activeTeam ? allMatches.filter(ofTeam) : allMatches;
   const upcoming = activeTeam ? allUpcoming.filter(ofTeam) : allUpcoming;
   const playerRanks = activeTeam ? allRanks.filter((rank) => rank.team === activeTeam) : allRanks;
 
-  // 곁 패널은 각자 자기 데이터로 켜진다 — 빈 상자는 만들지 않고 표가 그만큼 넓어진다.
-  // 가운데는 치른 경기가 있으면 결과, 없으면 일정 — 대회 초반에도 빈 칸이 안 남는다.
-  // 팀을 고르면 경기가 0건이어도 팀 패널("경기 정보가 없습니다")을 그린다
+  // 곁 패널은 각자 자기 데이터로 켜진다. 열은 언제나 3열이고, 없는 칸은 빈 자리표시자가 지킨다 —
+  // 폭이 곁 패널 유무에 따라 튀면 표가 흔들려 읽기 나쁘다(뒤에 지도가 비쳐 빈 칸은 어색하지 않다).
+  // 가운데는 치른 경기가 있으면 결과, 없으면 일정. 팀을 고르면 0건이어도 팀 패널을 그린다
   const hasMatches = matches.length > 0;
-  const hasMid = hasMatches || upcoming.length > 0 || activeTeam !== null;
   const hasRanks = playerRanks.length > 0;
-  const cols = 1 + (hasMid ? 1 : 0) + (hasRanks ? 1 : 0);
 
   const multi = slides.length > 1;
   const autoOn = auto && multi && !motionOff;
@@ -727,7 +796,8 @@ export default function HomeHeroDeck({
   const go = (next: number) => {
     setAuto(false);
     clearDate();
-    // 슬라이드를 넘기면 팀 선택을 푼다 — 돌아왔을 때 이전 선택이 남아 있으면 혼란스럽다
+    // 슬라이드를 넘기면 팀 선택과 펼친 세트를 푼다 — 돌아왔을 때 이전 선택이 남아 있으면 혼란스럽다
+    setOpenSet(null);
     setTeamPin(null);
     setTeamHover(null);
     setIndex(((next % slides.length) + slides.length) % slides.length);
@@ -813,6 +883,16 @@ export default function HomeHeroDeck({
     setTeamPin((current) => (current === name ? null : name));
     setAuto(false);
   };
+
+  // 세트를 펼치는 것도 "읽는 중"이라는 신호다 — 여기서도 자동 넘김을 끈다. 한 번에 한 경기만
+  const toggleSet = (key: string) => {
+    setOpenSet((current) => (current === key ? null : key));
+    setAuto(false);
+  };
+
+  // 팀이 바뀌면 저절로 닫히도록 고른 팀을 키에 섞는다
+  const setKey = (match: JungmanStandingsMatch, mi: number) =>
+    `${activeTeam ?? ""}|${match.date ?? ""}-${match.home}-${match.away}-${mi}`;
 
   return (
     <div
@@ -914,13 +994,9 @@ export default function HomeHeroDeck({
         </svg>
       </div>
 
+      {/* 코너 뱃지는 뺐다 — 커버엔 "K-중만컵", 순위엔 "K-중만컵 조별 순위"가 제목으로 크게 있어
+          같은 말을 두 번 했다. label은 접근성 라벨로만 남는다 */}
       <div className="hd-stage">
-        <div className="flex justify-end">
-          <span className="rounded-full border border-white/12 bg-black/50 px-3 py-1 text-[0.625rem] font-black tracking-[0.14em] text-[#cfd6e6]">
-            {slide.label}
-          </span>
-        </div>
-
         <div
           className="relative min-h-0 flex-1"
           onTouchStart={(event) => {
@@ -1064,7 +1140,7 @@ export default function HomeHeroDeck({
                       </p>
                     </div>
 
-                    <div className={`standbody${cols === 1 ? " is-solo" : cols === 2 ? " is-duo" : ""}`}>
+                    <div className="standbody">
                       <div className="stwrap">
                         {tables.map((table, gi) => {
                           const color = JUNGMAN_GROUP_COLORS[gi % JUNGMAN_GROUP_COLORS.length];
@@ -1083,9 +1159,10 @@ export default function HomeHeroDeck({
                               </div>
                               {table.rows.map((row, ri) => {
                                 const team = jungmanTeamByName(row.team);
-                                // 확정된 것만 알약이 된다 — 미확정에 뭘 붙이면 글자만 는다
+                                // 문구는 lib 한 곳에서만 온다. 금색(is-open)은 눌러보라는 신호다
                                 const s = scenarioOf.get(row.team);
-                                const pill = s?.clinched ? "진출" : s?.eliminated ? "탈락" : "";
+                                const pill = s ? jungmanScenarioBadge(s) : "";
+                                const tone = s?.clinched ? "is-go" : s?.eliminated ? "is-out" : "is-open";
                                 return (
                                   <button
                                     key={row.team}
@@ -1096,7 +1173,7 @@ export default function HomeHeroDeck({
                                     }${activeTeam === row.team ? " is-pick" : ""}`}
                                     aria-pressed={teamPin === row.team}
                                     // aria-label이 행 내용을 통째로 가린다 — 알약도 여기에 실어야 읽힌다
-                                    aria-label={`${row.team} 경기 보기${pill ? ` · ${pill} 확정` : ""}`}
+                                    aria-label={`${row.team} 경기 보기${pill ? ` · ${pill}` : ""}`}
                                     onClick={() => pickTeam(row.team)}
                                     // 호버 미리보기는 마우스가 있는 기기에서만 — 터치에서는 탭 한 번에 상태가 붙어 안 풀린다
                                     onMouseEnter={canHover ? () => setTeamHover(row.team) : undefined}
@@ -1114,11 +1191,7 @@ export default function HomeHeroDeck({
                                         />
                                       ) : null}
                                       <span className="tname">{row.team}</span>
-                                      {pill ? (
-                                        <span className={`tpill ${s?.clinched ? "is-go" : "is-out"}`}>
-                                          {pill}
-                                        </span>
-                                      ) : null}
+                                      {pill ? <span className={`tpill ${tone}`}>{pill}</span> : null}
                                     </span>
                                     <span className="tnum">{row.wins}</span>
                                     <span className="tnum">{row.losses}</span>
@@ -1161,9 +1234,11 @@ export default function HomeHeroDeck({
                           {hasMatches ? <p className="stpsub">경기 결과</p> : null}
                           {matches.slice(0, 4).map((match, mi) => (
                             <MatchRow
-                              key={`${match.date ?? ""}-${match.home}-${match.away}-${mi}`}
+                              key={setKey(match, mi)}
                               match={match}
                               focus={activeTeam}
+                              open={openSet === setKey(match, mi)}
+                              onToggle={() => toggleSet(setKey(match, mi))}
                             />
                           ))}
                           {upcoming.length ? <p className="stpsub">남은 경기</p> : null}
@@ -1182,7 +1257,12 @@ export default function HomeHeroDeck({
                         <div className="stpanel">
                           <p className="stpht">경기 결과</p>
                           {matches.slice(0, 5).map((match, mi) => (
-                            <MatchRow key={`${match.date ?? ""}-${match.home}-${match.away}-${mi}`} match={match} />
+                            <MatchRow
+                              key={setKey(match, mi)}
+                              match={match}
+                              open={openSet === setKey(match, mi)}
+                              onToggle={() => toggleSet(setKey(match, mi))}
+                            />
                           ))}
                         </div>
                       ) : upcoming.length ? (
@@ -1192,7 +1272,10 @@ export default function HomeHeroDeck({
                             <NextRow key={`${match.date ?? ""}-${match.home}-${match.away}-${mi}`} match={match} />
                           ))}
                         </div>
-                      ) : null}
+                      ) : (
+                        // 칸이 없어도 열은 그대로 — 자리표시자가 없으면 오른쪽 칸이 당겨져 표 폭이 튄다
+                        <div className="stgap" />
+                      )}
 
                       {hasRanks ? (
                         <div className="stpanel">
@@ -1224,7 +1307,9 @@ export default function HomeHeroDeck({
                             );
                           })}
                         </div>
-                      ) : null}
+                      ) : (
+                        <div className="stgap" />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1301,6 +1386,7 @@ export default function HomeHeroDeck({
             onAnimationEnd={() => {
               // 자동 넘김도 넘김이다 — 선택을 들고 넘어가지 않는다
               clearDate();
+              setOpenSet(null);
               setTeamPin(null);
               setTeamHover(null);
               setIndex((i) => (i + 1) % slides.length);

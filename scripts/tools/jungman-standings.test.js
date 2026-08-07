@@ -118,6 +118,68 @@ test("세트득실이 같으면 세트승, 그것도 같으면 팀명", () => {
   assert.deepEqual(rows.map((row) => row.remaining), [1, 1, 1, 1]);
 });
 
+test("세 기준까지 동률이면 맞대결 승자가 위로 온다 (공식 4번째 기준)", () => {
+  // 가·나가 1승1패·세트득실 0... 이 아니라 완전 동률이 되도록 짠 데이터.
+  // 나가 가를 5:0으로 이겼으니 팀명 순(가)을 뒤집고 나가 위여야 한다.
+  const data = parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "A", teams: ["가", "나", "다", "라"] }],
+      matches: [
+        match("A", "나", "가", 5, 3), // 맞대결 — 나 승
+        match("A", "가", "다", 5, 3),
+        match("A", "라", "나", 5, 3),
+      ],
+    })
+  );
+  const before = JSON.stringify(data);
+  const rows = rowsOf(data, "A");
+  assert.deepEqual(
+    rows.map((row) => [row.team, row.wins, row.losses, row.setsWon, row.setDiff]),
+    [
+      ["라", 1, 0, 5, 2],
+      ["나", 1, 1, 8, 0], // 가와 승·세트득실·세트승이 똑같다 — 맞대결로 갈린다
+      ["가", 1, 1, 8, 0],
+      ["다", 0, 1, 3, -2],
+    ]
+  );
+  // 계산은 순수해야 한다 — 원본 경기 데이터를 건드리면 두 번째 호출이 달라진다
+  assert.equal(JSON.stringify(data), before);
+  assert.deepEqual(rowsOf(data, "A").map((row) => row.team), ["라", "나", "가", "다"]);
+});
+
+test("세 팀이 서로 물고 물리면 못 가른다 — 팀명 순 그대로", () => {
+  // 가>나>다>가. 셋 다 1승1패·세트득실 0·세트승 5라 승자승 승수도 각 1승으로 같다.
+  // 누가 위인지 정할 근거가 없으니 화면이 흔들리지 않게 팀명 순을 유지한다.
+  const data = parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "A", teams: ["다", "나", "가"] }],
+      matches: [match("A", "가", "나", 5, 0), match("A", "나", "다", 5, 0), match("A", "다", "가", 5, 0)],
+    })
+  );
+  assert.deepEqual(
+    rowsOf(data, "A").map((row) => [row.team, row.wins, row.setsWon, row.setDiff]),
+    [
+      ["가", 1, 5, 0],
+      ["나", 1, 5, 0],
+      ["다", 1, 5, 0],
+    ]
+  );
+});
+
+test("맞대결 기록이 없는 동률도 못 가른다", () => {
+  // 오타로 경기가 빠지면 승자승 승수가 둘 다 0 — 근거가 없으니 팀명 순
+  const data = parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "A", teams: ["가", "나", "다"] }],
+      matches: [match("A", "가", "다", 5, 3), match("A", "나", "다", 5, 3)],
+    })
+  );
+  assert.deepEqual(rowsOf(data, "A").map((row) => row.team), ["가", "나", "다"]);
+});
+
 test("아직 안 치른 경기·오타는 집계에서 빠지고 잔여로 남는다", () => {
   const data = parseJungmanStandings(
     JSON.stringify({
@@ -683,6 +745,32 @@ test("팀 행이 눌리는 버튼이고 펼침 상태를 알린다", () => {
   assert.match(source, /current === team \? null : team/);
 });
 
+test("지난 경기 줄을 누르면 세트별 대진이 펼쳐진다", () => {
+  const source = readProjectFile("app/jungman/JungmanGroupTables.tsx");
+
+  // 세트가 있는 경기만 눌린다 — 없으면 예전처럼 그냥 <div> 한 줄
+  assert.match(source, /const sets = match\.sets \?\? \[\]/);
+  assert.match(source, /sets\.length && onToggle \? \(/);
+  assert.match(source, /<button[\s\S]{0,80}aria-expanded=\{open\}/);
+  assert.match(source, /<div className=\{LINE\}>\{line\}<\/div>/);
+
+  // 좌우는 홈·원정 자리로 고정하고 가운데가 맵 — 이긴 선수를 왼쪽으로 몰면 소속이 안 보인다
+  assert.match(
+    source,
+    /\{set\.home\}<\/span>[\s\S]{0,120}\{set\.map\}<\/span>[\s\S]{0,120}\{set\.away\}<\/span>/
+  );
+  // 이긴 쪽은 밝게, 진 쪽은 흐리게. 진행 중(null)이면 양쪽 다 보통
+  assert.match(source, /if \(winner === null\) return "font-bold text-\[rgba\(232,235,242,0\.62\)\]"/);
+  assert.match(source, /winner === side \? "font-black text-\[#e8ebf2\]" : "font-bold/);
+  // 한 줄은 번호 · 홈 · 맵 · 원정 네 칸뿐이다 — 종족 배지 자리는 없다(선수 DB를 안 읽는다)
+  assert.match(source, /grid-cols-\[1\.4rem_1fr_1fr_1fr\]/);
+
+  // 한 번에 한 경기만. 다른 팀을 펼치면 TeamMatches가 언마운트돼 저절로 닫힌다
+  assert.match(source, /current === `p\$\{index\}` \? null : `p\$\{index\}`/);
+  // /jungman은 세트를 전부 보여준다 — 5개로 자르는 건 자리가 좁은 덱뿐이다
+  assert.doesNotMatch(source, /sets\.slice\(/);
+});
+
 test("펼침 화면의 '오늘'도 마운트 뒤에 채운다", () => {
   const source = readProjectFile("app/jungman/JungmanGroupTables.tsx");
   // 서버 스냅샷이 null이라 D-day는 하이드레이션 뒤에 생긴다 — useState+useEffect면 불일치를 스스로 만든다
@@ -803,10 +891,20 @@ test("경기를 하나도 안 치렀으면 아무도 확정이 아니다", () =>
       { group: "A", home: "나", away: "다", homeSets: 0, awaySets: 0, date: "2026-08-10" },
     ])
   );
+  // 다음 경기(가장 이른 남은 경기)는 문구가 쓸 재료라 함께 실려 나온다
+  const next = { 가: ["나", "2026-08-08"], 나: ["가", "2026-08-08"], 다: ["가", "2026-08-09"] };
   for (const team of ABC) {
     assert.deepEqual(
       scheduled[team],
-      { team, clinched: false, eliminated: false, winClinches: false, lossEliminates: false },
+      {
+        team,
+        clinched: false,
+        eliminated: false,
+        winClinches: false,
+        lossEliminates: false,
+        nextOpponent: next[team][0],
+        nextDate: next[team][1],
+      },
       `team=${team}`
     );
   }
@@ -862,10 +960,10 @@ test("2패면 탈락 확정 — 나머지 둘은 지고도 진출한다", () => 
   }
 });
 
-test("동전 던지기(팀명 순)를 확정이라고 말하지 않는다", () => {
+test("순환 동률이 남아 있으면 확정이라고 말하지 않는다", () => {
   // 가 5:0 나, 다 5:0 가 → 남은 건 나 vs 다.
-  // 나가 5:0으로 이기면 셋 다 1승1패·세트득실 0·세트승 5로 완전 동률이 된다.
-  // compareRows는 팀명으로 가르지만 공식 4번째 기준(승자승)은 우리가 구현하지 않았다.
+  // 나가 5:0으로 이기면 셋 다 1승1패·세트득실 0·세트승 5로 완전 동률이 되고,
+  // 맞대결도 가>나>다>가로 물고 물려(각 1승) 승자승으로도 못 가른다.
   const s = scenariosOf(
     standingsOf(ABC, [
       match("A", "가", "나", 5, 0),
@@ -878,12 +976,56 @@ test("동전 던지기(팀명 순)를 확정이라고 말하지 않는다", () =
     assert.equal(s[team].clinched, false, `team=${team}`);
     assert.equal(s[team].eliminated, false, `team=${team}`);
   }
+  // 순위표도 같은 규칙을 쓴다 — 그 순환이 실제로 일어나면 팀명 순으로 남는다
+  const cycled = standingsOf(ABC, [
+    match("A", "가", "나", 5, 0),
+    match("A", "다", "가", 5, 0),
+    match("A", "나", "다", 5, 0),
+  ]);
+  assert.deepEqual(rowsOf(cycled, "A").map((row) => row.team), ABC);
   // 나는 지면 0승2패라 확실히 탈락이다 — 동률 규칙이 이쪽까지 뭉개면 안 된다
   assert.equal(s["나"].lossEliminates, true);
   assert.equal(s["나"].winClinches, false);
   // 가는 남은 경기가 없다 — 다음 경기 얘기를 만들어내면 안 된다
   assert.equal(s["가"].winClinches, false);
   assert.equal(s["가"].lossEliminates, false);
+});
+
+test("승자승으로 갈리는 동률은 확정으로 센다", () => {
+  // 4팀 조. 가·나는 2승1패·세트득실 +1·세트승 10으로 완전 동률이고 맞대결은 가가 5:0으로 이겼다.
+  // 남은 건 라 vs 다 한 경기:
+  //  - 라가 이기면 라가 1위, 가·나가 2·3위 동률 → 맞대결로 가가 2위
+  //  - 다가 이기면 가·나(2승)가 1·2위
+  // 어느 쪽이든 가는 2위 안이다. 승자승이 없으면 앞 갈래를 "모른다"로 흘려보냈다.
+  const data = standingsOf(["가", "나", "다", "라"], [
+    match("A", "가", "나", 5, 0), // 맞대결 — 가 승
+    match("A", "라", "가", 5, 0),
+    match("A", "나", "라", 5, 4),
+    match("A", "가", "다", 5, 4),
+    match("A", "나", "다", 5, 0),
+    { group: "A", home: "라", away: "다", homeSets: 0, awaySets: 0, date: "2026-08-10" },
+  ]);
+  // 동률 전제부터 확인한다 — 여기가 어긋나면 아래 단언은 아무 의미가 없다
+  assert.deepEqual(
+    rowsOf(data, "A").map((row) => [row.team, row.wins, row.setsWon, row.setDiff]),
+    [
+      ["가", 2, 10, 1],
+      ["나", 2, 10, 1],
+      ["라", 1, 9, 4],
+      ["다", 0, 4, -6],
+    ]
+  );
+
+  const s = scenariosOf(data);
+  assert.equal(s["가"].clinched, true);
+  assert.equal(s["가"].eliminated, false);
+  // 나는 라가 이기는 갈래에서 맞대결에 밀려 3위다 — 확정도 탈락도 아니다
+  assert.equal(s["나"].clinched, false);
+  assert.equal(s["나"].eliminated, false);
+  // 다는 이겨도 1승2패라 2승인 가·나를 못 넘는다
+  assert.equal(s["다"].eliminated, true);
+  assert.equal(s["라"].clinched, false);
+  assert.equal(s["라"].eliminated, false);
 });
 
 test("오타 팀명·다른 조 경기가 섞여도 안 죽는다", () => {
@@ -923,11 +1065,95 @@ test("공개 페이지가 경우의 수를 넘기고 순위표가 그린다", ()
   const source = readProjectFile("app/jungman/JungmanGroupTables.tsx");
   // 진출선은 계산과 화면이 같은 상수를 본다 — 두 벌이면 점선과 뱃지가 조용히 어긋난다
   assert.match(source, /ADVANCING = JUNGMAN_ADVANCING/);
-  // 행 안은 알약 두 글자, 긴 문장은 펼쳤을 때만
-  assert.match(source, /\s진출\s*<\/span>/);
-  assert.match(source, /\s탈락\s*<\/span>/);
-  assert.match(source, /"8강 진출 확정"/);
-  assert.match(source, /"다음 경기에서 이기면 진출, 지면 탈락"/);
+  // 문구는 lib에서만 온다 — 행 안은 알약, 긴 문장은 펼쳤을 때만
+  assert.match(source, /jungmanScenarioBadge\(scenario\)/);
+  assert.match(source, /jungmanScenarioLine\(scenario\)/);
+});
+
+// ── 상태 문구 (알약 · 한 줄) ──────────────────────────────────────────────
+const { jungmanScenarioBadge, jungmanScenarioLine } = loadModule("lib/jungman-standings.ts");
+const scenario = (over) => ({
+  team: "HM",
+  clinched: false,
+  eliminated: false,
+  winClinches: false,
+  lossEliminates: false,
+  ...over,
+});
+
+test("알약은 세 값만 돌려준다", () => {
+  const seen = new Set();
+  for (const over of [
+    {},
+    { clinched: true },
+    { eliminated: true },
+    { winClinches: true },
+    { lossEliminates: true },
+    { winClinches: true, lossEliminates: true },
+    { nextOpponent: "CALM", nextDate: "2026-08-23" },
+  ]) {
+    seen.add(jungmanScenarioBadge(scenario(over)));
+  }
+  assert.deepEqual([...seen].sort(), ["경우의 수", "진출 확정", "탈락"].sort());
+  // 확정이 탈락보다 먼저 걸린다(둘 다 참일 수는 없지만 순서를 못 박아 둔다)
+  assert.equal(jungmanScenarioBadge(scenario({ clinched: true, eliminated: true })), "진출 확정");
+});
+
+test("한 줄에 팀 이름 · 상대 · 날짜가 다 들어간다", () => {
+  const next = { nextOpponent: "CALM", nextDate: "2026-08-23" };
+  assert.equal(
+    jungmanScenarioLine(scenario({ ...next, winClinches: true, lossEliminates: true })),
+    "HM — 8/23 CALM전 이기면 진출, 지면 탈락"
+  );
+  assert.equal(
+    jungmanScenarioLine(scenario({ ...next, winClinches: true })),
+    "HM — 8/23 CALM전 이기면 진출 확정"
+  );
+  assert.equal(
+    jungmanScenarioLine(scenario({ ...next, lossEliminates: true })),
+    "HM — 8/23 CALM전 지면 탈락"
+  );
+  // 확정된 얘기에는 다음 경기가 안 붙는다
+  assert.equal(jungmanScenarioLine(scenario({ ...next, clinched: true })), "HM — 8강 진출 확정");
+  assert.equal(jungmanScenarioLine(scenario({ ...next, eliminated: true })), "HM — 탈락 확정");
+  // 아무 말도 못 하는 팀도 빈 문자열이 아니다 — 펼치면 반드시 한 줄이 있다
+  assert.equal(jungmanScenarioLine(scenario(next)), "HM — 남은 경기 결과에 따라 갈린다");
+});
+
+test("날짜가 없으면 날짜만 빠진다", () => {
+  assert.equal(
+    jungmanScenarioLine(scenario({ nextOpponent: "CALM", winClinches: true })),
+    "HM — CALM전 이기면 진출 확정"
+  );
+  // 상대까지 없어도(있을 수 없지만) 문장이 깨지지 않는다
+  assert.equal(jungmanScenarioLine(scenario({ lossEliminates: true })), "HM — 다음 경기에서 지면 탈락");
+});
+
+test("두 화면은 상태 문구를 직접 적지 않는다", () => {
+  const lib = readProjectFile("lib/jungman-standings.ts");
+  for (const line of ["진출 확정", "탈락", "경우의 수", "남은 경기 결과에 따라 갈린다"]) {
+    assert.ok(lib.includes(line), `lib에 없음: ${line}`);
+  }
+  // 화면이 같은 문구를 또 적으면 두 벌이 되어 조용히 어긋난다.
+  // 주석에는 나올 수 있으니 문자열 리터럴·JSX 텍스트로 나오는 것만 잡는다
+  const hardcoded = /(["'`]\s*(진출 확정|탈락|경우의 수)\s*["'`])|(>\s*(진출 확정|탈락|경우의 수)\s*<)/;
+  for (const file of ["app/jungman/JungmanGroupTables.tsx", "components/home/HomeHeroDeck.tsx"]) {
+    const source = readProjectFile(file);
+    assert.doesNotMatch(source, hardcoded, `${file}에 상태 문구가 하드코딩돼 있다`);
+    assert.doesNotMatch(source, /이기면 진출|지면 탈락/, `${file}에 경우의 수 문장이 하드코딩돼 있다`);
+    assert.match(source, /jungmanScenarioBadge|jungmanScenarioLine/);
+  }
+});
+
+test("누른 순간이 보인다 — 움직임은 reduced-motion에서 꺼진다", () => {
+  const source = readProjectFile("app/jungman/JungmanGroupTables.tsx");
+  assert.match(source, /active:scale-\[0\.985\]/);
+  assert.match(source, /active:bg-\[rgba\(155,185,240,0\.1\)\]/);
+  assert.match(source, /duration-\[120ms\]/);
+  // 움직임을 싫어하는 사람에게는 배경 변화만 남긴다
+  assert.match(source, /motion-reduce:active:scale-100/);
+  // 눌리는 곳 두 군데(팀 행 · 경기 줄)가 같은 효과를 쓴다 — 두 벌로 적으면 어긋난다
+  assert.equal((source.match(/\$\{PRESS\}/g) ?? []).length, 2);
 });
 
 process.exitCode = failed ? 1 : 0;

@@ -11,9 +11,12 @@ import {
 } from "@/lib/jungman";
 import {
   JUNGMAN_ADVANCING,
+  jungmanScenarioBadge,
+  jungmanScenarioLine,
   type JungmanGroupTable,
   type JungmanScenario,
   type JungmanStandingsMatch,
+  type JungmanStandingsSet,
 } from "@/lib/jungman-standings";
 
 const PANEL =
@@ -22,16 +25,9 @@ const PANEL =
 // 조 2위까지 8강 진출 — 진출선을 어디에 그을지의 기준. 경우의 수 계산과 같은 상수를 본다
 const ADVANCING = JUNGMAN_ADVANCING;
 
-/** 펼쳤을 때만 보이는 한 줄. 짧은 순서대로 먼저 걸린다 */
-function scenarioLine(s: JungmanScenario | undefined): string | null {
-  if (!s) return null;
-  if (s.clinched) return "8강 진출 확정";
-  if (s.eliminated) return "탈락 확정";
-  if (s.winClinches && s.lossEliminates) return "다음 경기에서 이기면 진출, 지면 탈락";
-  if (s.winClinches) return "다음 경기를 이기면 진출 확정";
-  if (s.lossEliminates) return "다음 경기를 지면 탈락";
-  return null;
-}
+/** 누른 순간을 알리는 가벼운 효과. reduced-motion이면 transform은 빼고 배경만 남긴다 */
+const PRESS =
+  "transition-[background-color,transform] duration-[120ms] active:scale-[0.985] active:bg-[rgba(155,185,240,0.1)] motion-reduce:active:scale-100";
 
 // ── 날짜·D-day ───────────────────────────────────────────────────────────
 // TODO: JungmanSchedule·JungmanCalendar도 같은 헬퍼를 갖고 있다 — 언젠가 lib으로 합칠 자리다
@@ -125,23 +121,57 @@ function TeamSide({ name, align, bold }: { name: string; align: "left" | "right"
   );
 }
 
+/** 세트 이름 색. 승자가 null(진행 중)이면 양쪽 다 보통이다 */
+function setTone(winner: JungmanStandingsSet["winner"], side: "home" | "away"): string {
+  if (winner === null) return "font-bold text-[rgba(232,235,242,0.62)]";
+  return winner === side ? "font-black text-[#e8ebf2]" : "font-bold text-[rgba(232,235,242,0.34)]";
+}
+
+/**
+ * 세트별 대진. 좌우는 홈·원정 자리로 고정하고 가운데에 맵 이름을 둔다 —
+ * 이긴 선수를 왼쪽으로 몰면 어느 팀 선수인지가 안 보인다. 종족은 저장하지 않아 이름·맵·승패뿐이다.
+ */
+function SetLines({ sets }: { sets: JungmanStandingsSet[] }) {
+  return (
+    <div className="mb-1 rounded-lg bg-[rgba(155,185,240,0.06)] px-2 py-1">
+      {sets.map((set, index) => (
+        <div
+          key={index}
+          className="grid grid-cols-[1.4rem_1fr_1fr_1fr] items-center gap-1 py-0.5 text-[0.625rem] md:gap-2 md:text-[0.6875rem]"
+        >
+          <span className="font-black tabular-nums text-[#7a8299]">{index + 1}</span>
+          <span className={`truncate ${setTone(set.winner, "home")}`}>{set.home}</span>
+          <span className="truncate font-bold text-[#7a8299]">{set.map}</span>
+          <span className={`truncate ${setTone(set.winner, "away")}`}>{set.away}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** 세트가 저장된 경기만 눌린다 — 없으면 예전 그대로 그냥 한 줄이다 */
 function MatchLine({
   match,
   team,
   today,
+  open,
+  onToggle,
 }: {
   match: JungmanStandingsMatch;
   team: string;
   today: string | null;
+  open?: boolean;
+  onToggle?: () => void;
 }) {
   const isHome = match.home === team;
   // 좌우는 홈·원정 자리로 고정한다 — 누른 팀을 왼쪽으로 몰면 어느 쪽이 홈인지 안 보인다
   const head = match.date ? formatMatchDate(match.date) : "일정 미정";
   const won = isHome ? match.homeSets > match.awaySets : match.awaySets > match.homeSets;
   const dday = !match.decided && match.date && today ? ddayLabel(match.date, today) : null;
+  const sets = match.sets ?? [];
 
-  return (
-    <div className={LINE}>
+  const line = (
+    <>
       <span className="truncate text-[0.625rem] font-bold tabular-nums text-[#7a8299]">
         {head}
         {!match.decided && match.date ? (
@@ -168,7 +198,25 @@ function MatchLine({
       ) : (
         <span className="text-right text-[0.625rem] font-black tabular-nums text-[#d4a94a]">{dday}</span>
       )}
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {sets.length && onToggle ? (
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={onToggle}
+          className={`${LINE} w-full text-left hover:bg-[rgba(155,185,240,0.05)] ${PRESS}`}
+        >
+          {line}
+        </button>
+      ) : (
+        <div className={LINE}>{line}</div>
+      )}
+      {open ? <SetLines sets={sets} /> : null}
+    </>
   );
 }
 
@@ -193,6 +241,8 @@ function TeamMatches({
   const mine = matches.filter((m) => m.home === team || m.away === team).sort(byDate);
   const past = mine.filter((m) => m.decided);
   const rest = mine.filter((m) => !m.decided);
+  // 한 번에 한 경기만. 다른 팀을 펼치면 이 컴포넌트가 통째로 사라져 저절로 닫힌다
+  const [openSet, setOpenSet] = useState<string | null>(null);
 
   return (
     <div className="border-t border-[rgba(155,185,240,0.07)] bg-[rgba(9,14,26,0.93)] px-2 pb-2 md:px-3">
@@ -206,7 +256,14 @@ function TeamMatches({
       ) : null}
       {past.length ? <p className={SUB}>지난 경기</p> : null}
       {past.map((match, index) => (
-        <MatchLine key={`p${index}`} match={match} team={team} today={today} />
+        <MatchLine
+          key={`p${index}`}
+          match={match}
+          team={team}
+          today={today}
+          open={openSet === `p${index}`}
+          onToggle={() => setOpenSet((current) => (current === `p${index}` ? null : `p${index}`))}
+        />
       ))}
       {rest.length ? <p className={SUB}>남은 경기</p> : null}
       {rest.map((match, index) => (
@@ -218,22 +275,22 @@ function TeamMatches({
 }
 
 // ── 순위표 ───────────────────────────────────────────────────────────────
-/** 행 안의 알약. 확정된 것만 그린다 — 미확정에 뭔가를 붙이면 글자만 늘어난다 */
+/** 행 안의 알약. 문구는 lib 한 곳에서만 온다 — 금색은 "눌러보면 경우의 수가 있다"는 신호다 */
 function StatusPill({ scenario }: { scenario: JungmanScenario | undefined }) {
   if (!scenario) return null;
-  if (scenario.clinched)
-    return (
-      <span className="shrink-0 rounded-full bg-[rgba(43,227,155,0.16)] px-1.5 py-px text-[0.625rem] font-black text-[#2BE39B]">
-        진출
-      </span>
-    );
-  if (scenario.eliminated)
-    return (
-      <span className="shrink-0 rounded-full bg-[rgba(122,130,153,0.16)] px-1.5 py-px text-[0.625rem] font-black text-[#7a8299]">
-        탈락
-      </span>
-    );
-  return null;
+  // 글자·여백을 줄여 팀 이름 자리를 뺏지 않는다
+  const tone = scenario.clinched
+    ? "bg-[rgba(43,227,155,0.16)] text-[#2BE39B]"
+    : scenario.eliminated
+      ? "bg-[rgba(122,130,153,0.16)] text-[#7a8299]"
+      : "bg-[rgba(212,169,74,0.16)] text-[#d4a94a]";
+  return (
+    <span
+      className={`shrink-0 whitespace-nowrap rounded-full px-1 py-px text-[0.5625rem] font-black ${tone}`}
+    >
+      {jungmanScenarioBadge(scenario)}
+    </span>
+  );
 }
 
 function GroupCard({
@@ -289,7 +346,7 @@ function GroupCard({
                 type="button"
                 aria-expanded={expanded}
                 onClick={() => onToggle(row.team)}
-                className={`relative grid w-full grid-cols-[1fr_2.2rem_2.2rem_3rem_3.4rem_2.8rem] items-center gap-1.5 border-t border-[rgba(155,185,240,0.07)] py-2.5 text-left transition hover:bg-[rgba(155,185,240,0.05)] md:gap-2 md:py-3 ${
+                className={`relative grid w-full grid-cols-[1fr_2.2rem_2.2rem_3rem_3.4rem_2.8rem] items-center gap-1.5 border-t border-[rgba(155,185,240,0.07)] py-2.5 text-left hover:bg-[rgba(155,185,240,0.05)] md:gap-2 md:py-3 ${PRESS} ${
                   expanded ? "bg-[rgba(155,185,240,0.08)]" : ""
                 } ${
                   index === ADVANCING - 1 ? "border-b-2 border-b-dashed border-b-[rgba(43,227,155,0.45)]" : ""
@@ -347,7 +404,7 @@ function GroupCard({
                   team={row.team}
                   matches={matches}
                   today={today}
-                  line={scenarioLine(scenario)}
+                  line={scenario ? jungmanScenarioLine(scenario) : null}
                   color={color}
                 />
               ) : null}

@@ -199,6 +199,63 @@ function compareRows(a: JungmanStandingsRow, b: JungmanStandingsRow) {
   );
 }
 
+/** 맞대결 한 건. 순위표와 경우의 수가 같은 모양으로 넘겨야 두 계산이 갈라지지 않는다 */
+type HeadToHead = { home: string; away: string; homeWon: boolean };
+
+const headToHeadOf = (match: JungmanStandingsMatch): HeadToHead => ({
+  home: match.home,
+  away: match.away,
+  homeWon: match.homeSets > match.awaySets,
+});
+
+/** 앞의 세 기준(승·세트득실·세트승)까지 똑같은가 — 여기까지 같으면 공식 4번째 기준으로 넘어간다 */
+const sameRank = (a: JungmanStandingsRow, b: JungmanStandingsRow) =>
+  a.wins === b.wins && a.setDiff === b.setDiff && a.setsWon === b.setsWon;
+
+/**
+ * 공식 4번째 기준 — 동률 묶음 안 팀들끼리의 경기만 세서 승수로 줄 세운다.
+ * 승수가 전부 다를 때만 순서를 돌려주고, 아니면 null이다.
+ * 세 팀이 서로 물고 물리면(각 1승 1패) 승수가 같아 누가 위인지 정할 근거가 아예 없다 —
+ * 맞대결 기록이 없을 때(팀명 오타로 경기가 빠진 경우)도 마찬가지로 못 가른다.
+ */
+function headToHeadOrder(
+  tied: JungmanStandingsRow[],
+  h2h: HeadToHead[]
+): JungmanStandingsRow[] | null {
+  const wins = new Map(tied.map((row) => [row.team, 0]));
+  for (const match of h2h) {
+    const winner = match.homeWon ? match.home : match.away;
+    const loser = match.homeWon ? match.away : match.home;
+    // 묶음 밖 팀과의 경기는 세지 않는다 — 동률팀 "간" 승자승이다
+    if (!wins.has(winner) || !wins.has(loser)) continue;
+    wins.set(winner, (wins.get(winner) as number) + 1);
+  }
+  if (new Set(wins.values()).size !== tied.length) return null;
+  return [...tied].sort((a, b) => (wins.get(b.team) as number) - (wins.get(a.team) as number));
+}
+
+/**
+ * 공식 순위 기준 전부를 적용한 정렬. 세 기준으로 줄 세운 뒤 남은 동률 묶음을 승자승으로 푼다.
+ * 못 푼 묶음의 구간 [시작, 끝)을 같이 돌려준다 — 경우의 수가 "여긴 확정이 아니다"라고 말할 근거다.
+ * 순위표와 경우의 수가 이 함수 하나만 봐야 화면과 계산이 어긋나지 않는다.
+ */
+function rankRows(rows: JungmanStandingsRow[], h2h: HeadToHead[]) {
+  const sorted = [...rows].sort(compareRows);
+  const unresolved: [number, number][] = [];
+  for (let start = 0; start < sorted.length; ) {
+    let end = start + 1;
+    while (end < sorted.length && sameRank(sorted[start], sorted[end])) end += 1;
+    if (end - start > 1) {
+      const order = headToHeadOrder(sorted.slice(start, end), h2h);
+      // 못 가르면 팀명 순 그대로 둔다 — 화면이 새로고침마다 흔들리면 안 된다
+      if (order) sorted.splice(start, end - start, ...order);
+      else unresolved.push([start, end]);
+    }
+    start = end;
+  }
+  return { rows: sorted, unresolved };
+}
+
 export type JungmanPlayerRank = {
   name: string;
   /** 소속 팀 이름 (그 선수가 뛴 경기의 자기 팀). 여러 팀이면 가장 많이 뛴 팀 */
@@ -258,6 +315,7 @@ export function buildJungmanGroupTables(standings: JungmanStandings): JungmanGro
       ])
     );
 
+    const h2h: HeadToHead[] = [];
     for (const match of standings.matches) {
       if (match.group !== group.name) continue;
       // 안 끝난 경기(예정 포함)는 승패에도 잔여 감소에도 들어가면 안 된다
@@ -268,9 +326,10 @@ export function buildJungmanGroupTables(standings: JungmanStandings): JungmanGro
       if (!home || !away) continue;
       applyResult(home, match.homeSets, match.awaySets);
       applyResult(away, match.awaySets, match.homeSets);
+      h2h.push(headToHeadOf(match));
     }
 
-    return { name: group.name, rows: [...rows.values()].sort(compareRows) };
+    return { name: group.name, rows: rankRows([...rows.values()], h2h).rows };
   });
 }
 
@@ -286,7 +345,55 @@ export type JungmanScenario = {
   winClinches: boolean;
   /** 이 팀의 다음 경기를 지면 탈락이 확정되는가 */
   lossEliminates: boolean;
+  /** winClinches·lossEliminates가 가리키는 그 경기의 상대. 남은 경기가 없으면 undefined */
+  nextOpponent?: string;
+  /** 그 경기 날짜 YYYY-MM-DD. 날짜가 없는 예정 경기면 undefined */
+  nextDate?: string;
 };
+
+/** 알약에 쓸 짧은 날짜 "8/23". ko-KR은 "8. 23."으로 뱉어서 조각을 직접 조립한다 */
+const NEXT_DATE = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
+});
+
+function shortDate(date: string): string {
+  const parts = NEXT_DATE.formatToParts(new Date(`${date}T00:00:00+09:00`));
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("month")}/${part("day")}`;
+}
+
+/**
+ * 순위표 알약. 확정된 것만 짧게, 나머지는 "경우의 수"로 눌러보라는 신호를 준다.
+ * 두 화면(홈 덱·/jungman)이 문구를 각자 적으면 조용히 어긋난다 — 여기 한 곳에서만 만든다.
+ */
+export function jungmanScenarioBadge(s: JungmanScenario): "진출 확정" | "탈락" | "경우의 수" {
+  if (s.clinched) return "진출 확정";
+  if (s.eliminated) return "탈락";
+  return "경우의 수";
+}
+
+/**
+ * 펼쳤을 때 보여줄 한 줄. 팀 이름 · 상대 · 날짜를 넣어 무슨 얘기인지 분명히 한다.
+ * 조사(은/는)는 쓰지 않는다 — "HM은"처럼 영문 팀명에 붙으면 어색하다. 줄표로 잇는다.
+ */
+export function jungmanScenarioLine(s: JungmanScenario): string {
+  const head = `${s.team} — `;
+  if (s.clinched) return `${head}8강 진출 확정`;
+  if (s.eliminated) return `${head}탈락 확정`;
+  // 상대를 모르면(있을 수 없지만) "다음 경기에서"로 떨어진다 — 문장이 깨지는 것보다 낫다
+  const when = [
+    s.nextDate ? shortDate(s.nextDate) : "",
+    s.nextOpponent ? `${s.nextOpponent}전` : "다음 경기에서",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  if (s.winClinches && s.lossEliminates) return `${head}${when} 이기면 진출, 지면 탈락`;
+  if (s.winClinches) return `${head}${when} 이기면 진출 확정`;
+  if (s.lossEliminates) return `${head}${when} 지면 탈락`;
+  return `${head}남은 경기 결과에 따라 갈린다`;
+}
 
 /** 남은 경기 한 건의 결과 가짓수 — 이긴 쪽 2가지 × 진 쪽 세트 0~4가지. 9전 5선승이라 이긴 쪽은 항상 5세트다 */
 const OUTCOMES = 10;
@@ -302,16 +409,8 @@ const earlierFirst = (a: JungmanStandingsMatch, b: JungmanStandingsMatch) =>
   (a.date ?? "9999-99-99").localeCompare(b.date ?? "9999-99-99");
 
 /**
- * compareRows가 팀명으로만 가르는 사이인가.
- * 공식 4번째 기준은 동률팀 간 승자승인데 우리는 그걸 구현하지 않았다 —
- * 여기까지 같으면 누가 올라갈지 "모르는" 것이다.
- */
-const onlyNameApart = (a: JungmanStandingsRow, b: JungmanStandingsRow) =>
-  a.wins === b.wins && a.setDiff === b.setDiff && a.setsWon === b.setsWon;
-
-/**
  * 조마다 남은 경기의 모든 결과를 다 돌려 진출/탈락이 확정됐는지 본다.
- * 정렬은 buildJungmanGroupTables와 같은 compareRows를 쓴다 — 계산이 화면과 다르면 거짓말이 된다.
+ * 정렬은 buildJungmanGroupTables와 같은 rankRows를 쓴다 — 계산이 화면과 다르면 거짓말이 된다.
  */
 export function buildJungmanScenarios(standings: JungmanStandings): Map<string, JungmanScenario[]> {
   const result = new Map<string, JungmanScenario[]>();
@@ -325,6 +424,14 @@ export function buildJungmanScenarios(standings: JungmanStandings): Map<string, 
           m.group === table.name && !m.decided && teams.includes(m.home) && teams.includes(m.away)
       )
       .sort(earlierFirst);
+
+    // 이미 끝난 맞대결 — 조합마다 남은 경기 결과를 얹어 승자승을 가린다
+    const decided = standings.matches
+      .filter(
+        (m) =>
+          m.group === table.name && m.decided && teams.includes(m.home) && teams.includes(m.away)
+      )
+      .map(headToHeadOf);
 
     const blank = teams.map((team) => ({
       team,
@@ -357,6 +464,7 @@ export function buildJungmanScenarios(standings: JungmanStandings): Map<string, 
       const rows = table.rows.map((row) => ({ ...row }));
       const byTeam = new Map(rows.map((row) => [row.team, row]));
       const homeWon: boolean[] = [];
+      const h2h = [...decided];
 
       let digit = 1;
       for (const match of pending) {
@@ -369,25 +477,21 @@ export function buildJungmanScenarios(standings: JungmanStandings): Map<string, 
         const winnerIsHome = outcome < 5;
         const loserSets = outcome % 5;
         homeWon.push(winnerIsHome);
+        h2h.push({ home: match.home, away: match.away, homeWon: winnerIsHome });
         applyResult(home, winnerIsHome ? 5 : loserSets, winnerIsHome ? loserSets : 5);
         applyResult(away, winnerIsHome ? loserSets : 5, winnerIsHome ? 5 : loserSets);
       }
 
-      rows.sort(compareRows);
+      const ranked = rankRows(rows, h2h);
 
-      // 진출선에 걸친 동률 무리를 찾는다. 그 무리는 전부 "가능"이되 누구도 "확정"이 아니다 —
-      // 동전 던지기(팀명 순)를 확정이라고 말하면 안 된다
-      const cut = Math.min(JUNGMAN_ADVANCING, rows.length);
-      let lo = cut - 1;
-      let hi = cut - 1;
-      if (cut < rows.length) {
-        while (lo > 0 && onlyNameApart(rows[lo - 1], rows[lo])) lo -= 1;
-        while (hi + 1 < rows.length && onlyNameApart(rows[hi + 1], rows[hi])) hi += 1;
-      }
-      const certainEnd = hi >= cut ? lo : cut;
-      const possibleEnd = Math.max(hi + 1, cut);
+      // 승자승으로도 못 가른 동률 무리가 진출선을 걸치면, 그 무리는 전부 "가능"이되
+      // 누구도 "확정"이 아니다 — 동전 던지기(팀명 순)를 확정이라고 말하면 안 된다
+      const cut = Math.min(JUNGMAN_ADVANCING, ranked.rows.length);
+      const straddle = ranked.unresolved.find(([lo, hi]) => lo < cut && hi > cut);
+      const certainEnd = straddle ? straddle[0] : cut;
+      const possibleEnd = straddle ? straddle[1] : cut;
 
-      rows.forEach((row, index) => {
+      ranked.rows.forEach((row, index) => {
         const s = stat.get(row.team);
         if (!s) return;
         const certain = index < certainEnd;
@@ -414,12 +518,18 @@ export function buildJungmanScenarios(standings: JungmanStandings): Map<string, 
         const eliminated = s ? !s.anyPossible : false;
         // 이미 끝난 얘기를 또 하지 않는다
         const open = Boolean(s) && !clinched && !eliminated && nextMatch.has(team);
+        // 문구가 "어느 경기 얘기인지"를 말할 수 있게 그 경기를 그대로 실어 보낸다
+        const next = nextMatch.get(team);
+        const match = next === undefined ? undefined : pending[next];
+        const opponent = match ? (match.home === team ? match.away : match.home) : undefined;
         return {
           team,
           clinched,
           eliminated,
           winClinches: open && (s?.winAllCertain ?? false),
           lossEliminates: open && !(s?.lossAnyPossible ?? true),
+          ...(opponent ? { nextOpponent: opponent } : {}),
+          ...(match?.date ? { nextDate: match.date } : {}),
         };
       })
     );
