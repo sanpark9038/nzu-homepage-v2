@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -21,9 +20,6 @@ import {
   JUNGMAN_MAP_WIDTH,
 } from "@/components/jungman/map-base";
 import {
-  JUNGMAN_FINAL_NOTE,
-  JUNGMAN_FINAL_PLACE,
-  JUNGMAN_FORMAT_LINE,
   JUNGMAN_GROUP_COLORS,
   JUNGMAN_MATCH_TIME,
   JUNGMAN_MILESTONES,
@@ -43,10 +39,13 @@ import type {
 
 /** 중만컵 금색 — 조가 없는 팀(편성 발표 전)의 기본 마커 색 */
 const GOLD = "#d4a94a";
-/** 커버에서 조 하이라이트가 한 바퀴 도는 간격 */
-const CYCLE_MS = 2400;
+/** 조를 모르는 경기의 색. 모르는 조 이름에 조 색을 붙이면 거짓말이 된다 */
+const NO_GROUP = "#7a8299";
 /** 마커 로고 반지름. 헤일로·팀명·조 배지 좌표가 전부 이 값에서 나온다 */
 const MARKER_R = 23;
+/** 달력 요일 머리글 겸 요일 인덱스 사전 */
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 type DeckSlide = { key: "cover" | "standings"; label: string; ms: number };
 
@@ -84,6 +83,15 @@ const DECK_DATE = new Intl.DateTimeFormat("ko-KR", {
   weekday: "short",
 });
 
+const SEOUL_YMD = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const SEOUL_WEEKDAY = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", weekday: "short" });
+
 /** "2026-08-08" → "8/8(토)" */
 function formatDeckDate(date: string): string {
   const parts = DECK_DATE.formatToParts(new Date(`${date}T00:00:00+09:00`));
@@ -91,15 +99,28 @@ function formatDeckDate(date: string): string {
   return `${part("month")}/${part("day")}(${part("weekday")})`;
 }
 
+/** "2026-08-01" → 0(일)~6(토). 지역 시간 게터로 요일을 뽑으면 브라우저 시간대에 따라 칸이 하루씩 밀린다 */
+function weekdayOf(date: string): number {
+  return WEEKDAYS.indexOf(SEOUL_WEEKDAY.format(new Date(`${date}T00:00:00+09:00`)));
+}
+
+/** "2026-08" 한 달의 날 수. 윤년만 따지면 되는 산수라 Date를 다시 부르지 않는다 */
+function daysInMonth(ym: string): number {
+  const year = Number(ym.slice(0, 4));
+  const month = Number(ym.slice(5, 7));
+  if (month !== 2) return MONTH_DAYS[month - 1];
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 29 : 28;
+}
+
+/** 조 색은 이름 첫 글자로 잡는다 — /jungman 커버와 같은 규칙(서버 컴포넌트라 import는 못 한다) */
+function groupColor(group: string): string {
+  const index = "ABCD".indexOf(group.trim().charAt(0).toUpperCase());
+  return index < 0 ? NO_GROUP : JUNGMAN_GROUP_COLORS[index];
+}
+
 /** 한국 날짜 기준 남은 날. 브라우저 시계가 어느 지역이든 같은 숫자가 나온다 */
 function daysToKST(date: string): number {
-  const todayKST = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  return Math.round((Date.parse(date) - Date.parse(todayKST)) / 86_400_000);
+  return Math.round((Date.parse(date) - Date.parse(SEOUL_YMD.format(new Date()))) / 86_400_000);
 }
 
 /** 지난 날짜는 D-day를 안 그린다 — 결과가 안 들어온 경기에 거짓 숫자를 붙이지 않는다 */
@@ -132,8 +153,10 @@ const DECK_STYLE = `
   .jm-region{fill:#7a8299;opacity:.42;font-size:15px;letter-spacing:.16em;text-anchor:middle;}
 
   /* 무대 — 정보는 왼쪽 기둥, 지도는 오른쪽 */
+  /* 홈에서만 네비바가 fixed라 히어로 위에 뜬다(Navbar.tsx의 isHome 분기).
+     예전 사진 히어로는 글자를 아래에 몰아 안 겹쳤지만 덱은 위에서 시작한다 — 그만큼 비워둔다. */
   .hd-stage{position:relative;z-index:4;height:100%;display:flex;flex-direction:column;
-    padding:clamp(14px,2.6vh,26px) clamp(18px,3.4vw,56px) clamp(14px,2.4vh,24px);}
+    padding:calc(64px + clamp(8px,1.4vh,18px)) clamp(18px,3.4vw,56px) clamp(14px,2.4vh,24px);}
 
   /* 지형과 마커는 같은 상자·같은 viewBox를 써야 좌표가 정확히 겹친다 — 위치 규칙은 .hd-map 한 벌뿐 */
   .hd-map{position:absolute;right:1%;top:50%;transform:translateY(-50%);
@@ -152,83 +175,79 @@ const DECK_STYLE = `
       linear-gradient(180deg,rgba(4,9,7,.4),transparent 18%,transparent 72%,rgba(4,9,7,.68));}
 
   /* 왼쪽 정보 기둥 */
-  .hd-stack{width:clamp(340px,47vw,790px);display:flex;flex-direction:column;}
-  .hd-kicker{font-size:clamp(11px,1.1vw,15px);letter-spacing:.2em;font-weight:900;
-    color:#2BE39B;width:100%;margin-bottom:2px;}
-  .hd-tophead{display:flex;align-items:center;gap:clamp(12px,1.6vw,24px);flex-wrap:wrap;
-    margin-bottom:clamp(12px,2.4vh,26px);}
-  .hd-title{font-size:clamp(32px,4.6vw,72px);line-height:.94;font-weight:900;letter-spacing:-.03em;
+  /* 커버 글자 칸. 모자라면 여기만 스크롤한다 — overscroll-contain이라 다 내려도 페이지가 안 딸려간다.
+     스크롤바는 지도 위에 흰 줄을 그으므로 감춘다(휠·터치·키보드는 그대로 된다). */
+  .hd-scroll{height:100%;display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;
+    scrollbar-width:none;-ms-overflow-style:none;}
+  .hd-scroll::-webkit-scrollbar{width:0;height:0;}
+  .hd-stack{width:clamp(340px,47vw,790px);display:flex;flex-direction:column;margin-block:auto;}
+
+  /* 압축 헤더 — 제목 · D-day · 상금이 한 줄. 자리는 아래 일정이 쓴다 */
+  .hd-tophead{display:flex;align-items:baseline;gap:clamp(8px,1.2vw,18px);flex-wrap:wrap;
+    margin-bottom:clamp(6px,1.2vh,14px);}
+  .hd-title{font-size:clamp(26px,3.4vw,52px);line-height:.94;font-weight:900;letter-spacing:-.03em;
     color:#fff;text-shadow:0 10px 34px rgba(0,0,0,.6);}
   .hd-title em{font-style:normal;color:#d4a94a;}
+  .hd-dday{font-size:clamp(11px,1.05vw,16px);font-weight:900;color:#d4a94a;border-radius:999px;
+    padding:.18em .7em;background:rgba(212,169,74,.14);font-variant-numeric:tabular-nums;}
+  .hd-prize{font-size:clamp(10.5px,.95vw,14px);font-weight:700;color:#7a8299;}
+  .hd-prize b{color:#d4a94a;font-weight:900;}
 
-  /* 상금 배지 */
-  .hd-prize{margin-left:auto;display:flex;align-items:center;gap:clamp(9px,.9vw,15px);
-    padding:clamp(9px,1.3vh,16px) clamp(15px,1.4vw,26px);border-radius:16px;
-    background:linear-gradient(135deg,rgba(201,168,76,.22),rgba(201,168,76,.06));
-    border:1px solid rgba(201,168,76,.5);box-shadow:0 16px 44px rgba(0,0,0,.45);}
-  .hd-prize-cap{font-size:clamp(10px,.92vw,14px);letter-spacing:.12em;font-weight:800;
-    color:rgba(201,168,76,.82);}
-  .hd-prize-sum{font-size:clamp(22px,2.6vw,44px);font-weight:900;color:#d4a94a;line-height:1;}
-  .hd-prize-detail{border-left:1px solid rgba(201,168,76,.35);padding-left:clamp(9px,.9vw,15px);}
-  .hd-prize-win{font-size:clamp(11px,1.05vw,16px);font-weight:800;color:#F0E2BC;}
-  .hd-prize-win span{font-size:.88em;color:rgba(240,226,188,.7);}
-  .hd-prize-run{font-size:clamp(10px,.92vw,14px);font-weight:700;color:rgba(201,168,76,.8);}
-
-  /* 조 범례 — 4줄 세로. 배경은 불투명해야 지도 선이 글자를 뚫지 않는다 */
-  .hd-aleg{display:flex;flex-direction:column;gap:clamp(7px,1.1vh,13px);}
-  .hd-agrp{display:flex;align-items:center;gap:clamp(8px,.9vw,14px);text-align:left;
-    padding:clamp(8px,1.2vh,14px) clamp(11px,1vw,18px);border-radius:14px;
-    background:rgba(9,17,14,.9);border:1px solid rgba(255,255,255,.09);
-    box-shadow:0 12px 32px rgba(0,0,0,.4);
-    transition:border-color .22s ease,background .22s ease,box-shadow .22s ease;}
-  .hd-agrp:hover{border-color:rgba(255,255,255,.2);}
-  .hd-agrp.is-on{border-color:var(--c);background:rgba(9,17,14,.97);
-    box-shadow:0 0 0 1px var(--c),0 16px 40px rgba(0,0,0,.5);}
-  .hd-aname{font-size:clamp(15px,1.5vw,24px);font-weight:900;color:var(--c);flex:0 0 auto;min-width:2.4em;}
-  .hd-alogos{display:flex;align-items:center;gap:clamp(5px,.55vw,9px);flex:1;}
-  .hd-alogo{width:clamp(26px,2.5vw,42px);height:clamp(26px,2.5vw,42px);object-fit:contain;
-    opacity:.55;filter:grayscale(.6);transition:opacity .22s ease,filter .22s ease;}
-  .hd-agrp.is-on .hd-alogo{opacity:1;filter:none;}
-  .hd-acount{font-size:clamp(10px,.85vw,12px);color:#7a8299;font-weight:700;letter-spacing:.06em;}
-
-  .hd-cap{margin-top:clamp(6px,1vh,10px);font-size:clamp(11px,1.05vw,15px);color:#9FBCAC;font-weight:700;}
-
-  /* 다가오는 경기 — 조 범례와 같은 감각. 배경은 불투명해야 지도 선이 글자를 뚫지 않는다 */
-  .hd-up{margin-top:clamp(8px,1.4vh,16px);display:flex;flex-direction:column;gap:clamp(5px,.7vh,9px);}
-  .hd-upt{font-size:clamp(10px,.85vw,12px);letter-spacing:.1em;font-weight:900;color:#7a8299;}
-  .hd-upr{display:flex;align-items:center;gap:clamp(7px,.8vw,13px);
-    padding:clamp(6px,.85vh,10px) clamp(11px,1vw,18px);border-radius:14px;
-    background:rgba(9,17,14,.9);border:1px solid rgba(255,255,255,.09);
+  /* 커버 달력 — 점만 찍는 작은 달력. /jungman의 큰 달력은 칸마다 경기 카드라 여기 안 들어간다.
+     배경은 불투명해야 지도 선이 날짜를 뚫지 않는다 */
+  .hd-cal{margin-top:clamp(6px,1vh,12px);padding:clamp(8px,1.2vh,14px) clamp(10px,1vw,16px);
+    border-radius:14px;background:rgba(9,17,14,.9);border:1px solid rgba(255,255,255,.09);
     box-shadow:0 12px 32px rgba(0,0,0,.4);}
-  .hd-upd{font-size:clamp(11px,1.05vw,16px);font-weight:900;color:#d4a94a;
-    font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:3.2em;}
-  .hd-upw{font-size:clamp(10.5px,.95vw,14px);font-weight:700;color:#9FBCAC;
-    font-variant-numeric:tabular-nums;flex:0 0 auto;}
-  .hd-upm{display:flex;align-items:center;gap:clamp(4px,.45vw,8px);min-width:0;}
-  .hd-uplogo{width:clamp(18px,1.6vw,26px);height:clamp(18px,1.6vw,26px);object-fit:contain;flex:0 0 auto;}
-  .hd-upn{font-size:clamp(11px,1vw,15px);font-weight:800;color:#fff;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .hd-upvs{font-size:clamp(9px,.8vw,12px);font-weight:900;color:#7a8299;flex:0 0 auto;}
+  .hd-cmt{display:flex;gap:6px;margin-bottom:5px;}
+  .hd-cmb{font-size:clamp(10px,.9vw,13px);font-weight:900;color:#7a8299;padding:.18em .7em;
+    border-radius:999px;border:1px solid transparent;background:transparent;cursor:pointer;
+    font-variant-numeric:tabular-nums;}
+  .hd-cmb.is-on{color:#d4a94a;border-color:rgba(212,169,74,.5);background:rgba(212,169,74,.12);}
+  .hd-cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+  .hd-cwd{font-size:clamp(10px,.9vw,12.5px);font-weight:800;color:#7a8299;text-align:center;
+    padding-bottom:2px;}
+  .hd-cwd.is-sun{color:#e0574a;}
+  .hd-cwd.is-sat{color:#4a9eff;}
+  .hd-cell{height:clamp(34px,4.6vh,52px);display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;padding:0;border-radius:8px;border:1px solid transparent;
+    background:transparent;font-size:clamp(13px,1.15vw,16px);font-weight:700;color:#7a8299;
+    font-variant-numeric:tabular-nums;transition:background .2s ease;}
+  .hd-cell.has-m{color:#e8ebf2;font-weight:900;cursor:pointer;}
+  .hd-cell.has-m:hover{background:rgba(255,255,255,.06);}
+  .hd-cell.is-past{opacity:.45;}
+  .hd-cell.is-today{border-color:rgba(212,169,74,.7);}
+  .hd-cell.is-pick{background:rgba(255,255,255,.1);}
+  .hd-cdot{width:7px;height:7px;border-radius:99px;background:var(--c);}
 
-  /* 라운드 일정 — 결승만 금색으로 남기고 8강·4강은 담백하게 */
-  .hd-ms{margin-top:clamp(10px,1.8vh,20px);display:flex;flex-direction:column;gap:clamp(6px,.9vh,11px);}
-  .hd-msr{display:flex;align-items:center;gap:clamp(8px,1vw,16px);
-    padding:clamp(6px,.9vh,11px) clamp(12px,1.2vw,22px);border-radius:14px;
-    background:rgba(9,17,14,.9);border:1px solid rgba(255,255,255,.09);}
-  .hd-msd{font-size:clamp(13px,1.3vw,20px);font-weight:900;line-height:1;color:#9FBCAC;
-    font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:3.6em;}
-  .hd-msl{font-size:clamp(13px,1.25vw,19px);font-weight:900;color:#fff;flex:0 0 auto;min-width:2.4em;}
-  .hd-msn{font-size:clamp(10.5px,1vw,15px);color:#9FBCAC;font-weight:600;min-width:0;
+  /* 지금 보고 있는 경기 — 지도의 선·마커가 이 카드를 따라간다 */
+  .hd-fx{margin-top:clamp(6px,1vh,12px);padding:clamp(8px,1.2vh,14px) clamp(12px,1.2vw,20px);
+    border-radius:16px;background:rgba(9,17,14,.92);border:1px solid var(--c);
+    box-shadow:0 16px 40px rgba(0,0,0,.45);}
+  .hd-fxt{display:flex;align-items:center;gap:clamp(6px,.7vw,11px);flex-wrap:wrap;
+    font-size:clamp(10px,.92vw,13.5px);font-weight:800;color:#7a8299;font-variant-numeric:tabular-nums;}
+  .hd-fxd{border-radius:999px;padding:.18em .7em;font-weight:900;color:var(--c);background:var(--c14);}
+  .hd-fxg{color:var(--c);font-weight:900;}
+  .hd-fxm{margin-top:clamp(4px,.7vh,8px);display:flex;align-items:center;gap:clamp(6px,.8vw,13px);}
+  .hd-fxlogo{width:clamp(26px,2.4vw,42px);height:clamp(26px,2.4vw,42px);object-fit:contain;flex:0 0 auto;}
+  .hd-fxn{font-size:clamp(14px,1.5vw,24px);font-weight:900;color:#fff;min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  /* 결승 — 예전 그랜드 파이널 블록의 금색 강조를 그대로 이어받는다 */
-  .hd-msr.is-final{padding:clamp(9px,1.4vh,17px) clamp(14px,1.3vw,24px);border-radius:18px;
-    background:linear-gradient(120deg,rgba(201,168,76,.16),rgba(201,168,76,.04));
-    border-color:rgba(201,168,76,.42);box-shadow:0 16px 40px rgba(0,0,0,.42);}
-  .hd-msr.is-final .hd-msd{font-size:clamp(26px,3.2vw,50px);color:#d4a94a;}
-  .hd-msr.is-final .hd-msl{font-size:clamp(14px,1.35vw,21px);}
-  .hd-gf-chip{font-size:clamp(9px,.8vw,11px);font-weight:900;letter-spacing:.1em;flex:0 0 auto;
-    background:#d4a94a;color:#04120c;border-radius:999px;padding:.25em .7em;}
-  .hd-note{margin-top:clamp(6px,1vh,10px);font-size:clamp(10.5px,.95vw,13px);color:#7a8299;}
+  .hd-fxvs{font-size:clamp(10px,.9vw,13px);font-weight:900;color:#7a8299;flex:0 0 auto;}
+
+  /* 조 편성 — 지도 색을 읽는 열쇠. 글자만, 아주 담백하게.
+     누르는 곳이 아니다 — 지도는 달력이 고른 일정만 따라간다 */
+  .hd-glegs{margin-top:clamp(5px,.8vh,10px);display:flex;flex-direction:column;gap:2px;
+    font-size:clamp(10px,.85vw,12.5px);font-weight:700;color:#7a8299;line-height:1.45;}
+  .hd-gleg b{color:var(--c);font-weight:900;margin-right:.45em;}
+
+  /* 라운드 일정 — 한 줄. 결승만 금색 */
+  .hd-msline{margin-top:clamp(6px,1vh,12px);display:flex;flex-wrap:wrap;gap:clamp(6px,.9vw,15px);
+    font-size:clamp(10px,.92vw,13.5px);color:#7a8299;font-weight:700;font-variant-numeric:tabular-nums;}
+  .hd-msi{display:inline-flex;align-items:baseline;gap:.42em;}
+  .hd-msi b{color:#cfd6e6;font-weight:900;}
+  .hd-msi.is-final,.hd-msi.is-final b{color:#d4a94a;}
+
+  /* 지금 보는 경기의 두 팀을 잇는 선. 마커보다 먼저 그려야 로고를 안 가린다 */
+  .hd-link{fill:none;stroke-width:2.6;stroke-dasharray:8 7;stroke-linecap:round;opacity:.9;}
 
   /* 마커는 지도를 다시 그리지 않고 켜지고 꺼지기만 한다 */
   .hd-m{transition:all .45s ease;}
@@ -261,17 +280,19 @@ const DECK_STYLE = `
   .stsort{font-size:clamp(11px,1.05vw,15px);color:#9FBCAC;font-weight:700;}
 
   .standbody{margin-top:clamp(8px,1.4vh,18px);display:grid;
-    grid-template-columns:minmax(0,1.14fr) minmax(0,.82fr) minmax(0,.78fr);
+    grid-template-columns:minmax(0,.92fr) minmax(0,.86fr) minmax(0,.92fr);
     gap:clamp(12px,1.6vw,30px);align-items:start;}
-  /* 경기가 0건이면 곁 패널을 아예 안 만든다 — 빈 패널 대신 표가 전체 폭을 쓴다 */
+  /* 곁 패널이 없으면 그 열도 없다 — 빈 패널 대신 표가 남은 폭을 가져간다 */
+  .standbody.is-duo{grid-template-columns:minmax(0,1fr) minmax(0,.92fr);}
   .standbody.is-solo{grid-template-columns:minmax(0,1fr);}
 
   /* 13 = 4조 × (머리 .8 + 3행) 에 여백을 얹은 값. 이 나눗셈이 A조가 안 잘리는 근거다 */
   .stwrap{--rowh:min(calc(55svh / 13),58px);display:flex;flex-direction:column;gap:clamp(7px,1.1vh,15px);}
   .gblock{border-radius:14px;overflow:hidden;background:rgba(9,17,14,.93);
     border:1px solid rgba(255,255,255,.09);box-shadow:0 16px 40px rgba(0,0,0,.42);}
+  /* 표 열이 좁아졌다(1.14fr → .92fr) — 숫자 열을 깎아 팀 이름 자리를 지킨다 */
   .gbhead,.trow3{display:grid;align-items:center;
-    grid-template-columns:minmax(0,1fr) 3.2em 3.2em 4.4em 4.8em;
+    grid-template-columns:minmax(0,1fr) 2.8em 2.8em 4em 4.2em;
     gap:clamp(6px,.7vw,14px);padding:0 clamp(12px,1.2vw,22px);}
   .gbhead{min-height:calc(var(--rowh) * .8);border-bottom:1px solid rgba(255,255,255,.09);
     background:linear-gradient(90deg,var(--c26),transparent 60%);}
@@ -279,12 +300,19 @@ const DECK_STYLE = `
   .gbsub{font-size:.4em;color:#7a8299;letter-spacing:.06em;font-weight:700;}
   .gbcol{font-size:clamp(10px,.88vw,13.5px);font-weight:800;color:#7a8299;text-align:right;}
 
-  .trow3{min-height:var(--rowh);position:relative;border-top:1px solid rgba(255,255,255,.05);}
+  /* 행은 버튼이다 — 누르면 곁 패널이 그 팀 전용으로 바뀐다. 표 모양은 그대로 두고 UA 기본값만 지운다 */
+  .trow3{min-height:var(--rowh);position:relative;border-top:1px solid rgba(255,255,255,.05);
+    width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
+    appearance:none;background:transparent;border-left:0;border-right:0;border-bottom:0;}
   .gbhead + .trow3{border-top:none;}
   /* 8강 진출선 — 2위 아래 */
   .trow3.is-cut{border-bottom:2px dashed rgba(43,227,155,.45);}
   .trow3.is-top::before{content:"";position:absolute;left:0;top:18%;bottom:18%;width:3px;
     border-radius:99px;background:var(--c);}
+  /* 고른 행 — 배경을 살짝 밝히고 조 색 막대를 끝까지 세운다(is-top 막대를 덮어쓴다) */
+  .trow3.is-pick{background:rgba(255,255,255,.06);}
+  .trow3.is-pick::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+    border-radius:0;background:var(--c);}
   .tteam{display:flex;align-items:center;gap:clamp(6px,.6vw,11px);min-width:0;}
   .trank{font-size:clamp(11px,.95vw,14px);font-weight:900;color:#7a8299;
     font-variant-numeric:tabular-nums;min-width:1.1em;}
@@ -305,6 +333,12 @@ const DECK_STYLE = `
     font-size:clamp(12px,1.15vw,17px);color:#2BE39B;font-weight:800;letter-spacing:.06em;
     border-bottom:1px solid rgba(255,255,255,.09);background:rgba(43,227,155,.08);}
   .stphs{font-size:.72em;color:#7a8299;letter-spacing:.04em;font-weight:700;}
+  /* 팀 전용 머리글 — 로고가 섞이므로 baseline이 아니라 가운데로 맞춘다 */
+  .stpht.is-team{align-items:center;justify-content:flex-start;gap:clamp(6px,.7vw,10px);}
+  /* 팀 패널 소제목 — 경기 결과 / 남은 경기 */
+  .stpsub{padding:clamp(5px,.7vh,9px) clamp(11px,1vw,18px);border-top:1px solid rgba(255,255,255,.05);
+    font-size:clamp(9px,.78vw,11.5px);font-weight:900;letter-spacing:.08em;color:#7a8299;}
+  .stpht + .stpsub,.stpsub + .mrow{border-top:none;}
 
   .mrow{display:flex;align-items:center;gap:clamp(6px,.7vw,12px);
     padding:clamp(6px,.9vh,11px) clamp(11px,1vw,18px);border-top:1px solid rgba(255,255,255,.05);}
@@ -312,9 +346,14 @@ const DECK_STYLE = `
   .mchip{font-size:clamp(9px,.78vw,11px);font-weight:900;border-radius:999px;padding:.22em .6em;flex:0 0 auto;}
   .mchip.is-w{background:#2BE39B;color:#04120c;}
   .mchip.is-l{background:rgba(224,87,74,.9);color:#04120c;}
+  /* 예정 경기의 D-day — 승패 색(초록·빨강)과 섞이면 안 된다 */
+  .mchip.is-d{background:rgba(212,169,74,.18);color:#d4a94a;}
+  .mvs{font-size:clamp(10px,.85vw,12px);font-weight:900;color:#7a8299;}
   .mlogo{width:clamp(20px,1.8vw,30px);height:clamp(20px,1.8vw,30px);object-fit:contain;flex:0 0 auto;}
   .mtxt{font-size:clamp(10px,.9vw,13px);font-weight:800;color:#cfd6e6;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* 지금 보고 있는 팀 — 좌우 자리는 홈·원정 그대로 두고 이름만 굵게 */
+  .mtxt.is-me{font-weight:900;color:#fff;}
   .is-lost{opacity:.42;filter:grayscale(.6);}
   .mscore{font-size:clamp(13px,1.2vw,19px);font-weight:900;color:#fff;
     font-variant-numeric:tabular-nums;letter-spacing:.04em;}
@@ -338,10 +377,9 @@ const DECK_STYLE = `
     .hd-map{right:-30%;width:min(1100px,150vw);}
     .hd-deck[data-slide="standings"] .hd-map{right:-46%;}
     .hd-stack{width:100%;}
+    /* 조 편성 4줄은 폰 폭에서 접혀 8줄이 된다 — 자리가 없다 */
+    .hd-glegs{display:none;}
     .hd-name,.hd-badge-c,.hd-badge-t{display:none;}
-    .hd-prize{margin-left:0;}
-    /* 세로가 짧은 화면에서 라운드 일정 3줄은 커버를 넘긴다 — 결승 한 줄만 남긴다 */
-    .hd-msr:not(.is-final){display:none;}
     /* 3단이 성립 안 하는 폭이다 — 조별 순위만 남긴다 */
     .stand{width:100%;}
     .stpanel{display:none;}
@@ -372,10 +410,18 @@ const DECK_STYLE = `
     .tlogo{width:17px;height:17px;}
   }
   /* 커버 높이에 못 들어가는 화면에서는 곁가지를 접는다 */
-  @media (max-width:639px),(max-height:620px){
-    .hd-kicker,.hd-cap2{display:none;}
-    /* 다가오는 경기도 한 줄만 — 두 블록이 같이 늘어나면 커버가 잘린다 */
-    .hd-up .hd-upr:nth-of-type(2){display:none;}
+  /* 화면 높이로 내용을 숨기던 규칙은 걷어냈다 — .hd-scroll이 대신 스크롤한다.
+     "왜 8강 줄이 사라졌지?"가 되는 데다, 모니터 크기를 영원히 쫓아다녀야 했다. */
+
+  @media (max-width:639px){
+    /* 폰은 폭이 좁아 글자가 접힌다 — 높이가 아니라 폭 때문에 줄이는 것들이다 */
+    .hd-title{font-size:26px;}
+    .hd-tophead{gap:8px;margin-bottom:8px;}
+    .hd-prize{font-size:10.5px;}
+    .hd-cal{padding:7px 8px;}
+    .hd-cell{height:26px;font-size:11px;}
+    .hd-fxn{font-size:14px;}
+    .hd-fxlogo{width:24px;height:24px;}
   }
 
   @media (prefers-reduced-motion:reduce){
@@ -386,13 +432,198 @@ const DECK_STYLE = `
   }
 `;
 
+/**
+ * 끝난 경기 한 줄. 전체 목록과 팀 패널이 같은 줄을 쓴다.
+ * focus를 주면 그 팀 기준 승패 · 팀 이름 표시로 바뀐다(좌우는 홈·원정 자리로 고정).
+ */
+function MatchRow({ match, focus }: { match: JungmanStandingsMatch; focus?: string }) {
+  const homeWon = match.homeSets > match.awaySets;
+  const home = jungmanTeamByName(match.home);
+  const away = jungmanTeamByName(match.away);
+  // 칩은 보는 팀 기준. 고른 팀이 없으면 홈 기준이다
+  const won = focus === match.away ? !homeWon : homeWon;
+  const dim = (side: boolean) => (side ? "" : " is-lost");
+  return (
+    <div className="mrow">
+      <span className={`mchip ${won ? "is-w" : "is-l"}`}>{won ? "승" : "패"}</span>
+      {home ? (
+        <Image
+          src={jungmanLogoPath(home.code)}
+          alt={match.home}
+          width={30}
+          height={30}
+          className={`mlogo${dim(homeWon)}`}
+        />
+      ) : null}
+      {focus || !home ? (
+        <span className={`mtxt${focus === match.home ? " is-me" : ""}${dim(homeWon)}`}>{match.home}</span>
+      ) : null}
+      <span className="mscore">
+        {match.homeSets} : {match.awaySets}
+      </span>
+      {away ? (
+        <Image
+          src={jungmanLogoPath(away.code)}
+          alt={match.away}
+          width={30}
+          height={30}
+          className={`mlogo${dim(!homeWon)}`}
+        />
+      ) : null}
+      {focus || !away ? (
+        <span className={`mtxt${focus === match.away ? " is-me" : ""}${dim(!homeWon)}`}>{match.away}</span>
+      ) : null}
+      {match.date ? (
+        <span className="mdate">{focus ? formatDeckDate(match.date) : match.date.slice(5)}</span>
+      ) : null}
+    </div>
+  );
+}
+
+/** 예정 경기 한 줄. focus를 주면 그 팀 이름을 굵게 하고 경기 시각을 덧붙인다 */
+function NextRow({ match, focus }: { match: JungmanStandingsMatch; focus?: string }) {
+  const home = jungmanTeamByName(match.home);
+  const away = jungmanTeamByName(match.away);
+  const dday = match.date ? ddayLabel(match.date) : "";
+  return (
+    <div className="mrow">
+      {dday ? <span className="mchip is-d">{dday}</span> : null}
+      {home ? (
+        <Image src={jungmanLogoPath(home.code)} alt={match.home} width={30} height={30} className="mlogo" />
+      ) : null}
+      <span className={`mtxt${focus === match.home ? " is-me" : ""}`}>{match.home}</span>
+      <span className="mvs">vs</span>
+      <span className={`mtxt${focus === match.away ? " is-me" : ""}`}>{match.away}</span>
+      {away ? (
+        <Image src={jungmanLogoPath(away.code)} alt={match.away} width={30} height={30} className="mlogo" />
+      ) : null}
+      {match.date ? <span className="mdate">{formatDeckDate(match.date)}</span> : null}
+      {focus && match.date ? <span className="mdate">{JUNGMAN_MATCH_TIME}</span> : null}
+    </div>
+  );
+}
+
+/** 시계는 구독할 대상이 없다 — 스냅샷만 필요해서 빈 구독을 준다(참조가 안 바뀌어야 재구독을 안 한다) */
+const noSubscribe = () => () => {};
+
+/**
+ * 커버 달력. 경기 있는 날에 조 색 점을 찍고, 누르면(또는 마우스를 올리면) 그 경기가 커버의 주인공이 된다.
+ * "오늘"은 서버 렌더에 없다 — 서버 스냅샷을 null로 두고 하이드레이션 뒤에 채운다.
+ */
+function CoverCalendar({
+  matches,
+  picked,
+  canHover,
+  onPick,
+  onHover,
+}: {
+  /** 날짜가 있는 경기 전부(예정 + 치른 것) */
+  matches: JungmanStandingsMatch[];
+  picked: string | null;
+  canHover: boolean;
+  onPick: (date: string | null) => void;
+  onHover: (date: string | null) => void;
+}) {
+  const today = useSyncExternalStore(noSubscribe, () => SEOUL_YMD.format(new Date()), () => null);
+  const [pickedMonth, setPickedMonth] = useState<string | null>(null);
+
+  const byDate = useMemo(() => {
+    const map = new Map<string, JungmanStandingsMatch>();
+    // 같은 날 여러 경기면 먼저 온 것이 그 칸을 대표한다
+    for (const match of matches) if (match.date && !map.has(match.date)) map.set(match.date, match);
+    return map;
+  }, [matches]);
+
+  const months = useMemo(
+    () => [...new Set(matches.map((match) => (match.date ?? "").slice(0, 7)))].sort(),
+    [matches]
+  );
+
+  // 처음엔 오늘이 속한 달. 경기가 없는 달이면 첫 경기가 있는 달로 떨어진다
+  const month = pickedMonth ?? (today && months.includes(today.slice(0, 7)) ? today.slice(0, 7) : months[0]);
+
+  const cells = useMemo(() => {
+    if (!month) return [];
+    const lead = weekdayOf(`${month}-01`);
+    return [
+      ...Array.from({ length: lead }, () => null),
+      ...Array.from({ length: daysInMonth(month) }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`),
+    ];
+  }, [month]);
+
+  if (!month) return null;
+
+  return (
+    <div className="hd-cal">
+      {months.length > 1 ? (
+        <div className="hd-cmt">
+          {months.map((value) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={value === month}
+              className={`hd-cmb${value === month ? " is-on" : ""}`}
+              onClick={() => {
+                setPickedMonth(value);
+                onPick(null);
+              }}
+            >
+              {Number(value.slice(5))}월
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="hd-cgrid">
+        {WEEKDAYS.map((day, i) => (
+          <span key={day} className={`hd-cwd${i === 0 ? " is-sun" : i === 6 ? " is-sat" : ""}`}>
+            {day}
+          </span>
+        ))}
+        {cells.map((date, i) => {
+          if (!date) return <span key={`blank-${i}`} />;
+          const match = byDate.get(date);
+          const past = today !== null && date < today;
+          const state = `${past ? " is-past" : ""}${date === today ? " is-today" : ""}`;
+          const day = Number(date.slice(8));
+          if (!match) {
+            return (
+              <span suppressHydrationWarning key={date} className={`hd-cell${state}`}>
+                {day}
+              </span>
+            );
+          }
+          return (
+            <button
+              suppressHydrationWarning
+              key={date}
+              type="button"
+              aria-label={`${date} ${match.home} 대 ${match.away}`}
+              aria-pressed={picked === date}
+              className={`hd-cell has-m${state}${picked === date ? " is-pick" : ""}`}
+              onClick={() => onPick(picked === date ? null : date)}
+              // 호버 미리보기는 마우스가 있는 기기에서만 — 터치에서는 탭 한 번에 상태가 붙어 안 풀린다
+              onMouseEnter={canHover ? () => onHover(date) : undefined}
+              onMouseLeave={canHover ? () => onHover(null) : undefined}
+            >
+              {day}
+              <span className="hd-cdot" style={{ "--c": groupColor(match.group) } as CSSProperties} />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function HomeHeroDeck({
   // titleLines는 app/page.tsx와의 prop 계약이라 받기만 한다 — 커버 디자인에 없는 요소라 그리지 않는다
   groups = [],
   tables = [],
-  matches = [],
-  upcoming = [],
-  playerRanks = [],
+  // 고른 팀이 있으면 아래에서 걸러 쓴다 — 원본은 커버(다가오는 경기)가 그대로 쓴다
+  matches: allMatches = [],
+  upcoming: allUpcoming = [],
+  playerRanks: allRanks = [],
 }: {
   titleLines: string[];
   /** 조 편성 — 커버 범례와 지도 하이라이트가 같은 값을 읽는다 */
@@ -406,8 +637,8 @@ export default function HomeHeroDeck({
   playerRanks?: JungmanPlayerRank[];
 }) {
   const prize = splitPrizeDetail(JUNGMAN_PRIZE_DETAIL);
-  // 경기가 0건이면 곁 패널은 빈 상자다 — 만들지 않고 표를 전체 폭으로 편다
-  const hasMatches = matches.length > 0;
+  // 결승까지 남은 날 — /jungman 커버와 같은 함수를 써야 두 화면 숫자가 안 갈라진다
+  const finalDday = jungmanDaysToFinal();
 
   // 조 편성이 없으면 덱은 커버 한 장이다 — 빈 슬라이드를 자리만 잡아두지 않는다
   const slides = useMemo<DeckSlide[]>(
@@ -422,23 +653,52 @@ export default function HomeHeroDeck({
   // 한 번이라도 직접 넘기면 자동 넘김을 영구히 끈다 — 모바일엔 호버가 없어 멈출 방법이 이것뿐이다
   const [auto, setAuto] = useState(true);
   const [paused, setPaused] = useState(false);
-  const [cycle, setCycle] = useState(0);
-  const [pinned, setPinned] = useState<number | null>(null);
+  // 커버 달력에서 고른 날 — 누르면 고정(datePin), 마우스를 올리면 미리보기(dateHover)
+  const [datePin, setDatePin] = useState<string | null>(null);
+  const [dateHover, setDateHover] = useState<string | null>(null);
+  // 순위표에서 고른 팀 — 누르면 고정(teamPin), 마우스를 올리면 미리보기(teamHover)
+  const [teamPin, setTeamPin] = useState<string | null>(null);
+  const [teamHover, setTeamHover] = useState<string | null>(null);
   const motionOff = useMedia("(prefers-reduced-motion: reduce)");
   // 터치 기기에서 mouseenter만 오고 mouseleave가 안 오면 자동 넘김이 영영 멈춘다 — 호버 있는 기기에서만 단다
   const canHover = useMedia("(hover: hover)");
+
+  const activeTeam = teamHover ?? teamPin;
+  const activeLogo = activeTeam ? jungmanTeamByName(activeTeam) : null;
+  const ofTeam = (match: JungmanStandingsMatch) => match.home === activeTeam || match.away === activeTeam;
+  // 팀을 고르면 곁 패널 두 칸이 그 팀만 본다. 안 골랐으면 전체 그대로다
+  const matches = activeTeam ? allMatches.filter(ofTeam) : allMatches;
+  const upcoming = activeTeam ? allUpcoming.filter(ofTeam) : allUpcoming;
+  const playerRanks = activeTeam ? allRanks.filter((rank) => rank.team === activeTeam) : allRanks;
+
+  // 곁 패널은 각자 자기 데이터로 켜진다 — 빈 상자는 만들지 않고 표가 그만큼 넓어진다.
+  // 가운데는 치른 경기가 있으면 결과, 없으면 일정 — 대회 초반에도 빈 칸이 안 남는다.
+  // 팀을 고르면 경기가 0건이어도 팀 패널("경기 정보가 없습니다")을 그린다
+  const hasMatches = matches.length > 0;
+  const hasMid = hasMatches || upcoming.length > 0 || activeTeam !== null;
+  const hasRanks = playerRanks.length > 0;
+  const cols = 1 + (hasMid ? 1 : 0) + (hasRanks ? 1 : 0);
 
   const multi = slides.length > 1;
   const autoOn = auto && multi && !motionOff;
   const slide = slides[index] ?? slides[0];
 
-  const go = useCallback(
-    (next: number) => {
-      setAuto(false);
-      setIndex(((next % slides.length) + slides.length) % slides.length);
-    },
-    [slides.length]
-  );
+  // 슬라이드를 넘기면 달력 선택도 푼다 — 돌아왔을 때 엉뚱한 날이 켜져 있으면 혼란스럽다
+  const clearDate = () => {
+    setDatePin(null);
+    setDateHover(null);
+  };
+
+  // useCallback을 쓰면 React 컴파일러가 추론한 의존성과 어긋나 컴파일을 통째로 건너뛴다.
+  // 어디에도 의존성 배열로 넘기지 않는 핸들러라 그냥 함수로 둔다
+  const go = (next: number) => {
+    setAuto(false);
+    clearDate();
+    // 슬라이드를 넘기면 팀 선택을 푼다 — 돌아왔을 때 이전 선택이 남아 있으면 혼란스럽다
+    setTeamPin(null);
+    setTeamHover(null);
+    setIndex(((next % slides.length) + slides.length) % slides.length);
+  };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!multi) return;
@@ -461,15 +721,8 @@ export default function HomeHeroDeck({
     go(index + (dx < 0 ? 1 : -1));
   };
 
-  // 커버에서만 조가 한 칸씩 돈다. 순위 슬라이드는 전체를 켠다.
+  // 커버에서만 지도가 한 경기를 따라간다. 순위 슬라이드는 전체 조를 켠다.
   const onCover = slide.key === "cover" && groups.length > 0;
-  const activeGroup = onCover ? (pinned ?? cycle % groups.length) : -1;
-
-  useEffect(() => {
-    if (!onCover || pinned !== null || motionOff || groups.length < 2) return;
-    const timer = setInterval(() => setCycle((value) => value + 1), CYCLE_MS);
-    return () => clearInterval(timer);
-  }, [onCover, pinned, motionOff, groups.length]);
 
   // 팀명은 관리자 손입력이라 별칭으로 찾는다. 못 찾은 이름은 로고 없이 넘어간다.
   const groupOf = useMemo(() => {
@@ -483,39 +736,22 @@ export default function HomeHeroDeck({
     return byCode;
   }, [groups]);
 
-  const legend = useMemo(
-    () =>
-      groups.map((group, gi) => ({
-        name: group.name,
-        color: JUNGMAN_GROUP_COLORS[gi % JUNGMAN_GROUP_COLORS.length],
-        count: group.teams.length,
-        logos: group.teams.flatMap((name) => {
-          const team = jungmanTeamByName(name);
-          return team ? [{ code: team.code, name: team.name, src: jungmanLogoPath(team.code) }] : [];
-        }),
-      })),
-    [groups]
-  );
+  // 커버 달력이 다루는 경기 — 날짜가 있는 것 전부(예정 + 치른 것).
+  // useMemo를 걸면 기본값 []가 "나중에 바뀔 수 있는 의존성"으로 잡혀 React 컴파일러가 통째로 최적화를 건너뛴다
+  const dated = [...allUpcoming, ...allMatches].filter((match) => match.date);
 
-  // 커버는 코앞의 두 경기만 말한다 — 전체 일정은 /jungman이 그린다
-  const nextMatches = useMemo(
-    () =>
-      upcoming.slice(0, 2).map((match, mi) => {
-        const home = jungmanTeamByName(match.home);
-        const away = jungmanTeamByName(match.away);
-        return {
-          key: `${match.date ?? ""}-${match.home}-${match.away}`,
-          // D-day는 맨 앞 경기에만 — 두 줄 다 붙이면 어느 쪽이 코앞인지 안 보인다
-          dday: mi === 0 && match.date ? ddayLabel(match.date) : "",
-          when: match.date ? `${formatDeckDate(match.date)} ${JUNGMAN_MATCH_TIME}` : JUNGMAN_MATCH_TIME,
-          home: match.home,
-          away: match.away,
-          homeSrc: home ? jungmanLogoPath(home.code) : null,
-          awaySrc: away ? jungmanLogoPath(away.code) : null,
-        };
-      }),
-    [upcoming]
-  );
+  // 커버의 주인공. 달력에서 고른 날 > 가장 가까운 예정 경기 > 가장 최근 치른 경기 순으로 떨어진다
+  const chosenDate = dateHover ?? datePin;
+  const focusMatch =
+    (chosenDate ? dated.find((match) => match.date === chosenDate) : undefined) ??
+    allUpcoming[0] ??
+    allMatches[0] ??
+    null;
+  const focusColor = focusMatch ? groupColor(focusMatch.group) : GOLD;
+  const focusHome = focusMatch ? jungmanTeamByName(focusMatch.home) : undefined;
+  const focusAway = focusMatch ? jungmanTeamByName(focusMatch.away) : undefined;
+  // 아직 안 치른 경기면 D-day, 치렀으면 점수를 앞에 붙인다
+  const focusDone = focusMatch?.decided ?? false;
 
   // 지난 라운드는 뺀다. 결승 D-day만 lib 함수를 그대로 써서 /jungman 커버와 숫자를 맞춘다
   const milestones = useMemo(
@@ -524,7 +760,8 @@ export default function HomeHeroDeck({
         const offline = "offline" in milestone && milestone.offline;
         return {
           label: milestone.label,
-          note: offline ? JUNGMAN_FINAL_PLACE : milestone.note,
+          // 결승은 날짜 한 개뿐이라 상수 문구(장소) 대신 날짜를 그린다 — 나머지는 note가 이미 날짜 나열이다
+          note: offline ? formatDeckDate(milestone.date) : milestone.note,
           offline,
           dday: offline ? jungmanDaysToFinal() : daysToKST(milestone.date),
         };
@@ -532,9 +769,15 @@ export default function HomeHeroDeck({
     []
   );
 
-  const pin = (gi: number) => {
-    // 범례를 누른 사람은 그 조를 보고 있다 — 순환도 자동 넘김도 여기서 멈춘다
-    setPinned(gi === pinned ? null : gi);
+  const pickDate = (date: string | null) => {
+    // 달력을 누른 사람은 그 경기를 보고 있다 — 자동 넘김을 여기서 멈춘다(스쳐 지나가는 호버로는 안 끈다)
+    setDatePin(date);
+    setAuto(false);
+  };
+
+  // 순위표를 만지는 것도 "읽는 중"이라는 신호다 — 클릭에서만 자동 넘김을 끈다(스쳐 지나가는 호버로는 안 끈다)
+  const pickTeam = (name: string) => {
+    setTeamPin((current) => (current === name ? null : name));
     setAuto(false);
   };
 
@@ -583,12 +826,24 @@ export default function HomeHeroDeck({
               <circle r={MARKER_R} />
             </clipPath>
           </defs>
+          {/* 두 팀을 잇는 선은 마커보다 먼저 — 나중에 그리면 로고를 가린다 */}
+          {onCover && focusHome && focusAway ? (
+            <line
+              className="hd-link"
+              x1={focusHome.x}
+              y1={focusHome.y}
+              x2={focusAway.x}
+              y2={focusAway.y}
+              stroke={focusColor}
+            />
+          ) : null}
           {JUNGMAN_TEAMS.map((team) => {
             const gi = groupOf.get(team.code);
-            const color = gi === undefined ? GOLD : JUNGMAN_GROUP_COLORS[gi % JUNGMAN_GROUP_COLORS.length];
-            // 조 편성이 없거나 순위 슬라이드면 전체를 켠다
-            const on = activeGroup < 0 || gi === activeGroup;
-            const state = on ? "is-on" : gi === undefined ? "" : "is-dim";
+            const groupTone = gi === undefined ? GOLD : JUNGMAN_GROUP_COLORS[gi % JUNGMAN_GROUP_COLORS.length];
+            // 커버는 지금 보는 경기의 두 팀만, 조 편성이 없거나 순위 슬라이드면 전체를 켠다
+            const on = !onCover || team.code === focusHome?.code || team.code === focusAway?.code;
+            const color = on && onCover ? focusColor : groupTone;
+            const state = on ? "is-on" : "";
             return (
               <g
                 key={team.code}
@@ -652,118 +907,120 @@ export default function HomeHeroDeck({
               }`}
             >
               {entry.key === "cover" ? (
-                <div className="flex h-full flex-col justify-center">
+                <div className="hd-scroll">
+                  {/* 모니터 높이는 제각각이라 내용을 화면에 맞춰 숨기면 끝이 없다.
+                      글자 칸만 안쪽에서 스크롤시킨다 — 지도·화살표·버튼은 제자리에 남고
+                      아무것도 안 사라진다. 자리가 남으면 margin-block:auto가 가운데로 보낸다. */}
                   <div className="hd-stack">
-                    <p className="hd-kicker">2026 시즌 · 스타크래프트 대학대전 · 12개 대학</p>
-
+                    {/* 고정 정보(조 편성)는 바로 옆 순위 슬라이드가 순위까지 얹어 보여준다.
+                        커버는 매일 뜻이 바뀌는 일정을 주인공으로 올린다 */}
                     <div className="hd-tophead">
                       <h1 className="hd-title">
                         K-<em>중만컵</em>
                       </h1>
-                      <div className="hd-prize">
-                        <div>
-                          <p className="hd-prize-cap">총 상금</p>
-                          <p className="hd-prize-sum">{JUNGMAN_PRIZE_TOTAL}</p>
-                        </div>
-                        <div className="hd-prize-detail">
-                          <p className="hd-prize-win">
-                            {prize.win}
-                            {prize.winExtra ? <span> + {prize.winExtra}</span> : null}
-                          </p>
-                          {prize.runner ? <p className="hd-prize-run">{prize.runner}</p> : null}
-                        </div>
-                      </div>
+                      {finalDday >= 0 ? (
+                        <span suppressHydrationWarning className="hd-dday">
+                          {finalDday > 0 ? `D-${finalDday}` : "D-DAY"}
+                        </span>
+                      ) : null}
+                      <p className="hd-prize">
+                        총 상금 <b>{JUNGMAN_PRIZE_TOTAL}</b> · {prize.win}
+                        {prize.winExtra ? ` + ${prize.winExtra}` : ""}
+                      </p>
                     </div>
 
-                    {legend.length ? (
-                      <div className="hd-aleg">
-                        {legend.map((group, gi) => {
-                          const on = gi === activeGroup;
-                          return (
-                            <button
-                              key={group.name}
-                              type="button"
-                              onClick={() => pin(gi)}
-                              aria-pressed={pinned === gi}
-                              aria-label={`${group.name} ${group.count}팀 지도에서 보기`}
-                              className={`hd-agrp${on ? " is-on" : ""}`}
-                              style={{ "--c": group.color } as CSSProperties}
-                            >
-                              <span className="hd-aname">{group.name}</span>
-                              <span className="hd-alogos">
-                                {group.logos.map((logo) => (
-                                  <Image
-                                    key={logo.code}
-                                    src={logo.src}
-                                    alt={logo.name}
-                                    width={42}
-                                    height={42}
-                                    className="hd-alogo shrink-0"
-                                  />
-                                ))}
-                              </span>
-                              <span className="hd-acount">{group.count}팀</span>
-                            </button>
-                          );
-                        })}
+                    {/* 경기가 하나도 없으면 달력은 빈 격자다 — 통째로 안 그린다 */}
+                    {dated.length ? (
+                      <CoverCalendar
+                        matches={dated}
+                        picked={datePin}
+                        canHover={canHover}
+                        onPick={pickDate}
+                        onHover={setDateHover}
+                      />
+                    ) : null}
+
+                    {/* 지도의 선·마커가 이 카드를 따라간다. 좌우는 홈·원정 자리로 고정한다 */}
+                    {focusMatch ? (
+                      <div
+                        className="hd-fx"
+                        style={{ "--c": focusColor, "--c14": alpha(focusColor, 0.14) } as CSSProperties}
+                      >
+                        <p className="hd-fxt">
+                          {focusDone ? (
+                            <span className="hd-fxd">
+                              {focusMatch.homeSets} : {focusMatch.awaySets}
+                            </span>
+                          ) : focusMatch.date && ddayLabel(focusMatch.date) ? (
+                            <span suppressHydrationWarning className="hd-fxd">
+                              {ddayLabel(focusMatch.date)}
+                            </span>
+                          ) : null}
+                          {focusMatch.date ? <span>{formatDeckDate(focusMatch.date)}</span> : null}
+                          <span>{JUNGMAN_MATCH_TIME}</span>
+                          <span className="hd-fxg">{focusMatch.group}</span>
+                        </p>
+                        <p className="hd-fxm">
+                          {focusHome ? (
+                            <Image
+                              src={jungmanLogoPath(focusHome.code)}
+                              alt=""
+                              width={44}
+                              height={44}
+                              className="hd-fxlogo"
+                            />
+                          ) : null}
+                          <span className="hd-fxn">{focusMatch.home}</span>
+                          <span className="hd-fxvs">vs</span>
+                          <span className="hd-fxn">{focusMatch.away}</span>
+                          {focusAway ? (
+                            <Image
+                              src={jungmanLogoPath(focusAway.code)}
+                              alt=""
+                              width={44}
+                              height={44}
+                              className="hd-fxlogo"
+                            />
+                          ) : null}
+                        </p>
                       </div>
                     ) : null}
 
-                    {/* 예정 경기가 없으면 블록을 통째로 안 그린다 — 빈 상자를 자리만 잡아두지 않는다 */}
-                    {nextMatches.length ? (
-                      <div className="hd-up">
-                        <p className="hd-upt">다가오는 경기</p>
-                        {nextMatches.map((match) => (
-                          <div key={match.key} className="hd-upr">
-                            <span suppressHydrationWarning className="hd-upd">
-                              {match.dday}
-                            </span>
-                            <span className="hd-upw">{match.when}</span>
-                            {/* 좌우는 홈·원정 자리로 고정한다 */}
-                            <span className="hd-upm">
-                              {match.homeSrc ? (
-                                <Image src={match.homeSrc} alt="" width={26} height={26} className="hd-uplogo" />
-                              ) : null}
-                              <span className="hd-upn">{match.home}</span>
-                              <span className="hd-upvs">vs</span>
-                              <span className="hd-upn">{match.away}</span>
-                              {match.awaySrc ? (
-                                <Image src={match.awaySrc} alt="" width={26} height={26} className="hd-uplogo" />
-                              ) : null}
-                            </span>
-                          </div>
+                    {/* 조 편성 — 지도 색을 읽는 열쇠. 읽는 것만 하는 줄이라 버튼이 아니다 */}
+                    {groups.length ? (
+                      <p className="hd-glegs">
+                        {groups.map((group) => (
+                          <span
+                            key={group.name}
+                            className="hd-gleg"
+                            style={{ "--c": groupColor(group.name) } as CSSProperties}
+                          >
+                            <b>{group.name.trim().charAt(0)}</b>
+                            {group.teams.join(" · ")}
+                          </span>
                         ))}
-                      </div>
+                      </p>
                     ) : null}
 
-                    <p className="hd-cap">{JUNGMAN_FORMAT_LINE}</p>
-                    <p className="hd-cap hd-cap2">8강은 조 1위 ↔ 2위가 붙도록 추첨 후 싱글 토너먼트</p>
-
-                    {/* 지난 라운드가 없으면(대회 종료) 블록도 사라진다.
+                    {/* 지난 라운드가 없으면(대회 종료) 줄도 사라진다.
                         날짜 계산은 렌더 시각 기준이라 자정을 걸치면 하이드레이션 값이 다를 수 있다 */}
                     {milestones.length ? (
-                      <div className="hd-ms">
+                      <p suppressHydrationWarning className="hd-msline">
                         {milestones.map((milestone) => (
-                          <div
+                          <span
                             key={milestone.label}
-                            className={`hd-msr${milestone.offline ? " is-final" : ""}`}
+                            className={`hd-msi${milestone.offline ? " is-final" : ""}`}
                           >
-                            <span suppressHydrationWarning className="hd-msd">
-                              {milestone.dday > 0 ? `D-${milestone.dday}` : "D-DAY"}
-                            </span>
-                            <span className="hd-msl">{milestone.label}</span>
-                            <span className="hd-msn">{milestone.note}</span>
-                            {milestone.offline ? <span className="hd-gf-chip">오프라인</span> : null}
-                          </div>
+                            <b>{milestone.label}</b>
+                            {milestone.note}
+                          </span>
                         ))}
-                      </div>
+                      </p>
                     ) : null}
-
-                    <p className="hd-note">{JUNGMAN_FINAL_NOTE}</p>
                   </div>
                 </div>
               ) : (
-                <div className="flex h-full min-h-0 flex-col justify-center">
+                <div className="hd-scroll justify-center">
                   <div className="stand">
                     <div className="sthd">
                       <h2 className="sth2">
@@ -774,7 +1031,7 @@ export default function HomeHeroDeck({
                       </p>
                     </div>
 
-                    <div className={`standbody${hasMatches ? "" : " is-solo"}`}>
+                    <div className={`standbody${cols === 1 ? " is-solo" : cols === 2 ? " is-duo" : ""}`}>
                       <div className="stwrap">
                         {tables.map((table, gi) => {
                           const color = JUNGMAN_GROUP_COLORS[gi % JUNGMAN_GROUP_COLORS.length];
@@ -794,12 +1051,19 @@ export default function HomeHeroDeck({
                               {table.rows.map((row, ri) => {
                                 const team = jungmanTeamByName(row.team);
                                 return (
-                                  <div
+                                  <button
                                     key={row.team}
+                                    type="button"
                                     // 마지막 행이 2위면 진출선을 안 긋는다 — 표 바닥에 점선만 남는다
                                     className={`trow3${ri < 2 ? " is-top" : ""}${
                                       ri === 1 && ri < table.rows.length - 1 ? " is-cut" : ""
-                                    }`}
+                                    }${activeTeam === row.team ? " is-pick" : ""}`}
+                                    aria-pressed={teamPin === row.team}
+                                    aria-label={`${row.team} 경기 보기`}
+                                    onClick={() => pickTeam(row.team)}
+                                    // 호버 미리보기는 마우스가 있는 기기에서만 — 터치에서는 탭 한 번에 상태가 붙어 안 풀린다
+                                    onMouseEnter={canHover ? () => setTeamHover(row.team) : undefined}
+                                    onMouseLeave={canHover ? () => setTeamHover(null) : undefined}
                                   >
                                     <span className="tteam">
                                       <span className="trank">{ri + 1}</span>
@@ -826,7 +1090,7 @@ export default function HomeHeroDeck({
                                     <span className={`tnum is-last${row.remaining ? "" : " is-mut"}`}>
                                       {row.remaining || "종료"}
                                     </span>
-                                  </div>
+                                  </button>
                                 );
                               })}
                             </div>
@@ -834,55 +1098,59 @@ export default function HomeHeroDeck({
                         })}
                       </div>
 
-                      {/* 경기가 0건이면 아래 두 패널은 존재하지 않는다 */}
-                      {hasMatches ? (
+                      {/* 가운데 — 고른 팀이 있으면 그 팀 전용, 없으면 치른 경기가 있으면 결과, 그것도 없으면 일정 */}
+                      {activeTeam ? (
+                        <div className="stpanel">
+                          <p className="stpht is-team">
+                            {activeLogo ? (
+                              <Image
+                                src={jungmanLogoPath(activeLogo.code)}
+                                alt=""
+                                width={30}
+                                height={30}
+                                className="mlogo"
+                              />
+                            ) : null}
+                            {activeTeam}
+                          </p>
+                          {/* 화면 높이를 넘기면 안 된다 — 위아래 각각 4경기까지만 */}
+                          {hasMatches ? <p className="stpsub">경기 결과</p> : null}
+                          {matches.slice(0, 4).map((match, mi) => (
+                            <MatchRow
+                              key={`${match.date ?? ""}-${match.home}-${match.away}-${mi}`}
+                              match={match}
+                              focus={activeTeam}
+                            />
+                          ))}
+                          {upcoming.length ? <p className="stpsub">남은 경기</p> : null}
+                          {upcoming.slice(0, 4).map((match, mi) => (
+                            <NextRow
+                              key={`${match.date ?? ""}-${match.home}-${match.away}-${mi}`}
+                              match={match}
+                              focus={activeTeam}
+                            />
+                          ))}
+                          {!hasMatches && !upcoming.length ? (
+                            <p className="stpsub">경기 정보가 없습니다</p>
+                          ) : null}
+                        </div>
+                      ) : hasMatches ? (
                         <div className="stpanel">
                           <p className="stpht">경기 결과</p>
-                          {matches.slice(0, 5).map((match, mi) => {
-                            const homeWon = match.homeSets > match.awaySets;
-                            const home = jungmanTeamByName(match.home);
-                            const away = jungmanTeamByName(match.away);
-                            return (
-                              <div key={`${match.date ?? ""}-${match.home}-${match.away}-${mi}`} className="mrow">
-                                {/* 홈 기준 승패. 좌우는 홈·원정 자리로 고정한다 */}
-                                <span className={`mchip ${homeWon ? "is-w" : "is-l"}`}>{homeWon ? "승" : "패"}</span>
-                                <span className={homeWon ? undefined : "is-lost"}>
-                                  {home ? (
-                                    <Image
-                                      src={jungmanLogoPath(home.code)}
-                                      alt={match.home}
-                                      width={30}
-                                      height={30}
-                                      className="mlogo"
-                                    />
-                                  ) : (
-                                    <span className="mtxt">{match.home}</span>
-                                  )}
-                                </span>
-                                <span className="mscore">
-                                  {match.homeSets} : {match.awaySets}
-                                </span>
-                                <span className={homeWon ? "is-lost" : undefined}>
-                                  {away ? (
-                                    <Image
-                                      src={jungmanLogoPath(away.code)}
-                                      alt={match.away}
-                                      width={30}
-                                      height={30}
-                                      className="mlogo"
-                                    />
-                                  ) : (
-                                    <span className="mtxt">{match.away}</span>
-                                  )}
-                                </span>
-                                {match.date ? <span className="mdate">{match.date.slice(5)}</span> : null}
-                              </div>
-                            );
-                          })}
+                          {matches.slice(0, 5).map((match, mi) => (
+                            <MatchRow key={`${match.date ?? ""}-${match.home}-${match.away}-${mi}`} match={match} />
+                          ))}
+                        </div>
+                      ) : upcoming.length ? (
+                        <div className="stpanel">
+                          <p className="stpht">다가오는 경기</p>
+                          {upcoming.slice(0, 5).map((match, mi) => (
+                            <NextRow key={`${match.date ?? ""}-${match.home}-${match.away}-${mi}`} match={match} />
+                          ))}
                         </div>
                       ) : null}
 
-                      {hasMatches ? (
+                      {hasRanks ? (
                         <div className="stpanel">
                           <p className="stpht">
                             개인 순위 <span className="stphs">TOP 10 · 다승 → 승률 순</span>
@@ -986,7 +1254,13 @@ export default function HomeHeroDeck({
             key={index}
             className="hd-bar h-full origin-left bg-[#d4a94a]"
             style={{ animationDuration: `${slide.ms}ms`, animationPlayState: paused ? "paused" : "running" }}
-            onAnimationEnd={() => setIndex((i) => (i + 1) % slides.length)}
+            onAnimationEnd={() => {
+              // 자동 넘김도 넘김이다 — 선택을 들고 넘어가지 않는다
+              clearDate();
+              setTeamPin(null);
+              setTeamHover(null);
+              setIndex((i) => (i + 1) % slides.length);
+            }}
           />
         </div>
       ) : null}

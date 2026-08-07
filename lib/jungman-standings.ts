@@ -245,6 +245,9 @@ export function buildJungmanPlayerRanks(matches: JungmanStandingsMatch[]): Jungm
     );
 }
 
+/** 조 2위까지 8강. 계산과 화면이 같은 상수를 봐야 진출선이 갈라지지 않는다 */
+export const JUNGMAN_ADVANCING = 2;
+
 export function buildJungmanGroupTables(standings: JungmanStandings): JungmanGroupTable[] {
   return standings.groups.map((group) => {
     const rows = new Map<string, JungmanStandingsRow>(
@@ -269,4 +272,158 @@ export function buildJungmanGroupTables(standings: JungmanStandings): JungmanGro
 
     return { name: group.name, rows: [...rows.values()].sort(compareRows) };
   });
+}
+
+// ── 진출 경우의 수 ────────────────────────────────────────────────────────
+
+export type JungmanScenario = {
+  team: string;
+  /** 남은 모든 경우에서 2위 안에 든다 */
+  clinched: boolean;
+  /** 남은 모든 경우에서 2위 안에 못 든다 */
+  eliminated: boolean;
+  /** 이 팀의 다음 경기를 이기면 진출이 확정되는가 */
+  winClinches: boolean;
+  /** 이 팀의 다음 경기를 지면 탈락이 확정되는가 */
+  lossEliminates: boolean;
+};
+
+/** 남은 경기 한 건의 결과 가짓수 — 이긴 쪽 2가지 × 진 쪽 세트 0~4가지. 9전 5선승이라 이긴 쪽은 항상 5세트다 */
+const OUTCOMES = 10;
+
+/**
+ * 전수 조사 상한. 3팀 조는 남은 경기가 최대 3건(1,000가지)이라 순식간이다.
+ * 그보다 큰 조(4팀 초반이면 6건 = 100만)는 아무 말도 하지 않는다 — 화면이 멈추는 것보다 침묵이 낫다.
+ */
+const MAX_PENDING = 4;
+
+/** 날짜 오름차순. 날짜 없는 경기는 맨 뒤 */
+const earlierFirst = (a: JungmanStandingsMatch, b: JungmanStandingsMatch) =>
+  (a.date ?? "9999-99-99").localeCompare(b.date ?? "9999-99-99");
+
+/**
+ * compareRows가 팀명으로만 가르는 사이인가.
+ * 공식 4번째 기준은 동률팀 간 승자승인데 우리는 그걸 구현하지 않았다 —
+ * 여기까지 같으면 누가 올라갈지 "모르는" 것이다.
+ */
+const onlyNameApart = (a: JungmanStandingsRow, b: JungmanStandingsRow) =>
+  a.wins === b.wins && a.setDiff === b.setDiff && a.setsWon === b.setsWon;
+
+/**
+ * 조마다 남은 경기의 모든 결과를 다 돌려 진출/탈락이 확정됐는지 본다.
+ * 정렬은 buildJungmanGroupTables와 같은 compareRows를 쓴다 — 계산이 화면과 다르면 거짓말이 된다.
+ */
+export function buildJungmanScenarios(standings: JungmanStandings): Map<string, JungmanScenario[]> {
+  const result = new Map<string, JungmanScenario[]>();
+
+  for (const table of buildJungmanGroupTables(standings)) {
+    const teams = table.rows.map((row) => row.team);
+    // 조에 없는 팀명(오타)이 낀 경기는 뺀다 — 한쪽만 반영하면 승패 합이 어긋난다(순위표와 같은 규칙)
+    const pending = standings.matches
+      .filter(
+        (m) =>
+          m.group === table.name && !m.decided && teams.includes(m.home) && teams.includes(m.away)
+      )
+      .sort(earlierFirst);
+
+    const blank = teams.map((team) => ({
+      team,
+      clinched: false,
+      eliminated: false,
+      winClinches: false,
+      lossEliminates: false,
+    }));
+    if (pending.length > MAX_PENDING) {
+      result.set(table.name, blank);
+      continue;
+    }
+
+    // 팀별 "다음 경기" = 남은 경기 중 가장 이른 것. pending이 이미 날짜순이라 처음 만나는 것이 그것이다
+    const nextMatch = new Map<string, number>();
+    pending.forEach((match, index) => {
+      if (!nextMatch.has(match.home)) nextMatch.set(match.home, index);
+      if (!nextMatch.has(match.away)) nextMatch.set(match.away, index);
+    });
+
+    const stat = new Map(
+      teams.map((team) => [
+        team,
+        { allCertain: true, anyPossible: false, winAllCertain: true, lossAnyPossible: false },
+      ])
+    );
+
+    const total = OUTCOMES ** pending.length;
+    for (let combo = 0; combo < total; combo += 1) {
+      const rows = table.rows.map((row) => ({ ...row }));
+      const byTeam = new Map(rows.map((row) => [row.team, row]));
+      const homeWon: boolean[] = [];
+
+      let digit = 1;
+      for (const match of pending) {
+        const outcome = Math.floor(combo / digit) % OUTCOMES;
+        digit *= OUTCOMES;
+        const home = byTeam.get(match.home);
+        const away = byTeam.get(match.away);
+        if (!home || !away) continue; // 위에서 걸렀지만 타입상 방어
+        // 앞 5가지는 홈 승, 뒤 5가지는 원정 승. 나머지 자리가 진 쪽 세트 수(0~4)
+        const winnerIsHome = outcome < 5;
+        const loserSets = outcome % 5;
+        homeWon.push(winnerIsHome);
+        applyResult(home, winnerIsHome ? 5 : loserSets, winnerIsHome ? loserSets : 5);
+        applyResult(away, winnerIsHome ? loserSets : 5, winnerIsHome ? 5 : loserSets);
+      }
+
+      rows.sort(compareRows);
+
+      // 진출선에 걸친 동률 무리를 찾는다. 그 무리는 전부 "가능"이되 누구도 "확정"이 아니다 —
+      // 동전 던지기(팀명 순)를 확정이라고 말하면 안 된다
+      const cut = Math.min(JUNGMAN_ADVANCING, rows.length);
+      let lo = cut - 1;
+      let hi = cut - 1;
+      if (cut < rows.length) {
+        while (lo > 0 && onlyNameApart(rows[lo - 1], rows[lo])) lo -= 1;
+        while (hi + 1 < rows.length && onlyNameApart(rows[hi + 1], rows[hi])) hi += 1;
+      }
+      const certainEnd = hi >= cut ? lo : cut;
+      const possibleEnd = Math.max(hi + 1, cut);
+
+      rows.forEach((row, index) => {
+        const s = stat.get(row.team);
+        if (!s) return;
+        const certain = index < certainEnd;
+        const possible = index < possibleEnd;
+        if (!certain) s.allCertain = false;
+        if (possible) s.anyPossible = true;
+
+        const next = nextMatch.get(row.team);
+        if (next === undefined) return;
+        const won = pending[next].home === row.team ? homeWon[next] : !homeWon[next];
+        if (won) {
+          if (!certain) s.winAllCertain = false;
+        } else if (possible) {
+          s.lossAnyPossible = true;
+        }
+      });
+    }
+
+    result.set(
+      table.name,
+      teams.map((team) => {
+        const s = stat.get(team);
+        const clinched = s ? s.allCertain : false;
+        const eliminated = s ? !s.anyPossible : false;
+        // 이미 끝난 얘기를 또 하지 않는다
+        const open = Boolean(s) && !clinched && !eliminated && nextMatch.has(team);
+        return {
+          team,
+          clinched,
+          eliminated,
+          winClinches: open && (s?.winAllCertain ?? false),
+          lossEliminates: open && !(s?.lossAnyPossible ?? true),
+        };
+      })
+    );
+  }
+
+  return result;
 }

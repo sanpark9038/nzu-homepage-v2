@@ -20,6 +20,8 @@ export const JUNGMAN_FINAL_NOTE = "월 · 화 · 수는 ASL 일정으로 미진�
 export const JUNGMAN_PRIZE_TOTAL = "3,500만원";
 export const JUNGMAN_PRIZE_DETAIL = "우승 3,000만원 + 챔피언 벨트 · 준우승 500만원";
 export const JUNGMAN_FORMAT_LINE = "4개조 12팀 · 전 경기 9전 5선승 · 조 2위까지 8강";
+/** 8강 대진 규칙. 홈 커버는 자리가 없어 /jungman에서만 보여준다 */
+export const JUNGMAN_BRACKET_NOTE = "8강은 조 1위 ↔ 2위가 붙도록 추첨 후 싱글 토너먼트";
 
 /** 전 경기 오후 7시 시작 (결승만 미정) */
 export const JUNGMAN_MATCH_TIME = "19:00";

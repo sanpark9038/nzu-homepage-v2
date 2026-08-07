@@ -5,7 +5,9 @@ import { buildJungmanFinalStandings, buildJungmanMarkers, JUNGMAN_TEAMS } from "
 import { jungmanLogoSrc } from "@/lib/jungman-logos";
 import {
   buildJungmanGroupTables,
+  buildJungmanScenarios,
   JUNGMAN_STANDINGS_KEY,
+  type JungmanScenario,
   parseJungmanStandings,
   sortJungmanMatches,
   upcomingJungmanMatches,
@@ -49,6 +51,10 @@ export default async function JungmanPage() {
   ]);
   const standings = parseJungmanStandings(standingsRaw);
   const tables = standings ? buildJungmanGroupTables(standings) : [];
+  // 진출/탈락 확정 여부 — 남은 경기를 전수 조사한 결과다(조당 최대 1,000가지)
+  const scenarios = standings
+    ? buildJungmanScenarios(standings)
+    : new Map<string, JungmanScenario[]>();
   const matches = sortJungmanMatches(standings?.matches ?? []);
   const upcoming = upcomingJungmanMatches(standings?.matches ?? []);
 
@@ -64,7 +70,7 @@ export default async function JungmanPage() {
   return (
     <div className="min-h-screen bg-[#0b0f1a] text-[#e8ebf2]">
       <main className="mx-auto w-full max-w-[1600px] px-3 py-3 md:px-5 md:py-5">
-        <JungmanCover />
+        <JungmanCover upcoming={upcoming} />
 
         {/* 순위표를 설명하는 한 줄 — 패널을 씌우면 표가 또 아래로 밀린다 */}
         <p className="mb-2 px-1 text-xs font-bold text-[#e8ebf2] md:mb-2.5">
@@ -74,7 +80,12 @@ export default async function JungmanPage() {
           </span>
         </p>
 
-        <JungmanGroupTables tables={tables} />
+        {/* 예정 경기까지 넘긴다 — 팀을 누르면 '남은 경기'가 펼쳐져야 한다(sortJungmanMatches는 끝난 것만 남긴다) */}
+        <JungmanGroupTables
+          tables={tables}
+          matches={standings?.matches ?? []}
+          scenarios={scenarios}
+        />
 
         {/* 아직 안 치른 경기가 위, 치른 경기가 아래 — 시간 순서가 자연스럽다.
             넓은 화면은 달력(월·화·수가 비는 리듬이 보인다), 폰은 목록.

@@ -110,38 +110,107 @@ test("커버 덱은 넘어가는 슬라이드 덱이고 지도 위에 blur를 �
   // 비활성 슬라이드는 읽히지도 탭되지도 않는다
   assert.match(deck, /aria-hidden=\{i !== index\}/);
   assert.match(deck, /inert=\{i !== index\}/);
-  // 지도는 한 장만 만들고 켜지는 조만 바꾼다
-  assert.match(deck, /CYCLE_MS = 2400/);
+  // 지도는 한 장만 만들고 켜지는 팀만 바꾼다. 조를 2400ms마다 돌리던 순환은 걷어냈다 —
+  // 이제 지도는 조가 아니라 커버가 보고 있는 경기를 따라간다
   assert.match(deck, /JUNGMAN_TEAMS\.map/);
+  assert.doesNotMatch(deck, /CYCLE_MS|setInterval/);
+  // 조 범례 4줄은 순위 슬라이드의 열화판이라 뺐다
+  assert.doesNotMatch(deck, /hd-aleg|hd-agrp|hd-alogo/);
   // 덱 커버에는 사이트 히어로 문구를 그리지 않는다 — 목업에 없는 요소이고,
   // 넣었더니 커버 레이아웃이 아래로 밀려 목업과 다른 화면이 됐다.
   // prop은 app/page.tsx와의 계약이라 시그니처만 남긴다(이미지·영상 모드에서는 그대로 쓴다).
   assert.match(deck, /titleLines/);
   assert.doesNotMatch(deck, /titleLines\.map/);
   // 대회 정보는 lib 상수에서만 온다 — 문구를 두 벌로 적으면 /jungman과 어긋난다
-  assert.match(deck, /JUNGMAN_FORMAT_LINE/);
   assert.match(deck, /JUNGMAN_PRIZE_TOTAL/);
   assert.match(deck, /jungmanDaysToFinal/);
+  // 경기 방식 두 줄은 자리가 없어 /jungman 커버로 옮겼다. 옮긴 곳에 있어야 하고,
+  // 어느 쪽도 문구를 직접 적으면 안 된다 — 두 벌이 되면 조용히 어긋난다.
+  const cover = readProjectFile("app/jungman/JungmanCover.tsx");
+  assert.match(cover, /JUNGMAN_FORMAT_LINE/);
+  assert.match(cover, /JUNGMAN_BRACKET_NOTE/);
+  assert.doesNotMatch(deck, /9전 5선승|붙도록 추첨/);
+  assert.doesNotMatch(cover, /9전 5선승|붙도록 추첨/);
   assert.match(deck, /href="\/jungman"/);
 
   // 순위 슬라이드 높이는 화면에서 계산한다. transform:scale()로 줄이면 레이아웃 높이가 안 줄어 A조가 잘린다
   assert.match(deck, /--rowh:min\(calc\(55svh \/ 13\),58px\)/);
   assert.doesNotMatch(deck, /transform:scale\(/);
-  // 경기가 0건이면 곁 패널을 만들지 않고 표가 전체 폭을 쓴다
+  // 곁 패널은 각자 자기 데이터로 켜진다 — 하나에 매달아두면 한쪽이 없을 때 둘 다 사라진다
   assert.match(deck, /hasMatches = matches\.length > 0/);
+  assert.match(deck, /const hasMid = hasMatches \|\| upcoming\.length > 0/);
+  assert.match(deck, /const hasRanks = playerRanks\.length > 0/);
+  // 치른 경기가 0건이어도 일정이 있으면 가운데 칸을 그린다
+  assert.match(deck, /\) : upcoming\.length \? \([\s\S]{0,200}stpht">다가오는 경기/);
+  // 오른쪽 칸은 개인 순위가 있을 때만 — hasMatches에 매달면 안 된다
+  assert.match(deck, /\{hasRanks \? \([\s\S]{0,200}개인 순위/);
+  // 열 수는 실제로 그리는 칸 수를 따른다 (3 · 2 · 1)
+  assert.match(deck, /const cols = 1 \+ \(hasMid \? 1 : 0\) \+ \(hasRanks \? 1 : 0\)/);
+  assert.match(deck, /cols === 1 \? " is-solo" : cols === 2 \? " is-duo" : ""/);
   assert.match(deck, /\.standbody\.is-solo\{grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(deck, /\.standbody\.is-duo\{grid-template-columns:minmax\(0,1fr\) minmax\(0,\.92fr\)/);
+  // 일정 줄의 날짜·D-day는 이미 있는 헬퍼를 쓴다 — 계산이 두 벌이 되면 조용히 어긋난다
+  assert.match(deck, /dday = match\.date \? ddayLabel\(match\.date\) : ""/);
+  assert.match(deck, /<span className="mdate">\{formatDeckDate\(match\.date\)\}<\/span>/);
   // 좁은 화면에서는 조별 순위만 남는다
   assert.match(deck, /\.stpanel\{display:none;\}/);
 });
 
-test("커버가 다가오는 경기와 라운드 일정을 그린다", () => {
+test("순위표 팀 행을 고르면 곁 패널이 그 팀으로 바뀐다", () => {
+  const deck = readProjectFile("components/home/HomeHeroDeck.tsx");
+
+  // 행은 버튼이다 — div로 두면 키보드로 고를 수 없다
+  assert.match(deck, /<button\s+key=\{row\.team\}\s+type="button"/);
+  assert.doesNotMatch(deck, /<div\s+key=\{row\.team\}/);
+  assert.match(deck, /aria-pressed=\{teamPin === row\.team\}/);
+
+  // 호버 미리보기는 마우스가 있는 기기에서만 — 터치에서 달면 탭 한 번에 붙어 안 풀린다
+  assert.match(deck, /canHover = useMedia\("\(hover: hover\)"\)/);
+  assert.match(deck, /onMouseEnter=\{canHover \? \(\) => setTeamHover\(row\.team\) : undefined\}/);
+  assert.match(deck, /onMouseLeave=\{canHover \? \(\) => setTeamHover\(null\) : undefined\}/);
+
+  // 순위표를 만지는 것도 "읽는 중"이라는 신호다 — 클릭에서만 자동 넘김을 끈다
+  assert.match(deck, /onClick=\{\(\) => pickTeam\(row\.team\)\}/);
+  assert.match(deck, /const pickTeam = \(name: string\) => \{[\s\S]{0,200}?setAuto\(false\);/);
+
+  // 슬라이드를 넘기면 선택이 풀린다 — 직접 넘김(go)과 자동 넘김(진행바) 두 경로 모두
+  const cleared = deck.match(/setTeamPin\(null\);\s+setTeamHover\(null\);\s+setIndex\(/g) ?? [];
+  assert.equal(cleared.length, 2, "넘김 경로 두 곳에서 선택을 푼다");
+
+  // 미리보기(호버) > 고정(클릭) 순서. 곁 패널 데이터는 고른 팀으로 걸러진 것을 쓴다
+  assert.match(deck, /const activeTeam = teamHover \?\? teamPin/);
+  assert.match(deck, /const matches = activeTeam \? allMatches\.filter\(ofTeam\) : allMatches/);
+  assert.match(deck, /const upcoming = activeTeam \? allUpcoming\.filter\(ofTeam\) : allUpcoming/);
+  // 오른쪽 칸은 그 팀 선수만 — 0명이면 hasRanks가 꺼져 칸도 열도 사라진다
+  assert.match(
+    deck,
+    /const playerRanks = activeTeam \? allRanks\.filter\(\(rank\) => rank\.team === activeTeam\) : allRanks/
+  );
+  // 팀을 골랐는데 경기가 0건이어도 가운데 칸은 남는다
+  assert.match(deck, /\|\| activeTeam !== null/);
+
+  // 가운데 칸: 고른 팀이 있으면 팀 패널, 없으면 기존 전체 목록으로 떨어진다
+  assert.match(deck, /\{activeTeam \? \([\s\S]{0,300}stpht is-team/);
+  assert.match(deck, /stpsub">경기 결과/);
+  assert.match(deck, /stpsub">남은 경기/);
+  assert.match(deck, /경기 정보가 없습니다/);
+  assert.match(deck, /\) : hasMatches \? \([\s\S]{0,200}stpht">경기 결과/);
+  // 100svh 안에 들어가야 한다 — 위아래 각각 4경기까지
+  assert.match(deck, /matches\.slice\(0, 4\)/);
+  assert.match(deck, /upcoming\.slice\(0, 4\)/);
+  // 경기 줄은 한 벌뿐이다 — 팀 패널과 전체 목록이 같은 컴포넌트를 쓴다
+  assert.match(deck, /function MatchRow\(\{ match, focus \}/);
+  assert.match(deck, /function NextRow\(\{ match, focus \}/);
+});
+
+test("커버가 일정 달력과 라운드 일정을 그린다", () => {
   const deck = readProjectFile("components/home/HomeHeroDeck.tsx");
   // 예정 경기는 덱이 계산하지 않는다 — 데이터로 받는다
   assert.match(deck, /upcoming\?: JungmanStandingsMatch\[\]/);
-  // 커버는 코앞 두 경기만 — 전체 일정은 /jungman이 그린다
-  assert.match(deck, /upcoming\.slice\(0, 2\)/);
-  // 예정 경기가 0건이면 블록을 통째로 안 그린다
-  assert.match(deck, /nextMatches\.length \?/);
+  // 달력은 예정 + 치른 경기를 함께 본다 — 예정만 넘기면 8월의 리듬이 반쪽이 된다
+  assert.match(deck, /const dated = \[\.\.\.allUpcoming, \.\.\.allMatches\]\.filter\(\(match\) => match\.date\)/);
+  // 경기가 하나도 없으면 빈 격자를 안 그린다
+  assert.match(deck, /\{dated\.length \? \([\s\S]{0,120}<CoverCalendar/);
   // 라운드 일정 문구·날짜는 lib 상수에서만 온다
   assert.match(deck, /JUNGMAN_MILESTONES/);
   assert.match(deck, /JUNGMAN_MATCH_TIME/);
@@ -149,10 +218,81 @@ test("커버가 다가오는 경기와 라운드 일정을 그린다", () => {
   assert.match(deck, /offline \? jungmanDaysToFinal\(\) : daysToKST/);
   // 지난 라운드는 안 그린다
   assert.match(deck, /filter\(\(milestone\) => milestone\.dday >= 0\)/);
-  // 좁은 화면에서는 결승 한 줄만 남긴다
-  assert.match(deck, /\.hd-msr:not\(\.is-final\)\{display:none;\}/);
+  // 라운드 일정은 한 줄이다 — 3줄짜리 블록(.hd-ms*)은 걷어냈다
+  assert.match(deck, /\.hd-msline\{[^}]*display:flex;flex-wrap:wrap/);
+  assert.doesNotMatch(deck, /hd-msr|hd-msd|hd-gf-chip/);
   // 덱은 자기 높이를 만들지 않는다 — 높이는 app/page.tsx의 히어로 섹션이 정한다
   assert.doesNotMatch(deck, /100vh|100svh|h-screen/);
+});
+
+test("커버 달력이 일정을 고르고 지도가 그 경기를 따라간다", () => {
+  const deck = readProjectFile("components/home/HomeHeroDeck.tsx");
+
+  // 7열 격자 · 일요일 시작
+  assert.match(deck, /\.hd-cgrid\{display:grid;grid-template-columns:repeat\(7,1fr\)/);
+  assert.match(deck, /const WEEKDAYS = \["일", "월", "화", "수", "목", "금", "토"\]/);
+  // 날짜 계산은 문자열과 Intl(Asia/Seoul)로만 — UTC 게터를 쓰면 칸이 하루씩 밀린다
+  assert.match(deck, /timeZone: "Asia\/Seoul"/);
+  assert.doesNotMatch(deck, /getUTC|getMonth\(\)|getDate\(\)|getDay\(\)/);
+  // "오늘"은 서버 렌더에 없다 — 서버 스냅샷 null. useState+useEffect면 하이드레이션 불일치를 스스로 만든다
+  assert.match(deck, /\(\) => SEOUL_YMD\.format\(new Date\(\)\),\s*\(\) => null/);
+  assert.doesNotMatch(deck, /useEffect\(/);
+  // 오늘 칸은 테두리, 지난 날짜는 흐리게
+  assert.match(deck, /\.hd-cell\.is-today\{border-color/);
+  assert.match(deck, /\.hd-cell\.is-past\{opacity:\.45;\}/);
+
+  // 누르면 고정(자동 넘김도 끈다), 마우스가 있는 기기에서만 호버 미리보기
+  assert.match(deck, /const pickDate = \(date: string \| null\) => \{[\s\S]{0,200}?setAuto\(false\);/);
+  assert.match(deck, /const chosenDate = dateHover \?\? datePin/);
+  assert.match(deck, /onMouseEnter=\{canHover \? \(\) => onHover\(date\) : undefined\}/);
+  // 슬라이드를 넘기면 달력 선택도 푼다 — 직접 넘김(go)과 자동 넘김(진행바) 두 경로 모두
+  assert.equal((deck.match(/\bclearDate\(\);/g) ?? []).length, 2, "넘김 경로 두 곳에서 날짜를 푼다");
+
+  // focus는 고른 날 > 가장 가까운 예정 > 가장 최근 결과 순으로 떨어진다
+  assert.match(deck, /allUpcoming\[0\] \?\?\s*allMatches\[0\] \?\?\s*null/);
+
+  // 지도는 그 경기의 두 팀만 켜고 둘을 선으로 잇는다. 선은 마커보다 먼저 그려야 로고를 안 가린다
+  assert.match(deck, /<line\s+className="hd-link"[\s\S]{0,200}stroke=\{focusColor\}/);
+  assert.match(deck, /<line[\s\S]*?JUNGMAN_TEAMS\.map/);
+  assert.match(deck, /const on = !onCover \|\| team\.code === focusHome\?\.code \|\| team\.code === focusAway\?\.code/);
+  // 순위 슬라이드는 그대로 전체 조를 켠다(onCover가 false)
+  assert.match(deck, /const onCover = slide\.key === "cover" && groups\.length > 0/);
+});
+
+test("커버 달력이 커지고, 조 편성 4줄이 읽기 전용으로 돌아왔다", () => {
+  const deck = readProjectFile("components/home/HomeHeroDeck.tsx");
+
+  // 달력이 커버의 빈자리를 채운다 — 칸·날짜·점이 함께 커진다
+  assert.match(deck, /\.hd-cell\{height:clamp\(34px,4\.6vh,52px\)/);
+  assert.match(deck, /\.hd-cell\{[^}]*font-size:clamp\(13px,1\.15vw,16px\)/);
+  assert.match(deck, /\.hd-cdot\{width:7px;height:7px/);
+  assert.match(deck, /\.hd-cwd\{font-size:clamp\(10px,\.9vw,12\.5px\)/);
+
+  // 조 편성 4줄 — 지도 색을 읽는 열쇠. 세로로 한 줄씩, 조 글자만 조 색
+  assert.match(deck, /\.hd-glegs\{[^}]*flex-direction:column/);
+  assert.match(deck, /\.hd-gleg b\{color:var\(--c\)/);
+  assert.match(deck, /className="hd-glegs"/);
+  assert.match(deck, /groups\.map\(\(group\) => \(/);
+  // 눈에 띄면 안 된다 — 담백한 크기·회색 팀 이름
+  assert.match(deck, /\.hd-glegs\{[^}]*font-size:clamp\(10px,\.85vw,12\.5px\);font-weight:700;color:#7a8299/);
+  // 좁은 화면에서는 접힌다 — 4줄이 8줄이 되면 커버가 넘친다
+  assert.match(deck, /\.hd-glegs\{display:none;\}/);
+
+  // 누를 수 없다 — 상호작용을 되살리면 "지도는 달력이 고른 일정을 따라간다" 규칙과 충돌한다
+  const legend = deck.slice(deck.indexOf('className="hd-glegs"'), deck.indexOf('className="hd-msline"'));
+  assert.ok(legend.length > 0, "조 편성 줄은 마일스톤 줄보다 앞에 있다");
+  assert.doesNotMatch(legend, /<button|onClick|onMouseEnter|aria-pressed/);
+});
+
+test("순위 슬라이드는 개인 순위 칸을 넓게 준다", () => {
+  const deck = readProjectFile("components/home/HomeHeroDeck.tsx");
+  // 왼쪽 조별 표를 줄이고 오른쪽 개인 순위를 넓혔다
+  assert.match(
+    deck,
+    /grid-template-columns:minmax\(0,\.92fr\) minmax\(0,\.86fr\) minmax\(0,\.92fr\)/
+  );
+  // 표가 좁아진 만큼 숫자 열을 깎아 팀 이름이 안 잘리게 한다
+  assert.match(deck, /grid-template-columns:minmax\(0,1fr\) 2\.8em 2\.8em 4em 4\.2em/);
 });
 
 test("커버 문구는 /jungman과 홈이 같은 상수를 쓴다", () => {
