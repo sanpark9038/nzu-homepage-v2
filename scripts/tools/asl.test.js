@@ -190,6 +190,36 @@ test("달력은 variant로 주인공을 뒤집는다 — 기본값은 K-중만�
   assert.match(source, /ASL_MATCH_TIME/);
 });
 
+test('/asl 달력의 기본은 "이번 주" 한 줄 — 월 격자는 탭을 눌러야 나온다', () => {
+  const source = readProjectFile("app/jungman/JungmanCalendar.tsx");
+  // 탭 목록 맨 앞이 주간이고, 없으면(=today 미전달) 월 탭만 남는다
+  assert.match(source, /const weekTab = isAsl && todayProp \? "week" : null/);
+  assert.match(source, /const tabs = weekTab \? \[weekTab, \.\.\.months\] : months/);
+  // 기본 선택이 주간 — picked보다 뒤, 월 기본값보다 앞이어야 "이번 주"가 첫 화면이다
+  assert.match(source, /picked \?\? weekTab \?\?/);
+  assert.match(source, /key === weekTab \? "이번 주"/);
+  // 주간도 월 격자와 같은 셀 렌더링을 쓴다 — cells 배열만 갈아끼운다(마크업 두 벌 금지)
+  assert.match(source, /view === weekTab \? weekCells\([\s\S]{0,40}\) : monthCells\(view\)/);
+  assert.equal((source.match(/min-h-\[7\.5rem\]/g) || []).length, 2);
+
+  // /jungman은 today를 안 넘긴다 — 주간 탭이 생기면 기존 화면이 바뀐다
+  assert.doesNotMatch(readProjectFile("app/jungman/page.tsx"), /today=/);
+});
+
+test("이번 주는 서버가 정하고, 요일은 UTC가 아니라 한국 시간대로 읽는다", () => {
+  const page = readProjectFile("app/asl/page.tsx");
+  // 클라이언트가 new Date()로 주를 정하면 서버 렌더와 어긋나 하이드레이션이 깨진다
+  assert.match(page, /timeZone: "Asia\/Seoul"[\s\S]{0,120}\.format\(new Date\(\)\)/);
+  assert.match(page, /<JungmanCalendar[\s\S]{0,120}today=\{todayKST\}/);
+
+  const source = readProjectFile("app/jungman/JungmanCalendar.tsx");
+  assert.match(source, /today\?: string/);
+  // 요일을 getUTCDay()로 읽으면 한국 자정이 UTC로 전날이라 주가 통째로 하루 밀린다.
+  // 시간대 포맷터로만 읽는다(jungman-standings.test.js도 getUTC* 자체를 막고 있다).
+  assert.match(source, /WEEKDAY_INDEX\[SEOUL_WEEKDAY\.format\(base\)\]/);
+  assert.doesNotMatch(source, /getUTC|getDay\(\)/);
+});
+
 test("네비게이션에 ASL이 K-중만컵 다음, 스코어보드 앞에 있다", () => {
   const nav = readProjectFile("lib/navigation-config.ts");
   assert.match(nav, /"\/jungman"[\s\S]{0,120}"\/asl"[\s\S]{0,200}"\/overlay\/admin"/);

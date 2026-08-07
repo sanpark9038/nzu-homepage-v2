@@ -63,6 +63,14 @@ export default async function AslPage() {
   const standings = parseJungmanStandings(
     await getSetting(JUNGMAN_STANDINGS_KEY).catch(() => null)
   );
+  // 달력의 "이번 주"는 서버가 정한다 — 클라이언트에서 시계를 읽으면 서버 렌더와 어긋나 하이드레이션이 깨진다.
+  // ponytail: revalidate=60이라 자정 직후 최대 1분은 어제 주가 보인다. 하루 한 번 1분이라 감수한다.
+  const todayKST = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
   return (
     <div className="min-h-screen bg-[#0b0f1a] text-[#e8ebf2]">
@@ -119,7 +127,7 @@ export default async function AslPage() {
 
         {/* ── 일정 ── 넓은 화면만. 폰에서는 커버의 "다음 방송"이 그 역할을 한다 */}
         <div className="hidden md:block">
-          <JungmanCalendar matches={standings?.matches ?? []} variant="asl" />
+          <JungmanCalendar matches={standings?.matches ?? []} variant="asl" today={todayKST} />
         </div>
 
         {/* ── 24강 조 편성 ── */}

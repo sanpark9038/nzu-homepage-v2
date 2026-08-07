@@ -111,6 +111,30 @@ function buildGroupEvents(matches: JungmanStandingsMatch[]): CalendarEvent[] {
     });
 }
 
+/** 그 달의 칸. 1일이 붙는 요일만큼 앞을 비운다 */
+function monthCells(month: string): (string | null)[] {
+  const year = Number(month.slice(0, 4));
+  const monthNo = Number(month.slice(5));
+  // 말일 — 다음 달 1일에서 하루 전(한국 기준). 한국은 서머타임이 없어 뺄셈이 정확하다
+  const nextMonth = monthNo === 12 ? `${year + 1}-01` : `${year}-${pad(monthNo + 1)}`;
+  const lastDay = Number(SEOUL_YMD.format(at(`${nextMonth}-01`).getTime() - 86_400_000).slice(-2));
+  const firstWeekday = WEEKDAY_INDEX[SEOUL_WEEKDAY.format(at(`${month}-01`))] ?? 0;
+  return [
+    ...Array.from({ length: firstWeekday }, () => null),
+    ...Array.from({ length: lastDay }, (_, index) => `${month}-${pad(index + 1)}`),
+  ];
+}
+
+/**
+ * today가 속한 주 7칸(일~토). 월 격자와 같은 열 순서라 셀 렌더링을 그대로 공유한다.
+ * 요일은 SEOUL_WEEKDAY로만 읽는다 — UTC로 읽으면 한국 자정이 전날이라 주가 통째로 하루 밀린다.
+ */
+function weekCells(today: string): string[] {
+  const base = at(today).getTime();
+  const sunday = base - (WEEKDAY_INDEX[SEOUL_WEEKDAY.format(base)] ?? 0) * 86_400_000;
+  return Array.from({ length: 7 }, (_, index) => SEOUL_YMD.format(sunday + index * 86_400_000));
+}
+
 /** 못 찾는 팀 이름(오타·외부팀)은 로고 없이 이름만 */
 function TeamRow({ name }: { name: string }) {
   const code = jungmanTeamByName(name)?.code;
@@ -160,13 +184,20 @@ function EventCard({ event }: { event: CalendarEvent }) {
  *
  * variant="asl"이면 주인공이 뒤집힌다: /asl 페이지에서는 ASL이 컬러 카드고
  * K-중만컵이 "이 날은 남의 경기가 있다"는 회색 설명으로 내려간다. 격자·오늘·지난 칸은 그대로 공유한다.
+ * 또 한 달 격자는 자리를 많이 먹어서 "이번 주" 한 줄이 기본이고, 월 탭을 누르면 격자가 나온다.
  */
 export default function JungmanCalendar({
   matches,
   variant = "jungman",
+  today: todayProp,
 }: {
   matches: JungmanStandingsMatch[];
   variant?: "jungman" | "asl";
+  /**
+   * 오늘(KST, "YYYY-MM-DD"). "이번 주" 뷰를 그리려면 서버가 정해 줘야 한다 —
+   * 여기서 시계를 읽으면 서버 렌더와 어긋나 하이드레이션이 깨진다. 없으면 "이번 주" 탭을 안 만든다.
+   */
+  today?: string;
 }) {
   const isAsl = variant === "asl";
   // Tailwind는 소스에 적힌 클래스 문자열만 본다 — 변수로 조립하면 색이 통째로 빠진다
@@ -222,16 +253,19 @@ export default function JungmanCalendar({
 
   if (!events.length) return null;
 
-  // 처음에는 오늘이 속한 달. 서버 렌더는 시계가 없어 첫 달을 그리고 마운트 뒤 옮겨간다
-  const todayMonth = today?.slice(0, 7);
-  const month = picked ?? (todayMonth && months.includes(todayMonth) ? todayMonth : months[0]);
+  // "이번 주"는 /asl에서만, 그리고 서버가 오늘을 줬을 때만. 없으면 예전처럼 월 뷰가 전부다
+  const weekTab = isAsl && todayProp ? "week" : null;
+  const tabs = weekTab ? [weekTab, ...months] : months;
 
-  const year = Number(month.slice(0, 4));
-  const monthNo = Number(month.slice(5));
-  // 말일 — 다음 달 1일에서 하루 전(한국 기준). 한국은 서머타임이 없어 뺄셈이 정확하다
-  const nextMonth = monthNo === 12 ? `${year + 1}-01` : `${year}-${pad(monthNo + 1)}`;
-  const lastDay = Number(SEOUL_YMD.format(at(`${nextMonth}-01`).getTime() - 86_400_000).slice(-2));
-  const firstWeekday = WEEKDAY_INDEX[SEOUL_WEEKDAY.format(at(`${month}-01`))] ?? 0;
+  // 처음에는 이번 주(/asl) 아니면 오늘이 속한 달.
+  // 월 뷰의 첫 화면은 서버에 시계가 없어 첫 달을 그리고 마운트 뒤 옮겨간다
+  const todayMonth = today?.slice(0, 7);
+  const view =
+    picked ?? weekTab ?? (todayMonth && months.includes(todayMonth) ? todayMonth : months[0]);
+
+  // 주간 뷰도 월 격자와 같은 일~토 7열이라 아래 셀 렌더링을 그대로 쓴다
+  const cells: (string | null)[] =
+    view === weekTab ? weekCells(todayProp as string) : monthCells(view);
 
   const byDate = new Map<string, CalendarEvent[]>();
   for (const event of events) {
@@ -240,28 +274,23 @@ export default function JungmanCalendar({
     else byDate.set(event.date, [event]);
   }
 
-  const cells: (string | null)[] = [
-    ...Array.from({ length: firstWeekday }, () => null),
-    ...Array.from({ length: lastDay }, (_, index) => `${month}-${pad(index + 1)}`),
-  ];
-
   return (
     <div className="mt-3 md:mt-4">
       <div className="mb-2 flex items-center gap-3 px-1 md:mb-3">
         <h2 className="text-base font-black tracking-tight md:text-xl">{isAsl ? "일정" : "경기 일정"}</h2>
         <div className="flex gap-1.5">
-          {months.map((key) => (
+          {tabs.map((key) => (
             <button
               key={key}
               type="button"
               onClick={() => setPicked(key)}
               className={`rounded-full px-3 py-1 text-xs font-black transition ${
-                key === month
+                key === view
                   ? `${accentBg} text-[#0b0f1a]`
                   : "border border-[rgba(155,185,240,0.14)] text-[#7a8299] hover:text-[#e8ebf2]"
               }`}
             >
-              {Number(key.slice(5))}월
+              {key === weekTab ? "이번 주" : `${Number(key.slice(5))}월`}
             </button>
           ))}
         </div>
