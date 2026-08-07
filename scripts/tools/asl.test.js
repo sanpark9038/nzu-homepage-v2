@@ -182,8 +182,8 @@ test("/asl의 포인트색은 ASL 주황 — 금색은 K-중만컵 색이다", (
 
 test("다음 방송은 커버의 카드다 — dl 한 칸이 아니다", () => {
   const page = readProjectFile("app/asl/page.tsx");
-  // 라벨 다음에 날짜+시각이 크게, 그 아래 해당 조 선수들이 온다
-  assert.match(page, /다음 방송[\s\S]{0,400}formatAslDate\(next\.date\)[\s\S]{0,200}ASL_MATCH_TIME/);
+  // 라벨 다음에 날짜+시각이 크게, 그 아래 해당 조 선수들이 온다 (라벨 줄에 승부예측 링크가 껴서 창이 넓다)
+  assert.match(page, /다음 방송[\s\S]{0,800}formatAslDate\(next\.date\)[\s\S]{0,200}ASL_MATCH_TIME/);
   assert.match(page, /nextGroup[\s\S]{0,200}PlayerLine/);
   // 일정이 끝나면 카드 대신 회색 한 줄
   assert.match(page, /조지명식 이후 일정 미공개/);

@@ -121,7 +121,17 @@ export default async function AslPage() {
                 <div className="md:grid md:grid-cols-[1fr_auto] md:items-start md:gap-6">
                   <div className="min-w-0">
                     {/* D-day 칩은 위 h1 옆에 이미 있다 — 여기서 또 그리지 않는다 */}
-                    <p className={LABEL}>다음 방송</p>
+                    <p className="flex items-baseline gap-2.5">
+                      <span className={LABEL}>다음 방송</span>
+                      {/* 보는 김에 찍고 가게 — 줄을 따로 세우지 않고 라벨 옆에 압축한다. 색은 네비의 승부예측 앰버 */}
+                      <Link
+                        href="/prediction"
+                        prefetch={false}
+                        className="text-[0.6875rem] font-bold text-amber-300 transition-colors hover:text-amber-200"
+                      >
+                        승부예측 참여 →
+                      </Link>
+                    </p>
                     <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 md:mt-1.5">
                       <span className="text-base font-black tabular-nums text-[#e8ebf2] md:text-2xl">
                         {formatAslDate(next.date)} {ASL_MATCH_TIME}
@@ -141,22 +151,15 @@ export default async function AslPage() {
                         24강을 통과한 12명과 시드 4명이 16강 조를 짠다
                       </p>
                     )}
-                    {/* 보는 김에 찍고 가게 — 승부예측으로 보내는 문. 색은 네비의 승부예측 앰버를 따른다 */}
-                    <Link
-                      href="/prediction"
-                      prefetch={false}
-                      className="mt-3 inline-flex items-center gap-1 rounded-full border border-amber-400/40 px-3 py-1 text-[0.6875rem] font-bold text-amber-300 transition-colors hover:bg-amber-400/10 md:mt-4 md:text-xs"
-                    >
-                      승부예측 참여하기 →
-                    </Link>
                   </div>
 
                   {/* 24강 방송일 때만. 조지명식은 경기가 아니라 방식 요약이 붙을 자리가 아니다 */}
                   {nextGroup ? (
                     <div className="mt-3 border-t border-[rgba(155,185,240,0.14)] pt-3 md:mt-0 md:border-t-0 md:pt-0">
-                      <p className={LABEL}>
-                        24강 방식
-                        <span className="ml-2 text-xs font-normal normal-case tracking-normal text-[#7a8299]">
+                      {/* 라벨 톤이면 아래 주황 단계명에 묻힌다 — 제목 톤(흰색)으로 세운다 */}
+                      <p className="flex flex-wrap items-baseline gap-x-2">
+                        <span className="text-sm font-black text-[#e8ebf2] md:text-base">24강 방식</span>
+                        <span className="text-[0.6875rem] text-[#7a8299] md:text-xs">
                           전 경기 단판 · 2승 진출 2패 탈락
                         </span>
                       </p>
