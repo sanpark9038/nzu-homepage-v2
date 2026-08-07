@@ -295,6 +295,22 @@ test("커버 달력이 일정을 고르고 지도가 그 경기를 따라간다"
   assert.match(deck, /const onCover = slide\.key === "cover" && groups\.length > 0/);
 });
 
+test("커버 달력의 ASL 날짜는 회색 점만 — 누를 수 없다", () => {
+  const deck = readProjectFile("components/home/HomeHeroDeck.tsx");
+  // 날짜를 여기 또 적으면 /jungman 달력과 조용히 어긋난다
+  assert.match(deck, /ASL_SCHEDULE/);
+  assert.doesNotMatch(deck, /2026-08-17|ASL A조/);
+  // 조 색 점과 구분되는 회색
+  assert.match(deck, /\.hd-cdot\.is-asl\{background:#7a8299;\}/);
+
+  // 경기 없는 칸(<span>)에서만 그린다 — 버튼(has-m)에 붙으면 우리 경기처럼 눌리고 지도가 따라가려 한다
+  const start = deck.indexOf("if (!match) {");
+  const blank = deck.slice(start, deck.indexOf("<button", start));
+  assert.ok(blank.length > 0, "경기 없는 칸 분기가 버튼 분기보다 앞에 있다");
+  assert.match(blank, /is-asl/);
+  assert.doesNotMatch(blank, /<button|onClick|onMouseEnter|aria-pressed/);
+});
+
 test("커버 달력이 커지고, 조 편성 4줄이 읽기 전용으로 돌아왔다", () => {
   const deck = readProjectFile("components/home/HomeHeroDeck.tsx");
 

@@ -20,6 +20,7 @@ import {
   JUNGMAN_MAP_WIDTH,
 } from "@/components/jungman/map-base";
 import {
+  ASL_SCHEDULE,
   JUNGMAN_GROUP_COLORS,
   JUNGMAN_MATCH_TIME,
   JUNGMAN_MILESTONES,
@@ -224,6 +225,8 @@ const DECK_STYLE = `
   .hd-cell.is-today{border-color:rgba(212,169,74,.7);}
   .hd-cell.is-pick{background:rgba(255,255,255,.1);}
   .hd-cdot{width:7px;height:7px;border-radius:99px;background:var(--c);}
+  /* ASL(남의 리그) — 월·화·수가 비는 이유. 조 색과 구분되게 회색이고, 그 칸은 누를 수 없다 */
+  .hd-cdot.is-asl{background:#7a8299;}
 
   /* 지금 보고 있는 경기 — 지도의 선·마커가 이 카드를 따라간다 */
   .hd-fx{margin-top:clamp(6px,1vh,12px);padding:clamp(8px,1.2vh,14px) clamp(12px,1.2vw,20px);
@@ -599,8 +602,12 @@ function NextRow({ match, focus }: { match: JungmanStandingsMatch; focus?: strin
 /** 시계는 구독할 대상이 없다 — 스냅샷만 필요해서 빈 구독을 준다(참조가 안 바뀌어야 재구독을 안 한다) */
 const noSubscribe = () => () => {};
 
+/** 날짜 → ASL 라벨. 상수라 컴포넌트 밖에서 한 번만 만든다 */
+const ASL_DATES = new Map(ASL_SCHEDULE.map((item) => [item.date, item.label]));
+
 /**
  * 커버 달력. 경기 있는 날에 조 색 점을 찍고, 누르면(또는 마우스를 올리면) 그 경기가 커버의 주인공이 된다.
+ * ASL 날짜에는 회색 점만 — 월·화·수가 비는 이유를 알려줄 뿐 누를 수 없다.
  * "오늘"은 서버 렌더에 없다 — 서버 스냅샷을 null로 두고 하이드레이션 뒤에 채운다.
  */
 function CoverCalendar({
@@ -679,10 +686,14 @@ function CoverCalendar({
           const past = today !== null && date < today;
           const state = `${past ? " is-past" : ""}${date === today ? " is-today" : ""}`;
           const day = Number(date.slice(8));
+          // K-중만컵 경기가 있는 날이면 이 분기를 안 탄다 — 겹쳐도 우리 점이 이긴다(지금은 겹치는 날이 없다)
           if (!match) {
+            const asl = ASL_DATES.get(date);
             return (
-              <span suppressHydrationWarning key={date} className={`hd-cell${state}`}>
+              <span suppressHydrationWarning key={date} className={`hd-cell${state}`} title={asl}>
                 {day}
+                {/* 우리 경기가 아니라 보여줄 팀도 지도도 없다 — 점만 찍고 누를 수 없게 둔다 */}
+                {asl ? <span className="hd-cdot is-asl" /> : null}
               </span>
             );
           }

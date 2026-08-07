@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useMemo, useState, useSyncExternalStore } from "react";
 
 import {
+  ASL_SCHEDULE,
   JUNGMAN_GROUP_COLORS,
   JUNGMAN_MATCH_TIME,
   JUNGMAN_TOURNAMENT,
@@ -71,6 +72,8 @@ type CalendarEvent = {
   away?: string;
   /** 결과가 들어온 경기만 */
   score?: string;
+  /** 남의 리그(ASL) — 이 날 왜 비는지의 설명이라 카드 배경 없이 곁들인다 */
+  quiet?: boolean;
 };
 
 /** 경기 번호는 저장 데이터에 없다 — 같은 조를 날짜순으로 세어 매긴다 */
@@ -127,7 +130,7 @@ function TeamRow({ name }: { name: string }) {
 function EventCard({ event }: { event: CalendarEvent }) {
   return (
     <div
-      className="rounded-md border-l-2 bg-[rgba(155,185,240,0.06)] px-1.5 py-1"
+      className={`rounded-md border-l-2 px-1.5 py-1 ${event.quiet ? "" : "bg-[rgba(155,185,240,0.06)]"}`}
       style={{ borderColor: event.color }}
     >
       <p className="truncate text-[0.625rem] font-black" style={{ color: event.color }}>
@@ -150,6 +153,7 @@ function EventCard({ event }: { event: CalendarEvent }) {
 /**
  * 월 달력. 목록으로는 안 보이는 것 — 월·화·수가 통째로 비는 리듬 — 을 보여주는 게 값어치다.
  * 조별리그 전체(끝난 것 + 예정)와 토너먼트 일정을 같은 격자에 올린다.
+ * ASL은 그 리듬의 이유라 회색으로 곁들인다 — 우리 경기가 아니니 카드보다 흐려야 한다.
  */
 export default function JungmanCalendar({ matches }: { matches: JungmanStandingsMatch[] }) {
   const { events, months } = useMemo(() => {
@@ -166,7 +170,12 @@ export default function JungmanCalendar({ matches }: { matches: JungmanStandings
         time: round.round === "결승" ? null : JUNGMAN_MATCH_TIME,
       })),
     ];
-    return { events: all, months: [...new Set(all.map((e) => e.date.slice(0, 7)))].sort() };
+    // 월 탭은 우리 일정으로만 정한다 — ASL이 새 달을 만들면 K-중만컵이 하나도 없는 달이 탭에 뜬다
+    const months = [...new Set(all.map((e) => e.date.slice(0, 7)))].sort();
+    const asl: CalendarEvent[] = ASL_SCHEDULE.filter((item) => months.includes(item.date.slice(0, 7))).map(
+      (item) => ({ date: item.date, label: item.label, color: MUTED, time: JUNGMAN_MATCH_TIME, quiet: true })
+    );
+    return { events: [...all, ...asl], months };
   }, [matches]);
 
   // 오늘 테두리와 지난 칸 흐리기는 하이드레이션 뒤에 생긴다

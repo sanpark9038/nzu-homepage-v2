@@ -648,6 +648,37 @@ test("토너먼트 일정 7건 — 결승 날짜는 상수 한 벌에서만 온�
   assert.match(readProjectFile("lib/jungman.ts"), /\{ date: JUNGMAN_FINAL_DATE, label: "결승"/);
 });
 
+test("ASL 일정 7건 — 전부 월·화·수다", () => {
+  const { ASL_SCHEDULE } = loadModule("lib/jungman.ts");
+  assert.equal(ASL_SCHEDULE.length, 7);
+  // 요일은 눈으로 세지 말고 검산한다 — 한 칸만 밀려도 "월화수가 비는 이유"라는 설명이 거짓이 된다
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", weekday: "short" });
+  for (const item of ASL_SCHEDULE) {
+    assert.match(item.date, /^\d{4}-\d{2}-\d{2}$/, `label=${item.label}`);
+    assert.ok(item.label, `date=${item.date}`);
+    const day = weekday.format(new Date(`${item.date}T00:00:00+09:00`));
+    assert.ok(["Mon", "Tue", "Wed"].includes(day), `${item.date}=${day}`);
+  }
+  // 8/10~12에는 ASL이 없다 — "월화수 전부"로 일반화하면 안 그러는 주가 지워진다
+  const dates = ASL_SCHEDULE.map((item) => item.date);
+  for (const date of ["2026-08-10", "2026-08-11", "2026-08-12"]) {
+    assert.ok(!dates.includes(date), date);
+  }
+});
+
+test("달력이 ASL을 곁들이되 새 월 탭을 만들지 않는다", () => {
+  const source = readProjectFile("app/jungman/JungmanCalendar.tsx");
+  assert.match(source, /ASL_SCHEDULE/);
+  // 월 탭은 우리 일정으로 먼저 정하고, ASL은 그 달 안에서만 섞인다
+  assert.match(
+    source,
+    /ASL_SCHEDULE\.filter\(\(item\) => months\.includes\(item\.date\.slice\(0, 7\)\)\)/
+  );
+  // 우리 대회가 아니다 — 조 색(경기)도 금색(토너먼트)도 아닌 회색이고 카드 배경이 없다
+  assert.match(source, /color: MUTED, time: JUNGMAN_MATCH_TIME, quiet: true/);
+  assert.match(source, /event\.quiet \? "" : "bg-\[rgba\(155,185,240,0\.06\)\]"/);
+});
+
 test("넓은 화면은 달력, 폰은 목록 — 갈리는 곳은 CSS뿐이다", () => {
   const page = readProjectFile("app/jungman/page.tsx");
   assert.match(page, /className="hidden md:block"[\s\S]{0,120}<JungmanCalendar/);

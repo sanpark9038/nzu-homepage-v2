@@ -46,6 +46,21 @@ export const JUNGMAN_TOURNAMENT: { date: string; label: string; round: "8강" | 
   { date: JUNGMAN_FINAL_DATE, label: "결승", round: "결승" },
 ];
 
+/**
+ * ASL 일정 — 월·화·수에 K-중만컵이 없는 이유. 사용자 제공 공식 달력 실측(2026-08-06).
+ * 8/10~12은 ASL이 없다 — "월화수 전부"로 일반화하지 말고 날짜만 믿어라.
+ * 9월 일정은 아직 미공개 — 나오면 여기 추가한다.
+ */
+export const ASL_SCHEDULE: { date: string; label: string }[] = [
+  { date: "2026-08-17", label: "ASL A조" },
+  { date: "2026-08-18", label: "ASL B조" },
+  { date: "2026-08-19", label: "ASL C조" },
+  { date: "2026-08-24", label: "ASL D조" },
+  { date: "2026-08-25", label: "ASL E조" },
+  { date: "2026-08-26", label: "ASL F조" },
+  { date: "2026-08-31", label: "ASL 조지명식" },
+];
+
 /** 그랜드 파이널까지 남은 날. 서버 시각이 UTC라도 한국 날짜를 기준으로 센다. */
 export function jungmanDaysToFinal(): number {
   const todayKST = new Intl.DateTimeFormat("en-CA", {
