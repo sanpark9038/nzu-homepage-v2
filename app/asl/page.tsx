@@ -121,6 +121,25 @@ export default async function AslPage() {
                   )}
                 </dd>
               </div>
+              {/* 맵은 한 줄짜리 정보다 — 섹션을 따로 세우면 자리만 먹는다. 커버가 같이 담는다 */}
+              <div className="md:col-span-2">
+                <dt className={LABEL}>맵</dt>
+                <dd className="mt-1.5 flex flex-wrap gap-1.5">
+                  {ASL_MAPS.map((map) => (
+                    <span
+                      key={map.name}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(155,185,240,0.14)] bg-[rgba(11,15,26,0.55)] px-2.5 py-1 text-xs font-bold text-[#e8ebf2]"
+                    >
+                      {map.name}
+                      {map.fresh ? (
+                        <span className="rounded bg-[#d4a94a]/15 px-1 py-px text-[0.625rem] font-black text-[#d4a94a]">
+                          신규
+                        </span>
+                      ) : null}
+                    </span>
+                  ))}
+                </dd>
+              </div>
             </dl>
           </div>
         </section>
@@ -201,25 +220,6 @@ export default async function AslPage() {
           <p className="mt-2 text-[0.6875rem] text-[#7a8299] md:mt-3 md:text-xs">{ASL_ROUND_NOTE}</p>
         </section>
 
-        {/* ── 맵 ── */}
-        <p className="mb-2 mt-3 px-1 text-xs font-bold text-[#e8ebf2] md:mb-2.5 md:mt-4">맵</p>
-        <section className={`${PANEL} px-4 py-3 md:px-5 md:py-4`}>
-          <ul className="flex flex-wrap gap-1.5 md:gap-2">
-            {ASL_MAPS.map((map) => (
-              <li
-                key={map.name}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(155,185,240,0.14)] bg-[rgba(11,15,26,0.55)] px-3 py-1.5 text-[0.8125rem] font-bold text-[#e8ebf2]"
-              >
-                {map.name}
-                {map.fresh ? (
-                  <span className="rounded bg-[#d4a94a]/15 px-1 py-px text-[0.625rem] font-black text-[#d4a94a]">
-                    신규
-                  </span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </section>
       </main>
     </div>
   );
