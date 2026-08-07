@@ -871,6 +871,32 @@ test("소속은 그 선수가 가장 많이 뛴 팀", () => {
   assert.equal(tied.find((r) => r.name === "떠돌이").team, "다팀");
 });
 
+test("공개 페이지가 개인 순위를 경기 결과와 나란히 그린다", () => {
+  const page = readProjectFile("app/jungman/page.tsx");
+  assert.match(page, /buildJungmanPlayerRanks\(standings\?\.matches \?\? \[\]\)/);
+  assert.match(page, /<JungmanPlayerRanks ranks=\{playerRanks\} players=\{players\}/);
+  // 한 grid 안에 나란히 — 경기 결과가 왼쪽(넓게), 개인 순위가 오른쪽
+  assert.match(page, /md:grid-cols-\[minmax\(0,1\.4fr\)_minmax\(0,1fr\)\][\s\S]{0,400}<JungmanMatchResults[\s\S]{0,200}<JungmanPlayerRanks/);
+  // 자식이 가진 mt와 grid의 mt가 겹치면 두 칸의 윗선이 어긋난다
+  assert.match(page, /\[&>\*\]:mt-0/);
+
+  const source = readProjectFile("app/jungman/JungmanPlayerRanks.tsx");
+  // 서버에서 그린다 — 공개 화면에 클라이언트 번들을 늘리지 않는다
+  assert.doesNotMatch(source, /"use client"/);
+  // 홈 덱과의 차별점은 종족 배지다 — 선수 DB를 읽을 수 있는 화면이다
+  assert.match(source, /raceOfName\(players, rank\.name\)/);
+  assert.match(source, /<RaceLetterBadge race=\{race\} size="sm"/);
+  // 못 찾으면 배지 없이 이름만 (선수 DB가 비어도 멀쩡해야 한다)
+  assert.match(source, /race \? <RaceLetterBadge[\s\S]{0,60}: null/);
+  // TOP 10에서 자른다 — 열두 팀 전원을 늘어놓으면 곁칸이 아니라 벽이 된다
+  assert.match(source, /ranks\.slice\(0, 10\)/);
+  // 비면 아예 그리지 않는다 — 제목만 남은 빈 패널이 생기면 안 된다
+  assert.match(source, /if \(!ranks\.length\) return null/);
+  // 로고·팀 조회는 공용 함수에서만 온다
+  assert.match(source, /jungmanTeamByName\(rank\.team\)\?\.code/);
+  assert.match(source, /jungmanLogoPath\(code\)/);
+});
+
 // ── 진출 경우의 수 ────────────────────────────────────────────────────────
 const standingsOf = (teams, matches) =>
   parseJungmanStandings(

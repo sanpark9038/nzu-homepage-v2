@@ -5,6 +5,7 @@ import { buildJungmanFinalStandings, buildJungmanMarkers, JUNGMAN_TEAMS } from "
 import { jungmanLogoSrc } from "@/lib/jungman-logos";
 import {
   buildJungmanGroupTables,
+  buildJungmanPlayerRanks,
   buildJungmanScenarios,
   JUNGMAN_STANDINGS_KEY,
   type JungmanScenario,
@@ -19,6 +20,7 @@ import JungmanCalendar from "./JungmanCalendar";
 import JungmanCover from "./JungmanCover";
 import JungmanGroupTables from "./JungmanGroupTables";
 import JungmanMatchResults from "./JungmanMatchResults";
+import JungmanPlayerRanks from "./JungmanPlayerRanks";
 import JungmanResults from "./JungmanResults";
 import JungmanSchedule from "./JungmanSchedule";
 
@@ -57,6 +59,8 @@ export default async function JungmanPage() {
     : new Map<string, JungmanScenario[]>();
   const matches = sortJungmanMatches(standings?.matches ?? []);
   const upcoming = upcomingJungmanMatches(standings?.matches ?? []);
+  // 선수 전적은 세트에서 나온다 — 세트를 안 적은 경기만 있으면 빈 배열이다
+  const playerRanks = buildJungmanPlayerRanks(standings?.matches ?? []);
 
   // 투표는 끝났다 — 득표는 공지 확정치(코드 상수)에서만 나오고, 지도도 같은 순위표를 읽는다
   const voteStandings = buildJungmanFinalStandings();
@@ -101,8 +105,20 @@ export default async function JungmanPage() {
           </>
         ) : null}
 
-        {/* 경기가 없으면 섹션 자체를 그리지 않는다 — 조 편성만 있는 화면이 깨끗해야 한다 */}
-        {matches.length ? <JungmanMatchResults matches={matches} players={players} /> : null}
+        {/* 경기가 없으면 섹션 자체를 그리지 않는다 — 조 편성만 있는 화면이 깨끗해야 한다.
+            결과가 주인공이라 왼쪽을 넓게, 개인 순위가 곁에 선다. 폰에서는 세로로 쌓인다.
+            여백은 이 grid만 준다 — [&>*]:mt-0이 자식이 가진 mt를 눌러 이중 여백을 막는다 */}
+        {matches.length ? (
+          <div
+            className={`mt-3 grid grid-cols-1 gap-3 md:mt-4 md:gap-4 [&>*]:mt-0 ${
+              // 개인 순위가 없으면(세트를 안 적은 경기뿐) 결과가 전체 폭을 쓴다 — 빈 열을 남기지 않는다
+              playerRanks.length ? "md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]" : ""
+            }`}
+          >
+            <JungmanMatchResults matches={matches} players={players} />
+            <JungmanPlayerRanks ranks={playerRanks} players={players} />
+          </div>
+        ) : null}
 
         {/* 끝난 사건이라 접어둔다 — 기본 마커는 브라우저마다 달라서 직접 그린 화살표를 쓴다 */}
         <details className={`${PANEL} group mt-3 md:mt-4`}>
