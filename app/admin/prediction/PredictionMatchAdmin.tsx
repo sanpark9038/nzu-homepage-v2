@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, Copy, Download, EyeOff, Plus, Save, Search, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
 import { TierBadge } from "@/components/ui/nzu-badges";
 import { getAdminWriteDisabledMessage } from "@/lib/admin-runtime";
@@ -354,12 +354,14 @@ function PlayerSearchInput({
   player,
   players,
   onSelect,
+  trailing,
 }: {
   id: string;
   label: string;
   player: PlayerOption | null;
   players: PlayerOption[];
   onSelect: (player: PlayerOption | null) => void;
+  trailing?: ReactNode;
 }) {
   const playerKey = player?.id || "";
   const [queryState, setQueryState] = useState({ playerKey, query: player?.name || "" });
@@ -409,8 +411,18 @@ function PlayerSearchInput({
   };
 
   return (
-    <div className="grid grid-cols-[74px_minmax(0,1fr)_128px_58px] items-center gap-2 rounded-lg border border-white/8 bg-black/24 p-2 max-md:grid-cols-1">
-      <strong className="text-center text-sm font-black text-white/78">{label}</strong>
+    <div
+      className={cn(
+        "grid items-center gap-2 rounded-lg border border-white/8 bg-black/24 p-2 max-md:grid-cols-1",
+        // 추가 버튼이 붙으면 고정 칸을 줄인다 — 안 그러면 이름 입력이 한 글자로 쥐어짜인다
+        trailing
+          ? "grid-cols-[52px_minmax(0,1fr)_96px_52px_56px]"
+          : "grid-cols-[74px_minmax(0,1fr)_128px_58px]"
+      )}
+    >
+      <strong className={cn("text-center font-black text-white/78", trailing ? "text-xs" : "text-sm")}>
+        {label}
+      </strong>
       <div className="relative min-w-0">
         <input
           value={query}
@@ -502,6 +514,7 @@ function PlayerSearchInput({
       >
         비우기
       </button>
+      {trailing}
     </div>
   );
 }
@@ -771,6 +784,34 @@ export function PredictionMatchAdmin({
       ...patch,
     };
     updateSelected({ entry_matchups: rows });
+  };
+
+  // 명단 줄 배지용 — 이 선수가 들어간 첫 매치 인덱스(없으면 -1). 같은 선수가 여러 매치에 있으면 첫 매치만 본다.
+  const findMatchupIndexOfPlayer = (side: "a" | "b", playerId: string) =>
+    normalizeEntryMatchups(selectedMatch?.entry_matchups).findIndex(
+      (row) => (side === "a" ? row.player_a_id : row.player_b_id) === playerId
+    );
+
+  // 명단에서 "추가"를 누르면 그 팀 쪽 슬롯이 빈 첫 매치에 넣는다. 빈 슬롯이 없으면 매치를 새로 만든다.
+  const assignPlayerToMatchup = (side: "a" | "b", playerId: string) => {
+    if (!selectedMatch || !playerId) return;
+    const rows = normalizeEntryMatchups(selectedMatch.entry_matchups);
+    const emptyIndex = rows.findIndex((row) => !normalizeText(side === "a" ? row.player_a_id : row.player_b_id));
+    if (emptyIndex >= 0) {
+      updateMatchup(emptyIndex, side === "a" ? { player_a_id: playerId } : { player_b_id: playerId });
+      return;
+    }
+    updateSelected({
+      entry_matchups: [
+        ...rows,
+        {
+          id: `matchup-${rows.length + 1}`,
+          label: `매치${rows.length + 1}`,
+          player_a_id: side === "a" ? playerId : "",
+          player_b_id: side === "b" ? playerId : "",
+        },
+      ],
+    });
   };
 
   const removeMatchup = (matchupIndex: number) => {
@@ -1116,16 +1157,47 @@ export function PredictionMatchAdmin({
         ) : null}
 
         <div className="space-y-2.5">
-          {rows.map((playerId, playerIndex) => (
-            <PlayerSearchInput
-              key={`${selectedMatch.id}-${side}-${playerIndex}-${playerId || "empty"}`}
-              id={`${selectedMatch.id}-${side}-${playerIndex}`}
-              label={selectedMatchType === "individual" ? (isA ? "선수 A" : "선수 B") : `선수 ${playerIndex + 1}`}
-              player={getPlayer(playerMap, playerId)}
-              players={players}
-              onSelect={(player) => updatePlayerSlot(side, playerIndex, player)}
-            />
-          ))}
+          {rows.map((playerId, playerIndex) => {
+            // 팀전에서만: 아직 안 들어간 선수는 "추가", 이미 들어간 선수는 "매치N"(누르면 그 슬롯에서 빠짐).
+            const assignedIndex =
+              selectedMatchType === "team" && playerId ? findMatchupIndexOfPlayer(side, playerId) : -1;
+            const canAssign = selectedMatchType === "team" && Boolean(playerId);
+            return (
+              <PlayerSearchInput
+                key={`${selectedMatch.id}-${side}-${playerIndex}-${playerId || "empty"}`}
+                id={`${selectedMatch.id}-${side}-${playerIndex}`}
+                label={selectedMatchType === "individual" ? (isA ? "선수 A" : "선수 B") : `선수 ${playerIndex + 1}`}
+                player={getPlayer(playerMap, playerId)}
+                players={players}
+                onSelect={(player) => updatePlayerSlot(side, playerIndex, player)}
+                trailing={
+                  !canAssign ? undefined : assignedIndex >= 0 ? (
+                    <button
+                      type="button"
+                      disabled={readOnly}
+                      title="누르면 이 매치에서 뺍니다"
+                      onClick={() =>
+                        updateMatchup(assignedIndex, side === "a" ? { player_a_id: "" } : { player_b_id: "" })
+                      }
+                      className="h-10 rounded-lg border border-nzu-green/40 bg-nzu-green/15 text-xs font-black text-nzu-green transition hover:bg-nzu-green/25 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      매치{assignedIndex + 1}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={readOnly}
+                      title="빈 매치업 슬롯에 넣습니다"
+                      onClick={() => assignPlayerToMatchup(side, playerId)}
+                      className="h-10 rounded-lg border border-white/10 bg-white/[0.035] text-xs font-black text-white/55 transition hover:border-nzu-green/35 hover:text-nzu-green disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      추가
+                    </button>
+                  )
+                }
+              />
+            );
+          })}
         </div>
 
         {selectedMatchType === "team" ? (

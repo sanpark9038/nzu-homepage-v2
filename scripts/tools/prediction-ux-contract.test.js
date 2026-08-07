@@ -39,6 +39,29 @@ test("prediction admin title input preserves editing text until save", () => {
   assert.doesNotMatch(source, /title:\s*normalizeText\(match\.title\)\s*\|\|/);
 });
 
+test("prediction admin roster rows can push players into entry matchups", () => {
+  const source = readProjectFile("app/admin/prediction/PredictionMatchAdmin.tsx");
+
+  // 명단 줄에 추가 버튼 / 매치N 배지 분기가 있다.
+  assert.match(source, /const assignedIndex =/);
+  assert.match(source, /assignedIndex >= 0 \? \(/);
+  assert.match(source, /매치\{assignedIndex \+ 1\}/);
+  assert.match(source, /onClick=\{\(\) => assignPlayerToMatchup\(side, playerId\)\}/);
+
+  // 팀전일 때만 렌더된다.
+  assert.match(source, /const canAssign = selectedMatchType === "team" && Boolean\(playerId\)/);
+  assert.match(source, /trailing=\{\s*!canAssign \? undefined :/);
+
+  // 첫 빈 슬롯을 찾아 채우고, 없으면 매치를 새로 만든다.
+  assert.match(source, /const assignPlayerToMatchup = \(side: "a" \| "b", playerId: string\) => \{/);
+  assert.match(source, /const emptyIndex = rows\.findIndex\(/);
+  assert.match(source, /if \(emptyIndex >= 0\) \{[\s\S]*?updateMatchup\(emptyIndex,/);
+  assert.match(source, /entry_matchups: \[\s*\.\.\.rows,/);
+
+  // 배지는 첫 매치만 본다(같은 선수 중복 허용은 기존 동작 그대로).
+  assert.match(source, /const findMatchupIndexOfPlayer = \(side: "a" \| "b", playerId: string\) =>/);
+});
+
 test("public prediction cards emphasize start, deadline, and total votes", () => {
   const source = readProjectFile("components/prediction/TournamentPredictionClient.tsx");
 
