@@ -39,6 +39,24 @@ const { ASL_GROUPS, ASL_MATCH_TIME, ASL_SEASON } = loadModule("lib/asl.ts", (id)
 const CLOSE_TIME = "18:30";
 
 /**
+ * 방송 D-7 이내만 등록한다 — 3주치를 한꺼번에 열면 마감 임박 경기가 먼 경기들 사이에 묻히고,
+ * 먼 경기 예측은 정보 없이 찍기라 재미도 없다. 매주 한 번 다시 돌리면 그 주 방송분이 열린다.
+ */
+const OPEN_WINDOW_DAYS = 7;
+
+const TODAY_KST = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+}).format(new Date());
+
+/** 방송일까지 남은 날 (한국 날짜 기준) */
+function daysUntil(date) {
+  return Math.round((Date.parse(date) - Date.parse(TODAY_KST)) / 86_400_000);
+}
+
+/**
  * 명단 순서가 대진이다: players[0] vs players[1] = 1경기, players[2] vs players[3] = 2경기.
  * display_order는 조 순서×10 + 경기번호 (A조1=11 … F조2=62).
  */
@@ -105,8 +123,16 @@ const rows = buildRows(maxOrder);
 console.log(`${ASL_SEASON} 24강 승부예측 — 등록 대상 ${rows.length}건 (기존 ${existing.length}건)\n`);
 console.log("  제목                            대진                마감(KST)         순서  상태");
 console.log("  " + "-".repeat(88));
+/** 지난 경기는 등록하지 않는다 — 마감이 이미 지난 예측은 열 이유가 없다 */
+function rowState(row) {
+  if (takenTitles.has(row.title)) return "이미 있음";
+  const days = daysUntil(row.close_at.slice(0, 10));
+  if (days < 0) return "지남";
+  if (days > OPEN_WINDOW_DAYS) return `아직 멀음(D-${days})`;
+  return "신규";
+}
+
 for (const row of rows) {
-  const dup = takenTitles.has(row.title);
   console.log(
     "  " +
       [
@@ -114,12 +140,12 @@ for (const row of rows) {
         `${row.team_a_name} vs ${row.team_b_name}`.padEnd(18),
         row.close_at.slice(0, 16).replace("T", " ").padEnd(17),
         String(row.display_order).padEnd(5),
-        dup ? "이미 있음" : "신규",
+        rowState(row),
       ].join(" ")
   );
 }
 
-const fresh = rows.filter((row) => !takenTitles.has(row.title));
+const fresh = rows.filter((row) => rowState(row) === "신규");
 
 if (!apply) {
   console.log(`\n드라이런 — --apply를 붙여야 실제 등록됩니다. (신규 ${fresh.length}건)`);
