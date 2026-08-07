@@ -39,8 +39,8 @@ const { JUNGMAN_MATCH_TIME } = jungman;
 const { JUNGMAN_STANDINGS_KEY, parseJungmanStandings, upcomingJungmanMatches } =
   loadModule("lib/jungman-standings.ts");
 
-/** 당일 오후 6시 반 마감 — 방송(19:00) 30분 전 */
-const CLOSE_TIME = "18:30";
+/** 당일 오후 6시 마감 — 방송(19:00) 1시간 전 (사용자 지정) */
+const CLOSE_TIME = "18:00";
 
 /**
  * 방송 D-7 이내만 등록한다 — 3주치를 한꺼번에 열면 마감 임박 경기가 먼 경기들 사이에 묻히고,
@@ -155,6 +155,17 @@ function supabase() {
 }
 
 const apply = process.argv.includes("--apply");
+
+/**
+ * --until YYYY-MM-DD: 그 날짜(포함)까지의 경기만 등록한다.
+ * D-7 창 안이라도 더 좁게 자르고 싶을 때 쓴다 — 없으면 창 전체.
+ */
+const untilIndex = process.argv.indexOf("--until");
+const until = untilIndex >= 0 ? process.argv[untilIndex + 1] : null;
+if (until && !/^\d{4}-\d{2}-\d{2}$/.test(until)) {
+  console.error(`--until 값이 날짜가 아니다: ${until} (예: --until 2026-08-09)`);
+  process.exit(1);
+}
 const db = supabase();
 
 // 기존 경기를 읽어 (1) 재등록 방지(제목 + 날짜·팀이름쌍) (2) display_order 충돌 방지
@@ -202,9 +213,11 @@ function rowState(row) {
   if (takenTitles.has(row.title)) return "이미 있음";
   // 제목이 우리 형식과 달라도(관리자가 손으로 만든 예측) 같은 날 같은 대진이면 이미 있는 것이다
   if (takenPairs.has(pairKey(row.start_at, row.team_a_name, row.team_b_name))) return "이미 있음";
-  const days = daysUntil(row.close_at.slice(0, 10));
+  const day = row.close_at.slice(0, 10);
+  const days = daysUntil(day);
   if (days < 0) return "지남";
   if (days > OPEN_WINDOW_DAYS) return `아직 멀음(D-${days})`;
+  if (until && day > until) return "보류(--until 밖)";
   return "신규";
 }
 
@@ -232,7 +245,7 @@ console.log(
     (e) => e.state === "신규" && e.cup === "중만컵"
   )}) · 이미 있음 ${count((e) => e.state === "이미 있음")} · 아직 멀음 ${count((e) =>
     e.state.startsWith("아직 멀음")
-  )} · 지남 ${count((e) => e.state === "지남")}`
+  )} · 보류 ${count((e) => e.state.startsWith("보류"))} · 지남 ${count((e) => e.state === "지남")}`
 );
 
 if (!apply) {
