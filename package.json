@@ -157,6 +157,7 @@
     "test:hero-mode": "node scripts/tools/hero-mode.test.js",
     "test:jungman": "node scripts/tools/jungman-contract.test.js",
     "test:jungman-standings": "node scripts/tools/jungman-standings.test.js",
+    "test:asl": "node scripts/tools/asl.test.js",
     "test:rankings-page-performance-contract": "node scripts/tools/rankings-page-performance-contract.test.js",
     "test:tier-grid-layout": "node scripts/tools/tier-grid-layout-contract.test.js",
     "test:tier-card-ui": "node scripts/tools/tier-card-ui-contract.test.js",
