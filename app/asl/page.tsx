@@ -11,6 +11,7 @@ import {
   ASL_OPENING_DATE,
   ASL_PRIZE_DETAIL,
   ASL_PRIZE_MAIN,
+  ASL_RO24_STAGES,
   ASL_ROUND_NOTE,
   ASL_ROUNDS,
   ASL_SEASON,
@@ -114,25 +115,56 @@ export default async function AslPage() {
             {/* 이 페이지에서 가장 자주 바뀌는 정보다 — dl 한 칸에 접어 넣지 않고 카드로 세운다 */}
             {next ? (
               <div className="min-w-0 rounded-[1rem] border border-[#fb923c] bg-[rgba(11,15,26,0.55)] px-3 py-3 md:px-5 md:py-4">
-                {/* D-day 칩은 위 h1 옆에 이미 있다 — 여기서 또 그리지 않는다 */}
-                <p className={LABEL}>다음 방송</p>
-                <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 md:mt-1.5">
-                  <span className="text-base font-black tabular-nums text-[#e8ebf2] md:text-2xl">
-                    {formatAslDate(next.date)} {ASL_MATCH_TIME}
-                  </span>
-                  <span className="text-xs font-black text-[#fb923c] md:text-sm">{next.label}</span>
-                </p>
-                {nextGroup ? (
-                  <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 md:mt-3">
-                    {nextGroup.players.map((player) => (
-                      <PlayerLine key={player.name} player={player} />
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-1 text-[0.6875rem] text-[#7a8299] md:text-xs">
-                    24강을 통과한 12명과 시드 4명이 16강 조를 짠다
-                  </p>
-                )}
+                {/* 넓은 화면은 2열 — 왼쪽이 주인공(날짜·선수), 오른쪽은 보조인 24강 방식 요약이다.
+                    폰에서는 요약이 선수 아래로 쌓인다 */}
+                <div className="md:grid md:grid-cols-[1fr_auto] md:items-start md:gap-6">
+                  <div className="min-w-0">
+                    {/* D-day 칩은 위 h1 옆에 이미 있다 — 여기서 또 그리지 않는다 */}
+                    <p className={LABEL}>다음 방송</p>
+                    <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 md:mt-1.5">
+                      <span className="text-base font-black tabular-nums text-[#e8ebf2] md:text-2xl">
+                        {formatAslDate(next.date)} {ASL_MATCH_TIME}
+                      </span>
+                      <span className="text-xs font-black text-[#fb923c] md:text-sm">
+                        {next.label}
+                      </span>
+                    </p>
+                    {nextGroup ? (
+                      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 md:mt-3">
+                        {nextGroup.players.map((player) => (
+                          <PlayerLine key={player.name} player={player} />
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-1 text-[0.6875rem] text-[#7a8299] md:text-xs">
+                        24강을 통과한 12명과 시드 4명이 16강 조를 짠다
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 24강 방송일 때만. 조지명식은 경기가 아니라 방식 요약이 붙을 자리가 아니다 */}
+                  {nextGroup ? (
+                    <div className="mt-3 border-t border-[rgba(155,185,240,0.14)] pt-3 md:mt-0 md:border-t-0 md:pt-0">
+                      <p className={LABEL}>
+                        24강 방식
+                        <span className="ml-2 text-[0.625rem] font-normal normal-case tracking-normal text-[#7a8299]">
+                          전 경기 단판 · 2승 진출 2패 탈락
+                        </span>
+                      </p>
+                      <dl className="mt-1.5 grid gap-1">
+                        {ASL_RO24_STAGES.map((item) => (
+                          <div key={item.stage} className="flex flex-wrap items-baseline gap-x-2">
+                            <dt className="text-xs font-black text-[#fb923c]">{item.stage}</dt>
+                            <dd className="text-[0.6875rem] text-[#7a8299]">
+                              {item.ban ? "1개씩 밴 → " : null}
+                              {item.maps.join(" · ")}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <p className="text-sm text-[#7a8299]">조지명식 이후 일정 미공개</p>

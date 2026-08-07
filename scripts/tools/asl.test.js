@@ -29,6 +29,7 @@ const {
   ASL_GROUPS,
   ASL_MAPS,
   ASL_OPENING_DATE,
+  ASL_RO24_STAGES,
   ASL_ROUNDS,
   ASL_SEEDS,
   ASL_STATION_URL,
@@ -186,6 +187,31 @@ test("다음 방송은 커버의 카드다 — dl 한 칸이 아니다", () => {
   assert.match(page, /nextGroup[\s\S]{0,200}PlayerLine/);
   // 일정이 끝나면 카드 대신 회색 한 줄
   assert.match(page, /조지명식 이후 일정 미공개/);
+});
+
+test("24강 맵 배정은 3단계고 맵 이름이 ASL_MAPS 안에 전부 있다", () => {
+  assert.deepEqual(
+    ASL_RO24_STAGES.map((item) => item.stage),
+    ["1·2경기", "승자전·패자전", "최종전"]
+  );
+  assert.deepEqual(
+    ASL_RO24_STAGES.map((item) => item.ban),
+    [false, true, true]
+  );
+
+  // 맵 이름 오타는 화면에서 멀쩡해 보이고 사실만 틀린다 — ASL_MAPS 한 벌과 대조한다
+  const known = new Set(ASL_MAPS.map((map) => map.name));
+  const maps = ASL_RO24_STAGES.flatMap((item) => item.maps);
+  assert.equal(maps.length, 7);
+  for (const name of maps) assert.ok(known.has(name), `map=${name}`);
+});
+
+test("다음 방송 카드는 24강일 때만 방식 요약을 곁들인다", () => {
+  const page = readProjectFile("app/asl/page.tsx");
+  // 조지명식(nextGroup null)에는 24강 방식이 붙으면 안 된다 — 조건 안에 있어야 한다
+  assert.match(page, /\{nextGroup \? \([\s\S]{0,400}24강 방식[\s\S]{0,600}ASL_RO24_STAGES\.map/);
+  // 단계·맵은 lib 한 벌에서만 온다 — page.tsx에 또 적으면 조용히 어긋난다
+  assert.doesNotMatch(page, /녹아웃|애티튜드|옥타곤/);
 });
 
 test("/asl은 서버 컴포넌트고 달력 때문에 KV를 읽는다", () => {

@@ -123,6 +123,13 @@ export const ASL_ROUNDS: { round: string; format: string }[] = [
 
 export const ASL_ROUND_NOTE = "16강 4일차에 8강 조추첨식 진행";
 
+/** 24강 듀얼 진행 순서와 맵 배정. 승자전·패자전/최종전은 양 선수가 1개씩 밴 후 남은 맵. */
+export const ASL_RO24_STAGES: { stage: string; ban: boolean; maps: string[] }[] = [
+  { stage: "1·2경기", ban: false, maps: ["녹아웃"] },
+  { stage: "승자전·패자전", ban: true, maps: ["애티튜드SE", "컬러리스 페이트", "오디세이RE"] },
+  { stage: "최종전", ban: true, maps: ["옥타곤SE", "아이올로스", "백룸"] },
+];
+
 /** 사용 맵 7개. fresh = 이번 시즌 신규 */
 export const ASL_MAPS: { name: string; fresh: boolean }[] = [
   { name: "녹아웃", fresh: false },
