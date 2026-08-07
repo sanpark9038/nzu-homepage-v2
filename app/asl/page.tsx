@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import JungmanCalendar from "@/app/jungman/JungmanCalendar";
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
@@ -140,6 +141,14 @@ export default async function AslPage() {
                         24강을 통과한 12명과 시드 4명이 16강 조를 짠다
                       </p>
                     )}
+                    {/* 보는 김에 찍고 가게 — 승부예측으로 보내는 문. 색은 네비의 승부예측 앰버를 따른다 */}
+                    <Link
+                      href="/prediction"
+                      prefetch={false}
+                      className="mt-3 inline-flex items-center gap-1 rounded-full border border-amber-400/40 px-3 py-1 text-[0.6875rem] font-bold text-amber-300 transition-colors hover:bg-amber-400/10 md:mt-4 md:text-xs"
+                    >
+                      승부예측 참여하기 →
+                    </Link>
                   </div>
 
                   {/* 24강 방송일 때만. 조지명식은 경기가 아니라 방식 요약이 붙을 자리가 아니다 */}
@@ -147,15 +156,15 @@ export default async function AslPage() {
                     <div className="mt-3 border-t border-[rgba(155,185,240,0.14)] pt-3 md:mt-0 md:border-t-0 md:pt-0">
                       <p className={LABEL}>
                         24강 방식
-                        <span className="ml-2 text-[0.625rem] font-normal normal-case tracking-normal text-[#7a8299]">
+                        <span className="ml-2 text-xs font-normal normal-case tracking-normal text-[#7a8299]">
                           전 경기 단판 · 2승 진출 2패 탈락
                         </span>
                       </p>
-                      <dl className="mt-1.5 grid gap-1">
+                      <dl className="mt-1.5 grid gap-1.5">
                         {ASL_RO24_STAGES.map((item) => (
                           <div key={item.stage} className="flex flex-wrap items-baseline gap-x-2">
-                            <dt className="text-xs font-black text-[#fb923c]">{item.stage}</dt>
-                            <dd className="text-[0.6875rem] text-[#7a8299]">
+                            <dt className="text-sm font-black text-[#fb923c]">{item.stage}</dt>
+                            <dd className="text-xs text-[#7a8299] md:text-[0.8125rem]">
                               {item.ban ? "1개씩 밴 → " : null}
                               {item.maps.join(" · ")}
                             </dd>
