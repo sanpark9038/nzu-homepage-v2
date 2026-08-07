@@ -1,6 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
 
+import { PredictionCta } from "@/components/prediction/PredictionCta";
 // 대회 정보와 D-day 계산은 lib/jungman.ts 한 곳에 산다 — 홈 커버 덱이 같은 값을 그린다
 import {
   JUNGMAN_FINAL_NOTE,
@@ -159,12 +159,7 @@ export default function JungmanCover({ upcoming = [] }: { upcoming?: JungmanStan
                   <TeamSide name={next.away} logoFirst={false} />
                 </div>
                 {/* 폰에서는 팀명 아래 줄로 내려간다 — 같은 줄에 두면 팀 이름이 밀린다 */}
-                <Link
-                  href="/prediction"
-                  className="inline-flex min-h-8 shrink-0 items-center gap-1 self-start rounded-full bg-nzu-green px-3 text-[0.6875rem] font-black text-black md:ml-auto md:text-xs"
-                >
-                  승부예측 <span aria-hidden>→</span>
-                </Link>
+                <PredictionCta className="md:ml-auto" />
               </div>
             </div>
 

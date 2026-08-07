@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import JungmanCalendar from "@/app/jungman/JungmanCalendar";
+import { PredictionCta } from "@/components/prediction/PredictionCta";
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
 import {
   ASL_DRAW_DATE,
@@ -144,13 +144,7 @@ export default async function AslPage() {
                           24강을 통과한 12명과 시드 4명이 16강 조를 짠다
                         </p>
                       )}
-                      <Link
-                        href="/prediction"
-                        prefetch={false}
-                        className="inline-flex min-h-8 shrink-0 items-center gap-1 self-start rounded-full bg-nzu-green px-3 text-[0.6875rem] font-black text-black md:ml-auto md:self-center md:text-xs"
-                      >
-                        승부예측 <span aria-hidden>→</span>
-                      </Link>
+                      <PredictionCta className="md:ml-auto md:self-center" />
                     </div>
                   </div>
 

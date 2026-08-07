@@ -226,8 +226,8 @@ test("/asl은 서버 컴포넌트고 달력 때문에 KV를 읽는다", () => {
   assert.match(page, /alternates: \{ canonical: "\/asl" \}/);
   // 종족 배지는 사이트 공용 컴포넌트를 쓴다 — 색을 두 벌로 두면 /jungman과 어긋난다
   assert.match(page, /RaceLetterBadge/);
-  // 다음 방송 카드에서 승부예측으로 보내는 문 — 내부 이동이라 Link를 쓴다
-  assert.match(page, /href="\/prediction"/);
+  // 다음 방송 카드에서 승부예측으로 보내는 문 — /jungman 커버와 같은 공용 부품이다
+  assert.match(page, /<PredictionCta/);
 });
 
 test("/asl은 커버 바로 아래에 달력을 그린다 (넓은 화면만)", () => {

@@ -1257,9 +1257,12 @@ test("커버가 공식 방송국과 승부예측으로 나간다", () => {
   assert.match(cover, /href="https:\/\/www\.sooplive\.com\/station\/ititit"/);
   assert.match(cover, /target="_blank"/);
   assert.match(cover, /rel="noopener/);
-  // 승부예측은 사이트 안 이동이다 — <a>로 나가면 페이지를 통째로 다시 받는다
-  assert.match(cover, /import Link from "next\/link"/);
-  assert.match(cover, /<Link\s+href="\/prediction"/);
+  // 승부예측 버튼은 공용 부품이다 — /asl 커버와 같은 옷. 스타일 두 벌 금지
+  assert.match(cover, /<PredictionCta/);
+  const cta = readProjectFile("components/prediction/PredictionCta.tsx");
+  // 사이트 안 이동이다 — <a>로 나가면 페이지를 통째로 다시 받는다
+  assert.match(cta, /import Link from "next\/link"/);
+  assert.match(cta, /<Link\s+href="\/prediction"/);
 });
 
 test("커버의 다음 두 경기가 시각까지 그리고 그 칸은 안 잘린다", () => {
