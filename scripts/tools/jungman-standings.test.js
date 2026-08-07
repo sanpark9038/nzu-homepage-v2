@@ -679,6 +679,40 @@ test("달력이 ASL을 곁들이되 새 월 탭을 만들지 않는다", () => {
   assert.match(source, /event\.quiet \? "" : "bg-\[rgba\(155,185,240,0\.06\)\]"/);
 });
 
+test("달력 카드는 라벨과 시각을 한 줄에 쓴다", () => {
+  const source = readProjectFile("app/jungman/JungmanCalendar.tsx");
+  // 라벨 <p> 안에 시각이 들어 있어야 한 줄이다 — 시각용 <p>를 따로 두면 카드가 다시 세로로 늘어난다
+  assert.match(source, /\{event\.label\}\s*\{!decided && event\.time \?[\s\S]{0,200}\{event\.time\}/);
+  // 시각만 있는 <p>가 남아 있으면 줄이 갈라진 것이다
+  assert.doesNotMatch(source, /<p[^>]*>\{event\.score \?\? event\.time\}<\/p>/);
+  assert.doesNotMatch(source, /event\.score/);
+});
+
+test("끝난 경기는 시각 대신 팀별 세트 점수를 보여준다", () => {
+  const source = readProjectFile("app/jungman/JungmanCalendar.tsx");
+  // 점수는 팀별로 따로 온다 — "5 : 3" 한 덩어리로는 어느 줄이 어느 팀인지 못 붙인다
+  assert.match(source, /homeSets\?: number;\s*awaySets\?: number;/);
+  assert.match(source, /match\.decided \? \{ homeSets: match\.homeSets, awaySets: match\.awaySets \}/);
+  // decided일 때만 시각을 지운다
+  assert.match(
+    source,
+    /const decided = event\.homeSets !== undefined && event\.awaySets !== undefined/
+  );
+  // 각 팀 줄 오른쪽 끝에 그 팀의 세트 수 — 자리 흔들림을 막으려 tabular-nums
+  assert.match(source, /<TeamRow\s+name=\{event\.home\}\s+sets=\{event\.homeSets\}/);
+  assert.match(source, /<TeamRow\s+name=\{event\.away\}\s+sets=\{event\.awaySets\}/);
+  assert.match(source, /ml-auto[^`"]*tabular-nums/);
+});
+
+test("끝난 경기는 이긴 팀이 밝고 진 팀이 흐리다", () => {
+  const source = readProjectFile("app/jungman/JungmanCalendar.tsx");
+  // 승패는 세트 수 비교로만 정한다 — 둘 다 밝으면 결과를 읽으려 숫자를 다시 세야 한다
+  assert.match(source, /lost=\{decided && \(event\.homeSets as number\) < \(event\.awaySets as number\)\}/);
+  assert.match(source, /lost=\{decided && \(event\.awaySets as number\) < \(event\.homeSets as number\)\}/);
+  // 진 줄은 회색, 이긴 줄은 밝은 흰색 (팔레트 두 색)
+  assert.match(source, /const tone = lost \? "text-\[#7a8299\]" : "text-\[#e8ebf2\]"/);
+});
+
 test("넓은 화면은 달력, 폰은 목록 — 갈리는 곳은 CSS뿐이다", () => {
   const page = readProjectFile("app/jungman/page.tsx");
   assert.match(page, /className="hidden md:block"[\s\S]{0,120}<JungmanCalendar/);

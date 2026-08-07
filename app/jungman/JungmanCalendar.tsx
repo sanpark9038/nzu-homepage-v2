@@ -73,8 +73,9 @@ type CalendarEvent = {
   time: string | null;
   home?: string;
   away?: string;
-  /** 결과가 들어온 경기만 */
-  score?: string;
+  /** 결과가 들어온 경기만 — 둘 다 있으면 끝난 경기다 */
+  homeSets?: number;
+  awaySets?: number;
   /** 남의 리그(ASL) — 이 날 왜 비는지의 설명이라 카드 배경 없이 곁들인다 */
   quiet?: boolean;
 };
@@ -106,7 +107,7 @@ function buildGroupEvents(matches: JungmanStandingsMatch[]): CalendarEvent[] {
         time: JUNGMAN_MATCH_TIME,
         home: match.home,
         away: match.away,
-        ...(match.decided ? { score: `${match.homeSets} : ${match.awaySets}` } : {}),
+        ...(match.decided ? { homeSets: match.homeSets, awaySets: match.awaySets } : {}),
       };
     });
 }
@@ -135,9 +136,13 @@ function weekCells(today: string): string[] {
   return Array.from({ length: 7 }, (_, index) => SEOUL_YMD.format(sunday + index * 86_400_000));
 }
 
-/** 못 찾는 팀 이름(오타·외부팀)은 로고 없이 이름만 */
-function TeamRow({ name }: { name: string }) {
+/**
+ * 못 찾는 팀 이름(오타·외부팀)은 로고 없이 이름만.
+ * sets가 있으면 끝난 경기다 — 세트 수를 줄 오른쪽 끝에 붙이고, 진 팀은 줄 통째로 흐리게 한다.
+ */
+function TeamRow({ name, sets, lost }: { name: string; sets?: number; lost?: boolean }) {
   const code = jungmanTeamByName(name)?.code;
+  const tone = lost ? "text-[#7a8299]" : "text-[#e8ebf2]";
   return (
     <span className="flex min-w-0 items-center gap-1">
       {code ? (
@@ -146,31 +151,44 @@ function TeamRow({ name }: { name: string }) {
           alt=""
           width={24}
           height={24}
-          className="h-4 w-4 shrink-0 object-contain"
+          className={`h-4 w-4 shrink-0 object-contain ${lost ? "opacity-50" : ""}`}
         />
       ) : null}
-      <span className="truncate text-[0.6875rem] font-bold text-[#e8ebf2]">{name}</span>
+      <span className={`truncate text-[0.6875rem] font-bold ${tone}`}>{name}</span>
+      {sets === undefined ? null : (
+        <span className={`ml-auto shrink-0 text-[0.6875rem] font-black tabular-nums ${tone}`}>{sets}</span>
+      )}
     </span>
   );
 }
 
 function EventCard({ event }: { event: CalendarEvent }) {
+  // 끝난 경기는 시각을 지운다 — 이미 끝난 경기에 19:00은 정보가 아니다. 점수가 그 자리를 대신한다
+  const decided = event.homeSets !== undefined && event.awaySets !== undefined;
   return (
     <div
       className={`rounded-md border-l-2 px-1.5 py-1 ${event.quiet ? "" : "bg-[rgba(155,185,240,0.06)]"}`}
       style={{ borderColor: event.color }}
     >
+      {/* 라벨과 시각은 한 줄 — 줄을 나누면 카드 절반이 여백이 된다. 조 색은 라벨에만 */}
       <p className="truncate text-[0.625rem] font-black" style={{ color: event.color }}>
         {event.label}
+        {!decided && event.time ? (
+          <span className="font-bold tabular-nums text-[#7a8299]"> · {event.time}</span>
+        ) : null}
       </p>
-      {/* 끝난 경기는 시각 대신 점수 — 지난 칸에서도 이 숫자는 살아 있어야 한다 */}
-      {event.score || event.time ? (
-        <p className="text-[0.625rem] font-bold tabular-nums text-[#7a8299]">{event.score ?? event.time}</p>
-      ) : null}
       {event.home && event.away ? (
         <div className="mt-0.5 flex flex-col gap-0.5">
-          <TeamRow name={event.home} />
-          <TeamRow name={event.away} />
+          <TeamRow
+            name={event.home}
+            sets={event.homeSets}
+            lost={decided && (event.homeSets as number) < (event.awaySets as number)}
+          />
+          <TeamRow
+            name={event.away}
+            sets={event.awaySets}
+            lost={decided && (event.awaySets as number) < (event.homeSets as number)}
+          />
         </div>
       ) : null}
     </div>
