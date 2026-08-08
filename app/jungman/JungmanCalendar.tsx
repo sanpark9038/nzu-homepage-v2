@@ -81,10 +81,15 @@ type CalendarEvent = {
 };
 
 /** 경기 번호는 저장 데이터에 없다 — 같은 조를 날짜순으로 세어 매긴다 */
+/** 조가 아닌 라운드 이름 — match.group에 이 값이 들어 있으면 토너먼트 경기다 */
+const TOURNAMENT_ROUNDS = new Set<string>(JUNGMAN_TOURNAMENT.map((round) => round.round));
+
 function buildGroupEvents(matches: JungmanStandingsMatch[]): CalendarEvent[] {
   const byGroup = new Map<string, JungmanStandingsMatch[]>();
   for (const match of matches) {
     if (!match.date) continue;
+    // 토너먼트 경기는 아래 금색 카드가 맡는다 — 여기서도 만들면 같은 날짜에 카드가 두 장 뜼다
+    if (TOURNAMENT_ROUNDS.has(match.group)) continue;
     const list = byGroup.get(match.group);
     if (list) list.push(match);
     else byGroup.set(match.group, [match]);
@@ -224,12 +229,18 @@ export default function JungmanCalendar({
 
   const { events, months } = useMemo(() => {
     const group = buildGroupEvents(matches);
-    const tournament: CalendarEvent[] = JUNGMAN_TOURNAMENT.map((round) => ({
-      date: round.date,
-      label: round.label,
-      color: GOLD,
-      time: round.round === "결승" ? null : JUNGMAN_MATCH_TIME,
-    }));
+    // 대진이 정해지면 그 경기를 금색 카드가 흥수한다(group + date가 유일하다)
+    const tournament: CalendarEvent[] = JUNGMAN_TOURNAMENT.map((round) => {
+      const played = matches.find((m) => m.group === round.round && m.date === round.date);
+      return {
+        date: round.date,
+        label: round.label,
+        color: GOLD,
+        time: round.round === "결승" ? null : JUNGMAN_MATCH_TIME,
+        ...(played ? { home: played.home, away: played.away } : {}),
+        ...(played?.decided ? { homeSets: played.homeSets, awaySets: played.awaySets } : {}),
+      };
+    });
 
     if (variant === "asl") {
       // 월 탭은 ASL 일정으로 정한다 — 9월 이후는 미공개라 K-중만컵 9월분은 자연히 범위 밖이다

@@ -1311,4 +1311,128 @@ test("펼침 경기 줄의 날짜 칸도 안 잘린다", () => {
   assert.match(source, /JUNGMAN_MATCH_TIME/);
 });
 
+// ── 토너먼트 (8강 · 4강 · 결승) ──────────────────────────────────────────
+// 조가 없는 경기는 group 칸에 라운드 이름을 넣어 같은 matches 배열에 산다.
+// 스키마를 안 바꾸는 대신, 순수 함수들이 정말 저절로 갈라주는지 여기서 못 박는다.
+const withTournament = () =>
+  parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "A조", teams: ["가", "나", "다"] }],
+      matches: [
+        { group: "A조", home: "가", away: "나", homeSets: 5, awaySets: 3, date: "2026-08-08" },
+        { group: "A조", home: "가", away: "다", homeSets: 0, awaySets: 0, date: "2026-08-16" },
+        { group: "8강", home: "가", away: "라", homeSets: 5, awaySets: 2, date: "2026-09-03" },
+        { group: "4강", home: "가", away: "마", homeSets: 0, awaySets: 0, date: "2026-09-12" },
+      ],
+    })
+  );
+
+test("토너먼트 경기는 파서를 그대로 통과한다 (group에 라운드 이름)", () => {
+  const data = withTournament();
+  assert.deepEqual(
+    data.matches.map((m) => [m.group, m.decided]),
+    [
+      ["A조", true],
+      ["A조", false],
+      ["8강", true],
+      ["4강", false],
+    ]
+  );
+});
+
+test("토너먼트 경기는 순위표에 안 들어간다 (조 이름이 아니라서 저절로 빠진다)", () => {
+  const rows = rowsOf(withTournament(), "A조").map((row) => [row.team, row.wins, row.losses, row.setsWon, row.remaining]);
+  // 가는 8강에서 5:2로 이겼지만 조별 전적은 1승 5세트 그대로다
+  assert.deepEqual(rows, [
+    ["가", 1, 0, 5, 1],
+    ["다", 0, 0, 0, 2],
+    ["나", 0, 1, 3, 1],
+  ]);
+  // 조 이름으로만 표를 만든다 — "8강"이라는 표가 생기면 안 된다
+  assert.deepEqual(
+    buildJungmanGroupTables(withTournament()).map((t) => t.name),
+    ["A조"]
+  );
+});
+
+test("토너먼트 경기는 경우의 수에도 안 들어간다", () => {
+  const data = withTournament();
+  assert.deepEqual([...buildJungmanScenarios(data).keys()], ["A조"]);
+  const s = scenariosOf(data, "A조");
+  // 남은 경기는 조별리그 8/16 한 건뿐이다 — 9/12 4강이 '다음 경기'로 잡히면 안 된다
+  assert.equal(s["가"].nextOpponent, "다");
+  assert.equal(s["가"].nextDate, "2026-08-16");
+  assert.equal(s["나"].nextOpponent, undefined);
+});
+
+test("토너먼트 경기는 일정·경기 결과에는 섞인다", () => {
+  const data = withTournament();
+  // 끝난 8강은 최신순 결과 목록 맨 위 (9/3 > 8/8)
+  assert.deepEqual(
+    sortJungmanMatches(data.matches).map((m) => [m.group, m.date]),
+    [
+      ["8강", "2026-09-03"],
+      ["A조", "2026-08-08"],
+    ]
+  );
+  // 예정 4강은 일정에 가까운 날짜 순으로 들어온다
+  assert.deepEqual(
+    upcomingJungmanMatches(data.matches).map((m) => [m.group, m.date]),
+    [
+      ["A조", "2026-08-16"],
+      ["4강", "2026-09-12"],
+    ]
+  );
+});
+
+test("토너먼트 세트도 개인 순위에 그대로 집계된다", () => {
+  const ranks = buildJungmanPlayerRanks([
+    { group: "8강", home: "가팀", away: "나팀", homeSets: 0, awaySets: 0, sets: [set("맵1", "가1", "나1", "home")] },
+  ]);
+  assert.deepEqual(shapeRanks(ranks), [
+    ["가1", "가팀", 1, 0],
+    ["나1", "나팀", 0, 1],
+  ]);
+});
+
+test("관리자에 토너먼트 섹션이 있고 구조는 lib 상수에서만 온다", () => {
+  const admin = readProjectFile("app/admin/jungman/JungmanStandingsAdmin.tsx");
+  assert.match(admin, /JUNGMAN_TOURNAMENT/);
+  assert.match(admin, /JUNGMAN_TOURNAMENT\.map\(\(round\) => \{/);
+  // 라운드 이름·날짜를 화면에 또 적으면 lib와 조용히 어긋난다
+  assert.doesNotMatch(admin, /"8강 1경기"/);
+  // 경기를 찾는 열쇠는 라운드 + 날짜다 — 대진이 비어 있어도 같은 줄이어야 한다
+  assert.match(admin, /const isRound = \(m: Match, round: string, date: string\) =>\s*m\.group === round && m\.date === date/);
+  // group 칸에는 label("8강 1경기")이 아니라 round("8강")가 들어간다
+  assert.match(admin, /setRoundTeam\(round\.round, round\.date/);
+  assert.match(admin, /editSet\(round\.round, home, away, sets, i, patch, round\.date\)/);
+  // 두 팀이 다 비면 그 경기는 저장하지 않는다
+  assert.match(admin, /next\.home \|\| next\.away \? \[\.\.\.rest, next\] : rest/);
+  // 세트 편집기는 조별리그와 같은 것 하나 — 두 벌로 적으면 조용히 어긋난다
+  assert.equal((admin.match(/<SetEditor/g) || []).length, 2);
+});
+
+test("공개 페이지가 대진표를 일정과 경기 결과 사이에 그린다", () => {
+  const page = readProjectFile("app/jungman/page.tsx");
+  assert.match(page, /<JungmanBracket matches=\{standings\?\.matches \?\? \[\]\}/);
+  assert.match(page, /<JungmanCalendar[\s\S]*?<JungmanBracket[\s\S]*?<JungmanMatchResults/);
+
+  const source = readProjectFile("app/jungman/JungmanBracket.tsx");
+  // 서버에서 그린다 — 공개 화면에 클라이언트 번들을 늘리지 않는다
+  assert.doesNotMatch(source, /"use client"/);
+  // 구조(경기 수·날짜)는 lib 상수, 대진·결과는 저장된 경기 — 둘을 라운드+날짜로 잇는다
+  assert.match(source, /JUNGMAN_TOURNAMENT\.map/);
+  assert.match(source, /m\.group === round\.round && m\.date === round\.date/);
+  // 대진이 하나도 없으면 아무것도 안 그린다 (조별리그 진행 중인 지금)
+  assert.match(source, /if \(!games\.some\(\(game\) => game\.match\)\) return null/);
+  // 안 정해진 자리는 '미정' — 로고도 없다
+  assert.match(source, /if \(!name\) \{[\s\S]{0,120}미정/);
+  // 달력의 토너먼트 카드와 같은 금색이어야 같은 것으로 읽힌다
+  assert.match(source, /const GOLD = "#d4a94a"/);
+  // 로고·팀 조회는 공용 함수에서만 온다
+  assert.match(source, /jungmanTeamByName\(name\)\?\.code/);
+  assert.match(source, /jungmanLogoPath\(code\)/);
+});
+
 process.exitCode = failed ? 1 : 0;

@@ -17,6 +17,7 @@ import { playerService } from "@/lib/player-service";
 import { getSetting } from "@/lib/site-settings";
 import { parseTierFreeze, TIER_FREEZE_KEY } from "@/lib/tier-freeze";
 
+import JungmanBracket from "./JungmanBracket";
 import JungmanCalendar from "./JungmanCalendar";
 import JungmanCover from "./JungmanCover";
 import JungmanGroupTables from "./JungmanGroupTables";
@@ -113,6 +114,10 @@ export default async function JungmanPage() {
             </div>
           </>
         ) : null}
+
+        {/* 대진표 — 토너먼트 경기가 하나라도 들어오면 저절로 나타난다(조별리그 중에는 null).
+            일정(달력) 다음, 경기 결과 앞 — 앞으로 벌어질 일이 지난 일보다 위다 */}
+        <JungmanBracket matches={standings?.matches ?? []} />
 
         {/* 경기가 없으면 섹션 자체를 그리지 않는다 — 조 편성만 있는 화면이 깨끗해야 한다.
             결과가 주인공이라 왼쪽을 넓게, 개인 순위가 곁에 선다. 폰에서는 세로로 쌓인다.

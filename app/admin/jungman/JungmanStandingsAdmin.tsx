@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
-import { JUNGMAN_MATCH_TIME, JUNGMAN_TEAMS } from "@/lib/jungman";
+import { JUNGMAN_MATCH_TIME, JUNGMAN_TEAMS, JUNGMAN_TOURNAMENT } from "@/lib/jungman";
 import { setScoreOf, type JungmanStandingsMatch, type JungmanStandingsSet } from "@/lib/jungman-standings";
 import { raceOfName, type RaceLookupPlayer } from "@/lib/overlay-race";
 import { DEFAULT_MAPS } from "@/lib/overlay-types";
@@ -13,6 +13,8 @@ import { DEFAULT_MAPS } from "@/lib/overlay-types";
  *
  * 3팀 조는 경기 조합이 3개로 정해져 있다. 조마다 경기 슬롯을 미리 깔아두고
  * 세트 승자만 누르게 한다 — 점수를 넣는 길은 그것 하나뿐이다.
+ * 토너먼트(8강·4강·결승)는 조가 없다. group 칸에 라운드 이름을 넣어 같은 matches 배열에 산다 —
+ * 순위표·경우의 수는 조 이름만 보므로 저절로 빠지고, 일정·경기 결과에는 저절로 섞인다.
  * 원문 JSON 편집은 아래 토글로 그대로 남겨둔다 (스키마를 벗어나는 손질이 필요할 때가 있다).
  */
 
@@ -121,6 +123,12 @@ const keyOf = (group: string, home: string, away: string) => `${group}|${home}|$
 const isPair = (m: Match, group: string, a: string, b: string) =>
   m.group === group && ((m.home === a && m.away === b) || (m.home === b && m.away === a));
 
+/**
+ * 토너먼트 경기는 라운드(group) + 날짜로 찾는다 — 대진이 아직 비어 있을 수 있어 팀으로는 못 찾는다.
+ * JUNGMAN_TOURNAMENT의 날짜가 전부 달라서 이 조합 하나로 7경기가 유일하게 갈린다.
+ */
+const isRound = (m: Match, round: string, date: string) => m.group === round && m.date === date;
+
 /** 저장 방향이 화면과 반대일 때 세트도 같이 뒤집어야 왼쪽 칸이 계속 왼쪽 팀 선수다 */
 const flipSets = (sets?: MatchSet[]): MatchSet[] | undefined =>
   sets?.map((s) => ({
@@ -138,11 +146,24 @@ const SETS_PER_MATCH = 9;
 /** 맵·선수·승자가 하나라도 있으면 실제로 쓰인 세트다. 저장 직전 걸러내기와 개수 세기에만 쓴다. */
 const isFilled = (s: MatchSet) => Boolean(s.map || s.home || s.away || s.winner);
 
+/** 채운 세트가 있으면 점수는 세트에서 계산한 값이 진짜다 (파서와 같은 규칙) */
+const scoreOf = (m: Match) =>
+  m.sets?.some(isFilled) ? setScoreOf(m.sets) : { home: m.homeSets, away: m.awaySets };
+
 /**
  * 버릴 경기 = 날짜도 없고 · 채운 세트도 없고 · 점수도 0:0.
  * 날짜만 찍은 예정 경기는 살아남아야 한다. 기준이 흩어지면 또 어긋나므로 이 한 곳만 본다.
  */
 const isBlank = (m: Match) => !m.date && !m.sets?.some(isFilled) && !m.homeSets && !m.awaySets;
+
+const TXT =
+  "h-10 w-28 rounded-lg border border-white/12 bg-background px-2 text-sm font-bold text-white " +
+  "placeholder:text-white/25 focus:border-nzu-green focus:outline-none";
+
+/** 토너먼트 대진 고르는 칸 */
+const SEL =
+  "h-10 w-32 rounded-lg border border-white/12 bg-background px-2 text-sm font-black text-white " +
+  "focus:border-nzu-green focus:outline-none";
 
 /**
  * 이름이 선수 DB에 이어졌는지 보여준다 — 종족 글자가 뜨면 연결된 것.
@@ -155,6 +176,84 @@ function NameCheck({ players, name }: { players: Player[]; name: string }) {
     <span className="w-6 shrink-0 text-center text-sm font-black text-amber-400">
       {players.length && name.trim() ? <span title="명단에 없는 이름입니다">⚠</span> : null}
     </span>
+  );
+}
+
+/**
+ * 세트 편집기 — 조별리그와 토너먼트가 같은 것을 쓴다. 두 벌로 적으면 조용히 어긋난다.
+ * 줄 목록(빈 슬롯 포함)은 부모가 만들어 넘긴다.
+ */
+function SetEditor({
+  home,
+  away,
+  sets,
+  players,
+  homeList,
+  awayList,
+  onEdit,
+}: {
+  home: string;
+  away: string;
+  sets: MatchSet[];
+  players: Player[];
+  homeList: string;
+  awayList: string;
+  onEdit: (index: number, patch: Partial<MatchSet>) => void;
+}) {
+  return (
+    <div className="mt-1 space-y-1 border-t border-white/5 pt-2">
+      <div className="flex flex-wrap items-center gap-2 text-[0.7rem] font-black text-white/35">
+        <span className="w-5" />
+        <span className="w-28">{home}</span>
+        <span className="w-6" />
+        <span className="w-28">맵</span>
+        <span className="w-28">{away}</span>
+      </div>
+      {sets.map((set, i) => (
+        // 세트는 순서가 곧 신원이라 index를 key로 쓴다 (정렬 기능 없음)
+        <div key={i} className="flex flex-wrap items-center gap-2">
+          <span className="w-5 text-right text-xs font-bold text-white/30">{i + 1}</span>
+          <input
+            list={homeList}
+            value={set.home}
+            onChange={(e) => onEdit(i, { home: e.target.value })}
+            placeholder="선수"
+            className={TXT}
+            aria-label={`${i + 1}세트 ${home} 선수`}
+          />
+          <NameCheck players={players} name={set.home} />
+          <input
+            list={MAP_LIST_ID}
+            value={set.map}
+            onChange={(e) => onEdit(i, { map: e.target.value })}
+            placeholder="맵"
+            className={TXT}
+            aria-label={`${i + 1}세트 맵`}
+          />
+          <input
+            list={awayList}
+            value={set.away}
+            onChange={(e) => onEdit(i, { away: e.target.value })}
+            placeholder="선수"
+            className={TXT}
+            aria-label={`${i + 1}세트 ${away} 선수`}
+          />
+          <NameCheck players={players} name={set.away} />
+          {(["home", "away"] as const).map((side) => (
+            <button
+              key={side}
+              // 같은 버튼을 다시 누르면 해제 = 진행 중
+              onClick={() => onEdit(i, { winner: set.winner === side ? null : side })}
+              className={`h-10 rounded-lg px-3 text-xs font-black ${
+                set.winner === side ? "bg-nzu-green text-black" : "border border-white/15 text-white/50"
+              }`}
+            >
+              {side === "home" ? "좌승" : "우승"}
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -205,8 +304,7 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
   const scores = useMemo(() => {
     const m = new Map<string, { home: number; away: number; sets?: MatchSet[]; date?: string }>();
     data.matches.forEach((x) => {
-      // 채운 세트가 있으면 점수는 세트에서 계산한 값이 진짜다 (파서와 같은 함수)
-      const s = x.sets?.some(isFilled) ? setScoreOf(x.sets) : { home: x.homeSets, away: x.awaySets };
+      const s = scoreOf(x);
       // 날짜는 방향과 무관하다 — 뒤집힌 색인에도 그대로 실어야 화면이 읽는다
       m.set(keyOf(x.group, x.home, x.away), { ...s, sets: x.sets, date: x.date });
       m.set(keyOf(x.group, x.away, x.home), { home: s.away, away: s.home, sets: flipSets(x.sets), date: x.date });
@@ -214,17 +312,34 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
     return m;
   }, [data.matches]);
 
-  /** 세트 목록을 통째로 갈아끼운다. 점수는 늘 세트에서 다시 계산한다. */
-  function setSets(group: string, home: string, away: string, sets: MatchSet[]) {
+  /**
+   * 세트 목록을 통째로 갈아끼운다. 점수는 늘 세트에서 다시 계산한다.
+   * round 날짜를 주면 그 경기를 라운드+날짜로 찾는다(토너먼트) — 대진이 바뀌어도 같은 경기다.
+   */
+  function setSets(group: string, home: string, away: string, sets: MatchSet[], roundDate?: string) {
     setData((prev) => {
-      const prior = prev.matches.find((m) => isPair(m, group, home, away));
-      const rest = prev.matches.filter((m) => !isPair(m, group, home, away));
+      const same = (m: Match) =>
+        roundDate ? isRound(m, group, roundDate) : isPair(m, group, home, away);
+      const prior = prev.matches.find(same);
+      const rest = prev.matches.filter((m) => !same(m));
       const score = setScoreOf(sets);
+      const date = roundDate ?? prior?.date;
       // 빈 줄만 남으면 sets를 떼고 계산된 점수만 남긴다 — 빈 줄 9개가 JSON에 들어가면 안 된다.
       // 경기를 통째로 갈아끼우므로 기존 날짜는 손으로 챙겨 와야 한다.
-      const base: Match = { group, home, away, homeSets: score.home, awaySets: score.away, ...(prior?.date ? { date: prior.date } : {}) };
+      const base: Match = { group, home, away, homeSets: score.home, awaySets: score.away, ...(date ? { date } : {}) };
       const next: Match = sets.some(isFilled) ? { ...base, sets } : base;
       return { ...prev, matches: isBlank(next) ? rest : [...rest, next] };
+    });
+  }
+
+  /** 토너먼트 한 줄의 두 팀. 둘 다 비면 그 경기를 통째로 지운다 — 빈 줄을 저장하지 않는다 */
+  function setRoundTeam(round: string, date: string, side: "home" | "away", team: string) {
+    setData((prev) => {
+      const prior = prev.matches.find((m) => isRound(m, round, date));
+      const rest = prev.matches.filter((m) => !isRound(m, round, date));
+      const base: Match = prior ?? { group: round, home: "", away: "", homeSets: 0, awaySets: 0, date };
+      const next: Match = side === "home" ? { ...base, home: team } : { ...base, away: team };
+      return { ...prev, matches: next.home || next.away ? [...rest, next] : rest };
     });
   }
 
@@ -263,9 +378,10 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
     away: string,
     cur: MatchSet[],
     index: number,
-    patch: Partial<MatchSet>
+    patch: Partial<MatchSet>,
+    roundDate?: string
   ) {
-    setSets(group, home, away, cur.map((s, i) => (i === index ? { ...s, ...patch } : s)));
+    setSets(group, home, away, cur.map((s, i) => (i === index ? { ...s, ...patch } : s)), roundDate);
   }
 
   function toJSON(d: Standings) {
@@ -307,13 +423,13 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
     }
   }
 
-  const played = data.matches.filter((m) => m.homeSets !== m.awaySets).length;
+  // 조별리그 진행률이다 — 토너먼트 경기가 섞이면 "13 / 12"가 된다
+  const played = data.matches.filter(
+    (m) => m.homeSets !== m.awaySets && data.groups.some((g) => g.name === m.group)
+  ).length;
   const total = data.groups.reduce((a, g) => a + pairsOf(g).length, 0);
 
   const NUM = "w-10 text-center text-2xl font-black tabular-nums text-white";
-  const TXT =
-    "h-10 w-28 rounded-lg border border-white/12 bg-background px-2 text-sm font-bold text-white " +
-    "placeholder:text-white/25 focus:border-nzu-green focus:outline-none";
 
   return (
     <section className="rounded-[2rem] border border-white/10 bg-card p-6">
@@ -429,65 +545,15 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
                     </button>
 
                     {open ? (
-                      <div className="mt-1 space-y-1 border-t border-white/5 pt-2">
-                        <div className="flex flex-wrap items-center gap-2 text-[0.7rem] font-black text-white/35">
-                          <span className="w-5" />
-                          <span className="w-28">{home}</span>
-                          <span className="w-6" />
-                          <span className="w-28">맵</span>
-                          <span className="w-28">{away}</span>
-                        </div>
-                        {sets.map((set, i) => (
-                          // 세트는 순서가 곧 신원이라 index를 key로 쓴다 (정렬 기능 없음)
-                          <div key={i} className="flex flex-wrap items-center gap-2">
-                            <span className="w-5 text-right text-xs font-bold text-white/30">{i + 1}</span>
-                            <input
-                              list={listIdOf(home)}
-                              value={set.home}
-                              onChange={(e) => editSet(g.name, home, away, sets, i, { home: e.target.value })}
-                              placeholder="선수"
-                              className={TXT}
-                              aria-label={`${i + 1}세트 ${home} 선수`}
-                            />
-                            <NameCheck players={playerDb} name={set.home} />
-                            <input
-                              list={MAP_LIST_ID}
-                              value={set.map}
-                              onChange={(e) => editSet(g.name, home, away, sets, i, { map: e.target.value })}
-                              placeholder="맵"
-                              className={TXT}
-                              aria-label={`${i + 1}세트 맵`}
-                            />
-                            <input
-                              list={listIdOf(away)}
-                              value={set.away}
-                              onChange={(e) => editSet(g.name, home, away, sets, i, { away: e.target.value })}
-                              placeholder="선수"
-                              className={TXT}
-                              aria-label={`${i + 1}세트 ${away} 선수`}
-                            />
-                            <NameCheck players={playerDb} name={set.away} />
-                            {(["home", "away"] as const).map((side) => (
-                              <button
-                                key={side}
-                                // 같은 버튼을 다시 누르면 해제 = 진행 중
-                                onClick={() =>
-                                  editSet(g.name, home, away, sets, i, {
-                                    winner: set.winner === side ? null : side,
-                                  })
-                                }
-                                className={`h-10 rounded-lg px-3 text-xs font-black ${
-                                  set.winner === side
-                                    ? "bg-nzu-green text-black"
-                                    : "border border-white/15 text-white/50"
-                                }`}
-                              >
-                                {side === "home" ? "좌승" : "우승"}
-                              </button>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
+                      <SetEditor
+                        home={home}
+                        away={away}
+                        sets={sets}
+                        players={playerDb}
+                        homeList={listIdOf(home)}
+                        awayList={listIdOf(away)}
+                        onEdit={(i, patch) => editSet(g.name, home, away, sets, i, patch)}
+                      />
                     ) : null}
                   </div>
                 );
@@ -495,6 +561,108 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
             </div>
           </div>
         ))}
+      </div>
+
+      {/* 토너먼트 — 대회 구조가 정해져 있어 관리자가 경기를 더하거나 지우지 않는다.
+          대진만 조별리그가 끝나야 나오므로 두 팀 고르는 칸을 비워둔다.
+          경기를 찾는 열쇠는 라운드 + 날짜다 — 대진을 바꿔도 같은 줄이어야 한다 */}
+      <div className="mt-5 rounded-2xl border border-white/10 bg-background/60 p-4">
+        <div className="mb-3 flex items-baseline gap-2">
+          <h3 className="text-lg font-black text-[#d4a94a]">토너먼트</h3>
+          <span className="text-xs font-bold text-white/40">
+            두 팀을 고르면 세트를 입력할 수 있습니다 · 대진이 아직이면 비워두세요
+          </span>
+        </div>
+        <div className="space-y-2">
+          {JUNGMAN_TOURNAMENT.map((round) => {
+            const match = data.matches.find((m) => isRound(m, round.round, round.date));
+            const s = match ? scoreOf(match) : { home: 0, away: 0 };
+            const done = s.home !== s.away;
+            const home = match?.home ?? "";
+            const away = match?.away ?? "";
+            const mkey = `${round.round}|${round.date}`;
+            const open = openSets[mkey] ?? false;
+            // 조별리그와 같은 규칙 — 언제나 최소 9줄, 저장된 게 더 많으면 그만큼 다 보여준다
+            const stored = match?.sets ?? [];
+            const rows = Math.max(SETS_PER_MATCH, stored.length);
+            const sets = Array.from({ length: rows }, (_, i) => stored[i] ?? { ...EMPTY_SET });
+            const filled = sets.filter(isFilled).length;
+            return (
+              <div key={mkey} className="rounded-xl border border-white/5 px-2 py-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="min-w-[5.5rem] text-sm font-black text-[#d4a94a]">{round.label}</span>
+                  <span className="min-w-[6rem] text-xs font-bold text-white/40">
+                    {dayLabel(round.date)} {round.round === "결승" ? "" : JUNGMAN_MATCH_TIME}
+                  </span>
+                  <select
+                    value={home}
+                    onChange={(e) => setRoundTeam(round.round, round.date, "home", e.target.value)}
+                    className={SEL}
+                    aria-label={`${round.label} 왼쪽 팀`}
+                  >
+                    <option value="">미정</option>
+                    {teamNames.map((team) => (
+                      <option key={team} value={team}>
+                        {team}
+                      </option>
+                    ))}
+                  </select>
+                  <span className={NUM} aria-label={`${round.label} 왼쪽 세트 수`}>
+                    {s.home}
+                  </span>
+                  <span className="text-white/30">:</span>
+                  <span className={NUM} aria-label={`${round.label} 오른쪽 세트 수`}>
+                    {s.away}
+                  </span>
+                  <select
+                    value={away}
+                    onChange={(e) => setRoundTeam(round.round, round.date, "away", e.target.value)}
+                    className={SEL}
+                    aria-label={`${round.label} 오른쪽 팀`}
+                  >
+                    <option value="">미정</option>
+                    {teamNames.map((team) => (
+                      <option key={team} value={team}>
+                        {team}
+                      </option>
+                    ))}
+                  </select>
+                  {done ? (
+                    <span className="text-xs font-black text-white/60">
+                      {s.home > s.away ? home : away} 승
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* 세트는 두 팀이 정해진 뒤에만 — 미정 vs 미정에 선수를 적을 수는 없다 */}
+                {home && away ? (
+                  <>
+                    <button
+                      onClick={() => setOpenSets((prev) => ({ ...prev, [mkey]: !open }))}
+                      className="mt-1 inline-flex min-h-9 items-center gap-1 text-xs font-black text-white/50 hover:text-white"
+                    >
+                      <span>{open ? "▾" : "▸"}</span>
+                      {`세트 ${filled}/${rows}`}
+                    </button>
+                    {open ? (
+                      <SetEditor
+                        home={home}
+                        away={away}
+                        sets={sets}
+                        players={playerDb}
+                        homeList={listIdOf(home)}
+                        awayList={listIdOf(away)}
+                        onEdit={(i, patch) =>
+                          editSet(round.round, home, away, sets, i, patch, round.date)
+                        }
+                      />
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
