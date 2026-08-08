@@ -862,16 +862,25 @@ async function postDiscordWebhook(content) {
     return;
   }
 
-  const res = await fetch(webhook, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content }),
-  });
+  // 디스코드가 순간적으로 503(upstream reset)을 내는 일이 있다. 그때 알림이 통째로
+  // 사라지면 파이프라인 실패를 아무도 모른다(2026-08-08: 실패 알림이 503으로 유실).
+  // 재시도 2번이면 그 구멍이 막힌다 — 4xx(내용·주소 문제)는 재시도해도 소용없어 즉시 던진다.
+  let lastError = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const res = await fetch(webhook, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    }).catch((error) => ({ ok: false, status: 0, networkError: error }));
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Discord 웹훅 전송 실패: ${res.status} ${body}`);
+    if (res.ok) return;
+
+    const body = res.text ? await res.text().catch(() => "") : String(res.networkError || "");
+    lastError = new Error(`Discord 웹훅 전송 실패: ${res.status} ${body}`);
+    if (res.status >= 400 && res.status < 500 && res.status !== 429) throw lastError;
+    if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
   }
+  throw lastError;
 }
 
 async function main() {
