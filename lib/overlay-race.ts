@@ -21,13 +21,21 @@ export type RaceLookupPlayer = { name: string; nickname?: string | null; race: s
 
 // 선수 DB에서 이름/닉네임/"성 뗀 이름"으로 종족을 찾음.
 // 한국 이름은 대개 성이 1글자라 끝 2글자가 실사용 호칭 (조일장 → 일장)
-export function raceOfName(players: RaceLookupPlayer[], name: string): OverlayRace | undefined {
+/**
+ * 위 규칙으로 선수를 찾는다. 종족 말고 다른 값(id·티어)이 필요한 곳이 있어 따로 뺐다 —
+ * 규칙을 두 벌로 적으면 종족은 붙는데 다른 건 안 붙는 선수가 생긴다.
+ */
+export function playerOfName<T extends RaceLookupPlayer>(players: T[], name: string): T | undefined {
   const n = name.trim();
   if (!n) return undefined;
-  const hit = players.find((p) => {
+  return players.find((p) => {
     if (p.name === n || p.nickname === n) return true;
     const given = p.name.length >= 3 ? p.name.slice(-2) : p.name;
     return given === n;
   });
+}
+
+export function raceOfName(players: RaceLookupPlayer[], name: string): OverlayRace | undefined {
+  const hit = playerOfName(players, name);
   return hit && (["T", "P", "Z"] as string[]).includes(hit.race) ? (hit.race as OverlayRace) : undefined;
 }

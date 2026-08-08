@@ -965,6 +965,29 @@ test("공개 페이지가 개인 순위를 경기 결과와 나란히 그린다"
   assert.match(source, /jungmanLogoPath\(code\)/);
 });
 
+test("개인 순위가 동결 티어를 이름 옆에 알린다", () => {
+  const page = readProjectFile("app/jungman/page.tsx");
+  // KV 읽기는 서버에서 한 번. 동결 하나 때문에 순위 페이지가 죽으면 안 되니 실패는 catch로 삼킨다
+  assert.match(page, /getSetting\(TIER_FREEZE_KEY\)[\s\S]{0,80}\.then\(parseTierFreeze\)[\s\S]{0,200}\.catch\(/);
+  assert.match(page, /<JungmanPlayerRanks[^>]*freeze=\{freeze\}/);
+
+  const source = readProjectFile("app/jungman/JungmanPlayerRanks.tsx");
+  // 판정은 공용 계약이 한다 — 여기서 스냅샷을 직접 뒤지면 규칙이 두 벌이 된다
+  assert.match(source, /frozenTierOf\(freeze, hit\.id, hit\.tier\)/);
+  // 동결이 꺼졌거나(freeze=null) 티어 변동이 없으면 아무것도 안 그린다
+  assert.match(source, /frozen \? \([\s\S]{0,400}\) : null/);
+  assert.match(source, /❄\{frozen\}/);
+  assert.match(source, /title=\{`동결 \$\{frozen\}티어/);
+  // 이름은 잘려도 배지는 밀리지 않는다
+  assert.match(source, /shrink-0[^"]*text-\[#d4a94a\]/);
+
+  // 이름 → 선수 찾기 규칙은 lib 한 벌이다. 복제하면 종족은 붙는데
+  // 동결은 안 붙는 선수가 생긴다 — 두 벌로 적는 것을 막는다
+  assert.match(source, /playerOfName\(players, rank\.name\)/);
+  assert.doesNotMatch(source, /p\.name === n \|\| p\.nickname === n/);
+  assert.match(readProjectFile("lib/overlay-race.ts"), /export function playerOfName/);
+});
+
 // ── 진출 경우의 수 ────────────────────────────────────────────────────────
 const standingsOf = (teams, matches) =>
   parseJungmanStandings(

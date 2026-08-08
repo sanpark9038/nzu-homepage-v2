@@ -15,6 +15,7 @@ import {
 } from "@/lib/jungman-standings";
 import { playerService } from "@/lib/player-service";
 import { getSetting } from "@/lib/site-settings";
+import { parseTierFreeze, TIER_FREEZE_KEY } from "@/lib/tier-freeze";
 
 import JungmanCalendar from "./JungmanCalendar";
 import JungmanCover from "./JungmanCover";
@@ -46,10 +47,18 @@ const PANEL =
 
 export default async function JungmanPage() {
   // 읽기 실패는 getSetting이 던진다 — 빈 순위표를 정상 상태로 캐시하는 것보다 낫다
-  const [standingsRaw, players] = await Promise.all([
+  const [standingsRaw, players, freeze] = await Promise.all([
     getSetting(JUNGMAN_STANDINGS_KEY),
     // 선수 DB를 못 읽어도 경기 결과는 이름만으로 그려져야 한다 — 페이지 전체를 죽이지 않는다
     playerService.getCachedPlayersList().catch(() => []),
+    // 대회 기간에는 동결 티어가 공식이다. 동결 KV 하나 때문에 순위 페이지가 죽으면 안 되니
+    // 읽기 실패는 catch로 삼키고 미동결(배지 없음)로 떨어진다.
+    getSetting(TIER_FREEZE_KEY)
+      .then(parseTierFreeze)
+      .catch((error) => {
+        console.error("failed to load tier freeze", error);
+        return null;
+      }),
   ]);
   const standings = parseJungmanStandings(standingsRaw);
   const tables = standings ? buildJungmanGroupTables(standings) : [];
@@ -116,7 +125,7 @@ export default async function JungmanPage() {
             }`}
           >
             <JungmanMatchResults matches={matches} players={players} />
-            <JungmanPlayerRanks ranks={playerRanks} players={players} />
+            <JungmanPlayerRanks ranks={playerRanks} players={players} freeze={freeze} />
           </div>
         ) : null}
 

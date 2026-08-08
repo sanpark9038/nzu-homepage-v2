@@ -3,7 +3,11 @@ import Image from "next/image";
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
 import { jungmanLogoPath, jungmanTeamByName } from "@/lib/jungman";
 import { type JungmanPlayerRank } from "@/lib/jungman-standings";
-import { raceOfName, type RaceLookupPlayer } from "@/lib/overlay-race";
+import { playerOfName, raceOfName, type RaceLookupPlayer } from "@/lib/overlay-race";
+import { frozenTierOf, type TierFreeze } from "@/lib/tier-freeze";
+
+/** 종족 조회에 쓰는 필드 + 동결 티어 조회에 필요한 id·라이브 티어 */
+type JungmanRankPlayer = RaceLookupPlayer & { id?: string; tier?: string | null };
 
 const PANEL =
   "rounded-[1.4rem] border border-[rgba(155,185,240,0.14)] bg-[linear-gradient(180deg,#101728,#0c1220)] shadow-[0_24px_60px_rgba(0,0,0,0.55)]";
@@ -16,15 +20,20 @@ function Row({
   rank,
   index,
   players,
+  freeze,
 }: {
   rank: JungmanPlayerRank;
   index: number;
-  players: RaceLookupPlayer[];
+  players: JungmanRankPlayer[];
+  freeze: TierFreeze | null;
 }) {
   // 못 찾는 팀 이름(오타·외부팀)은 로고 없이 — 공개 화면에 경고는 그리지 않는다
   const code = jungmanTeamByName(rank.team)?.code;
   // 선수 DB가 비었거나 이름을 못 찾으면 배지 없이 이름만
   const race = raceOfName(players, rank.name);
+  // 동결 중이고 티어가 실제로 바뀐 선수에게만 — 아니면 아무것도 안 그린다
+  const hit = playerOfName(players, rank.name);
+  const frozen = hit?.id ? frozenTierOf(freeze, hit.id, hit.tier) : null;
 
   return (
     <li className={ROW}>
@@ -49,6 +58,14 @@ function Row({
       <span className="flex min-w-0 items-center gap-1.5">
         <span className="truncate text-xs font-bold text-[#e8ebf2] md:text-sm">{rank.name}</span>
         {race ? <RaceLetterBadge race={race} size="sm" /> : null}
+        {frozen ? (
+          <span
+            title={`동결 ${frozen}티어 (현재 ${hit?.tier ?? "미정"}티어)`}
+            className="shrink-0 rounded border border-[#7a8299] px-0.5 text-[0.5rem] font-black leading-[1.5] text-[#d4a94a]"
+          >
+            ❄{frozen}
+          </span>
+        ) : null}
       </span>
       <span className="text-[0.625rem] font-bold tabular-nums text-[#7a8299] md:text-xs">
         {rank.wins}승 {rank.losses}패
@@ -67,9 +84,11 @@ function Row({
 export default function JungmanPlayerRanks({
   ranks,
   players,
+  freeze = null,
 }: {
   ranks: JungmanPlayerRank[];
-  players: RaceLookupPlayer[];
+  players: JungmanRankPlayer[];
+  freeze?: TierFreeze | null;
 }) {
   if (!ranks.length) return null;
 
@@ -83,7 +102,7 @@ export default function JungmanPlayerRanks({
       </h2>
       <ol className={`${PANEL} px-3 py-1 md:px-4 md:py-1.5`}>
         {ranks.slice(0, 10).map((rank, index) => (
-          <Row key={rank.name} rank={rank} index={index} players={players} />
+          <Row key={rank.name} rank={rank} index={index} players={players} freeze={freeze} />
         ))}
       </ol>
     </div>
