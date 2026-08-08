@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
@@ -34,11 +34,14 @@ export function useDuelviewRoom(p1Id: string | null, p2Id: string | null) {
   const [viewerCount, setViewerCount] = useState(0);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const guestIdRef = useRef<string>("");
-
-  useEffect(() => {
-    guestIdRef.current = getGuestId();
-  }, []);
+  // 게스트 id는 sessionStorage에서 온다 — 서버 렌더에는 없어서 마운트 뒤에 받는다.
+  // ref를 렌더 중에 읽으면 동시성 렌더링에서 값이 어긋난다(react-hooks 규칙이 막는 것).
+  // 변하지 않는 값이라 구독은 빈 함수다.
+  const guestId = useSyncExternalStore(
+    () => () => {},
+    () => getGuestId(),
+    () => ""
+  );
 
   useEffect(() => {
     if (channelRef.current) {
@@ -51,7 +54,7 @@ export function useDuelviewRoom(p1Id: string | null, p2Id: string | null) {
     if (!p1Id || !p2Id) return;
 
     const roomKey = buildRoomKey(p1Id, p2Id);
-    const guestId = guestIdRef.current || getGuestId();
+    const guestId = getGuestId();
 
     const channel = supabase.channel(roomKey, {
       config: { presence: { key: guestId } },
@@ -81,7 +84,7 @@ export function useDuelviewRoom(p1Id: string | null, p2Id: string | null) {
 
   const sendMessage = useCallback((text: string) => {
     if (!channelRef.current || !text.trim()) return;
-    const guestId = guestIdRef.current;
+    const guestId = getGuestId();
     const msg: ChatMessage = {
       id: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
       sender: guestId,
@@ -92,5 +95,5 @@ export function useDuelviewRoom(p1Id: string | null, p2Id: string | null) {
     setMessages((prev) => [...prev.slice(-59), msg]);
   }, []);
 
-  return { viewerCount, messages, sendMessage, guestId: guestIdRef.current };
+  return { viewerCount, messages, sendMessage, guestId };
 }
