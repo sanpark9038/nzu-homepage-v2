@@ -35,9 +35,16 @@ function asDate(value) {
   return d;
 }
 
+// "며칠 지났나"는 경과 시간이 아니라 서울 달력 날짜로 센다.
+// 밤 실행은 하루 한 번인데 경과 시간(24시간)으로 재면 실행이 조금만 늦어도 창을 못 넘겨
+// 그날 수집이 통째로 스킵된다. 2026-08-08 사고: 예약이 4시간 밀린 다음 날,
+// 어제 수집된 선수 전원이 22시간55분(<24h)으로 판정돼 미수집 → 김택용 8/7 경기 누락.
+function seoulDayNumber(date) {
+  return Math.floor((date.getTime() + 9 * 60 * 60 * 1000) / (24 * 60 * 60 * 1000));
+}
+
 function daysBetween(a, b) {
-  const ms = Math.abs(a.getTime() - b.getTime());
-  return Math.floor(ms / (24 * 60 * 60 * 1000));
+  return Math.abs(seoulDayNumber(a) - seoulDayNumber(b));
 }
 
 function readFileModifiedAt(filePath) {

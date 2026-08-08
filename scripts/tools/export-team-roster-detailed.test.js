@@ -60,6 +60,27 @@ runTest("shouldSkipByPriorityWindow reuses recent cached json within interval", 
   }
 });
 
+// 2026-08-08 회귀: 예약이 밀려 어제 실행이 10시에 끝나면, 오늘 새벽 실행까지 경과가
+// 22시간대라 매일 확인(1일) 선수가 전원 스킵됐다. 날짜가 바뀌었으면 다시 읽어야 한다.
+runTest("shouldSkipByPriorityWindow collects again once the Seoul date changes", () => {
+  assert.equal(
+    shouldSkipByPriorityWindow(
+      { last_checked_at: "2026-08-07T01:05:46.472Z", check_interval_days: 1 },
+      "2026-08-08"
+    ),
+    false,
+    "어제 읽었으면 오늘은 다시 읽어야 한다(경과 22시간이어도)"
+  );
+  assert.equal(
+    shouldSkipByPriorityWindow(
+      { last_checked_at: "2026-08-08T01:05:46.472Z", check_interval_days: 1 },
+      "2026-08-08"
+    ),
+    true,
+    "같은 날 이미 읽었으면 스킵"
+  );
+});
+
 runTest("shouldSkipByPriorityWindow forces recollect when cached json is stale", () => {
   const filePath = writeTempJson("__test__priority_window_stale.json");
   try {
