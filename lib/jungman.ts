@@ -61,15 +61,57 @@ export const ASL_SCHEDULE: { date: string; label: string }[] = [
   { date: "2026-08-31", label: "ASL 조지명식" },
 ];
 
+// ── 경기 날짜 · D-day ────────────────────────────────────────────────────
+// /jungman 화면들과 홈 커버 덱이 전부 이 네 함수만 쓴다.
+// 한 화면이 제 계산을 갖는 순간 같은 경기의 날짜가 화면마다 갈라진다.
+
+const SEOUL_YMD = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const WEEKDAY_KO = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** 오늘(한국 날짜) "2026-08-08". 서버 시각이 UTC라도 같은 값이 나온다 */
+export function jungmanTodayKST(): string {
+  return SEOUL_YMD.format(new Date());
+}
+
+/**
+ * "2026-08-08" → 0(일)~6(토).
+ * 달력 날짜에는 시간대가 없다 — UTC 자정으로 고정해 브라우저 시간대와 무관하게 센다.
+ */
+export function jungmanWeekdayIndex(date: string): number {
+  return new Date(`${date}T00:00:00Z`).getUTCDay();
+}
+
+/** "2026-08-08" → "8/8(토)" */
+export function jungmanDateLabel(date: string): string {
+  const [, month, day] = date.split("-");
+  return `${Number(month)}/${Number(day)}(${WEEKDAY_KO[jungmanWeekdayIndex(date)]})`;
+}
+
+/**
+ * 남은 날. 지난 날짜는 음수.
+ * today를 받는 이유: 클라이언트 컴포넌트는 "오늘"을 마운트 뒤에 받아야 해서(하이드레이션)
+ * 제 시점을 직접 넘긴다. 안 넘기면 한국 날짜 기준 오늘이다.
+ */
+export function jungmanDaysUntil(date: string, today: string = jungmanTodayKST()): number {
+  return Math.round((Date.parse(date) - Date.parse(today)) / 86_400_000);
+}
+
+/** "오늘" · "내일" · "D-3". 지난 날짜는 null — 결과가 안 들어온 경기에 거짓 숫자를 붙이지 않는다 */
+export function jungmanDdayLabel(date: string, today?: string): string | null {
+  const dday = jungmanDaysUntil(date, today);
+  if (dday < 0) return null;
+  return dday === 0 ? "오늘" : dday === 1 ? "내일" : `D-${dday}`;
+}
+
 /** 그랜드 파이널까지 남은 날. 서버 시각이 UTC라도 한국 날짜를 기준으로 센다. */
 export function jungmanDaysToFinal(): number {
-  const todayKST = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  return Math.round((Date.parse(JUNGMAN_FINAL_DATE) - Date.parse(todayKST)) / 86_400_000);
+  return jungmanDaysUntil(JUNGMAN_FINAL_DATE);
 }
 
 export const JUNGMAN_VOTE_PERIOD_LABEL = "7월 27일 18:00 ~ 7월 30일 24:00";

@@ -843,10 +843,12 @@ test("펼침 화면의 '오늘'도 마운트 뒤에 채운다", () => {
   const source = readProjectFile("app/jungman/JungmanGroupTables.tsx");
   // 서버 스냅샷이 null이라 D-day는 하이드레이션 뒤에 생긴다 — useState+useEffect면 불일치를 스스로 만든다
   assert.match(source, /useSyncExternalStore\(/);
-  assert.match(source, /\(\) => SEOUL_YMD\.format\(new Date\(\)\),\s*\(\) => null/);
+  assert.match(source, /\(\) => jungmanTodayKST\(\),\s*\(\) => null/);
   assert.doesNotMatch(source, /useEffect\(/);
-  // 시계를 읽는 곳은 그 스냅샷 딱 한 곳뿐이다
-  assert.equal((source.match(/new Date\(\)|Date\.now\(\)/g) || []).length, 1);
+  // 시계를 읽는 곳은 그 스냅샷 딱 한 곳뿐이다 (오늘은 lib 함수가 준다)
+  assert.equal((source.match(/jungmanTodayKST\(\)|new Date\(\)|Date\.now\(\)/g) || []).length, 1);
+  // D-day는 오늘을 인자로 받는다 — 함수가 제 안에서 시계를 읽으면 그 보호가 깨진다
+  assert.match(source, /jungmanDdayLabel\(match\.date, today\)/);
 });
 
 // ── 개인 순위 (홈 덱 슬라이드 2) ─────────────────────────────────────────
@@ -1273,6 +1275,83 @@ test("누른 순간이 보인다 — 움직임은 reduced-motion에서 꺼진다
   assert.equal((source.match(/\$\{PRESS\}/g) ?? []).length, 2);
 });
 
+// ── 날짜·D-day 공용 함수 ────────────────────────────────────────────────
+const { jungmanDateLabel, jungmanDaysUntil, jungmanDdayLabel, jungmanTodayKST, jungmanWeekdayIndex } =
+  loadModule("lib/jungman.ts");
+
+test("날짜 라벨은 8/8(토) 꼴이고 앞자리 0을 안 붙인다", () => {
+  assert.equal(jungmanDateLabel("2026-08-08"), "8/8(토)");
+  assert.equal(jungmanDateLabel("2026-09-19"), "9/19(토)");
+  assert.equal(jungmanDateLabel("2026-01-01"), "1/1(목)");
+  assert.equal(jungmanDateLabel("2026-12-31"), "12/31(목)");
+  // 요일은 눈으로 세지 말고 검산한다 — 한 칸만 밀리면 모든 화면이 같이 틀린다.
+  // 기준은 한국시간 Intl: 1년치를 통째로 대조해 예전(Intl 조립) 출력과 한 글자도 안 달라졌음을 못 박는다
+  const koWeekday = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", weekday: "short" });
+  const monthDay = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric" });
+  const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+  for (let t = Date.UTC(2026, 0, 1); t < Date.UTC(2027, 0, 1); t += 86_400_000) {
+    const date = new Date(t).toISOString().slice(0, 10);
+    const at = new Date(`${date}T00:00:00+09:00`);
+    assert.equal(jungmanDateLabel(date), `${monthDay.format(at)}(${koWeekday.format(at)})`, `date=${date}`);
+    // 홈 커버 달력이 첫 칸을 띄우는 데 쓰는 값 — 하루만 밀려도 격자가 통째로 어긋난다
+    assert.equal(jungmanWeekdayIndex(date), WEEKDAYS.indexOf(koWeekday.format(at)), `date=${date}`);
+  }
+});
+
+test("D-day는 오늘·내일·D-N이고 지난 날짜는 null", () => {
+  const today = "2026-08-08";
+  assert.equal(jungmanDdayLabel("2026-08-08", today), "오늘");
+  assert.equal(jungmanDdayLabel("2026-08-09", today), "내일");
+  assert.equal(jungmanDdayLabel("2026-08-11", today), "D-3");
+  assert.equal(jungmanDdayLabel("2026-09-19", today), "D-42");
+  // 결과가 안 들어온 지난 경기에 거짓 숫자를 붙이지 않는다
+  assert.equal(jungmanDdayLabel("2026-08-07", today), null);
+  assert.equal(jungmanDaysUntil("2026-08-07", today), -1);
+  assert.equal(jungmanDaysUntil("2026-09-19", today), 42);
+  // 달·해를 넘어도 산수는 그대로 (서머타임 없는 KST 기준)
+  assert.equal(jungmanDdayLabel("2026-09-01", "2026-08-31"), "내일");
+  assert.equal(jungmanDaysUntil("2027-01-01", "2026-12-25"), 7);
+});
+
+test("오늘을 넘겨주면 브라우저 시간대와 무관하게 같은 값이 나온다", () => {
+  // 클라이언트 화면(순위표 펼침·홈 덱 달력)이 제 시점을 넘기는 길 — 시계를 안 읽는다
+  for (const today of ["2026-08-08", "2026-08-09"]) {
+    assert.equal(jungmanDdayLabel("2026-08-09", today), today === "2026-08-09" ? "오늘" : "내일");
+  }
+  // 라벨은 시계를 아예 안 본다 — 몇 번을 불러도 같은 문자열
+  assert.equal(jungmanDateLabel("2026-08-08"), jungmanDateLabel("2026-08-08"));
+
+  // 오늘(한국 날짜)은 en-CA(Asia/Seoul)와 같은 값이어야 한다 — 서버가 UTC라도 마찬가지
+  const seoul = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  assert.match(jungmanTodayKST(), /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(jungmanTodayKST(), seoul.format(new Date()));
+  // 인자를 안 주면 오늘 기준 — 오늘은 언제나 "오늘"이다
+  assert.equal(jungmanDdayLabel(jungmanTodayKST()), "오늘");
+});
+
+test("날짜 포맷을 화면이 다시 만들지 않는다 (복제 금지)", () => {
+  for (const file of [
+    "app/jungman/JungmanCover.tsx",
+    "app/jungman/JungmanGroupTables.tsx",
+    "app/jungman/JungmanMatchResults.tsx",
+    "app/jungman/JungmanSchedule.tsx",
+    "app/jungman/JungmanBracket.tsx",
+    "components/home/HomeHeroDeck.tsx",
+  ]) {
+    const source = readProjectFile(file);
+    // 화면마다 포맷터를 두면 한쪽만 고쳐져 같은 경기의 날짜가 갈라진다
+    assert.doesNotMatch(source, /new Intl\.DateTimeFormat/, file);
+    // D-day 산수도 lib 한 곳에서만 — 86_400_000이 화면에 나오면 그게 두 번째 계산이다
+    assert.doesNotMatch(source, /86_400_000/, file);
+    assert.match(source, /jungmanDateLabel|jungmanDdayLabel|jungmanDaysUntil/, file);
+  }
+});
+
 // ── 커버 링크 · 날짜 칸 ──────────────────────────────────────────────────
 test("커버가 공식 방송국과 승부예측으로 나간다", () => {
   const cover = readProjectFile("app/jungman/JungmanCover.tsx");
@@ -1291,10 +1370,10 @@ test("커버가 공식 방송국과 승부예측으로 나간다", () => {
 test("커버의 다음 두 경기가 시각까지 그리고 그 칸은 안 잘린다", () => {
   const cover = readProjectFile("app/jungman/JungmanCover.tsx");
   // 시각은 lib 상수에서만 온다 — 두 벌로 적으면 조용히 어긋난다
-  assert.match(cover, /\$\{formatMatchDate\(match\.date\)\} \$\{JUNGMAN_MATCH_TIME\}/);
+  assert.match(cover, /\$\{jungmanDateLabel\(match\.date\)\} \$\{JUNGMAN_MATCH_TIME\}/);
   // 날짜+시각 칸은 줄지도 잘리지도 않는다 (잘릴 몫은 팀 이름이 진다)
   // [^<]는 다른 태그로 넘어가지 않게 잡아둔다 — 엉뚱한 className을 물면 검사가 헛돈다
-  const cell = cover.match(/className="([^"]*)"[^<]{0,200}\{match\.date \? `\$\{formatMatchDate/);
+  const cell = cover.match(/className="([^"]*)"[^<]{0,200}\{match\.date \? `\$\{jungmanDateLabel/);
   assert.ok(cell, "커버의 날짜 칸을 못 찾았다");
   assert.ok(/shrink-0/.test(cell[1]) && /whitespace-nowrap/.test(cell[1]), cell[1]);
   assert.ok(/truncate/.test(cover.match(/<span className="([^"]*)">\s*\{match\.home\}/)[1]));

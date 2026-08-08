@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
-import { jungmanLogoPath, jungmanTeamByName } from "@/lib/jungman";
+import { jungmanDateLabel, jungmanLogoPath, jungmanTeamByName } from "@/lib/jungman";
 import { type JungmanStandingsMatch, type JungmanStandingsSet } from "@/lib/jungman-standings";
 import { raceOfName, type RaceLookupPlayer } from "@/lib/overlay-race";
 
@@ -9,20 +9,6 @@ const PANEL =
   "rounded-[1.4rem] border border-[rgba(155,185,240,0.14)] bg-[linear-gradient(180deg,#101728,#0c1220)] shadow-[0_24px_60px_rgba(0,0,0,0.55)]";
 
 const DIM = "text-[rgba(232,235,242,0.42)]";
-
-const MATCH_DATE = new Intl.DateTimeFormat("ko-KR", {
-  timeZone: "Asia/Seoul",
-  month: "numeric",
-  day: "numeric",
-  weekday: "short",
-});
-
-/** "2026-08-06" → "8/6(목)". ko-KR은 "8. 6. (목)"으로 뱉어서 조각을 직접 조립한다. */
-function formatMatchDate(date: string): string {
-  const parts = MATCH_DATE.formatToParts(new Date(`${date}T00:00:00+09:00`));
-  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${part("month")}/${part("day")}(${part("weekday")})`;
-}
 
 /** 못 찾는 팀 이름(오타·외부팀)은 로고 없이 이름만 — 공개 화면에 경고는 그리지 않는다 */
 function TeamLogo({ team }: { team: string }) {
@@ -114,7 +100,7 @@ function MatchCard({ match, players }: { match: JungmanStandingsMatch; players: 
         {match.date ? (
           <>
             <span aria-hidden>·</span>
-            <span className="tabular-nums">{formatMatchDate(match.date)}</span>
+            <span className="tabular-nums">{jungmanDateLabel(match.date)}</span>
           </>
         ) : null}
       </header>

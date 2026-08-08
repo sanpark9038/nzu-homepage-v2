@@ -11,37 +11,18 @@ import {
   JUNGMAN_MATCH_TIME,
   JUNGMAN_PRIZE_DETAIL,
   JUNGMAN_PRIZE_TOTAL,
+  jungmanDateLabel,
   jungmanDaysToFinal as daysToFinal,
+  jungmanDdayLabel,
   jungmanLogoPath,
   jungmanTeamByName,
 } from "@/lib/jungman";
 import type { JungmanStandingsMatch } from "@/lib/jungman-standings";
 
-const MATCH_DATE = new Intl.DateTimeFormat("ko-KR", {
-  timeZone: "Asia/Seoul",
-  month: "numeric",
-  day: "numeric",
-  weekday: "short",
-});
-
-/** "2026-08-08" → "8/8(토)". ko-KR은 "8. 8. (토)"으로 뱉어서 조각을 직접 조립한다. */
-function formatMatchDate(date: string): string {
-  const parts = MATCH_DATE.formatToParts(new Date(`${date}T00:00:00+09:00`));
-  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${part("month")}/${part("day")}(${part("weekday")})`;
-}
-
 /** 조 색은 이름 첫 글자로 잡는다 — 모르는 조 이름에 조 색을 붙이면 거짓말이 된다 */
 function groupColor(group: string): string {
   const index = "ABCD".indexOf(group.trim().charAt(0).toUpperCase());
   return index < 0 ? "#7a8299" : JUNGMAN_GROUP_COLORS[index];
-}
-
-/** 날짜가 지났는데 결과가 안 들어온 경기는 D-day를 그리지 않는다 */
-function ddayLabel(date: string, todayKST: string): string | null {
-  const dday = Math.round((Date.parse(date) - Date.parse(todayKST)) / 86_400_000);
-  if (dday < 0) return null;
-  return dday === 0 ? "오늘" : dday === 1 ? "내일" : `D-${dday}`;
 }
 
 /** 못 찾는 팀 이름(오타·외부팀)은 로고 없이 이름만 */
@@ -82,17 +63,11 @@ function TeamSide({ name, logoFirst }: { name: string; logoFirst: boolean }) {
  */
 export default function JungmanCover({ upcoming = [] }: { upcoming?: JungmanStandingsMatch[] }) {
   const dday = daysToFinal();
-  const todayKST = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
 
   // 대회가 끝나면 오른쪽 칸이 통째로 없어지고 왼쪽이 전체 폭을 쓴다
   const [next, ...rest] = upcoming;
   const nextColor = next ? groupColor(next.group) : "#7a8299";
-  const nextDday = next?.date ? ddayLabel(next.date, todayKST) : null;
+  const nextDday = next?.date ? jungmanDdayLabel(next.date) : null;
 
   return (
     <section className="mb-3 rounded-[1.4rem] border border-[rgba(155,185,240,0.14)] bg-[linear-gradient(180deg,#101728,#0c1220)] shadow-[0_24px_60px_rgba(0,0,0,0.55)] md:mb-4">
@@ -145,7 +120,7 @@ export default function JungmanCover({ upcoming = [] }: { upcoming?: JungmanStan
                   </span>
                 ) : null}
                 <span className="tabular-nums text-[#7a8299]">
-                  {next.date ? `${formatMatchDate(next.date)} ${JUNGMAN_MATCH_TIME} · ` : null}
+                  {next.date ? `${jungmanDateLabel(next.date)} ${JUNGMAN_MATCH_TIME} · ` : null}
                   <span className="font-black" style={{ color: nextColor }}>
                     {next.group}
                   </span>
@@ -176,7 +151,7 @@ export default function JungmanCover({ upcoming = [] }: { upcoming?: JungmanStan
                       className="shrink-0 whitespace-nowrap tabular-nums"
                       style={{ color: groupColor(match.group) }}
                     >
-                      {match.date ? `${formatMatchDate(match.date)} ${JUNGMAN_MATCH_TIME} ·` : match.group}
+                      {match.date ? `${jungmanDateLabel(match.date)} ${JUNGMAN_MATCH_TIME} ·` : match.group}
                     </span>
                     <span className="truncate font-bold text-[#e8ebf2]">
                       {match.home} vs {match.away}

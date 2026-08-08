@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { JUNGMAN_TOURNAMENT, jungmanLogoPath, jungmanTeamByName } from "@/lib/jungman";
+import { JUNGMAN_TOURNAMENT, jungmanDateLabel, jungmanLogoPath, jungmanTeamByName } from "@/lib/jungman";
 import type { JungmanStandingsMatch } from "@/lib/jungman-standings";
 
 const PANEL =
@@ -9,20 +9,6 @@ const PANEL =
 /** 토너먼트 색 — 달력의 토너먼트 카드와 같은 금색이어야 같은 것으로 읽힌다 */
 const GOLD = "#d4a94a";
 const MUTED = "#7a8299";
-
-const MATCH_DATE = new Intl.DateTimeFormat("ko-KR", {
-  timeZone: "Asia/Seoul",
-  month: "numeric",
-  day: "numeric",
-  weekday: "short",
-});
-
-/** "2026-09-03" → "9/3(목)". ko-KR은 "9. 3. (목)"으로 뱉어서 조각을 직접 조립한다. */
-function formatMatchDate(date: string): string {
-  const parts = MATCH_DATE.formatToParts(new Date(`${date}T00:00:00+09:00`));
-  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${part("month")}/${part("day")}(${part("weekday")})`;
-}
 
 /** 아직 안 정해진 자리는 이름도 로고도 없다 — 빈칸 대신 '미정'이라고 말한다 */
 function Side({ name, sets, lost }: { name?: string; sets?: number; lost?: boolean }) {
@@ -93,7 +79,7 @@ export default function JungmanBracket({ matches }: { matches: JungmanStandingsM
                       style={{ borderColor: match ? GOLD : MUTED }}
                     >
                       <p className="text-[0.6875rem] font-bold tabular-nums text-[#7a8299]">
-                        {formatMatchDate(game.date)}
+                        {jungmanDateLabel(game.date)}
                       </p>
                       <div className="mt-1 flex flex-col gap-1">
                         <Side

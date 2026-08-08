@@ -6,8 +6,11 @@ import { Fragment, useState, useSyncExternalStore } from "react";
 import {
   JUNGMAN_GROUP_COLORS,
   JUNGMAN_MATCH_TIME,
+  jungmanDateLabel,
+  jungmanDdayLabel,
   jungmanLogoPath,
   jungmanTeamByName,
+  jungmanTodayKST,
 } from "@/lib/jungman";
 import {
   JUNGMAN_ADVANCING,
@@ -30,36 +33,7 @@ const PRESS =
   "transition-[background-color,transform] duration-[120ms] active:scale-[0.985] active:bg-[rgba(155,185,240,0.1)] motion-reduce:active:scale-100";
 
 // ── 날짜·D-day ───────────────────────────────────────────────────────────
-// TODO: JungmanSchedule·JungmanCalendar도 같은 헬퍼를 갖고 있다 — 언젠가 lib으로 합칠 자리다
-const MATCH_DATE = new Intl.DateTimeFormat("ko-KR", {
-  timeZone: "Asia/Seoul",
-  month: "numeric",
-  day: "numeric",
-  weekday: "short",
-});
-const SEOUL_YMD = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Seoul",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-/** "2026-08-08" → Date. 한국 자정 기준으로 고정해 시간대에 안 흔들리게 한다 */
-const at = (date: string) => new Date(`${date}T00:00:00+09:00`);
-
-/** "2026-08-08" → "8/8(토)". ko-KR은 "8. 8. (토)"으로 뱉어서 조각을 직접 조립한다. */
-function formatMatchDate(date: string): string {
-  const parts = MATCH_DATE.formatToParts(at(date));
-  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${part("month")}/${part("day")}(${part("weekday")})`;
-}
-
-/** 날짜가 지났는데 결과가 안 들어온 경기는 D-day를 그리지 않는다 */
-function ddayLabel(date: string, todayKST: string): string | null {
-  const dday = Math.round((Date.parse(date) - Date.parse(todayKST)) / 86_400_000);
-  if (dday < 0) return null;
-  return dday === 0 ? "오늘" : dday === 1 ? "내일" : `D-${dday}`;
-}
+// 날짜 문자열과 D-day 계산은 lib/jungman.ts 한 벌뿐이다 — 화면마다 갖고 있으면 조용히 갈라진다.
 
 // 오늘은 시계에서 오고 서버 렌더에는 시계가 없다. 벽시계는 구독할 외부 값이라 절대 바뀌지 않는다.
 const noSubscribe = () => () => {};
@@ -71,7 +45,7 @@ const noSubscribe = () => () => {};
 function useTodayKST(): string | null {
   return useSyncExternalStore(
     noSubscribe,
-    () => SEOUL_YMD.format(new Date()),
+    () => jungmanTodayKST(),
     () => null
   );
 }
@@ -169,9 +143,9 @@ function MatchLine({
 }) {
   const isHome = match.home === team;
   // 좌우는 홈·원정 자리로 고정한다 — 누른 팀을 왼쪽으로 몰면 어느 쪽이 홈인지 안 보인다
-  const head = match.date ? formatMatchDate(match.date) : "일정 미정";
+  const head = match.date ? jungmanDateLabel(match.date) : "일정 미정";
   const won = isHome ? match.homeSets > match.awaySets : match.awaySets > match.homeSets;
-  const dday = !match.decided && match.date && today ? ddayLabel(match.date, today) : null;
+  const dday = !match.decided && match.date && today ? jungmanDdayLabel(match.date, today) : null;
   const sets = match.sets ?? [];
 
   const line = (

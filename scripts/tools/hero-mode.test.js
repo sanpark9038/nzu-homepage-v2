@@ -154,9 +154,9 @@ test("커버 덱은 넘어가는 슬라이드 덱이고 지도 위에 blur를 �
   assert.equal((deck.match(/<div className="stgap" \/>/g) ?? []).length, 2, "자리표시자 두 곳");
   // 폰은 1열이라(.stpanel이 숨는다) 자리표시자도 숨긴다 — 안 그러면 빈 행 간격만 먹는다
   assert.match(deck, /\.stgap\{display:none;\}/);
-  // 일정 줄의 날짜·D-day는 이미 있는 헬퍼를 쓴다 — 계산이 두 벌이 되면 조용히 어긋난다
-  assert.match(deck, /dday = match\.date \? ddayLabel\(match\.date\) : ""/);
-  assert.match(deck, /<span className="mdate">\{formatDeckDate\(match\.date\)\}<\/span>/);
+  // 일정 줄의 날짜·D-day는 lib 함수를 쓴다 — 계산이 두 벌이 되면 조용히 어긋난다
+  assert.match(deck, /dday = match\.date \? jungmanDdayLabel\(match\.date\) : null/);
+  assert.match(deck, /<span className="mdate">\{jungmanDateLabel\(match\.date\)\}<\/span>/);
   // 좁은 화면에서는 조별 순위만 남는다
   assert.match(deck, /\.stpanel\{display:none;\}/);
 });
@@ -251,7 +251,7 @@ test("커버가 일정 달력과 라운드 일정을 그린다", () => {
   assert.match(deck, /JUNGMAN_MILESTONES/);
   assert.match(deck, /JUNGMAN_MATCH_TIME/);
   // 결승 D-day는 /jungman 커버와 같은 함수를 쓴다 — 두 화면 숫자가 갈라지면 안 된다
-  assert.match(deck, /offline \? jungmanDaysToFinal\(\) : daysToKST/);
+  assert.match(deck, /offline \? jungmanDaysToFinal\(\) : jungmanDaysUntil/);
   // 지난 라운드는 안 그린다
   assert.match(deck, /filter\(\(milestone\) => milestone\.dday >= 0\)/);
   // 라운드 일정은 한 줄이다 — 3줄짜리 블록(.hd-ms*)은 걷어냈다
@@ -267,11 +267,12 @@ test("커버 달력이 일정을 고르고 지도가 그 경기를 따라간다"
   // 7열 격자 · 일요일 시작
   assert.match(deck, /\.hd-cgrid\{display:grid;grid-template-columns:repeat\(7,1fr\)/);
   assert.match(deck, /const WEEKDAYS = \["일", "월", "화", "수", "목", "금", "토"\]/);
-  // 날짜 계산은 문자열과 Intl(Asia/Seoul)로만 — UTC 게터를 쓰면 칸이 하루씩 밀린다
-  assert.match(deck, /timeZone: "Asia\/Seoul"/);
+  // 날짜 계산은 통째로 lib에 있다 — 덱이 제 포맷터를 만들면 /jungman과 칸·문자열이 갈라진다
+  assert.match(deck, /jungmanWeekdayIndex\(`\$\{month\}-01`\)/);
+  assert.doesNotMatch(deck, /new Intl\.DateTimeFormat/);
   assert.doesNotMatch(deck, /getUTC|getMonth\(\)|getDate\(\)|getDay\(\)/);
   // "오늘"은 서버 렌더에 없다 — 서버 스냅샷 null. useState+useEffect면 하이드레이션 불일치를 스스로 만든다
-  assert.match(deck, /\(\) => SEOUL_YMD\.format\(new Date\(\)\),\s*\(\) => null/);
+  assert.match(deck, /\(\) => jungmanTodayKST\(\),\s*\(\) => null/);
   assert.doesNotMatch(deck, /useEffect\(/);
   // 오늘 칸은 테두리, 지난 날짜는 흐리게
   assert.match(deck, /\.hd-cell\.is-today\{border-color/);

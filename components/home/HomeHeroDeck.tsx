@@ -27,9 +27,14 @@ import {
   JUNGMAN_PRIZE_DETAIL,
   JUNGMAN_PRIZE_TOTAL,
   JUNGMAN_TEAMS,
+  jungmanDateLabel,
   jungmanDaysToFinal,
+  jungmanDaysUntil,
+  jungmanDdayLabel,
   jungmanLogoPath,
   jungmanTeamByName,
+  jungmanTodayKST,
+  jungmanWeekdayIndex,
 } from "@/lib/jungman";
 import {
   jungmanScenarioBadge,
@@ -80,34 +85,7 @@ function useMedia(query: string): boolean {
   );
 }
 
-// 날짜 조각 조립 — /jungman의 일정·경기 결과와 같은 규칙. 언젠가 lib으로 합칠 자리다.
-const DECK_DATE = new Intl.DateTimeFormat("ko-KR", {
-  timeZone: "Asia/Seoul",
-  month: "numeric",
-  day: "numeric",
-  weekday: "short",
-});
-
-const SEOUL_YMD = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Seoul",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-const SEOUL_WEEKDAY = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", weekday: "short" });
-
-/** "2026-08-08" → "8/8(토)" */
-function formatDeckDate(date: string): string {
-  const parts = DECK_DATE.formatToParts(new Date(`${date}T00:00:00+09:00`));
-  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${part("month")}/${part("day")}(${part("weekday")})`;
-}
-
-/** "2026-08-01" → 0(일)~6(토). 지역 시간 게터로 요일을 뽑으면 브라우저 시간대에 따라 칸이 하루씩 밀린다 */
-function weekdayOf(date: string): number {
-  return WEEKDAYS.indexOf(SEOUL_WEEKDAY.format(new Date(`${date}T00:00:00+09:00`)));
-}
+// 날짜 문자열·D-day 계산은 lib/jungman.ts 한 벌뿐이다 — /jungman 화면들과 같은 함수를 쓴다.
 
 /** "2026-08" 한 달의 날 수. 윤년만 따지면 되는 산수라 Date를 다시 부르지 않는다 */
 function daysInMonth(ym: string): number {
@@ -121,18 +99,6 @@ function daysInMonth(ym: string): number {
 function groupColor(group: string): string {
   const index = "ABCD".indexOf(group.trim().charAt(0).toUpperCase());
   return index < 0 ? NO_GROUP : JUNGMAN_GROUP_COLORS[index];
-}
-
-/** 한국 날짜 기준 남은 날. 브라우저 시계가 어느 지역이든 같은 숫자가 나온다 */
-function daysToKST(date: string): number {
-  return Math.round((Date.parse(date) - Date.parse(SEOUL_YMD.format(new Date()))) / 86_400_000);
-}
-
-/** 지난 날짜는 D-day를 안 그린다 — 결과가 안 들어온 경기에 거짓 숫자를 붙이지 않는다 */
-function ddayLabel(date: string): string {
-  const dday = daysToKST(date);
-  if (dday < 0) return "";
-  return dday === 0 ? "오늘" : dday === 1 ? "내일" : `D-${dday}`;
 }
 
 /**
@@ -544,7 +510,7 @@ function MatchRow({
         <span className={`mtxt${focus === match.away ? " is-me" : ""}${dim(!homeWon)}`}>{match.away}</span>
       ) : null}
       {match.date ? (
-        <span className="mdate">{focus ? formatDeckDate(match.date) : match.date.slice(5)}</span>
+        <span className="mdate">{focus ? jungmanDateLabel(match.date) : match.date.slice(5)}</span>
       ) : null}
     </>
   );
@@ -580,7 +546,7 @@ function MatchRow({
 function NextRow({ match, focus }: { match: JungmanStandingsMatch; focus?: string }) {
   const home = jungmanTeamByName(match.home);
   const away = jungmanTeamByName(match.away);
-  const dday = match.date ? ddayLabel(match.date) : "";
+  const dday = match.date ? jungmanDdayLabel(match.date) : null;
   return (
     <div className="mrow">
       {dday ? <span className="mchip is-d">{dday}</span> : null}
@@ -593,7 +559,7 @@ function NextRow({ match, focus }: { match: JungmanStandingsMatch; focus?: strin
       {away ? (
         <Image src={jungmanLogoPath(away.code)} alt={match.away} width={30} height={30} className="mlogo" />
       ) : null}
-      {match.date ? <span className="mdate">{formatDeckDate(match.date)}</span> : null}
+      {match.date ? <span className="mdate">{jungmanDateLabel(match.date)}</span> : null}
       {focus && match.date ? <span className="mdate">{JUNGMAN_MATCH_TIME}</span> : null}
     </div>
   );
@@ -624,7 +590,7 @@ function CoverCalendar({
   onPick: (date: string | null) => void;
   onHover: (date: string | null) => void;
 }) {
-  const today = useSyncExternalStore(noSubscribe, () => SEOUL_YMD.format(new Date()), () => null);
+  const today = useSyncExternalStore(noSubscribe, () => jungmanTodayKST(), () => null);
   const [pickedMonth, setPickedMonth] = useState<string | null>(null);
 
   const byDate = useMemo(() => {
@@ -644,7 +610,7 @@ function CoverCalendar({
 
   const cells = useMemo(() => {
     if (!month) return [];
-    const lead = weekdayOf(`${month}-01`);
+    const lead = jungmanWeekdayIndex(`${month}-01`);
     return [
       ...Array.from({ length: lead }, () => null),
       ...Array.from({ length: daysInMonth(month) }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`),
@@ -875,9 +841,9 @@ export default function HomeHeroDeck({
         return {
           label: milestone.label,
           // 결승은 날짜 한 개뿐이라 상수 문구(장소) 대신 날짜를 그린다 — 나머지는 note가 이미 날짜 나열이다
-          note: offline ? formatDeckDate(milestone.date) : milestone.note,
+          note: offline ? jungmanDateLabel(milestone.date) : milestone.note,
           offline,
-          dday: offline ? jungmanDaysToFinal() : daysToKST(milestone.date),
+          dday: offline ? jungmanDaysToFinal() : jungmanDaysUntil(milestone.date),
         };
       }).filter((milestone) => milestone.dday >= 0),
     []
@@ -1071,12 +1037,12 @@ export default function HomeHeroDeck({
                             <span className="hd-fxd">
                               {focusMatch.homeSets} : {focusMatch.awaySets}
                             </span>
-                          ) : focusMatch.date && ddayLabel(focusMatch.date) ? (
+                          ) : focusMatch.date && jungmanDdayLabel(focusMatch.date) ? (
                             <span suppressHydrationWarning className="hd-fxd">
-                              {ddayLabel(focusMatch.date)}
+                              {jungmanDdayLabel(focusMatch.date)}
                             </span>
                           ) : null}
-                          {focusMatch.date ? <span>{formatDeckDate(focusMatch.date)}</span> : null}
+                          {focusMatch.date ? <span>{jungmanDateLabel(focusMatch.date)}</span> : null}
                           <span>{JUNGMAN_MATCH_TIME}</span>
                           <span className="hd-fxg">{focusMatch.group}</span>
                         </p>
