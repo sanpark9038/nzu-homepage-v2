@@ -10,7 +10,15 @@ function readProjectFile(relativePath) {
 }
 
 /** 프로젝트 TS를 그대로 트랜스파일해 실제 로직을 돌린다 (jungman-contract.test.js와 같은 방식). */
-function loadModule(relativePath, resolve = () => ({})) {
+/**
+ * 대회 규칙(패널티 등)은 lib/jungman.ts에 산다. 그걸 빈 객체로 스텁하면
+ * 규칙이 빠진 채로 통과해버린다 — 진짜 모듈을 물려준다.
+ */
+function defaultResolve(id) {
+  return id === "@/lib/jungman" ? loadModule("lib/jungman.ts") : {};
+}
+
+function loadModule(relativePath, resolve = defaultResolve) {
   const compiled = ts.transpileModule(readProjectFile(relativePath), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
@@ -1512,6 +1520,130 @@ test("공개 페이지가 대진표를 일정과 경기 결과 사이에 그린�
   // 로고·팀 조회는 공용 함수에서만 온다
   assert.match(source, /jungmanTeamByName\(name\)\?\.code/);
   assert.match(source, /jungmanLogoPath\(code\)/);
+});
+
+// ── 패널티(수술대 0:1 시작) ────────────────────────────────────────────────
+
+/** D조 모양 그대로. sets를 주면 실제로 치른 세트만 담는다 */
+function penaltyStandings(matches) {
+  return parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "D조", teams: ["수술대", "신세계", "흑카데미"] }],
+      matches,
+    })
+  );
+}
+
+test("안 치른 패널티 경기에는 세트를 얹지 않는다", () => {
+  const parsed = penaltyStandings([
+    { group: "D조", home: "수술대", away: "신세계", date: "2026-08-13", homeSets: 0, awaySets: 0 },
+  ]);
+  const match = parsed.matches[0];
+  // 0:0 그대로여야 예정 경기로 남는다 — 0:1이 되면 시작도 안 한 경기가 패로 잡힌다
+  assert.strictEqual(match.homeSets, 0);
+  assert.strictEqual(match.awaySets, 0);
+  assert.strictEqual(match.decided, false);
+  assert.strictEqual(upcomingJungmanMatches(parsed.matches).length, 1);
+});
+
+test("치른 경기는 상대에게 1세트를 얹어 보여준다", () => {
+  const parsed = penaltyStandings([
+    // 수술대가 실제로 5:0으로 이겼다 → 화면에는 5:1
+    { group: "D조", home: "수술대", away: "신세계", homeSets: 5, awaySets: 0 },
+    // 홈/원정이 바뀌어도 세트를 받는 쪽은 늘 수술대의 상대다
+    { group: "D조", home: "흑카데미", away: "수술대", homeSets: 4, awaySets: 2 },
+  ]);
+  assert.deepStrictEqual(
+    parsed.matches.map((m) => [m.home, m.homeSets, m.awaySets]),
+    [
+      ["수술대", 5, 1],
+      ["흑카데미", 5, 2],
+    ]
+  );
+});
+
+test("패널티 세트가 순위표의 세트 득실까지 따라간다", () => {
+  const parsed = penaltyStandings([
+    { group: "D조", home: "수술대", away: "신세계", homeSets: 5, awaySets: 0 },
+  ]);
+  const rows = buildJungmanGroupTables(parsed)[0].rows;
+  const 수술대 = rows.find((r) => r.team === "수술대");
+  const 신세계 = rows.find((r) => r.team === "신세계");
+  // 이겼어도 5:0이 아니라 5:1이라 득실은 +5가 아닌 +4다
+  assert.strictEqual(수술대.setDiff, 4);
+  assert.strictEqual(수술대.wins, 1);
+  assert.strictEqual(신세계.setsWon, 1);
+  assert.strictEqual(신세계.setDiff, -4);
+});
+
+test("경우의 수는 패널티 경기에서 상대가 0세트로 지는 경우를 만들지 않는다", () => {
+  // 흑카데미가 이미 2승 — 남은 건 수술대 vs 신세계 한 경기다
+  const parsed = penaltyStandings([
+    { group: "D조", home: "흑카데미", away: "신세계", homeSets: 5, awaySets: 0 },
+    { group: "D조", home: "흑카데미", away: "수술대", homeSets: 5, awaySets: 1 },
+    { group: "D조", home: "수술대", away: "신세계", date: "2026-08-20", homeSets: 0, awaySets: 0 },
+  ]);
+  // 남은 경기가 뭐가 나오든 계산이 돌고 세 팀 모두 판정이 나온다
+  const scenarios = buildJungmanScenarios(parsed).get("D조");
+  assert.strictEqual(scenarios.length, 3);
+  assert.strictEqual(scenarios.find((s) => s.team === "흑카데미").clinched, true);
+});
+
+test("세트를 직접 넣어도 패널티가 같이 얹힌다", () => {
+  const parsed = penaltyStandings([
+    {
+      group: "D조",
+      home: "수술대",
+      away: "신세계",
+      // 실제로 치른 세트만 넣는다 — 먼저 주는 1세트는 관리자가 적지 않는다
+      sets: [
+        { map: "투혼", home: "가", away: "나", winner: "away" },
+        { map: "폴리포이드", home: "가", away: "나", winner: "away" },
+        { map: "네오 실피드", home: "가", away: "나", winner: "away" },
+        { map: "블리츠", home: "가", away: "나", winner: "away" },
+      ],
+    },
+  ]);
+  const match = parsed.matches[0];
+  // 신세계는 4세트만 따고도 5:0으로 이긴다
+  assert.strictEqual(match.homeSets, 0);
+  assert.strictEqual(match.awaySets, 5);
+  assert.strictEqual(match.decided, true);
+  // 선수 전적은 실제로 치른 4세트만 센다 — 유령 세트에는 선수가 없다
+  const ranks = buildJungmanPlayerRanks(parsed.matches);
+  assert.strictEqual(ranks.find((r) => r.name === "나").wins, 4);
+});
+
+test("패널티 없는 조는 아무것도 바뀌지 않는다", () => {
+  const parsed = parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "A조", teams: ["가대", "나대", "다대"] }],
+      matches: [{ group: "A조", home: "가대", away: "나대", homeSets: 5, awaySets: 0 }],
+    })
+  );
+  assert.strictEqual(parsed.matches[0].awaySets, 0);
+});
+
+test("패널티 표기가 순위표·경기 결과·관리자 세 곳에 다 있다", () => {
+  // 규칙은 lib 한 곳에서만 정의된다 — 화면마다 팀 이름을 적으면 갈라진다
+  const lib = readProjectFile("lib/jungman.ts");
+  assert.match(lib, /JUNGMAN_SET_PENALTY[\s\S]{0,80}수술대: 1/);
+  assert.match(lib, /export function jungmanHandicap/);
+
+  for (const file of [
+    "app/jungman/JungmanGroupTables.tsx",
+    "app/jungman/JungmanMatchResults.tsx",
+    "app/admin/jungman/JungmanStandingsAdmin.tsx",
+  ]) {
+    const source = readProjectFile(file);
+    assert.match(source, /JUNGMAN_SET_PENALTY|jungmanHandicap/, `${file}에 패널티 표기가 없다`);
+  }
+  // 공개 화면은 팀 이름을 직접 적지 않는다 — 패널티 팀이 바뀌면 lib만 고치면 되게
+  for (const file of ["app/jungman/JungmanGroupTables.tsx", "app/jungman/JungmanMatchResults.tsx"]) {
+    assert.doesNotMatch(readProjectFile(file), /수술대/, `${file}이 팀 이름을 직접 적고 있다`);
+  }
 });
 
 process.exitCode = failed ? 1 : 0;

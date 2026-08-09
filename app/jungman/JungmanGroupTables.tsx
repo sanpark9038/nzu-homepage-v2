@@ -6,6 +6,8 @@ import { Fragment, useState, useSyncExternalStore } from "react";
 import {
   JUNGMAN_GROUP_COLORS,
   JUNGMAN_MATCH_TIME,
+  JUNGMAN_PENALTY_NOTE,
+  JUNGMAN_SET_PENALTY,
   jungmanDateLabel,
   jungmanDdayLabel,
   jungmanLogoPath,
@@ -289,6 +291,8 @@ function GroupCard({
   onToggle: (team: string) => void;
   today: string | null;
 }) {
+  const penalized = table.rows.map((row) => row.team).filter((team) => JUNGMAN_SET_PENALTY[team]);
+
   return (
     <section className={`${PANEL} overflow-hidden`} style={{ ["--gc" as string]: color }}>
       <header
@@ -301,6 +305,12 @@ function GroupCard({
         <span className="text-[0.625rem] font-bold text-[#7a8299] md:text-xs">
           {table.rows.length}팀 풀리그
         </span>
+        {/* 패널티 받은 팀이 있는 조에서만 뜼다 — 이걸 모르면 세트 점수가 틀린 것처럼 보인다 */}
+        {penalized.length ? (
+          <span className="text-[0.625rem] font-bold text-[#e0574a] md:text-xs">
+            {penalized.join("·")} {JUNGMAN_PENALTY_NOTE}
+          </span>
+        ) : null}
       </header>
 
       <div className="px-3 pb-3 md:px-4 md:pb-4">

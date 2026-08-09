@@ -3,6 +3,8 @@
  * 관리자가 손으로 넣는 JSON이라 파싱은 방어적으로, 계산은 순수 함수로 여기서 끝낸다.
  */
 
+import { jungmanHandicap } from "@/lib/jungman";
+
 export const JUNGMAN_STANDINGS_KEY = "jungman_standings";
 
 /** 한 세트. 종족은 저장하지 않는다 — 선수 이름에서 나중에 찾는다(raceOfName). */
@@ -138,6 +140,14 @@ export function parseJungmanStandings(raw: string | null | undefined): JungmanSt
       homeSets = count(match.homeSets);
       awaySets = count(match.awaySets);
       if (homeSets === null || awaySets === null) continue;
+    }
+
+    // 패널티(0:1 시작)는 실제로 치른 경기에만 얹는다 — 아직 안 한 경기(0:0)에 얹으면
+    // 0:1이 되어 끝난 경기로 읽히고 순위표에 없는 패가 하나 생긴다
+    if (homeSets > 0 || awaySets > 0) {
+      const handicap = jungmanHandicap(home, away);
+      homeSets += handicap.home;
+      awaySets += handicap.away;
     }
 
     // 형식이 어긋난 날짜는 없는 것으로 친다 — 정렬이 조용히 뒤엉키는 것보다 낫다
@@ -475,7 +485,13 @@ export function buildJungmanScenarios(standings: JungmanStandings): Map<string, 
         if (!home || !away) continue; // 위에서 걸렀지만 타입상 방어
         // 앞 5가지는 홈 승, 뒤 5가지는 원정 승. 나머지 자리가 진 쪽 세트 수(0~4)
         const winnerIsHome = outcome < 5;
-        const loserSets = outcome % 5;
+        // 패널티 경기는 진 쪽이 그 세트를 이미 갖고 있다 — 0:5가 나올 수 없다.
+        // 0과 1이 같은 결과로 겹치지만 "가능한가"만 보므로 답은 달라지지 않는다
+        const handicap = jungmanHandicap(match.home, match.away);
+        const loserSets = Math.max(
+          winnerIsHome ? handicap.away : handicap.home,
+          outcome % 5
+        );
         homeWon.push(winnerIsHome);
         h2h.push({ home: match.home, away: match.away, homeWon: winnerIsHome });
         applyResult(home, winnerIsHome ? 5 : loserSets, winnerIsHome ? loserSets : 5);

@@ -26,6 +26,25 @@ export const JUNGMAN_BRACKET_NOTE = "8강은 조 1위 ↔ 2위가 붙도록 추�
 /** 전 경기 오후 7시 시작 (결승만 미정) */
 export const JUNGMAN_MATCH_TIME = "19:00";
 
+/**
+ * 패널티 — 이 팀은 매 경기를 0:1로 시작한다. 값은 상대가 먼저 갖고 들어가는 세트 수다.
+ * 그래서 상대는 4세트만 따면 이기고 이 팀은 5세트를 따야 이긴다.
+ * 관리자는 실제로 치른 세트만 넣는다 — 먼저 주는 세트는 이 값으로 사이트가 얹는다.
+ */
+export const JUNGMAN_SET_PENALTY: Record<string, number> = { 수술대: 1 };
+
+/** 이 경기에서 양 팀이 갖고 시작하는 세트. 패널티 팀이 없으면 둘 다 0이다 */
+export function jungmanHandicap(home: string, away: string): { home: number; away: number } {
+  // 패널티를 받은 쪽이 아니라 그 상대가 세트를 갖는다 — 방향을 뒤집으면 조용히 반대가 된다
+  return {
+    home: JUNGMAN_SET_PENALTY[away] ?? 0,
+    away: JUNGMAN_SET_PENALTY[home] ?? 0,
+  };
+}
+
+/** 패널티 안내 문구. 여러 화면이 같은 말을 해야 한다 */
+export const JUNGMAN_PENALTY_NOTE = "패널티 — 매 경기 0:1로 시작";
+
 /** 토너먼트 라운드 일정. 대진은 조별리그가 끝나야 나오므로 날짜만 갖는다. */
 export const JUNGMAN_MILESTONES = [
   { date: "2026-09-03", label: "8강", note: "9/3 · 9/4 · 9/5 · 9/6" },

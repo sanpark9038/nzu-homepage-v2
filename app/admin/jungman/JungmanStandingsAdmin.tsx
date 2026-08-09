@@ -3,7 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { RaceLetterBadge } from "@/components/ui/race-letter-badge";
-import { JUNGMAN_MATCH_TIME, JUNGMAN_TEAMS, JUNGMAN_TOURNAMENT } from "@/lib/jungman";
+import {
+  JUNGMAN_MATCH_TIME,
+  JUNGMAN_TEAMS,
+  JUNGMAN_TOURNAMENT,
+  jungmanHandicap,
+} from "@/lib/jungman";
 import { setScoreOf, type JungmanStandingsMatch, type JungmanStandingsSet } from "@/lib/jungman-standings";
 import { raceOfName, type RaceLookupPlayer } from "@/lib/overlay-race";
 import { DEFAULT_MAPS } from "@/lib/overlay-types";
@@ -200,8 +205,18 @@ function SetEditor({
   awayList: string;
   onEdit: (index: number, patch: Partial<MatchSet>) => void;
 }) {
+  // 패널티로 먼저 주는 세트는 사이트가 앎는다 — 여기서 또 넣으면 두 번 세진다
+  const handicap = jungmanHandicap(home, away);
+  const headStart = handicap.home > 0 ? home : handicap.away > 0 ? away : null;
+
   return (
     <div className="mt-1 space-y-1 border-t border-white/5 pt-2">
+      {headStart ? (
+        <p className="rounded bg-[#e0574a]/10 px-2 py-1 text-[0.7rem] font-bold text-[#e0574a]">
+          패널티 경기 — {headStart}가 1세트를 먼저 갖고 시작합니다. 그 세트는 사이트가 앎으니{" "}
+          <b className="text-white/75">실제로 치른 세트만</b> 넣으세요.
+        </p>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2 text-[0.7rem] font-black text-white/35">
         <span className="w-5" />
         <span className="w-28">{home}</span>
