@@ -1646,4 +1646,26 @@ test("패널티 표기가 순위표·경기 결과·관리자 세 곳에 다 있
   }
 });
 
+test("패널티는 8강·4강·결승까지 그대로 따라간다", () => {
+  const parsed = parseJungmanStandings(
+    JSON.stringify({
+      announced: true,
+      groups: [{ name: "D조", teams: ["수술대", "신세계", "흑카데미"] }],
+      matches: [
+        { group: "8강", date: "2026-09-03", home: "수술대", away: "가대", homeSets: 5, awaySets: 2 },
+        { group: "4강", date: "2026-09-12", home: "나대", away: "수술대", homeSets: 4, awaySets: 3 },
+        { group: "결승", date: "2026-09-26", home: "수술대", away: "다대", homeSets: 5, awaySets: 0 },
+      ],
+    })
+  );
+  // 조별리그만 적용하는 게 아니다 — 대회 끝까지 상대가 1세트를 먼저 갖는다
+  assert.deepStrictEqual(
+    parsed.matches.map((m) => `${m.group} ${m.homeSets}:${m.awaySets}`),
+    ["8강 5:3", "4강 5:3", "결승 5:1"]
+  );
+  // 토너먼트 경기는 조별 순위표에 섞이지 않는다(조 이름이 다르다)
+  const rows = buildJungmanGroupTables(parsed)[0].rows;
+  assert.deepStrictEqual(rows.map((r) => r.wins), [0, 0, 0]);
+});
+
 process.exitCode = failed ? 1 : 0;
