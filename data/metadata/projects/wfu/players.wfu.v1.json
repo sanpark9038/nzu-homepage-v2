@@ -1,11 +1,11 @@
 {
   "schema_version": "1.0.0",
-  "generated_at": "2026-07-20T12:15:58.120Z",
+  "generated_at": "2026-08-09T03:40:33.951Z",
   "project": "wfu",
   "team_name": "와플대",
   "team_code": "wfu",
   "team_name_en": "WFU",
-  "roster_count": 14,
+  "roster_count": 15,
   "roster": [
     {
       "team_name": "와플대",
@@ -473,6 +473,35 @@
       "profile_url": "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=211",
       "profile_kind": "default",
       "soop_user_id": "julyzerg"
+    },
+    {
+      "team_name": "와플대",
+      "team_code": "wfu",
+      "entity_id": "eloboard:female:1049",
+      "wr_id": 1049,
+      "gender": "female",
+      "name": "여지니",
+      "display_name": "여지니",
+      "profile_url": "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1049",
+      "profile_kind": "default",
+      "tier": "9",
+      "race": "Protoss",
+      "source": "manual_override",
+      "missing_in_master": false,
+      "meta_tags": [
+        "domain:player",
+        "team:wfu",
+        "team_code:wfu",
+        "team_ko:와플대",
+        "team_en:wfu",
+        "gender:female",
+        "race:protoss",
+        "tier:9"
+      ],
+      "role_title": "",
+      "role_priority": null,
+      "tier_key": "9",
+      "soop_user_id": "e2003jin"
     }
   ],
   "source_file": "data/metadata/projects/wfu/players.wfu.v1.json",
