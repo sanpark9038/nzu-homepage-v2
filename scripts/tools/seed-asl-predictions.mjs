@@ -37,7 +37,7 @@ const { ASL_GROUPS, ASL_MATCH_TIME, ASL_SEASON } = loadModule("lib/asl.ts", (id)
 );
 const { JUNGMAN_MATCH_TIME } = jungman;
 const { JUNGMAN_STANDINGS_KEY, parseJungmanStandings, upcomingJungmanMatches } =
-  loadModule("lib/jungman-standings.ts");
+  loadModule("lib/jungman-standings.ts", (id) => (id === "@/lib/jungman" ? jungman : {}));
 
 /** 당일 오후 6시 마감 — 방송(19:00) 1시간 전 (사용자 지정) */
 const CLOSE_TIME = "18:00";
