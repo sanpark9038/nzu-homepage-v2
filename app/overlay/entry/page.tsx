@@ -32,7 +32,8 @@ function EntryBoardInner() {
   const { left, right, sets, matchFormat } = state;
   const isMini = matchFormat === "mini";
   // 대전 및 CK는 단판이라 세트 개념이 없음 → "1SET" 라벨을 숨긴다 (스코어보드와 같은 규칙)
-  const showSetLabel = matchFormat !== "university";
+  // 자유방식도 세트가 하나뿐이면 동일 — 세트를 추가하면 구분용으로 다시 표시
+  const showSetLabel = matchFormat !== "university" && !(matchFormat === "free" && sets.length === 1);
   const hasBoard = !!overlayKey && sets.length > 0;
 
   // 소스 크기가 뭐든 대진표 전체가 안에 들어오게 — 가로·세로 중 먼저 닿는 쪽에 맞춰 확대(contain).

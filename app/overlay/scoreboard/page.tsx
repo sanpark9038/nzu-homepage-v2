@@ -269,8 +269,9 @@ function ScoreboardInner() {
   const { mode, title, left, right, sets, activeSetId, scoreboardLayout, entryLayout, matchFormat } = state;
   const isTeam    = mode === "team";
   const isMini    = matchFormat === "mini";
-  // 대전 및 CK는 보통 세트 하나만 진행하므로 SET 표시를 안 함
-  const showSetLabel = matchFormat !== "university";
+  // 대전 및 CK는 보통 세트 하나만 진행하므로 SET 표시를 안 함.
+  // 자유방식도 세트가 하나뿐이면 세트 개념이 무의미 → 숨김 (세트를 추가하면 구분용으로 다시 표시)
+  const showSetLabel = matchFormat !== "university" && !(matchFormat === "free" && sets.length === 1);
 
   // 미니대전: 세트 스코어(세트 획득 수) + 슈에 필요 여부
   const setScore   = setScoreOf(sets);

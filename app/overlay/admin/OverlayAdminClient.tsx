@@ -606,7 +606,7 @@ export default function OverlayAdminClient({
   };
 
 
-  // OBS 레이아웃을 기본값으로 — 지금 값(스코어보드 0/373/0.54, 대진표 330/770/1)이 일반 상황에 맞게 잡혀 있어서,
+  // OBS 레이아웃을 기본값으로 — 지금 값(스코어보드 0/376/0.54, 대진표 330/770/1)이 일반 상황에 맞게 잡혀 있어서,
   // 이것저것 만지다 틀어졌을 때 되돌릴 수 있게 해둔다. 표시 on/off는 사용자가 방금 정한 것이라 건드리지 않음.
   const resetLayouts = () => {
     const d = defaultOverlayState();
@@ -670,8 +670,11 @@ export default function OverlayAdminClient({
   const scoreLeft  = activeSet?.entries.filter(e => e.result === "left").length  ?? 0;
   const scoreRight = activeSet?.entries.filter(e => e.result === "right").length ?? 0;
   const editingSet = state.sets.find(s => s.id === adminTab) ?? null;
+  // 자유방식 + 세트 1개 = 세트 개념이 무의미한 상태 — 방송 오버레이의 세트 표기 숨김과 같은 규칙
+  const singleFreeSet = state.matchFormat === "free" && state.sets.length === 1;
   const setLabelOf = (set: OverlaySet) => {
     if (set.isAce) return state.matchFormat === "mini" ? "슈에" : "에이스";
+    if (singleFreeSet) return "경기 목록";
     return `${state.sets.findIndex(s => s.id === set.id) + 1}SET`;
   };
   const activeSetLabel = activeSet ? setLabelOf(activeSet) : "-";
@@ -896,7 +899,9 @@ export default function OverlayAdminClient({
                 )}
               </div>
 
-              <span className="ml-auto text-xs font-semibold text-white/35 shrink-0">활성 세트 · {activeSetLabel}</span>
+              {!singleFreeSet && (
+                <span className="ml-auto text-xs font-semibold text-white/35 shrink-0">활성 세트 · {activeSetLabel}</span>
+              )}
             </div>
 
             {/* 팀명 입력 + 점수 (한 줄로 병합 — 좌팀칸 0:0 우팀칸) */}
@@ -1131,7 +1136,7 @@ export default function OverlayAdminClient({
             {/* 세트 탭 — 대전 및 CK(단판)는 세트가 하나라 통째로 숨김 */}
             {!hideSetTabs && (
             <div className="flex items-center gap-1 px-3 pt-3 pb-2 border-b border-white/8 flex-wrap">
-              {state.sets.map((set, idx) => {
+              {state.sets.map((set) => {
                 const winner = isMini ? setWinnerOf(set) : null;         // 이 세트를 이긴 쪽
                 const aceUnneeded = isMini && set.isAce && aceNeeded === false; // 슈에 불필요(2:0)
                 const aceGo       = isMini && set.isAce && aceNeeded === true;  // 슈에 진행(1:1)
@@ -1146,9 +1151,7 @@ export default function OverlayAdminClient({
                       : aceGo ? "bg-amber-500/15 border border-amber-400/50 text-amber-200"
                       : "bg-white/5 border border-white/10 text-white/40 hover:bg-white/10"
                   }`}>
-                  {set.isAce
-                    ? (state.matchFormat === "mini" ? "슈에" : "에이스")
-                    : `${idx + 1}SET`}
+                  {setLabelOf(set)}
                   {/* 승리 세트 표시 (미니대전) */}
                   {winner && <span className="ml-1 text-[10px] font-black" style={{ color: winner === "left" ? "#d08a84" : "#8aa6d0" }}>✓</span>}
                   {aceUnneeded && <span className="ml-1 text-[9px] font-semibold text-white/50">불필요</span>}
