@@ -190,8 +190,8 @@ function PlayerSearchResultInner({
 
         {/* ── 프로필 사진 컬럼 ── */}
         <div className="md:row-span-2">
-          <div className="group relative w-[124px] shrink-0">
-            <div className="relative h-[124px] w-[124px] overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+          <div className="group relative mx-auto w-[200px] shrink-0 md:mx-0 md:w-[124px]">
+            <div className="relative mx-auto h-[124px] w-[124px] overflow-hidden rounded-2xl border border-white/10 bg-black/30">
               {liveWatchUrl ? (
                 <Link href={liveWatchUrl} target="_blank" rel="noreferrer" className="block h-full w-full">
                   <Image src={profileImageUrl} alt={player.name} fill sizes={profileImageSizes} unoptimized className="object-cover object-top transition-transform duration-300 hover:scale-105" />
@@ -269,8 +269,8 @@ function PlayerSearchResultInner({
         </div>
 
         {/* ── 정보 패널 행 (학교/티어/종족/최다 상대 + 상세 버튼) ── */}
-        <div className="flex items-stretch gap-6">
-          <div className="grid flex-1 items-stretch gap-3 sm:grid-cols-2 md:grid-cols-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-stretch md:gap-6">
+          <div className="grid grid-cols-2 flex-1 items-stretch gap-3 md:grid-cols-4">
             <StatPanel label="학교">{universityLabel}</StatPanel>
             <StatPanel label="티어">
               {frozenTier ? (
@@ -317,7 +317,7 @@ function PlayerSearchResultInner({
           <button
             type="button"
             onClick={handleToggleExpanded}
-            className="inline-flex w-[150px] shrink-0 items-center justify-center rounded-xl border border-nzu-green/20 bg-nzu-green/[0.07] px-4 text-nzu-green transition-all hover:border-nzu-green/38 hover:bg-nzu-green/[0.12] xl:w-[160px]"
+            className="inline-flex h-12 w-full shrink-0 items-center justify-center rounded-xl border border-nzu-green/20 bg-nzu-green/[0.07] px-4 text-nzu-green transition-all hover:border-nzu-green/38 hover:bg-nzu-green/[0.12] md:h-auto md:w-[150px] xl:w-[160px]"
           >
             <span className="text-lg font-semibold tracking-tight">
               {isExpanded ? "상세 닫기" : "상세 리포트"}
@@ -326,20 +326,20 @@ function PlayerSearchResultInner({
         </div>
 
         {/* ── Row 2: 지표 카드 + 최근 5경기 ── */}
-        <div className="flex min-w-0 items-stretch gap-6">
+        <div className="flex min-w-0 flex-col gap-4 md:flex-row md:items-stretch md:gap-6">
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-1">
               <span className="ui-label text-nzu-green">통산 기준: 2025.01.01 ~ 현재</span>
               <span className="ui-label text-red-400">최근 기준: 최근 3개월 경기</span>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
               <MetricCard tone="green" label="통산 승률" value={player.win_rate != null ? `${player.win_rate}%` : "-"} />
               <MetricCard tone="green" label="통산 전적" value={`${player.total_wins ?? 0}승 / ${player.total_losses ?? 0}패`} />
               <MetricCard tone="red" label="최근 승률" value={recentSummary.winRate} />
               <MetricCard tone="red" label="최근 전적" value={`${recentSummary.wins}승 / ${recentSummary.losses}패`} />
             </div>
           </div>
-          <div className="flex w-[220px] shrink-0 flex-col xl:w-[240px]">
+          <div className="flex w-full shrink-0 flex-col md:w-[220px] xl:w-[240px]">
             <p className="ui-label mb-3">최근 5경기 흐름</p>
             <div className="flex flex-1 flex-col rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3.5 xl:px-4 xl:py-4">
               <div className="flex items-center justify-between text-xs font-medium text-white/38">
@@ -855,7 +855,7 @@ type MatchHistoryApiResponse = {
 
 function MatchLogRow({ log }: { log: MatchHistoryApiItem }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-white/7 bg-white/[0.02] px-3 py-2 md:gap-2.5 md:px-4">
+    <div className="flex flex-wrap items-center gap-2 gap-y-1 rounded-xl border border-white/7 bg-white/[0.02] px-3 py-2 md:flex-nowrap md:gap-2.5 md:px-4">
       <span
         className={cn(
           "inline-flex h-7 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-semibold",
@@ -879,7 +879,7 @@ function MatchLogRow({ log }: { log: MatchHistoryApiItem }) {
         </span>
       ) : null}
       {log.note ? (
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-white/50" title={log.note}>
+        <span className="order-last basis-full text-sm font-medium text-white/50 md:order-none md:min-w-0 md:flex-1 md:basis-auto md:truncate" title={log.note}>
           {log.note}
         </span>
       ) : null}
