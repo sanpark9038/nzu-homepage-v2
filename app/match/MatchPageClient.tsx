@@ -83,23 +83,6 @@ type MatchupStats = {
   recent: [number, number];
 };
 
-type MomentumInsight = {
-  strongMap: string;
-  mapRecord: string;
-  raceTarget: string;
-  recentRecord: string;
-  recentTone: string;
-  recentSummary: string;
-  formLabel: string;
-  overallSampleCount: number;
-  recentSampleCount: number;
-  recentWinRateLabel: string;
-  mapSampleCount: number;
-  latestMatchLabel: string;
-  isRecentSampleThin: boolean;
-  isMapSampleThin: boolean;
-};
-
 function formatMatchDateLabel(value: string | null | undefined) {
   const raw = String(value || "").trim();
   if (!raw) return "최근 맞대결 없음";
@@ -111,105 +94,36 @@ function formatMatchDateLabel(value: string | null | undefined) {
   return `${year}.${month}.${day}`;
 }
 
-function getFormToneClasses(label: string, side: 'left' | 'right') {
-  if (label === '우세') {
-    return side === 'left'
-      ? 'text-nzu-green'
-      : 'text-red-200';
-  }
-  if (label === '열세') {
-    return side === 'left'
-      ? 'text-white/58'
-      : 'text-white/58';
-  }
-  if (label === '접전') {
-    return 'text-white/78';
-  }
-  return 'text-white/42';
+/** 왼쪽(p1) 승 = nzu-green, 오른쪽(p2) 승 = red 로 분할되는 승률 바. */
+function SplitBar({ wins, losses, className }: { wins: number; losses: number; className?: string }) {
+  const total = wins + losses;
+  return (
+    <div className={cn("flex overflow-hidden rounded-full bg-white/[0.06]", className)}>
+      {total > 0 ? (
+        <>
+          <div
+            className="shrink-0 bg-nzu-green shadow-[0_0_8px_rgba(0,255,163,0.35)]"
+            style={{ width: `${(wins / total) * 100}%` }}
+          />
+          <div className="flex-1 bg-red-500/80 shadow-[0_0_8px_rgba(239,68,68,0.28)]" />
+        </>
+      ) : null}
+    </div>
+  );
 }
+
+// 선수 페이지(RaceStatRow)와 같은 종족 색 언어. 상대 종족전 카드에서 사용.
+const RACE_EDGE_TONE: Record<string, { border: string; bar: string; text: string }> = {
+  T: { border: "border-terran/20 bg-terran/[0.04]", bar: "bg-terran", text: "text-terran" },
+  Z: { border: "border-zerg/20 bg-zerg/[0.04]", bar: "bg-zerg", text: "text-zerg" },
+  P: { border: "border-protoss/20 bg-protoss/[0.04]", bar: "bg-protoss", text: "text-protoss" },
+};
 
 function getH2HMatchupStats(stats: H2HStats | null): MatchupStats | null {
   if (!stats) return null;
   return {
     overall: [stats.summary.wins, stats.summary.losses],
     recent: [stats.summary.momentum90.wins, stats.summary.momentum90.losses],
-  };
-}
-
-function pickBestMap(
-  stats: H2HStats | null,
-  perspective: 'left' | 'right'
-) {
-  if (!stats) return null;
-
-  const rows = Object.entries(stats.mapStats)
-    .map(([mapName, record]) => {
-      const wins = perspective === 'left' ? record.w : record.l;
-      const losses = perspective === 'left' ? record.l : record.w;
-      const matches = wins + losses;
-      const winRate = matches > 0 ? wins / matches : -1;
-      return { mapName, wins, losses, matches, winRate };
-    })
-    .filter((row) => row.matches > 0)
-    .sort((left, right) => {
-      if (right.winRate !== left.winRate) return right.winRate - left.winRate;
-      if (right.matches !== left.matches) return right.matches - left.matches;
-      if (right.wins !== left.wins) return right.wins - left.wins;
-      return left.mapName.localeCompare(right.mapName, 'ko');
-    });
-
-  return rows[0] || null;
-}
-
-function buildMomentumInsight(
-  player: Player,
-  opponent: Player,
-  stats: H2HStats | null,
-  perspective: 'left' | 'right'
-): MomentumInsight {
-  const recent = stats?.summary.momentum90;
-  const recentWins = perspective === 'left' ? (recent?.wins ?? 0) : (recent?.losses ?? 0);
-  const recentLosses = perspective === 'left' ? (recent?.losses ?? 0) : (recent?.wins ?? 0);
-  const recentTotal = recentWins + recentLosses;
-  const recentWinRate = recentTotal > 0 ? (recentWins / recentTotal) * 100 : 0;
-  const bestMap = pickBestMap(stats, perspective);
-  const mapSampleCount = bestMap?.matches ?? 0;
-  const isRecentSampleThin = recentTotal > 0 && recentTotal < 3;
-  const isMapSampleThin = mapSampleCount > 0 && mapSampleCount < 3;
-
-  let recentTone = "표본 부족";
-  let formLabel = "데이터 없음";
-  if (recentTotal > 0) {
-    if (recentWinRate >= 60) {
-      recentTone = "상승 흐름";
-      formLabel = "우세";
-    } else if (recentWinRate <= 40) {
-      recentTone = "열세 흐름";
-      formLabel = "열세";
-    } else {
-      recentTone = "백중 흐름";
-      formLabel = "접전";
-    }
-  }
-
-  return {
-    strongMap: bestMap?.mapName || "표본 부족",
-    mapRecord: bestMap ? `${bestMap.wins}승 ${bestMap.losses}패` : "데이터 없음",
-    raceTarget: `vs ${opponent.race}`,
-    recentRecord: recentTotal > 0 ? `${recentWins}승 ${recentLosses}패` : "데이터 없음",
-    recentTone,
-    recentSummary:
-      recentTotal > 0
-        ? `${opponent.race} 상대로 최근 90일 ${recentWins}승 ${recentLosses}패`
-        : `${opponent.race} 상대로 최근 90일 표본이 없습니다.`,
-    formLabel,
-    overallSampleCount: stats?.summary.total ?? 0,
-    recentSampleCount: recentTotal,
-    recentWinRateLabel: recentTotal > 0 ? `${recentWinRate.toFixed(1)}%` : "데이터 없음",
-    mapSampleCount,
-    latestMatchLabel: formatMatchDateLabel(stats?.recentMatches?.[0]?.match_date),
-    isRecentSampleThin,
-    isMapSampleThin,
   };
 }
 
@@ -308,9 +222,17 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
 
   const isConfirmed = row.p1 && row.p2;
   const matchupStats = useMemo(() => getH2HMatchupStats(h2hStats), [h2hStats]);
-  const leftInsight = row.p1 && row.p2 ? buildMomentumInsight(row.p1, row.p2, h2hStats, 'left') : null;
-  const rightInsight = row.p1 && row.p2 ? buildMomentumInsight(row.p2, row.p1, h2hStats, 'right') : null;
-  const isMomentumVisible = showMomentum && isConfirmed && leftInsight && rightInsight;
+  /** 상대 종족전 통산 승률(H2H 아님). 둘 다 없으면 섹션 자체를 생략한다. */
+  const raceEdgeRows = useMemo(() => {
+    const edge = h2hStats?.raceEdge;
+    if (!edge || (!edge.p1 && !edge.p2)) return [];
+    return [
+      { side: "p1" as const, name: row.p1?.name || "", record: edge.p1 },
+      { side: "p2" as const, name: row.p2?.name || "", record: edge.p2 },
+    ];
+  }, [h2hStats, row.p1, row.p2]);
+  const momentum90Total = h2hStats?.summary.momentum90.total ?? 0;
+  const isRecentSampleThin = momentum90Total > 0 && momentum90Total < 3;
 
   useEffect(() => {
     let cancelled = false;
@@ -440,7 +362,7 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
            {isConfirmed && matchupStats ? (
              <div className={cn(
                "flex flex-col items-center animate-in fade-in zoom-in-90 duration-300",
-               (leftInsight?.isRecentSampleThin || rightInsight?.isRecentSampleThin) && "opacity-90"
+               isRecentSampleThin && "opacity-90"
              )}>
                 <div className="flex min-w-[104px] items-center justify-center gap-2">
                    <span className="min-w-[26px] text-right text-[1.65rem] font-extrabold italic text-nzu-green leading-none tabular-nums">{matchupStats.overall[0]}</span>
@@ -453,7 +375,7 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
                    <span className="min-w-[34px] text-center text-[11px] font-semibold italic text-red-500/45">최근</span>
                    <span className="min-w-[22px] text-left text-[1.28rem] font-bold italic text-red-500/85 leading-none tabular-nums">{matchupStats.recent[1]}</span>
                 </div>
-                {leftInsight?.isRecentSampleThin || rightInsight?.isRecentSampleThin ? (
+                {isRecentSampleThin ? (
                   <div className="mt-1 rounded-full border border-amber-300/14 bg-amber-300/[0.06] px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-amber-100/70">
                     최근 표본 얇음
                   </div>
@@ -555,138 +477,176 @@ const SortableMatchRow = ({ row, updateRow, removeRow, swapPlayers, allPlayers, 
       </div>
       </div>
 
-      {isMomentumVisible && (
+      {showMomentum && h2hStats && (
         <div className="rounded-[1.4rem] border border-white/8 bg-[#071011]/92 px-3 py-3 md:px-4">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="text-[0.82rem] font-medium tracking-tight text-white/32">현재 선택 기준 즉시 요약</div>
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[1.05rem] font-bold tracking-tight">
+                <span className="text-nzu-green">{row.p1?.name}</span>
+                <span className="text-[0.76rem] font-semibold uppercase tracking-[0.22em] text-white/26">vs</span>
+                <span className="text-red-300">{row.p2?.name}</span>
+              </div>
+              <div className="mt-1 text-[0.78rem] font-medium tabular-nums text-white/32">
+                전체 {h2hStats.summary.total}경기
+                {h2hStats.recentMatches[0]
+                  ? ` · 최근 맞대결 ${formatMatchDateLabel(h2hStats.recentMatches[0].match_date)}`
+                  : ""}
+              </div>
+            </div>
             <button
               onClick={() => setShowMomentum(false)}
-              className="rounded-full border border-white/6 px-2.5 py-1 text-[0.76rem] font-semibold text-white/28 transition-all hover:border-white/12 hover:text-white/58"
+              className="shrink-0 rounded-full border border-white/6 px-2.5 py-1 text-[0.76rem] font-semibold text-white/28 transition-all hover:border-white/12 hover:text-white/58"
             >
               닫기
             </button>
           </div>
 
-          <div className="rounded-[1.2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] px-3 py-3 md:px-4">
-            <div className="grid items-center gap-2 border-b border-white/7 pb-3 md:grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)]">
-              <div className="text-center md:text-right">
-                <div className="text-[1.08rem] font-bold tracking-tight text-white">{row.p1?.name}</div>
-                <div className="mt-1 text-[0.82rem] font-semibold tracking-[0.18em] text-nzu-green/62 uppercase">Left Side</div>
-              </div>
-              <div className="text-center text-[0.76rem] font-semibold uppercase tracking-[0.22em] text-white/26">Mirror Compare</div>
-              <div className="text-center md:text-left">
-                <div className="text-[1.08rem] font-bold tracking-tight text-white">{row.p2?.name}</div>
-                <div className="mt-1 text-[0.82rem] font-semibold tracking-[0.18em] text-red-300/58 uppercase">Right Side</div>
-              </div>
-            </div>
-
-            <div className="mt-3 grid gap-2 rounded-[1rem] border border-white/7 bg-white/[0.025] px-3 py-3 md:grid-cols-3 md:px-4">
-              <div className="text-center md:text-left">
-                <div className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-white/28">전체 표본</div>
-                <div className="mt-1 text-[0.94rem] font-bold tracking-tight text-white">
-                  {leftInsight.overallSampleCount}경기
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-white/28">최근 90일 승률</div>
-                <div className="mt-1 text-[0.94rem] font-bold tracking-tight text-white">
-                  {leftInsight.recentWinRateLabel}
-                </div>
-              </div>
-              <div className="text-center md:text-right">
-                <div className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-white/28">최근 맞대결</div>
-                <div className="mt-1 text-[0.94rem] font-bold tracking-tight text-white">
-                  {leftInsight.latestMatchLabel}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 grid gap-2.5">
-              <div className="grid items-center gap-2 md:grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)]">
-                <div className="rounded-[1rem] border border-nzu-green/14 bg-nzu-green/[0.05] px-4 py-3 text-center md:text-right">
-                  <div className="flex items-center justify-center gap-2 md:justify-end">
-                    {leftInsight.isRecentSampleThin ? (
-                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-amber-100/85">
-                        표본 부족
-                      </span>
-                    ) : null}
-                    <div className={cn("text-[1.02rem] font-bold tracking-tight", getFormToneClasses(leftInsight.formLabel, 'left'))}>{leftInsight.recentTone}</div>
+          <div className="grid gap-3 rounded-[1.2rem] border border-white/8 bg-white/[0.025] px-3 py-3 md:px-4">
+            {[
+              { label: "전체", wins: h2hStats.summary.wins, losses: h2hStats.summary.losses, thin: false },
+              {
+                label: "최근 90일",
+                wins: h2hStats.summary.momentum90.wins,
+                losses: h2hStats.summary.momentum90.losses,
+                thin: isRecentSampleThin,
+              },
+            ].map((bar) => {
+              const total = bar.wins + bar.losses;
+              const leftRate = total > 0 ? (bar.wins / total) * 100 : 0;
+              return (
+                <div key={bar.label}>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[1.05rem] font-extrabold tabular-nums text-nzu-green">
+                      {total > 0 ? `${leftRate.toFixed(1)}%` : "-"}
+                    </span>
+                    <span className="flex items-center gap-2 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-white/30">
+                      {bar.label}
+                      {bar.thin ? (
+                        <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.66rem] font-semibold tracking-[0.16em] text-amber-100/85">
+                          표본 부족
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="text-[1.05rem] font-extrabold tabular-nums text-red-300">
+                      {total > 0 ? `${(100 - leftRate).toFixed(1)}%` : "-"}
+                    </span>
                   </div>
-                  <div className="mt-1 text-[1.18rem] font-bold italic tracking-tight text-white">{leftInsight.recentRecord}</div>
-                  <div className="mt-1 text-[0.84rem] text-white/46">{leftInsight.recentSummary}</div>
-                  <div className="mt-1 text-[0.76rem] font-semibold uppercase tracking-[0.16em] text-white/26">최근 90일 표본 {leftInsight.recentSampleCount}경기</div>
+                  <SplitBar wins={bar.wins} losses={bar.losses} className="mt-1.5 h-1.5" />
+                  {total > 0 ? (
+                    <div className="mt-1 flex justify-between text-[0.74rem] font-medium tabular-nums text-white/40">
+                      <span>{bar.wins}승 {bar.losses}패</span>
+                      <span>{bar.losses}승 {bar.wins}패</span>
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-center text-[0.74rem] font-medium text-white/26">표본 없음</div>
+                  )}
                 </div>
-                <div className="rounded-[1rem] border border-white/8 bg-white/[0.04] px-3 py-3 text-center">
-                  <div className="text-[0.78rem] font-semibold uppercase tracking-[0.22em] text-white/32">기세</div>
-                </div>
-                <div className="rounded-[1rem] border border-red-500/14 bg-red-500/[0.05] px-4 py-3 text-center md:text-left">
-                  <div className="flex items-center justify-center gap-2 md:justify-start">
-                    <div className={cn("text-[1.02rem] font-bold tracking-tight", getFormToneClasses(rightInsight.formLabel, 'right'))}>{rightInsight.recentTone}</div>
-                    {rightInsight.isRecentSampleThin ? (
-                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-amber-100/85">
-                        표본 부족
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-1 text-[1.18rem] font-bold italic tracking-tight text-white">{rightInsight.recentRecord}</div>
-                  <div className="mt-1 text-[0.84rem] text-white/46">{rightInsight.recentSummary}</div>
-                  <div className="mt-1 text-[0.76rem] font-semibold uppercase tracking-[0.16em] text-white/26">최근 90일 표본 {rightInsight.recentSampleCount}경기</div>
-                </div>
-              </div>
-
-              <div className="grid items-center gap-2 md:grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)]">
-                <div className="rounded-[1rem] border border-nzu-green/14 bg-white/[0.03] px-4 py-3 text-center md:text-right">
-                  <div className="flex items-center justify-center gap-2 md:justify-end">
-                    {leftInsight.isMapSampleThin ? (
-                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-amber-100/85">
-                        표본 부족
-                      </span>
-                    ) : null}
-                    <div className="text-[1.12rem] font-bold tracking-tight text-white">{leftInsight.strongMap}</div>
-                  </div>
-                  <div className="mt-1 text-[0.96rem] font-bold text-nzu-green">{leftInsight.mapRecord}</div>
-                  <div className="mt-1 text-[0.84rem] text-white/46">{leftInsight.raceTarget}</div>
-                  <div className="mt-1 text-[0.76rem] font-semibold uppercase tracking-[0.16em] text-white/26">맵 표본 {leftInsight.mapSampleCount}경기</div>
-                </div>
-                <div className="rounded-[1rem] border border-white/8 bg-white/[0.04] px-3 py-3 text-center">
-                  <div className="text-[0.78rem] font-semibold uppercase tracking-[0.22em] text-white/32">강한 맵</div>
-                </div>
-                <div className="rounded-[1rem] border border-red-500/14 bg-white/[0.03] px-4 py-3 text-center md:text-left">
-                  <div className="flex items-center justify-center gap-2 md:justify-start">
-                    <div className="text-[1.12rem] font-bold tracking-tight text-white">{rightInsight.strongMap}</div>
-                    {rightInsight.isMapSampleThin ? (
-                      <span className="rounded-full border border-amber-300/18 bg-amber-300/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-amber-100/85">
-                        표본 부족
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-1 text-[0.96rem] font-bold text-red-300">{rightInsight.mapRecord}</div>
-                  <div className="mt-1 text-[0.84rem] text-white/46">{rightInsight.raceTarget}</div>
-                  <div className="mt-1 text-[0.76rem] font-semibold uppercase tracking-[0.16em] text-white/26">맵 표본 {rightInsight.mapSampleCount}경기</div>
-                </div>
-              </div>
-
-              <div className="grid items-center gap-2 md:grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)]">
-                <div className="rounded-[1rem] border border-nzu-green/14 bg-black/20 px-4 py-3 text-center md:text-right">
-                  <div className="text-[0.82rem] font-semibold uppercase tracking-[0.18em] text-white/34">요약</div>
-                  <div className="mt-1 text-[1rem] font-bold tracking-tight text-white">
-                    {leftInsight.strongMap} 중심 운영
-                  </div>
-                  <div className={cn("mt-1 text-[0.9rem]", getFormToneClasses(leftInsight.formLabel, 'left'))}>{leftInsight.formLabel}</div>
-                </div>
-                <div className="rounded-[1rem] border border-white/8 bg-white/[0.04] px-3 py-3 text-center">
-                  <div className="text-[0.78rem] font-semibold uppercase tracking-[0.22em] text-white/32">최근 폼</div>
-                </div>
-                <div className="rounded-[1rem] border border-red-500/14 bg-black/20 px-4 py-3 text-center md:text-left">
-                  <div className="text-[0.82rem] font-semibold uppercase tracking-[0.18em] text-white/34">요약</div>
-                  <div className="mt-1 text-[1rem] font-bold tracking-tight text-white">
-                    {rightInsight.strongMap} 중심 운영
-                  </div>
-                  <div className={cn("mt-1 text-[0.9rem]", getFormToneClasses(rightInsight.formLabel, 'right'))}>{rightInsight.formLabel}</div>
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
+
+          {raceEdgeRows.length > 0 || h2hStats.recentMatches.length > 0 ? (
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {raceEdgeRows.length > 0 ? (
+                <div>
+                  <div className="mb-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-white/28">상대 종족전 승률</div>
+                  <div className="grid gap-1.5">
+                    {raceEdgeRows.map((edgeRow) => {
+                      const record = edgeRow.record;
+                      const total = record ? record.wins + record.losses : 0;
+                      const rate = record && total > 0 ? (record.wins / total) * 100 : 0;
+                      const tone = record ? RACE_EDGE_TONE[record.race] : undefined;
+                      return (
+                        <div
+                          key={edgeRow.side}
+                          className={cn("rounded-[1rem] border px-3 py-2", tone ? tone.border : "border-white/7 bg-white/[0.025]")}
+                        >
+                          {record && total > 0 && tone ? (
+                            <>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="flex min-w-0 items-center gap-1.5">
+                                  <span className={cn(
+                                    "truncate text-[0.92rem] font-bold",
+                                    edgeRow.side === "p1" ? "text-nzu-green" : "text-red-300"
+                                  )}>
+                                    {edgeRow.name}
+                                  </span>
+                                  <span className="text-[0.72rem] font-medium text-white/40">vs</span>
+                                  <RaceLetterBadge race={record.race} size="sm" />
+                                </span>
+                                <span className="flex shrink-0 items-baseline gap-1.5">
+                                  <span className={cn("text-[0.98rem] font-extrabold tabular-nums tracking-tight", tone.text)}>{rate.toFixed(1)}%</span>
+                                  <span className="text-[0.74rem] font-medium tabular-nums text-white/40">
+                                    {total}전 {record.wins}승 {record.losses}패
+                                  </span>
+                                </span>
+                              </div>
+                              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.06]">
+                                <div
+                                  className={cn("h-full rounded-full", tone.bar)}
+                                  style={{ width: `${rate}%` }}
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-[0.78rem] font-medium text-white/26">
+                              {edgeRow.name} · 데이터 없음
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              {h2hStats.recentMatches.length > 0 ? (
+                <div>
+                  <div className="mb-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-white/28">최근 맞대결</div>
+                  <div className="grid gap-1.5">
+                    {h2hStats.recentMatches.slice(0, 5).map((match) => {
+                      const winnerName = (match.is_win ? row.p1?.name : row.p2?.name) || "";
+                      return (
+                      <div key={match.id} className="rounded-[1rem] border border-white/7 bg-white/[0.025] px-3 py-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className={cn(
+                            "shrink-0 rounded-full border px-2 py-0.5 text-xs font-bold",
+                            match.is_win
+                              ? "border-nzu-green/25 bg-nzu-green/[0.1] text-nzu-green"
+                              : "border-red-400/25 bg-red-400/[0.1] text-red-300"
+                          )}>
+                            {match.is_win ? "승" : "패"}
+                          </span>
+                          {winnerName ? (
+                            <span className={cn(
+                              "min-w-0 flex-1 truncate text-[0.86rem] font-bold",
+                              match.is_win ? "text-nzu-green" : "text-red-300"
+                            )}>
+                              {winnerName}
+                              <span className="ml-1 text-[0.72rem] font-medium text-white/40">승</span>
+                            </span>
+                          ) : (
+                            <span className="min-w-0 flex-1" />
+                          )}
+                          <span className="shrink-0 text-[0.78rem] font-medium tabular-nums text-white/40">
+                            {formatMatchDateLabel(match.match_date)}
+                          </span>
+                        </div>
+                        {match.map || match.note ? (
+                          <div className="mt-0.5 flex min-w-0 items-center text-[0.76rem]">
+                            {match.map ? <span className="shrink-0 text-white/50">{match.map}</span> : null}
+                            {match.map && match.note ? <span className="shrink-0 px-1 text-white/20">·</span> : null}
+                            {match.note ? <span className="truncate text-white/35">{match.note}</span> : null}
+                          </div>
+                        ) : null}
+                      </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       )}
     </div>
@@ -792,7 +752,7 @@ export default function MatchPageClient({
         </div>
         <div className="grid gap-4">
           <section className="min-w-0">
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
+            <DndContext id="match-rows-dnd" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis]}>
               <div className="flex flex-col gap-2.5">
                 <SortableContext items={rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
                   {rows.map((row, index) => (

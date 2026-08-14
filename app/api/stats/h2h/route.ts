@@ -4,7 +4,7 @@ import { playerService } from '@/lib/player-service'
 
 const getCachedDetailedH2HStats = unstable_cache(
   async (p1Id: string, p2Id: string) => playerService.getDetailedH2HStats(p1Id, p2Id),
-  ['public-h2h-stats-v1'],
+  ['public-h2h-stats-v3'],
   {
     revalidate: 300,
     tags: ['public-player-history'],

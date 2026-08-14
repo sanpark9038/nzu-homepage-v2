@@ -28,6 +28,11 @@ export interface H2HStats {
   };
   mapStats: Record<string, { w: number; l: number }>;
   recentMatches: EloMatch[];
+  /** 상대 종족을 상대로 한 통산 전적(H2H 아님). race는 '상대방'의 종족. */
+  raceEdge?: {
+    p1: { race: string; wins: number; losses: number } | null;
+    p2: { race: string; wins: number; losses: number } | null;
+  };
 }
 
 export interface UniversityInfo {

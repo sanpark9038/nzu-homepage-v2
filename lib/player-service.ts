@@ -67,6 +67,7 @@ type H2HHistoryEntry = {
   match_date: string | null;
   map_name: string | null;
   is_win: boolean;
+  note?: string | null;
 };
 
 type MinimalH2HPlayerRow = {
@@ -76,6 +77,7 @@ type MinimalH2HPlayerRow = {
   nickname?: string | null;
   race?: string | null;
   last_match_at?: string | null;
+  detailed_stats?: unknown;
   match_history?: StoredMatchHistoryItem[] | null;
 };
 
@@ -417,6 +419,43 @@ function synthesizeMatchesFromHistory(player: StoredPlayerHistoryRecord, limit: 
   });
 }
 
+/**
+ * players.detailed_stats에 사전계산된 "종족별 통산 전적"에서 상대 종족 행 하나를 꺼낸다.
+ * 같은 로직이 lib/player-detail-summary.ts에도 있지만 그 파일이 이 파일을 import해서
+ * 순환이 생기므로 여기에 따로 둔다.
+ */
+function pickPrecomputedVsRaceRecord(
+  player: Pick<MinimalH2HPlayerRow, "detailed_stats" | "last_match_at">,
+  opponentRace: unknown
+): { race: string; wins: number; losses: number } | null {
+  const raw = String(opponentRace || "").trim().toUpperCase();
+  const race = raw.startsWith("T") ? "T" : raw.startsWith("Z") ? "Z" : raw.startsWith("P") ? "P" : null;
+  if (!race) return null;
+
+  const asRecord = (value: unknown) =>
+    value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+  const datePrefix = (value: unknown) => (String(value || "").match(/^\d{4}-\d{2}-\d{2}/) || [""])[0];
+  const toCount = (value: unknown) => {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) && numberValue > 0 ? Math.trunc(numberValue) : 0;
+  };
+
+  const projection = asRecord(asRecord(player.detailed_stats)?.player_detail_summary);
+  const projected = datePrefix(projection?.latest_match_date);
+  const playerLatest = datePrefix(player.last_match_at);
+  if (!projected || (playerLatest && projected < playerLatest)) return null;
+  if (!Array.isArray(projection?.race_summaries)) return null;
+
+  const row = projection.race_summaries
+    .map(asRecord)
+    .find((summary) => summary && String(summary.race || "").trim().toUpperCase().startsWith(race));
+  if (!row) return null;
+
+  const wins = toCount(row.wins);
+  const losses = toCount(row.losses);
+  return wins + losses > 0 ? { race, wins, losses } : null;
+}
+
 function buildDetailedH2HStats(
   p1: Pick<MinimalH2HPlayerRow, "name">,
   p2: Pick<MinimalH2HPlayerRow, "name">,
@@ -452,7 +491,7 @@ function buildDetailedH2HStats(
     map: entry.map_name,
     is_win: entry.is_win,
     result_text: entry.is_win ? "+" : "-",
-    note: null,
+    note: entry.note ?? null,
   })) as unknown as import("../types").EloMatch[];
 
   return {
@@ -497,6 +536,7 @@ function buildDetailedHistoryEntries(
       match_date: item.match_date || item.matchDate || null,
       map_name: item.map_name || item.mapName || null,
       is_win: Boolean(item.is_win ?? item.isWin),
+      note: item.note || null,
     }))
     .sort((left, right) => String(right.match_date || "").localeCompare(String(left.match_date || "")));
 }
@@ -514,6 +554,7 @@ function buildDetailedServingEntries(
   matches: Array<{
     match_date?: string | null;
     map_name?: string | null;
+    event_name?: string | null;
     player1_id?: string | null;
     player2_id?: string | null;
     winner_id?: string | null;
@@ -529,6 +570,7 @@ function buildDetailedServingEntries(
       match_date: match.match_date || null,
       map_name: match.map_name || null,
       is_win: String(match.winner_id || "") === p1Id,
+      note: match.event_name || null,
     }))
     .sort((left, right) => String(right.match_date || "").localeCompare(String(left.match_date || "")));
 }
@@ -690,7 +732,7 @@ export const playerService = {
 
     const { data: players, error: playersError } = await supabase
       .from("players")
-      .select("id, eloboard_id, name, nickname, race, last_match_at")
+      .select("id, eloboard_id, name, nickname, race, last_match_at, detailed_stats")
       .in("id", [p1Id, p2Id]);
 
     if (playersError || !players || players.length < 2) {
@@ -705,9 +747,14 @@ export const playerService = {
       return buildDetailedH2HStats({ name: "" }, { name: "" }, []);
     }
 
+    const raceEdge = {
+      p1: pickPrecomputedVsRaceRecord(p1, p2.race),
+      p2: pickPrecomputedVsRaceRecord(p2, p1.race),
+    };
+
     const { data: matches, error: matchesError } = await supabase
       .from("matches")
-      .select("match_date, map_name, player1_id, player2_id, winner_id")
+      .select("match_date, map_name, event_name, player1_id, player2_id, winner_id")
       .or(`and(player1_id.eq.${p1Id},player2_id.eq.${p2Id}),and(player1_id.eq.${p2Id},player2_id.eq.${p1Id})`)
       .order("match_date", { ascending: false });
 
@@ -721,6 +768,7 @@ export const playerService = {
       (matches || []) as Array<{
         match_date?: string | null;
         map_name?: string | null;
+        event_name?: string | null;
         player1_id?: string | null;
         player2_id?: string | null;
         winner_id?: string | null;
@@ -728,7 +776,7 @@ export const playerService = {
     );
 
     if (servingEntries.length > 0) {
-      return buildDetailedH2HStats(p1, p2, servingEntries);
+      return { ...buildDetailedH2HStats(p1, p2, servingEntries), raceEdge };
     }
 
     const p1WithArtifactHistory = await mergeDetailedH2HPlayerHistory(p1);
@@ -741,7 +789,7 @@ export const playerService = {
       );
     }
 
-    return buildDetailedH2HStats(p1, p2, historyEntries);
+    return { ...buildDetailedH2HStats(p1, p2, historyEntries), raceEdge };
   },
 
   async getH2HNameCandidatesByIds(p1Id: string, p2Id: string) {
