@@ -16,6 +16,14 @@ const {
   shouldReuseInactiveExistingJson,
   shouldRotationFullVerify,
   shouldReuseExistingJson,
+  isSourceOutageError,
+  errorDetailText,
+  sourceOutageMarkerPath,
+  hasSourceOutageMarker,
+  nextSourceOutageStreak,
+  isSourceOutageCircuitOpen,
+  sourceOutageOutcome,
+  SOURCE_OUTAGE_STREAK_LIMIT,
   ROTATION_BUCKETS,
 } = require("./export-team-roster-detailed");
 const { loadProjectPlayerMetadata } = require("./lib/project-player-metadata");
@@ -364,4 +372,57 @@ runTest("regression guard still blocks a lower total without the resume marker",
     write: true,
     rebaselined: null,
   });
+});
+
+// --- 소스(엘로보드) 장애 회로 차단기 -----------------------------------------
+
+// 실패 사유는 자식 프로세스의 message가 아니라 stderr에 실려 온다(수집기가 [SOURCE] 줄을 남긴다).
+runTest("isSourceOutageError reads the marker from child stdout/stderr too", () => {
+  const childFailure = {
+    message: "Command failed: node scripts/tools/report-team-records.js --json-only",
+    stdout: "",
+    stderr: "[SOURCE] 김선수 source_outage: GET https://eloboard.com/women/bbs/board.php\n",
+  };
+  assert.equal(isSourceOutageError(errorDetailText(childFailure)), true);
+  assert.equal(isSourceOutageError(errorDetailText({ message: "source_anomaly: 김선수 display_total=8 matches=0" })), true);
+  // 그냥 타임아웃·네트워크 실패는 사이트 장애로 단정하지 않는다(개별 선수 문제일 수 있다).
+  assert.equal(isSourceOutageError(errorDetailText({ message: "ETIMEDOUT", stderr: "socket hang up" })), false);
+});
+
+// 연속 5명이면 남은 선수를 두드려봐야 같은 오류만 받는다. 실제로 읽어낸 선수가 나오면 리셋.
+runTest("source outage circuit opens on 5 consecutive failures and resets on a real read", () => {
+  let streak = 0;
+  for (let i = 0; i < SOURCE_OUTAGE_STREAK_LIMIT - 1; i += 1) {
+    streak = nextSourceOutageStreak(streak, "source_outage");
+    assert.equal(isSourceOutageCircuitOpen(streak), false, `${i + 1}명째에는 아직 안 열린다`);
+  }
+  streak = nextSourceOutageStreak(streak, "source_outage");
+  assert.equal(isSourceOutageCircuitOpen(streak), true, "연속 5명이면 열린다");
+
+  // 4명 + 성공 → 리셋
+  let reset = 0;
+  for (let i = 0; i < 4; i += 1) reset = nextSourceOutageStreak(reset, "source_outage");
+  reset = nextSourceOutageStreak(reset, "ok");
+  assert.equal(reset, 0);
+  assert.equal(isSourceOutageCircuitOpen(nextSourceOutageStreak(reset, "source_outage")), false);
+});
+
+// 기존 json 재사용·다른 이유의 실패는 "사이트가 살아 있다"는 증거가 아니다 — 카운터를 유지한다.
+runTest("only a real fetch resets the outage streak", () => {
+  assert.equal(sourceOutageOutcome({ fetch_status: "fetch_failed_source_outage", error: "x" }), "source_outage");
+  assert.equal(sourceOutageOutcome({ fetch_status: "ok", error: null }), "ok");
+  assert.equal(sourceOutageOutcome({ fetch_status: "used_existing_json", error: null }), "other");
+  assert.equal(sourceOutageOutcome({ fetch_status: "failed", error: "ETIMEDOUT" }), "other");
+  assert.equal(nextSourceOutageStreak(3, "other"), 3);
+});
+
+// tmp/는 GitHub Actions 캐시로 다음 날 밤까지 살아남는다. 어제 마커가 오늘 수집을 죽이면 안 된다.
+runTest("source outage marker is keyed by date so yesterday's marker is ignored", () => {
+  const dir = fs.mkdtempSync(path.join(require("os").tmpdir(), "nzu-outage-marker-"));
+  const yesterday = sourceOutageMarkerPath("2026-08-13", dir);
+  fs.writeFileSync(yesterday, "{}", "utf8");
+
+  assert.equal(hasSourceOutageMarker("2026-08-13", dir), true);
+  assert.equal(hasSourceOutageMarker("2026-08-14", dir), false, "날짜가 다르면 어제 마커를 보지 않는다");
+  assert.notEqual(sourceOutageMarkerPath("2026-08-13", dir), sourceOutageMarkerPath("2026-08-14", dir));
 });

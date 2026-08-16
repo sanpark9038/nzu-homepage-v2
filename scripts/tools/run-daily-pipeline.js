@@ -44,6 +44,13 @@ function isFetchObserved(status) {
   return FETCH_OK_STATES.has(String(status || ""));
 }
 
+// 소스 사이트(엘로보드) 장애로 오늘 관측 자체를 못 한 상태(fetch_failed_source_outage /
+// skipped_source_outage). FETCH_OK_STATES에 없으니 기존 경로 그대로 fetch_fail로 집계된다 —
+// 새 경보 규칙을 만들지 않고 기존 실패 경보에 사유만 붙인다.
+function isSourceOutageStatus(status) {
+  return /_source_outage$/.test(String(status || ""));
+}
+
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
   if (idx >= 0 && process.argv[idx + 1]) return process.argv[idx + 1];
@@ -541,7 +548,9 @@ function summarizeTeamFromReport(team, report) {
     totalMatches += t;
     totalWins += w;
     totalLosses += l;
-    if (t === 0) {
+    // 소스 장애로 못 읽은 선수의 기존 0건은 오늘의 관측이 아니다. 세면 장애 하나가
+    // fetch_fail + zero_record 두 경보로 이중 계상된다.
+    if (t === 0 && !isSourceOutageStatus(row.fetch_status)) {
       // 0건에 fetch_status를 붙여 판정부가 "관측된 0건"(경보 없음)과 "근거 없는 0건"(경보)을 구분한다.
       zeroPlayers.push(String(row.player || ""));
       zeroPlayersDetail.push({ name: String(row.player || ""), fetch_status: String(row.fetch_status || "") });
@@ -563,6 +572,7 @@ function summarizeTeamFromReport(team, report) {
     verify_mismatch_players: verifyMismatchPlayers.length,
     verify_mismatch_player_names: verifyMismatchPlayers.join(", "),
     rebaselined_players: rebaselinedPlayers,
+    source_outage_players: actionable.filter((row) => isSourceOutageStatus(row.fetch_status)).length,
     fetch_fail: failures.filter((f) => !isFetchObserved(f.fetch_status)).length,
     csv_fail: failures.filter((f) => !["ok", "used_existing_csv"].includes(String(f.csv_status || ""))).length,
     total_matches: totalMatches,
@@ -935,12 +945,17 @@ function buildAlerts(
   for (const row of rowsWithDelta) {
     const rosterTransition = rosterTransitionByTeam.get(String(row.team_code || "")) || null;
     if (row.fetch_fail > 0 || row.csv_fail > 0) {
+      // 사유를 메시지에 실어 "왜 실패했는지"를 아침에 바로 읽게 한다. 규칙은 그대로 하나다.
+      const sourceOutagePlayers = Number(row.source_outage_players || 0);
+      const reason = sourceOutagePlayers
+        ? ` — 소스 사이트 장애(엘로보드) ${sourceOutagePlayers}명, 오늘 수집 중단`
+        : "";
       alerts.push({
         severity: rules.pipeline_failure_severity || "critical",
         team: row.team,
         team_code: row.team_code,
         rule: "pipeline_failure",
-        message: `fetch_fail=${row.fetch_fail}, csv_fail=${row.csv_fail}`,
+        message: `fetch_fail=${row.fetch_fail}, csv_fail=${row.csv_fail}${reason}`,
       });
     }
     const zeroPlayers = splitZeroPlayers(row.zero_players);

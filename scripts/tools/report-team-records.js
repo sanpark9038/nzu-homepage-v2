@@ -165,18 +165,18 @@ function decodeHtml(buffer) {
 }
 
 async function fetchBinary(url, options = {}) {
-  const res = await withRetry(
-    () =>
-      axios.get(url, {
-        responseType: "arraybuffer",
-        headers: {
-          "User-Agent": "Mozilla/5.0",
-          ...(options.headers || {}),
-        },
-        timeout: 30000,
-      }),
-    `GET ${url}`
-  );
+  const res = await withRetry(async () => {
+    const response = await axios.get(url, {
+      responseType: "arraybuffer",
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        ...(options.headers || {}),
+      },
+      timeout: 30000,
+    });
+    throwIfSourceOutage(response.data, `GET ${url}`);
+    return response;
+  }, `GET ${url}`);
   return res.data;
 }
 
@@ -310,6 +310,30 @@ function isMissingPostErrorPage(html) {
   );
 }
 
+// 엘로보드(공유호스팅 PHP)가 DB 과부하로 죽으면 HTTP 200에 ~378바이트짜리 mysqli 오류
+// 본문을 실어 보낸다(2026-08-13~). 이걸 정상 페이지로 읽으면 경기 0건이 되고, 상위가
+// "조용한 삭제 의심"으로 수십 건 오탐한다. 정상 페이지가 아니면 수집을 실패시키는 게 정직하다.
+function isSourceOutagePage(html) {
+  const text = String(html || "");
+  return text.includes("max_user_connections") || text.includes("Connect Error");
+}
+
+// 오류 본문은 순수 ASCII라 euc-kr/utf8 판정(decodeHtml) 전에도 그대로 읽힌다.
+function throwIfSourceOutage(buffer, label) {
+  const text = Buffer.isBuffer(buffer) ? buffer.toString("utf8") : String(buffer || "");
+  if (!isSourceOutagePage(text)) return;
+  const error = new Error(`source_outage: ${label}`);
+  error.code = "SOURCE_OUTAGE";
+  throw error;
+}
+
+// 표시 카운터는 살아 있는데 경기 목록이 0행이면 소스가 이상한 것이다(장애 중 view_list.php가
+// 빈 응답을 주는 형태). 예전에는 validation_pass=false로 기록만 하고 0건을 그대로 써서
+// 그 0건이 상위의 "경기 수 감소" 오탐이 됐다. 이제는 결과를 쓰지 않고 실패로 끝낸다.
+function isSourceAnomaly(displayTotal, matchCount) {
+  return Number(displayTotal) > 0 && Number(matchCount) === 0;
+}
+
 function parsePNameFromProfile(profileHtml, endpoint, fallbackName) {
   const endpointIndex = profileHtml.indexOf(endpoint);
   const slice =
@@ -421,20 +445,21 @@ async function fetchPageRows(player, mode, pName, lastId) {
   const url = `${base}/${mode.endpoint}`;
   const body = qs.stringify({ p_name: pName, last_id: lastId });
 
-  const res = await withRetry(
-    () =>
-      axios.post(url, body, {
-        responseType: "arraybuffer",
-        headers: {
-          "User-Agent": "Mozilla/5.0",
-          "X-Requested-With": "XMLHttpRequest",
-          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-          Referer: player.profile_url,
-        },
-        timeout: 30000,
-      }),
-    `POST ${url} p_name=${pName} last_id=${lastId}`
-  );
+  const label = `POST ${url} p_name=${pName} last_id=${lastId}`;
+  const res = await withRetry(async () => {
+    const response = await axios.post(url, body, {
+      responseType: "arraybuffer",
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        Referer: player.profile_url,
+      },
+      timeout: 30000,
+    });
+    throwIfSourceOutage(response.data, label);
+    return response;
+  }, label);
 
   const html = decodeHtml(res.data);
   const $ = cheerio.load(html);
@@ -626,6 +651,16 @@ async function collectPlayer(player, cacheEntry = null, priorMatches = []) {
   const usedIncrementalCache = hitAnchor && prior.length > 0;
   if (usedIncrementalCache) mergePriorMatches(matches, seen, prior);
 
+  // 강제 페이지네이션까지 다 시도한 뒤에도 0행이면 소스 이상이다. 여기서 끊어야 상위가
+  // 0건짜리 결과를 기존 파일 위에 덮어쓰지 않는다(혼성 보드는 위에서 이미 반환됐다).
+  if (isSourceAnomaly(displayTotal, matches.length)) {
+    const error = new Error(
+      `source_anomaly: ${resolvedPlayer.name} display_total=${displayTotal} matches=0`
+    );
+    error.code = "SOURCE_ANOMALY";
+    throw error;
+  }
+
   const wins = matches.filter((m) => m.is_win).length;
   const losses = matches.length - wins;
   const winRate = matches.length ? Number(((wins / matches.length) * 100).toFixed(2)) : 0;
@@ -747,12 +782,19 @@ async function main() {
       }
       return rec;
     } catch (error) {
+      const code = error && error.code ? String(error.code) : "";
       if (!JSON_ONLY) {
         console.log(`[FAIL] ${player.name} ${error.message}`);
+      }
+      // 소스 장애는 stderr에도 남긴다. 상위(export)가 자식 프로세스 실패 메시지에서 이 마커로
+      // "사이트가 죽었다"를 식별해 회로 차단기를 돌린다(--json-only여도 stdout은 오염되지 않는다).
+      if (code === "SOURCE_OUTAGE" || code === "SOURCE_ANOMALY") {
+        console.error(`[SOURCE] ${player.name} ${error.message}`);
       }
       return {
         ...player,
         error: error.message,
+        ...(code ? { error_code: code } : {}),
       };
     }
   });
@@ -787,7 +829,12 @@ async function main() {
     )
   );
 
-  if (failedValidations.length > 0) {
+  // 소스 장애·이상은 종료코드로 알린다. 0으로 끝나면 상위가 "경기 없는 정상 결과"로 알고
+  // 멀쩡한 기존 json을 빈 결과로 덮어쓴다(회귀 가드는 total이 둘 다 숫자일 때만 막는다).
+  const sourceFailures = outputPlayers.filter(
+    (r) => r.error_code === "SOURCE_OUTAGE" || r.error_code === "SOURCE_ANOMALY"
+  );
+  if (failedValidations.length > 0 || sourceFailures.length > 0) {
     process.exitCode = 1;
   }
 }
@@ -801,6 +848,8 @@ if (require.main === module) {
 
 module.exports = {
   collectionDisplayTotal,
+  isSourceOutagePage,
+  isSourceAnomaly,
   extractInitialRows,
   selectMode,
   playerCacheKey,

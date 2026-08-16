@@ -3,6 +3,8 @@ const test = require("node:test");
 
 const {
   collectionDisplayTotal,
+  isSourceOutagePage,
+  isSourceAnomaly,
   extractInitialRows,
   selectMode,
   playerCacheKey,
@@ -146,6 +148,29 @@ test("collectionDisplayTotal keeps total fallback for men profile guardrail", ()
   );
 
   assert.equal(total, 10);
+});
+
+// 2026-08-13 장애: 엘로보드가 HTTP 200에 mysqli 오류 본문(~378바이트)을 실어 보냈다.
+// 이걸 정상 페이지로 읽으면 경기 0건이 되고 상위가 "조용한 삭제 의심"으로 수십 건 오탐한다.
+test("isSourceOutagePage detects the mysqli overload body and passes normal pages", () => {
+  const outage =
+    "<br />\n<b>Warning</b>:  mysqli_connect(): (HY000/1226): User 'mimesys' has exceeded the " +
+    "'max_user_connections' resource in <b>/home/mimesys/public_html/lib/mysqli.lib.php</b>\n" +
+    "Connect Error: User mimesys already has more than 'max_user_connections' active connections";
+
+  assert.equal(isSourceOutagePage(outage), true);
+  assert.equal(isSourceOutagePage("<html><div class=\"list-board\">정상</div></html>"), false);
+  assert.equal(isSourceOutagePage(""), false);
+  assert.equal(isSourceOutagePage(null), false);
+});
+
+// 표시 카운터는 살아 있는데 목록이 0행이면 소스 이상이다(장애 중 view_list.php가 빈 응답).
+// 이 결과를 쓰면 멀쩡한 기존 전적이 0으로 덮이거나 "경기 수 감소" 오탐이 된다.
+test("isSourceAnomaly flags counter>0 with zero collected rows only", () => {
+  assert.equal(isSourceAnomaly(8, 0), true);
+  assert.equal(isSourceAnomaly(8, 8), false);
+  // 카운터도 0이면 정상적인 "경기 없음"이다(혼성 보드 선수는 displayTotal이 0으로 계산된다).
+  assert.equal(isSourceAnomaly(0, 0), false);
 });
 
 // 책갈피 키는 팀·프로필 URL과 무관해야 한다. 예전 키(name|wr_id|profile_url) + 팀별 버킷은

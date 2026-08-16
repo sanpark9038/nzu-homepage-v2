@@ -918,3 +918,77 @@ runTest("buildAlerts stays quiet when no verify mismatch happened", () => {
 
   assert.equal(actual.filter((row) => row.rule === "rotation_verify_mismatch").length, 0);
 });
+
+// --- 소스(엘로보드) 장애 -------------------------------------------------------
+// 2026-08-13 장애: 사이트가 HTTP 200에 오류 본문을 주고, 일부는 목록만 0행으로 왔다.
+// 예전에는 그 0건이 "조용한 삭제 의심"으로 둔갑했다. 이제는 관측 실패로 정직하게 떨어져야 한다.
+runTest("summarizeTeamFromReport counts source-outage statuses as fetch failures", () => {
+  const dir = makeTempReportsDir();
+  const write = (name, periodTotal) => {
+    const p = path.join(dir, name);
+    fs.writeFileSync(
+      p,
+      JSON.stringify({ players: [{ period_total: periodTotal, period_wins: 0, period_losses: 0, scan_strategy: "full_scan" }] }),
+      "utf8"
+    );
+    return p;
+  };
+  const report = {
+    results: [
+      {
+        player: "a",
+        fetch_status: "fetch_failed_source_outage",
+        csv_status: "failed",
+        error: "source_outage: GET https://eloboard.com/...",
+        json_path: write("a.json", 12),
+      },
+      // 회로 차단기로 건너뛴 선수. 기존 json은 그대로 집계돼야 팀 총계가 줄지 않는다.
+      {
+        player: "b",
+        fetch_status: "skipped_source_outage",
+        csv_status: "skipped",
+        error: "source_outage: 엘로보드 장애로 수집 중단(회로 차단기)",
+        json_path: write("b.json", 0),
+      },
+      { player: "c", fetch_status: "ok", csv_status: "ok", json_path: write("c.json", 5) },
+    ],
+  };
+
+  const row = summarizeTeamFromReport({ univ: "팀", code: "tm" }, report);
+  assert.equal(row.fetch_fail, 2, "두 상태 모두 관측 실패로 집계된다");
+  assert.equal(row.source_outage_players, 2);
+  assert.equal(row.total_matches, 17, "기존 json 집계는 보존된다(총 경기 수 감소 오탐 방지)");
+  // 오늘 읽지도 못한 선수의 옛 0건을 세면 장애 하나가 두 경보로 이중 계상된다.
+  assert.equal(row.zero_record_players, 0);
+  assert.equal(row.zero_players, "");
+  assert.equal(
+    row.failures.some((f) => f.player === "b" && String(f.error).includes("source_outage")),
+    true,
+    "실패 사유가 failures에 남는다"
+  );
+});
+
+// 새 경보 규칙을 만들지 않는다 — 기존 pipeline_failure 한 줄에 사유만 실린다.
+runTest("buildAlerts states the source-site outage inside the existing failure alert", () => {
+  const alerts = buildAlerts(
+    [
+      {
+        team: "팀",
+        team_code: "tm",
+        zero_players: "",
+        fetch_fail: 7,
+        csv_fail: 7,
+        source_outage_players: 7,
+        delta_total_matches: 0,
+        delta_players: 0,
+      },
+    ],
+    { rules: { pipeline_failure_severity: "critical", no_new_matches_enabled: false } }
+  );
+
+  const failureAlerts = alerts.filter((a) => a.rule === "pipeline_failure");
+  assert.equal(failureAlerts.length, 1);
+  assert.match(failureAlerts[0].message, /소스 사이트 장애/);
+  assert.match(failureAlerts[0].message, /7명/);
+  assert.equal(alerts.some((a) => a.rule === "zero_record_players"), false);
+});

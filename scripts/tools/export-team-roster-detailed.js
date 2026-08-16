@@ -410,6 +410,52 @@ function evaluateRegressionGuard({ existingPeriodTotal, nextPeriodTotal, forceRe
   return { write: false, rebaselined: null };
 }
 
+// --- 소스(엘로보드) 장애 회로 차단기 -----------------------------------------
+// 사이트가 DB 과부하로 죽은 날 337명을 순서대로 두드려봐야 같은 오류만 받는다. 수집기가
+// source_outage/source_anomaly로 실패한 선수가 연속으로 쌓이면 남은 선수는 건너뛰고,
+// 같은 날 뒤따르는 팀 export도 마커 파일을 보고 시작하자마자 멈춘다.
+const SOURCE_OUTAGE_STREAK_LIMIT = 5;
+
+function isSourceOutageError(text) {
+  return /source_outage|source_anomaly/i.test(String(text || ""));
+}
+
+// execFileSync 실패는 사유가 message가 아니라 자식의 stdout/stderr에 있을 수 있다.
+function errorDetailText(error) {
+  if (!error) return "";
+  if (typeof error === "string") return error;
+  return [error.message, error.stdout, error.stderr].map((v) => String(v || "")).join("\n");
+}
+
+// 파일명에 날짜를 박는 게 핵심이다. tmp/는 GitHub Actions 캐시로 다음 날 밤까지 살아남아,
+// 날짜가 없으면 어제 장애 마커가 멀쩡한 오늘 수집을 통째로 죽인다.
+function sourceOutageMarkerPath(to, tmpDir = TMP_DIR) {
+  const date = String(to || "").trim() || "unknown";
+  return path.join(tmpDir, `source_outage_${safeFileName(date)}.marker`);
+}
+
+function hasSourceOutageMarker(to, tmpDir = TMP_DIR) {
+  return fs.existsSync(sourceOutageMarkerPath(to, tmpDir));
+}
+
+// 실제로 엘로보드를 읽어낸 선수가 하나라도 나오면 사이트가 살아 있다는 뜻이므로 리셋한다.
+// 기존 json 재사용·스킵은 네트워크를 타지 않으니 생존 증거가 아니다 — 카운터를 유지한다.
+function nextSourceOutageStreak(streak, outcome) {
+  if (outcome === "source_outage") return Number(streak || 0) + 1;
+  if (outcome === "ok") return 0;
+  return Number(streak || 0);
+}
+
+function isSourceOutageCircuitOpen(streak, limit = SOURCE_OUTAGE_STREAK_LIMIT) {
+  return Number(streak || 0) >= limit;
+}
+
+function sourceOutageOutcome(result) {
+  if (String(result && result.fetch_status) === "fetch_failed_source_outage") return "source_outage";
+  if (result && !result.error && String(result.fetch_status) === "ok") return "ok";
+  return "other";
+}
+
 async function main() {
   const rosterPath = argValue("--roster-path", "");
   if (!rosterPath) {
@@ -463,6 +509,16 @@ async function main() {
     total_players: players.length,
   });
 
+  let outageStreak = 0;
+  let outageCircuitOpen = hasSourceOutageMarker(to);
+  if (outageCircuitOpen) {
+    console.log(`[SKIP-ALL] ${teamName} source outage marker: ${sourceOutageMarkerPath(to)}`);
+    appendExportProgress(reportPath, "team_skipped_source_outage", {
+      team_name: teamName,
+      marker: sourceOutageMarkerPath(to),
+    });
+  }
+
   for (const p of players) {
     const playerName = p.name;
     const jsonPath = playerJsonPath(teamName, p);
@@ -501,6 +557,21 @@ async function main() {
     // 동일인이면 대장에서 정정, 동명이인이면 무시하도록 사람이 확인한다.
     if (externalOpponentNames.has(normalizeName(playerName))) {
       result.opponent_name_overlap = true;
+    }
+
+    // 회로가 열렸으면 더 두드리지 않는다. json_path는 그대로 둔다 — 기존 파일의 집계를
+    // 상위가 계속 읽어야 "총 경기 수 감소" 오탐이 겹쳐 뜨지 않는다.
+    if (outageCircuitOpen) {
+      result.fetch_status = "skipped_source_outage";
+      result.csv_status = "skipped";
+      result.error = "source_outage: 엘로보드 장애로 수집 중단(회로 차단기)";
+      summary.results.push(result);
+      appendExportProgress(reportPath, "player_skipped_source_outage", {
+        player: playerName,
+        wr_id: p.wr_id,
+      });
+      console.log(`[SKIP] ${playerName} source outage`);
+      continue;
     }
 
     try {
@@ -651,7 +722,10 @@ async function main() {
       }
     } catch (err) {
       result.error = err instanceof Error ? err.message : String(err);
-      if (result.fetch_status === "skipped") result.fetch_status = "failed";
+      const sourceOutage = isSourceOutageError(errorDetailText(err));
+      if (result.fetch_status === "skipped") {
+        result.fetch_status = sourceOutage ? "fetch_failed_source_outage" : "failed";
+      }
       if (result.csv_status === "skipped") result.csv_status = "failed";
       appendExportProgress(reportPath, "player_fail", {
         player: playerName,
@@ -659,6 +733,31 @@ async function main() {
         fetch_status: result.fetch_status,
         csv_status: result.csv_status,
         error: result.error,
+      });
+    }
+
+    outageStreak = nextSourceOutageStreak(outageStreak, sourceOutageOutcome(result));
+    if (!outageCircuitOpen && isSourceOutageCircuitOpen(outageStreak)) {
+      outageCircuitOpen = true;
+      const markerPath = sourceOutageMarkerPath(to);
+      fs.mkdirSync(path.dirname(markerPath), { recursive: true });
+      fs.writeFileSync(
+        markerPath,
+        JSON.stringify({
+          opened_at: new Date().toISOString(),
+          to,
+          team_name: teamName,
+          last_player: playerName,
+          consecutive_failures: outageStreak,
+        }),
+        "utf8"
+      );
+      console.log(`[CIRCUIT] source outage after ${outageStreak} consecutive failures: ${markerPath}`);
+      appendExportProgress(reportPath, "source_outage_circuit_open", {
+        team_name: teamName,
+        marker: markerPath,
+        consecutive_failures: outageStreak,
+        last_player: playerName,
       });
     }
 
@@ -715,5 +814,13 @@ module.exports = {
   rotationBucketForEntityId,
   shouldRotationFullVerify,
   shouldReuseExistingJson,
+  isSourceOutageError,
+  errorDetailText,
+  sourceOutageMarkerPath,
+  hasSourceOutageMarker,
+  nextSourceOutageStreak,
+  isSourceOutageCircuitOpen,
+  sourceOutageOutcome,
+  SOURCE_OUTAGE_STREAK_LIMIT,
   ROTATION_BUCKETS,
 };
