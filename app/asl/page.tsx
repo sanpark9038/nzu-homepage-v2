@@ -124,7 +124,8 @@ export default async function AslPage() {
                     <p className={LABEL}>다음 방송</p>
                     <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 md:mt-1.5">
                       <span className="text-base font-black tabular-nums text-[#e8ebf2] md:text-2xl">
-                        {formatAslDate(next.date)} {ASL_MATCH_TIME}
+                        {formatAslDate(next.date)}{" "}
+                        {next.label === "ASL 결승" ? "시각 미정" : ASL_MATCH_TIME}
                       </span>
                       <span className="text-xs font-black text-[#fb923c] md:text-sm">
                         {next.label}

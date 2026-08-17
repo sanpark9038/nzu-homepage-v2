@@ -27,7 +27,7 @@ export const ASL_OPENING_DATE = aslScheduleDate("ASL A조");
 export const ASL_FINAL_DATE = aslScheduleDate("ASL 결승");
 /** 전 경기 저녁 7시 생방송 */
 export const ASL_MATCH_TIME = "19:00";
-export const ASL_VENUE_NOTE = "프릭업 스튜디오 오프라인 진행 · 결승은 롯데월드 아이스링크";
+export const ASL_VENUE_NOTE = "프릭업 스튜디오 오프라인 진행 · 결승은 롯데월드 아이스링크(시각 미정)";
 
 /** SOOP 공식 방송국 — 생방송은 여기서 튼다 */
 export const ASL_STATION_URL = "https://www.sooplive.com/station/afstar1";

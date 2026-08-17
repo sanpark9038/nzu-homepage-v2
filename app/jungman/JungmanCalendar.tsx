@@ -249,7 +249,8 @@ export default function JungmanCalendar({
         date: item.date,
         label: item.label,
         color: ASL_ACCENT,
-        time: ASL_MATCH_TIME,
+        // 결승 시각은 미공개다 — 19:00으로 단정하면 발표가 나는 날 달력이 거짓말을 한다
+        time: item.label === "ASL 결승" ? "미정" : ASL_MATCH_TIME,
       }));
       // 남의 대회는 라벨 한 줄로 줄인다 — 팀·로고·점수까지 얹으면 주인공이 안 보인다
       const quiet: CalendarEvent[] = [...group, ...tournament]

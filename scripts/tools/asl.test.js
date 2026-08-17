@@ -186,6 +186,8 @@ test("다음 방송은 커버의 카드다 — dl 한 칸이 아니다", () => {
   const page = readProjectFile("app/asl/page.tsx");
   // 라벨 다음에 날짜+시각이 크게, 그 아래 해당 조 선수들이 온다 (라벨 줄에 승부예측 링크가 껴서 창이 넓다)
   assert.match(page, /다음 방송[\s\S]{0,800}formatAslDate\(next\.date\)[\s\S]{0,200}ASL_MATCH_TIME/);
+  // 다음 방송이 결승이 되면 시각 대신 "시각 미정" — 발표 전 단정 금지
+  assert.match(page, /next\.label === "ASL 결승" \? "시각 미정" : ASL_MATCH_TIME/);
   assert.match(page, /nextGroup[\s\S]{0,200}PlayerLine/);
   // 일정이 끝나면 카드 대신 회색 한 줄
   assert.match(page, /시즌 일정 종료/);
@@ -257,6 +259,8 @@ test("달력은 variant로 주인공을 뒤집는다 — 기본값은 K-중만�
   assert.match(source, /new Set\(ASL_SCHEDULE\.map\(\(item\) => item\.date\.slice\(0, 7\)\)\)/);
   // 시각은 lib 상수에서만 온다 — "19:00"을 여기 또 적으면 조용히 어긋난다
   assert.match(source, /ASL_MATCH_TIME/);
+  // 결승 시각은 미공개 — 발표 전까지 "미정"으로 그린다 (사용자 지시 2026-08-17)
+  assert.match(source, /item\.label === "ASL 결승" \? "미정" : ASL_MATCH_TIME/);
 });
 
 test('/asl 달력의 기본은 "이번 주" 한 줄 — 월 격자는 탭을 눌러야 나온다', () => {
