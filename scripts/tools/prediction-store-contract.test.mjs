@@ -532,6 +532,21 @@ test("derivePredictionMatchStatus handles open, warning, closed, and published s
     ),
     "result_published"
   );
+
+  // 결과 공개 후 24시간이 지나면 자동 숨김(archived)
+  assert.equal(
+    predictionStore.derivePredictionMatchStatus(
+      {
+        start_at: "2026-05-04T10:00:00.000Z",
+        close_at: "2026-05-04T09:30:00.000Z",
+        status: "closed",
+        result_team_code: "team-a",
+        result_published_at: "2026-05-04T11:00:00.000Z",
+      },
+      now
+    ),
+    "archived"
+  );
 });
 
 test("validatePredictionVote rejects closed matches and invalid team picks", () => {

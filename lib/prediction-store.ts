@@ -131,6 +131,8 @@ const PREDICTION_VOTES_PATH = path.join(
 
 const MAX_CHANGES_PER_MATCH = 1;
 const CLOSING_SOON_MS = 30 * 60 * 1000;
+/** 결과 공개 후 이 시간이 지나면 공개 목록에서 자동 숨김(archived 판정). */
+const RESULT_AUTO_HIDE_MS = 24 * 60 * 60 * 1000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const STORED_STATUSES = new Set(["draft", "open", "closed", "archived"]);
 const MATCH_TYPES = new Set(["team", "individual"]);
@@ -725,6 +727,8 @@ export function derivePredictionMatchStatus(
   const status = normalizeStoredStatus(match.status);
   if (status === "archived") return "archived";
   if (normalizeText(match.result_team_code) && normalizeText(match.result_published_at)) {
+    const publishedMs = parseTime(match.result_published_at);
+    if (publishedMs && now.getTime() - publishedMs >= RESULT_AUTO_HIDE_MS) return "archived";
     return "result_published";
   }
   if (status === "draft") return "draft";
