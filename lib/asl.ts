@@ -24,11 +24,10 @@ export const ASL_SEASON_EN = "ASL SEASON 22";
 
 /** 개막 = 24강 A조. 날짜는 ASL_SCHEDULE 한 벌에서만 온다 */
 export const ASL_OPENING_DATE = aslScheduleDate("ASL A조");
-/** 결승은 ASL_SCHEDULE(8월분)에 없어 여기서 갖는다. 9월 일정이 공개되면 그쪽으로 옮긴다. */
-export const ASL_FINAL_DATE = "2026-10-17";
+export const ASL_FINAL_DATE = aslScheduleDate("ASL 결승");
 /** 전 경기 저녁 7시 생방송 */
 export const ASL_MATCH_TIME = "19:00";
-export const ASL_VENUE_NOTE = "프릭업 스튜디오 오프라인 진행 · 9월 이후 일정은 공개되는 대로 갱신";
+export const ASL_VENUE_NOTE = "프릭업 스튜디오 오프라인 진행 · 결승은 롯데월드 아이스링크";
 
 /** SOOP 공식 방송국 — 생방송은 여기서 튼다 */
 export const ASL_STATION_URL = "https://www.sooplive.com/station/afstar1";
@@ -169,7 +168,7 @@ export function aslDaysToOpening(): number {
 }
 
 /**
- * 오늘(KST) 포함 가장 가까운 방송. 9월 이후 일정은 미공개라 조지명식이 지나면 null이 정상이다.
+ * 오늘(KST) 포함 가장 가까운 방송. 결승(10/17)까지 다 들어 있다 — 결승이 지나면 null이 정상이다.
  * ASL_SCHEDULE은 날짜 오름차순으로 적혀 있다.
  */
 export function aslNextBroadcast(): { date: string; label: string } | null {

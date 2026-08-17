@@ -26,6 +26,7 @@ const asl = loadModule("lib/asl.ts", (id) => (id === "./jungman" ? jungman : {})
 
 const {
   ASL_DRAW_DATE,
+  ASL_FINAL_DATE,
   ASL_GROUPS,
   ASL_MAPS,
   ASL_OPENING_DATE,
@@ -79,13 +80,14 @@ test("조별 날짜는 ASL_SCHEDULE의 같은 라벨 날짜와 일치한다", ()
   assert.equal(ASL_OPENING_DATE, byLabel.get("ASL A조"));
   assert.equal(ASL_DRAW_DATE, byLabel.get("ASL 조지명식"));
 
-  // 날짜를 lib/asl.ts에 두 벌로 적으면 달력과 조용히 어긋난다 — 리터럴 날짜는 결승 하나뿐이다.
+  // 날짜를 lib/asl.ts에 두 벌로 적으면 달력과 조용히 어긋난다 — 결승까지 ASL_SCHEDULE에 들어와 리터럴은 0개다.
   // 주석은 뺀다 — 설명용 예시 날짜("2026-08-17" → "8/17(월)")까지 잡으면 검사가 문서를 막는다.
   const code = readProjectFile("lib/asl.ts")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/\/\/.*$/gm, "");
   const literals = code.match(/"\d{4}-\d{2}-\d{2}"/g) || [];
-  assert.deepEqual(literals, ['"2026-10-17"']);
+  assert.deepEqual(literals, []);
+  assert.equal(ASL_FINAL_DATE, byLabel.get("ASL 결승"));
 });
 
 test("모르는 라벨을 찾으면 던진다 (오타를 빌드에서 잡는다)", () => {
@@ -143,7 +145,7 @@ test("날짜 표기는 한국 시간대로 조립한다", () => {
 
 test("다음 방송은 ASL_SCHEDULE의 한 칸이거나 null이다", () => {
   const next = aslNextBroadcast();
-  // 조지명식이 지나면 null이 정상 — 9월 이후 일정은 미공개다
+  // 결승(10/17)이 지나면 null이 정상 — 시즌이 끝난 것이다
   if (next !== null) {
     assert.ok(
       ASL_SCHEDULE.some((item) => item.date === next.date && item.label === next.label),
@@ -186,7 +188,7 @@ test("다음 방송은 커버의 카드다 — dl 한 칸이 아니다", () => {
   assert.match(page, /다음 방송[\s\S]{0,800}formatAslDate\(next\.date\)[\s\S]{0,200}ASL_MATCH_TIME/);
   assert.match(page, /nextGroup[\s\S]{0,200}PlayerLine/);
   // 일정이 끝나면 카드 대신 회색 한 줄
-  assert.match(page, /조지명식 이후 일정 미공개/);
+  assert.match(page, /시즌 일정 종료/);
 });
 
 test("24강 맵 배정은 3단계고 맵 이름이 ASL_MAPS 안에 전부 있다", () => {

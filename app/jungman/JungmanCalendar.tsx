@@ -243,7 +243,7 @@ export default function JungmanCalendar({
     });
 
     if (variant === "asl") {
-      // 월 탭은 ASL 일정으로 정한다 — 9월 이후는 미공개라 K-중만컵 9월분은 자연히 범위 밖이다
+      // 월 탭은 ASL 일정으로 정한다 — 결승(10월)까지 들어와 8·9·10월 석 달이 된다
       const months = [...new Set(ASL_SCHEDULE.map((item) => item.date.slice(0, 7)))].sort();
       const aslEvents: CalendarEvent[] = ASL_SCHEDULE.map((item) => ({
         date: item.date,

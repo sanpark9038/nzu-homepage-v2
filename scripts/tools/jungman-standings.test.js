@@ -656,17 +656,21 @@ test("토너먼트 일정 7건 — 결승 날짜는 상수 한 벌에서만 온�
   assert.match(readProjectFile("lib/jungman.ts"), /\{ date: JUNGMAN_FINAL_DATE, label: "결승"/);
 });
 
-test("ASL 일정 7건 — 전부 월·화·수다", () => {
+test("ASL 일정 18건 — 결승(토)만 빼면 전부 월·화·수다", () => {
   const { ASL_SCHEDULE } = loadModule("lib/jungman.ts");
-  assert.equal(ASL_SCHEDULE.length, 7);
+  assert.equal(ASL_SCHEDULE.length, 18);
   // 요일은 눈으로 세지 말고 검산한다 — 한 칸만 밀려도 "월화수가 비는 이유"라는 설명이 거짓이 된다
   const weekday = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", weekday: "short" });
   for (const item of ASL_SCHEDULE) {
     assert.match(item.date, /^\d{4}-\d{2}-\d{2}$/, `label=${item.label}`);
     assert.ok(item.label, `date=${item.date}`);
     const day = weekday.format(new Date(`${item.date}T00:00:00+09:00`));
-    assert.ok(["Mon", "Tue", "Wed"].includes(day), `${item.date}=${day}`);
+    if (item.label === "ASL 결승") assert.equal(day, "Sat", item.date);
+    else assert.ok(["Mon", "Tue", "Wed"].includes(day), `${item.date}=${day}`);
   }
+  // aslNextBroadcast는 정렬을 믿는다 — 어긋나면 "다음 방송"이 지난 방송을 가리킨다
+  const sorted = [...ASL_SCHEDULE].map((item) => item.date).sort();
+  assert.deepEqual(ASL_SCHEDULE.map((item) => item.date), sorted);
   // 8/10~12에는 ASL이 없다 — "월화수 전부"로 일반화하면 안 그러는 주가 지워진다
   const dates = ASL_SCHEDULE.map((item) => item.date);
   for (const date of ["2026-08-10", "2026-08-11", "2026-08-12"]) {

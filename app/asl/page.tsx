@@ -174,7 +174,7 @@ export default async function AslPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-[#7a8299]">조지명식 이후 일정 미공개</p>
+              <p className="text-sm text-[#7a8299]">시즌 일정 종료</p>
             )}
 
             {/* 총상금과 맵만 남는다 — 한 열이면 총상금 옆이 비지 않는다 */}

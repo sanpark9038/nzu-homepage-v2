@@ -66,9 +66,9 @@ export const JUNGMAN_TOURNAMENT: { date: string; label: string; round: "8강" | 
 ];
 
 /**
- * ASL 일정 — 월·화·수에 K-중만컵이 없는 이유. 사용자 제공 공식 달력 실측(2026-08-06).
- * 8/10~12은 ASL이 없다 — "월화수 전부"로 일반화하지 말고 날짜만 믿어라.
- * 9월 일정은 아직 미공개 — 나오면 여기 추가한다.
+ * ASL 일정 — 월·화·수에 K-중만컵이 없는 이유. 사용자 제공 공식 달력 실측(2026-08-06, 9월 이후분 2026-08-17).
+ * 8/10~12은 ASL이 없다 — "월화수 전부"로 일반화하지 말고 날짜만 믿어라. 결승만 토요일이다.
+ * 날짜 오름차순을 유지하라 — aslNextBroadcast가 첫 매치를 그대로 믿는다.
  */
 export const ASL_SCHEDULE: { date: string; label: string }[] = [
   { date: "2026-08-17", label: "ASL A조" },
@@ -78,6 +78,17 @@ export const ASL_SCHEDULE: { date: string; label: string }[] = [
   { date: "2026-08-25", label: "ASL E조" },
   { date: "2026-08-26", label: "ASL F조" },
   { date: "2026-08-31", label: "ASL 조지명식" },
+  { date: "2026-09-07", label: "ASL 16강 A조" },
+  { date: "2026-09-08", label: "ASL 16강 B조" },
+  { date: "2026-09-14", label: "ASL 16강 C조" },
+  { date: "2026-09-15", label: "ASL 16강 D조" },
+  { date: "2026-09-21", label: "ASL 8강 1경기" },
+  { date: "2026-09-22", label: "ASL 8강 2경기" },
+  { date: "2026-09-28", label: "ASL 8강 3경기" },
+  { date: "2026-09-29", label: "ASL 8강 4경기" },
+  { date: "2026-10-05", label: "ASL 4강 1경기" },
+  { date: "2026-10-06", label: "ASL 4강 2경기" },
+  { date: "2026-10-17", label: "ASL 결승" },
 ];
 
 // ── 경기 날짜 · D-day ────────────────────────────────────────────────────
