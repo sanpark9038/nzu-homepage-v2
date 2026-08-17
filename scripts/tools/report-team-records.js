@@ -267,15 +267,15 @@ function parseDisplayStats(html) {
         }
       : null;
 
-  const totalMatch = html.match(
-    /\uCD1D\uC804\uC801\s*:\s*([0-9,]+)\uC804\s*([0-9,]+)\uC2B9\s*([0-9,]+)\uD328/
-  );
-  const femaleMatch = html.match(
-    /\uC5EC\uC131\uC804\uC801\s*:\s*([0-9,]+)\uC804\s*([0-9,]+)\uC2B9\s*([0-9,]+)\uD328/
-  );
-  const maleMatch = html.match(
-    /\uB0A8\uC131\uC804\uC801\s*:\s*([0-9,]+)\uC804\s*([0-9,]+)\uC2B9\s*([0-9,]+)\uD328/
-  );
+  // \uC2E4\uC81C \uB808\uC774\uC544\uC6C3(2026-08-17 \uC2E4\uCE21): \uC5EC\uC790\uBD80\uB294 "\uC5EC\uC131 : 9\uC804 0\uC2B9 9\uD328" \uC778\uB77C\uC778("\uC804\uC801" \uC5C6\uC74C),
+  // \uB0A8\uC790\uBD80\uB294 "<th>\uCD1D\uC804\uC801</th><td>4,098\uC804 2,294\uC2B9 1,804\uD328(56.0%)</td>" \uD45C \uD615\uD0DC(\uCF5C\uB860 \uC5C6\uC74C).
+  // \uC6D0\uB798\uC758 "\uC5EC\uC131\uC804\uC801 :"/"\uCD1D\uC804\uC801 :" \uC778\uB77C\uC778\uB9CC \uCC3E\uB358 \uC815\uADDC\uC2DD\uC740 \uB450 \uBCF4\uB4DC \uBAA8\uB450\uC5D0\uC11C \uC8FD\uC5B4 \uC788\uC5C8\uACE0,
+  // \uADF8 \uD0D3\uC5D0 \uCE74\uC6B4\uD130>0 \uD310\uC815(\uC18C\uC2A4 \uC774\uC0C1 \uAC10\uC9C0\u00B7\uAC15\uC81C \uD398\uC774\uC9C0\uB124\uC774\uC158)\uC774 \uC804\uBD80 \uBB34\uB825\uD654\uB410\uB2E4.
+  const NUMS = "([0-9,]+)\\s*\uC804\\s*([0-9,]+)\\s*\uC2B9\\s*([0-9,]+)\\s*\uD328";
+  const SEP = "\\s*(?::|<\\/th>\\s*<td[^>]*>)\\s*";
+  const totalMatch = html.match(new RegExp(`\uCD1D\uC804\uC801${SEP}${NUMS}`));
+  const femaleMatch = html.match(new RegExp(`\uC5EC\uC131(?:\uC804\uC801)?${SEP}${NUMS}`));
+  const maleMatch = html.match(new RegExp(`\uB0A8\uC131(?:\uC804\uC801)?${SEP}${NUMS}`));
 
   return {
     total: make(totalMatch),
@@ -848,6 +848,7 @@ if (require.main === module) {
 
 module.exports = {
   collectionDisplayTotal,
+  parseDisplayStats,
   isSourceOutagePage,
   isSourceAnomaly,
   extractInitialRows,

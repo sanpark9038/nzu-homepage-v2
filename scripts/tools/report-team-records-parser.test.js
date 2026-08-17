@@ -3,6 +3,7 @@ const test = require("node:test");
 
 const {
   collectionDisplayTotal,
+  parseDisplayStats,
   isSourceOutagePage,
   isSourceAnomaly,
   extractInitialRows,
@@ -208,4 +209,35 @@ test("mergePriorMatches drops prior rows on dates re-read this run", () => {
     "2026-07-24|B",
     "2026-07-01|C",
   ]);
+});
+
+// 실측 레이아웃(2026-08-17): 여자부 프로필은 "여성 : 9전 0승 9패" 인라인("전적" 없음),
+// 남자부는 <th>총전적</th><td>4,098전 …</td> 표 형태(콜론 없음). 예전 정규식("여성전적 :" 등
+// 인라인 전용)은 두 보드 모두에서 매치 실패 → displayTotal이 항상 0 → 소스 이상 감지와
+// 강제 페이지네이션이 전부 무력화됐다(가드가 배포 첫날 발동하지 않은 원인).
+test("parseDisplayStats reads the real women inline layout", () => {
+  const html = `
+    <span class="medium float-right">총전적 : 9전 0승 9패</span>
+    <span class="medium float-right">여성 : 9전 0승 9패</span>
+    <span class="medium float-right">혼성 : 0전 0승 0패</span>
+  `;
+  const stats = parseDisplayStats(html);
+  assert.deepEqual(stats.total, { total: 9, wins: 0, losses: 9 });
+  assert.deepEqual(stats.female, { total: 9, wins: 0, losses: 9 });
+});
+
+test("parseDisplayStats reads the real men th/td layout", () => {
+  const html = `
+    <th scope="row" style="background:#f6f6f6;border:1px solid #ccc;padding:5px">총전적</th>
+    <td style="border:1px solid #ccc;padding:5px">4,098전 2,294승 1,804패(56.0%)</td>
+  `;
+  const stats = parseDisplayStats(html);
+  assert.deepEqual(stats.total, { total: 4098, wins: 2294, losses: 1804 });
+});
+
+test("parseDisplayStats still reads the legacy inline labels", () => {
+  const html = "여성전적 : 12전 7승 5패 / 남성전적 : 3전 1승 2패";
+  const stats = parseDisplayStats(html);
+  assert.deepEqual(stats.female, { total: 12, wins: 7, losses: 5 });
+  assert.deepEqual(stats.male, { total: 3, wins: 1, losses: 2 });
 });
