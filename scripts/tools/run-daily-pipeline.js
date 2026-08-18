@@ -44,6 +44,14 @@ function isFetchObserved(status) {
   return FETCH_OK_STATES.has(String(status || ""));
 }
 
+// "처음부터 다 훑었다"에 해당하는 수집 방식. 여자부는 2026-08 개편으로 연도 전량 조회
+// (yearly_full_read)가 됐다 — 이름만 다를 뿐 full_scan과 같은 등급이라, 여기서 함께 인정하지
+// 않으면 full_scans 집계가 0으로 보이고 회귀 가드의 "실제 감소" 판정이 여자부 전원을 놓친다.
+function isFullScanStrategy(strategy) {
+  const value = String(strategy || "");
+  return value === "full_scan" || value === "yearly_full_read";
+}
+
 // 소스 사이트(엘로보드) 장애로 오늘 관측 자체를 못 한 상태(fetch_failed_source_outage /
 // skipped_source_outage). FETCH_OK_STATES에 없으니 기존 경로 그대로 fetch_fail로 집계된다 —
 // 새 경보 규칙을 만들지 않고 기존 실패 경보에 사유만 붙인다.
@@ -502,7 +510,7 @@ function summarizeTeamFromReport(team, report) {
     .filter(
       (row) =>
         String(row.fetch_status) === "used_existing_json_regression_guard" &&
-        String(row.verify_scan_strategy) === "full_scan"
+        isFullScanStrategy(row.verify_scan_strategy)
     )
     .map((row) => String(row.player || ""))
     .filter(Boolean);
@@ -539,7 +547,7 @@ function summarizeTeamFromReport(team, report) {
     const doc = readJson(jsonPath);
     const player = Array.isArray(doc.players) ? doc.players[0] : null;
     if (!player) continue;
-    if (String(row.fetch_status || "") === "ok" && String(player.scan_strategy || "") === "full_scan") {
+    if (String(row.fetch_status || "") === "ok" && isFullScanStrategy(player.scan_strategy)) {
       fullScans += 1;
     }
     const t = Number(player.period_total || 0);

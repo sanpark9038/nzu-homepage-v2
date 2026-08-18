@@ -126,10 +126,23 @@ function selectMode(profileUrl) {
     };
   }
 
+  // 2026-08 개편: 여자부 경기 목록은 프로필에 서버 렌더링되지 않고 연도 단위 AJAX로 온다.
+  // 옛 view_list.php는 여전히 200을 주지만 낡은 스냅샷이라, 그걸 보고 "정상"이라고 하면
+  // 여자부 전체가 7월 이후를 놓치는 동안에도 헬스체크가 통과한다(실제로 그랬다).
+  if (!text.includes("/men/")) {
+    return {
+      endpoint: "ajax_women_record.php",
+      boardBase: "https://eloboard.com/women/bbs",
+      disabled_reason: null,
+      param: "bj_name",
+    };
+  }
+
   return {
     endpoint: "view_list.php",
-    boardBase: text.includes("/men/") ? "https://eloboard.com/men/bbs" : "https://eloboard.com/women/bbs",
+    boardBase: "https://eloboard.com/men/bbs",
     disabled_reason: null,
+    param: "p_name",
   };
 }
 
@@ -142,8 +155,10 @@ function parseProfileBootstrap(profileHtml, profileUrl, fallbackName) {
       ? profileHtml.slice(Math.max(0, endpointIndex - 3000), endpointIndex + 3000)
       : profileHtml;
 
-  let match = slice.match(/p_name\s*[:=]\s*["']([^"']+)["']/i);
-  if (!match) match = slice.match(/name=["']p_name["'][^>]*value=["']([^"']+)["']/i);
+  // 남자부는 p_name, 개편된 여자부는 bj_name을 프로필 JS가 들고 있다.
+  const param = mode.param || "p_name";
+  let match = slice.match(new RegExp(`${param}\\s*[:=]\\s*["']([^"']+)["']`, "i"));
+  if (!match) match = slice.match(new RegExp(`name=["']${param}["'][^>]*value=["']([^"']+)["']`, "i"));
   const pName = match && match[1] ? match[1].trim() : fallbackName;
 
   const $ = cheerio.load(profileHtml);
@@ -188,6 +203,11 @@ async function checkTeamRoster(sampleProject) {
     player_count: players.length,
     sample_player: players[0] || null,
     sample_players: players.slice(0, 8),
+    // 여자부는 남자부와 수집 경로가 완전히 다르다(연도 AJAX). 로스터 앞쪽이 남자부면
+    // 여자부 엔드포인트가 한 번도 검사되지 않으므로 후보를 따로 뽑아 둔다.
+    women_sample_players: players
+      .filter((row) => selectMode(row.profile_url).param === "bj_name")
+      .slice(0, 5),
   };
 }
 
@@ -212,6 +232,16 @@ async function checkPlayerProfile(samplePlayer, rosterUrl = "") {
   };
 }
 
+// 빈 연도 응답도 thead는 들어 있다. td를 가진 행만 세야 "그 해 경기 없음"과 구분된다.
+function countWomenRecordRows(html) {
+  const $ = cheerio.load(html);
+  let count = 0;
+  $("tbody tr").each((_, tr) => {
+    if ($(tr).find("td").length >= 4) count += 1;
+  });
+  return count;
+}
+
 async function checkPaginatedHistory(profileCheck) {
   const bootstrap = profileCheck.bootstrap;
   const mode = selectMode(profileCheck.profile_url);
@@ -224,6 +254,35 @@ async function checkPaginatedHistory(profileCheck) {
     };
   }
   const pageUrl = `${mode.boardBase}/${mode.endpoint}`;
+
+  // 여자부는 연도 단위 AJAX 한 방이라 last_id가 없다. 올해에 경기가 없는 선수도 있으니
+  // 작년까지 훑어 한 해라도 행이 나오면 소스가 살아 있는 것으로 본다.
+  if (mode.param === "bj_name") {
+    if (!bootstrap.p_name) {
+      return { ok: false, skipped: true, reason: "missing_bj_name", url: pageUrl };
+    }
+    const thisYear = new Date().getFullYear();
+    const yearsTried = [];
+    let rowCount = 0;
+    for (const year of [thisYear, thisYear - 1]) {
+      yearsTried.push(year);
+      const html = decodeHtml(
+        await postBinary(pageUrl, qs.stringify({ bj_name: bootstrap.p_name, target_year: year }), {
+          headers: { Referer: profileCheck.profile_url },
+        })
+      );
+      rowCount = countWomenRecordRows(html);
+      if (rowCount > 0) break;
+    }
+    return {
+      ok: rowCount > 0,
+      url: pageUrl,
+      row_count: rowCount,
+      years_tried: yearsTried,
+      ...(rowCount > 0 ? {} : { reason: "women_yearly_endpoint_returned_no_rows" }),
+    };
+  }
+
   const lastId = Number(bootstrap.last_id || 0);
   if (!bootstrap.p_name || lastId <= 0) {
     return {
@@ -299,6 +358,30 @@ async function main() {
     deepCheck = { ok: false, skipped: true, reason: "disabled" };
   }
 
+  // 여자부는 별도 검사가 필요하다. 위 샘플 선수가 남자부면 view_list.php만 확인되는데,
+  // 2026-08 개편 뒤 여자부는 그 경로를 아예 쓰지 않는다(낡은 스냅샷만 돌아온다).
+  let womenCheck = { ok: false, skipped: true, reason: "no_women_sample_player" };
+  if (!includeDeep) {
+    womenCheck = { ok: false, skipped: true, reason: "disabled" };
+  } else {
+    for (const candidate of rosterCheck.women_sample_players || []) {
+      try {
+        const womenProfile = await checkPlayerProfile(candidate, rosterCheck.url);
+        if (!womenProfile.ok) continue;
+        womenCheck = await checkPaginatedHistory(womenProfile);
+        womenCheck.profile_url = candidate.profile_url;
+        if (womenCheck.ok) break;
+      } catch (error) {
+        womenCheck = {
+          ok: false,
+          url: null,
+          profile_url: candidate.profile_url,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }
+  }
+
   const summary = {
     generated_at: new Date().toISOString(),
     sample_project_code: sampleProject.code,
@@ -307,6 +390,7 @@ async function main() {
       team_roster_page: rosterCheck,
       player_profile_page: profileCheck,
       player_paginated_history: deepCheck,
+      player_women_yearly_history: womenCheck,
     },
   };
 
@@ -346,6 +430,7 @@ function formatMarkdown(summary) {
     `- Team Roster Page: ${checkStatusLabel(checks.team_roster_page)}`,
     `- Player Profile Page: ${checkStatusLabel(checks.player_profile_page)}`,
     `- Player Paginated History: ${checkStatusLabel(checks.player_paginated_history)}`,
+    `- Player Women Yearly History: ${checkStatusLabel(checks.player_women_yearly_history)}`,
   ];
 
   if (checks.team_index && checks.team_index.url) {
@@ -369,6 +454,12 @@ function formatMarkdown(summary) {
   if (checks.player_paginated_history && checks.player_paginated_history.reason) {
     lines.push(`- History Note: ${checks.player_paginated_history.reason}`);
   }
+  if (checks.player_women_yearly_history && checks.player_women_yearly_history.url) {
+    lines.push(`- Women History Endpoint: ${checks.player_women_yearly_history.url}`);
+  }
+  if (checks.player_women_yearly_history && checks.player_women_yearly_history.reason) {
+    lines.push(`- Women History Note: ${checks.player_women_yearly_history.reason}`);
+  }
 
   return lines.join("\n");
 }
@@ -383,6 +474,7 @@ if (require.main === module) {
 module.exports = {
   HEALTH_LATEST_JSON_PATH,
   HEALTH_LATEST_MD_PATH,
+  countWomenRecordRows,
   decodeHtml,
   formatMarkdown,
   parseProfileBootstrap,

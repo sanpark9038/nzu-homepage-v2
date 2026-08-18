@@ -294,6 +294,16 @@ function selectMode(player) {
       collect_matches: false,
     };
   }
+  // 2026-08 개편: 여자부만 경기 목록이 AJAX 연도 조회로 갈렸다(아래 fetchWomenYearRows 주석).
+  // 남자부(/men/)는 개편되지 않아 view_list.php 페이지네이션 그대로다 — 건드리지 말 것.
+  if (!String((player && player.profile_url) || "").includes("/men/")) {
+    return {
+      mode: "women_yearly",
+      endpoint: "ajax_women_record.php",
+      sectionMarker: K_FEMALE_SECTION,
+      collect_matches: true,
+    };
+  }
   return {
     mode: "female_or_default",
     endpoint: "view_list.php",
@@ -334,15 +344,16 @@ function isSourceAnomaly(displayTotal, matchCount) {
   return Number(displayTotal) > 0 && Number(matchCount) === 0;
 }
 
-function parsePNameFromProfile(profileHtml, endpoint, fallbackName) {
+// key는 프로필 JS가 쓰는 파라미터 이름이다. 남자부는 p_name, 개편된 여자부는 bj_name.
+function parsePNameFromProfile(profileHtml, endpoint, fallbackName, key = "p_name") {
   const endpointIndex = profileHtml.indexOf(endpoint);
   const slice =
     endpointIndex >= 0
       ? profileHtml.slice(Math.max(0, endpointIndex - 3000), endpointIndex + 3000)
       : profileHtml;
 
-  let match = slice.match(/p_name\s*[:=]\s*["']([^"']+)["']/i);
-  if (!match) match = slice.match(/name=["']p_name["'][^>]*value=["']([^"']+)["']/i);
+  let match = slice.match(new RegExp(`${key}\\s*[:=]\\s*["']([^"']+)["']`, "i"));
+  if (!match) match = slice.match(new RegExp(`name=["']${key}["'][^>]*value=["']([^"']+)["']`, "i"));
   return match && match[1] ? match[1].trim() : fallbackName;
 }
 
@@ -482,6 +493,52 @@ async function fetchPageRows(player, mode, pName, lastId) {
   };
 }
 
+// 수집 윈도가 걸친 연도들(최신 → 과거). 여자부 엔드포인트는 연도 단위로만 조회된다.
+function windowYears() {
+  const from = Number(START_DATE.slice(0, 4));
+  const to = Number(END_DATE.slice(0, 4));
+  const years = [];
+  for (let y = to; y >= from; y -= 1) years.push(y);
+  return years;
+}
+
+// 응답 테이블 구조는 옛 list-board와 같다(날짜/상대/맵/ELO/경기방식/메모 + 날짜칸 배경색이 승패).
+// 그래서 parseRowsFromBoard를 그대로 태운다.
+function parseWomenYearRows(html) {
+  const $ = cheerio.load(html);
+  return parseRowsFromBoard($, $.root());
+}
+
+// 2026-08 개편(실측 2026-08-18): 여자부 프로필 페이지는 경기 목록을 더 이상 서버 렌더링하지
+// 않는다. 페이지에 남아 있는 list-board 블록은 낡은 스냅샷이라(7월 초에서 멈춤) 그걸 읽던
+// 옛 경로는 여자부 전체가 7월 이후 경기를 통째로 놓쳤다. 실제 목록은 접속 즉시 이 AJAX가
+// 연도 단위로 가져온다 — 페이지네이션 없이 해당 연도 전량이 한 번에 온다.
+// 남자부는 개편되지 않았다(view_list.php 그대로).
+async function fetchWomenYearRows(player, mode, bjName, year) {
+  const url = `https://eloboard.com/women/bbs/${mode.endpoint}`;
+  const body = qs.stringify({ bj_name: bjName, target_year: year });
+
+  const label = `POST ${url} bj_name=${bjName} target_year=${year}`;
+  const res = await withRetry(async () => {
+    const response = await axios.post(url, body, {
+      responseType: "arraybuffer",
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        Referer: player.profile_url,
+      },
+      timeout: 30000,
+    });
+    throwIfSourceOutage(response.data, label);
+    return response;
+  }, label);
+
+  // 헤더만 있고 0행이면 "그 해 경기 없음"이다(정상). 소스 이상 판정은 상위에서 표시 카운터와
+  // 대조해 한 번만 한다.
+  return parseWomenYearRows(decodeHtml(res.data));
+}
+
 function appendRows(bucket, seen, rows, anchorKey = null) {
   let unknownOutcomeRows = 0;
   let hitAnchor = false;
@@ -580,76 +637,95 @@ async function collectPlayer(player, cacheEntry = null, priorMatches = []) {
       },
     };
   }
-  const pName = parsePNameFromProfile(profileHtml, mode.endpoint, resolvedPlayer.name);
-  const initial = extractInitialRows(profileHtml, mode);
+  const isWomenYearly = mode.mode === "women_yearly";
+  const pName = parsePNameFromProfile(
+    profileHtml,
+    mode.endpoint,
+    resolvedPlayer.name,
+    isWomenYearly ? "bj_name" : "p_name"
+  );
 
   const seen = new Set();
   const matches = [];
   let unknownOutcomeRows = 0;
-  // 붙일 과거 기록이 없으면 앵커도 쓰지 않는다. 앵커만 믿고 조기 중단하면 병합할 몸통이
-  // 없어 "짧은 전적"을 그대로 써버린다(팀 이동 등으로 prior json이 새 경로일 때 실제로 발생).
-  const prior = Array.isArray(priorMatches) ? priorMatches : [];
-  const anchorKey = prior.length && cacheEntry && cacheEntry.latest_key ? cacheEntry.latest_key : null;
-  let hitAnchor = false;
-  const initAppend = appendRows(matches, seen, initial.rows, anchorKey);
-  unknownOutcomeRows += initAppend.unknownOutcomeRows;
-  hitAnchor = hitAnchor || initAppend.hitAnchor;
-
   let pagesScanned = 0;
-  let lastId = initial.initialLastId;
+  let usedIncrementalCache = false;
   const displayTotal = collectionDisplayTotal(resolvedPlayer, mode, displayStats);
-  const isMenBoard = resolvedPlayer.profile_url.includes("/men/");
-  // Some profile pages intermittently render summary stats but omit the initial list board.
-  // Force a paginated fetch in that case instead of accepting a silent 0-match result.
-  if (lastId <= 0 && initial.rows.length === 0 && displayTotal > 0) {
-    lastId = 1;
-  }
-  if (lastId <= 0 && isMenBoard && mode.endpoint === "view_list.php") {
-    lastId = 1;
-  }
-  let reachedOlderThanStart = false;
-  let emptyHops = 0;
 
-  for (let i = 0; i < 200 && lastId > 0; i += 1) {
-    if (hitAnchor) break;
-    const page = await fetchPageRows(resolvedPlayer, mode, pName, lastId);
-    if (!page.rows.length) {
-      emptyHops += 1;
-      if (
-        Number.isFinite(page.nextLastId) &&
-        page.nextLastId > lastId &&
-        emptyHops <= 10
-      ) {
-        lastId = page.nextLastId;
-        continue;
+  if (isWomenYearly) {
+    // 연도 전량 조회라 앵커 조기중단이 의미가 없다(어차피 한 요청에 그 해가 다 온다).
+    // 매번 윈도 연도를 통째로 읽는 쪽이 단순하고 정확하다 — 선수당 요청 수도 페이지네이션보다 적다.
+    // 연도는 최신 → 과거 순이고 각 응답도 최신순이라, 결과는 그대로 최신순으로 쌓인다.
+    for (const year of windowYears()) {
+      const rows = await fetchWomenYearRows(resolvedPlayer, mode, pName, year);
+      pagesScanned += 1;
+      unknownOutcomeRows += appendRows(matches, seen, rows).unknownOutcomeRows;
+    }
+  } else {
+    const initial = extractInitialRows(profileHtml, mode);
+    // 붙일 과거 기록이 없으면 앵커도 쓰지 않는다. 앵커만 믿고 조기 중단하면 병합할 몸통이
+    // 없어 "짧은 전적"을 그대로 써버린다(팀 이동 등으로 prior json이 새 경로일 때 실제로 발생).
+    const prior = Array.isArray(priorMatches) ? priorMatches : [];
+    const anchorKey = prior.length && cacheEntry && cacheEntry.latest_key ? cacheEntry.latest_key : null;
+    let hitAnchor = false;
+    const initAppend = appendRows(matches, seen, initial.rows, anchorKey);
+    unknownOutcomeRows += initAppend.unknownOutcomeRows;
+    hitAnchor = hitAnchor || initAppend.hitAnchor;
+
+    let lastId = initial.initialLastId;
+    const isMenBoard = resolvedPlayer.profile_url.includes("/men/");
+    // Some profile pages intermittently render summary stats but omit the initial list board.
+    // Force a paginated fetch in that case instead of accepting a silent 0-match result.
+    if (lastId <= 0 && initial.rows.length === 0 && displayTotal > 0) {
+      lastId = 1;
+    }
+    if (lastId <= 0 && isMenBoard && mode.endpoint === "view_list.php") {
+      lastId = 1;
+    }
+    let reachedOlderThanStart = false;
+    let emptyHops = 0;
+
+    for (let i = 0; i < 200 && lastId > 0; i += 1) {
+      if (hitAnchor) break;
+      const page = await fetchPageRows(resolvedPlayer, mode, pName, lastId);
+      if (!page.rows.length) {
+        emptyHops += 1;
+        if (
+          Number.isFinite(page.nextLastId) &&
+          page.nextLastId > lastId &&
+          emptyHops <= 10
+        ) {
+          lastId = page.nextLastId;
+          continue;
+        }
+        break;
       }
-      break;
-    }
-    emptyHops = 0;
-    pagesScanned += 1;
-    const pageAppend = appendRows(matches, seen, page.rows, anchorKey);
-    unknownOutcomeRows += pageAppend.unknownOutcomeRows;
-    hitAnchor = hitAnchor || pageAppend.hitAnchor;
-    const pageDates = page.rows.map((r) => r.date).filter(Boolean).sort();
-    if (pageDates.length && pageDates[0] < START_DATE) {
-      reachedOlderThanStart = true;
+      emptyHops = 0;
+      pagesScanned += 1;
+      const pageAppend = appendRows(matches, seen, page.rows, anchorKey);
+      unknownOutcomeRows += pageAppend.unknownOutcomeRows;
+      hitAnchor = hitAnchor || pageAppend.hitAnchor;
+      const pageDates = page.rows.map((r) => r.date).filter(Boolean).sort();
+      if (pageDates.length && pageDates[0] < START_DATE) {
+        reachedOlderThanStart = true;
+      }
+
+      if (
+        !Number.isFinite(page.nextLastId) ||
+        page.nextLastId <= 0 ||
+        page.nextLastId === lastId
+      ) {
+        break;
+      }
+      if (reachedOlderThanStart) {
+        break;
+      }
+      lastId = page.nextLastId;
     }
 
-    if (
-      !Number.isFinite(page.nextLastId) ||
-      page.nextLastId <= 0 ||
-      page.nextLastId === lastId
-    ) {
-      break;
-    }
-    if (reachedOlderThanStart) {
-      break;
-    }
-    lastId = page.nextLastId;
+    usedIncrementalCache = hitAnchor && prior.length > 0;
+    if (usedIncrementalCache) mergePriorMatches(matches, seen, prior);
   }
-
-  const usedIncrementalCache = hitAnchor && prior.length > 0;
-  if (usedIncrementalCache) mergePriorMatches(matches, seen, prior);
 
   // 강제 페이지네이션까지 다 시도한 뒤에도 0행이면 소스 이상이다. 여기서 끊어야 상위가
   // 0건짜리 결과를 기존 파일 위에 덮어쓰지 않는다(혼성 보드는 위에서 이미 반환됐다).
@@ -694,7 +770,13 @@ async function collectPlayer(player, cacheEntry = null, priorMatches = []) {
     validation,
     validation_pass: validationPass,
     display_stats: displayStats,
-    scan_strategy: usedIncrementalCache ? "incremental_cache_merge" : "full_scan",
+    // 여자부는 윈도 연도를 매번 통째로 읽는다 → full_scan과 같은 등급의 "전량 정독"이다.
+    // 하류(run-daily-pipeline의 full_scans 집계·회귀 가드 판정)가 이 값을 함께 인정해야 한다.
+    scan_strategy: isWomenYearly
+      ? "yearly_full_read"
+      : usedIncrementalCache
+        ? "incremental_cache_merge"
+        : "full_scan",
     matches: INCLUDE_MATCHES ? matches : undefined,
     _cache_payload: {
       latest_key: matches[0] ? rowKey(matches[0]) : null,
@@ -852,6 +934,9 @@ module.exports = {
   isSourceOutagePage,
   isSourceAnomaly,
   extractInitialRows,
+  parseWomenYearRows,
+  windowYears,
+  appendRows,
   selectMode,
   playerCacheKey,
   mergePriorMatches,

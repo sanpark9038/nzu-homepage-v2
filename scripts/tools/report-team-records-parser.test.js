@@ -7,6 +7,9 @@ const {
   isSourceOutagePage,
   isSourceAnomaly,
   extractInitialRows,
+  parseWomenYearRows,
+  windowYears,
+  appendRows,
   selectMode,
   playerCacheKey,
   mergePriorMatches,
@@ -69,6 +72,104 @@ test("extractInitialRows refuses explicit mixed collection mode", () => {
 
   assert.equal(initial.rows.length, 0);
   assert.equal(initial.initialLastId, 0);
+});
+
+// 2026-08 여자부 개편: ajax_women_record.php(bj_name + target_year) 응답 실측 스니펫.
+// 진서(wr_id=1048) 2026년 응답에서 그대로 잘라온 것 — 빈 연도는 이 thead만 돌아온다.
+const WOMEN_YEAR_RESPONSE_HEAD = `
+<style>#datatable_women thead th { text-align: center !important; }</style>
+<div class="list-board">
+    <table class="table table-borderless datatable" id="datatable_women">
+	<thead>
+            <tr>
+                <th scope="col" style="width: 90px;">날짜</th>
+                <th scope="col" style="width: 120px;">상대</th>
+                <th scope="col" style="width: 150px;">맵</th>
+                <th scope="col" style="width: 80px;">ELO</th>
+                <th scope="col" style="width: 100px;">경기방식</th>
+                <th scope="col">메모</th>
+            </tr>
+        </thead>
+        <tbody>`;
+const WOMEN_YEAR_RESPONSE_TAIL = `
+        </tbody>
+    </table>
+</div>`;
+const WOMEN_YEAR_RESPONSE_ROWS = `
+            <tr style="border-bottom:1px solid #CCC;">
+                <td width="90" style="background:#434348; color:#FFF; text-align:center; font-weight:normal;">
+                    <a href="board.php?bo_table=bj_board&wr_id=253384" target="_blank" style="color:#FFF; font-weight:normal;">2026-08-16</a>
+                </td>
+                <td><a href='/women/bbs/board.php?bo_table=bj_list&wr_id=1045' target='_blank'>휘연(P)</a></td>
+                <td><a href="#" class="text-primary">폴리포이드</a></td>
+                <td style="text-align:center">-14.4</td>
+                <td>단판</td>
+                <td>휘연승</td>
+            </tr>
+            <tr style="border-bottom:1px solid #CCC;">
+                <td width="90" style="background:#0CF; color:#FFF; text-align:center; font-weight:normal;">
+                    <a href="board.php?bo_table=bj_board&wr_id=252542" target="_blank" style="color:#FFF; font-weight:normal;">2026-07-28</a>
+                </td>
+                <td><a href='/women/bbs/board.php?bo_table=bj_list&wr_id=1042' target='_blank'>또아(Z)</a></td>
+                <td><a href="#" class="text-primary">투혼</a></td>
+                <td style="text-align:center">+21.4</td>
+                <td>3/2(1)</td>
+                <td>단판 승</td>
+            </tr>`;
+
+test("parseWomenYearRows reads the yearly ajax response into match rows", () => {
+  const rows = parseWomenYearRows(
+    `${WOMEN_YEAR_RESPONSE_HEAD}${WOMEN_YEAR_RESPONSE_ROWS}${WOMEN_YEAR_RESPONSE_TAIL}`
+  );
+
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].date, "2026-08-16");
+  assert.equal(rows[0].opponent, "휘연(P)");
+  assert.equal(rows[0].map, "폴리포이드");
+  assert.equal(rows[0].result_text, "-14.4");
+  assert.equal(rows[0].set_score, "단판");
+  assert.equal(rows[0].note, "휘연승");
+  // 최신순으로 오는 응답 순서를 그대로 보존해야 책갈피(latest_key)가 최신 행을 가리킨다.
+  assert.equal(rows[1].date, "2026-07-28");
+});
+
+// 헤더만 돌아오는 연도는 "그 해 경기 없음"이다(정상). 소스 이상으로 오인하면 안 된다.
+test("parseWomenYearRows returns no rows for an empty year response", () => {
+  assert.equal(parseWomenYearRows(`${WOMEN_YEAR_RESPONSE_HEAD}${WOMEN_YEAR_RESPONSE_TAIL}`).length, 0);
+});
+
+// 승패는 ELO 부호로 판정된다(날짜칸 배경 #434348=패 / #0CF=승은 보조 신호).
+test("yearly rows resolve outcome through the shared appendRows path", () => {
+  const rows = parseWomenYearRows(
+    `${WOMEN_YEAR_RESPONSE_HEAD}${WOMEN_YEAR_RESPONSE_ROWS}${WOMEN_YEAR_RESPONSE_TAIL}`
+  );
+  const bucket = [];
+  appendRows(bucket, new Set(), rows);
+  assert.deepEqual(bucket.map((r) => r.is_win), [false, true]);
+});
+
+// 개편된 여자부만 연도 조회로 간다. 남자부는 기존 view_list.php 페이지네이션 그대로여야 한다.
+test("selectMode routes women boards to the yearly ajax endpoint and leaves men alone", () => {
+  const women = selectMode({
+    name: "진서",
+    profile_url: "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1048",
+  });
+  assert.equal(women.mode, "women_yearly");
+  assert.equal(women.endpoint, "ajax_women_record.php");
+  assert.equal(women.collect_matches, true);
+
+  const men = selectMode({
+    name: "박상현",
+    profile_url: "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=22",
+  });
+  assert.equal(men.mode, "female_or_default");
+  assert.equal(men.endpoint, "view_list.php");
+});
+
+test("windowYears covers the collection window newest-first", () => {
+  const years = windowYears();
+  assert.equal(years[0], new Date().getFullYear());
+  assert.equal(years[years.length - 1], 2025);
 });
 
 test("selectMode disables mixed profile collection instead of using mix endpoint", () => {

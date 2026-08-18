@@ -714,6 +714,39 @@ runTest("summarizeTeamFromReport counts full_scan only among players actually co
   assert.equal(row.reused_players, 1);
 });
 
+// 2026-08 여자부 개편: 여자부는 연도 전량 조회(yearly_full_read)로 바뀌었다. 이름만 다를 뿐
+// "처음부터 다 훑었다"와 같은 등급이라, 여기서 안 세면 full_scans가 0으로 보이고 회귀 가드의
+// "실제 감소" 판정이 여자부 전원을 놓친다.
+runTest("summarizeTeamFromReport counts yearly_full_read as a full scan", () => {
+  const dir = makeTempReportsDir();
+  const write = (name, scanStrategy) => {
+    const p = path.join(dir, name);
+    fs.writeFileSync(
+      p,
+      JSON.stringify({ players: [{ period_total: 5, period_wins: 3, period_losses: 2, scan_strategy: scanStrategy }] }),
+      "utf8"
+    );
+    return p;
+  };
+  const report = {
+    results: [
+      { player: "진서", fetch_status: "ok", csv_status: "ok", json_path: write("a.json", "yearly_full_read") },
+      {
+        player: "안아",
+        fetch_status: "used_existing_json_regression_guard",
+        csv_status: "used_existing_csv",
+        verify_scan_strategy: "yearly_full_read",
+        json_path: write("b.json", "yearly_full_read"),
+      },
+    ],
+  };
+
+  const row = summarizeTeamFromReport({ univ: "팀", code: "tm" }, report);
+  assert.equal(row.full_scans, 1);
+  assert.equal(row.verify_mismatch_players, 1);
+  assert.equal(row.verify_mismatch_player_names, "안아");
+});
+
 // rotation_verified는 full_scans와 다른 지표다. full_scans는 "책갈피 없이 처음부터 훑은 수",
 // rotation_verified는 "R3 보험 차례가 와서 강제로 전체 정독한 수"다. 섞이면 둘 다 못 읽는다.
 runTest("summarizeTeamFromReport counts rotation_verified separately from full_scans", () => {
