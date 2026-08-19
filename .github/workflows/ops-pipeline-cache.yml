@@ -8,7 +8,9 @@ on:
         type: boolean
         default: false
   schedule:
-    - cron: "10 21 * * *"
+    # 19:00 UTC = 새벽 4시 KST. 원래 06:10 KST였는데 아침 6~7시는 자동 수집기들이 몰려
+    # 엘로보드가 상습 과부하되는 시간대라(8/13·14·19 실패, 같은 날 낮 실행은 완주) 옮겼다.
+    - cron: "0 19 * * *"
 
 concurrency:
   group: nzu-ops-pipeline
