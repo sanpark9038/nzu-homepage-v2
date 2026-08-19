@@ -189,6 +189,26 @@ function hasBlockingAlerts(alertDoc) {
   return alerts.some((alert) => blockingSeverities.includes(String(alert && alert.severity ? alert.severity : "").trim().toLowerCase()));
 }
 
+// tmp/source_outage_<날짜>.marker 전부 제거. export-team-roster-detailed가 run 도중 쓰고
+// 같은 run의 후속 팀이 읽는 파일인데, run이 끝난 뒤에는 의미가 없다(다음 시도는 새로 판단).
+function clearSourceOutageMarkers(tmpDir = path.join(ROOT, "tmp")) {
+  const cleared = [];
+  let entries = [];
+  try {
+    entries = fs.readdirSync(tmpDir);
+  } catch {
+    return cleared;
+  }
+  for (const name of entries) {
+    if (!/^source_outage_.*\.marker$/.test(name)) continue;
+    try {
+      fs.unlinkSync(path.join(tmpDir, name));
+      cleared.push(name);
+    } catch {}
+  }
+  return cleared;
+}
+
 async function runCommonPreparation(teamCodes, allTeamCodes) {
   const steps = [];
   const isFullSync = teamCodes.length === allTeamCodes.length && teamCodes.every((code, idx) => code === allTeamCodes[idx]);
@@ -270,6 +290,15 @@ async function main() {
   const chunkReports = [];
   const chunkDateTags = [];
   let hadFailure = false;
+  // 소스 장애 마커는 "이 run 안에서" 후속 팀·청크를 멈추는 용도다. tmp/가 Actions 캐시로
+  // 살아남아 이전 run의 마커가 복원되는데, 그걸 그대로 두면 아침에 장애로 중단된 날 보드가
+  // 회복돼도 같은 날짜라는 이유로 낮 재시도(수동 실행)까지 전부 건너뛴다(2026-08-19 실사고).
+  // run 시작마다 청소해서 매 run이 한 번은 새로 시도하게 한다 — 사이트가 여전히 죽어 있으면
+  // 회로 차단기가 선수 5명 만에 다시 열리니 비용은 미미하다.
+  const staleMarkers = clearSourceOutageMarkers();
+  if (staleMarkers.length) {
+    console.log(`[PREP] cleared source outage marker(s): ${staleMarkers.join(", ")}`);
+  }
   const preparation = await runCommonPreparation(teams, all);
   if (!preparation.ok) hadFailure = true;
 
@@ -444,4 +473,5 @@ if (require.main === module) {
 module.exports = {
   splitIntoChunks,
   splitIntoChunksWithDedicatedTeams,
+  clearSourceOutageMarkers,
 };
