@@ -7,6 +7,8 @@ const {
   isSourceOutagePage,
   isSourceAnomaly,
   extractInitialRows,
+  extractMixInitialRows,
+  collectMixPages,
   parseWomenYearRows,
   windowYears,
   appendRows,
@@ -341,4 +343,125 @@ test("parseDisplayStats still reads the legacy inline labels", () => {
   const stats = parseDisplayStats(html);
   assert.deepEqual(stats.female, { total: 12, wins: 7, losses: 5 });
   assert.deepEqual(stats.male, { total: 3, wins: 1, losses: 2 });
+});
+
+
+// 2026-08 실측(안아 wr_id=175): 여성 섹션은 AJAX 스켈레톤 div만 남고, 혼성 섹션만 서버가
+// 렌더링한다. 혼성 마커 뒤 첫 div.list-board가 최신 30행이다.
+const MIX_PROFILE_HTML = `
+  <strong>[${FEMALE_SECTION} - 날짜 클릭]</strong>
+  <div id="women_record_area" style="min-height:250px;"></div>
+  <strong>[${MIXED_SECTION} - 날짜 클릭]</strong>
+  <div class="list-board">
+    <table><tbody>
+      <tr style="border-bottom:1px solid #CCC; ">
+        <td width="90" style="padding:5px;background:#00ccff; color:#FFF; text-align:center"><a href="/women/bbs/board.php?bo_table=mix_bat&wr_id=41000" target="_blank">2026-08-18</a></td>
+        <td width="120" style="padding:5px 5px 5px 15px; text-align:left"><a href='/women/bbs/board.php?bo_table=bj_m_list&wr_id=1' target='_blank'>라히(T)</a></td>
+        <td width="150">투하컘</td>
+        <td width="80" style="text-align:center">+10.5</td>
+        <td width="100"></td>
+        <td style="text-align:left">안아 승</td>
+      </tr>
+      <tr style="border-bottom:1px solid #CCC; ">
+        <td width="90" style="padding:5px;background:#434348; color:#FFF; text-align:center"><a href="/women/bbs/board.php?bo_table=mix_bat&wr_id=31085" target="_blank">2025-06-11</a></td>
+        <td width="120" style="padding:5px 5px 5px 15px; text-align:left"><a href='/women/bbs/board.php?bo_table=bj_m_list&wr_id=913' target='_blank'>빡재 TV(T)</a></td>
+        <td width="150">데자 뷰</td>
+        <td width="80" style="text-align:center">-11.1</td>
+        <td width="100"></td>
+        <td style="text-align:left">쉬터 CK 6경기</td>
+      </tr>
+    </tbody></table>
+  </div>
+  <div class="list-row"><div id="morem30" class="morebox"><a href="#" class="morem" id="30"></a></div></div>
+`;
+
+test("extractMixInitialRows reads the server-rendered mixed tab", () => {
+  const rows = extractMixInitialRows(MIX_PROFILE_HTML);
+  assert.deepEqual(rows.map((r) => r.date), ["2026-08-18", "2025-06-11"]);
+  assert.equal(rows[0].result_text, "+10.5");
+
+  const matches = [];
+  const seen = new Set();
+  const stats = appendRows(matches, seen, rows);
+  assert.equal(stats.unknownOutcomeRows, 0);
+  assert.deepEqual(matches.map((m) => m.is_win), [true, false]);
+});
+
+test("extractMixInitialRows returns nothing when the mixed marker is absent", () => {
+  assert.deepEqual(extractMixInitialRows('<div class="list-board"><table><tbody></tbody></table></div>'), []);
+});
+
+function mixRow(date, tag = "X") {
+  return { date, opponent: tag, map: "M", result_text: "+1", set_score: "", note: "", style0: "", row_text: "" };
+}
+// 행마다 상대를 달리 둔다 — rowKey가 같으면 appendRows가 중복으로 묶어 행 수 검증이 무의미해진다.
+function mixPage(size, date) {
+  return Array.from({ length: size }, (_, i) => mixRow(date, `X${i}`));
+}
+
+test("collectMixPages walks 30-row offsets and stops on an empty response", async () => {
+  const asked = [];
+  const pages = await collectMixPages(mixPage(30, "2026-08-18"), async (offset) => {
+    asked.push(offset);
+    return offset === 30 ? mixPage(30, "2026-05-01") : [];
+  });
+  // last_id는 날짜가 아니라 30·60 오프셋이다.
+  assert.deepEqual(asked, [30, 60]);
+  assert.equal(pages.length, 2);
+});
+
+test("collectMixPages stops at the first page reaching past the window start", async () => {
+  const asked = [];
+  const pages = await collectMixPages(
+    [...mixPage(29, "2025-03-01"), mixRow("2024-12-31", "OLD")],
+    async (offset) => {
+      asked.push(offset);
+      return mixPage(30, "2024-01-01");
+    }
+  );
+  assert.deepEqual(asked, []);
+  assert.equal(pages.length, 1);
+
+  // 윈도 밖 행은 appendRows가 걷어낸다 -> no_out_of_range 유지.
+  const matches = [];
+  appendRows(matches, new Set(), pages[0]);
+  assert.equal(matches.length, 29);
+});
+
+test("collectMixPages does not paginate a short first block", async () => {
+  let calls = 0;
+  const pages = await collectMixPages(mixPage(12, "2026-08-18"), async () => {
+    calls += 1;
+    return [];
+  });
+  assert.equal(calls, 0);
+  assert.equal(pages.length, 1);
+});
+
+test("collectMixPages yields nothing for a player with no mixed matches", async () => {
+  let calls = 0;
+  const pages = await collectMixPages([], async () => {
+    calls += 1;
+    return [];
+  });
+  assert.equal(calls, 0);
+  assert.deepEqual(pages, []);
+});
+
+// 여성전·혼성전을 같은 matches/seen에 이어 붙여도 rowKey 중복 제거가 겹침을 처리한다.
+test("mixed rows append onto the yearly female rows without duplicating overlaps", () => {
+  const female = parseWomenYearRows(
+    WOMEN_YEAR_RESPONSE_HEAD + WOMEN_YEAR_RESPONSE_ROWS + WOMEN_YEAR_RESPONSE_TAIL
+  );
+  const matches = [];
+  const seen = new Set();
+  appendRows(matches, seen, female);
+  const femaleCount = matches.length;
+  assert.ok(femaleCount > 0);
+
+  // 첫 행은 여성전과 완전히 같은 행(겹침), 둘째는 새 혼성전.
+  const mixed = [{ ...female[0] }, mixRow("2026-08-18")];
+  appendRows(matches, seen, mixed);
+  assert.equal(matches.length, femaleCount + 1);
+  assert.equal(matches[matches.length - 1].date, "2026-08-18");
 });

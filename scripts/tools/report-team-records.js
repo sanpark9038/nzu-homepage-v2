@@ -51,6 +51,9 @@ const RETRY_BASE_MS = 500;
 const K_WIN = "\uC2B9";
 const K_LOSS = "\uD328";
 const K_FEMALE_SECTION = "\uC5EC\uC131\uBC00\uB9AC\uC804\uC801";
+const K_MIX_SECTION = "\uD63C\uC131\uBC00\uB9AC\uC804\uC801";
+// \uD63C\uC131 \uBAA9\uB85D\uC740 \uD55C \uBE14\uB85D\uC774 \uC815\uD655\uD788 30\uD589\uC774\uB2E4(\uC11C\uBC84 LIMIT). \uC624\uD504\uC14B \uACC4\uC0B0\uC758 \uAE30\uC900\uAC12.
+const MIX_PAGE_SIZE = 30;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -539,6 +542,59 @@ async function fetchWomenYearRows(player, mode, bjName, year) {
   return parseWomenYearRows(decodeHtml(res.data));
 }
 
+// 혼성전(남자 상대) 탭. 2026-08 개편은 여성전만 AJAX로 옮겼고 혼성은 아직 서버 렌더링이라,
+// 프로필 HTML의 "[혼성밀리전적 - ...]" 마커 뒤 첫 div.list-board에 최신 30행이 그대로 들어 있다.
+// nextAll은 마커 뒤만 보므로 앞쪽 여성 섹션 보드를 잘못 집을 수 없다.
+function extractMixInitialRows(profileHtml) {
+  const $ = cheerio.load(profileHtml);
+  const marker = $("strong")
+    .toArray()
+    .find((el) => $(el).text().includes(K_MIX_SECTION));
+  if (!marker) return [];
+  return parseRowsFromBoard($, $(marker).nextAll("div.list-board").first());
+}
+
+// 이어보기: POST view_mix_list.php, body는 p_name(여성전의 bj_name과 다름) + last_id.
+// 함정 — 여기서 last_id는 날짜/글번호가 아니라 30·60·90 같은 OFFSET이다(프로필 JS 주석에 명시).
+async function fetchMixPageRows(player, pName, offset) {
+  const url = "https://eloboard.com/women/bbs/view_mix_list.php";
+  const body = qs.stringify({ p_name: pName, last_id: offset });
+
+  const label = `POST ${url} p_name=${pName} last_id=${offset}`;
+  const res = await withRetry(async () => {
+    const response = await axios.post(url, body, {
+      responseType: "arraybuffer",
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        Referer: player.profile_url,
+      },
+      timeout: 30000,
+    });
+    throwIfSourceOutage(response.data, label);
+    return response;
+  }, label);
+
+  const $ = cheerio.load(decodeHtml(res.data));
+  return parseRowsFromBoard($, $.root());
+}
+
+// 혼성 목록 전체를 페이지 배열로 모은다. fetchPage(offset)는 테스트에서 주입한다.
+// 중단 조건 셋: 빈 응답 / 윈도(START_DATE)보다 오래된 행 등장 / 30행 미만(마지막 블록).
+async function collectMixPages(initialRows, fetchPage) {
+  const pages = [];
+  let rows = Array.isArray(initialRows) ? initialRows : [];
+  for (let i = 0; i < 200 && rows.length; i += 1) {
+    pages.push(rows);
+    // 목록은 최신순이라 윈도 밖 행이 하나라도 보이면 그 뒤는 전부 더 오래된 경기다.
+    if (rows.some((r) => r.date < START_DATE)) break;
+    if (rows.length < MIX_PAGE_SIZE) break;
+    rows = await fetchPage((i + 1) * MIX_PAGE_SIZE);
+  }
+  return pages;
+}
+
 function appendRows(bucket, seen, rows, anchorKey = null) {
   let unknownOutcomeRows = 0;
   let hitAnchor = false;
@@ -658,6 +714,24 @@ async function collectPlayer(player, cacheEntry = null, priorMatches = []) {
     // 연도는 최신 → 과거 순이고 각 응답도 최신순이라, 결과는 그대로 최신순으로 쌓인다.
     for (const year of windowYears()) {
       const rows = await fetchWomenYearRows(resolvedPlayer, mode, pName, year);
+      pagesScanned += 1;
+      unknownOutcomeRows += appendRows(matches, seen, rows).unknownOutcomeRows;
+    }
+
+    // ajax_women_record.php는 여성전만 준다. 개편 전 수집에는 혼성전(남자 상대)도 들어 있었고
+    // 지금도 활발한 콘텐츠라, 빼먹으면 여자부 전원이 "경기 수 감소"로 회귀 가드에 막힌다.
+    // 같은 matches/seen에 이어 붙이면 rowKey 중복 제거가 여성/혼성 겹침을 알아서 처리한다.
+    // 혼성 요청이 재시도 뒤에도 실패하면 여기서 그대로 throw된다 — 반쪽 데이터를 쓰면 또 "감소"다.
+    const mixPName = parsePNameFromProfile(
+      profileHtml,
+      "view_mix_list.php",
+      resolvedPlayer.name,
+      "p_name"
+    );
+    const mixPages = await collectMixPages(extractMixInitialRows(profileHtml), (offset) =>
+      fetchMixPageRows(resolvedPlayer, mixPName, offset)
+    );
+    for (const rows of mixPages) {
       pagesScanned += 1;
       unknownOutcomeRows += appendRows(matches, seen, rows).unknownOutcomeRows;
     }
@@ -934,6 +1008,8 @@ module.exports = {
   isSourceOutagePage,
   isSourceAnomaly,
   extractInitialRows,
+  extractMixInitialRows,
+  collectMixPages,
   parseWomenYearRows,
   windowYears,
   appendRows,
