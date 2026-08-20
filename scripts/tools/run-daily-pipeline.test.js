@@ -647,7 +647,7 @@ runTest("exportConcurrencyForTeam forces higher concurrency for fa", () => {
 });
 
 runTest("exportTimeoutForTeam extends timeout for fa only", () => {
-  assert.equal(exportTimeoutForTeam("fa"), 1800000);
+  assert.equal(exportTimeoutForTeam("fa"), 2700000);
   assert.equal(exportTimeoutForTeam("jsa"), 900000);
 });
 
@@ -745,6 +745,37 @@ runTest("summarizeTeamFromReport counts yearly_full_read as a full scan", () => 
   assert.equal(row.full_scans, 1);
   assert.equal(row.verify_mismatch_players, 1);
   assert.equal(row.verify_mismatch_player_names, "안아");
+});
+
+// 반대쪽 경계: 매일 경로(yearly_current_merge)는 올해만 읽고 과거는 기존 파일에서 이어 붙인다.
+// 과거 연도를 안 봤으니 "조용한 삭제"를 판정할 근거가 없다 → full_scans에도, verify_mismatch
+// 판정에도 들어가면 안 된다(들어가면 매일 오탐이 뜬다).
+runTest("summarizeTeamFromReport does not treat yearly_current_merge as a full scan", () => {
+  const dir = makeTempReportsDir();
+  const p = path.join(dir, "c.json");
+  fs.writeFileSync(
+    p,
+    JSON.stringify({
+      players: [{ period_total: 5, period_wins: 3, period_losses: 2, scan_strategy: "yearly_current_merge" }],
+    }),
+    "utf8"
+  );
+  const report = {
+    results: [
+      { player: "진서", fetch_status: "ok", csv_status: "ok", json_path: p },
+      {
+        player: "안아",
+        fetch_status: "used_existing_json_regression_guard",
+        csv_status: "used_existing_csv",
+        verify_scan_strategy: "yearly_current_merge",
+        json_path: p,
+      },
+    ],
+  };
+
+  const row = summarizeTeamFromReport({ univ: "팀", code: "tm" }, report);
+  assert.equal(row.full_scans, 0);
+  assert.equal(row.verify_mismatch_players, 0);
 });
 
 // rotation_verified는 full_scans와 다른 지표다. full_scans는 "책갈피 없이 처음부터 훑은 수",

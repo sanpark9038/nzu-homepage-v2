@@ -15,6 +15,7 @@ const {
   selectMode,
   playerCacheKey,
   mergePriorMatches,
+  mergePriorOlderThan,
   rowKey,
 } = require("./report-team-records");
 
@@ -312,6 +313,56 @@ test("mergePriorMatches drops prior rows on dates re-read this run", () => {
     "2026-07-24|B",
     "2026-07-01|C",
   ]);
+});
+
+// 매일 경로(여자부): 올해만 POST하고 과거 연도는 기존 파일에서 이어 붙인다.
+// 컷오프(올해 1/1) 위쪽은 방금 전량 재읽었으므로 prior에서 절대 부활시키지 않는다.
+const row = (date, opponent, extra = {}) => ({
+  date,
+  opponent,
+  map: "M",
+  result_text: "+1",
+  set_score: "",
+  note: "",
+  is_win: true,
+  ...extra,
+});
+
+test("mergePriorOlderThan only pulls prior rows from before the cutoff", () => {
+  const matches = [row("2026-08-16", "A")];
+  const seen = new Set(matches.map(rowKey));
+  const prior = [
+    // 올해 행 — 부활 금지(엘로보드에서 지워진 경기일 수 있다).
+    row("2026-03-01", "DELETED"),
+    // 새로 읽은 것과 같은 행 — 중복 없이 한 번만.
+    row("2026-08-16", "A"),
+    // 과거 연도 — 이어 붙는다.
+    row("2025-12-31", "OLD"),
+    // 윈도(START_DATE=2025-01-01) 밖 — 버린다.
+    row("2024-12-31", "TOOOLD"),
+    // is_win이 없는 깨진 행 — 버린다(재파싱 대상이 아니다).
+    row("2025-05-05", "BROKEN", { is_win: undefined }),
+  ];
+
+  const merged = mergePriorOlderThan(matches, seen, prior, "2026-01-01");
+  assert.deepEqual(merged.map((m) => `${m.date}|${m.opponent}`), [
+    "2026-08-16|A",
+    "2025-12-31|OLD",
+  ]);
+});
+
+// 함정 방지: 혼성 탭은 윈도 전체를 다시 읽으므로 과거 날짜 행이 fresh에 섞인다.
+// mergePriorMatches(날짜 단위 무효화)를 쓰면 그 날짜의 prior 여성전 행까지 버려 경기 수가
+// 줄고 회귀 가드가 오작동한다. 컷오프 병합은 같은 날짜라도 다른 행이면 그대로 살린다.
+test("mergePriorOlderThan keeps prior rows sharing a date with a re-read mixed row", () => {
+  const matches = [row("2025-06-01", "MIXED_OPPONENT")];
+  const seen = new Set(matches.map(rowKey));
+  const prior = [row("2025-06-01", "FEMALE_OPPONENT")];
+
+  const merged = mergePriorOlderThan(matches, seen, prior, "2026-01-01");
+  assert.deepEqual(merged.map((m) => m.opponent), ["MIXED_OPPONENT", "FEMALE_OPPONENT"]);
+  // 대조: 날짜 무효화 버전은 같은 행을 버린다(그래서 여기 쓰면 안 된다).
+  assert.equal(mergePriorMatches([row("2025-06-01", "MIXED_OPPONENT")], new Set(), prior).length, 1);
 });
 
 // 실측 레이아웃(2026-08-17): 여자부 프로필은 "여성 : 9전 0승 9패" 인라인("전적" 없음),

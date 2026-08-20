@@ -28,7 +28,9 @@ const NODE_BIN_FALLBACK = "node";
 const MANUAL_REFRESH_BASELINE_PATH = path.join(REPORTS_DIR, "manual_refresh_baseline.json");
 let ACTIVE_PROGRESS_LOG_PATH = null;
 const TEAM_EXPORT_TIMEOUT_MS = 900000;
-const FA_EXPORT_TIMEOUT_MS = 1800000;
+// 연합팀(fa)은 101명이고 여자부 연도 쿼리가 전적 많은 선수에게 무겁다(실측: 801경기 선수 22초).
+// 30분으로는 이 청크가 ETIMEDOUT으로 죽어 run 전체가 실패했다(2026-08-20) → 45분 안전판.
+const FA_EXPORT_TIMEOUT_MS = 2700000;
 const FA_EXPORT_CONCURRENCY = "2";
 
 // 수집 성공 상태: 엘로보드 프로필을 실제로 읽어냈다는 뜻(신규 fetch 또는 유효한 기존 JSON 재사용).

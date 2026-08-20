@@ -629,6 +629,26 @@ function mergePriorMatches(matches, seen, priorMatches) {
   return matches;
 }
 
+// 매일 경로 전용 병합: 컷오프(올해 1/1)보다 오래된 prior 행만 이어 붙인다.
+// mergePriorMatches를 여기 쓰면 안 된다 — 그건 "이번에 읽은 날짜의 prior 행을 통째로 버리는"
+// 날짜 무효화 로직이라, 혼성 재읽기가 과거 날짜를 포함하면 그 날짜의 prior 여성전 행까지
+// 함께 버려서 경기 수가 줄고 회귀 가드가 오작동한다. 여기서는 컷오프 + rowKey 중복 제거만 한다.
+// 올해 행은 절대 부활시키지 않는다(올해는 방금 전량 재읽음 — 지워진 경기가 되살아나면 안 된다).
+function mergePriorOlderThan(matches, seen, priorMatches, cutoffDate) {
+  for (const old of Array.isArray(priorMatches) ? priorMatches : []) {
+    const date = String((old && old.date) || "");
+    if (!date || date >= cutoffDate) continue;
+    if (!inRange(date)) continue;
+    // prior 행에는 is_win이 이미 있다(appendRows가 넣어둔 값) → parseOutcome 재파싱 없이 그대로 쓴다.
+    if (typeof old.is_win !== "boolean") continue;
+    const key = rowKey(old);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    matches.push(old);
+  }
+  return matches;
+}
+
 function statTotal(stats) {
   return Number(stats && stats.total ? stats.total : 0) || 0;
 }
@@ -706,13 +726,23 @@ async function collectPlayer(player, cacheEntry = null, priorMatches = []) {
   let unknownOutcomeRows = 0;
   let pagesScanned = 0;
   let usedIncrementalCache = false;
+  let womenCurrentYearOnly = false;
+  const prior = Array.isArray(priorMatches) ? priorMatches : [];
   const displayTotal = collectionDisplayTotal(resolvedPlayer, mode, displayStats);
 
   if (isWomenYearly) {
     // 연도 전량 조회라 앵커 조기중단이 의미가 없다(어차피 한 요청에 그 해가 다 온다).
-    // 매번 윈도 연도를 통째로 읽는 쪽이 단순하고 정확하다 — 선수당 요청 수도 페이지네이션보다 적다.
     // 연도는 최신 → 과거 순이고 각 응답도 최신순이라, 결과는 그대로 최신순으로 쌓인다.
-    for (const year of windowYears()) {
+    //
+    // 매일 경로는 올해만 읽는다. 보드의 연도 쿼리(ajax_women_record.php)가 전적 많은 선수에게
+    // 아주 무겁고(실측: 801경기 선수 1명에 22초), 매일 전 연도를 읽었더니 연합팀(101명) 청크가
+    // 30분 스텝 타임아웃으로 죽어 run 전체가 실패했다. 과거 연도는 기존 파일(prior)에서 가져오고,
+    // 과거 연도의 조용한 삭제 감지는 원래 설계대로 34일 순환 전체 정독(--no-cache)이 맡는다.
+    // prior가 없으면(첫 수집·팀 전체 호출) 붙일 몸통이 없으므로 전 연도를 그대로 읽는다.
+    womenCurrentYearOnly = !NO_CACHE && prior.length > 0;
+    const currentYearStart = `${END_DATE.slice(0, 4)}-01-01`;
+    const years = womenCurrentYearOnly ? [Number(END_DATE.slice(0, 4))] : windowYears();
+    for (const year of years) {
       const rows = await fetchWomenYearRows(resolvedPlayer, mode, pName, year);
       pagesScanned += 1;
       unknownOutcomeRows += appendRows(matches, seen, rows).unknownOutcomeRows;
@@ -735,11 +765,15 @@ async function collectPlayer(player, cacheEntry = null, priorMatches = []) {
       pagesScanned += 1;
       unknownOutcomeRows += appendRows(matches, seen, rows).unknownOutcomeRows;
     }
+
+    // 올해보다 오래된 경기는 기존 파일에서 그대로 받아온다(위에서 POST를 생략한 몫).
+    if (womenCurrentYearOnly) {
+      mergePriorOlderThan(matches, seen, prior, currentYearStart);
+    }
   } else {
     const initial = extractInitialRows(profileHtml, mode);
     // 붙일 과거 기록이 없으면 앵커도 쓰지 않는다. 앵커만 믿고 조기 중단하면 병합할 몸통이
     // 없어 "짧은 전적"을 그대로 써버린다(팀 이동 등으로 prior json이 새 경로일 때 실제로 발생).
-    const prior = Array.isArray(priorMatches) ? priorMatches : [];
     const anchorKey = prior.length && cacheEntry && cacheEntry.latest_key ? cacheEntry.latest_key : null;
     let hitAnchor = false;
     const initAppend = appendRows(matches, seen, initial.rows, anchorKey);
@@ -844,10 +878,15 @@ async function collectPlayer(player, cacheEntry = null, priorMatches = []) {
     validation,
     validation_pass: validationPass,
     display_stats: displayStats,
-    // 여자부는 윈도 연도를 매번 통째로 읽는다 → full_scan과 같은 등급의 "전량 정독"이다.
+    // yearly_full_read = 윈도 연도를 통째로 읽었다 → full_scan과 같은 등급의 "전량 정독"이다.
     // 하류(run-daily-pipeline의 full_scans 집계·회귀 가드 판정)가 이 값을 함께 인정해야 한다.
+    // yearly_current_merge = 올해만 읽고 과거는 기존 파일에서 이어 붙였다 → 전량 정독이 아니다.
+    // isFullScanStrategy가 이 값을 인정하면 안 된다(과거 연도를 안 봤으니 조용한 삭제를
+    // 판정할 근거가 없다 — 그 판정은 순환 전체 정독의 몫이고, full_scans 집계에서도 빠져야 한다).
     scan_strategy: isWomenYearly
-      ? "yearly_full_read"
+      ? womenCurrentYearOnly
+        ? "yearly_current_merge"
+        : "yearly_full_read"
       : usedIncrementalCache
         ? "incremental_cache_merge"
         : "full_scan",
@@ -1016,5 +1055,6 @@ module.exports = {
   selectMode,
   playerCacheKey,
   mergePriorMatches,
+  mergePriorOlderThan,
   rowKey,
 };
