@@ -242,7 +242,8 @@ async function main() {
   const now = nowKstParts();
   const source = String(argValue("--source", DEFAULT_SOURCE)).trim().toLowerCase();
   const expectedDate = argValue("--expected-date", now.date);
-  const minTime = argValue("--min-time", "06:10");
+  // 기본값은 스케줄 시각과 같이 움직여야 한다. 8/19에 크론을 06:10 → 04:00 KST로 옮김(ab76b86).
+  const minTime = argValue("--min-time", "04:00");
   const repo = String(argValue("--github-repo", DEFAULT_GITHUB_REPO)).trim();
   const workflow = String(argValue("--github-workflow", DEFAULT_GITHUB_WORKFLOW)).trim();
   const alertOnly = hasFlag("--alert-only");

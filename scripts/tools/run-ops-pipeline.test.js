@@ -172,7 +172,9 @@ runTest("scheduled ops workflow runs pipeline health before refresh", () => {
 
 runTest("scheduled ops workflow limits Supabase sync to the daily schedule", () => {
   const workflow = fs.readFileSync(path.join(ROOT, ".github", "workflows", "ops-pipeline-cache.yml"), "utf8");
-  const dailyCronMatches = workflow.match(/cron:\s*"10 21 \* \* \*"/g) || [];
+  // 새벽 4시 KST(19:00 UTC) — 아침 봇 러시아워 회피로 8/19 이동(ab76b86). 시각을 또 바꾸면
+  // 여기도 같이 바꿔야 한다(이 테스트는 "스케줄 크론이 정확히 하나"임을 잠그는 계약).
+  const dailyCronMatches = workflow.match(/cron:\s*"0 19 \* \* \*"/g) || [];
 
   assert.equal(dailyCronMatches.length, 1);
   assert.doesNotMatch(workflow, /with_supabase_sync/);
