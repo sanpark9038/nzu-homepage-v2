@@ -129,6 +129,11 @@ async function withRetry(fn, label) {
     try {
       return await fn();
     } catch (error) {
+      // Cloudflare 검문은 403으로도 온다(2026-08-26 실측: 403 + 5510바이트 "Just a moment...").
+      // 그대로 두면 error_code=ERR_BAD_REQUEST라 상위의 소스 장애 집계·종료코드에 안 잡히고,
+      // 검문은 재시도해봐야 계속 검문이다. 본문 표식을 보고 즉시 SOURCE_OUTAGE로 승격시킨다.
+      const outage = sourceOutageFromHttpError(error, label);
+      if (outage) throw outage;
       lastError = error;
       if (attempt >= MAX_RETRIES) break;
       const waitMs = RETRY_BASE_MS * 2 ** attempt;
@@ -326,9 +331,68 @@ function isMissingPostErrorPage(html) {
 // 엘로보드(공유호스팅 PHP)가 DB 과부하로 죽으면 HTTP 200에 ~378바이트짜리 mysqli 오류
 // 본문을 실어 보낸다(2026-08-13~). 이걸 정상 페이지로 읽으면 경기 0건이 되고, 상위가
 // "조용한 삭제 의심"으로 수십 건 오탐한다. 정상 페이지가 아니면 수집을 실패시키는 게 정직하다.
+// 2026-08-22~25 사고: 엘로보드가 Cloudflare 검문(JS challenge)을 켰는데, 러너에서는 그 검문
+// 페이지가 "경기 0건인 정상 응답"으로 읽혔다. 나흘 밤 동안 tmp 캐시의 선수 파일이 0건으로
+// 덮여 전 팀 total이 붕괴했다(BGM 7,782→241 등). 검문 HTML엔 표시 카운터가 없어 displayTotal=0이
+// 되니 SOURCE_ANOMALY(카운터>0 && 0행)도 통과해버린 게 뚫린 경로다.
+// 표식은 Cloudflare 전용 토큰만 쓴다 — "cloudflare" 단어 하나로 판정하면 정상 페이지를 오탐한다.
 function isSourceOutagePage(html) {
   const text = String(html || "");
-  return text.includes("max_user_connections") || text.includes("Connect Error");
+  if (text.includes("max_user_connections") || text.includes("Connect Error")) return true;
+  if (
+    text.includes("cf_chl") || // _cf_chl_opt · __cf_chl_tk · __cf_chl_f_tk
+    text.includes("cdn-cgi/challenge-platform") ||
+    text.includes("challenges.cloudflare.com") ||
+    text.includes("Just a moment...")
+  ) {
+    return true;
+  }
+  // 검문이 아닌 차단(1020)·레이트리밋 페이지까지: 두 토큰이 함께 있을 때만.
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("cloudflare") &&
+    (lower.includes("challenge") || lower.includes("attention required") || lower.includes("ray id"))
+  );
+}
+
+// "모르는 페이지 → 경기 0건"이라는 오독을 원천 차단하는 안전망. 위 표식 목록은 이번 검문 형태를
+// 아는 것이고, 다음 개편·차단이 어떤 모습일지는 모른다. 그래서 프로필은 반대로 판정한다 —
+// 엘로보드 페이지라면 반드시 있는 표식이 하나도 없으면 파싱하지 않고 실패시킨다.
+// 표식 선정 근거(2026-08-26 실측, 남자부 wr_id=37 아카이브 스냅샷 + 검문 HTML 대조):
+//   전적사이트  8회 vs 0회  — 남/여/혼성 보드 공통 사이트 메타(publisher·og:site_name)
+//   list-board  6회 vs 0회  — 경기 표 컨테이너(여자부 낡은 스냅샷 블록·혼성 섹션도 이걸 쓴다)
+//   총전적      4회 vs 0회  — 남자부 표 형태 전적 라벨
+// 검문 페이지가 요청 경로를 그대로 되비추므로(bo_table=bj_list) URL에서 나온 문자열은 표식이 될 수 없다.
+const PROFILE_PAGE_MARKERS = [
+  "\uC804\uC801\uC0AC\uC774\uD2B8", // 전적사이트
+  "list-board",
+  "\uCD1D\uC804\uC801", // 총전적
+];
+
+function looksLikeProfilePage(html) {
+  const text = String(html || "");
+  // 글 삭제/이동 안내는 "아는 페이지"다(아래 혼성 보드 폴백이 처리한다). 외계 페이지가 아니다.
+  if (isMissingPostErrorPage(text)) return true;
+  return PROFILE_PAGE_MARKERS.some((marker) => text.includes(marker));
+}
+
+// HTTP 오류(4xx/5xx) 응답 본문이 검문·장애 페이지면 SOURCE_OUTAGE 오류로 바꿔 준다.
+// 아니면 null — 호출자가 원래대로 재시도한다.
+function sourceOutageFromHttpError(error, label) {
+  const body = error && error.response ? error.response.data : null;
+  if (!body) return null;
+  // responseType:"arraybuffer"라 본문은 Buffer/ArrayBuffer로 온다(문자열일 때도 있다).
+  let text = "";
+  try {
+    text = typeof body === "string" ? body : Buffer.from(body).toString("utf8");
+  } catch {
+    return null;
+  }
+  if (!isSourceOutagePage(text)) return null;
+  const status = error.response.status;
+  const outage = new Error(`source_outage: HTTP ${status} challenge/outage body on ${label}`);
+  outage.code = "SOURCE_OUTAGE";
+  return outage;
 }
 
 // 오류 본문은 순수 ASCII라 euc-kr/utf8 판정(decodeHtml) 전에도 그대로 읽힌다.
@@ -678,6 +742,15 @@ async function collectPlayer(player, cacheEntry = null, priorMatches = []) {
         profileHtml = fallbackHtml;
       }
     }
+  }
+
+  // 안전망(2026-08-22~25 사고): 여기서부터 아래는 전부 "이 HTML은 프로필이다"를 전제로 0행을
+  // 정상값으로 취급한다. 검문·차단·개편 등으로 다른 페이지가 오면 그 전제가 깨지고 결과는
+  // 조용한 0건이 된다. 알아볼 수 없으면 파싱하지 않고 소스 장애로 끝낸다.
+  if (!looksLikeProfilePage(profileHtml)) {
+    const error = new Error(`source_outage: unrecognized profile page ${resolvedPlayer.profile_url}`);
+    error.code = "SOURCE_OUTAGE";
+    throw error;
   }
 
   const mode = selectMode(resolvedPlayer);
@@ -1045,6 +1118,7 @@ module.exports = {
   collectionDisplayTotal,
   parseDisplayStats,
   isSourceOutagePage,
+  looksLikeProfilePage,
   isSourceAnomaly,
   extractInitialRows,
   extractMixInitialRows,

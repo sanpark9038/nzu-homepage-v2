@@ -5,6 +5,7 @@ const {
   collectionDisplayTotal,
   parseDisplayStats,
   isSourceOutagePage,
+  looksLikeProfilePage,
   isSourceAnomaly,
   extractInitialRows,
   extractMixInitialRows,
@@ -267,6 +268,64 @@ test("isSourceOutagePage detects the mysqli overload body and passes normal page
   assert.equal(isSourceOutagePage("<html><div class=\"list-board\">정상</div></html>"), false);
   assert.equal(isSourceOutagePage(""), false);
   assert.equal(isSourceOutagePage(null), false);
+});
+
+// 2026-08-22~25 사고: 엘로보드가 Cloudflare 검문을 켰는데 러너에서는 그게 "경기 0건인 정상
+// 응답"으로 읽혔고, 나흘 밤 동안 tmp 캐시의 선수 파일이 0건으로 덮여 전 팀 total이 붕괴했다
+// (BGM 7,782→241 등). 검문 HTML엔 표시 카운터가 없어 displayTotal=0이라 SOURCE_ANOMALY도
+// 통과해버렸다. 아래 조각은 2026-08-26 로컬 fetch(403, 5510바이트) 실측본에서 잘라온 것이다.
+const CLOUDFLARE_CHALLENGE_HTML = [
+  '<!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title>',
+  '<meta http-equiv="content-security-policy" content="default-src &#39;none&#39;; ',
+  'script-src &#39;nonce-9JPZnNZxkNbhbYwtsmWhO6&#39; https://challenges.cloudflare.com">',
+  "</head><body><div class=\"main-content\"><noscript><span id=\"challenge-error-text\">",
+  "Enable JavaScript and cookies to continue</span></noscript></div>",
+  "<script nonce=\"9JPZnNZxkNbhbYwtsmWhO6\">(function(){window._cf_chl_opt = {cRay: 'a3135315194c196e',",
+  "cType: 'managed', cZone: 'eloboard.com', cUPMDTk:\"/women/bbs/board.php?bo_table=bj_list&wr_id=1048",
+  "&__cf_chl_tk=rIeI4vkKekwMXLWNp4zuZk20seVurb5D\"};var a = document.createElement('script');",
+  "a.src = '/cdn-cgi/challenge-platform/h/b/orchestrate/chl_page/v1?ray=a3135315194c196e';",
+  "}());</script></body></html>",
+].join("");
+
+test("isSourceOutagePage detects the Cloudflare challenge page", () => {
+  assert.equal(isSourceOutagePage(CLOUDFLARE_CHALLENGE_HTML), true);
+  // 검문이 아닌 차단(1020) 페이지도 잡는다.
+  assert.equal(
+    isSourceOutagePage("<html><body>Attention Required! | Cloudflare<br>Ray ID: 8f0</body></html>"),
+    true
+  );
+  // "cloudflare" 단어 하나로는 판정하지 않는다 — 정상 페이지 오탐 금지.
+  assert.equal(isSourceOutagePage("<html><p>cloudflare 도입 안내</p></html>"), false);
+  // 연도 응답의 "빈 연도"는 정상이다(테이블 구조가 그대로 온다).
+  assert.equal(
+    isSourceOutagePage(`${WOMEN_YEAR_RESPONSE_HEAD}${WOMEN_YEAR_RESPONSE_TAIL}`),
+    false
+  );
+});
+
+// 안전망: 표식 목록은 "이번 검문 형태"를 아는 것이고 다음 개편·차단 모습은 모른다. 그래서
+// 프로필은 반대로 판정한다 — 엘로보드 페이지라면 반드시 있는 표식이 하나도 없으면 실패시킨다.
+test("looksLikeProfilePage rejects alien pages and accepts real board pages", () => {
+  assert.equal(looksLikeProfilePage(CLOUDFLARE_CHALLENGE_HTML), false);
+  assert.equal(looksLikeProfilePage("<html><body>whatever</body></html>"), false);
+  assert.equal(looksLikeProfilePage(""), false);
+  assert.equal(looksLikeProfilePage(null), false);
+
+  // 남자부 실측(wr_id=37 아카이브 스냅샷)의 표 형태 전적 라벨 + 사이트 메타.
+  assert.equal(
+    looksLikeProfilePage(
+      '<meta name="publisher" content="스타크래프트 남성전적사이트" />' +
+        "<th>총전적</th><td>4,098전 2,294승 1,804패(56.0%)</td>"
+    ),
+    true
+  );
+  // 여자부/혼성 프로필은 경기 표 컨테이너(list-board)를 그대로 쓴다.
+  assert.equal(looksLikeProfilePage(`${WOMEN_YEAR_RESPONSE_HEAD}${WOMEN_YEAR_RESPONSE_TAIL}`), true);
+  // 글 삭제/이동 안내는 "아는 페이지"다 — 혼성 보드 폴백이 처리하므로 외계 페이지가 아니다.
+  assert.equal(
+    looksLikeProfilePage("<html><body>오류안내 페이지<br>글이 존재하지 않습니다.</body></html>"),
+    true
+  );
 });
 
 // 표시 카운터는 살아 있는데 목록이 0행이면 소스 이상이다(장애 중 view_list.php가 빈 응답).
