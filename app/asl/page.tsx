@@ -50,12 +50,20 @@ const PANEL =
   "rounded-[1.4rem] border border-[rgba(155,185,240,0.14)] bg-[linear-gradient(180deg,#101728,#0c1220)] shadow-[0_24px_60px_rgba(0,0,0,0.55)]";
 const LABEL = "text-[0.625rem] font-bold uppercase tracking-[0.22em] text-[#7a8299]";
 
-/** 이름 + 종족 배지 한 줄. 배지는 사이트 공용 컴포넌트를 그대로 쓴다 */
-function PlayerLine({ player }: { player: AslPlayer }) {
+/**
+ * 이름 + 종족 배지 한 줄. 배지는 사이트 공용 컴포넌트를 그대로 쓴다.
+ * dim = 경기가 끝난 조에서 떨어진 선수. 아직 안 치른 조는 아무도 흐려지지 않는다(호출부에서 판정).
+ */
+function PlayerLine({ player, dim = false }: { player: AslPlayer; dim?: boolean }) {
   return (
-    <li className="flex items-center gap-2">
+    <li className={`flex items-center gap-2 ${dim ? "opacity-40" : ""}`}>
       <RaceLetterBadge race={player.race} size="sm" />
       <span className="truncate text-sm font-bold text-[#e8ebf2]">{player.name}</span>
+      {player.rank ? (
+        <span className="ml-auto shrink-0 rounded-full bg-[rgba(251,146,60,0.14)] px-1.5 py-0.5 text-[0.625rem] font-black text-[#fb923c]">
+          {player.rank}위 진출
+        </span>
+      ) : null}
     </li>
   );
 }
@@ -236,7 +244,11 @@ export default async function AslPage() {
               </p>
               <ul className="mt-2 grid gap-1.5 md:mt-3">
                 {group.players.map((player) => (
-                  <PlayerLine key={player.name} player={player} />
+                  <PlayerLine
+                    key={player.name}
+                    player={player}
+                    dim={group.players.some((p) => p.rank) && !player.rank}
+                  />
                 ))}
               </ul>
             </section>

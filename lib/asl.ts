@@ -6,7 +6,8 @@ import { ASL_SCHEDULE } from "./jungman";
 
 export type AslRace = "T" | "Z" | "P";
 
-export type AslPlayer = { name: string; race: AslRace };
+/** rank = 24강 조별 순위. 1·2위가 16강 진출, 없으면 탈락(또는 시드처럼 24강을 안 치른 선수) */
+export type AslPlayer = { name: string; race: AslRace; rank?: 1 | 2 };
 export type AslGroup = { name: string; date: string; players: AslPlayer[] };
 
 /**
@@ -41,10 +42,10 @@ export const ASL_GROUPS: AslGroup[] = [
     name: "A조",
     date: aslScheduleDate("ASL A조"),
     players: [
-      { name: "유영진", race: "T" },
+      { name: "유영진", race: "T", rank: 2 },
       { name: "배성흠", race: "Z" },
       { name: "김택용", race: "P" },
-      { name: "김윤중", race: "P" },
+      { name: "김윤중", race: "P", rank: 1 },
     ],
   },
   {
@@ -52,18 +53,18 @@ export const ASL_GROUPS: AslGroup[] = [
     date: aslScheduleDate("ASL B조"),
     players: [
       { name: "조기석", race: "T" },
-      { name: "김재현", race: "T" },
+      { name: "김재현", race: "T", rank: 2 },
       { name: "김성대", race: "Z" },
-      { name: "이영한", race: "Z" },
+      { name: "이영한", race: "Z", rank: 1 },
     ],
   },
   {
     name: "C조",
     date: aslScheduleDate("ASL C조"),
     players: [
-      { name: "도재욱", race: "P" },
+      { name: "도재욱", race: "P", rank: 1 },
       { name: "정경두", race: "P" },
-      { name: "이제동", race: "Z" },
+      { name: "이제동", race: "Z", rank: 2 },
       { name: "이영웅", race: "T" },
     ],
   },
@@ -71,8 +72,8 @@ export const ASL_GROUPS: AslGroup[] = [
     name: "D조",
     date: aslScheduleDate("ASL D조"),
     players: [
-      { name: "조일장", race: "Z" },
-      { name: "김경모", race: "Z" },
+      { name: "조일장", race: "Z", rank: 2 },
+      { name: "김경모", race: "Z", rank: 1 },
       { name: "임홍규", race: "Z" },
       { name: "윤찬희", race: "T" },
     ],
@@ -81,9 +82,9 @@ export const ASL_GROUPS: AslGroup[] = [
     name: "E조",
     date: aslScheduleDate("ASL E조"),
     players: [
-      { name: "김민철", race: "Z" },
+      { name: "김민철", race: "Z", rank: 1 },
       { name: "임진묵", race: "T" },
-      { name: "정영재", race: "T" },
+      { name: "정영재", race: "T", rank: 2 },
       // 공식 이미지 두 장이 어긋난다(24강 카드 Z vs 선수소개 테란 명단) — 선수소개·실제 종족(테란)을 따른다
       { name: "최호선", race: "T" },
     ],
@@ -94,8 +95,8 @@ export const ASL_GROUPS: AslGroup[] = [
     players: [
       { name: "변현제", race: "P" },
       { name: "김윤환", race: "Z" },
-      { name: "김명운", race: "Z" },
-      { name: "김정우", race: "Z" },
+      { name: "김명운", race: "Z", rank: 1 },
+      { name: "김정우", race: "Z", rank: 2 },
     ],
   },
 ];
