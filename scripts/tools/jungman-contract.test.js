@@ -1172,3 +1172,28 @@ test("jungman headlines drop stale rank swaps", () => {
   );
 });
 
+test("jungman set penalty does not apply before the day it was imposed", () => {
+  const { parseJungmanStandings } = loadModule("lib/jungman-standings.ts", (id) =>
+    id === "@/lib/jungman" ? loadJungmanLib() : {}
+  );
+
+  // 관리자는 실제로 치른 세트만 넣는다 — 먼저 주는 세트는 사이트가 얹는다
+  const raw = JSON.stringify({
+    announced: true,
+    groups: [{ name: "D조", teams: ["수술대", "신세계", "흑카데미"] }],
+    matches: [
+      { group: "D조", date: "2026-08-13", home: "수술대", away: "신세계", homeSets: 5, awaySets: 0 },
+      { group: "D조", date: "2026-08-20", home: "수술대", away: "흑카데미", homeSets: 0, awaySets: 4 },
+      { group: "D조", date: "2026-08-27", home: "신세계", away: "흑카데미", homeSets: 1, awaySets: 4 },
+    ],
+  });
+  const score = (date) => {
+    const m = parseJungmanStandings(raw).matches.find((x) => x.date === date);
+    return `${m.homeSets}:${m.awaySets}`;
+  };
+
+  // 신세계 패널티는 8/27부터다. 소급하면 5:0에 양쪽 1씩 붙어 6:1 — 9판에 없는 점수가 된다
+  assert.equal(score("2026-08-13"), "5:1", "패널티 전 경기에 신세계 패널티가 소급됐다");
+  assert.equal(score("2026-08-20"), "0:5", "수술대 패널티 세트가 빠졌다");
+  assert.equal(score("2026-08-27"), "1:5", "신세계 패널티 세트가 안 얹혔다");
+});

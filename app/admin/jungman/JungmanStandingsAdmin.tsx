@@ -191,6 +191,7 @@ function NameCheck({ players, name }: { players: Player[]; name: string }) {
 function SetEditor({
   home,
   away,
+  date,
   sets,
   players,
   homeList,
@@ -199,6 +200,7 @@ function SetEditor({
 }: {
   home: string;
   away: string;
+  date?: string;
   sets: MatchSet[];
   players: Player[];
   homeList: string;
@@ -206,7 +208,8 @@ function SetEditor({
   onEdit: (index: number, patch: Partial<MatchSet>) => void;
 }) {
   // 패널티로 먼저 주는 세트는 사이트가 앎는다 — 여기서 또 넣으면 두 번 세진다
-  const handicap = jungmanHandicap(home, away);
+  // 날짜를 넘겨야 패널티 전에 치른 경기에 잘못 안내하지 않는다
+  const handicap = jungmanHandicap(home, away, date);
   const headStart = handicap.home > 0 ? home : handicap.away > 0 ? away : null;
 
   return (
@@ -563,6 +566,7 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
                       <SetEditor
                         home={home}
                         away={away}
+                        date={s?.date}
                         sets={sets}
                         players={playerDb}
                         homeList={listIdOf(home)}
@@ -663,6 +667,7 @@ export default function JungmanStandingsAdmin({ initialValue }: { initialValue: 
                       <SetEditor
                         home={home}
                         away={away}
+                        date={round.date}
                         sets={sets}
                         players={playerDb}
                         homeList={listIdOf(home)}

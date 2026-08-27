@@ -27,18 +27,37 @@ export const JUNGMAN_BRACKET_NOTE = "8강은 조 1위 ↔ 2위가 붙도록 추�
 export const JUNGMAN_MATCH_TIME = "19:00";
 
 /**
- * 패널티 — 이 팀은 매 경기를 0:1로 시작한다. 값은 상대가 먼저 갖고 들어가는 세트 수다.
+ * 패널티 — 이 팀은 매 경기를 0:1로 시작한다. sets는 상대가 먼저 갖고 들어가는 세트 수다.
  * 그래서 상대는 4세트만 따면 이기고 이 팀은 5세트를 따야 이긴다.
  * 관리자는 실제로 치른 세트만 넣는다 — 먼저 주는 세트는 이 값으로 사이트가 얹는다.
+ *
+ * since는 패널티가 걸린 날이다. 그 전 경기에는 소급하지 않는다 — 옛 규칙으로 5세트를
+ * 다 따서 끝난 경기에 세트를 뒤늦게 얹으면 9판 경기에 6세트라는 점수가 나온다.
  */
-export const JUNGMAN_SET_PENALTY: Record<string, number> = { 수술대: 1 };
+export const JUNGMAN_SET_PENALTY: Record<string, { sets: number; since?: string }> = {
+  수술대: { sets: 1 },
+  신세계: { sets: 1, since: "2026-08-27" },
+};
+
+/** 이 날짜 경기에서 team이 상대에게 먼저 내주는 세트 수 */
+function penaltySets(team: string, date?: string) {
+  const penalty = JUNGMAN_SET_PENALTY[team];
+  if (!penalty) return 0;
+  // 날짜를 모르면 현행 규칙으로 본다 — 날짜 없는 경기는 아직 안 치른 경기다
+  if (penalty.since && date && date < penalty.since) return 0;
+  return penalty.sets;
+}
 
 /** 이 경기에서 양 팀이 갖고 시작하는 세트. 패널티 팀이 없으면 둘 다 0이다 */
-export function jungmanHandicap(home: string, away: string): { home: number; away: number } {
+export function jungmanHandicap(
+  home: string,
+  away: string,
+  date?: string
+): { home: number; away: number } {
   // 패널티를 받은 쪽이 아니라 그 상대가 세트를 갖는다 — 방향을 뒤집으면 조용히 반대가 된다
   return {
-    home: JUNGMAN_SET_PENALTY[away] ?? 0,
-    away: JUNGMAN_SET_PENALTY[home] ?? 0,
+    home: penaltySets(away, date),
+    away: penaltySets(home, date),
   };
 }
 

@@ -142,16 +142,17 @@ export function parseJungmanStandings(raw: string | null | undefined): JungmanSt
       if (homeSets === null || awaySets === null) continue;
     }
 
+    // 형식이 어긋난 날짜는 없는 것으로 친다 — 정렬이 조용히 뒤엉키는 것보다 낫다
+    // 패널티가 걸린 날 판정에도 쓰이므로 핸디캡보다 먼저 구해야 한다
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(text(match.date)) ? text(match.date) : undefined;
+
     // 패널티(0:1 시작)는 실제로 치른 경기에만 얹는다 — 아직 안 한 경기(0:0)에 얹으면
     // 0:1이 되어 끝난 경기로 읽히고 순위표에 없는 패가 하나 생긴다
     if (homeSets > 0 || awaySets > 0) {
-      const handicap = jungmanHandicap(home, away);
+      const handicap = jungmanHandicap(home, away, date);
       homeSets += handicap.home;
       awaySets += handicap.away;
     }
-
-    // 형식이 어긋난 날짜는 없는 것으로 친다 — 정렬이 조용히 뒤엉키는 것보다 낫다
-    const date = /^\d{4}-\d{2}-\d{2}$/.test(text(match.date)) ? text(match.date) : undefined;
 
     // 안 끝난 경기도 그대로 내보낸다 — 예정 일정을 읽으려면 여기서 버리면 안 된다.
     // 거르는 일은 쓰는 쪽(집계·결과 목록)이 decided로 한다.
@@ -487,7 +488,7 @@ export function buildJungmanScenarios(standings: JungmanStandings): Map<string, 
         const winnerIsHome = outcome < 5;
         // 패널티 경기는 진 쪽이 그 세트를 이미 갖고 있다 — 0:5가 나올 수 없다.
         // 0과 1이 같은 결과로 겹치지만 "가능한가"만 보므로 답은 달라지지 않는다
-        const handicap = jungmanHandicap(match.home, match.away);
+        const handicap = jungmanHandicap(match.home, match.away, match.date);
         const loserSets = Math.max(
           winnerIsHome ? handicap.away : handicap.home,
           outcome % 5

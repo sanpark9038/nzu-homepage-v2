@@ -98,7 +98,7 @@ function SetRow({
 function MatchCard({ match, players }: { match: JungmanStandingsMatch; players: RaceLookupPlayer[] }) {
   const homeWon = match.homeSets > match.awaySets;
   // 점수에 미리 얹혀 있는 세트다 — 안 적어두면 아래 세트 수와 안 맞아 보인다
-  const handicap = jungmanHandicap(match.home, match.away);
+  const handicap = jungmanHandicap(match.home, match.away, match.date);
   const penalized = handicap.home > 0 || handicap.away > 0;
 
   return (
