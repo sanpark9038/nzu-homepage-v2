@@ -76,3 +76,4 @@ tmp-next-start.err.log
 .claude/
 skills-lock.json
 debug.log
+__pycache__/
