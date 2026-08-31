@@ -323,6 +323,16 @@ export function buildTournamentPredictionMatches(
       }
     }
 
+    // 아무도 안 보는 명단은 실어 보내지 않는다. 기존 팀으로 걸면 선수를 안 고른 팀은
+    // 전원이 딸려오는데(selectTeamPlayers의 기본값), 팀전 카드는 엔트리가 나오기 전까지
+    // 선수를 안 그린다. 8강 4경기 기준 22KB 중 19KB가 그 명단이었다.
+    //
+    // 관리자가 직접 고른 명단은 남긴다 — 그건 "이 선수들이 나온다"는 뜻이라 전원 덤프와 다르다.
+    // mvpVotes는 위에서 전원 기준으로 이미 셌으므로 집계는 그대로다.
+    const alwaysShow = matchType === "individual" || entryMatchups.length > 0;
+    const strip = (team: PredictionMatchTeam, selectedIds: unknown) =>
+      alwaysShow || normalizeIdList(selectedIds).length > 0 ? team : { ...team, players: [] };
+
     return {
       id: matchId,
       matchType,
@@ -336,8 +346,8 @@ export function buildTournamentPredictionMatches(
       resultPublishedAt: String(match.result_published_at || "").trim() || null,
       entryOrderStatus,
       entryMatchups,
-      teamA,
-      teamB,
+      teamA: strip(teamA, match.team_a_player_ids),
+      teamB: strip(teamB, match.team_b_player_ids),
       totalTeamVotes: Object.values(teamVotes).reduce((sum, value) => sum + value, 0),
       totalMvpVotes: Object.values(mvpVotes).reduce((sum, value) => sum + value, 0),
       teamVotes,

@@ -1066,3 +1066,40 @@ test("viewer prediction reads scope current voter rows without aggregate totals"
     "Viewer-scoped reads should still use the visible match ids when loading the current voter's rows"
   );
 });
+
+test("prediction payload drops the whole-roster dump nobody renders", () => {
+  const roster = (team, n) =>
+    Array.from({ length: n }, (_, i) =>
+      makePredictionPlayer({
+        id: `${team}-${String(i).padStart(8, "0")}-4000-8000-000000000000`,
+        name: `${team}${i}`,
+        university: team,
+      })
+    );
+  const players = [...roster("Team A", 3), ...roster("Team B", 3)];
+  const base = {
+    id: "match-team",
+    match_type: "team",
+    team_a_code: "Team A",
+    team_b_code: "Team B",
+    start_at: inHours(25),
+    close_at: inHours(24),
+    status: "open",
+  };
+  const build = (extra) =>
+    tournamentPrediction.buildTournamentPredictionMatches(players, {
+      matches: [{ ...base, ...extra }],
+      votes: [],
+    })[0];
+
+  // 선수를 안 고르면 팀 전원이 딸려온다. 팀전 카드는 그걸 안 그리므로 실어 보내지 않는다
+  const dumped = build({ team_a_player_ids: [], team_b_player_ids: [] });
+  assert.deepEqual(dumped.teamA.players, [], "안 고른 팀의 전원 명단이 payload에 남았다");
+  assert.deepEqual(dumped.teamB.players, []);
+  assert.equal(dumped.teamA.teamName, "Team A", "명단을 빼면서 팀 자체를 잃으면 안 된다");
+
+  // 관리자가 직접 고른 명단은 "이 선수들이 나온다"는 뜻이라 그대로 남는다
+  const picked = build({ team_a_player_ids: [players[0].id], team_b_player_ids: [] });
+  assert.deepEqual(picked.teamA.players.map((p) => p.id), [players[0].id]);
+  assert.deepEqual(picked.teamB.players, [], "한쪽만 골랐으면 안 고른 쪽만 빠진다");
+});

@@ -38,6 +38,8 @@ const { ASL_GROUPS, ASL_MATCH_TIME, ASL_SEASON } = loadModule("lib/asl.ts", (id)
 const { JUNGMAN_MATCH_TIME } = jungman;
 const { JUNGMAN_STANDINGS_KEY, parseJungmanStandings, upcomingJungmanMatches } =
   loadModule("lib/jungman-standings.ts", (id) => (id === "@/lib/jungman" ? jungman : {}));
+// 팀 이름 -> 팀 코드. 이름 표기를 여기 다시 적지 않는다 — 사이트가 쓰는 그 지도를 그대로 쓴다
+const { UNIVERSITY_ALIAS_MAP } = loadModule("lib/university-config.ts");
 
 /** 당일 오후 6시 마감 — 방송(19:00) 1시간 전 (사용자 지정) */
 const CLOSE_TIME = "18:00";
@@ -106,13 +108,19 @@ function buildJungmanRows(standings, displayOrderOffset) {
   if (!standings) return [];
   return upcomingJungmanMatches(standings.matches).map((match, index) => {
     const code = `jm-${match.date}-${index}`;
+    // 중만컵은 우리 팀들이라 "기존 팀 사용"으로 건다 — 로고와 선수 명단이 따라붙는다.
+    // 다만 둘 중 하나라도 코드를 못 찾으면 통째로 직접입력으로 물러난다: 기존 팀 모드에서
+    // 코드가 안 맞으면 그 경기가 화면에서 조용히 사라진다(빈 칸이 아니라 아예 없어진다).
+    const homeCode = UNIVERSITY_ALIAS_MAP[match.home];
+    const awayCode = UNIVERSITY_ALIAS_MAP[match.away];
+    const existing = Boolean(homeCode && awayCode);
     return {
       title: `K-중만컵 ${match.group} ${match.home} vs ${match.away}`,
       match_type: "team",
-      team_mode: "direct",
-      team_a_code: `${code}-a`,
+      team_mode: existing ? "existing" : "direct",
+      team_a_code: existing ? homeCode : `${code}-a`,
       team_a_name: match.home,
-      team_b_code: `${code}-b`,
+      team_b_code: existing ? awayCode : `${code}-b`,
       team_b_name: match.away,
       team_a_player_ids: [],
       team_b_player_ids: [],
