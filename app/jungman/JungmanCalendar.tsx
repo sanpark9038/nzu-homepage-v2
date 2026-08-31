@@ -101,8 +101,9 @@ function buildGroupEvents(matches: JungmanStandingsMatch[]): CalendarEvent[] {
     list.forEach((match, index) => numbers.set(match, index + 1));
   }
 
+  // 위 continue는 번호 지도에서만 뺀다 — 카드도 여기서 같이 빼야 8강이 두 장 안 뜬다
   return matches
-    .filter((match) => match.date)
+    .filter((match) => match.date && !TOURNAMENT_ROUNDS.has(match.group))
     .map((match) => {
       const number = numbers.get(match);
       return {

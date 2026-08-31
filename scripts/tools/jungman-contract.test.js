@@ -1220,3 +1220,15 @@ test("jungman upcoming schedule drops a past match that never got a result", () 
   // 저녁 7시 경기라 당일 아침에 지우면 안 된다
   assert.deepEqual(dates("2026-08-28"), ["2026-08-28", "2026-09-03"], "오늘 경기가 일정에서 빠졌다");
 });
+
+test("jungman calendar draws a tournament match once, not twice", () => {
+  const src = readProjectFile("app/jungman/JungmanCalendar.tsx");
+
+  // 토너먼트 경기는 금색 카드가 맡는다. buildGroupEvents가 같은 경기로 카드를 또 만들면
+  // 8강 날짜에 "8강"과 "8강 A조" 두 장이 겹쳐 뜬다 (대진을 넣는 순간 드러난 실제 버그)
+  assert.match(
+    src,
+    /\.filter\(\(match\) => match\.date && !TOURNAMENT_ROUNDS\.has\(match\.group\)\)/,
+    "buildGroupEvents가 토너먼트 경기를 카드에서 빼지 않는다"
+  );
+});
