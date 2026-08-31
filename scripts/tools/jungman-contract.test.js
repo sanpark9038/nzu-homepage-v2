@@ -1197,3 +1197,26 @@ test("jungman set penalty does not apply before the day it was imposed", () => {
   assert.equal(score("2026-08-20"), "0:5", "수술대 패널티 세트가 빠졌다");
   assert.equal(score("2026-08-27"), "1:5", "신세계 패널티 세트가 안 얹혔다");
 });
+
+test("jungman upcoming schedule drops a past match that never got a result", () => {
+  const { upcomingJungmanMatches, parseJungmanStandings } = loadModule(
+    "lib/jungman-standings.ts",
+    (id) => (id === "@/lib/jungman" ? loadJungmanLib() : {})
+  );
+
+  const raw = JSON.stringify({
+    announced: true,
+    groups: [{ name: "B조", teams: ["뉴캣슬", "BGM", "JSA"] }],
+    matches: [
+      // 결과가 안 들어온 지난 경기 — 이게 홈 커버에 계속 떠 있었다
+      { group: "B조", date: "2026-08-28", home: "BGM", away: "JSA", homeSets: 0, awaySets: 0 },
+      { group: "8강", date: "2026-09-03", home: "흑카데미", away: "JSA", homeSets: 0, awaySets: 0 },
+    ],
+  });
+  const dates = (today) =>
+    upcomingJungmanMatches(parseJungmanStandings(raw).matches, today).map((m) => m.date);
+
+  assert.deepEqual(dates("2026-08-31"), ["2026-09-03"], "지난 경기가 다가오는 일정에 남았다");
+  // 저녁 7시 경기라 당일 아침에 지우면 안 된다
+  assert.deepEqual(dates("2026-08-28"), ["2026-08-28", "2026-09-03"], "오늘 경기가 일정에서 빠졌다");
+});

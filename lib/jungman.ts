@@ -74,12 +74,14 @@ export const JUNGMAN_MILESTONES = [
 
 /** 토너먼트 경기 일정. 대진은 조별리그가 끝나야 정해지므로 날짜와 이름만 갖는다. */
 export const JUNGMAN_TOURNAMENT: { date: string; label: string; round: "8강" | "4강" | "결승" }[] = [
-  { date: "2026-09-03", label: "8강 1경기", round: "8강" },
-  { date: "2026-09-04", label: "8강 2경기", round: "8강" },
-  { date: "2026-09-05", label: "8강 3경기", round: "8강" },
-  { date: "2026-09-06", label: "8강 4경기", round: "8강" },
-  { date: "2026-09-12", label: "4강 1경기", round: "4강" },
-  { date: "2026-09-13", label: "4강 2경기", round: "4강" },
+  // 이름은 공식 대진표를 그대로 따른다 — 4강이 "8강 A조 승자"로 8강을 가리켜서, 여기서
+  // 1경기·2경기로 부르면 같은 경기를 두 이름으로 말하게 된다 (조추첨 2026-08-30)
+  { date: "2026-09-03", label: "8강 A조", round: "8강" },
+  { date: "2026-09-04", label: "8강 B조", round: "8강" },
+  { date: "2026-09-05", label: "8강 C조", round: "8강" },
+  { date: "2026-09-06", label: "8강 D조", round: "8강" },
+  { date: "2026-09-12", label: "4강 A조", round: "4강" },
+  { date: "2026-09-13", label: "4강 B조", round: "4강" },
   // 결승 날짜는 커버·홈 덱이 쓰는 상수를 그대로 재사용한다 — 두 벌로 적으면 조용히 어긋난다
   { date: JUNGMAN_FINAL_DATE, label: "결승", round: "결승" },
 ];

@@ -3,7 +3,7 @@
  * 관리자가 손으로 넣는 JSON이라 파싱은 방어적으로, 계산은 순수 함수로 여기서 끝낸다.
  */
 
-import { jungmanHandicap } from "@/lib/jungman";
+import { jungmanHandicap, jungmanTodayKST } from "@/lib/jungman";
 
 export const JUNGMAN_STANDINGS_KEY = "jungman_standings";
 
@@ -185,10 +185,17 @@ export function sortJungmanMatches(matches: JungmanStandingsMatch[]): JungmanSta
     });
 }
 
-/** 아직 안 끝났고 날짜가 있는 경기를 가까운 날짜부터. 날짜 없는 예정 경기는 뺀다(언제인지 모르니 못 보여준다) */
-export function upcomingJungmanMatches(matches: JungmanStandingsMatch[]): JungmanStandingsMatch[] {
+/**
+ * 아직 안 끝났고 날짜가 있는 경기를 가까운 날짜부터. 날짜 없는 예정 경기는 뺀다(언제인지 모르니 못 보여준다).
+ * 오늘(KST) 경기는 남긴다 — 저녁 7시 경기를 아침부터 지우면 안 된다.
+ * 결과가 안 들어온 지난 경기는 뺀다 — decided만 보면 "다가오는 경기"에 영원히 남는다.
+ */
+export function upcomingJungmanMatches(
+  matches: JungmanStandingsMatch[],
+  today: string = jungmanTodayKST()
+): JungmanStandingsMatch[] {
   return matches
-    .filter((match) => !match.decided && match.date)
+    .filter((match) => !match.decided && match.date && (match.date as string) >= today)
     .sort((a, b) => (a.date as string).localeCompare(b.date as string));
 }
 
