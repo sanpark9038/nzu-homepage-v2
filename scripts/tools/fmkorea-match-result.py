@@ -20,9 +20,12 @@ import io
 import json
 import re
 import sys
+import time
 import urllib.request
 
 PLAYERS_URL = "https://www.star-hosaga.com/api/players"
+# 경기결과 전용 카테고리. 잡담이 안 섞인다
+CATEGORY_URL = "https://www.fmkorea.com/index.php?mid=starcraft&category=9602419408"
 
 # 글쓴이가 쓰는 약칭. 못 찾는 약칭은 그대로 두고 경고한다 — 멋대로 고르면 조용히 틀린다
 MAPS = {
@@ -99,11 +102,43 @@ def resolve_names(sets, roster):
     return unmatched
 
 
-def fetch(srl):
+def fetch(url):
     from scrapling.fetchers import StealthyFetcher  # 무거워서 필요할 때만 부른다
 
-    url = srl if srl.startswith("http") else f"https://www.fmkorea.com/{srl}"
+    if not url.startswith("http"):
+        url = f"https://www.fmkorea.com/{url}"
     return StealthyFetcher.fetch(url, headless=True, network_idle=True, timeout=60000).html_content
+
+
+# 목록 URL이 두 형식으로 나온다. 한쪽만 보면 0건이 나온다 — 실제로 당한 적 있다
+LIST_RES = (
+    re.compile(r'document_srl=(\d+)"[^>]*>([^<]{2,})</a>'),
+    re.compile(r'href="/(\d{8,})"[^>]*>([^<]{2,})</a>'),
+)
+
+
+def list_posts(pages):
+    """경기결과 카테고리 목록. 한 페이지 20건 ≈ 이틀치."""
+    rows, seen = [], set()
+    for page in range(1, pages + 1):
+        if page > 1:
+            time.sleep(11)  # 붙여 쏘면 다시 밴당한다
+        url = CATEGORY_URL if page == 1 else f"{CATEGORY_URL}&page={page}"
+        html = fetch(url)
+        for pattern in LIST_RES:
+            for srl, title in pattern.findall(html):
+                title = ihtml.unescape(title).strip()
+                if srl not in seen and title:
+                    seen.add(srl)
+                    rows.append((srl, title))
+    return rows
+
+
+def pick_candidates(rows, keywords):
+    """제목에 키워드가 다 든 글. '리뷰' 글은 결과가 이미지라 뒤로 민다."""
+    keys = [k.lower() for k in keywords if k]
+    hits = [(srl, t) for srl, t in rows if all(k in t.lower() for k in keys)]
+    return sorted(hits, key=lambda row: ("리뷰" in row[1], "결과" not in row[1]))
 
 
 SAMPLE = """
@@ -130,24 +165,52 @@ def self_check():
     # 잘린 이름은 유일할 때만 편다
     rows = [{"left": "꼬니", "right": "백원이", "map": "", "winner": None}]
     assert not resolve_names(rows, {"꼬니부깅", "백원이야"}) and rows[0]["left"] == "꼬니부깅", rows
+    # 후보가 여럿이면 '결과' 글이 먼저, '리뷰'(이미지) 글이 꼴찌여야 한다
+    listing = [
+        ("1", "[ K-중만컵 ] BGM vs JSA 리뷰(결과+조별순위+NEXT)"),
+        ("2", "[K-중만컵] JSA vs BGM B조 3경기 결과"),
+        ("3", "[중장전] 이제동Z vs 김택용P 경기 결과"),
+    ]
+    assert [s for s, _ in pick_candidates(listing, ["bgm", "jsa"])] == ["2", "1"], pick_candidates(listing, ["bgm", "jsa"])
     print("self-check ok")
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("srl", nargs="?", help="글 번호 또는 URL")
+    ap.add_argument("--find", nargs="+", metavar="말", help='제목으로 찾기. 예: --find BGM JSA')
+    ap.add_argument("--pages", type=int, default=2, help="--find가 뒤질 목록 페이지 수 (기본 2 ≈ 나흘치)")
     ap.add_argument("--file", help="받아둔 HTML 파일로 파싱")
     ap.add_argument("--self-check", action="store_true")
     args = ap.parse_args()
 
     if args.self_check:
         return self_check()
-    if not args.srl and not args.file:
-        ap.error("글 번호나 --file 중 하나는 있어야 한다")
+    if not (args.srl or args.file or args.find):
+        ap.error("글 번호, --find, --file 중 하나는 있어야 한다")
 
-    raw = io.open(args.file, encoding="utf-8").read() if args.file else fetch(args.srl)
-    text = body_text(raw)
-    sets, teams, final, warnings = parse(text)
+    # 후보를 순서대로 열어 본다. 결과가 이미지뿐인 글은 세트가 안 나오니 다음 후보로 넘어간다
+    candidates = []
+    if args.find:
+        candidates = pick_candidates(list_posts(args.pages), args.find)
+        if not candidates:
+            print(f"'{' '.join(args.find)}' 로 찾은 글이 없다. --pages 를 늘려봐라.", file=sys.stderr)
+            return 1
+        print(f"후보 {len(candidates)}건:", file=sys.stderr)
+        for srl, title in candidates:
+            print(f"  {srl}  {title}", file=sys.stderr)
+
+    sets = []
+    for attempt, (srl, title) in enumerate(candidates[:3] or [(args.srl, "")]):
+        if attempt:
+            time.sleep(11)
+        raw = io.open(args.file, encoding="utf-8").read() if args.file else fetch(srl)
+        sets, teams, final, warnings = parse(body_text(raw))
+        if sets:
+            if args.find:
+                print(f"-> {srl} {title}", file=sys.stderr)
+            break
+        print(f"세트 없음(결과가 이미지인 글): {srl} {title}", file=sys.stderr)
     if not sets:
         print("세트를 못 찾았다. '리뷰' 글이면 결과가 이미지라 파싱이 안 된다.", file=sys.stderr)
         return 1
