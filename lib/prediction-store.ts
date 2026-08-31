@@ -131,7 +131,7 @@ const PREDICTION_VOTES_PATH = path.join(
 
 const MAX_CHANGES_PER_MATCH = 1;
 const CLOSING_SOON_MS = 30 * 60 * 1000;
-/** 결과 공개 후 이 시간이 지나면 공개 목록에서 자동 숨김(archived 판정). */
+/** 결과 공개 후, 또는 결과 없이 마감된 뒤 이 시간이 지나면 공개 목록에서 자동 숨김(archived 판정). */
 const RESULT_AUTO_HIDE_MS = 24 * 60 * 60 * 1000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const STORED_STATUSES = new Set(["draft", "open", "closed", "archived"]);
@@ -732,11 +732,15 @@ export function derivePredictionMatchStatus(
     return "result_published";
   }
   if (status === "draft") return "draft";
-  if (status === "closed") return "closed";
 
   const closeMs = parseTime(match.close_at || defaultCloseAt(match.start_at || ""));
   const nowMs = now.getTime();
-  if (closeMs && closeMs <= nowMs) return "closed";
+  const closed = status === "closed" || Boolean(closeMs && closeMs <= nowMs);
+
+  // 결과를 끝내 안 넣은 경기도 마감 하루 뒤에는 내린다 — 안 그러면 "마감"으로 영원히 남는다.
+  // 뒤늦게 결과를 넣으면 위 분기가 먼저 잡아 다시 올라오므로 되돌릴 길은 열려 있다.
+  if (closed && closeMs && nowMs - closeMs >= RESULT_AUTO_HIDE_MS) return "archived";
+  if (closed) return "closed";
   if (closeMs && closeMs - nowMs <= CLOSING_SOON_MS) return "closing_soon";
   return "open";
 }

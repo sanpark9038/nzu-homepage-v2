@@ -95,6 +95,12 @@ function makePredictionPlayer(overrides = {}) {
   };
 }
 
+/**
+ * 픽스처 날짜는 항상 지금 기준 미래로 잡는다 — 고정 날짜를 쓰면 그 날이 지나는 순간
+ * "마감 하루 뒤 자동 숨김"에 걸려 카드가 사라지고, 무관한 테스트가 시간이 지나 깨진다.
+ */
+const inHours = (hours) => new Date(Date.now() + hours * 3_600_000).toISOString();
+
 test("prediction SQL creates remote match and vote tables", () => {
   const sql = fs.readFileSync(path.join(repoRoot, "scripts", "sql", "create-prediction-tables.sql"), "utf8");
 
@@ -184,8 +190,8 @@ test("public prediction payload helpers do not expose voter identity fields", ()
         team_a_player_ids: [playerA.id],
         team_b_player_ids: [playerB.id],
         title: "중장전 1경기",
-        start_at: "2026-05-05T13:00:00.000Z",
-        close_at: "2026-05-05T12:30:00.000Z",
+        start_at: inHours(25),
+        close_at: inHours(24),
         status: "open",
       },
     ],
@@ -246,8 +252,8 @@ test("buildTournamentPredictionMatches can use aggregate vote totals without pri
         team_b_code: `player:${playerB.id}`,
         team_a_player_ids: [playerA.id],
         team_b_player_ids: [playerB.id],
-        start_at: "2026-05-24T12:00:00.000Z",
-        close_at: "2026-05-24T11:30:00.000Z",
+        start_at: inHours(25),
+        close_at: inHours(24),
         status: "open",
       },
     ],
@@ -307,8 +313,8 @@ test("buildTournamentPredictionMatches sorts public cards by nearest vote deadli
         team_a_player_ids: [playerA.id],
         team_b_player_ids: [playerB.id],
         title: "Later deadline",
-        start_at: "2026-05-24T12:00:00.000Z",
-        close_at: "2026-05-24T11:30:00.000Z",
+        start_at: inHours(49),
+        close_at: inHours(48),
         status: "open",
       },
       {
@@ -317,8 +323,8 @@ test("buildTournamentPredictionMatches sorts public cards by nearest vote deadli
         team_a_player_ids: [playerA.id],
         team_b_player_ids: [playerB.id],
         title: "Earlier deadline",
-        start_at: "2026-05-20T12:00:00.000Z",
-        close_at: "2026-05-20T11:30:00.000Z",
+        start_at: inHours(25),
+        close_at: inHours(24),
         status: "open",
       },
     ],
@@ -547,6 +553,39 @@ test("derivePredictionMatchStatus handles open, warning, closed, and published s
     ),
     "archived"
   );
+
+  // 결과를 끝내 안 넣은 경기도 마감 24시간 뒤에는 내려간다 — "마감"으로 영원히 남지 않는다
+  assert.equal(
+    predictionStore.derivePredictionMatchStatus(
+      { start_at: "2026-05-04T10:00:00.000Z", close_at: "2026-05-04T09:30:00.000Z", status: "open" },
+      now
+    ),
+    "archived"
+  );
+
+  // 24시간 전까지는 그대로 "마감" — 결과 넣을 시간을 준다
+  assert.equal(
+    predictionStore.derivePredictionMatchStatus(
+      { start_at: "2026-05-05T11:00:00.000Z", close_at: "2026-05-05T10:30:00.000Z", status: "open" },
+      now
+    ),
+    "closed"
+  );
+
+  // 내려간 뒤에도 결과를 넣으면 다시 올라온다 — 되돌릴 길이 막히면 안 된다
+  assert.equal(
+    predictionStore.derivePredictionMatchStatus(
+      {
+        start_at: "2026-05-04T10:00:00.000Z",
+        close_at: "2026-05-04T09:30:00.000Z",
+        status: "closed",
+        result_team_code: "team-a",
+        result_published_at: "2026-05-05T11:50:00.000Z",
+      },
+      now
+    ),
+    "result_published"
+  );
 });
 
 test("validatePredictionVote rejects closed matches and invalid team picks", () => {
@@ -755,8 +794,8 @@ test("buildTournamentPredictionMatches uses admin-selected player lists", () => 
           team_b_code: "Team B",
           team_a_player_ids: [teamAPlayer.id],
           team_b_player_ids: [teamBPlayer.id],
-          start_at: "2026-05-05T13:00:00.000Z",
-          close_at: "2026-05-05T12:30:00.000Z",
+          start_at: inHours(25),
+          close_at: inHours(24),
           status: "open",
         },
       ],
@@ -831,8 +870,8 @@ test("buildTournamentPredictionMatches supports direct event teams and entry mat
         team_b_player_ids: [playerB.id],
         entry_order_status: "unknown",
         entry_matchups: [{ player_a_id: playerA.id, player_b_id: playerB.id }],
-        start_at: "2026-05-05T13:00:00.000Z",
-        close_at: "2026-05-05T12:30:00.000Z",
+        start_at: inHours(25),
+        close_at: inHours(24),
         status: "open",
       },
     ],
@@ -902,8 +941,8 @@ test("buildTournamentPredictionMatches supports individual winner predictions", 
         team_a_player_ids: [playerA.id],
         team_b_player_ids: [playerB.id],
         title: "중장전 1경기",
-        start_at: "2026-05-05T13:00:00.000Z",
-        close_at: "2026-05-05T12:30:00.000Z",
+        start_at: inHours(25),
+        close_at: inHours(24),
         status: "open",
       },
     ],
@@ -937,8 +976,8 @@ test("prediction match snapshots preserve a start time TBD flag", () => {
         team_b_player_ids: [playerB.id],
         team_a_code: `player:${playerA.id}`,
         team_b_code: `player:${playerB.id}`,
-        start_at: "2026-05-24T11:00:00.000Z",
-        close_at: "2026-05-24T10:30:00.000Z",
+        start_at: inHours(25),
+        close_at: inHours(24),
         status: "open",
         start_time_tbd: true,
       },
