@@ -1056,3 +1056,36 @@ runTest("buildAlerts states the source-site outage inside the existing failure a
   assert.match(failureAlerts[0].message, /7명/);
   assert.equal(alerts.some((a) => a.rule === "zero_record_players"), false);
 });
+
+// 2026-09 엘로보드 개편: 새 사이트 id로 연결되지 않은 선수는 기존 파일을 그대로 쓰고 건너뛴다.
+// 이게 fetch_fail(critical)로 세지면 매일 서빙 반영이 막히므로, 실패도 0건 경보도 아닌
+// 낮은 등급 "미연결" 경보로 이름만 올린다.
+runTest("summarizeTeamFromReport and buildAlerts treat unmapped v2 players as a low alert, not a failure", () => {
+  const dir = makeTempReportsDir();
+  const p = path.join(dir, "u.json");
+  fs.writeFileSync(p, JSON.stringify({ players: [{ period_total: 0, period_wins: 0, period_losses: 0 }] }), "utf8");
+  const report = {
+    results: [
+      { player: "박재현", fetch_status: "skipped_unmapped_v2", csv_status: "used_existing_csv", json_path: p, unmapped_v2: true },
+      { player: "없는파일", fetch_status: "skipped_unmapped_v2", csv_status: "used_existing_csv", json_path: path.join(dir, "missing.json") },
+    ],
+  };
+  const row = summarizeTeamFromReport({ univ: "연합팀", code: "fa" }, report);
+  assert.equal(row.fetch_fail, 0);
+  assert.equal(row.csv_fail, 0);
+  assert.equal(row.zero_record_players, 0);
+  assert.equal(row.unmapped_v2_players, 2);
+  assert.equal(row.unmapped_v2_player_names, "박재현, 없는파일");
+
+  const alerts = buildAlerts(
+    [{ ...row, delta_total_matches: 0, delta_players: 0 }],
+    { rules: { pipeline_failure_severity: "critical", unmapped_v2_players_severity: "low", no_new_matches_enabled: false } },
+    null,
+    []
+  );
+  assert.equal(alerts.some((a) => a.rule === "pipeline_failure"), false);
+  const hit = alerts.find((a) => a.rule === "player_unmapped_v2");
+  assert.ok(hit);
+  assert.equal(hit.severity, "low");
+  assert.match(hit.message, /박재현/);
+});

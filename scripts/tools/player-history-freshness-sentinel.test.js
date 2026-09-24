@@ -37,8 +37,9 @@ runTest("source report args force a no-cache single-player read", () => {
   assert.ok(args.includes("--no-cache"));
   assert.ok(args.includes("--json-only"));
   assert.ok(args.includes("--include-matches"));
-  assert.ok(args.includes("--profile-url"));
-  assert.ok(args.includes("https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=37"));
+  // 옛 프로필 주소는 2026-09 개편으로 죽었다. 수집기는 entity_id로 새 API id를 해석한다.
+  assert.ok(!args.includes("--profile-url"));
+  assert.equal(args[args.indexOf("--entity-id") + 1], "eloboard:male:37");
 });
 
 runTest("source latest date comes from period_max_date", () => {

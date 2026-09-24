@@ -15,9 +15,6 @@ function buildDefaultSentinels() {
       name: "FM-009 sentinel",
       team_name: "c9",
       player_name: "Kim Taek Yong",
-      profile_url: "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=37",
-      wr_id: 37,
-      gender: "male",
       tier: "god",
       serving_identity_key: "male:37",
       eloboard_id: "eloboard:male:37",
@@ -25,6 +22,8 @@ function buildDefaultSentinels() {
   ];
 }
 
+// 2026-09 개편 뒤 수집기는 entity_id로 새 엘로보드 id를 해석해(숲 ID) 새 API를 읽는다.
+// 옛 프로필 주소는 죽었다 — source_latest_date는 새 API 경기 목록의 최신 played_on이다.
 function buildSourceReportArgs(sentinel) {
   return [
     "--json-only",
@@ -34,14 +33,10 @@ function buildSourceReportArgs(sentinel) {
     String(sentinel.team_name || "sentinel"),
     "--player",
     String(sentinel.player_name || sentinel.name || "sentinel"),
-    "--profile-url",
-    String(sentinel.profile_url || ""),
-    "--wr-id",
-    String(sentinel.wr_id || ""),
-    "--gender",
-    String(sentinel.gender || ""),
     "--tier",
     String(sentinel.tier || ""),
+    "--entity-id",
+    String(sentinel.eloboard_id || ""),
   ];
 }
 

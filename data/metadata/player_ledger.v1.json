@@ -27,7 +27,8 @@
       "display_name": "쿨지지",
       "also_known_as": [
         "강민기"
-      ]
+      ],
+      "eloboard_v2_id": 141
     },
     "eloboard:male:176": {
       "display_name": "빡죠스",
@@ -531,7 +532,8 @@
         "reason": "user_excluded_unneeded_for_homepage",
         "note": "운영자 확인 2026-07-23: 기록 정리·사이트 표시 모두 불필요.",
         "updated_at": "2026-07-23T05:44:50.872Z"
-      }
+      },
+      "eloboard_v2_id": 6396
     },
     "eloboard:female:881": {
       "soop_user_id": "nasd06",
@@ -1954,7 +1956,8 @@
       "soop_user_id": "llqqqq"
     },
     "eloboard:male:76": {
-      "soop_user_id": "wjswpalssla1"
+      "soop_user_id": "wjswpalssla1",
+      "eloboard_v2_id": 75
     },
     "eloboard:female:978": {
       "soop_user_id": "eun0c0"
@@ -2008,16 +2011,20 @@
       "soop_user_id": "soonhani"
     },
     "eloboard:female:606": {
-      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)"
+      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)",
+      "eloboard_v2_id": 505
     },
     "eloboard:male:mix:846": {
-      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)"
+      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)",
+      "eloboard_v2_id": 6410
     },
     "eloboard:female:909": {
-      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)"
+      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)",
+      "eloboard_v2_id": 731
     },
     "eloboard:female:569": {
-      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)"
+      "note": "숲 스타 방송 안 함 — 숲 ID 의도적 비움 (2026-08-01 운영자 확인)",
+      "eloboard_v2_id": 476
     },
     "eloboard:female:1016": {
       "soop_user_id": "haeun5513"
@@ -2041,31 +2048,46 @@
       "soop_user_id": "faker1004"
     },
     "eloboard:female:151": {
-      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)",
+      "eloboard_v2_id": 263
     },
     "eloboard:female:730": {
-      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)",
+      "eloboard_v2_id": 591
     },
     "eloboard:female:820": {
-      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)",
+      "eloboard_v2_id": 658
     },
     "eloboard:female:901": {
-      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)",
+      "eloboard_v2_id": 724
     },
     "eloboard:female:653": {
-      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)",
+      "eloboard_v2_id": 536
     },
     "eloboard:female:742": {
-      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)",
+      "eloboard_v2_id": 595
     },
     "eloboard:female:796": {
-      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)",
+      "eloboard_v2_id": 641
     },
     "eloboard:female:631": {
-      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)",
+      "eloboard_v2_id": 520
     },
     "eloboard:female:646": {
-      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)"
+      "note": "운영자가 숲 ID 불필요 판단 — 숲 ID 의도적 비움 (2026-08-06 운영자 확인)",
+      "eloboard_v2_id": 532
+    },
+    "eloboard:male:59": {
+      "eloboard_v2_id": 58
+    },
+    "eloboard:male:183": {
+      "eloboard_v2_id": 156
     }
   },
   "collection_exclusions_without_entity": [

@@ -42,12 +42,6 @@ function parseEntityId(entityId) {
   };
 }
 
-function defaultProfileUrl({ gender, wr_id }) {
-  if (!gender || !wr_id) return "";
-  const section = gender === "female" ? "women" : "men";
-  return `https://eloboard.com/${section}/bbs/board.php?bo_table=bj_list&wr_id=${wr_id}`;
-}
-
 function buildCandidateFromPlayer(player, projectDoc = {}) {
   const parsed = parseEntityId(player && player.entity_id);
   if (!parsed) return null;
@@ -62,7 +56,6 @@ function buildCandidateFromPlayer(player, projectDoc = {}) {
     team_name: normalizeText(player.team_name || projectDoc.team_name || teamCode || "unknown"),
     name: normalizeText(player.name || player.display_name),
     display_name: normalizeText(player.display_name || player.name),
-    profile_url: normalizeText(player.profile_url) || defaultProfileUrl(parsed),
     tier: normalizeText(player.tier_key || player.tier),
     race: normalizeText(player.race),
     check_priority: normalizeText(player.check_priority) || "normal",
@@ -183,14 +176,11 @@ function buildSourceReportArgs(candidate) {
     String(candidate.team_code || "audit"),
     "--player",
     String(candidate.name || candidate.display_name || candidate.serving_identity_key),
-    "--profile-url",
-    String(candidate.profile_url || ""),
-    "--wr-id",
-    String(candidate.wr_id || ""),
-    "--gender",
-    String(candidate.gender || ""),
     "--tier",
     String(candidate.tier || ""),
+    // 2026-09 개편 뒤 수집기는 entity_id로 새 엘로보드 id를 해석한다(옛 프로필 주소는 죽었다).
+    "--entity-id",
+    String(candidate.entity_id || ""),
   ];
 }
 

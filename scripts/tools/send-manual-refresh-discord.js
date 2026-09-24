@@ -607,6 +607,9 @@ function collectionHealthCheckLabel(id) {
     team_roster_page: "팀 로스터",
     player_profile_page: "선수 프로필",
     player_paginated_history: "경기 내역",
+    player_list: "선수 목록",
+    player_matches: "경기 내역",
+    colleges: "대학 목록",
   };
   return labels[id] || String(id || "").trim();
 }
@@ -659,6 +662,7 @@ const JUDGMENT_ALERT_RULES = {
   zero_record_players: "근거 없는 0건",
   roster_player_excluded_by_opponent_name: "이름 겹침",
   rotation_verify_mismatch: "순환 검증 mismatch",
+  player_unmapped_v2: "엘로보드 새 id 미연결",
 };
 
 // medium인 roster_size_changed·roster_transition_detected 같은 "매일 뜨는" 항목은 여기서 걸러진다.

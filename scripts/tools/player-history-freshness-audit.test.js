@@ -59,7 +59,6 @@ runTest("project metadata player becomes a source-check candidate", () => {
   );
 
   assert.equal(candidate.serving_identity_key, "female:901");
-  assert.equal(candidate.profile_url, "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=901");
   assert.equal(candidate.metadata_last_match_at, "2026-04-21");
   assert.equal(candidate.check_priority, "high");
 });
@@ -78,7 +77,7 @@ runTest("source report args force a no-cache single-player read", () => {
   assert.ok(args.includes("--no-cache"));
   assert.ok(args.includes("--json-only"));
   assert.ok(args.includes("--include-matches"));
-  assert.ok(args.includes("https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=37"));
+  assert.equal(args[args.indexOf("--entity-id") + 1], "eloboard:male:37");
 });
 
 runTest("candidate filtering defaults to bounded priority order", () => {

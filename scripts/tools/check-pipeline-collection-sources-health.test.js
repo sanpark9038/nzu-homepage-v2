@@ -1,11 +1,10 @@
 const assert = require("node:assert/strict");
 
 const {
-  countWomenRecordRows,
+  evaluateMatches,
+  evaluatePlayerList,
   formatMarkdown,
-  parseProfileBootstrap,
-  parseRosterPlayers,
-  selectMode,
+  pickSamplePlayers,
 } = require("./check-pipeline-collection-sources-health");
 
 function runTest(name, fn) {
@@ -18,98 +17,54 @@ function runTest(name, fn) {
   }
 }
 
-runTest("parseRosterPlayers extracts names and profile URLs", () => {
-  const html = `
-    <table class="table">
-      <tbody>
-        <tr>
-          <td><a class="p_name">PlayerA(1)</a></td>
-          <td><a target="_blank" href="/women/bbs/board.php?bo_table=bj_list&wr_id=123">profile</a></td>
-        </tr>
-      </tbody>
-    </table>
-  `;
-  const players = parseRosterPlayers(html);
-  assert.equal(players.length, 1);
-  assert.equal(players[0].name, "PlayerA");
-  assert.equal(players[0].wr_id, 123);
+runTest("evaluatePlayerList requires ids and at least one soop_id (the identity key)", () => {
+  assert.equal(evaluatePlayerList([{ id: 1, soop_id: "abc" }, { id: 2, soop_id: null }]).ok, true);
+  assert.equal(evaluatePlayerList([{ id: 1, soop_id: null }]).ok, false);
+  assert.equal(evaluatePlayerList([]).ok, false);
+  assert.equal(evaluatePlayerList({ error: "x" }).ok, false);
 });
 
-runTest("parseProfileBootstrap extracts p_name and last_id on men boards", () => {
-  const html = `
-    <div class="list-board"></div>
-    <a class="more" id="456"></a>
-    <script>var p_name = "PlayerA";</script>
-  `;
-  const bootstrap = parseProfileBootstrap(html, "https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=123", "Fallback");
-  assert.equal(bootstrap.p_name, "PlayerA");
-  assert.equal(bootstrap.last_id, 456);
-  assert.equal(bootstrap.has_list_board, true);
+runTest("evaluateMatches requires participants with a win/loss result", () => {
+  const good = {
+    played_on: "2026-09-24",
+    participants: [
+      { player_id: 1, result: "win" },
+      { player_id: 2, result: "loss" },
+    ],
+  };
+  assert.deepEqual(evaluateMatches([good]), { ok: true, row_count: 1, latest_played_on: "2026-09-24" });
+  assert.equal(evaluateMatches([good, { played_on: "2026-09-24", participants: [] }]).ok, false);
+  assert.equal(evaluateMatches([]).ok, false);
 });
 
-// 2026-08 개편 후 여자부 프로필이 들고 있는 이름 파라미터는 bj_name이다. p_name(상대전적
-// 위젯용)을 집어 오면 엉뚱한 요청을 보내게 된다.
-runTest("parseProfileBootstrap picks bj_name on the reworked women board", () => {
-  const html = `
-    <script>$.ajax({ url: "ajax_women_record.php", type: "POST", data: { bj_name: "진서", target_year: targetYear } });</script>
-    <script>$.ajax({ url: "view_list2.php", type: "post", data: { p_name: "진서", b_id: "eloboard" } });</script>
-    <div class="list-board"></div>
-  `;
-  const bootstrap = parseProfileBootstrap(html, "https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1048", "Fallback");
-  assert.equal(bootstrap.p_name, "진서");
-  assert.equal(bootstrap.endpoint, "ajax_women_record.php");
-});
-
-runTest("selectMode disables mix boards instead of choosing mix endpoint", () => {
-  const mode = selectMode("https://eloboard.com/women/bbs/board.php?bo_table=bj_m_list&wr_id=304");
-  assert.equal(mode.endpoint, null);
-  assert.equal(mode.disabled_reason, "mixed_match_collection_disabled");
-});
-
-// 옛 view_list.php는 여자부에서도 200을 주지만 낡은 스냅샷이다. 그걸 보던 헬스체크가
-// "정상"이라고 하는 동안 여자부 전체가 7월 이후 경기를 놓쳤다(2026-08 사고).
-runTest("selectMode sends women boards to the yearly ajax endpoint, men stay on view_list", () => {
-  const women = selectMode("https://eloboard.com/women/bbs/board.php?bo_table=bj_list&wr_id=1048");
-  assert.equal(women.endpoint, "ajax_women_record.php");
-  assert.equal(women.param, "bj_name");
-  assert.equal(women.boardBase, "https://eloboard.com/women/bbs");
-
-  const men = selectMode("https://eloboard.com/men/bbs/board.php?bo_table=bj_list&wr_id=22");
-  assert.equal(men.endpoint, "view_list.php");
-  assert.equal(men.param, "p_name");
-  assert.equal(men.boardBase, "https://eloboard.com/men/bbs");
-});
-
-runTest("countWomenRecordRows separates real rows from a header-only empty year", () => {
-  const head = `<table id="datatable_women"><thead><tr><th>날짜</th><th>상대</th></tr></thead><tbody>`;
-  const tail = `</tbody></table>`;
-  assert.equal(countWomenRecordRows(`${head}${tail}`), 0);
-  assert.equal(
-    countWomenRecordRows(
-      `${head}<tr><td>2026-08-16</td><td>휘연(P)</td><td>폴리포이드</td><td>-14.4</td><td>단판</td><td>휘연승</td></tr>${tail}`
-    ),
-    1
-  );
+runTest("pickSamplePlayers takes one active men and one active women sample", () => {
+  const samples = pickSamplePlayers([
+    { id: 1, division: "men", last_played_on: "2026-09-24" },
+    { id: 2, division: "men", last_played_on: "2026-09-24" },
+    { id: 3, division: "women", last_played_on: null },
+    { id: 4, division: "women", last_played_on: "2026-09-20" },
+  ]);
+  assert.deepEqual(samples.map((p) => p.id), [1, 4]);
 });
 
 runTest("formatMarkdown summarizes health checks", () => {
   const markdown = formatMarkdown({
-    ok: true,
-    generated_at: "2026-04-17T00:00:00.000Z",
-    sample_project_code: "dm",
+    ok: false,
+    generated_at: "2026-09-25T00:00:00.000Z",
     checks: {
-      team_index: { ok: true, url: "https://example.com/index", observed_team_count: 13 },
-      team_roster_page: { ok: true, team_name: "DM", player_count: 9 },
-      player_profile_page: { ok: true, profile_url: "https://example.com/player" },
-      player_paginated_history: { ok: true, url: "https://example.com/view_list.php" },
-      player_women_yearly_history: { ok: true, url: "https://example.com/ajax_women_record.php" },
+      player_list: { ok: true, player_count: 200 },
+      player_matches: {
+        ok: true,
+        samples: [{ ok: true, division: "men", player: "김지성", latest_played_on: "2026-09-24" }],
+      },
+      colleges: { ok: false, error: "source_outage: HTTP 500" },
     },
   });
 
-  assert.match(markdown, /Overall: ok/);
-  assert.match(markdown, /Sample Project: dm/);
-  assert.match(markdown, /Observed Teams: 13/);
-  assert.match(markdown, /History Endpoint: https:\/\/example.com\/view_list\.php/);
-  assert.match(markdown, /Player Women Yearly History: ok/);
-  assert.match(markdown, /Women History Endpoint: https:\/\/example.com\/ajax_women_record\.php/);
+  assert.match(markdown, /Overall: failed/);
+  assert.match(markdown, /Player List: ok/);
+  assert.match(markdown, /Players \(first page\): 200/);
+  assert.match(markdown, /Matches Sample \(men 김지성\): ok latest=2026-09-24/);
+  assert.match(markdown, /Colleges: failed/);
+  assert.match(markdown, /colleges error: source_outage: HTTP 500/);
 });

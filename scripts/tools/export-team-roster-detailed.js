@@ -7,6 +7,7 @@ const {
   loadOpponentIdentityDecisions,
   loadCollectionExclusions: loadLedgerCollectionExclusions,
 } = require("./lib/player-ledger");
+const { loadV2Resolver } = require("./lib/eloboard-v2");
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const REPORT_SCRIPT = path.join(ROOT, "scripts", "tools", "report-team-records.js");
@@ -509,6 +510,16 @@ async function main() {
     total_players: players.length,
   });
 
+  // 새 엘로보드 id 해석기(선수 목록 전체 조회는 날짜 키 캐시로 run당 한 번). 목록 조회가 실패하면
+  // 사이트 장애다 — 해석기 없이 진행하면 각 수집기가 SOURCE_OUTAGE로 실패해 회로 차단기가 연다.
+  // 여기서 죽으면 팀 export 전체가 실패해 기존 json 재사용 경로까지 막힌다.
+  let resolveV2 = null;
+  try {
+    resolveV2 = await loadV2Resolver();
+  } catch (error) {
+    console.log(`[WARN] eloboard v2 player list unavailable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
   let outageStreak = 0;
   let outageCircuitOpen = hasSourceOutageMarker(to);
   if (outageCircuitOpen) {
@@ -557,6 +568,22 @@ async function main() {
     // 동일인이면 대장에서 정정, 동명이인이면 무시하도록 사람이 확인한다.
     if (externalOpponentNames.has(normalizeName(playerName))) {
       result.opponent_name_overlap = true;
+    }
+
+    // 새 사이트 id로 연결되지 않은 선수는 실패가 아니다. 네트워크 없이 기존 파일을 그대로 두고
+    // 상위(run-daily)가 낮은 등급 경보로 이름을 올린다. fetch_fail로 세면 매일 반영이 막힌다.
+    if (resolveV2 && !resolveV2(String(p.entity_id || "").trim())) {
+      result.fetch_status = "skipped_unmapped_v2";
+      result.csv_path = expectedExportCsvPath(playerName, p);
+      result.csv_status = "used_existing_csv";
+      result.unmapped_v2 = true;
+      summary.results.push(result);
+      appendExportProgress(reportPath, "player_skipped_unmapped_v2", {
+        player: playerName,
+        entity_id: String(p.entity_id || ""),
+      });
+      console.log(`[SKIP] ${playerName} unmapped eloboard v2 id`);
+      continue;
     }
 
     // 회로가 열렸으면 더 두드리지 않는다. json_path는 그대로 둔다 — 기존 파일의 집계를

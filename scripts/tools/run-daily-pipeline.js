@@ -61,6 +61,13 @@ function isSourceOutageStatus(status) {
   return /_source_outage$/.test(String(status || ""));
 }
 
+// 엘로보드 새 사이트(2026-09 개편) id로 연결되지 않아 오늘 수집을 건너뛴 선수. 기존 파일을 그대로
+// 쓰므로 수집 실패(fetch_fail → critical)가 아니다. 대신 낮은 등급 경보로 이름을 올려 사람이
+// 대장(player_ledger)에 숲 ID나 eloboard_v2_id를 채우게 한다.
+function isUnmappedV2Status(status) {
+  return String(status || "") === "skipped_unmapped_v2";
+}
+
 function argValue(flag, fallback = null) {
   const idx = process.argv.indexOf(flag);
   if (idx >= 0 && process.argv[idx + 1]) return process.argv[idx + 1];
@@ -487,6 +494,10 @@ function summarizeTeamFromReport(team, report) {
     .filter((row) => row.opponent_name_overlap)
     .map((row) => String(row.player || ""))
     .filter(Boolean);
+  const unmappedV2Players = actionable
+    .filter((row) => isUnmappedV2Status(row.fetch_status))
+    .map((row) => String(row.player || ""))
+    .filter(Boolean);
   const fetchedPlayers = actionable.filter((row) => String(row.fetch_status || "") === "ok").length;
   const reusedPlayers = actionable.filter((row) =>
     [
@@ -534,7 +545,7 @@ function summarizeTeamFromReport(team, report) {
   const failures = [];
 
   for (const row of actionable) {
-    const fetchFail = !isFetchObserved(row.fetch_status);
+    const fetchFail = !isFetchObserved(row.fetch_status) && !isUnmappedV2Status(row.fetch_status);
     const csvFail = !["ok", "used_existing_csv"].includes(String(row.csv_status || ""));
     if (fetchFail || csvFail) {
       failures.push({
@@ -560,7 +571,8 @@ function summarizeTeamFromReport(team, report) {
     totalLosses += l;
     // 소스 장애로 못 읽은 선수의 기존 0건은 오늘의 관측이 아니다. 세면 장애 하나가
     // fetch_fail + zero_record 두 경보로 이중 계상된다.
-    if (t === 0 && !isSourceOutageStatus(row.fetch_status)) {
+    // 미연결 선수의 0건도 오늘의 관측이 아니다(미연결 경보가 따로 이름을 올린다).
+    if (t === 0 && !isSourceOutageStatus(row.fetch_status) && !isUnmappedV2Status(row.fetch_status)) {
       // 0건에 fetch_status를 붙여 판정부가 "관측된 0건"(경보 없음)과 "근거 없는 0건"(경보)을 구분한다.
       zeroPlayers.push(String(row.player || ""));
       zeroPlayersDetail.push({ name: String(row.player || ""), fetch_status: String(row.fetch_status || "") });
@@ -573,6 +585,8 @@ function summarizeTeamFromReport(team, report) {
     players: actionable.length,
     excluded_players: excludedPlayers.length,
     excluded_player_names: excludedPlayers.join(", "),
+    unmapped_v2_players: unmappedV2Players.length,
+    unmapped_v2_player_names: unmappedV2Players.join(", "),
     opponent_name_overlap_players: opponentNameOverlapPlayers.length,
     opponent_name_overlap_player_names: opponentNameOverlapPlayers.join(", "),
     fetched_players: fetchedPlayers,
@@ -839,7 +853,9 @@ function loadTeamRoster(team) {
 function recoverTeamAnomalies(team, report, from, to, concurrency) {
   const results = Array.isArray(report.results) ? report.results : [];
   const rosterByName = loadTeamRoster(team);
-  const targetRows = results.filter((row) => !row.excluded && getRowPeriodTotal(row) === 0);
+  const targetRows = results.filter(
+    (row) => !row.excluded && !isUnmappedV2Status(row.fetch_status) && getRowPeriodTotal(row) === 0
+  );
   if (!targetRows.length) {
     return {
       attempted: 0,
@@ -881,6 +897,8 @@ function recoverTeamAnomalies(team, report, from, to, concurrency) {
         String(rosterPlayer.gender || ""),
         "--tier",
         String(rosterPlayer.tier || ""),
+        "--entity-id",
+        String(rosterPlayer.entity_id || entityId),
         "--concurrency",
         concurrency,
       ], {
@@ -1002,6 +1020,20 @@ function buildAlerts(
           `(${row.opponent_name_overlap_player_names || "-"}) — ` +
           `이름이 상대선수 "외부인" 결정과 겹친다(수집은 계속된다). 동일인이면 선수 대장(player_ledger)의 ` +
           `opponent_identity_decisions에서 canonical_candidate로 정정, 동명이인이면 무시`,
+      });
+    }
+    const unmappedV2 = Number(row.unmapped_v2_players || 0);
+    if (unmappedV2 > 0) {
+      alerts.push({
+        // low 기본값: 서빙 동기화를 막지 않는다(blocking = critical/high). 아침 보고 판단 항목에는 뜬다.
+        severity: rules.unmapped_v2_players_severity || "low",
+        team: row.team,
+        team_code: row.team_code,
+        rule: "player_unmapped_v2",
+        message:
+          `player_unmapped_v2=${unmappedV2} (${row.unmapped_v2_player_names || "-"}) — ` +
+          `엘로보드 새 사이트 id를 못 찾아 오늘 수집을 건너뛰었다(기존 기록 유지). ` +
+          `선수 대장(player_ledger)에 soop_user_id 또는 eloboard_v2_id를 채우면 다음 수집부터 반영된다`,
       });
     }
     // 전체 정독(순환 검증) 결과가 기존 기록보다 적으면 조용한 삭제·정정 신호다. 회귀 가드가
@@ -1231,6 +1263,8 @@ async function main() {
       verify_mismatch_players: r.verify_mismatch_players,
       verify_mismatch_player_names: r.verify_mismatch_player_names,
       rebaselined_players: r.rebaselined_players,
+      unmapped_v2_players: r.unmapped_v2_players,
+      unmapped_v2_player_names: r.unmapped_v2_player_names,
       fetch_fail: r.fetch_fail,
       csv_fail: r.csv_fail,
       total_matches: r.total_matches,

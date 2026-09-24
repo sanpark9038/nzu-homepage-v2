@@ -20,6 +20,7 @@
     "homepage_integrity_report_max_age_minutes": 180,
     "no_new_matches_enabled": false,
     "no_new_matches_severity": "low",
-    "opponent_name_excluded_players_severity": "medium"
+    "opponent_name_excluded_players_severity": "medium",
+    "unmapped_v2_players_severity": "low"
   }
 }
