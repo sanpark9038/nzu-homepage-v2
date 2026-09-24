@@ -71,6 +71,11 @@ function toMatchRow(m, v2Id) {
   };
 }
 
+function isSelfMatch(m) {
+  const ids = (Array.isArray(m && m.participants) ? m.participants : []).map((p) => Number(p && p.player_id));
+  return ids.length >= 2 && ids.every((id) => id === ids[0]);
+}
+
 // 선수 목록이 "2025 이후 뛰었다"(last_played_on)고 하는데 0행이면 소스가 이상한 것이다.
 // 0건을 그대로 쓰면 상위가 기존 파일을 빈 결과로 덮는다 → 쓰지 않고 실패로 끝낸다.
 function isSourceAnomaly(lastPlayedOn, matchCount) {
@@ -81,11 +86,19 @@ function summarize(player, v2, rawMatches, pages) {
   const matches = [];
   const seen = new Set();
   let unknownOutcomeRows = 0;
+  let selfMatchRows = 0;
   for (const m of rawMatches) {
     // 같은 경기가 페이지 경계에서 두 번 올 수 있다(수집 중 새 경기가 올라오면 offset이 밀린다).
     if (seen.has(m.id)) continue;
     seen.add(m.id);
     if (!inRange(String(m.played_on || "").slice(0, 10))) continue;
+    // 엘로보드 입력 오류: 참가자가 전부 같은 선수(자기 자신과 붙은 경기)인 행이 있다
+    // (2026-09-25 실측 6명, 예: 졈니 vs 졈니 2025-08-27). 한 줄 때문에 선수 전체가 unknown
+    // 판정으로 실패해 반영이 막혔다 → 원본 오류로 보고 건너뛰되 개수는 남긴다.
+    if (isSelfMatch(m)) {
+      selfMatchRows += 1;
+      continue;
+    }
     const row = toMatchRow(m, v2.id);
     if (!row) {
       unknownOutcomeRows += 1;
@@ -122,6 +135,8 @@ function summarize(player, v2, rawMatches, pages) {
     period_max_date: dates[dates.length - 1] || null,
     pages_scanned: pages,
     unknown_outcome_rows: unknownOutcomeRows,
+    // 엘로보드 원본 오류(자기 자신과 붙은 경기)로 건너뛴 행 수. 0이 아니면 사이트 쪽 입력 실수다.
+    self_match_rows: selfMatchRows,
     validation,
     validation_pass: Object.values(validation).every(Boolean),
     scan_strategy: "full_scan",
@@ -205,6 +220,7 @@ module.exports = {
   buildNote,
   toMatchRow,
   isSourceAnomaly,
+  isSelfMatch,
   summarize,
   collectPlayer,
 };

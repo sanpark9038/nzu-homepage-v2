@@ -186,3 +186,26 @@ test("HTTP errors become SOURCE_OUTAGE after retries", async () => {
   );
   assert.equal(calls, 2);
 });
+
+// 2026-09-25 실측: 엘로보드에 "자기 자신과 붙은 경기"가 선수당 한 건씩 섞여 있었다(졈니 vs 졈니 등 6명).
+// 그 한 줄이 unknown으로 잡혀 선수 전체가 실패 → 반영이 통째로 막혔다. 건너뛰고 개수만 남긴다.
+test("summarize skips self-matches from the source instead of failing the whole player", () => {
+  const self = apiMatch({
+    id: 2782020,
+    played_on: "2025-08-27",
+    participants: [
+      { player_id: 277, name: "안아", race: "P", result: "win" },
+      { player_id: 277, name: "안아", race: "P", result: "loss" },
+    ],
+  });
+  const rec = summarize(
+    { name: "안아" },
+    { id: 277, via: "soop_id", player: { last_played_on: "2026-09-11" } },
+    [apiMatch(), self],
+    1
+  );
+  assert.equal(rec.period_total, 1);
+  assert.equal(rec.self_match_rows, 1);
+  assert.equal(rec.unknown_outcome_rows, 0);
+  assert.equal(rec.validation_pass, true);
+});
